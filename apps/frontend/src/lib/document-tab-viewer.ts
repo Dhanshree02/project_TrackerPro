@@ -1,4 +1,4 @@
-import { getRepositoryPreviewUrl, type RepositoryItem } from "@/lib/api/repository";
+import { getRepositoryPreviewUrl, type RepositoryItem } from "@/modules/repository/api/repository";
 
 /**
  * Opens any repository document (PDF, Word, Excel, PPT, Image, Text)

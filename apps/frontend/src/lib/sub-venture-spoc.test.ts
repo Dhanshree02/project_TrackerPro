@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ApiClient } from "@/lib/api/clients";
+import type { ApiClient } from "@/modules/customers/api/clients";
 import type { Client } from "@/lib/domain-models";
 
 const fetchClientForRoute = vi.fn<(id: string) => Promise<ApiClient | null>>();

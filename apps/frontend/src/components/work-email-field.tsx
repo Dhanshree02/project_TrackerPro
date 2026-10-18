@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
-import type { ApiMetaOption } from "@/lib/api/employees";
+import type { ApiMetaOption } from "@/modules/employees/api/employees";
 
 interface WorkEmailFieldProps {
   label?: string;

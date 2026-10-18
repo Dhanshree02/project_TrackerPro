@@ -1,5 +1,5 @@
-import type { ApiEmployeeListItem } from "@/lib/api/employees";
-import { fetchAllEmployees } from "@/lib/api/employees";
+import type { ApiEmployeeListItem } from "@/modules/employees/api/employees";
+import { fetchAllEmployees } from "@/modules/employees/api/employees";
 import { apiFetch } from "@/lib/api-client";
 import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import type { DemoPersona } from "@/lib/user-personas";

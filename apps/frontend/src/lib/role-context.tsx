@@ -6,8 +6,8 @@ import {
   people,
   issues,
 } from "@/lib/domain-models";
-import { fetchClients, mapApiClient } from "@/lib/api/clients";
-import { fetchProjects, mapApiProjectToProject } from "@/lib/api/projects";
+import { fetchClients, mapApiClient } from "@/modules/customers/api/clients";
+import { fetchProjects, mapApiProjectToProject } from "@/modules/projects/api/projects";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { RBAC_STORAGE_KEY, permissionsForRole, type PermissionKey } from "@/lib/rbac";

@@ -4,7 +4,7 @@ import {
   fetchDesignationOptions,
   fetchEmployees,
   type ApiEmployeeListItem,
-} from "@/lib/api/employees";
+} from "@/modules/employees/api/employees";
 
 export const SALES_MANAGER_DESIGNATIONS = [
   "Business Development Associate - I",

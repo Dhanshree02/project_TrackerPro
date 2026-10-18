@@ -3,7 +3,7 @@
  *
  * The authoritative SPOC data lives on the `sub_ventures` rows in Postgres.
  */
-import type { ApiClientContact } from "@/lib/api/clients";
+import type { ApiClientContact } from "@/modules/customers/api/clients";
 import { fetchClientForRoute } from "@/lib/client-route-id";
 import { allClients } from "@/lib/workspace-store";
 

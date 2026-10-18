@@ -1,0 +1,1039 @@
+import { Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { createPortal } from "react-dom";
+import {
+  LayoutGrid,
+  List,
+  Search,
+  ArrowRight,
+  Calendar,
+  Plus,
+  X,
+  ChevronRight,
+  Check,
+  Trash2,
+  Calculator,
+  FileText,
+  Clock,
+  User,
+} from "lucide-react";
+import { toast } from "sonner";
+import { AppShell } from "@/components/app-shell";
+import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
+import { dhStore, useDhStore } from "@/lib/workspace-store";
+import { fetchProjectDrafts, deleteProjectDraft, type ProjectDraftListDto } from "@/modules/projects/api/project-drafts";
+import { fetchProjects, type ApiProject } from "@/modules/projects/api/projects";
+import { fetchClients, mapApiClient, type ApiClient } from "@/modules/customers/api/clients";
+import { fetchEmployees } from "@/modules/employees/api/employees";
+import { type Project, type Client, people, type Person, getPerson } from "@/lib/domain-models";
+import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
+import { isRenewedProject } from "@/lib/project-renewal";
+import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/project-helpers";
+import { cn } from "@/lib/utils";
+import { useDraggable } from "@/hooks/use-draggable";
+
+const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
+type Tab = (typeof tabs)[number];
+
+export function ProjectsListPage() {
+  const { isDhanshree, isEmployee, assignedProjects } = useRoleContext();
+  const { hasPermission } = usePermissions();
+  const navigate = useNavigate();
+  const [tab, setTab] = useState<Tab>("Active Projects");
+  const [view, setViewState] = useState<"card" | "list">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("projects-view-mode");
+      if (saved === "card" || saved === "list") return saved;
+    }
+    return "card";
+  });
+
+  const setView = (v: "card" | "list") => {
+    setViewState(v);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("projects-view-mode", v);
+    }
+  };
+  const [q, setQ] = useState("");
+  const [draftsOpen, setDraftsOpen] = useState(false);
+  const [backendDrafts, setBackendDrafts] = useState<ProjectDraftListDto[]>([]);
+  const [draftsLoaded, setDraftsLoaded] = useState(false);
+  const [loadingDrafts, setLoadingDrafts] = useState(false);
+  const [draftSearch, setDraftSearch] = useState("");
+
+  const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
+  const leadershipAssignments = useDhStore((s) => s.leadershipAssignments);
+  const prereqs = useDhStore((s) => s.prereqs);
+
+  const loadDrafts = async (searchQuery?: string) => {
+    setLoadingDrafts(true);
+    try {
+      const res = await fetchProjectDrafts({
+        perPage: 100,
+        search: searchQuery !== undefined ? searchQuery : draftSearch,
+      });
+      setBackendDrafts(res?.items ?? []);
+      setDraftsLoaded(true);
+    } catch (e) {
+      console.warn("Failed to load drafts from the database:", e);
+      setDraftsLoaded(false);
+    } finally {
+      setLoadingDrafts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDrafts();
+  }, [draftsOpen]);
+
+  const drafts = draftsLoaded ? backendDrafts : [];
+
+  async function handleDeleteDraft(draftId: string) {
+    try {
+      await deleteProjectDraft(draftId);
+      toast.success("Draft deleted");
+      loadDrafts();
+    } catch {
+      toast.error("Could not delete the draft from the database");
+    }
+  }
+
+  // Live database records only — no mock data
+  const [dbProjects, setDbProjects] = useState<ApiProject[]>([]);
+  const [dbClients, setDbClients] = useState<ApiClient[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    setLoadError(null);
+
+    Promise.all([
+      fetchProjects({ perPage: 500 }),
+      fetchClients(1, 200),
+      fetchEmployees({ perPage: 200 }),
+    ])
+      .then(([projRes, clientRes, empRes]) => {
+        if (!active) return;
+        if (projRes?.items) {
+          setDbProjects(projRes.items);
+        } else {
+          setDbProjects([]);
+        }
+        if (clientRes) {
+          setDbClients(clientRes);
+        }
+        if (empRes?.items) {
+          const mapped = empRes.items.map((e) => ({
+            id: e.id,
+            name: e.fullName,
+            role: e.designation || e.role || "Employee",
+            avatar: e.avatarUrl || e.fullName.slice(0, 2).toUpperCase(),
+            email: e.workEmail || "",
+          }));
+          dhStore.registerPeople(mapped);
+          const codeMapped = empRes.items
+            .filter((e) => e.employeeCode)
+            .map((e) => ({
+              id: e.employeeCode!,
+              name: e.fullName,
+              role: e.designation || e.role || "Employee",
+              avatar: e.avatarUrl || e.fullName.slice(0, 2).toUpperCase(),
+              email: e.workEmail || "",
+            }));
+          if (codeMapped.length > 0) {
+            dhStore.registerPeople(codeMapped);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!active) return;
+        setDbProjects([]);
+        const message =
+          err instanceof Error && err.message
+            ? err.message
+            : "Could not load projects from the API. Is the backend running on port 5194?";
+        setLoadError(message);
+        toast.error("Projects failed to load", { description: message });
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [extraCount]);
+
+  const clients = useMemo(() => {
+    return dbClients.map(mapApiClient);
+  }, [dbClients]);
+
+  const projects = useMemo(() => {
+    return dbProjects.map((p) => {
+      const renewedFromProjId = p.renewedFromProjectId ?? undefined;
+      const renewedFromWbs = p.renewedFromWbsId ?? undefined;
+      const isRenewalVal = Boolean(
+        renewedFromProjId ||
+        renewedFromWbs ||
+        p.renewedFromProjectId ||
+        p.renewedFromWbsId
+      );
+
+      return {
+        id: p.id,
+        name: p.name,
+        clientId: p.clientId,
+        wbsId: p.wbsId ?? undefined,
+        subVenture: p.subVentureName ?? undefined,
+        status: (p.status as any) || "ongoing",
+        health: (p.health as any) || "green",
+        progress: p.progress ?? 0,
+        pmId: p.projectManagerId ?? "",
+        tlId: p.teamLeadId ?? "",
+        teamIds: [],
+        startDate: p.startDate ?? "",
+        endDate: p.endDate ?? "",
+        budget: Number(p.budget) || 0,
+        spent: Number(p.spent) || 0,
+        description: p.description ?? "",
+        wbs: [],
+        tasks: [],
+        engagementManager: p.engagementManager ?? undefined,
+        salesPerson: p.salesPerson ?? undefined,
+        contractType: p.contractType ?? undefined,
+        projectType: p.projectType ?? undefined,
+        currency: p.currency ?? "INR",
+        taxPercent: p.taxPercent ?? 18,
+        totalHours: Number(p.totalHours) || 0,
+        totalDays: Number(p.totalDays) || 0,
+        invoiceValue: Number(p.invoiceValue) || 0,
+        projectSeqId: p.projectCode ?? undefined,
+        renewedFromProjectId: renewedFromProjId,
+        renewedFromWbsId: renewedFromWbs,
+        isRenewal: isRenewalVal,
+        projectManagerId: p.projectManagerId ?? undefined,
+        projectManagerName: p.projectManagerName ?? undefined,
+        projectManagers: p.projectManagers ?? [],
+        seniorProjectManagers: p.seniorProjectManagers ?? [],
+        teamLeads: p.teamLeads ?? [],
+        teamLeadId: p.teamLeadId ?? undefined,
+        teamLeadName: p.teamLeadName ?? undefined,
+        seniorProjectManager: undefined,
+      } as Project;
+    });
+  }, [dbProjects]);
+
+  const visible = useMemo(() => {
+    const assignedIds = new Set(assignedProjects.map((p) => p.id));
+    return projects.filter((p) => {
+      // Extra WBS-created projects are not in the static assignment list.
+      if (!assignedIds.has(p.id) && !isDhanshree && dbProjects.length === 0) return false;
+      const isArchived =
+        p.status === "completed" || p.status === "archived" || (p.status as any) === "Archived";
+      if (tab === "Active Projects" && isArchived) return false;
+      if (tab === "Archived Projects" && !isArchived) return false;
+      if (!q.trim()) return true;
+      const c = clients.find((c) => c.id === p.clientId);
+      return [p.name, c?.name ?? "", p.description].some((v) =>
+        v.toLowerCase().includes(q.toLowerCase()),
+      );
+    });
+  }, [tab, q, projects, clients, assignedProjects, isDhanshree, dbProjects.length]);
+
+  if (!isDhanshree && !hasPermission("projects.view")) return <Navigate to="/" />;
+
+  const priorities: Array<"low" | "medium" | "high" | "critical"> = [
+    "high",
+    "medium",
+    "critical",
+    "medium",
+    "high",
+    "low",
+    "medium",
+    "high",
+    "critical",
+  ];
+
+  return (
+    <AppShell title="Projects" subtitle="Active, archived and all projects across your portfolio">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
+          {tabs.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                "rounded-md px-3 py-1.5 font-medium",
+                tab === t
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        <div className="relative max-w-xs flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search project or customer…"
+            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {/* Drafts button — hidden for Employees (no project creation) */}
+          {!isEmployee && (
+            <button
+              onClick={() => setDraftsOpen(true)}
+              className={cn(
+                "relative inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent",
+                draftsOpen && "bg-accent",
+              )}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Drafts
+              {drafts.length > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-warning/80 px-1 text-[10px] font-bold text-white">
+                  {drafts.length}
+                </span>
+              )}
+            </button>
+          )}
+          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
+            <button
+              onClick={() => setView("card")}
+              aria-label="Grid view"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
+                view === "card"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
+            </button>
+            <button
+              onClick={() => setView("list")}
+              aria-label="List view"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
+                view === "list"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <List className="h-3.5 w-3.5" /> List
+            </button>
+          </div>
+          {hasPermission("projects.create") && (
+            <button
+              onClick={() => navigate({ to: "/projects/new" })}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
+            >
+              <Plus className="h-4 w-4" /> New Project
+            </button>
+          )}
+        </div>
+      </div>
+
+      {isLoading ? (
+        view === "card" ? (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm animate-pulse h-56"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-muted" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-1/3 bg-muted rounded" />
+                    <div className="h-4 w-3/4 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="space-y-2 mt-4">
+                  <div className="h-2 bg-muted rounded" />
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="h-3 bg-muted rounded" />
+                    <div className="h-3 bg-muted rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm p-4">
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="h-10 bg-muted/60 rounded animate-pulse" />
+              ))}
+            </div>
+          </div>
+        )
+      ) : loadError ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center space-y-2">
+          <p className="text-sm font-semibold text-destructive">Could not load projects from the database</p>
+          <p className="text-xs text-muted-foreground max-w-lg mx-auto">{loadError}</p>
+          <p className="text-xs text-muted-foreground">
+            Start the API with <code className="rounded bg-muted px-1">dotnet run --project apps/backend/PMS.API.csproj --urls http://localhost:5194</code> against local Postgres, then refresh.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-2 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Retry
+          </button>
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          No projects found in the database for this filter.
+        </div>
+      ) : view === "card" ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {visible.map((p, i) => {
+            const client = clients.find((c) => c.id === p.clientId) ?? {
+              id: p.clientId,
+              name: "Client",
+              logo: (p.name || "P").slice(0, 2).toUpperCase(),
+              industry: "General",
+              status: "active" as const,
+              health: "green" as const,
+              projectCount: 1,
+              totalRevenue: 0,
+              accountManagerId: "u1",
+            };
+            const clientLogo = client.logo || (client.name || "P").slice(0, 2).toUpperCase();
+            const ems = getCardEMs(p);
+            const spms = getCardSPMs(p, leadershipAssignments, prereqs);
+            const pms = getCardPMs(p, leadershipAssignments, prereqs);
+            const tls = getCardTLs(p);
+            return (
+              <article
+                key={p.id}
+                onClick={() =>
+                  navigate({ to: "/projects/$projectId", params: { projectId: p.id } })
+                }
+                className="group flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/50 hover:shadow-md cursor-pointer"
+              >
+                <div>
+                  <header className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-sm font-semibold text-primary-foreground group-hover:scale-105 transition-transform">
+                      {clientLogo}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground truncate">
+                          <span className="font-mono">{p.projectSeqId || p.id.toUpperCase()}</span>
+                          <span>•</span>
+                          <span className="truncate">{client.name || "Client"}</span>
+                        </div>
+                        {isRenewedProject(p) && <RenewedProjectTag className="shrink-0" />}
+                      </div>
+                      <div className="truncate text-sm font-semibold group-hover:text-primary transition-colors mt-0.5">
+                        {p.name}
+                      </div>
+                    </div>
+                  </header>
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    <HealthPill status={p.health} />
+                    <StatusPill status={p.status} />
+                    <PriorityPill priority={priorities[i % priorities.length]} />
+                  </div>
+                  <div className="mt-3">
+                    <div className="mb-1 flex justify-between text-[11px] tabular-nums text-muted-foreground">
+                      <span>Progress</span>
+                      <span>{p.progress}%</span>
+                    </div>
+                    <ProgressBar value={p.progress} />
+                  </div>
+                  <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground">Start</dt>
+                      <dd className="font-medium tabular-nums">
+                        {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">End</dt>
+                      <dd className="font-medium tabular-nums">
+                        {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground truncate">Engagement Manager</dt>
+                      <dd className="mt-0.5">
+                        <PeopleSummary list={ems} emptyText="Not Assigned" />
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground truncate">Senior Project Manager</dt>
+                      <dd className="mt-0.5">
+                        <PeopleSummary list={spms} emptyText="Not Assigned" />
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground truncate">Project Manager</dt>
+                      <dd className="mt-0.5">
+                        <PeopleSummary list={pms} emptyText="Not Assigned" />
+                      </dd>
+                    </div>
+                    <div className="min-w-0">
+                      <dt className="text-muted-foreground truncate">Team Lead</dt>
+                      <dd className="mt-0.5">
+                        <PeopleSummary list={tls} emptyText="Not Assigned" />
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </article>
+            );
+          })}
+          {visible.length === 0 && (
+            <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
+              No projects in this view
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium">Project ID</th>
+                <th className="px-3 py-2 font-medium">Project</th>
+                <th className="px-3 py-2 font-medium">Customer</th>
+                <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-3 py-2 font-medium">Progress</th>
+                <th className="px-3 py-2 font-medium">Start</th>
+                <th className="px-3 py-2 font-medium">End</th>
+                <th className="px-3 py-2 font-medium">Engagement Mgr</th>
+                <th className="px-3 py-2 font-medium">Project Mgr</th>
+                <th className="px-3 py-2 font-medium">Team Lead</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {visible.map((p) => {
+                const client = clients.find((c) => c.id === p.clientId) ?? {
+                  id: p.clientId,
+                  name: "Client",
+                  logo: (p.name || "P").slice(0, 2).toUpperCase(),
+                  industry: "General",
+                  status: "active" as const,
+                  health: "green" as const,
+                  projectCount: 1,
+                  totalRevenue: 0,
+                  accountManagerId: "u1",
+                };
+                const ems = getCardEMs(p);
+                const pms = getCardPMs(p, leadershipAssignments, prereqs);
+                const tls = getCardTLs(p);
+                return (
+                  <tr
+                    key={p.id}
+                    className="hover:bg-accent/50 transition-colors"
+                  >
+                    <td className="px-3 py-2.5 font-mono text-xs text-muted-foreground font-medium">
+                      {p.projectSeqId || p.id.toUpperCase()}
+                    </td>
+                    <td className="px-3 py-2.5 font-medium">
+                      <div className="flex flex-col items-start gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate({ to: "/projects/$projectId", params: { projectId: p.id } })
+                          }
+                          className="text-left font-medium text-foreground hover:text-primary hover:underline transition-colors cursor-pointer"
+                        >
+                          {p.name}
+                        </button>
+                        {isRenewedProject(p) && <RenewedProjectTag />}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{client.name || "Client"}</td>
+                    <td className="px-3 py-2.5">
+                      <StatusPill status={p.status} />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <ProgressBar value={p.progress} className="w-24" />
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {p.progress}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
+                      {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
+                      {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <PeopleSummary list={ems} />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <PeopleSummary list={pms} />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <PeopleSummary list={tls} emptyText="Not Assigned" />
+                    </td>
+                  </tr>
+                );
+              })}
+              {visible.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                    No projects in this view
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* New Project navigates to /projects/new (full WBS form) */}
+
+      {/* ── Drafts panel ── */}
+      {draftsOpen && typeof document !== "undefined" && createPortal(
+        <div
+          className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-[2px] transition-all duration-200"
+          onClick={() => setDraftsOpen(false)}
+        >
+          <aside
+            className="flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-2xl animate-in slide-in-from-right duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex flex-col gap-2.5 border-b border-border px-4 py-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    Saved Drafts
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    {drafts.length} shared draft{drafts.length !== 1 ? "s" : ""} available
+                  </p>
+                </div>
+                <button
+                  onClick={() => setDraftsOpen(false)}
+                  className="rounded-md p-1.5 hover:bg-accent text-muted-foreground hover:text-foreground"
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={draftSearch}
+                  onChange={(e) => {
+                    setDraftSearch(e.target.value);
+                    loadDrafts(e.target.value);
+                  }}
+                  placeholder="Search drafts by project or client…"
+                  className="h-8 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="flex-1 overflow-y-auto">
+              {loadingDrafts && drafts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <p className="text-xs text-muted-foreground">Loading drafts from database…</p>
+                </div>
+              ) : drafts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                  <FileText className="h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">No drafts found</p>
+                  <p className="text-xs text-muted-foreground">
+                    Use "Save Draft" in Project Onboarding to save shared work
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {drafts.map((d) => (
+                    <li key={d.id} className="group px-4 py-3 hover:bg-accent/40 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{d.projectName}</p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                            {d.clientName && (
+                              <span className="flex items-center gap-1 font-medium text-foreground/80">
+                                <User className="h-3 w-3" />
+                                {d.clientName}
+                              </span>
+                            )}
+                            {d.salesPerson && (
+                              <span className="flex items-center gap-1">
+                                · Sales: {d.salesPerson}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {d.updatedByName
+                              ? `Updated by ${d.updatedByName}`
+                              : `Created by ${d.createdByName}`} ·{" "}
+                            {new Date(d.updatedAtUtc || d.createdAtUtc).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 flex-col gap-1.5">
+                          <button
+                            onClick={() => {
+                              setDraftsOpen(false);
+                              navigate({ to: "/projects/new", search: { draftId: d.id } as any });
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90"
+                          >
+                            <ArrowRight className="h-3 w-3" /> Open
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDraft(d.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-3 w-3" /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </aside>
+        </div>,
+        document.body,
+      )}
+    </AppShell>
+  );
+}
+
+function resolvePerson(idOrName?: string | null): Person | null {
+  if (!idOrName) return null;
+  const trimmed = idOrName.trim();
+  if (!trimmed || trimmed === "—" || trimmed.toLowerCase() === "not assigned") return null;
+
+  // 1. Try resolving via getPerson (which checks knownPeople, registered DB employees, and static people)
+  const resolved = getPerson(trimmed);
+  if (resolved && resolved.id !== "unknown" && resolved.name && resolved.name !== trimmed) {
+    return resolved;
+  }
+
+  // 2. Direct match in static mock people by ID, name, or email
+  const found = people.find(
+    (p) =>
+      p.id === trimmed ||
+      p.name.toLowerCase() === trimmed.toLowerCase() ||
+      (p.email && p.email.toLowerCase() === trimmed.toLowerCase()),
+  );
+  if (found) return found;
+
+  // 3. If trimmed is a pure numeric ID (e.g. "1", "2"), GUID, or code that failed resolution,
+  // do NOT display the raw number/code as a person's name!
+  const isPureNumber = /^\d+$/.test(trimmed);
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed);
+  const isIdCode = /^(TK|TKI|EMP|u)[-_]?\d+$/i.test(trimmed);
+  if (isPureNumber || isGuid || isIdCode) {
+    return null;
+  }
+
+  // 4. Otherwise, trimmed is an actual readable name (e.g. "Dhanshree Pansare", "Arjun Mehta")
+  return {
+    id: trimmed,
+    name: trimmed,
+    role: "User",
+    avatar: trimmed.slice(0, 2).toUpperCase(),
+    email: "",
+  };
+}
+
+function getCardEMs(p: Project): Person[] {
+  const name = p.engagementManager?.trim();
+  if (!name) return [];
+  const em = resolvePerson(name);
+  return em ? [em] : [];
+}
+
+function assigneesToPeople(
+  list: { employeeId: string; name: string }[] | undefined,
+  role: string,
+): Person[] | null {
+  if (!Array.isArray(list)) return null;
+  return list
+    .filter((person) => person.employeeId && person.name?.trim())
+    .map((person) => ({
+      id: person.employeeId,
+      name: person.name.trim(),
+      role,
+      avatar: person.name.trim().slice(0, 2).toUpperCase(),
+      email: "",
+    }));
+}
+
+function getCardSPMs(
+  p: Project,
+  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
+  prereqs: Record<string, any>,
+): Person[] {
+  const fromProject = assigneesToPeople(p.seniorProjectManagers, "Senior Project Manager");
+  if (fromProject) return fromProject;
+  if (p.seniorProjectManager?.trim()) {
+    const spm = resolvePerson(p.seniorProjectManager);
+    if (spm) return [spm];
+  }
+  const la = leadershipAssignments[p.id];
+  if (la?.spmIds && Array.isArray(la.spmIds) && la.spmIds.length > 0) {
+    const list = la.spmIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  const pr = prereqs[p.id];
+  if (pr?.assignedSpmIds && Array.isArray(pr.assignedSpmIds) && pr.assignedSpmIds.length > 0) {
+    const list = pr.assignedSpmIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  return [];
+}
+
+function getCardPMs(
+  p: Project,
+  leadershipAssignments: Record<string, { emIds?: string[]; spmIds?: string[]; pmIds?: string[]; tlIds?: string[] }>,
+  prereqs: Record<string, any>,
+): Person[] {
+  const fromProject = assigneesToPeople(p.projectManagers, "Project Manager");
+  if (fromProject) return fromProject;
+  // 1. If backend provided a real projectManagerName directly, use it
+  if (p.projectManagerName?.trim()) {
+    const fromName = resolvePerson(p.projectManagerName);
+    if (fromName) return [fromName];
+  }
+  // 2. Active leadership assignment from store
+  const la = leadershipAssignments[p.id];
+  if (la?.pmIds && Array.isArray(la.pmIds) && la.pmIds.length > 0) {
+    const list = la.pmIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  // 3. Prereq assigned PMs
+  const pr = prereqs[p.id];
+  if (pr?.assignedPmIds && Array.isArray(pr.assignedPmIds) && pr.assignedPmIds.length > 0) {
+    const list = pr.assignedPmIds.map(resolvePerson).filter(Boolean) as Person[];
+    if (list.length > 0) return list;
+  }
+  // 4. Fallback to projectManagerId or pmId
+  const pm = resolvePerson(p.projectManagerId || p.pmId);
+  return pm ? [pm] : [];
+}
+
+function getCardTLs(p: Project): Person[] {
+  const fromProject = assigneesToPeople(p.teamLeads, "Team Lead");
+  if (fromProject) return fromProject;
+  if (p.teamLeadName?.trim()) {
+    const fromName = resolvePerson(p.teamLeadName);
+    if (fromName) return [fromName];
+  }
+  return [];
+}
+
+function PeopleSummary({
+  list,
+  emptyText = "—",
+}: {
+  list: Person[];
+  emptyText?: string;
+}) {
+  if (!list || list.length === 0) {
+    return <span className="text-muted-foreground text-xs font-normal">{emptyText}</span>;
+  }
+  const s = formatPeopleSummary(list);
+  if (!s.primary || s.primary === "—") {
+    return <span className="text-muted-foreground text-xs font-normal">{emptyText}</span>;
+  }
+  return (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <Avatar name={list[0].name} size={18} />
+      <span className="truncate text-xs font-medium">{s.primary}</span>
+      {s.more > 0 && (
+        <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground shrink-0">
+          +{s.more}
+        </span>
+      )}
+    </div>
+  );
+}
+
+let modalScrollLocks = 0;
+let lockedScrollX = 0;
+let lockedScrollY = 0;
+let scrollLockHandler: (() => void) | null = null;
+
+function lockPageScroll() {
+  modalScrollLocks += 1;
+  if (modalScrollLocks !== 1) return;
+  // Keep the document in normal flow. Pinning the page or hiding overflow on
+  // <html> unsticks the sidebar and shifts it up by the current scroll.
+  lockedScrollX = window.scrollX;
+  lockedScrollY = window.scrollY;
+  scrollLockHandler = () => {
+    if (window.scrollX !== lockedScrollX || window.scrollY !== lockedScrollY) {
+      window.scrollTo(lockedScrollX, lockedScrollY);
+    }
+  };
+  window.addEventListener("scroll", scrollLockHandler);
+}
+
+function unlockPageScroll() {
+  modalScrollLocks = Math.max(0, modalScrollLocks - 1);
+  if (modalScrollLocks !== 0) return;
+  if (scrollLockHandler) {
+    window.removeEventListener("scroll", scrollLockHandler);
+    scrollLockHandler = null;
+  }
+}
+
+export function Modal({
+  title,
+  children,
+  onClose,
+  wide,
+  extraWide,
+  portal,
+  fullScreen,
+  draggable,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+  wide?: boolean;
+  extraWide?: boolean;
+  portal?: boolean;
+  fullScreen?: boolean;
+  draggable?: boolean;
+}) {
+  const { containerRef, handleRef } = useDraggable();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    lockPageScroll();
+    const panel = panelRef.current;
+    const isScrollableY = (el: HTMLElement) => {
+      const overflowY = window.getComputedStyle(el).overflowY;
+      return (overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight + 1;
+    };
+    // Walk the full ancestor chain so nested overlays (KYC preview, combobox lists)
+    // can still scroll even when they sit outside this modal panel.
+    const nearestScrollable = (start: Node | null): HTMLElement | null => {
+      let el: HTMLElement | null =
+        start instanceof HTMLElement ? start : start?.parentElement ?? null;
+      while (el && el !== document.body && el !== document.documentElement) {
+        if (isScrollableY(el)) return el;
+        el = el.parentElement;
+      }
+      return null;
+    };
+    const stopPageScroll = (e: Event) => {
+      const target = e.target as Node | null;
+      const targetEl = target instanceof HTMLElement ? target : target?.parentElement ?? null;
+      // PDF/iframe previews handle their own wheel; don't steal those events.
+      if (targetEl?.closest("iframe")) return;
+      const scroller =
+        nearestScrollable(target) ??
+        (panel && panel.contains(target) && isScrollableY(panel) ? panel : null);
+      if (scroller) {
+        if (!(e instanceof WheelEvent)) return;
+        const atTop = scroller.scrollTop <= 0 && e.deltaY < 0;
+        const atBottom =
+          scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 1 && e.deltaY > 0;
+        if (!atTop && !atBottom) return;
+      }
+      e.preventDefault();
+    };
+    document.addEventListener("wheel", stopPageScroll, { passive: false });
+    document.addEventListener("touchmove", stopPageScroll, { passive: false });
+    return () => {
+      document.removeEventListener("wheel", stopPageScroll);
+      document.removeEventListener("touchmove", stopPageScroll);
+      unlockPageScroll();
+    };
+  }, []);
+
+  const overlay = (
+    <div
+      className={cn(
+        "fixed inset-0 flex items-center justify-center overscroll-none",
+        portal ? "z-[100]" : "z-50",
+        fullScreen ? "bg-background p-0" : portal ? "bg-black/50 p-4 backdrop-blur-[1px]" : "bg-black/40 p-4",
+      )}
+      onClick={!fullScreen && !draggable ? onClose : undefined}
+      onWheel={(e) => {
+        if (e.target === e.currentTarget) e.preventDefault();
+      }}
+    >
+      <div
+        ref={(node) => {
+          panelRef.current = node;
+          if (draggable) containerRef.current = node;
+        }}
+        className={cn(
+          "overflow-y-auto overscroll-contain bg-card flex flex-col",
+          fullScreen
+            ? "w-full h-full rounded-none shadow-none"
+            : "max-h-[90vh] w-full rounded-xl shadow-xl",
+          !fullScreen && extraWide ? "max-w-[1180px]" : !fullScreen && wide ? "max-w-3xl" : !fullScreen ? "max-w-lg" : "",
+        )}
+        style={draggable ? { willChange: "transform" } : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header
+          ref={draggable ? (handleRef as React.RefObject<HTMLElement>) : undefined}
+          className={cn(
+            "sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-5 py-4",
+            draggable && "select-none",
+          )}
+          style={draggable ? { touchAction: "none" } : undefined}
+        >
+          {draggable && (
+            <span className="mr-1 text-muted-foreground/50 shrink-0" title="Drag to move">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <circle cx="5" cy="4" r="1.4" />
+                <circle cx="11" cy="4" r="1.4" />
+                <circle cx="5" cy="8" r="1.4" />
+                <circle cx="11" cy="8" r="1.4" />
+                <circle cx="5" cy="12" r="1.4" />
+                <circle cx="11" cy="12" r="1.4" />
+              </svg>
+            </span>
+          )}
+          <h2 className="flex-1 text-lg font-semibold">{title}</h2>
+          <button onClick={onClose} className="rounded-md p-1.5 hover:bg-accent" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
+        </header>
+        <div className={cn("flex-1 p-6", fullScreen ? "mx-auto w-full max-w-5xl" : "")}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (portal && typeof document !== "undefined") return createPortal(overlay, document.body);
+  return overlay;
+}

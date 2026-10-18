@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api-client";
-import { fetchAllEmployees, fetchJobRoleOptions } from "@/lib/api/employees";
+import { fetchAllEmployees, fetchJobRoleOptions } from "@/modules/employees/api/employees";
 import { uniqueOnFloorRoleLabels } from "@/lib/on-floor-role";
 import { attendanceMeta } from "@/modules/my-team/constants";
 import type {

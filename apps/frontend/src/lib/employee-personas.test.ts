@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ApiEmployeeListItem } from "@/lib/api/employees";
+import type { ApiEmployeeListItem } from "@/modules/employees/api/employees";
 import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import {
   employeeListItemToPersona,

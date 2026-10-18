@@ -1,0 +1,2692 @@
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  LayoutGrid,
+  List,
+  Search,
+  ArrowRight,
+  X,
+  Building2,
+  Plus,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Check,
+  UserRound,
+  Eye,
+  Download,
+  Info,
+  FileText,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
+  MapPin,
+  Users,
+  Briefcase,
+  ShieldCheck,
+} from "lucide-react";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { AppShell } from "@/components/app-shell";
+import { useRoleContext } from "@/lib/role-context";
+import { type Client, type ClientSubVenture, type Project } from "@/lib/domain-models";
+import { fetchProjects, mapApiProjectToProject } from "@/modules/projects/api/projects";
+import {
+  createClient,
+  fetchClients,
+  mapApiClient,
+  updateClient,
+  uploadSubVentureKyc,
+  formatCustomerId,
+  fetchNextClientCode,
+  registerClientCode,
+  getSubVentureKycUrl,
+  type CreateClientInput,
+} from "@/modules/customers/api/clients";
+import { fetchCities, fetchContactDesignations, fetchContactTypes, fetchCountries, fetchIndustries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
+import { useAuth } from "@/lib/auth-context";
+import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
+import { Modal } from "@/modules/projects/pages/projects-list-page";
+import { KycDocPreviewModal } from "@/modules/customers/components/kyc-preview-modal";
+import { Field } from "@/components/form-row";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
+import { dhStore, useDhStore } from "@/lib/workspace-store";
+import { categorizeClientProjects } from "@/lib/client-project-counts";
+import { cn } from "@/lib/utils";
+import {
+  FIELD_MAX,
+  emailError,
+  fieldInputCls,
+  toEmailInput,
+} from "@/lib/form-validation";
+import { useEngagementManagers } from "@/lib/engagement-managers";
+import { useSalesManagers } from "@/lib/sales-managers";
+
+type CustomerListSortKey =
+  | "name"
+  | "industry"
+  | "engagementManager"
+  | "salesManager"
+  | "total"
+  | "newCount"
+  | "ongoing"
+  | "completed"
+  | "onHold"
+  | "archived"
+  | "status";
+type SortDir = "asc" | "desc";
+
+type CustomerListRow = {
+  client: Client;
+  total: number;
+  newCount: number;
+  ongoing: number;
+  completed: number;
+  onHold: number;
+  archived: number;
+  active: number;
+};
+
+const CUSTOMER_METRIC_TD_CLS = "px-2 text-center";
+const CUSTOMER_HEADER_CELL_CLS = "px-2 text-center align-middle";
+const CUSTOMER_METRIC_COL_WIDTH = "6.25rem"; /* 100px — fits "Completed" + sort icon */
+
+/** Fixed column widths so metric headers stay evenly spaced (table-fixed redistributes slack otherwise). */
+const CUSTOMER_LIST_COL_WIDTHS = [
+  "16rem", /* Customer */
+  "7.5rem", /* Industry */
+  "10rem", /* Engagement Manager */
+  "9rem", /* Sales Manager */
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH,
+  CUSTOMER_METRIC_COL_WIDTH, /* Status */
+] as const;
+
+const CUSTOMER_LIST_COLUMNS: {
+  label: string;
+  key: CustomerListSortKey;
+}[] = [
+  { label: "Customer", key: "name" },
+  { label: "Industry", key: "industry" },
+  { label: "Engagement Manager", key: "engagementManager" },
+  { label: "Sales Manager", key: "salesManager" },
+  { label: "Total", key: "total" },
+  { label: "New", key: "newCount" },
+  { label: "Ongoing", key: "ongoing" },
+  { label: "Completed", key: "completed" },
+  { label: "On Hold", key: "onHold" },
+  { label: "Archived", key: "archived" },
+  { label: "Status", key: "status" },
+];
+
+/** Grid card status label — full text, no ellipsis (two lines when needed). */
+function GridMetricLabel({ lines }: { lines: string | [string, string] }) {
+  const size =
+    typeof lines === "string" && lines.length >= 8 ? "text-[8px]" : "text-[9px]";
+  const base = cn(
+    "px-0.5 text-center font-medium tracking-tight text-slate-600 dark:text-slate-400 transition-colors",
+    size,
+  );
+  if (Array.isArray(lines)) {
+    return (
+      <span className={cn("flex flex-col items-center leading-[1.1]", base)}>
+        <span>{lines[0]}</span>
+        <span>{lines[1]}</span>
+      </span>
+    );
+  }
+  return <span className={cn("leading-none", base)}>{lines}</span>;
+}
+
+function sortBlank(value: string): string {
+  return !value || value === "—" ? "" : value;
+}
+
+function compareCustomerListRows(a: CustomerListRow, b: CustomerListRow, key: CustomerListSortKey): number {
+  if (
+    key === "total" ||
+    key === "newCount" ||
+    key === "ongoing" ||
+    key === "completed" ||
+    key === "onHold" ||
+    key === "archived"
+  ) {
+    return a[key] - b[key];
+  }
+  const textFor = (row: CustomerListRow): string => {
+    switch (key) {
+      case "name":
+        return row.client.name;
+      case "industry":
+        return row.client.industry ?? "";
+      case "engagementManager":
+        return row.client.engagementManager ?? "";
+      case "salesManager":
+        return row.client.salesManager ?? "";
+      case "status":
+        return "Active";
+    }
+  };
+  return sortBlank(textFor(a)).localeCompare(sortBlank(textFor(b)), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function SortableTh<T extends string>({
+  label,
+  column,
+  sortKey,
+  sortDir,
+  onSort,
+  isLast,
+}: {
+  label: string;
+  column: T;
+  sortKey: T;
+  sortDir: SortDir;
+  onSort: (column: T) => void;
+  isLast?: boolean;
+}) {
+  const active = sortKey === column;
+  return (
+    <th
+      className={cn(
+        "relative whitespace-nowrap py-2.5 font-semibold",
+        CUSTOMER_HEADER_CELL_CLS,
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(column)}
+        className={cn(
+          "group mx-auto inline-flex items-center justify-center gap-1 text-center text-xs font-semibold transition-colors select-none",
+          active
+            ? "text-blue-600 dark:text-blue-400 font-bold"
+            : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
+        )}
+        aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+        aria-label={`Sort by ${label}`}
+      >
+        <span>{label}</span>
+        <span
+          className={cn(
+            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
+            active
+              ? "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400"
+              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
+          )}
+        >
+          {active && sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronUp className="h-3.5 w-3.5" />
+          )}
+        </span>
+      </button>
+      {!isLast ? (
+        <span
+          className="pointer-events-none absolute right-0 top-2.5 bottom-2.5 w-px bg-blue-300/80 dark:bg-blue-700"
+          aria-hidden="true"
+        />
+      ) : null}
+    </th>
+  );
+}
+
+export function CustomersListPage() {
+  const { isAdmin, isDhanshree, can, assignedProjects } = useRoleContext();
+  const navigate = useNavigate();
+  const [view, setViewState] = useState<"card" | "list">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("customers-view-mode");
+      if (saved === "card" || saved === "list") return saved;
+    }
+    return "card";
+  });
+
+  const setView = (v: "card" | "list") => {
+    setViewState(v);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("customers-view-mode", v);
+    }
+  };
+
+  const { user: authUser } = useAuth();
+  const [q, setQ] = useState("");
+  const [sortKey, setSortKey] = useState<CustomerListSortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [openNew, setOpenNew] = useState(false);
+
+  // Live data from the TrackerPro API. The customer list and project counts are Postgres-only —
+  // strictly from PostgreSQL API. While loading (or if the backend is unreachable)
+  // we show a spinner / empty state instead of mock clients.
+  const [apiClients, setApiClients] = useState<Client[] | null>(null);
+  const [apiProjects, setApiProjects] = useState<Project[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(true);
+  const refreshApiClients = useCallback(async () => {
+    setClientsLoading(true);
+    try {
+      const [list, projPage] = await Promise.all([
+        fetchClients(),
+        fetchProjects({ perPage: 500 }).catch(() => null),
+      ]);
+      setApiClients(list.map(mapApiClient));
+      setApiProjects((projPage?.items ?? []).map((item) => mapApiProjectToProject(item) as Project));
+    } catch {
+      /* backend offline — show empty, do NOT fall back to mock data */
+      setApiClients([]);
+      setApiProjects([]);
+    } finally {
+      setClientsLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    void refreshApiClients();
+  }, [refreshApiClients]);
+
+  // Only users holding customers.create or clients:write (or Admins) may onboard new customers (RBAC).
+  const canCreateClient =
+    isAdmin ||
+    isDhanshree ||
+    (can ? can("customers.create") : false) ||
+    Boolean(
+      authUser?.permissions?.some(
+        (p) => p === "customers.create" || p === "clients:write",
+      ),
+    );
+
+  // Customer and project records come exclusively from the API (Postgres). No mock fallback.
+  const clients = useMemo(() => apiClients ?? [], [apiClients]);
+  const projects = useMemo(
+    () =>
+      isDhanshree
+        ? apiProjects
+        : assignedProjects && assignedProjects.length > 0
+          ? assignedProjects
+          : apiProjects,
+    [isDhanshree, assignedProjects, apiProjects],
+  );
+
+  const enriched = useMemo(() => {
+    return clients.map((c) => {
+      const projs = projects.filter((p) => p.clientId === c.id);
+      const buckets = categorizeClientProjects(projs);
+      return {
+        client: c,
+        total: buckets.total,
+        newCount: buckets.new.length,
+        ongoing: buckets.ongoing.length,
+        completed: buckets.completed.length,
+        onHold: buckets.onHold.length,
+        archived: buckets.archived.length,
+        active: buckets.new.length + buckets.ongoing.length,
+      };
+    });
+  }, [clients, projects]);
+
+  const matchesClientSearch = (c: Client, query: string): boolean => {
+    if (!query) return true;
+    const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (terms.length === 0) return true;
+
+    const svNames = (c.subVentures ?? []).map((s) => s.name);
+    const svNotes = (c.subVentures ?? []).map((s) => s.notes ?? "");
+    const svContacts = (c.subVentures ?? []).flatMap((s) => s.contacts ?? []);
+
+    const allContacts = [...(c.contacts ?? []), ...svContacts];
+    const contactNames = allContacts.map((ct) => ct.name);
+    const contactEmails = allContacts.map((ct) => ct.email);
+    const contactPhones = allContacts.map((ct) => ct.phone ?? "");
+    const contactDesigs = allContacts.map((ct) => ct.designation ?? "");
+    const contactTypes = allContacts.map((ct) => ct.contactType ?? "");
+
+    const searchableText = [
+      c.id,
+      c.name,
+      c.industry,
+      c.clientType,
+      c.engagementManager,
+      c.salesManager,
+      c.contact,
+      c.contactName,
+      c.contactPhone,
+      c.contactDesignation,
+      c.contactType,
+      c.city,
+      c.country,
+      c.businessType,
+      c.notes,
+      c.kycDocumentName,
+      c.customerSince,
+      ...svNames,
+      ...svNotes,
+      ...contactNames,
+      ...contactEmails,
+      ...contactPhones,
+      ...contactDesigs,
+      ...contactTypes,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return terms.every((term) => searchableText.includes(term));
+  };
+
+  const filtered = enriched.filter(({ client: c }) => matchesClientSearch(c, q));
+  const sorted = useMemo(() => {
+    const rows = [...filtered];
+    rows.sort((a, b) => {
+      const cmp = compareCustomerListRows(a, b, sortKey);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return rows;
+  }, [filtered, sortKey, sortDir]);
+
+  const open = openId ? clients.find((c) => c.id === openId) : null;
+
+  return (
+    <AppShell title="Customers" subtitle="Customer directory with active and completed engagements">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative max-w-xs flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search customer, SPOC, sub-venture, phone…"
+            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </div>
+        <div className="ml-auto flex items-center gap-2.5">
+          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
+            <button
+              onClick={() => setView("card")}
+              aria-label="Grid view"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
+                view === "card"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" /> Grid
+            </button>
+            <button
+              onClick={() => setView("list")}
+              aria-label="List view"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
+                view === "list"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <List className="h-3.5 w-3.5" /> List
+            </button>
+          </div>
+          {canCreateClient && (
+            <button
+              onClick={() => setOpenNew(true)}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"
+            >
+              <Plus className="h-4 w-4" /> New Customer
+            </button>
+          )}
+        </div>
+      </div>
+
+      {clientsLoading ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card p-12 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Loading customers from the database…</p>
+        </div>
+      ) : clients.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-card px-6 py-16 text-center">
+          <p className="text-sm font-medium text-foreground">No Customer onboarded</p>
+        </div>
+      ) : view === "card" ? (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map(({ client: c, total, newCount, ongoing, completed, onHold, archived }) => {
+            const emName = c.engagementManager?.trim() || "Unassigned";
+            const smName = c.salesManager?.trim() || "Unassigned";
+
+            return (
+              <article
+                key={c.id}
+                role="link"
+                tabIndex={0}
+                onClick={() => navigate({ to: "/customers/$clientId", params: { clientId: c.id } })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate({ to: "/customers/$clientId", params: { clientId: c.id } });
+                  }
+                }}
+                className={cn(
+                  "group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl",
+                  "border border-slate-300/90 dark:border-slate-700/80",
+                  "bg-gradient-to-b from-slate-100/95 via-slate-100 to-blue-50/40 dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-950",
+                  "shadow-[0_4px_16px_-4px_rgba(15,23,42,0.12),0_2px_6px_rgba(15,23,42,0.06)]",
+                  "transition-colors duration-200 ease-out",
+                  "hover:border-blue-500",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-gradient-to-r before:from-blue-600 before:to-indigo-500 before:opacity-0 group-hover:before:opacity-100 before:transition-opacity before:duration-200",
+                )}
+              >
+                {/* SECTION 1: Client Identity & Stakeholders */}
+                <div className="flex flex-col p-5 pb-4">
+                  {/* Header: Logo, Name, Industry, and top-right arrow */}
+                  <div className="relative z-10 mb-3.5 flex items-start gap-3.5">
+                    <div
+                      className={cn(
+                        "relative z-10 flex size-11 shrink-0 items-center justify-center rounded-xl",
+                        "bg-blue-600 text-xs font-bold tracking-tight text-white shadow-sm",
+                      )}
+                      style={{ minWidth: 44, minHeight: 44 }}
+                      aria-hidden
+                    >
+                      {c.logo}
+                    </div>
+                    <div className="relative z-0 min-w-0 flex-1 pt-0.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-[15px] font-bold leading-snug tracking-tight text-foreground group-hover:text-primary transition-colors">
+                            {c.name}
+                          </h3>
+                          <p className="truncate text-xs text-muted-foreground font-normal mt-0.5 flex items-center gap-1.5">
+                            <span className="font-mono text-[11px] font-semibold text-primary">{formatCustomerId(c.id)}</span>
+                            <span>·</span>
+                            <span>{c.industry || "—"}</span>
+                          </p>
+                        </div>
+                        <ChevronRight
+                          className="h-4 w-4 text-muted-foreground/70 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-primary shrink-0 mt-0.5"
+                          aria-hidden
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stakeholders Section: Crisp White Inset Card */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white shadow-xs px-3.5 py-2.5 space-y-2 dark:border-slate-800 dark:bg-slate-950">
+                    {/* Engagement Manager */}
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                          <UserRound className="h-3 w-3" />
+                        </span>
+                        <span className="truncate text-xs font-normal text-muted-foreground">
+                          Engagement Manager
+                        </span>
+                      </div>
+                      <span
+                        className={cn(
+                          "truncate text-xs text-right max-w-[50%]",
+                          c.engagementManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground/60 italic font-normal",
+                        )}
+                        title={emName}
+                      >
+                        {emName}
+                      </span>
+                    </div>
+
+                    {/* Hairline Divider */}
+                    <div className="h-px bg-slate-100 dark:bg-slate-800" />
+
+                    {/* Sales Manager */}
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                          <Briefcase className="h-3 w-3" />
+                        </span>
+                        <span className="truncate text-xs font-normal text-muted-foreground">
+                          Sales Manager
+                        </span>
+                      </div>
+                      <span
+                        className={cn(
+                          "truncate text-xs text-right max-w-[50%]",
+                          c.salesManager?.trim() ? "text-foreground font-semibold" : "text-muted-foreground/60 italic font-normal",
+                        )}
+                        title={smName}
+                      >
+                        {smName}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 2: Project Metrics (Bottom Section) */}
+                <div className="mt-auto rounded-b-2xl border-t border-slate-300/80 bg-slate-200/50 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
+                  <div className="flex items-center gap-2.5">
+                    {/* Total Project Ring Gauge Button (Filters by All) */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate({
+                          to: "/customers/$clientId",
+                          params: { clientId: c.id },
+                          search: { status: "all" },
+                        });
+                      }}
+                      className="group/gauge relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all duration-200 hover:scale-105 hover:shadow-xs cursor-pointer select-none"
+                      title={`View all ${total} projects for ${c.name}`}
+                      aria-label={`View all ${total} projects for ${c.name}`}
+                    >
+                      <div
+                        className="absolute inset-0 rounded-full shadow-2xs"
+                        style={{
+                          background:
+                            total > 0
+                              ? `conic-gradient(
+                                  #3b82f6 0deg ${((newCount || 0) / Math.max(total, 1)) * 360}deg,
+                                  #a855f7 ${((newCount || 0) / Math.max(total, 1)) * 360}deg ${(((newCount || 0) + (ongoing || 0)) / Math.max(total, 1)) * 360}deg,
+                                  #10b981 ${(((newCount || 0) + (ongoing || 0)) / Math.max(total, 1)) * 360}deg ${(((newCount || 0) + (ongoing || 0) + (completed || 0)) / Math.max(total, 1)) * 360}deg,
+                                  #f59e0b ${(((newCount || 0) + (ongoing || 0) + (completed || 0)) / Math.max(total, 1)) * 360}deg ${(((newCount || 0) + (ongoing || 0) + (completed || 0) + (onHold || 0)) / Math.max(total, 1)) * 360}deg,
+                                  #94a3b8 ${(((newCount || 0) + (ongoing || 0) + (completed || 0) + (onHold || 0)) / Math.max(total, 1)) * 360}deg 360deg
+                                )`
+                              : "conic-gradient(#cbd5e1 0deg 360deg)",
+                        }}
+                      />
+                      <div className="absolute inset-[3px] rounded-full bg-white dark:bg-card flex items-center justify-center shadow-2xs group-hover/gauge:bg-slate-50 dark:group-hover/gauge:bg-slate-800 transition-colors">
+                        <span className="text-sm font-extrabold tabular-nums text-foreground group-hover/gauge:text-primary transition-colors">
+                          {total}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Status breakdown filter buttons */}
+                    <div className="grid min-w-0 flex-1 grid-cols-5 gap-2">
+                      {/* New */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "new" },
+                          });
+                        }}
+                        className={cn(
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-blue-400 hover:bg-blue-50/80 active:bg-blue-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-blue-950/50 dark:hover:border-blue-800",
+                        )}
+                        title={`Filter: ${newCount} New Project${newCount === 1 ? "" : "s"}`}
+                        aria-label={`Filter by New (${newCount} projects)`}
+                      >
+                        <span className="text-xs font-bold tabular-nums leading-none text-blue-600 dark:text-blue-400 group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 transition-colors">
+                          {newCount}
+                        </span>
+                        <GridMetricLabel lines="New" />
+                      </button>
+
+                      {/* Ongoing */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "ongoing" },
+                          });
+                        }}
+                        className={cn(
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-purple-400 hover:bg-purple-50/80 active:bg-purple-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-purple-950/50 dark:hover:border-purple-800",
+                        )}
+                        title={`Filter: ${ongoing} Ongoing Project${ongoing === 1 ? "" : "s"}`}
+                        aria-label={`Filter by Ongoing (${ongoing} projects)`}
+                      >
+                        <span className="text-xs font-bold tabular-nums leading-none text-purple-600 dark:text-purple-400 group-hover/btn:text-purple-700 dark:group-hover/btn:text-purple-300 transition-colors">
+                          {ongoing}
+                        </span>
+                        <GridMetricLabel lines="Ongoing" />
+                      </button>
+
+                      {/* Completed */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "completed" },
+                          });
+                        }}
+                        className={cn(
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-emerald-400 hover:bg-emerald-50/80 active:bg-emerald-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-emerald-950/50 dark:hover:border-emerald-800",
+                        )}
+                        title={`Filter: ${completed} Completed Project${completed === 1 ? "" : "s"}`}
+                        aria-label={`Filter by Completed (${completed} projects)`}
+                      >
+                        <span className="text-xs font-bold tabular-nums leading-none text-emerald-600 dark:text-emerald-400 group-hover/btn:text-emerald-700 dark:group-hover/btn:text-emerald-300 transition-colors">
+                          {completed}
+                        </span>
+                        <GridMetricLabel lines="Completed" />
+                      </button>
+
+                      {/* On Hold */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "on_hold" },
+                          });
+                        }}
+                        className={cn(
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-amber-400 hover:bg-amber-50/80 active:bg-amber-100 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-amber-950/50 dark:hover:border-amber-800",
+                        )}
+                        title={`Filter: ${onHold} On Hold Project${onHold === 1 ? "" : "s"}`}
+                        aria-label={`Filter by On Hold (${onHold} projects)`}
+                      >
+                        <span className="text-xs font-bold tabular-nums leading-none text-amber-600 dark:text-amber-400 group-hover/btn:text-amber-700 dark:group-hover/btn:text-amber-300 transition-colors">
+                          {onHold}
+                        </span>
+                        <GridMetricLabel lines="On Hold" />
+                      </button>
+
+                      {/* Archived */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate({
+                            to: "/customers/$clientId",
+                            params: { clientId: c.id },
+                            search: { status: "archived" },
+                          });
+                        }}
+                        className={cn(
+                          "group/btn flex min-h-[52px] w-full min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 transition-all duration-150 cursor-pointer select-none",
+                          "border-slate-200/90 bg-white shadow-2xs dark:border-border/70 dark:bg-card",
+                          "hover:border-slate-400 hover:bg-slate-100 active:bg-slate-200/80 hover:shadow-xs hover:scale-[1.03] dark:hover:bg-slate-800/60 dark:hover:border-slate-700",
+                        )}
+                        title={`Filter: ${archived} Archived Project${archived === 1 ? "" : "s"}`}
+                        aria-label={`Filter by Archived (${archived} projects)`}
+                      >
+                        <span className="text-xs font-bold tabular-nums leading-none text-slate-700 dark:text-slate-300 group-hover/btn:text-slate-900 dark:group-hover/btn:text-slate-100 transition-colors">
+                          {archived}
+                        </span>
+                        <GridMetricLabel lines="Archived" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+          <table className="w-full min-w-[1280px] table-fixed border-separate border-spacing-0 text-sm">
+            <colgroup>
+              {CUSTOMER_LIST_COL_WIDTHS.map((width, idx) => (
+                <col key={CUSTOMER_LIST_COLUMNS[idx].key} style={{ width }} />
+              ))}
+            </colgroup>
+            <thead className="sticky top-0 z-10 bg-blue-100/80 text-center text-xs text-slate-700 shadow-[inset_0_-2px_0_0_#93c5fd] dark:bg-blue-950/55 dark:text-blue-100 dark:shadow-[inset_0_-2px_0_0_#1e3a8a]">
+              <tr>
+                {CUSTOMER_LIST_COLUMNS.map((col, idx, cols) => (
+                  <SortableTh
+                    key={col.key}
+                    label={col.label}
+                    column={col.key}
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    isLast={idx === cols.length - 1}
+                    onSort={(next) => {
+                      if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                      else {
+                        setSortKey(next);
+                        setSortDir("asc");
+                      }
+                    }}
+                  />
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-card [&>tr>td]:border-b [&>tr>td]:border-slate-200 dark:[&>tr>td]:border-border">
+              {sorted.map(
+                ({ client: c, total, newCount, ongoing, completed, onHold, archived }) => {
+                  const emName = c.engagementManager?.trim() || "Unassigned";
+                  const smName = c.salesManager?.trim() || "Unassigned";
+
+                  return (
+                    <tr
+                      key={c.id}
+                      className="bg-card hover:bg-blue-50/30 dark:hover:bg-muted/30 transition-colors"
+                    >
+                      {/* Customer */}
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
+                            {c.logo}
+                          </span>
+                          <div className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate({ to: "/customers/$clientId", params: { clientId: c.id } })
+                              }
+                              className="block max-w-full truncate text-left font-medium text-foreground hover:text-primary hover:underline transition-colors cursor-pointer"
+                            >
+                              {c.name}
+                            </button>
+                            <span className="font-mono text-[10px] text-muted-foreground">
+                              {formatCustomerId(c.id)}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Industry */}
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                        {c.industry || "—"}
+                      </td>
+
+                      {/* Engagement Manager */}
+                      <td className="px-3 py-2.5 text-xs text-foreground font-medium">
+                        {c.engagementManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
+                      </td>
+
+                      {/* Sales Manager */}
+                      <td className="px-3 py-2.5 text-xs text-foreground font-medium">
+                        {c.salesManager?.trim() || <span className="text-muted-foreground/50 font-normal italic">Unassigned</span>}
+                      </td>
+
+                      {/* Total */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "all" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-slate-300 dark:border-slate-600 bg-slate-100/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200",
+                            "hover:bg-[#1d1d1f] hover:text-white hover:border-[#1d1d1f] dark:hover:bg-white dark:hover:text-[#1d1d1f] dark:hover:border-white",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            total === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${total} Total Projects`}
+                        >
+                          {total}
+                        </button>
+                      </td>
+
+                      {/* New */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "new" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#0071e3]/60 bg-[#0071e3]/10 text-[#0071e3] dark:border-[#0071e3]/70 dark:bg-[#0071e3]/20 dark:text-[#388bfd]",
+                            "hover:bg-[#0071e3] hover:text-white hover:border-[#0071e3]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            newCount === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${newCount} New Projects`}
+                        >
+                          {newCount}
+                        </button>
+                      </td>
+
+                      {/* Ongoing */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "ongoing" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#5856d6]/60 bg-[#5856d6]/10 text-[#5856d6] dark:border-[#5856d6]/70 dark:bg-[#5856d6]/20 dark:text-[#8b89f7]",
+                            "hover:bg-[#5856d6] hover:text-white hover:border-[#5856d6]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            ongoing === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${ongoing} Ongoing Projects`}
+                        >
+                          {ongoing}
+                        </button>
+                      </td>
+
+                      {/* Completed */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "completed" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#34c759]/60 bg-[#34c759]/10 text-[#248a3d] dark:border-[#34c759]/70 dark:bg-[#34c759]/20 dark:text-[#3cdb63]",
+                            "hover:bg-[#34c759] hover:text-white hover:border-[#34c759]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            completed === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${completed} Completed Projects`}
+                        >
+                          {completed}
+                        </button>
+                      </td>
+
+                      {/* On Hold */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "on_hold" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#ff9500]/60 bg-[#ff9500]/10 text-[#cc7700] dark:border-[#ff9500]/70 dark:bg-[#ff9500]/20 dark:text-[#ff9500]",
+                            "hover:bg-[#ff9500] hover:text-white hover:border-[#ff9500]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            onHold === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${onHold} On Hold Projects`}
+                        >
+                          {onHold}
+                        </button>
+                      </td>
+
+                      {/* Archived */}
+                      <td className={cn(CUSTOMER_METRIC_TD_CLS, "py-2 tabular-nums")}>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/customers/$clientId",
+                              params: { clientId: c.id },
+                              search: { status: "archived" },
+                            });
+                          }}
+                          className={cn(
+                            "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
+                            "border-[#8e8e93]/60 bg-[#8e8e93]/10 text-[#636366] dark:border-[#8e8e93]/70 dark:bg-[#8e8e93]/20 dark:text-[#a0a0a5]",
+                            "hover:bg-[#8e8e93] hover:text-white hover:border-[#8e8e93]",
+                            "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
+                            archived === 0 && "opacity-40 hover:opacity-100",
+                          )}
+                          title={`Click to filter: ${archived} Archived Projects`}
+                        >
+                          {archived}
+                        </button>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-3 py-2.5">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+                          Active
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                },
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {open && <CustomerDrawer client={open} projects={projects} onClose={() => setOpenId(null)} />}
+      {openNew && (
+        <NewClientModal
+          apiClients={apiClients}
+          onClose={() => setOpenNew(false)}
+          onCreated={() => {
+            setOpenNew(false);
+            void refreshApiClients();
+          }}
+        />
+      )}
+    </AppShell>
+  );
+}
+
+// ---------- New Client onboarding (stepper) ----------
+interface ContactEntry {
+  name: string;
+  email: string;
+  phone: string;
+  designation: string;
+  contactType?: string;
+  country: string;
+}
+
+function blankContact(country = ""): ContactEntry {
+  return { name: "", email: "", phone: "", designation: "", contactType: "", country };
+}
+const BILLING_MEDIUMS = ["Portal Based", "Manual Based"] as const;
+
+interface NewClientState {
+  clientName: string;
+  subVentureName: string;
+  customerId: string;
+  engagementManager: string;
+  salesManager: string;
+  phoneNumber: string;
+  groupSpocName: string;
+  billingMedium: string;
+  city: string;
+  country: string;
+  industry: string;
+  businessType: string;
+  createdAt: string;
+  createdBy: string;
+  kycFile: File | null;
+  contacts: ContactEntry[];
+  notes: string;
+}
+
+const inputCls =
+  "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const Row = ({ label, v }: { label: string; v: string }) => (
+  <>
+    <dt className="text-muted-foreground">{label}</dt>
+    <dd className="font-medium">{v || "—"}</dd>
+  </>
+);
+
+export type CustomerEditTarget = {
+  client: Client;
+  subVentureId?: string | null;
+};
+
+function contactEntriesForEdit(client: Client, subVentureId?: string | null): ContactEntry[] {
+  const sv = client.subVentures?.find((item) => item.id === subVentureId);
+  const country = client.country ?? "";
+  const source = (sv?.contacts ?? []).filter((c) => c.name?.trim());
+  if (source.length === 0) return [blankContact(country)];
+  return source.map((c) => ({
+    name: c.name ?? "",
+    email: c.email ?? "",
+    phone: (c.phone ?? "").replace(/\D/g, ""),
+    designation: c.designation ?? "",
+    contactType: c.contactType ?? "",
+    country: c.country || country,
+  }));
+}
+
+export function NewClientModal({
+  apiClients,
+  onClose,
+  onCreated,
+  editing = null,
+}: {
+  apiClients: Client[] | null;
+  onClose: () => void;
+  onCreated: () => void;
+  editing?: CustomerEditTarget | null;
+}) {
+  const { user } = useRoleContext();
+  const [step, setStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+
+  const editClient = editing?.client;
+  const editSv = editClient?.subVentures?.find((sv) => sv.id === editing?.subVentureId);
+  const isEdit = Boolean(editClient);
+  const existingKycName =
+    (editSv?.kycDocumentName || "").trim() ||
+    (editSv?.kycDocumentPath ? editSv.kycDocumentPath.split(/[/\\]/).pop() || "" : "");
+  const existingKycUrl =
+    isEdit && editClient?.id && editSv?.id && editSv.kycDocumentPath
+      ? getSubVentureKycUrl(editClient.id, editSv.id)
+      : null;
+
+  // ── TK Customer search state — API-backed clients only ──
+  const existingClients = useMemo(() => apiClients ?? [], [apiClients]);
+  const [tkSearch, setTkSearch] = useState(editClient?.name ?? "");
+  const [tkDropOpen, setTkDropOpen] = useState(false);
+  const [selectedExisting, setSelectedExisting] = useState<(typeof existingClients)[0] | null>(
+    null,
+  );
+
+  // ── Sub-venture search state (only when existing client selected) ──
+  const [svSearch, setSvSearch] = useState("");
+  const [svDropOpen, setSvDropOpen] = useState(false);
+  const [svAlreadyExists, setSvAlreadyExists] = useState(false);
+
+  const [countries, setCountries] = useState<CatalogOption[]>([]);
+  const [cities, setCities] = useState<CityCatalogOption[]>([]);
+  const [industries, setIndustries] = useState<CatalogOption[]>([]);
+  const [industriesReady, setIndustriesReady] = useState(false);
+  const [contactDesignations, setContactDesignations] = useState<CatalogOption[]>([]);
+  const [designationsReady, setDesignationsReady] = useState(false);
+  const [contactTypes, setContactTypes] = useState<CatalogOption[]>([]);
+  const [contactTypesReady, setContactTypesReady] = useState(false);
+
+  const filteredTk = existingClients.filter(
+    (c) => tkSearch.trim() === "" || c.name.toLowerCase().includes(tkSearch.toLowerCase()),
+  );
+
+  const computeNextCode = useCallback(() => {
+    if (apiClients && apiClients.length > 0) {
+      let maxSeq = apiClients.length;
+      for (const c of apiClients) {
+        const raw = c.clientCode || c.id;
+        const m = /^(?:CUST-|CL-|C-?)0*(\d+)$/i.exec(raw);
+        if (m && m[1]) {
+          const n = parseInt(m[1], 10);
+          if (n > maxSeq) maxSeq = n;
+        }
+      }
+      return "C" + String(maxSeq + 1).padStart(3, "0");
+    }
+    return "C001";
+  }, [apiClients]);
+
+  const [s, setS] = useState<NewClientState>(() => ({
+    clientName: editClient?.name ?? "",
+    subVentureName: editSv?.name ?? "",
+    customerId: editClient ? (editClient.clientCode || formatCustomerId(editClient.id)) : computeNextCode(),
+    engagementManager: editClient?.engagementManager ?? "",
+    salesManager: editClient?.salesManager ?? "",
+    phoneNumber: (editClient?.groupSpocContact || editClient?.contactPhone || "").replace(/\D/g, ""),
+    groupSpocName: editClient?.groupSpocName || editClient?.contactName || "",
+    billingMedium: editClient?.billingMedium ?? "",
+    city: editClient?.city ?? "",
+    country: editClient?.country ?? "",
+    industry: editClient?.industry ?? "",
+    businessType: editClient?.businessType ?? "",
+    createdAt: editClient?.customerSince ? `${editClient.customerSince}T00:00:00` : new Date().toISOString(),
+    createdBy: editClient?.createdByName || user?.name || "Unknown",
+    kycFile: null,
+    contacts: editClient ? contactEntriesForEdit(editClient, editing?.subVentureId) : [blankContact()],
+    notes: editSv?.notes ?? "",
+  }));
+
+  useEffect(() => {
+    if (isEdit) return;
+    let cancelled = false;
+    void fetchNextClientCode().then((code) => {
+      if (!cancelled && code && !selectedExisting) {
+        setS((p) => ({ ...p, customerId: code }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedExisting]);
+  const [previewKyc, setPreviewKyc] = useState(false);
+  const { pool: emPool, loading: emLoading } = useEngagementManagers();
+  const emOptions = useMemo(() => {
+    const opts = emPool.map((p) => ({
+      value: p.fullName,
+      label: p.fullName,
+      subLabel: [
+        p.role === "EngagementManager" ? "EM (Engagement Manager)" : (p.role ?? p.designation ?? "Engagement Manager"),
+        p.workEmail,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    }));
+    const stored = s.engagementManager.trim();
+    if (stored && !opts.some((o) => o.value === stored)) {
+      opts.unshift({ value: stored, label: stored, subLabel: "On record" });
+    }
+    return opts;
+  }, [emPool, s.engagementManager]);
+  const { pool: smPool, loading: smLoading } = useSalesManagers();
+  const smOptions = useMemo(() => {
+    const opts = smPool.map((p) => ({
+      value: p.fullName,
+      label: p.fullName,
+      subLabel: [p.role ?? p.designation ?? "Sales Manager", p.workEmail].filter(Boolean).join(" · "),
+    }));
+    const stored = s.salesManager.trim();
+    if (stored && !opts.some((o) => o.value === stored)) {
+      opts.unshift({ value: stored, label: stored, subLabel: "On record" });
+    }
+    return opts;
+  }, [smPool, s.salesManager]);
+
+  const industryOptions = useMemo(() => {
+    const preferred = [
+      "Banking",
+      "Healthcare",
+      "Retail",
+      "Logistics",
+      "Energy",
+      "Manufacturing",
+      "Telecom",
+      "Media",
+    ];
+    const rank = (name: string) => {
+      const i = preferred.findIndex((p) => p.toLowerCase() === name.toLowerCase());
+      return i === -1 ? preferred.length : i;
+    };
+    const opts = [...industries]
+      .sort((a, b) => rank(a.name) - rank(b.name) || a.name.localeCompare(b.name))
+      .map((i) => ({ value: i.name, label: i.name }));
+    const stored = s.industry.trim();
+    if (stored && !opts.some((o) => o.value === stored)) {
+      opts.unshift({ value: stored, label: stored });
+    }
+    return opts;
+  }, [industries, s.industry]);
+
+  const designationOptions = useMemo(() => {
+    return contactDesignations.map((d) => ({ value: d.name, label: d.name }));
+  }, [contactDesignations]);
+
+  const contactTypeOptions = useMemo(() => {
+    return contactTypes.map((t) => ({ value: t.name, label: t.name }));
+  }, [contactTypes]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCountries()
+      .then((rows) => {
+        if (!cancelled) setCountries(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setCountries([]);
+      });
+    void fetchIndustries()
+      .then((rows) => {
+        if (!cancelled) setIndustries(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setIndustries([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIndustriesReady(true);
+      });
+    void fetchContactDesignations()
+      .then((rows) => {
+        if (!cancelled) setContactDesignations(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setContactDesignations([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDesignationsReady(true);
+      });
+    void fetchContactTypes()
+      .then((rows) => {
+        if (!cancelled) setContactTypes(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setContactTypes([]);
+      })
+      .finally(() => {
+        if (!cancelled) setContactTypesReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const selectedCountryId = countries.find((c) => c.name === s.country)?.id;
+
+  useEffect(() => {
+    if (!selectedCountryId) {
+      setCities([]);
+      return;
+    }
+    let cancelled = false;
+    void fetchCities(selectedCountryId)
+      .then((rows) => {
+        if (!cancelled) setCities(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setCities([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCountryId]);
+
+  const u = (k: keyof Omit<NewClientState, "contacts" | "kycFile">, v: string) =>
+    setS((p) => ({ ...p, [k]: v }));
+
+  const MAX_CONTACTS = 4;
+
+  const addContact = () =>
+    setS((p) =>
+      p.contacts.length >= MAX_CONTACTS
+        ? p
+        : {
+            ...p,
+            contacts: [
+              ...p.contacts,
+              blankContact(p.country || p.contacts[0]?.country || ""),
+            ],
+          },
+    );
+
+  const removeContact = (idx: number) =>
+    setS((p) => ({ ...p, contacts: p.contacts.filter((_, i) => i !== idx) }));
+
+  const updateContact = (idx: number, field: keyof ContactEntry, val: string) =>
+    setS((p) => ({
+      ...p,
+      contacts: p.contacts.map((c, i) => {
+        if (i !== idx) return c;
+        if (field === "country") {
+          const digits = countries.find((x) => x.name === val)?.phoneDigits || 10;
+          return { ...c, country: val, phone: c.phone.replace(/\D/g, "").slice(0, digits) };
+        }
+        return { ...c, [field]: val };
+      }),
+    }));
+
+  const selectedCountryObj = countries.find((c) => c.name === s.country);
+  const countryDialCode = selectedCountryObj?.phoneCode || "+91";
+  const countryPhoneDigits = selectedCountryObj?.phoneDigits || 10;
+
+  const namesEq = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const findExistingByName = (name: string) =>
+    existingClients.find((c) => namesEq(c.name, name)) ?? null;
+  const selectExistingClient = (c: (typeof existingClients)[0]) => {
+    setSelectedExisting(c);
+    setTkSearch(c.name);
+    setTkDropOpen(false);
+    setS((p) => ({
+      ...p,
+      clientName: c.name,
+      customerId: formatCustomerId(c.id),
+      engagementManager: p.engagementManager.trim() || c.engagementManager || "",
+      salesManager: p.salesManager.trim() || c.salesManager || "",
+      phoneNumber: c.groupSpocContact || c.contactPhone || p.phoneNumber,
+      groupSpocName: p.groupSpocName.trim() || c.groupSpocName || c.contactName || "",
+      billingMedium: p.billingMedium.trim() || c.billingMedium || "",
+      city: c.city ?? p.city,
+      country: c.country ?? p.country,
+      industry: c.industry ?? p.industry,
+      businessType: c.businessType ?? p.businessType,
+      contacts: [blankContact(c.country ?? p.country)],
+    }));
+  };
+  const resetTkDependents = (clientName = "") => {
+    setSelectedExisting(null);
+    setSvSearch("");
+    setSvDropOpen(false);
+    setSvAlreadyExists(false);
+    setS((p) => ({
+      ...p,
+      clientName,
+      subVentureName: "",
+      engagementManager: "",
+      salesManager: "",
+      phoneNumber: "",
+      groupSpocName: "",
+      billingMedium: "",
+      city: "",
+      country: "",
+      industry: "",
+      businessType: "",
+      customerId: computeNextCode(),
+    }));
+  };
+  const matchingExistingClient =
+    selectedExisting ??
+    existingClients.find((c) => namesEq(c.name, s.clientName || tkSearch)) ??
+    null;
+  const duplicatePairExists = Boolean(
+    matchingExistingClient &&
+      s.subVentureName.trim() &&
+      (matchingExistingClient.subVentures ?? []).some((sv) => namesEq(sv.name, s.subVentureName)),
+  );
+
+  // Returns the first missing required field (top-to-bottom), or null if all valid
+  const getStep1Error = (): string | null => {
+    if (!selectedExisting && !s.clientName.trim()) return "TK Customer / Partner Name is required";
+    if (!(isEdit && !editing?.subVentureId) && !s.subVentureName.trim()) {
+      return "End Customer / Sub-venture Name is required";
+    }
+    if (isEdit && editing?.subVentureId) {
+      const clash = (editing.client.subVentures ?? []).some(
+        (sv) => sv.id !== editing.subVentureId && namesEq(sv.name, s.subVentureName),
+      );
+      if (clash) return "Another sub-venture already uses this name";
+    }
+    if (!isEdit && duplicatePairExists) return "Client and sub-venture already exist";
+    if (!s.engagementManager.trim()) return "Engagement Manager is required";
+    if (
+      emPool.length > 0 &&
+      !emPool.some((p) => p.fullName === s.engagementManager.trim())
+    ) {
+      const storedEm = (isEdit ? editing?.client.engagementManager : selectedExisting?.engagementManager)?.trim();
+      if (!storedEm || storedEm !== s.engagementManager.trim()) {
+        return "Select an Engagement Manager from the list";
+      }
+    }
+    if (!s.salesManager.trim()) return "Sales Manager is required";
+    if (
+      smPool.length > 0 &&
+      !smPool.some((p) => p.fullName === s.salesManager.trim())
+    ) {
+      const storedSm = (isEdit ? editing?.client.salesManager : selectedExisting?.salesManager)?.trim();
+      if (!storedSm || storedSm !== s.salesManager.trim()) {
+        return "Select a Sales Manager from the list";
+      }
+    }
+    if (!s.billingMedium.trim() && !(isEdit ? editing?.client.billingMedium : selectedExisting?.billingMedium)?.trim()) {
+      return "Billing Medium is required";
+    }
+    if (selectedExisting && !isEdit) return null; // existing client — remaining company fields already on record
+    if (!s.country.trim()) return "Country is required";
+    if (!s.city.trim()) return "City is required";
+    if (!s.groupSpocName.trim()) return "Group SPOC Name is required";
+    if (!s.phoneNumber.trim()) return "Group SPOC Contact is required";
+    const cleanPhone = s.phoneNumber.replace(/\D/g, "");
+    if (cleanPhone.length !== countryPhoneDigits) {
+      return `Group SPOC Contact must be exactly ${countryPhoneDigits} digits for ${s.country || "selected country"}`;
+    }
+    if (!s.industry.trim()) return "Industry is required";
+    return null;
+  };
+
+  const getStep2Error = (): string | null => {
+    if (isEdit && !editing?.subVentureId) return null;
+    for (let i = 0; i < s.contacts.length; i++) {
+      const c = s.contacts[i];
+      const n = s.contacts.length > 1 ? ` (Contact ${i + 1})` : "";
+      if (!c.name.trim()) return `Contact Name${n} is required`;
+      if (!c.contactType?.trim()) return `Contact Type${n} is required`;
+      if (!c.country.trim()) return `Country / Region${n} is required`;
+      const contactDigits = countries.find((x) => x.name === c.country)?.phoneDigits || 10;
+      const cleanPhone = c.phone.replace(/\D/g, "");
+      if (!cleanPhone) return `Phone${n} is required`;
+      if (cleanPhone.length !== contactDigits) {
+        return `Phone${n} must be exactly ${contactDigits} digits for ${c.country}`;
+      }
+      const mailErr = emailError(c.email, true);
+      if (mailErr) return `Contact Email${n} — ${mailErr}`;
+      if (!c.designation.trim()) return `Designation${n} is required`;
+    }
+    if (!s.kycFile && !(isEdit && editSv?.kycDocumentPath)) return "KYC Document is required";
+    return null;
+  };
+
+  const handleNext = () => {
+    if (step === 1) {
+      const err = getStep1Error();
+      if (err) {
+        toast.error(err);
+        return;
+      }
+      const defaultCountry = (s.country.trim() || selectedExisting?.country || "").trim();
+      if (defaultCountry) {
+        setS((p) => ({
+          ...p,
+          contacts: p.contacts.map((c) => ({
+            ...c,
+            country: c.country.trim() || defaultCountry,
+          })),
+        }));
+      }
+    }
+    if (step === 2) {
+      const err = getStep2Error();
+      if (err) {
+        toast.error(err);
+        return;
+      }
+    }
+    setStep((prev) => prev + 1);
+  };
+
+  const readOnlyCls = cn(inputCls, "bg-muted text-muted-foreground cursor-not-allowed");
+
+  const isApiError = (err: unknown): err is Error & { status?: number } =>
+    err instanceof Error && "status" in err;
+  const isSessionError = (err: unknown): boolean =>
+    err instanceof Error && /not authenticated|unauthorized/i.test(err.message);
+
+  const buildNewClientPayload = () => {
+    const validContacts = s.contacts
+      .filter((c) => c.name.trim() && c.email.trim())
+      .map((c) => {
+        const meta = countries.find((x) => x.name === c.country);
+        return {
+          name: c.name.trim(),
+          email: c.email.trim(),
+          phone: c.phone.trim(),
+          designation: c.designation.trim(),
+          contactType: c.contactType,
+          country: c.country.trim() || undefined,
+          phoneCode: meta?.phoneCode,
+        };
+      });
+    const primary = validContacts[0] ?? s.contacts[0];
+    const name = (s.clientName || s.subVentureName).trim();
+    const subVentureName = s.subVentureName?.trim() || null;
+    const noteText = s.notes?.trim() || undefined;
+    const subVentures: ClientSubVenture[] = subVentureName
+      ? [{ name: subVentureName, contacts: validContacts, notes: noteText }]
+      : [];
+    const engagementManager = s.engagementManager?.trim() || null;
+    const salesManager = s.salesManager?.trim() || null;
+    return {
+      api: {
+        name,
+        industry: (s.industry || "Other").trim(),
+        clientType: "NEW" as const,
+        contactEmail: null,
+        contactName: s.groupSpocName.trim() || null,
+        contactPhone: s.phoneNumber.trim() || null,
+        contactType: "Group SPOC",
+        city: s.city?.trim() || null,
+        country: s.country?.trim() || null,
+        businessType: s.businessType?.trim() || null,
+        billingMedium: s.billingMedium.trim() || null,
+        groupSpocName: s.groupSpocName.trim() || null,
+        groupSpocContact: s.phoneNumber.trim() || null,
+        notes: null,
+        kycDocumentName: s.kycFile?.name || null,
+        engagementManager,
+        salesManager,
+        subVentures,
+      } satisfies CreateClientInput,
+      managerPatch: {
+        ...(engagementManager ? { engagementManager } : {}),
+        ...(salesManager ? { salesManager } : {}),
+      },
+      store: {
+        name,
+        industry: s.industry || "Other",
+        contact: primary?.email ?? "",
+        contactName: s.groupSpocName.trim() || "",
+        contactPhone: s.phoneNumber.trim() || "",
+        billingMedium: s.billingMedium.trim() || undefined,
+        groupSpocName: s.groupSpocName.trim() || undefined,
+        groupSpocContact: s.phoneNumber.trim() || undefined,
+        contactDesignation: primary?.designation ?? "",
+        contactType: primary?.contactType || "Primary",
+        city: s.city,
+        country: s.country,
+        businessType: s.businessType,
+        notes: undefined,
+        kycDocumentName: s.kycFile?.name || undefined,
+        contacts: validContacts.length > 0 ? validContacts : undefined,
+        engagementManager: s.engagementManager,
+        salesManager: s.salesManager,
+        subVentures,
+      },
+    };
+  };
+
+  const saveCustomerEdit = async () => {
+    if (!editing) return;
+    const validContacts = s.contacts
+      .filter((c) => c.name.trim() && c.email.trim())
+      .map((c) => {
+        const meta = countries.find((x) => x.name === c.country);
+        return {
+          name: c.name.trim(),
+          email: c.email.trim(),
+          phone: c.phone.trim(),
+          designation: c.designation.trim(),
+          contactType: c.contactType,
+          country: c.country.trim() || undefined,
+          phoneCode: meta?.phoneCode,
+        };
+      });
+    const subVentures: ClientSubVenture[] = (editing.client.subVentures ?? []).map((sv) => {
+      if (editing.subVentureId && sv.id === editing.subVentureId) {
+        return {
+          id: sv.id,
+          name: s.subVentureName.trim(),
+          contacts: validContacts,
+          notes: s.notes?.trim() || undefined,
+          kycDocumentName: sv.kycDocumentName,
+        };
+      }
+      return {
+        id: sv.id,
+        name: sv.name,
+        contacts: sv.contacts,
+        notes: sv.notes,
+        kycDocumentName: sv.kycDocumentName,
+      };
+    });
+    const updated = await updateClient(editing.client.id, {
+      name: s.clientName.trim(),
+      industry: (s.industry || editing.client.industry || "Other").trim(),
+      engagementManager: s.engagementManager.trim() || null,
+      salesManager: s.salesManager.trim() || null,
+      billingMedium: s.billingMedium.trim() || null,
+      country: s.country.trim() || null,
+      city: s.city.trim() || null,
+      businessType: s.businessType.trim() || null,
+      groupSpocName: s.groupSpocName.trim() || null,
+      groupSpocContact: s.phoneNumber.trim() || null,
+      groupSpocPhoneCode: countryDialCode,
+      contactName: s.groupSpocName.trim() || null,
+      contactPhone: s.phoneNumber.trim() || null,
+      subVentures,
+      contacts: editing.client.contacts,
+    });
+    if (s.kycFile && editing.subVentureId) {
+      try {
+        await uploadSubVentureKyc(editing.client.id, editing.subVentureId, s.kycFile);
+      } catch (kycErr) {
+        toast.warning("Details saved, but the KYC document didn't upload", {
+          description: kycErr instanceof Error ? kycErr.message : "Please re-upload the KYC document from the customer page.",
+        });
+      }
+    }
+    if (updated?.id) registerClientCode(updated.id, updated.clientCode || s.customerId);
+    toast.success(editing.subVentureId ? "Sub-venture updated" : "Customer updated", {
+      description: "The existing record was saved.",
+    });
+    onCreated();
+  };
+
+  const submit = async () => {
+    setSubmitting(true);
+    try {
+      if (editing) {
+        const err = getStep1Error() || getStep2Error();
+        if (err) {
+          toast.error(err);
+          return;
+        }
+        await saveCustomerEdit();
+        return;
+      }
+      const { api, store, managerPatch } = buildNewClientPayload();
+
+      if (duplicatePairExists && matchingExistingClient) {
+        toast.error("Client and sub-venture already exist", {
+          description: `${s.subVentureName.trim()} is already under ${matchingExistingClient.name}.`,
+        });
+        return;
+      }
+
+      // ── Existing TK customer → add a sub-venture ──
+      if (selectedExisting) {
+
+        const isApiClient = apiClients?.some((c) => c.id === selectedExisting.id) ?? false;
+        if (isApiClient) {
+          try {
+            const updated = await updateClient(selectedExisting.id, {
+              ...managerPatch,
+              ...(s.billingMedium.trim() ? { billingMedium: s.billingMedium.trim() } : {}),
+              subVentures: [
+                ...(selectedExisting.subVentures ?? []),
+                {
+                  name: s.subVentureName.trim(),
+                  contacts: store.contacts ?? [],
+                  notes: s.notes?.trim() || undefined,
+                },
+              ],
+            });
+            // KYC is per sub-venture — attach it to the sub-venture just added.
+            if (s.kycFile) {
+              const svName = s.subVentureName.trim().toLowerCase();
+              const targetSv = updated.subVentures?.find(
+                (sv) => sv.name.trim().toLowerCase() === svName,
+              );
+              if (targetSv?.id) {
+                try {
+                  await uploadSubVentureKyc(selectedExisting.id, targetSv.id, s.kycFile);
+                } catch (kycErr) {
+                  toast.warning("Sub-venture saved, but the KYC document didn't upload", {
+                    description: kycErr instanceof Error ? kycErr.message : "Please re-upload the KYC document from the customer page.",
+                  });
+                }
+              }
+            }
+            toast.success("Sub-venture added", {
+              description: `${s.subVentureName} added under ${selectedExisting.name} in the database.`,
+            });
+            onCreated();
+            return;
+          } catch (err) {
+            if (isSessionError(err)) {
+              toast.error("Your session has expired. Please sign in again.");
+              return;
+            }
+            if (isApiError(err)) {
+              toast.error(err.message || "Failed to save the sub-venture.");
+              return;
+            }
+            dhStore.addSubVenture(selectedExisting.id, s.subVentureName.trim(), store.contacts, s.notes);
+            toast.warning("Backend unreachable — sub-venture saved locally", {
+              description: `${s.subVentureName} added under ${selectedExisting.name} in your local directory.`,
+            });
+            onCreated();
+            return;
+          }
+        }
+
+        dhStore.addSubVenture(selectedExisting.id, s.subVentureName.trim(), store.contacts, s.notes);
+        toast.success("Sub-venture added", {
+          description: `${s.subVentureName} added under ${selectedExisting.name}.`,
+        });
+        onCreated();
+        return;
+      }
+
+      // ── Brand new TK customer → create it in the database ──
+      try {
+        const created = await createClient(api);
+        if (created?.id) {
+          registerClientCode(created.id, created.clientCode || s.customerId);
+        }
+        // KYC is per sub-venture — attach it to the sub-venture created in this onboarding.
+        if (s.kycFile && created?.id) {
+          const svName = s.subVentureName.trim().toLowerCase();
+          const targetSv =
+            created.subVentures?.find((sv) => sv.name.trim().toLowerCase() === svName) ??
+            created.subVentures?.[0];
+          if (targetSv?.id) {
+            try {
+              await uploadSubVentureKyc(created.id, targetSv.id, s.kycFile);
+            } catch (kycErr) {
+              toast.warning("Customer saved, but the KYC document didn't upload", {
+                description: kycErr instanceof Error ? kycErr.message : "Please re-upload the KYC document from the customer page.",
+              });
+            }
+          }
+        }
+        toast.success("Customer onboarded", {
+          description: `${api.name} saved to the database.`,
+        });
+      } catch (err) {
+        if (isSessionError(err)) {
+          toast.error("Your session has expired. Please sign in again.");
+          return;
+        }
+        if (isApiError(err)) {
+          toast.error(err.message || "Failed to save the client.");
+          return;
+        }
+        dhStore.addClient(store);
+        registerClientCode(store.name, s.customerId);
+        toast.warning("Backend unreachable — client saved locally", {
+          description: `${store.name} added to your local directory.`,
+        });
+      }
+      onCreated();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong while saving.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+    <Modal
+      title={isEdit ? (editing?.subVentureId ? "Edit Sub-venture" : "Edit Customer") : "New Customer Onboarding"}
+      onClose={onClose}
+      wide
+      draggable
+    >
+      {/* Stepper */}
+      <div className="mb-5 flex items-center gap-2 text-xs">
+        {["Company", "Contact", "Review"].map((label, i) => {
+          const n = i + 1;
+          const active = step === n;
+          const done = step > n;
+          return (
+            <div key={label} className="flex items-center gap-2">
+              <div
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-semibold",
+                  done
+                    ? "border-success bg-success text-success-foreground"
+                    : active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground",
+                )}
+              >
+                {done ? <Check className="h-3 w-3" /> : n}
+              </div>
+              <span
+                className={cn("font-medium", active ? "text-foreground" : "text-muted-foreground")}
+              >
+                {label}
+              </span>
+              {i < 2 && <ChevronRight className="mx-1 h-3.5 w-3.5 text-muted-foreground" />}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Step 1 — Company details */}
+      {step === 1 && (
+        <div className="space-y-4">
+          {/* ── TK Customer search ── */}
+          <div>
+            <span className="mb-1 block text-xs font-medium text-muted-foreground">
+              TK Customer / Partner Name <span className="text-destructive">*</span>
+            </span>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-8 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                placeholder="Search existing TK customers or type a new name…"
+                maxLength={FIELD_MAX.clientName}
+                value={tkSearch}
+                onFocus={() => {
+                  if (!isEdit) setTkDropOpen(true);
+                }}
+                onChange={(e) => {
+                  const filtered = e.target.value.replace(/[^a-zA-Z\s-']/g, "").slice(0, FIELD_MAX.clientName);
+                  setTkSearch(filtered);
+                  if (isEdit) {
+                    setS((p) => ({ ...p, clientName: filtered }));
+                    return;
+                  }
+                  setTkDropOpen(true);
+                  if (!filtered.trim() || (selectedExisting && filtered !== selectedExisting.name)) {
+                    resetTkDependents(filtered);
+                  } else {
+                    setS((p) => ({ ...p, clientName: filtered }));
+                  }
+                }}
+                onBlur={() => setTimeout(() => setTkDropOpen(false), 150)}
+              />
+              {tkSearch.trim() && (
+                <button
+                  type="button"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setTkSearch("");
+                    setTkDropOpen(false);
+                    resetTkDependents("");
+                  }}
+                  title="Clear selection"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {tkDropOpen && !isEdit && (
+                <div
+                  className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto overscroll-contain rounded-md border border-border bg-popover shadow-lg"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
+                  {filteredTk.length > 0 && (
+                    <>
+                      <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Existing Customers
+                      </div>
+                      {filteredTk.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-accent"
+                          onMouseDown={() => selectExistingClient(c)}
+                        >
+                          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-primary to-info text-[11px] font-semibold text-primary-foreground shrink-0">
+                            {c.logo}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate font-medium">{c.name}</div>
+                            <div className="truncate text-[11px] text-muted-foreground">
+                              {c.industry} · {formatCustomerId(c.id)}
+                            </div>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">
+                            Existing
+                          </span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {tkSearch.trim() && (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-sm text-primary hover:bg-accent"
+                      onMouseDown={() => {
+                        const match = findExistingByName(tkSearch);
+                        if (match) {
+                          selectExistingClient(match);
+                          return;
+                        }
+                        setSelectedExisting(null);
+                        setSvSearch("");
+                        setSvDropOpen(false);
+                        setSvAlreadyExists(false);
+                        setS((p) => ({ ...p, clientName: tkSearch.trim(), subVentureName: "" }));
+                        setTkDropOpen(false);
+                      }}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add <span className="font-semibold">"{tkSearch.trim()}"</span> as new TK Customer
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            {selectedExisting && (
+              <p className="mt-1 text-[11px] text-success">
+                ✓ Existing customer selected — details auto-filled. Add a new sub-venture below.
+              </p>
+            )}
+          </div>
+
+          {/* ── Existing client info banner ── */}
+          {selectedExisting && (
+            <div className="rounded-lg border border-info/30 bg-info/5 px-3 py-2.5 text-xs space-y-1">
+              <p className="font-semibold text-foreground">{selectedExisting.name}</p>
+              <p className="text-muted-foreground">ID: {formatCustomerId(selectedExisting.id)}</p>
+            </div>
+          )}
+
+          {/* ── Sub-venture name — searchable when existing client, plain input for new ── */}
+          {selectedExisting ? (
+            <div>
+              <span className="mb-1 block text-xs font-medium text-muted-foreground">
+                End Customer Name / Sub-venture Name <span className="text-destructive">*</span>
+              </span>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  className="h-9 w-full rounded-md border border-input bg-card pl-8 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="Search existing sub-ventures or enter a new one…"
+                  maxLength={FIELD_MAX.subVentureName}
+                  value={svSearch || s.subVentureName}
+                  onFocus={() => setSvDropOpen(true)}
+                  onClick={() => setSvDropOpen(true)}
+                  onChange={(e) => {
+                    const val = e.target.value.slice(0, FIELD_MAX.subVentureName);
+                    setSvSearch(val);
+                    setSvDropOpen(true);
+                    const match = (selectedExisting.subVentures ?? []).find(
+                      (sv) => sv.name.toLowerCase() === val.trim().toLowerCase(),
+                    );
+                    if (match) {
+                      setSvAlreadyExists(true);
+                      setS((p) => ({ ...p, subVentureName: match.name }));
+                    } else {
+                      setSvAlreadyExists(false);
+                      setS((p) => ({ ...p, subVentureName: val }));
+                    }
+                  }}
+                  onBlur={() => setTimeout(() => setSvDropOpen(false), 150)}
+                />
+                {svDropOpen && (selectedExisting.subVentures?.length ?? 0) > 0 && (
+                  <div
+                    className="absolute left-0 right-0 top-full z-50 mt-1 max-h-48 overflow-y-auto overscroll-contain rounded-md border border-border bg-popover shadow-lg"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onWheel={(e) => e.stopPropagation()}
+                  >
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      Existing Sub-ventures
+                    </div>
+                    {selectedExisting
+                      .subVentures!.filter(
+                        (sv) =>
+                          svSearch.trim() === "" ||
+                          sv.name.toLowerCase().includes(svSearch.toLowerCase()),
+                      )
+                      .map((sv) => (
+                        <button
+                          key={sv.name}
+                          type="button"
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-accent"
+                          onMouseDown={() => {
+                            setSvSearch(sv.name);
+                            setS((p) => ({ ...p, subVentureName: sv.name }));
+                            setSvAlreadyExists(true);
+                            setSvDropOpen(false);
+                          }}
+                        >
+                          <span className="font-medium">{sv.name}</span>
+                          <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">
+                            Already exists
+                          </span>
+                        </button>
+                      ))}
+                    {svSearch.trim() && !svAlreadyExists && (
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 border-t border-border px-3 py-2 text-left text-sm text-primary hover:bg-accent"
+                        onMouseDown={() => {
+                          setS((p) => ({ ...p, subVentureName: svSearch.trim() }));
+                          setSvAlreadyExists(false);
+                          setSvDropOpen(false);
+                        }}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add <span className="font-semibold">"{svSearch.trim()}"</span> as new sub-venture
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+              {(svAlreadyExists || duplicatePairExists) && matchingExistingClient && (
+                <p className="mt-1 text-[11px] text-destructive">
+                  Client and sub-venture already exist under {matchingExistingClient.name}.
+                </p>
+              )}
+              {!duplicatePairExists && selectedExisting && s.subVentureName.trim() && (
+                <p className="mt-1 text-[11px] text-success">
+                  ✓ New sub-venture will be added under {selectedExisting.name}
+                </p>
+              )}
+            </div>
+          ) : (
+            <Field
+              label="End Customer Name / Sub-venture Name"
+              required={!isEdit || Boolean(editing?.subVentureId)}
+              error={
+                !isEdit && duplicatePairExists && matchingExistingClient
+                  ? `Client and sub-venture already exist under ${matchingExistingClient.name}.`
+                  : undefined
+              }
+            >
+              <input
+                className={inputCls}
+                value={s.subVentureName}
+                readOnly={isEdit && !editing?.subVentureId}
+                maxLength={FIELD_MAX.subVentureName}
+                onChange={(e) => u("subVentureName", e.target.value.slice(0, FIELD_MAX.subVentureName))}
+                placeholder={
+                  isEdit && !editing?.subVentureId
+                    ? "Select a sub-venture on the profile to edit it"
+                    : "Enter sub-venture or end customer name…"
+                }
+              />
+            </Field>
+          )}
+
+          {/* Stakeholders — always editable (new TK customer or existing + sub-venture) */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <SearchableSelect
+              label="Engagement Manager"
+              required
+              placeholder={emLoading ? "Loading engagement managers…" : "Select engagement manager…"}
+              searchPlaceholder="Search by name, email, or code…"
+              disabled={emLoading}
+              disabledHint="Loading engagement managers…"
+              options={emOptions}
+              value={s.engagementManager}
+              onChange={(name) => u("engagementManager", name)}
+            />
+            <SearchableSelect
+              label="Sales Manager"
+              required
+              placeholder={smLoading ? "Loading sales managers…" : "Select sales manager…"}
+              searchPlaceholder="Search by name, email, or code…"
+              disabled={smLoading}
+              disabledHint="Loading sales managers…"
+              options={smOptions}
+              value={s.salesManager}
+              onChange={(name) => u("salesManager", name)}
+            />
+          </div>
+
+          {/* ── New TK customer fields — only shown when not selecting existing ── */}
+          {(!selectedExisting || isEdit) && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Customer ID">
+                <input
+                  className={cn(readOnlyCls, "font-mono font-semibold text-primary")}
+                  value={s.customerId || "C" + String((apiClients?.length ?? 0) + 1).padStart(3, "0")}
+                  readOnly
+                  title="Auto-assigned sequential Customer ID"
+                />
+              </Field>
+              <Field label="Billing Medium" required>
+                <select
+                  className={inputCls}
+                  value={s.billingMedium}
+                  onChange={(e) => u("billingMedium", e.target.value)}
+                >
+                  <option value="">Select billing medium</option>
+                  {BILLING_MEDIUMS.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <SearchableSelect
+                label="Country / Region"
+                required
+                placeholder="Select country…"
+                options={countries.map((c) => ({ value: c.name, label: c.name }))}
+                value={s.country}
+                onChange={(next) => {
+                  setS((p) => ({ ...p, country: next, city: "", phoneNumber: "" }));
+                }}
+              />
+              <SearchableSelect
+                label="City"
+                required
+                disabled={!s.country}
+                disabledHint="Select country first"
+                placeholder={s.country ? "Select city…" : "Select country first"}
+                options={cities.map((c) => ({ value: c.name, label: c.name }))}
+                value={s.city}
+                onChange={(val) => u("city", val)}
+              />
+              <Field label="Group SPOC Name" required>
+                <input
+                  className={inputCls}
+                  value={s.groupSpocName}
+                  maxLength={150}
+                  placeholder="Full name"
+                  onChange={(e) => {
+                    const filtered = e.target.value
+                      .replace(/[^a-zA-Z\s-']/g, "")
+                      .slice(0, 150);
+                    u("groupSpocName", filtered);
+                  }}
+                />
+              </Field>
+              <Field
+                label="Group SPOC Contact"
+                required
+                error={
+                  s.phoneNumber && s.phoneNumber.length !== countryPhoneDigits
+                    ? `Group SPOC Contact must be ${countryPhoneDigits} digits for ${s.country || "selected country"}`
+                    : undefined
+                }
+              >
+                <div className="relative flex rounded-md">
+                  <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
+                    {countryDialCode}
+                  </span>
+                  <input
+                    className={cn(
+                      fieldInputCls(inputCls, Boolean(s.phoneNumber && s.phoneNumber.length !== countryPhoneDigits)),
+                      "rounded-l-none",
+                    )}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={countryPhoneDigits}
+                    placeholder={s.country ? "9".repeat(countryPhoneDigits) : "Select country first"}
+                    value={s.phoneNumber}
+                    disabled={!s.country}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, countryPhoneDigits);
+                      u("phoneNumber", digits);
+                    }}
+                  />
+                </div>
+              </Field>
+              <SearchableSelect
+                label="Industry"
+                required
+                placeholder={industriesReady ? "Select industry…" : "Loading industries…"}
+                searchPlaceholder="Search industry…"
+                disabled={!industriesReady}
+                disabledHint="Loading industries…"
+                options={industryOptions}
+                value={s.industry}
+                onChange={(name) => u("industry", name)}
+              />
+              <Field label="Business Type">
+                <select className={readOnlyCls} value={s.businessType} disabled>
+                  <option value="">Select business type</option>
+                  {["Enterprise", "Mid-Market", "SMB", "Public Sector"].map((o) => (
+                    <option key={o}>{o}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Created At">
+                <input
+                  className={readOnlyCls}
+                  value={format(new Date(s.createdAt), "dd MMM yyyy, HH:mm")}
+                  readOnly
+                />
+              </Field>
+              <Field label="Created By">
+                <input className={readOnlyCls} value={s.createdBy} readOnly />
+              </Field>
+            </div>
+          )}
+
+          {/* ── Existing client — show locked ID + created info ── */}
+          {selectedExisting && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Customer ID">
+                <input className={cn(readOnlyCls, "font-mono font-semibold text-primary")} value={formatCustomerId(selectedExisting.id)} readOnly />
+              </Field>
+              <Field label="Billing Medium" required>
+                {selectedExisting.billingMedium ? (
+                  <input className={readOnlyCls} value={selectedExisting.billingMedium} readOnly />
+                ) : (
+                  <select
+                    className={inputCls}
+                    value={s.billingMedium}
+                    onChange={(e) => u("billingMedium", e.target.value)}
+                  >
+                    <option value="">Select billing medium</option>
+                    {BILLING_MEDIUMS.map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+              <Field label="Created By">
+                <input className={readOnlyCls} value={s.createdBy} readOnly />
+              </Field>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 2 — Contacts + registration numbers */}
+      {step === 2 && (
+        <div className="space-y-3">
+          {isEdit && !editing?.subVentureId && (
+            <p className="text-xs text-muted-foreground">
+              Sub-venture contacts stay as they are. Select a sub-venture on the profile to edit that sub-venture.
+            </p>
+          )}
+          {!(isEdit && !editing?.subVentureId) && s.contacts.map((ct, idx) => (
+            <div key={idx} className="rounded-lg border border-border bg-background p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Contact {s.contacts.length > 1 ? `${idx + 1}` : "Person"}
+                </span>
+                {idx > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => removeContact(idx)}
+                    className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" /> Remove
+                  </button>
+                )}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Contact Person" required>
+                  <input
+                    className={inputCls}
+                    value={ct.name}
+                    maxLength={FIELD_MAX.personName}
+                    placeholder="Full name"
+                    onChange={(e) => {
+                      const filtered = e.target.value
+                        .replace(/[^a-zA-Z\s-']/g, "")
+                        .slice(0, FIELD_MAX.personName);
+                      updateContact(idx, "name", filtered);
+                    }}
+                  />
+                </Field>
+                <SearchableSelect
+                  label="Contact Type"
+                  required
+                  placeholder={contactTypesReady ? "Select contact type…" : "Loading contact types…"}
+                  searchPlaceholder="Search contact type…"
+                  disabled={!contactTypesReady}
+                  disabledHint="Loading contact types…"
+                  options={
+                    ct.contactType &&
+                    !contactTypeOptions.some((o) => o.value === ct.contactType)
+                      ? [{ value: ct.contactType, label: ct.contactType }, ...contactTypeOptions]
+                      : contactTypeOptions
+                  }
+                  value={ct.contactType}
+                  onChange={(name) => updateContact(idx, "contactType", name)}
+                />
+                <Field label="Country / Region" required>
+                  <select
+                    className={inputCls}
+                    value={ct.country}
+                    onChange={(e) => updateContact(idx, "country", e.target.value)}
+                  >
+                    <option value="">Select country</option>
+                    {countries.map((c) => (
+                      <option key={c.id} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field
+                  label="Phone"
+                  required
+                  error={
+                    ct.country && ct.phone
+                      ? ct.phone.replace(/\D/g, "").length !==
+                        (countries.find((c) => c.name === ct.country)?.phoneDigits || 10)
+                        ? `Phone must be ${countries.find((c) => c.name === ct.country)?.phoneDigits || 10} digits for ${ct.country}`
+                        : null
+                      : null
+                  }
+                >
+                  <div className="relative flex rounded-md">
+                    <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
+                      {countries.find((c) => c.name === ct.country)?.phoneCode || "+91"}
+                    </span>
+                    <input
+                      className={cn(
+                        fieldInputCls(
+                          inputCls,
+                          Boolean(
+                            ct.country &&
+                              ct.phone &&
+                              ct.phone.replace(/\D/g, "").length !==
+                                (countries.find((c) => c.name === ct.country)?.phoneDigits || 10),
+                          ),
+                        ),
+                        "rounded-l-none",
+                      )}
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={countries.find((c) => c.name === ct.country)?.phoneDigits || 10}
+                      placeholder={
+                        ct.country
+                          ? "9".repeat(countries.find((c) => c.name === ct.country)?.phoneDigits || 10)
+                          : "Select country first"
+                      }
+                      value={ct.phone}
+                      disabled={!ct.country}
+                      onChange={(e) => {
+                        const digits =
+                          countries.find((c) => c.name === ct.country)?.phoneDigits || 10;
+                        updateContact(
+                          idx,
+                          "phone",
+                          e.target.value.replace(/\D/g, "").slice(0, digits),
+                        );
+                      }}
+                    />
+                  </div>
+                </Field>
+                <Field label="Email" required error={ct.email.trim() ? emailError(ct.email, false) : undefined}>
+                  <input
+                    type="text"
+                    inputMode="email"
+                    className={fieldInputCls(
+                      inputCls,
+                      Boolean(ct.email.trim() && emailError(ct.email, false)),
+                    )}
+                    value={ct.email}
+                    maxLength={FIELD_MAX.email}
+                    placeholder="name@company.com"
+                    onChange={(e) =>
+                      updateContact(idx, "email", toEmailInput(e.target.value))
+                    }
+                    onBlur={() => updateContact(idx, "email", ct.email.trim())}
+                  />
+                </Field>
+                <SearchableSelect
+                  label="Designation"
+                  required
+                  placeholder={designationsReady ? "Select designation…" : "Loading designations…"}
+                  searchPlaceholder="Search designation…"
+                  disabled={!designationsReady}
+                  disabledHint="Loading designations…"
+                  options={
+                    ct.designation &&
+                    !designationOptions.some((o) => o.value === ct.designation)
+                      ? [{ value: ct.designation, label: ct.designation }, ...designationOptions]
+                      : designationOptions
+                  }
+                  value={ct.designation}
+                  onChange={(name) => updateContact(idx, "designation", name)}
+                />
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={addContact}
+                  disabled={s.contacts.length >= MAX_CONTACTS}
+                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Plus className="h-3 w-3" /> Add
+                </button>
+                {s.contacts.length >= MAX_CONTACTS && (
+                  <span className="text-[11px] text-muted-foreground">Maximum of 4 contacts</span>
+                )}
+              </div>
+            </div>
+          ))}
+          <div className="mt-4 pt-4 border-t border-border">
+            <Field label="KYC Document" required>
+              <div className="relative">
+                {s.kycFile || existingKycName ? (
+                  <div
+                    className={cn(
+                      "flex h-9 w-full items-center gap-2 rounded-md border border-success/50 bg-success/5 px-3 text-sm",
+                    )}
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+                      <Check className="h-3 w-3" />
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
+                      {s.kycFile ? s.kycFile.name : existingKycName}
+                    </span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {s.kycFile ? `${(s.kycFile.size / 1024).toFixed(0)} KB` : "On file"}
+                    </span>
+                    {(s.kycFile || existingKycUrl) && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewKyc(true)}
+                        className="shrink-0 rounded px-1.5 py-0.5 text-[11px] font-semibold text-primary hover:bg-primary/10"
+                      >
+                        Preview
+                      </button>
+                    )}
+                    <label className="relative shrink-0 cursor-pointer rounded px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
+                      Replace
+                      <input
+                        type="file"
+                        accept="*/*"
+                        className="absolute inset-0 cursor-pointer opacity-0"
+                        onChange={(e) => setS((p) => ({ ...p, kycFile: e.target.files?.[0] ?? null }))}
+                      />
+                    </label>
+                    {s.kycFile && (
+                      <button
+                        type="button"
+                        onClick={() => setS((p) => ({ ...p, kycFile: null }))}
+                        className="rounded p-0.5 hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Remove file"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <label className="flex h-9 w-full cursor-pointer items-center gap-2 rounded-md border border-dashed border-input bg-card px-3 text-sm transition-colors hover:bg-accent">
+                    <input
+                      type="file"
+                      accept="*/*"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      onChange={(e) => setS((p) => ({ ...p, kycFile: e.target.files?.[0] ?? null }))}
+                    />
+                    <span className="text-muted-foreground">📎</span>
+                    <span className="text-xs text-muted-foreground">
+                      Click to attach KYC document — any format accepted
+                    </span>
+                  </label>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {existingKycName && !s.kycFile
+                  ? "Already saved for this sub-venture. Replace only if you want a different file."
+                  : "Required · PDF, image, Word, or any other format"}
+              </p>
+            </Field>
+          </div>
+          <Field label="Notes (this sub-venture)" className="pt-1">
+            <textarea
+              rows={3}
+              maxLength={2000}
+              className={cn(inputCls, "py-2")}
+              value={s.notes}
+              onChange={(e) => u("notes", e.target.value)}
+              placeholder="Onboarding notes for this sub-venture…"
+            />
+            <p className="mt-1 text-right text-[10px] tabular-nums text-muted-foreground">
+              {s.notes.length}/2000
+            </p>
+          </Field>
+        </div>
+      )}
+
+      {/* Step 3 — Review */}
+      {step === 3 && (
+        <div className="rounded-lg border border-border bg-accent/20 p-4">
+          <h4 className="mb-3 text-sm font-semibold">
+            {selectedExisting ? "Adding Sub-venture to Existing Customer" : "New Customer Summary"}
+          </h4>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+            <Row label="TK Customer" v={s.clientName || selectedExisting?.name || "—"} />
+            <Row label="Sub-venture Name" v={s.subVentureName} />
+            <Row
+              label="Customer ID"
+              v={
+                selectedExisting
+                  ? formatCustomerId(selectedExisting.id)
+                  : s.customerId
+              }
+            />
+            {(!selectedExisting || isEdit) && (
+              <>
+                <Row label="Engagement Manager" v={s.engagementManager} />
+                <Row label="Sales Manager" v={s.salesManager} />
+                <Row label="Billing Medium" v={s.billingMedium} />
+                <Row label="Group SPOC Name" v={s.groupSpocName} />
+                <Row label="Group SPOC Contact" v={s.phoneNumber ? `${countryDialCode} ${s.phoneNumber}` : "—"} />
+                <Row label="City" v={s.city} />
+                <Row label="Country / Region" v={s.country} />
+                <Row label="Industry" v={s.industry} />
+              </>
+            )}
+            {selectedExisting && (
+              <>
+                <Row label="Billing Medium" v={s.billingMedium || selectedExisting.billingMedium || "—"} />
+                <Row label="Engagement Manager" v={s.engagementManager || selectedExisting.engagementManager || "—"} />
+                <Row label="Sales Manager" v={s.salesManager || selectedExisting.salesManager || "—"} />
+              </>
+            )}
+            <Row label="Created At" v={format(new Date(s.createdAt), "dd MMM yyyy, HH:mm")} />
+            <Row label="Created By" v={s.createdBy} />
+            
+            {/* Clickable KYC Document Row with Preview button */}
+            <div className="col-span-2 flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-xs">
+              <div className="min-w-0 flex-1 pr-2">
+                <dt className="text-muted-foreground font-medium flex items-center gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-primary" /> KYC Document
+                </dt>
+                <dd className="truncate font-mono font-medium text-foreground mt-0.5">
+                  {s.kycFile ? s.kycFile.name : existingKycName || "—"}
+                </dd>
+              </div>
+              {(s.kycFile || existingKycUrl) && (
+                <button
+                  type="button"
+                  onClick={() => setPreviewKyc(true)}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer shadow-2xs"
+                  title="Preview KYC Document in popup window"
+                >
+                  <Eye className="h-3.5 w-3.5" /> Preview KYC
+                </button>
+              )}
+            </div>
+          </dl>
+          <div className="mt-3 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Contacts</p>
+            {s.contacts.map((ct, idx) => (
+              <dl
+                key={idx}
+                className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border border-border bg-card px-3 py-2 text-xs"
+              >
+                <Row label="Name" v={ct.name} />
+                <Row label="Contact Type" v={ct.contactType || "—"} />
+                <Row label="Email" v={ct.email} />
+                <Row
+                  label="Phone"
+                  v={
+                    ct.phone
+                      ? `${countries.find((c) => c.name === ct.country)?.phoneCode || "+91"} ${ct.phone}`
+                      : "—"
+                  }
+                />
+                <Row label="Designation" v={ct.designation || "—"} />
+              </dl>
+            ))}
+          </div>
+          {s.notes && (
+            <div className="mt-3">
+              <p className="text-xs font-medium text-muted-foreground">Notes</p>
+              <p className="mt-0.5 text-xs">{s.notes}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer navigation */}
+      <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
+        <button
+          onClick={() => (step === 1 ? onClose() : setStep(step - 1))}
+          className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent cursor-pointer"
+        >
+          {step === 1 ? "Cancel" : "Back"}
+        </button>
+        {step < 3 ? (
+          <button
+            onClick={handleNext}
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
+          >
+            Next <ArrowRight className="h-3 w-3" />
+          </button>
+        ) : (
+          <button
+            disabled={submitting}
+            onClick={() => void submit()}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
+          >
+            {submitting ? "Saving…" : isEdit ? "Save changes" : "Save Customer"}
+          </button>
+        )}
+      </div>
+    </Modal>
+    <KycDocPreviewModal
+      open={previewKyc && Boolean(s.kycFile || existingKycUrl)}
+      onClose={() => setPreviewKyc(false)}
+      file={s.kycFile}
+      previewUrl={s.kycFile ? null : existingKycUrl}
+      fileName={s.kycFile?.name || existingKycName}
+      clientName={s.clientName || s.subVentureName || "New Customer"}
+      subVentureName={s.subVentureName}
+    />
+    </>
+  );
+}
+
+function CustomerDrawer({
+  client,
+  projects,
+  onClose,
+}: {
+  client: Client;
+  projects: Project[];
+  onClose: () => void;
+}) {
+  const projs = projects.filter((p) => p.clientId === client.id);
+  const buckets = categorizeClientProjects(projs);
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-stretch justify-end bg-black/30"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl overflow-y-auto bg-card shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card p-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-info text-base font-semibold text-primary-foreground">
+            {client.logo}
+          </div>
+          <div className="flex-1">
+            <h2 className="text-base font-semibold">{client.name}</h2>
+            <p className="text-xs text-muted-foreground">
+              {client.industry} · {client.contact}
+            </p>
+          </div>
+          <button onClick={onClose} className="rounded-md p-2 hover:bg-accent" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </header>
+        <Section title="New Projects" projs={buckets.new} empty="No new projects" />
+        <Section title="Ongoing Projects" projs={buckets.ongoing} empty="No ongoing projects" />
+        <Section title="Completed Projects" projs={buckets.completed} empty="No completed projects" />
+        <Section title="On Hold Projects" projs={buckets.onHold} empty="No on-hold projects" />
+        <Section title="Archived Projects" projs={buckets.archived} empty="No archived projects" />
+      </div>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  projs,
+  empty,
+}: {
+  title: string;
+  projs: Project[];
+  empty: string;
+}) {
+  return (
+    <section className="border-b border-border p-4">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+        <Building2 className="h-4 w-4 text-muted-foreground" />
+        {title} · {projs.length}
+      </h3>
+      {projs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="space-y-2">
+          {projs.map((p) => (
+            <li key={p.id}>
+              <Link
+                to="/projects/$projectId"
+                params={{ projectId: p.id }}
+                className="block rounded-lg border border-border bg-background p-3 hover:bg-accent/40"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium">{p.name}</span>
+                  <HealthPill status={p.health} />
+                  <StatusPill status={p.status} />
+                  <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+                    {p.progress}%
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">{p.description}</p>
+                <ProgressBar value={p.progress} className="mt-2" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
