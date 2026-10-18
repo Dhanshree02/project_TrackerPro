@@ -3,7 +3,7 @@ using PMS.API.Shared.Common.Models;
 namespace PMS.API.Modules.Resources.Models;
 
 /// <summary>Master country catalog (ISO 3166-1 alpha-2 <see cref="Code"/>).</summary>
-public class MstCountry : BaseEntity
+public class MstCountry : BaseEntity, INamedCatalogRow
 {
     public string Code { get; set; } = string.Empty;
 

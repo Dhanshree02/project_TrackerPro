@@ -7,6 +7,12 @@ alwaysApply: true
 
 **Last updated:** 2026-10-18
 
+- **Working branch is `sahil-setting-backend-web`.** Created from `origin/uat_clean` at `d3b73c6`. The local API uses PostgreSQL database `pms_uat_clean` on `10.50.30.158:41763`. pgAdmin for that server is `http://10.50.30.158:46382`. `Database__AutoMigrate` and `Database__Seed` stay false.
+
+- **Customer Masters load and save through the database.** Contact Designations, Industries, Countries, Cities, and Contact Types are `master.mst_contact_designations`, `master.mst_industries`, `master.mst_countries`, `master.mst_cities`, and `master.mst_contact_types`. Add, edit, and delete write those tables. Customer onboarding uses the same catalog APIs for industry, country, city, contact designation, and contact type. A city is saved under a country.
+
+- **Project Master Configuration saves to the database.** After Save Master succeeds, the form fields are cleared. Add windows are searchable lists of names already saved under the selected parent. Save Master writes tools, duration days, and unit price onto `master.mst_service_catalog`.
+
 - **Frontend feature modules (`src/modules/`):** TanStack routes stay thin in `src/routes/`; screen code lives under `modules/{dashboard,repository,settings,employees,customers,projects,timesheets,action-centre,health,my-team}/` with `pages/`, `components/`, `api/` (domain HTTP), and loaders where needed. Shared catalogs remain `lib/api/catalogs.ts`; shell UI stays `components/`. See `apps/frontend/src/modules/README.md`.
 
 - **Branch `uat_clean` created, pushed to `origin/uat_clean`, and cleaned end-to-end:**

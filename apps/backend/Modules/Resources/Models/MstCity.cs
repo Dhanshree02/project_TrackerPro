@@ -3,7 +3,7 @@ using PMS.API.Shared.Common.Models;
 namespace PMS.API.Modules.Resources.Models;
 
 /// <summary>Master city catalog. Always belongs to a <see cref="MstCountry"/>.</summary>
-public class MstCity : BaseEntity
+public class MstCity : BaseEntity, INamedCatalogRow
 {
     public string Code { get; set; } = string.Empty;
 
