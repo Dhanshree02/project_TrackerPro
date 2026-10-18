@@ -40,9 +40,9 @@ import type { CustomerMasterCategory, CustomerMastersState, SimpleMasterItem } f
 
 interface CustomerMastersSectionProps {
   customerMasters: CustomerMastersState;
-  onAdd: (category: CustomerMasterCategory, name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
-  onUpdate: (category: CustomerMasterCategory, id: string, name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
-  onDelete: (category: CustomerMasterCategory, id: string) => void;
+  onAdd: (category: CustomerMasterCategory, name: string, extra?: { code?: string; countryId?: string }) => Promise<{ success: boolean; error?: string }>;
+  onUpdate: (category: CustomerMasterCategory, id: string, name: string, extra?: { code?: string; countryId?: string }) => Promise<{ success: boolean; error?: string }>;
+  onDelete: (category: CustomerMasterCategory, id: string) => Promise<void> | void;
 }
 
 interface MasterCategoryConfig {
@@ -96,9 +96,8 @@ const CATEGORIES: MasterCategoryConfig[] = [
     title: "Contact Types",
     singular: "Contact Type",
     placeholder: "e.g. Primary Contact, Billing Lead, Escalation",
-    description: "Classification of stakeholder touchpoints and communications",
+    description: "Classification of stakeholder touchpoints used on customer onboarding",
     icon: Tag,
-    hasDescription: true,
   },
 ];
 
@@ -163,6 +162,7 @@ export function CustomerMastersSection({
               key={cat.id}
               config={cat}
               items={customerMasters[cat.id] || []}
+              countries={cat.id === "cities" ? customerMasters.countries : undefined}
               onAdd={(name, extra) => onAdd(cat.id, name, extra)}
               onUpdate={(id, name, extra) => onUpdate(cat.id, id, name, extra)}
               onDelete={(id) => onDelete(cat.id, id)}
@@ -177,6 +177,7 @@ export function CustomerMastersSection({
               <ReusableMasterCard
                 config={cat}
                 items={customerMasters[cat.id] || []}
+                countries={cat.id === "cities" ? customerMasters.countries : undefined}
                 onAdd={(name, extra) => onAdd(cat.id, name, extra)}
                 onUpdate={(id, name, extra) => onUpdate(cat.id, id, name, extra)}
                 onDelete={(id) => onDelete(cat.id, id)}
@@ -194,15 +195,17 @@ export function CustomerMastersSection({
 interface ReusableMasterCardProps {
   config: MasterCategoryConfig;
   items: SimpleMasterItem[];
+  countries?: SimpleMasterItem[];
   isExpandedView?: boolean;
-  onAdd: (name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
-  onUpdate: (id: string, name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
-  onDelete: (id: string) => void;
+  onAdd: (name: string, extra?: { code?: string; countryId?: string }) => Promise<{ success: boolean; error?: string }>;
+  onUpdate: (id: string, name: string, extra?: { code?: string; countryId?: string }) => Promise<{ success: boolean; error?: string }>;
+  onDelete: (id: string) => Promise<void> | void;
 }
 
 function ReusableMasterCard({
   config,
   items,
+  countries,
   isExpandedView,
   onAdd,
   onUpdate,
@@ -211,7 +214,7 @@ function ReusableMasterCard({
   const Icon = config.icon;
   const [inputName, setInputName] = useState("");
   const [inputCode, setInputCode] = useState("");
-  const [inputDescription, setInputDescription] = useState("");
+  const [inputCountryId, setInputCountryId] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -219,7 +222,7 @@ function ReusableMasterCard({
   const [editingItem, setEditingItem] = useState<SimpleMasterItem | null>(null);
   const [editName, setEditName] = useState("");
   const [editCode, setEditCode] = useState("");
-  const [editDescription, setEditDescription] = useState("");
+  const [editCountryId, setEditCountryId] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
 
   // Delete dialog state
@@ -233,11 +236,11 @@ function ReusableMasterCard({
       (item) =>
         item.name.toLowerCase().includes(q) ||
         (item.code && item.code.toLowerCase().includes(q)) ||
-        (item.description && item.description.toLowerCase().includes(q)),
+        (item.countryName && item.countryName.toLowerCase().includes(q)),
     );
   }, [items, searchQuery]);
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -245,16 +248,20 @@ function ReusableMasterCard({
       setErrorMsg(`Please enter a ${config.singular.toLowerCase()} name.`);
       return;
     }
+    if (config.id === "cities" && !inputCountryId) {
+      setErrorMsg("Select the country this city belongs to.");
+      return;
+    }
 
-    const res = onAdd(inputName.trim(), {
+    const res = await onAdd(inputName.trim(), {
       code: inputCode.trim() || undefined,
-      description: inputDescription.trim() || undefined,
+      countryId: inputCountryId || undefined,
     });
 
     if (res.success) {
       setInputName("");
       setInputCode("");
-      setInputDescription("");
+      setInputCountryId("");
       setErrorMsg(null);
     } else {
       setErrorMsg(res.error || "Failed to add item.");
@@ -265,20 +272,24 @@ function ReusableMasterCard({
     setEditingItem(item);
     setEditName(item.name);
     setEditCode(item.code || "");
-    setEditDescription(item.description || "");
+    setEditCountryId(item.countryId || "");
     setEditError(null);
   };
 
-  const handleEditSubmit = () => {
+  const handleEditSubmit = async () => {
     if (!editingItem) return;
     if (!editName.trim()) {
       setEditError("Name is required.");
       return;
     }
+    if (config.id === "cities" && !editCountryId) {
+      setEditError("Select the country this city belongs to.");
+      return;
+    }
 
-    const res = onUpdate(editingItem.id, editName.trim(), {
+    const res = await onUpdate(editingItem.id, editName.trim(), {
       code: editCode.trim() || undefined,
-      description: editDescription.trim() || undefined,
+      countryId: editCountryId || undefined,
     });
 
     if (res.success) {
@@ -325,6 +336,21 @@ function ReusableMasterCard({
             />
           </div>
 
+          {countries && (
+            <select
+              value={inputCountryId}
+              onChange={(e) => setInputCountryId(e.target.value)}
+              className="h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs sm:w-40"
+            >
+              <option value="">Country</option>
+              {countries.map((country) => (
+                <option key={country.id} value={country.id}>
+                  {country.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           {config.hasCode && (
             <div className="w-full sm:w-28">
               <Input
@@ -342,15 +368,6 @@ function ReusableMasterCard({
             Add {config.singular}
           </Button>
         </div>
-
-        {config.hasDescription && (
-          <Input
-            placeholder="Optional description / notes..."
-            value={inputDescription}
-            onChange={(e) => setInputDescription(e.target.value)}
-            className="h-7 text-xs text-muted-foreground"
-          />
-        )}
       </form>
 
       {/* Search & Items List */}
@@ -397,9 +414,9 @@ function ReusableMasterCard({
                       {item.code}
                     </Badge>
                   )}
-                  {item.description && (
+                  {item.countryName && (
                     <span className="text-[11px] text-muted-foreground truncate hidden sm:inline">
-                      — {item.description}
+                      {item.countryName}
                     </span>
                   )}
                 </div>
@@ -469,14 +486,21 @@ function ReusableMasterCard({
               </div>
             )}
 
-            {config.hasDescription && (
+            {countries && (
               <div className="space-y-1">
-                <span className="text-xs font-medium text-foreground">Description (Optional)</span>
-                <Input
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  className="h-8 text-xs"
-                />
+                <span className="text-xs font-medium text-foreground">Country</span>
+                <select
+                  value={editCountryId}
+                  onChange={(e) => setEditCountryId(e.target.value)}
+                  className="h-8 w-full rounded-md border border-input bg-transparent px-2 text-xs"
+                >
+                  <option value="">Select country</option>
+                  {countries.map((country) => (
+                    <option key={country.id} value={country.id}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
           </div>

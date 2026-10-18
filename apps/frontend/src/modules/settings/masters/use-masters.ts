@@ -1,18 +1,41 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import type { CustomerMasterCategory, CustomerMastersState, ProjectMasterItem, SimpleMasterItem } from "./types";
+import type { CustomerMasterCategory, CustomerMastersState, ProjectMasterItem } from "./types";
 import {
   INITIAL_CUSTOMER_MASTERS,
   INITIAL_PROJECT_MASTERS,
 } from "./defaults";
 import { useProjectCatalogStore } from "./project-catalog-store";
 import {
+  createCity,
+  createContactDesignation,
+  createContactType,
+  createCountry,
+  createIndustry,
+  createServiceCatalog,
+  createServiceDepartment,
+  createServiceGroup,
+  createServiceSubDepartment,
+  deleteCity,
+  deleteContactDesignation,
+  deleteContactType,
+  deleteCountry,
+  deleteIndustry,
+  deleteServiceCatalog,
+  durationDaysFromText,
   fetchCities,
   fetchContactDesignations,
   fetchContactTypes,
   fetchCountries,
   fetchIndustries,
   fetchServiceHierarchy,
+  isCatalogGuid,
+  updateCity,
+  updateContactDesignation,
+  updateContactType,
+  updateCountry,
+  updateIndustry,
+  updateServiceCatalog,
 } from "@/lib/api/catalogs";
 
 export function useMastersStore() {
@@ -23,9 +46,12 @@ export function useMastersStore() {
     deptGroups,
     allServices,
     getServicesForDepartment,
-    addContractType,
-    addDepartment,
-    addService,
+    getDepartmentsForContract,
+    getSubDepartments,
+    getServicesForSubDepartment,
+    getGroupId,
+    getDepartmentId,
+    getSubDepartmentId,
     resetCatalog,
   } = useProjectCatalogStore();
 
@@ -50,13 +76,14 @@ export function useMastersStore() {
           group.name.toLowerCase().includes("resource");
         const contractTypeLabel = isResource ? "Resource Based" : "Scope Based";
         for (const dept of group.departments) {
-          for (const sub of dept.subDepartments) {
+            for (const sub of dept.subDepartments) {
             for (const svc of sub.services) {
               projRows.push({
                 id: svc.id || `pm-${svc.code.toLowerCase()}`,
-                contractType: contractTypeLabel,
+                contractType: group.name,
                 group: contractTypeLabel,
                 department: dept.name,
+                subDepartment: sub.name,
                 service: svc.name,
                 tools: svc.defaultTools ?? "",
                 duration: `${svc.defaultDurationDays ?? 0} Days`,
@@ -74,7 +101,14 @@ export function useMastersStore() {
         designations: designations.map((d) => ({ id: d.id, name: d.name, code: d.code, createdAt: nowIso })),
         industries: industries.map((i) => ({ id: i.id, name: i.name, code: i.code, createdAt: nowIso })),
         countries: countries.map((c) => ({ id: c.id, name: c.name, code: c.code, createdAt: nowIso })),
-        cities: cities.map((c) => ({ id: c.id, name: c.name, code: c.code, createdAt: nowIso })),
+        cities: cities.map((c) => ({
+          id: c.id,
+          name: c.name,
+          code: c.code,
+          countryId: c.countryId,
+          countryName: countries.find((country) => country.id === c.countryId)?.name,
+          createdAt: nowIso,
+        })),
         contactTypes: contactTypes.map((ct) => ({ id: ct.id, name: ct.name, code: ct.code, createdAt: nowIso })),
       });
     } catch {
@@ -86,184 +120,267 @@ export function useMastersStore() {
     void loadMastersFromDb();
   }, [loadMastersFromDb]);
 
-  // --- Project Master Operations ---
-  const addProjectMaster = useCallback(
-    (item: Omit<ProjectMasterItem, "id" | "createdAt">): { success: boolean; error?: string } => {
-      const contractTypeVal = (item.contractType || item.group || "").trim();
-      if (!contractTypeVal) return { success: false, error: "Please select a Contract Type." };
-      if (!item.department?.trim()) return { success: false, error: "Please select a Department." };
-      if (!item.service?.trim()) return { success: false, error: "Please select a Service." };
-      if (!item.tools?.trim()) return { success: false, error: "Tools field cannot be empty." };
-      if (!item.duration?.trim()) return { success: false, error: "Duration field cannot be empty." };
-      if (item.unitPrice === undefined || item.unitPrice === null || Number.isNaN(Number(item.unitPrice)) || Number(item.unitPrice) <= 0) {
+  const reloadProjectCatalog = useCallback(async () => {
+    await resetCatalog();
+    await loadMastersFromDb();
+  }, [loadMastersFromDb, resetCatalog]);
+
+  const masterError = (error: unknown, fallback: string) =>
+    error instanceof Error && error.message ? error.message : fallback;
+
+  // --- Project Master Operations (database only) ---
+  const saveProjectMaster = useCallback(
+    async (input: {
+      serviceId?: string;
+      subDepartmentId?: string;
+      service: string;
+      tools: string;
+      duration: string;
+      unitPrice: number;
+    }): Promise<{ success: boolean; error?: string }> => {
+      const days = durationDaysFromText(input.duration);
+      if (!input.tools.trim()) return { success: false, error: "Tools field cannot be empty." };
+      if (!days) return { success: false, error: "Duration must be a number of days." };
+      if (!Number.isFinite(input.unitPrice) || input.unitPrice <= 0) {
         return { success: false, error: "Unit Price must be a positive numeric value." };
       }
 
-      const duplicate = projectMasters.some(
-        (p) =>
-          (p.contractType || p.group || "").toLowerCase() === contractTypeVal.toLowerCase() &&
-          p.department.toLowerCase() === item.department.toLowerCase() &&
-          p.service.toLowerCase() === item.service.toLowerCase(),
-      );
+      try {
+        if (isCatalogGuid(input.serviceId)) {
+          await updateServiceCatalog(input.serviceId, {
+            defaultTools: input.tools.trim(),
+            defaultUnitPrice: input.unitPrice,
+            defaultDurationDays: days,
+          });
+        } else if (isCatalogGuid(input.subDepartmentId)) {
+          await createServiceCatalog({
+            subDepartmentId: input.subDepartmentId,
+            name: input.service.trim(),
+            defaultTools: input.tools.trim(),
+            defaultUnitPrice: input.unitPrice,
+            defaultDurationDays: days,
+          });
+        } else {
+          return { success: false, error: "Choose a service that is already stored in the database." };
+        }
 
-      if (duplicate) {
-        return {
-          success: false,
-          error: `A project master for ${contractTypeVal} → ${item.department} → ${item.service} already exists.`,
-        };
+        await reloadProjectCatalog();
+        toast.success("Project Master saved");
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: masterError(error, "Could not save the project master.") };
       }
-
-      const newItem: ProjectMasterItem = {
-        id: `pm-${Date.now()}`,
-        contractType: contractTypeVal,
-        group: contractTypeVal,
-        department: item.department.trim(),
-        service: item.service.trim(),
-        tools: item.tools.trim(),
-        duration: item.duration.trim(),
-        unitPrice: Number(item.unitPrice),
-        createdAt: new Date().toISOString(),
-      };
-
-      setProjectMasters((prev) => [newItem, ...prev]);
-      toast.success("Project Master added successfully");
-      return { success: true };
     },
-    [projectMasters],
+    [reloadProjectCatalog],
   );
 
   const updateProjectMaster = useCallback(
-    (id: string, item: Omit<ProjectMasterItem, "id" | "createdAt">): { success: boolean; error?: string } => {
-      const contractTypeVal = (item.contractType || item.group || "").trim();
-      if (!contractTypeVal) return { success: false, error: "Please select a Contract Type." };
-      if (!item.department?.trim()) return { success: false, error: "Please select a Department." };
-      if (!item.service?.trim()) return { success: false, error: "Please select a Service." };
+    async (
+      id: string,
+      item: Omit<ProjectMasterItem, "id" | "createdAt"> & { subDepartmentId?: string },
+    ): Promise<{ success: boolean; error?: string }> => {
+      const days = durationDaysFromText(item.duration);
+      if (!isCatalogGuid(id)) return { success: false, error: "This row is not stored in the database." };
       if (!item.tools?.trim()) return { success: false, error: "Tools field cannot be empty." };
-      if (!item.duration?.trim()) return { success: false, error: "Duration field cannot be empty." };
+      if (!days) return { success: false, error: "Duration must be a number of days." };
       if (item.unitPrice === undefined || item.unitPrice === null || Number.isNaN(Number(item.unitPrice)) || Number(item.unitPrice) <= 0) {
         return { success: false, error: "Unit Price must be a positive numeric value." };
       }
 
-      const duplicate = projectMasters.some(
-        (p) =>
-          p.id !== id &&
-          (p.contractType || p.group || "").toLowerCase() === contractTypeVal.toLowerCase() &&
-          p.department.toLowerCase() === item.department.toLowerCase() &&
-          p.service.toLowerCase() === item.service.toLowerCase(),
-      );
-
-      if (duplicate) {
-        return {
-          success: false,
-          error: `Another project master for ${contractTypeVal} → ${item.department} → ${item.service} already exists.`,
-        };
+      try {
+        await updateServiceCatalog(id, {
+          name: item.service.trim(),
+          subDepartmentId: isCatalogGuid(item.subDepartmentId) ? item.subDepartmentId : undefined,
+          defaultTools: item.tools.trim(),
+          defaultUnitPrice: Number(item.unitPrice),
+          defaultDurationDays: days,
+        });
+        await reloadProjectCatalog();
+        toast.success("Project Master updated");
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: masterError(error, "Could not update the project master.") };
       }
-
-      setProjectMasters((prev) =>
-        prev.map((p) =>
-          p.id === id
-            ? {
-                ...p,
-                contractType: contractTypeVal,
-                group: contractTypeVal,
-                department: item.department.trim(),
-                service: item.service.trim(),
-                tools: item.tools.trim(),
-                duration: item.duration.trim(),
-                unitPrice: Number(item.unitPrice),
-              }
-            : p,
-        ),
-      );
-      toast.success("Project Master updated successfully");
-      return { success: true };
     },
-    [projectMasters],
+    [reloadProjectCatalog],
   );
 
-  const deleteProjectMaster = useCallback((id: string) => {
-    setProjectMasters((prev) => prev.filter((p) => p.id !== id));
-    toast.success("Project Master deleted");
-  }, []);
+  const deleteProjectMaster = useCallback(
+    async (id: string) => {
+      if (!isCatalogGuid(id)) {
+        toast.error("This row is not stored in the database.");
+        return;
+      }
+      try {
+        await deleteServiceCatalog(id);
+        await reloadProjectCatalog();
+        toast.success("Project Master deleted");
+      } catch (error) {
+        toast.error(masterError(error, "Could not delete the project master."));
+      }
+    },
+    [reloadProjectCatalog],
+  );
+
+  const addContractType = useCallback(
+    async (name: string): Promise<{ success: boolean; error?: string }> => {
+      const trimmed = name.trim();
+      if (!trimmed) return { success: false, error: "Contract Type name is required." };
+      try {
+        await createServiceGroup(trimmed);
+        await reloadProjectCatalog();
+        toast.success(`Contract Type "${trimmed}" saved`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: masterError(error, "Could not save the contract type.") };
+      }
+    },
+    [reloadProjectCatalog],
+  );
+
+  const addDepartment = useCallback(
+    async (name: string, groupId?: string): Promise<{ success: boolean; error?: string }> => {
+      const trimmed = name.trim();
+      if (!trimmed) return { success: false, error: "Department name is required." };
+      if (!isCatalogGuid(groupId)) return { success: false, error: "Select a contract type from the database first." };
+      try {
+        await createServiceDepartment(groupId, trimmed);
+        await reloadProjectCatalog();
+        toast.success(`Department "${trimmed}" saved`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: masterError(error, "Could not save the department.") };
+      }
+    },
+    [reloadProjectCatalog],
+  );
+
+  const addSubDepartment = useCallback(
+    async (name: string, departmentId?: string): Promise<{ success: boolean; error?: string }> => {
+      const trimmed = name.trim();
+      if (!trimmed) return { success: false, error: "Sub-department name is required." };
+      if (!isCatalogGuid(departmentId)) return { success: false, error: "Select a department from the database first." };
+      try {
+        await createServiceSubDepartment(departmentId, trimmed);
+        await reloadProjectCatalog();
+        toast.success(`Sub-department "${trimmed}" saved`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: masterError(error, "Could not save the sub-department.") };
+      }
+    },
+    [reloadProjectCatalog],
+  );
+
+  const addService = useCallback(
+    async (
+      _dept: string,
+      service: { name: string; tool?: string; unitPrice?: number; days?: number },
+      placement?: { contractType?: string; subDepartment?: string; subDepartmentId?: string },
+    ): Promise<{ success: boolean; error?: string }> => {
+      const trimmed = service.name.trim();
+      const subDepartmentId = placement?.subDepartmentId;
+      if (!trimmed) return { success: false, error: "Service name is required." };
+      if (!isCatalogGuid(subDepartmentId)) {
+        return { success: false, error: "Select a sub-department from the database first." };
+      }
+      try {
+        await createServiceCatalog({
+          subDepartmentId,
+          name: trimmed,
+          defaultTools: service.tool?.trim() || null,
+          defaultUnitPrice: service.unitPrice && service.unitPrice > 0 ? service.unitPrice : null,
+          defaultDurationDays: service.days && service.days > 0 ? service.days : null,
+        });
+        await reloadProjectCatalog();
+        toast.success(`Service "${trimmed}" saved`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: masterError(error, "Could not save the service.") };
+      }
+    },
+    [reloadProjectCatalog],
+  );
 
   // --- Customer Master Operations ---
   const addCustomerMasterItem = useCallback(
-    (category: CustomerMasterCategory, name: string, extra?: { code?: string; description?: string }): { success: boolean; error?: string } => {
+    async (
+      category: CustomerMasterCategory,
+      name: string,
+      extra?: { code?: string; description?: string; countryId?: string },
+    ): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
-      if (!trimmed) {
-        return { success: false, error: "Name is required." };
+      if (!trimmed) return { success: false, error: "Name is required." };
+      if (category === "cities" && !isCatalogGuid(extra?.countryId)) {
+        return { success: false, error: "Select the country this city belongs to." };
       }
-
-      const list = customerMasters[category] || [];
-      const duplicate = list.some((item) => item.name.toLowerCase() === trimmed.toLowerCase());
-      if (duplicate) {
-        return { success: false, error: `"${trimmed}" already exists in this master category.` };
+      try {
+        const payload = { name: trimmed, code: extra?.code?.trim() || null };
+        if (category === "designations") await createContactDesignation(payload);
+        else if (category === "industries") await createIndustry(payload);
+        else if (category === "countries") await createCountry(payload);
+        else if (category === "contactTypes") await createContactType(payload);
+        else await createCity({ ...payload, countryId: extra!.countryId! });
+        await loadMastersFromDb();
+        toast.success(`Saved "${trimmed}"`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: masterError(error, "Could not save this master.") };
       }
-
-      const newItem: SimpleMasterItem = {
-        id: `${category.slice(0, 3)}-${Date.now()}`,
-        name: trimmed,
-        code: extra?.code?.trim(),
-        description: extra?.description?.trim(),
-        createdAt: new Date().toISOString(),
-      };
-
-      setCustomerMasters((prev) => ({
-        ...prev,
-        [category]: [newItem, ...prev[category]],
-      }));
-
-      toast.success(`Added "${trimmed}" to ${category}`);
-      return { success: true };
     },
-    [customerMasters],
+    [loadMastersFromDb],
   );
 
   const updateCustomerMasterItem = useCallback(
-    (
+    async (
       category: CustomerMasterCategory,
       id: string,
       name: string,
-      extra?: { code?: string; description?: string },
-    ): { success: boolean; error?: string } => {
+      extra?: { code?: string; description?: string; countryId?: string },
+    ): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
-      if (!trimmed) {
-        return { success: false, error: "Name is required." };
+      if (!trimmed) return { success: false, error: "Name is required." };
+      if (!isCatalogGuid(id)) return { success: false, error: "This row is not stored in the database." };
+      if (category === "cities" && !isCatalogGuid(extra?.countryId)) {
+        return { success: false, error: "Select the country this city belongs to." };
       }
-
-      const list = customerMasters[category] || [];
-      const duplicate = list.some((item) => item.id !== id && item.name.toLowerCase() === trimmed.toLowerCase());
-      if (duplicate) {
-        return { success: false, error: `"${trimmed}" already exists in this master category.` };
+      try {
+        const payload = { name: trimmed, code: extra?.code?.trim() || null };
+        if (category === "designations") await updateContactDesignation(id, payload);
+        else if (category === "industries") await updateIndustry(id, payload);
+        else if (category === "countries") await updateCountry(id, payload);
+        else if (category === "contactTypes") await updateContactType(id, payload);
+        else await updateCity(id, { ...payload, countryId: extra!.countryId! });
+        await loadMastersFromDb();
+        toast.success(`Updated "${trimmed}"`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: masterError(error, "Could not update this master.") };
       }
-
-      setCustomerMasters((prev) => ({
-        ...prev,
-        [category]: prev[category].map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                name: trimmed,
-                code: extra?.code !== undefined ? extra.code.trim() : item.code,
-                description: extra?.description !== undefined ? extra.description.trim() : item.description,
-              }
-            : item,
-        ),
-      }));
-
-      toast.success(`Updated "${trimmed}"`);
-      return { success: true };
     },
-    [customerMasters],
+    [loadMastersFromDb],
   );
 
-  const deleteCustomerMasterItem = useCallback((category: CustomerMasterCategory, id: string) => {
-    setCustomerMasters((prev) => ({
-      ...prev,
-      [category]: prev[category].filter((item) => item.id !== id),
-    }));
-    toast.success("Master item deleted");
-  }, []);
+  const deleteCustomerMasterItem = useCallback(
+    async (category: CustomerMasterCategory, id: string) => {
+      if (!isCatalogGuid(id)) {
+        toast.error("This row is not stored in the database.");
+        return;
+      }
+      try {
+        if (category === "designations") await deleteContactDesignation(id);
+        else if (category === "industries") await deleteIndustry(id);
+        else if (category === "countries") await deleteCountry(id);
+        else if (category === "contactTypes") await deleteContactType(id);
+        else await deleteCity(id);
+        await loadMastersFromDb();
+        toast.success("Master item deleted");
+      } catch (error) {
+        toast.error(masterError(error, "Could not delete this master."));
+      }
+    },
+    [loadMastersFromDb],
+  );
 
   const resetAllToDefaults = useCallback(() => {
     resetCatalog();
@@ -282,10 +399,17 @@ export function useMastersStore() {
     services: allServices,
     allServices,
     getServicesForDepartment,
+    getDepartmentsForContract,
+    getSubDepartments,
+    getServicesForSubDepartment,
+    getGroupId,
+    getDepartmentId,
+    getSubDepartmentId,
     addContractType,
     addDepartment,
+    addSubDepartment,
     addService,
-    addProjectMaster,
+    saveProjectMaster,
     updateProjectMaster,
     deleteProjectMaster,
     addCustomerMasterItem,

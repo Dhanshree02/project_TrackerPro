@@ -10,6 +10,20 @@ export interface CatalogServiceItem {
   days: number;
 }
 
+export interface CatalogSubDepartment {
+  id: string;
+  name: string;
+  services: CatalogServiceItem[];
+}
+
+export interface CatalogTreeDepartment {
+  id: string;
+  groupId: string;
+  contractType: string;
+  name: string;
+  subDepartments: CatalogSubDepartment[];
+}
+
 export const DEFAULT_CONTRACT_TYPES: string[] = [];
 export const DEFAULT_DEPT_GROUPS: Record<string, "Resource" | "Scope"> = {};
 export const DEFAULT_DEPT_SERVICES: Record<string, CatalogServiceItem[]> = {};
@@ -28,6 +42,7 @@ export function useProjectCatalogStore() {
   const [contractTypes, setContractTypes] = useState<string[]>([]);
   const [deptServices, setDeptServices] = useState<Record<string, CatalogServiceItem[]>>({});
   const [deptGroups, setDeptGroups] = useState<Record<string, "Resource" | "Scope">>({});
+  const [tree, setTree] = useState<CatalogTreeDepartment[]>([]);
 
   const loadFromDb = useCallback(async () => {
     try {
@@ -35,6 +50,7 @@ export function useProjectCatalogStore() {
       const ctList = groups.map((g) => g.name);
       const nextServices: Record<string, CatalogServiceItem[]> = {};
       const nextGroups: Record<string, "Resource" | "Scope"> = {};
+      const nextTree: CatalogTreeDepartment[] = [];
 
       for (const group of groups) {
         const isRes =
@@ -44,24 +60,33 @@ export function useProjectCatalogStore() {
         for (const dept of group.departments) {
           nextGroups[dept.name] = grpLabel;
           const items: CatalogServiceItem[] = [];
+          const subDepartments: CatalogSubDepartment[] = [];
           for (const sub of dept.subDepartments) {
-            for (const svc of sub.services) {
-              items.push({
-                id: svc.code,
-                name: svc.name,
-                tool: svc.defaultTools ?? "",
-                unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 0,
-                days: svc.defaultDurationDays ?? 0,
-              });
-            }
+            const services: CatalogServiceItem[] = sub.services.map((svc) => ({
+              id: svc.id,
+              name: svc.name,
+              tool: svc.defaultTools ?? "",
+              unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 0,
+              days: svc.defaultDurationDays ?? 0,
+            }));
+            items.push(...services);
+            subDepartments.push({ id: sub.id, name: sub.name, services });
           }
           nextServices[dept.name] = items;
+          nextTree.push({
+            id: dept.id,
+            groupId: group.id,
+            contractType: group.name,
+            name: dept.name,
+            subDepartments,
+          });
         }
       }
 
       setContractTypes(ctList);
       setDeptServices(nextServices);
       setDeptGroups(nextGroups);
+      setTree(nextTree);
     } catch {
       toast.error("Could not load project service catalog from database");
     }
@@ -77,6 +102,41 @@ export function useProjectCatalogStore() {
     .flatMap((items) => items.map((i) => i.name))
     .filter((v, idx, arr) => arr.indexOf(v) === idx);
 
+  const getDepartmentsForContract = useCallback(
+    (contractType: string) => tree.filter((dept) => dept.contractType === contractType).map((dept) => dept.name),
+    [tree],
+  );
+
+  const getSubDepartments = useCallback(
+    (contractType: string, department: string) =>
+      tree.find((dept) => dept.contractType === contractType && dept.name === department)?.subDepartments.map((sub) => sub.name) ?? [],
+    [tree],
+  );
+
+  const getGroupId = useCallback(
+    (contractType: string) => tree.find((dept) => dept.contractType === contractType)?.groupId,
+    [tree],
+  );
+
+  const getDepartmentId = useCallback(
+    (contractType: string, department: string) =>
+      tree.find((dept) => dept.contractType === contractType && dept.name === department)?.id,
+    [tree],
+  );
+
+  const getSubDepartmentId = useCallback(
+    (contractType: string, department: string, subDepartment: string) =>
+      tree.find((dept) => dept.contractType === contractType && dept.name === department)?.subDepartments.find((sub) => sub.name === subDepartment)?.id,
+    [tree],
+  );
+
+  const getServicesForSubDepartment = useCallback(
+    (contractType: string, department: string, subDepartment: string) =>
+      tree
+        .find((dept) => dept.contractType === contractType && dept.name === department)
+        ?.subDepartments.find((sub) => sub.name === subDepartment)?.services ?? [],
+    [tree],
+  );
   const getServicesForDepartment = useCallback(
     (dept: string): CatalogServiceItem[] => {
       return deptServices[dept] || [];
@@ -102,7 +162,7 @@ export function useProjectCatalogStore() {
   );
 
   const addDepartment = useCallback(
-    (name: string, group: "Resource" | "Scope" = "Scope"): { success: boolean; error?: string } => {
+    (name: string, group: "Resource" | "Scope" = "Scope", contractType?: string): { success: boolean; error?: string } => {
       const trimmed = name.trim();
       if (!trimmed) {
         return { success: false, error: "Department name is required." };
@@ -113,6 +173,14 @@ export function useProjectCatalogStore() {
 
       setDeptServices((prev) => ({ ...prev, [trimmed]: [] }));
       setDeptGroups((prev) => ({ ...prev, [trimmed]: group }));
+      if (contractType?.trim()) {
+        const contract = contractType.trim();
+        setTree((prev) =>
+          prev.some((dept) => dept.contractType === contract && dept.name.toLowerCase() === trimmed.toLowerCase())
+            ? prev
+            : [...prev, { id: "", groupId: "", contractType: contract, name: trimmed, subDepartments: [] }],
+        );
+      }
       toast.success(`Department "${trimmed}" added`);
       return { success: true };
     },
@@ -123,6 +191,7 @@ export function useProjectCatalogStore() {
     (
       dept: string,
       service: { name: string; tool?: string; unitPrice?: number; days?: number },
+      placement?: { contractType?: string; subDepartment?: string },
     ): { success: boolean; error?: string } => {
       const trimmedDept = dept.trim();
       const trimmedName = service.name.trim();
@@ -153,15 +222,31 @@ export function useProjectCatalogStore() {
         [trimmedDept]: [...existingDeptServices, newServiceItem],
       }));
       setDeptGroups((prev) => (prev[trimmedDept] ? prev : { ...prev, [trimmedDept]: "Scope" }));
+      const contract = placement?.contractType?.trim();
+      const subName = placement?.subDepartment?.trim();
+      if (contract && subName) {
+        setTree((prev) =>
+          prev.map((node) => {
+            if (node.contractType !== contract || node.name !== trimmedDept) return node;
+            const hasSub = node.subDepartments.some((sub) => sub.name.toLowerCase() === subName.toLowerCase());
+            const subDepartments = hasSub
+              ? node.subDepartments.map((sub) =>
+                  sub.name.toLowerCase() === subName.toLowerCase()
+                    ? { ...sub, services: [...sub.services, newServiceItem] }
+                    : sub,
+                )
+              : [...node.subDepartments, { id: "", name: subName, services: [newServiceItem] }];
+            return { ...node, subDepartments };
+          }),
+        );
+      }
       toast.success(`Service "${trimmedName}" added to ${trimmedDept}`);
       return { success: true };
     },
     [deptServices],
   );
 
-  const resetCatalog = useCallback(() => {
-    void loadFromDb();
-  }, [loadFromDb]);
+  const resetCatalog = useCallback(() => loadFromDb(), [loadFromDb]);
 
   return {
     contractTypes,
@@ -170,6 +255,12 @@ export function useProjectCatalogStore() {
     deptGroups,
     allServices,
     getServicesForDepartment,
+    getDepartmentsForContract,
+    getSubDepartments,
+    getServicesForSubDepartment,
+    getGroupId,
+    getDepartmentId,
+    getSubDepartmentId,
     addContractType,
     addDepartment,
     addService,

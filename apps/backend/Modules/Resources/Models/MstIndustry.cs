@@ -2,7 +2,7 @@ using PMS.API.Shared.Common.Models;
 
 namespace PMS.API.Modules.Resources.Models;
 
-public class MstIndustry : BaseEntity
+public class MstIndustry : BaseEntity, INamedCatalogRow
 {
     public string Code { get; set; } = string.Empty;
 

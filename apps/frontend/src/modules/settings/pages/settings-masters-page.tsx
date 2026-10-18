@@ -40,11 +40,18 @@ export function SettingsMastersPage() {
     departments,
     services,
     customerMasters,
-    addProjectMaster,
+    getDepartmentsForContract,
+    getSubDepartments,
+    getServicesForSubDepartment,
+    getGroupId,
+    getDepartmentId,
+    getSubDepartmentId,
+    saveProjectMaster,
     updateProjectMaster,
     deleteProjectMaster,
     addContractType,
     addDepartment,
+    addSubDepartment,
     addService,
     addCustomerMasterItem,
     updateCustomerMasterItem,
@@ -154,11 +161,18 @@ export function SettingsMastersPage() {
           groups={groups}
           departments={departments}
           services={services}
-          onAdd={addProjectMaster}
+          getDepartmentsForContract={getDepartmentsForContract}
+          getSubDepartments={getSubDepartments}
+          getServicesForSubDepartment={getServicesForSubDepartment}
+          getGroupId={getGroupId}
+          getDepartmentId={getDepartmentId}
+          getSubDepartmentId={getSubDepartmentId}
+          onSave={saveProjectMaster}
           onUpdate={updateProjectMaster}
           onDelete={deleteProjectMaster}
           onAddContractType={addContractType}
           onAddDepartment={addDepartment}
+          onAddSubDepartment={addSubDepartment}
           onAddService={addService}
         />
       )}

@@ -44,6 +44,71 @@ export async function fetchContactTypes(): Promise<CatalogOption[]> {
   return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/contact-types")) ?? [];
 }
 
+export interface NamedCatalogWrite {
+  name: string;
+  code?: string | null;
+}
+
+export async function createIndustry(input: NamedCatalogWrite): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>("/api/v1/catalogs/industries", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function updateIndustry(id: string, input: NamedCatalogWrite): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>(`/api/v1/catalogs/industries/${id}`, { method: "PUT", body: JSON.stringify(input) });
+}
+
+export async function deleteIndustry(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/industries/${id}`, { method: "DELETE" });
+}
+
+export async function createContactDesignation(input: NamedCatalogWrite): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>("/api/v1/catalogs/contact-designations", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function updateContactDesignation(id: string, input: NamedCatalogWrite): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>(`/api/v1/catalogs/contact-designations/${id}`, { method: "PUT", body: JSON.stringify(input) });
+}
+
+export async function deleteContactDesignation(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/contact-designations/${id}`, { method: "DELETE" });
+}
+
+export async function createContactType(input: NamedCatalogWrite): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>("/api/v1/catalogs/contact-types", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function updateContactType(id: string, input: NamedCatalogWrite): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>(`/api/v1/catalogs/contact-types/${id}`, { method: "PUT", body: JSON.stringify(input) });
+}
+
+export async function deleteContactType(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/contact-types/${id}`, { method: "DELETE" });
+}
+
+export async function createCountry(input: NamedCatalogWrite): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>("/api/v1/catalogs/countries", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function updateCountry(id: string, input: NamedCatalogWrite): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>(`/api/v1/catalogs/countries/${id}`, { method: "PUT", body: JSON.stringify(input) });
+}
+
+export async function deleteCountry(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/countries/${id}`, { method: "DELETE" });
+}
+
+export async function createCity(input: NamedCatalogWrite & { countryId: string }): Promise<CityCatalogOption> {
+  return apiFetch<CityCatalogOption>("/api/v1/catalogs/cities", { method: "POST", body: JSON.stringify(input) });
+}
+
+export async function updateCity(id: string, input: NamedCatalogWrite & { countryId: string }): Promise<CityCatalogOption> {
+  return apiFetch<CityCatalogOption>(`/api/v1/catalogs/cities/${id}`, { method: "PUT", body: JSON.stringify(input) });
+}
+
+export async function deleteCity(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/cities/${id}`, { method: "DELETE" });
+}
+
 /** Current Address - City row from master.mst_address_cities. */
 export interface AddressCityOption {
   id: string;
@@ -174,5 +239,71 @@ export async function fetchServiceCatalog(subDepartmentId?: string): Promise<Ser
 /** GET /api/v1/catalogs/service-hierarchy — Complete tree for Section A service picker */
 export async function fetchServiceHierarchy(): Promise<ServiceHierarchyGroup[]> {
   return (await apiFetch<ServiceHierarchyGroup[]>("/api/v1/catalogs/service-hierarchy")) ?? [];
+}
+
+export interface ServiceCatalogWrite {
+  subDepartmentId: string;
+  name: string;
+  defaultTools?: string | null;
+  defaultUnitPrice?: number | null;
+  defaultDurationDays?: number | null;
+}
+
+export interface ServiceCatalogUpdate {
+  name?: string;
+  subDepartmentId?: string;
+  defaultTools: string;
+  defaultUnitPrice: number;
+  defaultDurationDays: number;
+}
+
+export function isCatalogGuid(value: string | undefined | null): value is string {
+  return !!value && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+export function durationDaysFromText(value: string): number | null {
+  const match = /(\d+)/.exec(value);
+  if (!match) return null;
+  const days = Number(match[1]);
+  return Number.isInteger(days) && days > 0 && days <= 3650 ? days : null;
+}
+
+export async function createServiceGroup(name: string): Promise<ServiceGroupOption> {
+  return apiFetch<ServiceGroupOption>("/api/v1/catalogs/service-groups", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function createServiceDepartment(groupId: string, name: string): Promise<ServiceDepartmentOption> {
+  return apiFetch<ServiceDepartmentOption>("/api/v1/catalogs/service-departments", {
+    method: "POST",
+    body: JSON.stringify({ groupId, name }),
+  });
+}
+
+export async function createServiceSubDepartment(departmentId: string, name: string): Promise<ServiceSubDepartmentOption> {
+  return apiFetch<ServiceSubDepartmentOption>("/api/v1/catalogs/service-sub-departments", {
+    method: "POST",
+    body: JSON.stringify({ departmentId, name }),
+  });
+}
+
+export async function createServiceCatalog(input: ServiceCatalogWrite): Promise<ServiceHierarchyItem> {
+  return apiFetch<ServiceHierarchyItem>("/api/v1/catalogs/service-catalog", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateServiceCatalog(id: string, input: ServiceCatalogUpdate): Promise<ServiceHierarchyItem> {
+  return apiFetch<ServiceHierarchyItem>(`/api/v1/catalogs/service-catalog/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteServiceCatalog(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/service-catalog/${id}`, { method: "DELETE" });
 }
 
