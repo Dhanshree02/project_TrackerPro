@@ -117,6 +117,31 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             e.SubDepartment)).ToList();
     }
 
+    public async Task<IReadOnlyList<EmployeeAllocationBookingDto>> ListOtherAllocationsAsync(
+        Guid projectId,
+        Guid employeeId,
+        CancellationToken ct = default)
+    {
+        await EnsureProjectExistsAsync(projectId, ct);
+        var today = TodayIst();
+
+        var rows = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Include(m => m.Project)
+            .Where(m => m.EmployeeId == employeeId && m.ProjectId != projectId)
+            .Where(m => m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam)
+            .Where(m => m.AllocationEndDate >= today)
+            .OrderBy(m => m.AllocationStartDate)
+            .ToListAsync(ct);
+
+        return rows.Select(m => new EmployeeAllocationBookingDto(
+            m.ProjectId,
+            m.Project?.Name ?? "Another project",
+            m.AllocationStartDate,
+            m.AllocationEndDate,
+            m.ResourceType)).ToList();
+    }
+
     public async Task<ProjectTeamMemberDto> AddAsync(
         Guid projectId,
         CreateProjectTeamMemberRequest request,
@@ -158,6 +183,8 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
         {
             throw new ConflictException("Employee is already assigned to this project.");
         }
+
+        await EnsureNoDedicatedOverlapAsync(projectId, request.EmployeeId, request.AllocationStartDate, request.AllocationEndDate, ct);
 
         // Shadow Team is always Non-Billable + Shared Resource; never Team Lead
         var billability = isShadow ? "Non-Billable" : NormalizeBillability(request.Billability);
@@ -220,6 +247,8 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
         {
             throw new ConflictException("Allocation end date must not be before start date.");
         }
+
+        await EnsureNoDedicatedOverlapAsync(projectId, entity.EmployeeId, start, end, ct);
 
         entity.AllocationStartDate = start;
         entity.AllocationEndDate = end;
@@ -490,6 +519,45 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
         if (value.Equals("Billable", StringComparison.OrdinalIgnoreCase))
             return "Billable";
         throw new ConflictException("Billability must be Billable or Non-Billable.");
+    }
+
+    private async Task EnsureNoDedicatedOverlapAsync(
+        Guid projectId,
+        Guid employeeId,
+        DateOnly start,
+        DateOnly end,
+        CancellationToken ct)
+    {
+        var clash = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Include(m => m.Project)
+            .Where(m => m.EmployeeId == employeeId && m.ProjectId != projectId)
+            .Where(m => m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam)
+            .Where(m => m.ResourceType == "Dedicated")
+            .Where(m => m.AllocationStartDate <= end && m.AllocationEndDate >= start)
+            .OrderBy(m => m.AllocationEndDate)
+            .FirstOrDefaultAsync(ct);
+
+        if (clash is null) return;
+
+        var projectName = string.IsNullOrWhiteSpace(clash.Project?.Name) ? "another project" : clash.Project!.Name;
+        throw new ConflictException(
+            $"This person is Dedicated on {projectName} until {clash.AllocationEndDate:dd-MM-yyyy}. Choose dates that do not overlap that allocation.");
+    }
+
+    private static DateOnly TodayIst()
+    {
+        TimeZoneInfo tz;
+        try
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            tz = TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+        }
+
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz));
     }
 
     private static string NormalizeResourceType(string value)

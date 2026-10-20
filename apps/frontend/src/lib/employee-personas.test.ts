@@ -54,6 +54,42 @@ describe("Super Admin vs IT Admin", () => {
     expect(mapEmployeeAccessRoleKey(itStaff, "Testing-Team Member")).toBe("Testing-Team Member");
   });
 
+  it("uses profile Assigned RBAC before Testing heuristics", () => {
+    const salesTm = row({
+      employeeCode: "TK-0099",
+      fullName: "Sales Person",
+      workEmail: "sales@talakunchi.com",
+      department: "Functional - Sales",
+      designation: "Sales Executive",
+      jobRoleName: "Team Member",
+      role: "Sales team member",
+    });
+    expect(mapEmployeeAccessRoleKey(salesTm)).toBe("Sales team member");
+  });
+
+  it("maps Excel designation rows before Testing heuristics", () => {
+    const socLead = row({
+      employeeCode: "TK-0200",
+      fullName: "SOC Lead",
+      workEmail: "soc.lead@talakunchi.com",
+      department: "Services - Operations",
+      designation: "SOC Lead - I",
+      jobRoleName: "Project Manager",
+    });
+    expect(mapEmployeeAccessRoleKey(socLead)).toBe("SOC-Manager");
+  });
+
+  it("does not treat on-floor Team Member in Role column as RBAC access", () => {
+    const misfiled = row({
+      employeeCode: "TK-0100",
+      fullName: "Test User",
+      workEmail: "test@talakunchi.com",
+      jobRoleName: "Team Member",
+      role: "Team Member",
+    });
+    expect(mapEmployeeAccessRoleKey(misfiled)).toBe("Testing-Team Member");
+  });
+
   it("assigns different permission sets", () => {
     const adminPersona = employeeListItemToPersona(superAdmin);
     const itPersona = employeeListItemToPersona(itStaff);

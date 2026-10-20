@@ -3,7 +3,7 @@ using PMS.API.Shared.Common.Models;
 namespace PMS.API.Modules.Resources.Models;
 
 /// <summary>
-/// Job-role catalog under a designation (not the RBAC <c>roles</c> table).
+/// Canonical On-Floor Role catalog (10 roles from <c>docs/rbac.xlsx</c>; not the RBAC <c>tbl_roles</c> table).
 /// </summary>
 public class MstRole : BaseEntity
 {
@@ -13,7 +13,7 @@ public class MstRole : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public Guid DesignationId { get; set; }
+    public Guid? DesignationId { get; set; }
 
-    public MstDesignation Designation { get; set; } = null!;
+    public MstDesignation? Designation { get; set; }
 }

@@ -132,7 +132,8 @@ public sealed record EmployeeDetailDto(
     Guid? EmployeeStatusId = null,
     Guid? DepartmentId = null,
     Guid? DesignationId = null,
-    Guid? JobRoleId = null);
+    Guid? JobRoleId = null,
+    string? JobRoleName = null);
 
 public sealed record EmployeeLookupDto(
     Guid Id,
@@ -166,7 +167,9 @@ public sealed record MetaOptionDto(
     Guid? DefaultRoleId = null,
     string? SubDepartment = null,
     string? DefaultRoleName = null,
-    string? DefaultRoleDisplayName = null);
+    string? DefaultRoleDisplayName = null,
+    Guid? JobRoleId = null,
+    string? JobRoleName = null);
 
 public sealed record CreateCatalogItemRequest(string Name, Guid? ParentId = null, Guid? DefaultRoleId = null);
 

@@ -18,6 +18,11 @@ public sealed class ProjectInvoiceConfiguration : IEntityTypeConfiguration<Proje
         builder.Property(x => x.TotalAmount).HasPrecision(18, 2);
         builder.Property(x => x.Status).HasMaxLength(40).IsRequired();
         builder.Property(x => x.InvoiceNumber).HasMaxLength(80);
+        builder.Property(x => x.ServiceName).HasMaxLength(255);
+        builder.Property(x => x.UnitPrice).HasPrecision(18, 2);
+        builder.Property(x => x.Currency).HasMaxLength(10);
+        builder.Property(x => x.ResourceLevel).HasMaxLength(500);
+        builder.Property(x => x.PaymentStatus).HasMaxLength(40);
 
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.Status);

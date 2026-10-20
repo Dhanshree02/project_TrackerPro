@@ -37,4 +37,18 @@ public class ProjectInvoice : BaseEntity
     public string? Remarks { get; set; }
 
     public int SortOrder { get; set; }
+
+    /// <summary>Service line this milestone was generated from.</summary>
+    public string? ServiceName { get; set; }
+
+    public int? Qty { get; set; }
+
+    public decimal? UnitPrice { get; set; }
+
+    public string? Currency { get; set; }
+
+    public string? ResourceLevel { get; set; }
+
+    /// <summary>Payment capture: "Not Received" or "Received".</summary>
+    public string? PaymentStatus { get; set; }
 }

@@ -44,6 +44,7 @@ public static class DbSeeder
         await db.SaveChangesAsync(ct);
         await SeedDirectoryEmployeesAsync(db, ct);
         await db.SaveChangesAsync(ct);
+        await OrgRoleMatrixSync.ApplyAsync(db, ct);
         await SeedReportingManagersAsync(db, ct);
         await db.SaveChangesAsync(ct);
         await SeedClientsAsync(db, users, ct);
@@ -333,8 +334,7 @@ public static class DbSeeder
         await SeedContactTypesAsync(db, ct);
         await SeedNationalitiesAsync(db, ct);
         await SeedSalaryBandsAsync(db, ct);
-        var existingDesignations = await db.Designations.ToDictionaryAsync(d => d.Code, ct);
-        await SeedJobRolesAsync(db, existingDesignations, ct);
+        await OrgRoleMatrixSync.EnsureOnFloorCatalogAsync(db, ct);
         await SeedGeoCatalogsAsync(db, ct);
         await SeedEmailDomainsAsync(db, ct);
         await SeedBusinessUnitsAsync(db, ct);
@@ -685,177 +685,6 @@ public static class DbSeeder
         }
     }
 
-    private static async Task SeedJobRolesAsync(
-        AppDbContext db,
-        IReadOnlyDictionary<string, MstDesignation> designations,
-        CancellationToken ct)
-    {
-        // One On Floor Role per designation. Keyed by (department, designation) because a
-        // designation name such as "Associate Manager - III" exists in more than one department.
-        // Department → Designation → On Floor Role → RBAC Role (mst_designations.DefaultRoleId).
-        var onFloorRoleByDesignation = new Dictionary<(string Department, string Designation), string>(DesignationKeyComparer.Instance)
-        {
-            // Core
-            [("Core", "Director and Chief Executive Officer")] = "Leader",
-            [("Core", "Director and Chief Operating Officer")] = "Leader",
-            [("Core", "Director and Chief Technology Officer")] = "Leader",
-            // Functional - IT Administration
-            [("Functional - IT Administration", "IT Admin")] = "IT Admin",
-            [("Functional - IT Administration", "Desktop Support Engineer - I")] = "IT Admin",
-            [("Functional - IT Administration", "Desktop Support Engineer - II")] = "IT Admin",
-            // Functional - Accounts
-            [("Functional - Accounts", "Accountant - I")] = "Accounts",
-            [("Functional - Accounts", "Accountant - II")] = "Accounts",
-            [("Functional - Accounts", "Accountant - III")] = "Accounts",
-            [("Functional - Accounts", "Senior Accountant - I")] = "Accounts",
-            [("Functional - Accounts", "Senior Accountant - II")] = "Accounts",
-            [("Functional - Accounts", "Senior Accountant - III")] = "Accounts",
-            // Functional - HR
-            [("Functional - HR", "HR Head")] = "HR",
-            [("Functional - HR", "Recruitment Coordinator - I")] = "HR",
-            [("Functional - HR", "Recruitment Coordinator - II")] = "HR",
-            [("Functional - HR", "Senior HR Executive - I")] = "HR",
-            [("Functional - HR", "Senior HR Executive - II")] = "HR",
-            // Functional - Sales
-            [("Functional - Sales", "Business Development Associate - I")] = "Sales Manager",
-            [("Functional - Sales", "Customer Success Representative - II")] = "Sales Manager",
-            [("Functional - Sales", "Director - Product Sales")] = "Sales team member",
-            [("Functional - Sales", "Sales Associate")] = "Sales team member",
-            [("Functional - Sales", "Associate Customer Success Representative - I")] = "Sales team member",
-            [("Functional - Sales", "Associate Customer Success Representative - II")] = "Sales team member",
-            // Functional - Project Management
-            [("Functional - Project Management", "Associate PMO - I")] = "Team Member",
-            [("Functional - Project Management", "Associate PMO - II")] = "Team Member",
-            [("Functional - Project Management", "Senior PMO - I")] = "Team Leader",
-            [("Functional - Project Management", "Senior PMO - II")] = "Manager",
-            [("Functional - Project Management", "Delivery Account Manager - I")] = "Team Member",
-            [("Functional - Project Management", "Delivery Account Manager - II")] = "Team Member",
-            [("Functional - Project Management", "Senior Delivery Account Manager - I")] = "Team Leader",
-            [("Functional - Project Management", "Senior Delivery Account Manager - II")] = "Manager",
-            // R&D (Research & Development)
-            [("R&D (Research & Development)", "Python Developer - I")] = "Team Member",
-            [("R&D (Research & Development)", "Python Developer - II")] = "Team Member",
-            [("R&D (Research & Development)", "Python Developer - III")] = "Team Member",
-            // Services - Operations
-            [("Services - Operations", "SOC Analyst - I")] = "Team Member",
-            [("Services - Operations", "SOC Analyst - II")] = "Team Member",
-            [("Services - Operations", "SOC Analyst - III")] = "Team Member",
-            [("Services - Operations", "SOC Analyst - IV")] = "Team Member",
-            [("Services - Operations", "SIEM Admin - I")] = "Team Member",
-            [("Services - Operations", "SIEM Admin - II")] = "Team Member",
-            [("Services - Operations", "SIEM Admin - III")] = "Team Member",
-            [("Services - Operations", "SIEM Admin - IV")] = "Team Leader",
-            [("Services - Operations", "SOC Consultant - I")] = "Team Member",
-            [("Services - Operations", "SOC Consultant - II")] = "Team Member",
-            [("Services - Operations", "SOC Shift Lead - I")] = "Team Leader",
-            [("Services - Operations", "SOC Shift Lead - II")] = "Team Leader",
-            [("Services - Operations", "SOC Lead - I")] = "Manager",
-            [("Services - Operations", "SOC Lead - II")] = "Sr. Manager",
-            [("Services - Operations", "Principal Manager - I")] = "Head Of Department",
-            // Services - Consulting
-            [("Services - Consulting", "GRC Auditor - I")] = "Team Member",
-            [("Services - Consulting", "GRC Auditor - II")] = "Team Member",
-            [("Services - Consulting", "GRC Auditor - III")] = "Team Member",
-            [("Services - Consulting", "GRC Auditor - IV")] = "Team Member",
-            [("Services - Consulting", "Senior GRC Auditor - I")] = "Team Leader",
-            [("Services - Consulting", "Senior GRC Auditor - II")] = "Team Leader",
-            [("Services - Consulting", "Associate Manager - III")] = "Manager",
-            [("Services - Consulting", "Senior Vice President - Principal Consultant")] = "Head Of Department",
-            // Services - Testing
-            [("Services - Testing", "PenTester - I")] = "Team Member",
-            [("Services - Testing", "PenTester - II")] = "Team Member",
-            [("Services - Testing", "PenTester - III")] = "Team Member",
-            [("Services - Testing", "PenTester - IV")] = "Team Member",
-            [("Services - Testing", "Senior Pentester - I")] = "Team Member",
-            [("Services - Testing", "Senior Pentester - II")] = "Team Member",
-            [("Services - Testing", "Associate Manager - I")] = "Team Leader",
-            [("Services - Testing", "Associate Manager - II")] = "Team Leader",
-            [("Services - Testing", "Associate Manager - III")] = "Team Leader",
-            [("Services - Testing", "Associate Project Manager")] = "Manager",
-            [("Services - Testing", "Manager - I")] = "Sr. Manager",
-            [("Services - Testing", "DevSecOps Practitioner - I")] = "Team Member",
-            [("Services - Testing", "DevSecOps Practitioner - II")] = "Team Member",
-            [("Services - Testing", "DevSecOps Practitioner - III")] = "Team Member",
-            [("Services - Testing", "DevSecOps Associate")] = "Team Leader",
-            [("Services - Testing", "DevSecOps Specialist - II")] = "Manager",
-            [("Services - Testing", "Red Team Practitioner - II")] = "Team Member",
-            [("Services - Testing", "Red Team Practitioner - III")] = "Team Member",
-            [("Services - Testing", "Red Team Specialist - II")] = "Manager",
-            [("Services - Testing", "Senior Cloud Security Consultant - I")] = "Manager",
-            [("Services - Testing", "Associate AI Engineer - Contractual")] = "Team Member",
-        };
-        // Intern exists on every department and is always Team Member.
-        const string internOnFloorRole = "Team Member";
-
-        var allDesignations = await db.Designations.Include(d => d.Department).ToListAsync(ct);
-        var existingCodes = await db.JobRoles.Select(r => r.Code).ToHashSetAsync(ct);
-        var existingRoles = await db.JobRoles.ToListAsync(ct);
-        var existingKeys = existingRoles
-            .Select(r => (r.DesignationId, r.Name))
-            .ToHashSet();
-        var designationsWithActiveRole = existingRoles
-            .Where(r => r.IsActive)
-            .Select(r => r.DesignationId)
-            .ToHashSet();
-
-        foreach (var desig in allDesignations)
-        {
-            var designationName = desig.Name.Trim();
-            var departmentName = desig.Department?.Name?.Trim() ?? string.Empty;
-            string? name = null;
-            if (string.Equals(designationName, "Intern", StringComparison.OrdinalIgnoreCase))
-            {
-                name = internOnFloorRole;
-            }
-            else if (!onFloorRoleByDesignation.TryGetValue((departmentName, designationName), out name))
-            {
-                continue;
-            }
-
-            // A designation keeps exactly one active On Floor Role. When one is already
-            // there, it is left alone — master corrections are made in SQL, not by reseeding.
-            if (designationsWithActiveRole.Contains(desig.Id)) continue;
-            if (existingKeys.Contains((desig.Id, name))) continue;
-
-            var roleCode = Truncate($"{desig.Code}_{Slug(name)}", 80);
-            var n = 2;
-            while (existingCodes.Contains(roleCode))
-            {
-                var suffix = $"_{n}";
-                roleCode = Truncate(desig.Code + "_" + Slug(name), 80 - suffix.Length) + suffix;
-                n++;
-            }
-
-            db.JobRoles.Add(new MstRole
-            {
-                Code = roleCode,
-                Name = name,
-                DesignationId = desig.Id,
-                IsActive = true,
-            });
-            existingCodes.Add(roleCode);
-            existingKeys.Add((desig.Id, name));
-            designationsWithActiveRole.Add(desig.Id);
-        }
-    }
-
-    private sealed class DesignationKeyComparer : IEqualityComparer<(string Department, string Designation)>
-    {
-        public static readonly DesignationKeyComparer Instance = new();
-
-        public bool Equals((string Department, string Designation) x, (string Department, string Designation) y) =>
-            string.Equals(x.Department, y.Department, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(x.Designation, y.Designation, StringComparison.OrdinalIgnoreCase);
-
-        public int GetHashCode((string Department, string Designation) obj) =>
-            HashCode.Combine(
-                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Department),
-                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Designation));
-    }
-
-    private static string Truncate(string value, int max) =>
-        value.Length <= max ? value : value[..max].Trim('_');
-
     private static async Task SeedGeoCatalogsAsync(AppDbContext db, CancellationToken ct)
     {
         var geo = new (string Code, string Name, string[] Cities)[]
@@ -1104,7 +933,7 @@ public static class DbSeeder
                 DesignationId = desig?.Id,
                 Role = row.Role,
                 JobRoleId = jobRoles.FirstOrDefault(r =>
-                    r.DesignationId == desig?.Id && r.Name == row.Role)?.Id,
+                    string.Equals(r.Name, row.Role, StringComparison.OrdinalIgnoreCase))?.Id,
                 BusinessUnit = "Talakunchi Networks Private Limited",
                 WorkLocation = location,
                 OfficeBranch = null,

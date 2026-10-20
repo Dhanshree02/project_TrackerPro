@@ -18,22 +18,16 @@ import {
   toTenDigitPhone,
   type TkIdPrefix,
 } from "@/lib/form-validation";
-import { CreatableCatalogSelect, SearchableSelect } from "@/components/creatable-catalog-select";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { TkIdField } from "@/components/tk-id-field";
 import { WorkEmailField } from "@/components/work-email-field";
 import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { formatOnFloorRoleDisplay } from "@/lib/on-floor-role";
 import { formatSubDepartmentDisplay, normalizeSubDepartmentKey } from "@/lib/sub-department";
 import {
-  createBusinessUnitOption,
-  createDepartmentOption,
-  createDesignationOption,
   createEmployee,
   fetchAllEmployees,
   updateEmployee,
-  createJobRoleOption,
-  createReportingManagerOption,
-  createWorkLocationOption,
   fetchBusinessUnitOptions,
   fetchDepartmentOptions,
   fetchDesignationOptions,
@@ -43,11 +37,8 @@ import {
   fetchReportingManagerOptions,
   fetchWorkLocationOptions,
   fetchCertificationOptions,
-  createCertificationOption,
   fetchGraduationDegreeOptions,
-  createGraduationDegreeOption,
   fetchPostGraduationDegreeOptions,
-  createPostGraduationDegreeOption,
   toUiEmployee,
   type ApiMetaOption,
 } from "@/modules/employees/api/employees";
@@ -218,8 +209,10 @@ function FormSelect({
   error,
   required,
   disabled,
+  disabledHint,
   placeholder = "Select…",
   showSearch,
+  className,
 }: {
   id?: string;
   label: string;
@@ -229,8 +222,10 @@ function FormSelect({
   error?: string;
   required?: boolean;
   disabled?: boolean;
+  disabledHint?: string;
   placeholder?: string;
   showSearch?: boolean;
+  className?: string;
 }) {
   return (
     <SearchableSelect
@@ -242,8 +237,10 @@ function FormSelect({
       error={error}
       required={required}
       disabled={disabled}
+      disabledHint={disabledHint}
       placeholder={placeholder}
       showSearch={showSearch}
+      className={className}
     />
   );
 }
@@ -265,13 +262,11 @@ function CertificationMultiSelect({
   certOptions,
   value,
   onChange,
-  onCreate,
 }: {
   label: string;
   certOptions: ApiMetaOption[];
   value: string;
   onChange: (newValue: string) => void;
-  onCreate: (name: string) => Promise<ApiMetaOption>;
 }) {
   const selectedList = useMemo(() => csvToList(value), [value]);
 
@@ -287,28 +282,20 @@ function CertificationMultiSelect({
     onChange(nextList.join(", "));
   };
 
-  const catalogSelectOptions = useMemo(() => {
+  const searchableCertOptions = useMemo(() => {
     return certOptions
       .filter((opt) => !selectedList.some((s) => s.toLowerCase() === opt.name.toLowerCase()))
-      .map((opt) => ({ id: opt.id, code: opt.code, name: opt.name }));
+      .map((opt) => ({ value: opt.name, label: opt.name }));
   }, [certOptions, selectedList]);
 
   return (
     <div className="space-y-2">
       <span className={FORM_LABEL_CLS}>{label}</span>
-      <CreatableCatalogSelect
-        label=""
-        options={catalogSelectOptions}
-        valueId=""
-        placeholder="Search or add certification (e.g. CEH, OSCP, CISSP, ISO 27001)…"
-        onSelect={(_, name) => {
-          if (name) addCert(name);
-        }}
-        onCreate={async (name) => {
-          const created = await onCreate(name);
-          addCert(created.name);
-          return created;
-        }}
+      <SearchableSelect
+        options={searchableCertOptions}
+        value=""
+        placeholder="Search certification (e.g. CEH, OSCP, CISSP, ISO 27001)…"
+        onChange={(certName) => addCert(certName)}
       />
       {selectedList.length > 0 && (
         <div className="flex flex-wrap gap-1.5 p-2.5 rounded-lg border border-border bg-muted/30">
@@ -613,15 +600,22 @@ export function EmployeeFormModal({
       .then((roles) => setRbacRoleOptions(roles ?? []))
       .catch(() => {});
 
-    void fetchReportingManagerOptions()
+    const excludeManagerSelfCode =
+      mode === "edit" && initialEmployee ? initialEmployee.id : undefined;
+    void fetchReportingManagerOptions(excludeManagerSelfCode)
       .then((mgrs) => {
         const list = mgrs ?? [];
         setManagerOptions(list);
         if (mode === "edit" && initialEmployee) {
+          const rmName = initialEmployee.reportingManager?.trim().toLowerCase();
           const matched = list.find(
             (m) =>
-              (initialEmployee.reportingManagerId && (m.id === initialEmployee.reportingManagerId || m.parentId === initialEmployee.reportingManagerId)) ||
-              (initialEmployee.reportingManager && m.name.toLowerCase() === initialEmployee.reportingManager.toLowerCase()),
+              (initialEmployee.reportingManagerId &&
+                (m.id === initialEmployee.reportingManagerId ||
+                  m.parentId === initialEmployee.reportingManagerId)) ||
+              (rmName &&
+                (m.name.toLowerCase() === rmName ||
+                  m.name.toLowerCase().startsWith(`${rmName} (`))),
           );
           if (matched) {
             setForm((prev) => ({ ...prev, reportingManagerId: matched.id }));
@@ -714,11 +708,15 @@ export function EmployeeFormModal({
     // RBAC Role is mapped from the designation (mst_designations.DefaultRoleId).
     const matchedDesig = desigOptions.find((d) => d.id === form.designationId);
     const mappedRoleName = resolveDesignationRbacRoleName(matchedDesig, rbacRoleOptions);
-    if (mappedRoleName) {
+    if (mappedRoleName || matchedDesig?.jobRoleId) {
       setForm((prev) => {
-        if (prev.role && mode === "edit" && prev.designationId === initialEmployee?.designationId) return prev;
-        if (prev.role === mappedRoleName) return prev;
-        return { ...prev, role: mappedRoleName };
+        const nextRole =
+          prev.role && mode === "edit" && prev.designationId === initialEmployee?.designationId
+            ? prev.role
+            : mappedRoleName || prev.role;
+        const nextJobRoleId = prev.jobRoleId || matchedDesig?.jobRoleId || "";
+        if (prev.role === nextRole && prev.jobRoleId === nextJobRoleId) return prev;
+        return { ...prev, role: nextRole, jobRoleId: nextJobRoleId };
       });
     }
 
@@ -835,14 +833,10 @@ export function EmployeeFormModal({
       } else {
         updatedForm.subDepartment = "";
       }
-      if (matchedDesig?.defaultRoleId && rbacRoleOptions.length > 0) {
-        const matchedRole = rbacRoleOptions.find(
-          (r) => r.id === matchedDesig.defaultRoleId || r.name.toLowerCase() === matchedDesig.defaultRoleId?.toLowerCase(),
-        );
-        if (matchedRole) {
-          updatedForm.role = matchedRole.name;
-        }
+      if (matchedDesig?.jobRoleId) {
+        updatedForm.jobRoleId = matchedDesig.jobRoleId;
       }
+      updatedForm.role = resolveDesignationRbacRoleName(matchedDesig, rbacRoleOptions) ?? "";
     }
     if (field === "bondDelivered" && nextValue !== "Yes") {
       updatedForm.bondDurationMonths = "0";
@@ -998,83 +992,22 @@ export function EmployeeFormModal({
     }
     setIsSubmitting(true);
     try {
-      // Resolve creatable IDs
-      let resolvedDepartmentId = form.departmentId || null;
-      if (resolvedDepartmentId && resolvedDepartmentId.startsWith("__new__")) {
-        const rawName = resolvedDepartmentId.replace(/^__new__/, "");
-        const createdDept = await createDepartmentOption(rawName);
-        resolvedDepartmentId = createdDept.id;
-        setDeptOptions((prev) =>
-          prev.map((d) => (d.id === form.departmentId ? createdDept : d)),
-        );
-      }
-
-      let resolvedDesignationId = form.designationId || null;
-      if (resolvedDesignationId && resolvedDesignationId.startsWith("__new__")) {
-        const rawName = resolvedDesignationId.replace(/^__new__/, "");
-        if (!resolvedDepartmentId) {
-          toast.error("Department is required for the new designation");
-          setIsSubmitting(false);
-          return;
-        }
-        const createdDesig = await createDesignationOption(rawName, resolvedDepartmentId);
-        resolvedDesignationId = createdDesig.id;
-        setDesigOptions((prev) =>
-          prev.map((d) => (d.id === form.designationId ? createdDesig : d)),
-        );
-      }
-
-      let resolvedJobRoleId = form.jobRoleId || null;
-      if (resolvedJobRoleId && resolvedJobRoleId.startsWith("__new__")) {
-        const rawName = resolvedJobRoleId.replace(/^__new__/, "");
-        if (!resolvedDesignationId) {
-          toast.error("Designation is required for the new role");
-          setIsSubmitting(false);
-          return;
-        }
-        const createdRole = await createJobRoleOption(rawName, resolvedDesignationId);
-        resolvedJobRoleId = createdRole.id;
-        setRoleOptions((prev) =>
-          prev.map((r) => (r.id === form.jobRoleId ? createdRole : r)),
-        );
-      }
-
+      const resolvedDepartmentId = form.departmentId || null;
+      const resolvedDesignationId = form.designationId || null;
+      const resolvedJobRoleId = form.jobRoleId || null;
       let resolvedReportingManagerId = form.reportingManagerId.trim() || null;
-      if (resolvedReportingManagerId && resolvedReportingManagerId.startsWith("__new__")) {
-        const rawName = resolvedReportingManagerId.replace(/^__new__/, "");
-        const createdMgr = await createReportingManagerOption(rawName);
-        resolvedReportingManagerId = createdMgr.id;
-        setManagerOptions((prev) =>
-          prev.map((m) => (m.id === form.reportingManagerId ? createdMgr : m)),
-        );
-      } else if (resolvedReportingManagerId) {
+      if (resolvedReportingManagerId) {
         const currentMgr = managerOptions.find(
-          (m) => m.id === resolvedReportingManagerId || (m.parentId && m.parentId === resolvedReportingManagerId),
+          (m) =>
+            m.id === resolvedReportingManagerId ||
+            (m.parentId && m.parentId === resolvedReportingManagerId),
         );
         if (currentMgr) {
           resolvedReportingManagerId = currentMgr.id;
         }
       }
-
-      let resolvedBusinessUnit = form.businessUnit.trim() || null;
-      if (resolvedBusinessUnit && resolvedBusinessUnit.startsWith("__new__")) {
-        const rawName = resolvedBusinessUnit.replace(/^__new__/, "");
-        const createdBu = await createBusinessUnitOption(rawName);
-        resolvedBusinessUnit = createdBu.name;
-        setBuOptions((prev) =>
-          prev.map((b) => (b.id === form.businessUnit ? createdBu : b)),
-        );
-      }
-
-      let resolvedWorkLocation = form.workLocation.trim() || null;
-      if (resolvedWorkLocation && resolvedWorkLocation.startsWith("__new__")) {
-        const rawName = resolvedWorkLocation.replace(/^__new__/, "");
-        const createdLoc = await createWorkLocationOption(rawName);
-        resolvedWorkLocation = createdLoc.name;
-        setWorkLocOptions((prev) =>
-          prev.map((w) => (w.id === form.workLocation ? createdLoc : w)),
-        );
-      }
+      const resolvedBusinessUnit = form.businessUnit.trim() || null;
+      const resolvedWorkLocation = form.workLocation.trim() || null;
 
       const selectedStatus = employeeStatusOptions.find((s) => s.id === form.employeeStatusId);
       const employeeStatusName = selectedStatus?.name ?? (mode === "create" ? "Active" : initialEmployee?.confirmationStatus || "Active");
@@ -1436,49 +1369,29 @@ export function EmployeeFormModal({
                 onBlur={() => blurField("employeeCode")}
                 error={errors.employeeCode}
               />
-              <CreatableCatalogSelect
+              <FormSelect
                 id="form-departmentId"
                 label="Department"
                 required
                 error={errors.departmentId}
-                options={deptOptions}
-                valueId={form.departmentId}
-                onSelect={(id) => setField("departmentId", id)}
-                onCreate={async (name) => {
-                  const trimmed = name.trim();
-                  const existing = deptOptions.find(
-                    (d) => d.name.toLowerCase() === trimmed.toLowerCase(),
-                  );
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setDeptOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
+                options={deptOptions.map((o) => ({ value: o.id, label: o.name }))}
+                value={form.departmentId}
+                onChange={(id) => setField("departmentId", id)}
               />
-              <CreatableCatalogSelect
+              <FormSelect
                 id="form-designationId"
                 label="Designation"
                 required
                 error={errors.designationId}
-                options={desigOptions}
-                valueId={form.designationId}
+                options={desigOptions.map((o) => ({ value: o.id, label: o.name }))}
+                value={form.designationId}
                 disabled={!form.departmentId}
                 disabledHint="Select a department first"
-                onSelect={(id) => {
+                onChange={(id) => {
                   setField("designationId", id);
                   const matchedDesig = desigOptions.find((d) => d.id === id);
                   const mappedRoleName = resolveDesignationRbacRoleName(matchedDesig, rbacRoleOptions);
                   setField("role", mappedRoleName ?? "");
-                }}
-                onCreate={async (name) => {
-                  const trimmed = name.trim();
-                  const existing = desigOptions.find(
-                    (d) => d.name.toLowerCase() === trimmed.toLowerCase(),
-                  );
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setDesigOptions((prev) => [...prev, temp]);
-                  return temp;
                 }}
               />
               <div className="flex flex-col gap-1.5">
@@ -1521,85 +1434,59 @@ export function EmployeeFormModal({
                 }
                 error={errors.role}
               />
-              <CreatableCatalogSelect
+              <FormSelect
                 id="form-jobRoleId"
                 label="On Floor Role"
-                options={roleOptions}
-                valueId={form.jobRoleId}
+                options={roleOptions.map((o) => ({ value: o.id, label: o.name }))}
+                value={form.jobRoleId}
                 disabled
                 disabledHint={form.designationId ? "Mapped from designation" : "Select a designation first"}
                 placeholder="Mapped from designation"
-                onSelect={() => undefined}
-                onCreate={async (name) => {
-                  const trimmed = name.trim();
-                  const existing = roleOptions.find(
-                    (r) => r.name.toLowerCase() === trimmed.toLowerCase(),
-                  );
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setRoleOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
+                onChange={() => undefined}
               />
               <div className="md:col-span-2 lg:col-span-2">
-                <CreatableCatalogSelect
+                <FormSelect
                   id="form-businessUnit"
                   label="Business Unit"
-                  options={buOptions}
-                  valueId={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
+                  options={buOptions.map((o) => ({ value: o.id, label: o.name }))}
+                  value={buOptions.find((b) => b.name === form.businessUnit || b.id === form.businessUnit)?.id ?? form.businessUnit}
                   placeholder="Select business unit"
-                  onSelect={(id, name) => setField("businessUnit", name || id)}
-                  onCreate={async (name) => {
-                    const trimmed = name.trim();
-                    const existing = buOptions.find((b) => b.name.toLowerCase() === trimmed.toLowerCase());
-                    if (existing) return existing;
-                    const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                    setBuOptions((prev) => [...prev, temp]);
-                    return temp;
+                  onChange={(id) => {
+                    const match = buOptions.find((b) => b.id === id);
+                    setField("businessUnit", match?.name ?? id);
                   }}
                 />
               </div>
-              <CreatableCatalogSelect
+              <FormSelect
                 id="form-reportingManagerId"
                 label="Reporting Manager"
                 required
                 error={errors.reportingManagerId}
-                options={managerOptions}
-                valueId={
+                options={managerOptions.map((o) => ({ value: o.id, label: o.name }))}
+                value={
                   managerOptions.find(
                     (m) => m.id === form.reportingManagerId || (m.parentId && m.parentId === form.reportingManagerId),
                   )?.id ?? form.reportingManagerId
                 }
                 placeholder="Select reporting manager"
-                onSelect={(id) => setField("reportingManagerId", id)}
-                onCreate={async (name) => {
-                  const trimmed = name.trim();
-                  const existing = managerOptions.find(
-                    (m) => m.name.toLowerCase() === trimmed.toLowerCase(),
-                  );
-                  if (existing) return existing;
-                  const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                  setManagerOptions((prev) => [...prev, temp]);
-                  return temp;
-                }}
+                onChange={(id) => setField("reportingManagerId", id)}
               />
-              <CreatableCatalogSelect
+              <FormSelect
                 id="form-workLocation"
                 label="Work Location"
                 required
                 error={errors.workLocation}
-                options={workLocOptions}
-                valueId={selectedWorkLoc?.id ?? form.workLocation}
+                options={workLocOptions.map((o) => ({ value: o.id, label: o.name }))}
+                value={selectedWorkLoc?.id ?? form.workLocation}
                 placeholder="Select work location"
-                onSelect={(id, name) => {
-                  const resolvedName = name || id;
+                onChange={(id) => {
                   const loc = workLocOptions.find(
                     (l) =>
                       l.id === id ||
-                      l.name.toLowerCase() === resolvedName.toLowerCase() ||
-                      (l.code && l.code.toLowerCase() === resolvedName.toLowerCase()),
+                      l.name.toLowerCase() === id.toLowerCase() ||
+                      (l.code && l.code.toLowerCase() === id.toLowerCase()),
                   );
-                  const selectedName = loc ? loc.name : resolvedName;
+                  const selectedName = loc ? loc.name : id;
                   const updatedForm = {
                     ...formRef.current,
                     workLocation: selectedName,
@@ -1631,20 +1518,6 @@ export function EmployeeFormModal({
                     else delete next.projectSite;
                     return next;
                   });
-                }}
-                onCreate={async (name) => {
-                  const trimmed = name.trim();
-                  const existing = workLocOptions.find((w) => w.name.toLowerCase() === trimmed.toLowerCase());
-                  if (existing) return existing;
-                  try {
-                    const created = await createWorkLocationOption(trimmed);
-                    setWorkLocOptions((prev) => [...prev, created]);
-                    return created;
-                  } catch {
-                    const temp = { id: `__new__${trimmed}`, code: `__new__${trimmed}`, name: trimmed };
-                    setWorkLocOptions((prev) => [...prev, temp]);
-                    return temp;
-                  }
                 }}
               />
               <FormField
@@ -1749,25 +1622,21 @@ export function EmployeeFormModal({
             </FormSection>
 
             <FormSection title="4. Education & Experience">
-              <CreatableCatalogSelect
+              <FormSelect
                 id="form-gradDegree"
                 label="Graduation Degree Name"
-                options={gradDegreeOptions}
-                valueId={
+                options={gradDegreeOptions.map((o) => ({ value: o.id, label: o.name }))}
+                value={
                   gradDegreeOptions.find(
                     (g) => g.name.toLowerCase() === form.gradDegree.toLowerCase() || g.id === form.gradDegree,
                   )?.id ?? form.gradDegree
                 }
-                placeholder="Select or add graduation degree (BE, B.Tech, B.Sc)…"
+                placeholder="Select graduation degree (BE, B.Tech, B.Sc)…"
                 required={Boolean(form.gradYear && form.gradYear !== "NA")}
                 error={errors.gradDegree}
-                onSelect={(id, name) => {
-                  setField("gradDegree", name || id);
-                }}
-                onCreate={async (name) => {
-                  const created = await createGraduationDegreeOption(name);
-                  setGradDegreeOptions((prev) => [...prev, created]);
-                  return created;
+                onChange={(id) => {
+                  const match = gradDegreeOptions.find((g) => g.id === id);
+                  setField("gradDegree", match?.name ?? id);
                 }}
               />
 
@@ -1784,30 +1653,26 @@ export function EmployeeFormModal({
                 error={errors.gradYear}
               />
 
-              <CreatableCatalogSelect
+              <FormSelect
                 id="form-postGradDegree"
                 label="Post Graduation Degree Name"
-                options={postGradDegreeOptions}
-                valueId={
+                options={postGradDegreeOptions.map((o) => ({ value: o.id, label: o.name }))}
+                value={
                   postGradDegreeOptions.find(
                     (p) => p.name.toLowerCase() === form.postGradDegree.toLowerCase() || p.id === form.postGradDegree,
                   )?.id ?? form.postGradDegree
                 }
-                placeholder="Select or add post graduation degree (MBA, M.Tech, NA)…"
+                placeholder="Select post graduation degree (MBA, M.Tech, NA)…"
                 error={errors.postGradDegree}
-                onSelect={(id, name) => {
-                  const degName = name || id;
+                onChange={(id) => {
+                  const match = postGradDegreeOptions.find((p) => p.id === id);
+                  const degName = match?.name ?? id;
                   setField("postGradDegree", degName);
                   if (degName === "NA") {
                     setField("postGradYear", "NA");
                   } else if (!formRef.current.postGradYear || formRef.current.postGradYear === "NA") {
                     setField("postGradYear", "");
                   }
-                }}
-                onCreate={async (name) => {
-                  const created = await createPostGraduationDegreeOption(name);
-                  setPostGradDegreeOptions((prev) => [...prev, created]);
-                  return created;
                 }}
               />
 
@@ -1935,11 +1800,6 @@ export function EmployeeFormModal({
                   certOptions={certOptions}
                   value={form.certifications}
                   onChange={(val) => setField("certifications", val)}
-                  onCreate={async (name) => {
-                    const created = await createCertificationOption(name);
-                    setCertOptions((prev) => [...prev, created]);
-                    return created;
-                  }}
                 />
               </div>
             </FormSection>

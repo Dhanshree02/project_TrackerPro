@@ -34,9 +34,45 @@ public sealed class MstDesignationConfiguration : IEntityTypeConfiguration<MstDe
             .HasForeignKey(x => x.DepartmentId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(x => x.JobRole)
+            .WithMany()
+            .HasForeignKey(x => x.JobRoleId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasOne(x => x.DefaultRole)
             .WithMany()
             .HasForeignKey(x => x.DefaultRoleId)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public sealed class MstOrgRoleMapConfiguration : IEntityTypeConfiguration<MstOrgRoleMap>
+{
+    public void Configure(EntityTypeBuilder<MstOrgRoleMap> builder)
+    {
+        builder.ToTable("mst_org_role_map", DbSchemas.Master);
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.DesignationId).IsUnique();
+        builder.Property(x => x.SubDepartment).HasMaxLength(250);
+
+        builder.HasOne(x => x.Department)
+            .WithMany()
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Designation)
+            .WithMany()
+            .HasForeignKey(x => x.DesignationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.OnFloorRole)
+            .WithMany()
+            .HasForeignKey(x => x.OnFloorRoleId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.RbacRole)
+            .WithMany()
+            .HasForeignKey(x => x.RbacRoleId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }
@@ -160,14 +196,15 @@ public sealed class MstRoleConfiguration : IEntityTypeConfiguration<MstRole>
         builder.ToTable("mst_roles", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.Code).IsUnique();
-        builder.HasIndex(x => new { x.DesignationId, x.Name }).IsUnique();
+        builder.HasIndex(x => x.Name).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
         builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
 
         builder.HasOne(x => x.Designation)
             .WithMany(d => d.Roles)
             .HasForeignKey(x => x.DesignationId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

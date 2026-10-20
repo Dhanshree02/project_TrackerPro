@@ -22,6 +22,14 @@ export interface ApiProjectTeamMember {
   updatedAtUtc?: string | null;
 }
 
+export interface EmployeeAllocationBooking {
+  projectId: string;
+  projectName: string;
+  startDate: string;
+  endDate: string;
+  resourceType: string;
+}
+
 export interface ApiProjectTeamCandidate {
   id: string;
   employeeCode: string;
@@ -76,6 +84,16 @@ export async function searchProjectTeamCandidates(
   const qs = q.toString();
   const res = await apiFetch<ApiProjectTeamCandidate[]>(
     `/api/v1/projects/${projectId}/team-members/candidates${qs ? `?${qs}` : ""}`,
+  );
+  return res ?? [];
+}
+
+export async function fetchEmployeeAllocations(
+  projectId: string,
+  employeeId: string,
+): Promise<EmployeeAllocationBooking[]> {
+  const res = await apiFetch<EmployeeAllocationBooking[]>(
+    `/api/v1/projects/${projectId}/team-members/allocations?employeeId=${encodeURIComponent(employeeId)}`,
   );
   return res ?? [];
 }

@@ -3439,11 +3439,11 @@ export const dhStore = {
     const mergedInvoices: DhInvoice[] = invoices.map((inv: any, idx: number) => {
       const existing = existingMap.get(inv.id);
       const isRaised =
-        existing?.invoiceStatus === "Raised" ||
         inv.invoiceStatus === "Raised" ||
-        inv.status === "Raised";
+        inv.status === "Raised" ||
+        inv.status === "Paid" ||
+        inv.paymentStatus === "Received";
       const isPaid =
-        existing?.paymentStatus === "Received" ||
         inv.paymentStatus === "Received" ||
         inv.status === "Paid" ||
         Boolean(inv.paymentDate || inv.paymentReceivedDate);
@@ -3453,20 +3453,20 @@ export const dhStore = {
         projectId,
         milestone: inv.milestone || inv.milestoneName || `Milestone ${idx + 1}`,
         invoiceTargetDate:
-          existing?.invoiceTargetDate ||
           inv.invoiceTargetDate ||
           inv.targetDate ||
           inv.invoiceDate ||
+          existing?.invoiceTargetDate ||
           "",
-        unitPrice: inv.unitPrice || inv.amount || 0,
+        unitPrice: inv.unitPrice ?? inv.amount ?? 0,
         qty: inv.qty || 1,
         currency: inv.currency || "INR",
         invoiceAmount: inv.invoiceAmount || inv.amount || 0,
         invoiceStatus: isRaised ? "Raised" : "Not Raised",
-        invoiceNumber: existing?.invoiceNumber || inv.invoiceNumber || "",
+        invoiceNumber: inv.invoiceNumber || existing?.invoiceNumber || "",
         paymentStatus: isPaid ? "Received" : "Not Received",
         paymentReceivedDate:
-          existing?.paymentReceivedDate || inv.paymentReceivedDate || inv.paymentDate || "",
+          inv.paymentReceivedDate || inv.paymentDate || existing?.paymentReceivedDate || "",
         raisedBy: existing?.raisedBy || (isRaised ? "Dhanshree" : undefined),
         raisedDate:
           existing?.raisedDate ||

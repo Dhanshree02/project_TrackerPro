@@ -51,6 +51,8 @@ public class AppDbContext(
 
     public DbSet<MstRole> JobRoles => Set<MstRole>();
 
+    public DbSet<MstOrgRoleMap> OrgRoleMaps => Set<MstOrgRoleMap>();
+
     public DbSet<MstSalaryBand> SalaryBands => Set<MstSalaryBand>();
 
     public DbSet<MstEmailDomain> EmailDomains => Set<MstEmailDomain>();
@@ -120,6 +122,8 @@ public class AppDbContext(
     public DbSet<ProjectDraft> ProjectDrafts => Set<ProjectDraft>();
 
     public DbSet<ProjectTeamMember> ProjectTeamMembers => Set<ProjectTeamMember>();
+
+    public DbSet<ProjectInterview> ProjectInterviews => Set<ProjectInterview>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

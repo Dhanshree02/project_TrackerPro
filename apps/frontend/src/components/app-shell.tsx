@@ -3,6 +3,7 @@ import { Navigate, useRouterState } from "@tanstack/react-router";
 import { AppSidebar } from "./app-sidebar";
 import { AppTopbar } from "./app-topbar";
 import { MobileTabs } from "./mobile-tabs";
+import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { NAV_ITEMS, filterNavItems, resolveRoutePermission } from "@/lib/navigation";
@@ -27,6 +28,22 @@ export function AppShell({
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasPermission, hasAny } = usePermissions();
+  const { permissionsReady } = useAuth();
+
+  // Wait for /rbac/effective + user switch before bouncing. A new origin
+  // (LAN IP vs localhost) has its own localStorage; racing here 403s the home page.
+  if (!permissionsReady) {
+    return (
+      <div className="flex min-h-screen w-full isolate bg-background text-foreground">
+        <AppSidebar />
+        <div className="relative flex min-w-0 flex-1 flex-col bg-background">
+          <AppTopbar title={title} subtitle={subtitle} />
+          <main className="flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
+          <MobileTabs />
+        </div>
+      </div>
+    );
+  }
 
   // Users without dashboard access (e.g. HR) land on their first permitted
   // module after login instead of hitting the 403 page on the root route.

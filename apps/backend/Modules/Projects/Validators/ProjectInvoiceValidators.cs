@@ -36,6 +36,15 @@ public sealed class CreateProjectInvoiceValidator : AbstractValidator<CreateProj
 
         RuleFor(x => x.InvoiceNumber)
             .MaximumLength(80);
+
+        RuleFor(x => x.ServiceName).MaximumLength(255);
+        RuleFor(x => x.Currency).MaximumLength(10);
+        RuleFor(x => x.ResourceLevel).MaximumLength(500);
+        RuleFor(x => x.Qty).GreaterThanOrEqualTo(0).When(x => x.Qty.HasValue);
+        RuleFor(x => x.UnitPrice).GreaterThanOrEqualTo(0).When(x => x.UnitPrice.HasValue);
+        RuleFor(x => x.PaymentStatus)
+            .Must(s => string.IsNullOrEmpty(s) || s is "Not Received" or "Received")
+            .WithMessage("Payment status must be Not Received or Received");
     }
 }
 
@@ -60,5 +69,15 @@ public sealed class UpdateProjectInvoiceValidator : AbstractValidator<UpdateProj
 
         RuleFor(x => x.InvoiceNumber)
             .MaximumLength(80).When(x => x.InvoiceNumber != null);
+
+        RuleFor(x => x.ServiceName).MaximumLength(255).When(x => x.ServiceName != null);
+        RuleFor(x => x.Currency).MaximumLength(10).When(x => x.Currency != null);
+        RuleFor(x => x.ResourceLevel).MaximumLength(500).When(x => x.ResourceLevel != null);
+        RuleFor(x => x.Qty).GreaterThanOrEqualTo(0).When(x => x.Qty.HasValue);
+        RuleFor(x => x.UnitPrice).GreaterThanOrEqualTo(0).When(x => x.UnitPrice.HasValue);
+        RuleFor(x => x.PaymentStatus)
+            .Must(s => string.IsNullOrEmpty(s) || s is "Not Received" or "Received")
+            .When(x => x.PaymentStatus != null)
+            .WithMessage("Payment status must be Not Received or Received");
     }
 }

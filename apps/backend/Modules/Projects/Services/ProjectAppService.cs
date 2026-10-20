@@ -1033,7 +1033,13 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             DueDate = request.DueDate,
             PaymentDate = request.PaymentDate,
             Remarks = request.Remarks,
-            SortOrder = request.SortOrder
+            SortOrder = request.SortOrder,
+            ServiceName = string.IsNullOrWhiteSpace(request.ServiceName) ? null : request.ServiceName.Trim(),
+            Qty = request.Qty,
+            UnitPrice = request.UnitPrice,
+            Currency = string.IsNullOrWhiteSpace(request.Currency) ? null : request.Currency.Trim(),
+            ResourceLevel = string.IsNullOrWhiteSpace(request.ResourceLevel) ? null : request.ResourceLevel.Trim(),
+            PaymentStatus = ResolvePaymentStatus(request.Status, request.PaymentStatus)
         };
 
         db.ProjectInvoices.Add(invoice);
@@ -1083,6 +1089,17 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         if (request.PaymentDate.HasValue) invoice.PaymentDate = request.PaymentDate;
         if (request.Remarks != null) invoice.Remarks = request.Remarks;
         if (request.SortOrder.HasValue) invoice.SortOrder = request.SortOrder.Value;
+        if (request.ServiceName != null) invoice.ServiceName = string.IsNullOrWhiteSpace(request.ServiceName) ? null : request.ServiceName.Trim();
+        if (request.Qty.HasValue) invoice.Qty = request.Qty;
+        if (request.UnitPrice.HasValue) invoice.UnitPrice = request.UnitPrice;
+        if (request.Currency != null) invoice.Currency = string.IsNullOrWhiteSpace(request.Currency) ? null : request.Currency.Trim();
+        if (request.ResourceLevel != null) invoice.ResourceLevel = string.IsNullOrWhiteSpace(request.ResourceLevel) ? null : request.ResourceLevel.Trim();
+        if (request.PaymentStatus != null || request.Status != null)
+        {
+            invoice.PaymentStatus = ResolvePaymentStatus(request.Status ?? invoice.Status, request.PaymentStatus ?? invoice.PaymentStatus);
+            if (string.Equals(invoice.PaymentStatus, "Not Received", StringComparison.OrdinalIgnoreCase))
+                invoice.PaymentDate = request.PaymentDate;
+        }
 
         await db.SaveChangesAsync(ct);
         await RecalculateProjectInvoiceRollupAsync(projectId, ct);
@@ -1870,7 +1887,22 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             i.Remarks,
             i.SortOrder,
             i.CreatedAtUtc,
-            i.UpdatedAtUtc);
+            i.UpdatedAtUtc,
+            i.ServiceName,
+            i.Qty,
+            i.UnitPrice,
+            i.Currency,
+            i.ResourceLevel,
+            i.PaymentStatus);
+    }
+
+    private static string ResolvePaymentStatus(string? status, string? paymentStatus)
+    {
+        if (!string.IsNullOrWhiteSpace(paymentStatus))
+            return paymentStatus.Trim();
+        return string.Equals(status, "Paid", StringComparison.OrdinalIgnoreCase)
+            ? "Received"
+            : "Not Received";
     }
 
     private static ProjectDocumentDto MapToDocumentDto(ProjectDocument d)

@@ -29,7 +29,7 @@ services:
       - Storage__RootPath=/app/storage
       - Storage__DocumentsPath=/app/Documents
     ports:
-      - "${UAT_CLEAN_BACKEND_PORT:-52815}:8080"
+      - "0.0.0.0:${UAT_CLEAN_BACKEND_PORT:-52815}:8080"
     volumes:
       - backend_storage_clean:/app/storage
       - ./Documents:/app/Documents
@@ -49,8 +49,9 @@ services:
     environment:
       - VITE_BACKEND_URL=http://pms_uat_clean_backend:8080
       - VITE_API_URL=
+      - VITE_HMR_CLIENT_PORT=${UAT_CLEAN_FRONTEND_PORT:-39107}
     ports:
-      - "${UAT_CLEAN_FRONTEND_PORT:-39107}:3000"
+      - "0.0.0.0:${UAT_CLEAN_FRONTEND_PORT:-39107}:3000"
     volumes:
       - ./apps/frontend:/app
       - /app/node_modules

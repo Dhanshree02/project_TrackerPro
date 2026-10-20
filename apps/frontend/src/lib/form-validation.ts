@@ -80,6 +80,100 @@ export function phoneError(value?: string | null, required = false): string | un
 }
 
 /**
+ * Leading digits of the national number (no dial code) for each country code.
+ * India is 6–9, matching the employee form. Other codes use that country's mobile prefix.
+ */
+const PHONE_STARTS_BY_DIAL: Record<string, readonly string[]> = {
+  "+91": ["6", "7", "8", "9"],
+  "+1": ["2", "3", "4", "5", "6", "7", "8", "9"],
+  "+44": ["7"],
+  "+971": ["5"],
+  "+65": ["8", "9"],
+  "+49": ["15", "16", "17"],
+  "+61": ["4"],
+  "+31": ["6"],
+  "+81": ["70", "80", "90"],
+  "+33": ["6", "7"],
+  "+966": ["5"],
+  "+974": ["3", "5", "6", "7"],
+  "+60": ["1"],
+  "+27": ["6", "7", "8"],
+  "+353": ["8"],
+  "+41": ["7"],
+  "+46": ["7"],
+  "+86": ["1"],
+  "+82": ["1"],
+  "+64": ["2"],
+  "+63": ["9"],
+  "+62": ["8"],
+  "+66": ["6", "8", "9"],
+  "+84": ["3", "5", "7", "8", "9"],
+  "+880": ["1"],
+  "+94": ["7"],
+  "+977": ["9"],
+  "+92": ["3"],
+  "+39": ["3"],
+  "+34": ["6", "7"],
+  "+48": ["4", "5", "6", "7", "8"],
+  "+43": ["6"],
+  "+32": ["4"],
+  "+47": ["4", "9"],
+  "+358": ["4", "5"],
+  "+351": ["9"],
+};
+
+export function phoneStartsForDialCode(phoneCode?: string | null): readonly string[] | undefined {
+  const raw = (phoneCode ?? "").trim();
+  if (!raw) return undefined;
+  const code = raw.startsWith("+") ? raw : `+${raw}`;
+  return PHONE_STARTS_BY_DIAL[code];
+}
+
+/** "Must start with 6, 7, 8, or 9" — the same wording as the employee form. */
+export function phoneStartMessage(starts: readonly string[]): string {
+  if (starts.length <= 1) return `Must start with ${starts[0] ?? ""}`;
+  if (starts.length === 2) return `Must start with ${starts[0]} or ${starts[1]}`;
+  return `Must start with ${starts.slice(0, -1).join(", ")}, or ${starts[starts.length - 1]}`;
+}
+
+function leadingDigitsMismatch(digits: string, starts: readonly string[]): boolean {
+  const stillTyping = starts.some((prefix) => prefix.startsWith(digits));
+  const matched = starts.some((prefix) => digits.startsWith(prefix));
+  return !stillTyping && !matched;
+}
+
+/**
+ * Customer phones follow the selected country's dial code and length.
+ * A wrong first digit shows the country-specific "Must start with …" message.
+ */
+export function countryPhoneError(
+  value: string | null | undefined,
+  options: {
+    digits: number;
+    phoneCode?: string | null;
+    countryName?: string;
+    required?: boolean;
+    label?: string;
+  },
+): string | undefined {
+  const digits = (value ?? "").replace(/\D/g, "");
+  const expected = options.digits > 0 ? options.digits : 10;
+  const label = options.label ?? "Phone";
+  if (!digits) return options.required ? `${label} is required` : undefined;
+
+  const starts = phoneStartsForDialCode(options.phoneCode);
+  if (starts && leadingDigitsMismatch(digits, starts)) return phoneStartMessage(starts);
+
+  if (digits.length !== expected) {
+    const where = options.countryName?.trim() || "the selected country";
+    return `${label} must be exactly ${expected} digits for ${where}`;
+  }
+
+  if (new Set(digits).size === 1) return "Invalid repeated phone number";
+  return undefined;
+}
+
+/**
  * Trim then require local@domain with a real TLD (e.g. name@company.com).
  * Letters, digits, dot, underscore, and hyphen only — the only other symbol allowed is @.
  * Rejects sahil@, @gmail.com, sahil@gmail, sahil#x@gmail.com, sahil+tag@gmail.com.

@@ -55,6 +55,7 @@ import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { cn } from "@/lib/utils";
 import {
   FIELD_MAX,
+  countryPhoneError,
   emailError,
   fieldInputCls,
   toEmailInput,
@@ -1324,6 +1325,14 @@ export function NewClientModal({
   const selectedCountryObj = countries.find((c) => c.name === s.country);
   const countryDialCode = selectedCountryObj?.phoneCode || "+91";
   const countryPhoneDigits = selectedCountryObj?.phoneDigits || 10;
+  const groupSpocPhoneError = s.phoneNumber
+    ? countryPhoneError(s.phoneNumber, {
+        digits: countryPhoneDigits,
+        phoneCode: selectedCountryObj?.phoneCode,
+        countryName: s.country,
+        label: "Group SPOC Contact",
+      })
+    : undefined;
 
   const namesEq = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
   const findExistingByName = (name: string) =>
@@ -1419,11 +1428,14 @@ export function NewClientModal({
     if (!s.country.trim()) return "Country is required";
     if (!s.city.trim()) return "City is required";
     if (!s.groupSpocName.trim()) return "Group SPOC Name is required";
-    if (!s.phoneNumber.trim()) return "Group SPOC Contact is required";
-    const cleanPhone = s.phoneNumber.replace(/\D/g, "");
-    if (cleanPhone.length !== countryPhoneDigits) {
-      return `Group SPOC Contact must be exactly ${countryPhoneDigits} digits for ${s.country || "selected country"}`;
-    }
+    const groupPhoneErr = countryPhoneError(s.phoneNumber, {
+      digits: countryPhoneDigits,
+      phoneCode: selectedCountryObj?.phoneCode,
+      countryName: s.country,
+      required: true,
+      label: "Group SPOC Contact",
+    });
+    if (groupPhoneErr) return groupPhoneErr;
     if (!s.industry.trim()) return "Industry is required";
     return null;
   };
@@ -1436,12 +1448,15 @@ export function NewClientModal({
       if (!c.name.trim()) return `Contact Name${n} is required`;
       if (!c.contactType?.trim()) return `Contact Type${n} is required`;
       if (!c.country.trim()) return `Country / Region${n} is required`;
-      const contactDigits = countries.find((x) => x.name === c.country)?.phoneDigits || 10;
-      const cleanPhone = c.phone.replace(/\D/g, "");
-      if (!cleanPhone) return `Phone${n} is required`;
-      if (cleanPhone.length !== contactDigits) {
-        return `Phone${n} must be exactly ${contactDigits} digits for ${c.country}`;
-      }
+      const contactCountry = countries.find((x) => x.name === c.country);
+      const contactPhoneErr = countryPhoneError(c.phone, {
+        digits: contactCountry?.phoneDigits || 10,
+        phoneCode: contactCountry?.phoneCode,
+        countryName: c.country,
+        required: true,
+        label: `Phone${n}`,
+      });
+      if (contactPhoneErr) return contactPhoneErr;
       const mailErr = emailError(c.email, true);
       if (mailErr) return `Contact Email${n} — ${mailErr}`;
       if (!c.designation.trim()) return `Designation${n} is required`;
@@ -2125,11 +2140,7 @@ export function NewClientModal({
               <Field
                 label="Group SPOC Contact"
                 required
-                error={
-                  s.phoneNumber && s.phoneNumber.length !== countryPhoneDigits
-                    ? `Group SPOC Contact must be ${countryPhoneDigits} digits for ${s.country || "selected country"}`
-                    : undefined
-                }
+                error={groupSpocPhoneError}
               >
                 <div className="relative flex rounded-md">
                   <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
@@ -2137,7 +2148,7 @@ export function NewClientModal({
                   </span>
                   <input
                     className={cn(
-                      fieldInputCls(inputCls, Boolean(s.phoneNumber && s.phoneNumber.length !== countryPhoneDigits)),
+                      fieldInputCls(inputCls, Boolean(groupSpocPhoneError)),
                       "rounded-l-none",
                     )}
                     type="tel"
@@ -2225,7 +2236,18 @@ export function NewClientModal({
               Sub-venture contacts stay as they are. Select a sub-venture on the profile to edit that sub-venture.
             </p>
           )}
-          {!(isEdit && !editing?.subVentureId) && s.contacts.map((ct, idx) => (
+          {!(isEdit && !editing?.subVentureId) && s.contacts.map((ct, idx) => {
+            const contactCountry = countries.find((c) => c.name === ct.country);
+            const contactDigits = contactCountry?.phoneDigits || 10;
+            const contactPhoneErr = ct.phone
+              ? countryPhoneError(ct.phone, {
+                  digits: contactDigits,
+                  phoneCode: contactCountry?.phoneCode,
+                  countryName: ct.country,
+                  label: "Phone",
+                })
+              : undefined;
+            return (
             <div key={idx} className="rounded-lg border border-border bg-background p-3">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground">
@@ -2286,52 +2308,27 @@ export function NewClientModal({
                     ))}
                   </select>
                 </Field>
-                <Field
-                  label="Phone"
-                  required
-                  error={
-                    ct.country && ct.phone
-                      ? ct.phone.replace(/\D/g, "").length !==
-                        (countries.find((c) => c.name === ct.country)?.phoneDigits || 10)
-                        ? `Phone must be ${countries.find((c) => c.name === ct.country)?.phoneDigits || 10} digits for ${ct.country}`
-                        : null
-                      : null
-                  }
-                >
+                <Field label="Phone" required error={contactPhoneErr}>
                   <div className="relative flex rounded-md">
                     <span className="inline-flex items-center rounded-l-md border border-r-0 border-input bg-muted px-2.5 text-xs font-semibold text-muted-foreground select-none">
-                      {countries.find((c) => c.name === ct.country)?.phoneCode || "+91"}
+                      {contactCountry?.phoneCode || "+91"}
                     </span>
                     <input
                       className={cn(
-                        fieldInputCls(
-                          inputCls,
-                          Boolean(
-                            ct.country &&
-                              ct.phone &&
-                              ct.phone.replace(/\D/g, "").length !==
-                                (countries.find((c) => c.name === ct.country)?.phoneDigits || 10),
-                          ),
-                        ),
+                        fieldInputCls(inputCls, Boolean(contactPhoneErr)),
                         "rounded-l-none",
                       )}
                       type="tel"
                       inputMode="numeric"
-                      maxLength={countries.find((c) => c.name === ct.country)?.phoneDigits || 10}
-                      placeholder={
-                        ct.country
-                          ? "9".repeat(countries.find((c) => c.name === ct.country)?.phoneDigits || 10)
-                          : "Select country first"
-                      }
+                      maxLength={contactDigits}
+                      placeholder={ct.country ? "9".repeat(contactDigits) : "Select country first"}
                       value={ct.phone}
                       disabled={!ct.country}
                       onChange={(e) => {
-                        const digits =
-                          countries.find((c) => c.name === ct.country)?.phoneDigits || 10;
                         updateContact(
                           idx,
                           "phone",
-                          e.target.value.replace(/\D/g, "").slice(0, digits),
+                          e.target.value.replace(/\D/g, "").slice(0, contactDigits),
                         );
                       }}
                     />
@@ -2385,7 +2382,8 @@ export function NewClientModal({
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
           <div className="mt-4 pt-4 border-t border-border">
             <Field label="KYC Document" required>
               <div className="relative">

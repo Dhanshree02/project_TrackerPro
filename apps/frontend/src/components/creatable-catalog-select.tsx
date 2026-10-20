@@ -385,13 +385,16 @@ export function CreatableCatalogSelect({
   required?: boolean;
   className?: string;
   onSelect: (id: string, name: string) => void;
-  onCreate: (name: string) => Promise<CatalogSelectOption>;
+  /** When omitted, the Add button and inline create row are hidden (masters-only pick list). */
+  onCreate?: (name: string) => Promise<CatalogSelectOption>;
 }) {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
+  const creatable = Boolean(onCreate);
 
   const addNew = async () => {
+    if (!onCreate) return;
     const trimmed = newName.trim();
     if (!trimmed || creating || disabled) return;
     setCreating(true);
@@ -420,8 +423,8 @@ export function CreatableCatalogSelect({
           {required ? <span className="text-destructive"> *</span> : null}
         </span>
       ) : null}
-      <div className="flex h-9 w-full items-stretch">
-        <div className="min-w-0 flex-1">
+      <div className={cn("w-full", creatable && "flex h-9 items-stretch")}>
+        <div className={cn(creatable ? "min-w-0 flex-1" : "w-full")}>
           <SearchableSelect
             id={id}
             options={selectOptions}
@@ -437,36 +440,42 @@ export function CreatableCatalogSelect({
               const match = options.find((o) => o.id === selectedId);
               onSelect(selectedId, match?.name ?? "");
             }}
-            onCreate={async (name) => {
-              const created = await onCreate(name);
-              onSelect(created.id, created.name);
-              return created;
-            }}
+            onCreate={
+              onCreate
+                ? async (name) => {
+                    const created = await onCreate(name);
+                    onSelect(created.id, created.name);
+                    return created;
+                  }
+                : undefined
+            }
           />
         </div>
-        <button
-          type="button"
-          disabled={disabled}
-          className={cn(
-            "ml-1.5 h-9 shrink-0 rounded-md bg-blue-600 px-3 text-xs font-semibold text-white transition-all duration-150 shadow-xs",
-            "hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800",
-            "disabled:cursor-not-allowed disabled:opacity-40 disabled:bg-muted disabled:border-border disabled:text-muted-foreground disabled:shadow-none",
-            adding && !disabled && "bg-blue-700 ring-2 ring-blue-500/30 shadow-xs",
-          )}
-          onClick={() => {
-            if (disabled) return;
-            setAdding(true);
-            setNewName("");
-          }}
-        >
-          <Plus className="mr-1 inline h-3.5 w-3.5 shrink-0 text-white" />
-          Add
-        </button>
+        {creatable ? (
+          <button
+            type="button"
+            disabled={disabled}
+            className={cn(
+              "ml-1.5 h-9 shrink-0 rounded-md bg-blue-600 px-3 text-xs font-semibold text-white transition-all duration-150 shadow-xs",
+              "hover:bg-blue-700 active:scale-[0.98] active:bg-blue-800",
+              "disabled:cursor-not-allowed disabled:opacity-40 disabled:bg-muted disabled:border-border disabled:text-muted-foreground disabled:shadow-none",
+              adding && !disabled && "bg-blue-700 ring-2 ring-blue-500/30 shadow-xs",
+            )}
+            onClick={() => {
+              if (disabled) return;
+              setAdding(true);
+              setNewName("");
+            }}
+          >
+            <Plus className="mr-1 inline h-3.5 w-3.5 shrink-0 text-white" />
+            Add
+          </button>
+        ) : null}
       </div>
 
       {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
 
-      {adding && !disabled ? (
+      {creatable && adding && !disabled ? (
         <div className="mt-2 flex gap-1.5 animate-in fade-in duration-100">
           <input
             className={cn(FORM_CONTROL_CLS, "text-xs", error && "border-destructive")}

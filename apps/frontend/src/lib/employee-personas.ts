@@ -2,7 +2,23 @@ import type { ApiEmployeeListItem } from "@/modules/employees/api/employees";
 import { fetchAllEmployees } from "@/modules/employees/api/employees";
 import { apiFetch } from "@/lib/api-client";
 import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
+import { formatOnFloorRoleDisplay } from "@/lib/on-floor-role";
+import { findOrgRoleRow } from "@/lib/org-role-matrix";
+import { formatSubDepartmentDisplay } from "@/lib/sub-department";
 import type { DemoPersona } from "@/lib/user-personas";
+
+/**
+ * Data linkage (PostgreSQL):
+ *
+ * Department     → master.mst_departments (employee.DepartmentId)
+ * Designation    → master.mst_designations (employee.DesignationId); may define default sub-dept
+ * Sub-Department → resource.tbl_employees."SubDepartment" (comma-split in UI filters)
+ * On Floor Role  → master.mst_roles via employee."JobRoleId" (API: jobRoleName)
+ * RBAC Access    → auth.tbl_users."RoleId" → auth.tbl_roles."Name" (Settings → User Role Access)
+ *                  + profile copy on resource.tbl_employees."Role" (Assigned RBAC Role at onboard)
+ *
+ * Switch user uses RBAC access for permissions; list shows designation + on-floor + access separately.
+ */
 
 let cachedPersonas: DemoPersona[] | null = null;
 let loadPromise: Promise<DemoPersona[]> | null = null;
@@ -15,6 +31,7 @@ interface UserAccessApiRow {
   employeeCode: string;
   email: string;
   accessRole: string;
+  profileRole?: string;
 }
 
 const initialsOf = (name: string) =>
@@ -41,33 +58,73 @@ export function isItAdminProfile(item: ApiEmployeeListItem): boolean {
   return dept.includes("it administration") && (desig.includes("it admin") || desig.includes("desktop support"));
 }
 
-/** Map employee profile to an RBAC role key when User Role Access has no row yet. */
+/** Assigned RBAC role stored on the employee row at onboarding (not on-floor title). */
+export function profileAssignedAccessRole(item: ApiEmployeeListItem): string | undefined {
+  const raw = (item.role || "").trim();
+  if (!raw) return undefined;
+  const floorish = formatOnFloorRoleDisplay(raw).toLowerCase();
+  const onFloorOnly = new Set([
+    "leader",
+    "team member",
+    "team leader",
+    "manager",
+    "sr. manager",
+    "head of department",
+    "it admin",
+    "accounts",
+    "hr",
+    "project manager",
+  ]);
+  if (onFloorOnly.has(floorish)) return undefined;
+  return raw;
+}
+
+/** On-floor role label only — never use tbl_employees.Role (RBAC text). */
+export function resolveOnFloorRoleLabel(item: ApiEmployeeListItem): string {
+  const label = formatOnFloorRoleDisplay(item.jobRoleName || item.jobRole || "");
+  return label || "—";
+}
+
+/**
+ * RBAC access role for permissions (User Role Access → else profile Assigned RBAC → else heuristic).
+ */
 export function mapEmployeeAccessRoleKey(item: ApiEmployeeListItem, accessRoleFromDb?: string): string {
-  const fromDb = accessRoleFromDb?.trim();
-  if (fromDb) return fromDb;
+  const fromLogin = accessRoleFromDb?.trim();
+  if (fromLogin) return fromLogin;
+
+  const fromProfile = profileAssignedAccessRole(item);
+  if (fromProfile) return fromProfile;
+
   if (isSuperAdminEmployee(item)) return "Admin";
+
+  const mapped = findOrgRoleRow(item.department, item.designation);
+  if (mapped) return mapped.rbacRole;
+
   if (isItAdminProfile(item)) return "IT Admin";
 
-  const floor = (item.jobRoleName || item.jobRole || item.role || "").trim();
+  const floor = formatOnFloorRoleDisplay(item.jobRoleName || item.jobRole || "").toLowerCase();
   const desig = (item.designation || "").toLowerCase();
+  const dept = (item.department || "").toLowerCase();
+
   if (/intern/i.test(item.employeeCode) || desig.includes("intern")) return "Intern";
-  if (floor.includes("HOD") || desig.includes("head of department")) return "Testing HOD";
-  if (floor.includes("Sr. Manager") || desig.includes("senior manager")) return "Testing Senior Manager";
-  if (floor.includes("Manager") || desig.includes("project manager")) {
-    if (desig.includes("engagement")) return "EngagementManager";
-    if (desig.includes("sales")) return "Sales Manager";
-    if (desig.includes("account")) return "Accounts";
-    return "Testing-Manager";
-  }
-  if (floor.includes("Team Leader") || floor.includes("Leader")) return "Testing-Team Leader";
-  if (floor.includes("Team Member")) return "Testing-Team Member";
-  if (floor === "HR") return "HR";
-  if (floor === "Accounts") return "Accounts";
-  if (floor === "Project Manager") return "Testing-Manager";
   if (desig.includes("chief executive") || desig.includes("ceo")) return "CEO";
   if (desig.includes("chief operating") || desig.includes("coo")) return "COO";
   if (desig.includes("chief technology") || desig.includes("cto")) return "CTO";
-  return floor || "Testing-Team Member";
+  if (desig.includes("engagement manager")) return "EngagementManager";
+  if (desig.includes("sales")) return desig.includes("manager") ? "Sales Manager" : "Sales team member";
+  if (desig.includes("account")) return "Accounts";
+  if (floor.includes("head of department") || desig.includes("head of department")) return "Testing HOD";
+  if (floor.includes("sr. manager") || desig.includes("senior manager")) return "Testing Senior Manager";
+  if (floor.includes("manager") || desig.includes("project manager")) return "Testing-Manager";
+  if (floor.includes("team leader") || floor === "leader") return "Testing-Team Leader";
+  if (floor.includes("team member")) {
+    if (dept.includes("consulting")) return "Consulting-Team member";
+    if (dept.includes("soc")) return "SOC-Team Member";
+    if (dept.includes("r&d") || dept.includes("research")) return "R&D - Team member";
+    return "Testing-Team Member";
+  }
+  if (floor === "hr" || desig.includes("human resource")) return "HR";
+  return "Testing-Team Member";
 }
 
 function permissionsForRoleKey(roleKey: string): string[] {
@@ -78,9 +135,11 @@ export function employeeListItemToPersona(
   item: ApiEmployeeListItem,
   accessRoleFromDb?: string,
 ): DemoPersona {
-  const roleKey = mapEmployeeAccessRoleKey(item, accessRoleFromDb);
+  const accessRole = mapEmployeeAccessRoleKey(item, accessRoleFromDb);
   const department = (item.department || "Other").trim();
-  const designation = (item.designation || roleKey).trim();
+  const designation = (item.designation || "—").trim();
+  const subDepartment = formatSubDepartmentDisplay(item.subDepartment) || undefined;
+  const onFloorRole = resolveOnFloorRoleLabel(item);
   const code = item.employeeCode.trim();
   return {
     key: code,
@@ -93,13 +152,25 @@ export function employeeListItemToPersona(
     avatar: initialsOf(item.fullName),
     department,
     designation,
-    roleKey,
-    permissions: permissionsForRoleKey(roleKey),
+    subDepartment,
+    onFloorRole,
+    accessRole,
+    roleKey: accessRole,
+    permissions: permissionsForRoleKey(accessRole),
   };
 }
 
 export function getCachedEmployeePersonas(): DemoPersona[] {
   return cachedPersonas ?? [];
+}
+
+/** Primary line under name in Switch User (org structure, not RBAC). */
+export function personaOrgSubtitle(persona: DemoPersona): string {
+  const parts: string[] = [];
+  if (persona.designation && persona.designation !== "—") parts.push(persona.designation);
+  if (persona.onFloorRole && persona.onFloorRole !== "—") parts.push(persona.onFloorRole);
+  if (persona.subDepartment) parts.push(persona.subDepartment);
+  return parts.length > 0 ? parts.join(" · ") : persona.label;
 }
 
 export function findEmployeePersona(roleOrKey: string): DemoPersona | undefined {
@@ -124,17 +195,33 @@ export function isEmployeePersonaKey(value: string | null | undefined): boolean 
   return false;
 }
 
-async function loadAccessRoleByCode(): Promise<Map<string, string>> {
+function resolveAccessRoleFromMaps(
+  item: ApiEmployeeListItem,
+  byCode: Map<string, string>,
+  byEmail: Map<string, string>,
+): string | undefined {
+  const code = item.employeeCode.trim();
+  const email = item.workEmail.trim().toLowerCase();
+  return byCode.get(code) ?? (email ? byEmail.get(email) : undefined);
+}
+
+async function loadAccessRoleMaps(): Promise<{
+  byCode: Map<string, string>;
+  byEmail: Map<string, string>;
+}> {
   try {
     const rows = await apiFetch<UserAccessApiRow[]>("/api/v1/rbac/user-access");
-    const map = new Map<string, string>();
+    const byCode = new Map<string, string>();
+    const byEmail = new Map<string, string>();
     for (const row of rows ?? []) {
       const role = row.accessRole?.trim();
-      if (row.employeeCode && role) map.set(row.employeeCode.trim(), role);
+      if (!role) continue;
+      if (row.employeeCode) byCode.set(row.employeeCode.trim(), role);
+      if (row.email) byEmail.set(row.email.trim().toLowerCase(), role);
     }
-    return map;
+    return { byCode, byEmail };
   } catch {
-    return new Map();
+    return { byCode: new Map(), byEmail: new Map() };
   }
 }
 
@@ -142,10 +229,12 @@ export async function loadEmployeePersonas(force = false): Promise<DemoPersona[]
   if (!force && cachedPersonas) return cachedPersonas;
   if (!force && loadPromise) return loadPromise;
 
-  loadPromise = Promise.all([fetchAllEmployees(), loadAccessRoleByCode()])
-    .then(([items, accessByCode]) => {
+  loadPromise = Promise.all([fetchAllEmployees(), loadAccessRoleMaps()])
+    .then(([items, { byCode, byEmail }]) => {
       const personas = items
-        .map((item) => employeeListItemToPersona(item, accessByCode.get(item.employeeCode.trim())))
+        .map((item) =>
+          employeeListItemToPersona(item, resolveAccessRoleFromMaps(item, byCode, byEmail)),
+        )
         .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
       cachedPersonas = personas;
       return personas;

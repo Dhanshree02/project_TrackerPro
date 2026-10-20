@@ -13,7 +13,10 @@ namespace PMS.API.Modules.Catalogs.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/catalogs")]
-public class CatalogsController(ICatalogService catalogs) : ControllerBase
+public class CatalogsController(
+    ICatalogService catalogs,
+    IProjectMastersService projectMasters,
+    IResourceMastersService resourceMasters) : ControllerBase
 {
     [HttpGet("countries")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<CatalogOptionDto>>>> Countries(
@@ -61,106 +64,6 @@ public class CatalogsController(ICatalogService catalogs) : ControllerBase
             await catalogs.GetContactTypesAsync(ct)));
     }
 
-    [HttpPost("industries")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateIndustry(
-        UpsertNamedCatalogRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.CreateIndustryAsync(request.Name, request.Code, ct)));
-
-    [HttpPut("industries/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateIndustry(
-        Guid id, UpsertNamedCatalogRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.UpdateIndustryAsync(id, request.Name, request.Code, ct)));
-
-    [HttpDelete("industries/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<Guid>>> DeleteIndustry(Guid id, CancellationToken ct)
-    {
-        await catalogs.DeleteIndustryAsync(id, ct);
-        return Ok(ApiResponse<Guid>.Ok(id));
-    }
-
-    [HttpPost("contact-designations")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateContactDesignation(
-        UpsertNamedCatalogRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.CreateContactDesignationAsync(request.Name, request.Code, ct)));
-
-    [HttpPut("contact-designations/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateContactDesignation(
-        Guid id, UpsertNamedCatalogRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.UpdateContactDesignationAsync(id, request.Name, request.Code, ct)));
-
-    [HttpDelete("contact-designations/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<Guid>>> DeleteContactDesignation(Guid id, CancellationToken ct)
-    {
-        await catalogs.DeleteContactDesignationAsync(id, ct);
-        return Ok(ApiResponse<Guid>.Ok(id));
-    }
-
-    [HttpPost("contact-types")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateContactType(
-        UpsertNamedCatalogRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.CreateContactTypeAsync(request.Name, request.Code, ct)));
-
-    [HttpPut("contact-types/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateContactType(
-        Guid id, UpsertNamedCatalogRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.UpdateContactTypeAsync(id, request.Name, request.Code, ct)));
-
-    [HttpDelete("contact-types/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<Guid>>> DeleteContactType(Guid id, CancellationToken ct)
-    {
-        await catalogs.DeleteContactTypeAsync(id, ct);
-        return Ok(ApiResponse<Guid>.Ok(id));
-    }
-
-    [HttpPost("countries")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateCountry(
-        UpsertNamedCatalogRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.CreateCountryAsync(request.Name, request.Code, ct)));
-
-    [HttpPut("countries/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateCountry(
-        Guid id, UpsertNamedCatalogRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.UpdateCountryAsync(id, request.Name, request.Code, ct)));
-
-    [HttpDelete("countries/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<Guid>>> DeleteCountry(Guid id, CancellationToken ct)
-    {
-        await catalogs.DeleteCountryAsync(id, ct);
-        return Ok(ApiResponse<Guid>.Ok(id));
-    }
-
-    [HttpPost("cities")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CityCatalogOptionDto>>> CreateCity(
-        UpsertCityRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CityCatalogOptionDto>.Ok(await catalogs.CreateCityAsync(request.Name, request.Code, request.CountryId, ct)));
-
-    [HttpPut("cities/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<CityCatalogOptionDto>>> UpdateCity(
-        Guid id, UpsertCityRequest request, CancellationToken ct) =>
-        Ok(ApiResponse<CityCatalogOptionDto>.Ok(await catalogs.UpdateCityAsync(id, request.Name, request.Code, request.CountryId, ct)));
-
-    [HttpDelete("cities/{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
-    public async Task<ActionResult<ApiResponse<Guid>>> DeleteCity(Guid id, CancellationToken ct)
-    {
-        await catalogs.DeleteCityAsync(id, ct);
-        return Ok(ApiResponse<Guid>.Ok(id));
-    }
-
     [HttpGet("address-cities")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<AddressCityDto>>>> AddressCities(
         CancellationToken ct)
@@ -170,20 +73,241 @@ public class CatalogsController(ICatalogService catalogs) : ControllerBase
     }
 
     [HttpPost("address-cities")]
-    [RequirePermission(Permissions.ResourcesManage)]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<AddressCityDto>>> CreateAddressCity(
-        CreateAddressCityRequest request,
+        UpsertAddressCityRequest request,
         CancellationToken ct)
     {
-        var created = await catalogs.CreateAddressCityAsync(request.Name, request.Line, ct);
+        var created = await resourceMasters.CreateAddressCityAsync(request.Name, request.Line, ct);
         return Ok(ApiResponse<AddressCityDto>.Ok(created));
     }
 
+    [HttpPut("address-cities/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<AddressCityDto>>> UpdateAddressCity(
+        Guid id,
+        UpsertAddressCityRequest request,
+        CancellationToken ct)
+    {
+        var updated = await resourceMasters.UpdateAddressCityAsync(id, request.Name, request.Line, ct);
+        return Ok(ApiResponse<AddressCityDto>.Ok(updated));
+    }
+
     [HttpDelete("address-cities/{id:guid}")]
-    [RequirePermission(Permissions.ResourcesManage)]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteAddressCity(Guid id, CancellationToken ct)
     {
-        await catalogs.DeleteAddressCityAsync(id, ct);
+        await resourceMasters.DeleteAddressCityAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpGet("resource-masters")]
+    public async Task<ActionResult<ApiResponse<ResourceMastersSnapshotDto>>> ResourceMasters(CancellationToken ct)
+    {
+        return Ok(ApiResponse<ResourceMastersSnapshotDto>.Ok(
+            await resourceMasters.GetSnapshotAsync(ct)));
+    }
+
+    [HttpPost("resource-masters/hierarchy")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<DepartmentHierarchyRowDto>>> CreateHierarchy(
+        UpsertDepartmentHierarchyRequest request,
+        CancellationToken ct)
+    {
+        var created = await resourceMasters.CreateHierarchyAsync(request, ct);
+        return Ok(ApiResponse<DepartmentHierarchyRowDto>.Ok(created));
+    }
+
+    [HttpPut("resource-masters/hierarchy/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<DepartmentHierarchyRowDto>>> UpdateHierarchy(
+        Guid id,
+        UpsertDepartmentHierarchyRequest request,
+        CancellationToken ct)
+    {
+        var updated = await resourceMasters.UpdateHierarchyAsync(id, request, ct);
+        return Ok(ApiResponse<DepartmentHierarchyRowDto>.Ok(updated));
+    }
+
+    [HttpDelete("resource-masters/hierarchy/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteHierarchy(Guid id, CancellationToken ct)
+    {
+        await resourceMasters.DeleteHierarchyAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("resource-masters/email-domains")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateEmailDomain(
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var created = await resourceMasters.CreateEmailDomainAsync(request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(created));
+    }
+
+    [HttpPut("resource-masters/email-domains/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateEmailDomain(
+        Guid id,
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var updated = await resourceMasters.UpdateEmailDomainAsync(id, request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(updated));
+    }
+
+    [HttpDelete("resource-masters/email-domains/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteEmailDomain(Guid id, CancellationToken ct)
+    {
+        await resourceMasters.DeleteEmailDomainAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("resource-masters/business-units")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateBusinessUnit(
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var created = await resourceMasters.CreateBusinessUnitAsync(request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(created));
+    }
+
+    [HttpPut("resource-masters/business-units/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateBusinessUnit(
+        Guid id,
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var updated = await resourceMasters.UpdateBusinessUnitAsync(id, request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(updated));
+    }
+
+    [HttpDelete("resource-masters/business-units/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteBusinessUnit(Guid id, CancellationToken ct)
+    {
+        await resourceMasters.DeleteBusinessUnitAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("resource-masters/work-locations")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateWorkLocation(
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var created = await resourceMasters.CreateWorkLocationAsync(request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(created));
+    }
+
+    [HttpPut("resource-masters/work-locations/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateWorkLocation(
+        Guid id,
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var updated = await resourceMasters.UpdateWorkLocationAsync(id, request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(updated));
+    }
+
+    [HttpDelete("resource-masters/work-locations/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteWorkLocation(Guid id, CancellationToken ct)
+    {
+        await resourceMasters.DeleteWorkLocationAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("resource-masters/graduation-degrees")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateGraduationDegree(
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var created = await resourceMasters.CreateGraduationDegreeAsync(request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(created));
+    }
+
+    [HttpPut("resource-masters/graduation-degrees/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateGraduationDegree(
+        Guid id,
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var updated = await resourceMasters.UpdateGraduationDegreeAsync(id, request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(updated));
+    }
+
+    [HttpDelete("resource-masters/graduation-degrees/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteGraduationDegree(Guid id, CancellationToken ct)
+    {
+        await resourceMasters.DeleteGraduationDegreeAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("resource-masters/post-graduation-degrees")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreatePostGraduationDegree(
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var created = await resourceMasters.CreatePostGraduationDegreeAsync(request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(created));
+    }
+
+    [HttpPut("resource-masters/post-graduation-degrees/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdatePostGraduationDegree(
+        Guid id,
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var updated = await resourceMasters.UpdatePostGraduationDegreeAsync(id, request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(updated));
+    }
+
+    [HttpDelete("resource-masters/post-graduation-degrees/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeletePostGraduationDegree(Guid id, CancellationToken ct)
+    {
+        await resourceMasters.DeletePostGraduationDegreeAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("resource-masters/certifications")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateCertification(
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var created = await resourceMasters.CreateCertificationAsync(request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(created));
+    }
+
+    [HttpPut("resource-masters/certifications/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateCertification(
+        Guid id,
+        UpsertNamedMasterRequest request,
+        CancellationToken ct)
+    {
+        var updated = await resourceMasters.UpdateCertificationAsync(id, request.Name, ct);
+        return Ok(ApiResponse<NamedMasterDto>.Ok(updated));
+    }
+
+    [HttpDelete("resource-masters/certifications/{id:guid}")]
+    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteCertification(Guid id, CancellationToken ct)
+    {
+        await resourceMasters.DeleteCertificationAsync(id, ct);
         return Ok(ApiResponse<Guid>.Ok(id));
     }
 
@@ -230,62 +354,70 @@ public class CatalogsController(ICatalogService catalogs) : ControllerBase
             await catalogs.GetServiceHierarchyAsync(ct)));
     }
 
+    [HttpGet("project-masters")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectMasterRowDto>>>> ProjectMasters(
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<ProjectMasterRowDto>>.Ok(
+            await projectMasters.ListAsync(ct)));
+    }
+
+    [HttpPost("project-masters")]
+    [RequirePermission("settings.masters.manage")]
+    public async Task<ActionResult<ApiResponse<ProjectMasterRowDto>>> CreateProjectMaster(
+        CreateProjectMasterRequest request,
+        CancellationToken ct)
+    {
+        var created = await projectMasters.CreateAsync(request, ct);
+        return Ok(ApiResponse<ProjectMasterRowDto>.Ok(created));
+    }
+
+    [HttpPut("project-masters/{id:guid}")]
+    [RequirePermission("settings.masters.manage")]
+    public async Task<ActionResult<ApiResponse<ProjectMasterRowDto>>> UpdateProjectMaster(
+        Guid id,
+        UpdateProjectMasterRequest request,
+        CancellationToken ct)
+    {
+        var updated = await projectMasters.UpdateAsync(id, request, ct);
+        return Ok(ApiResponse<ProjectMasterRowDto>.Ok(updated));
+    }
+
+    [HttpDelete("project-masters/{id:guid}")]
+    [RequirePermission("settings.masters.manage")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteProjectMaster(Guid id, CancellationToken ct)
+    {
+        await projectMasters.DeleteAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
     [HttpPost("service-groups")]
-    [RequirePermission(Permissions.ProjectsWrite)]
+    [RequirePermission("settings.masters.manage")]
     public async Task<ActionResult<ApiResponse<ServiceGroupDto>>> CreateServiceGroup(
         CreateServiceGroupRequest request,
         CancellationToken ct)
     {
-        var created = await catalogs.CreateServiceGroupAsync(request.Name, ct);
+        var created = await projectMasters.CreateGroupAsync(request.Name, ct);
         return Ok(ApiResponse<ServiceGroupDto>.Ok(created));
     }
 
     [HttpPost("service-departments")]
-    [RequirePermission(Permissions.ProjectsWrite)]
+    [RequirePermission("settings.masters.manage")]
     public async Task<ActionResult<ApiResponse<ServiceDepartmentDto>>> CreateServiceDepartment(
         CreateServiceDepartmentRequest request,
         CancellationToken ct)
     {
-        var created = await catalogs.CreateServiceDepartmentAsync(request.GroupId, request.Name, ct);
+        var created = await projectMasters.CreateDepartmentAsync(request, ct);
         return Ok(ApiResponse<ServiceDepartmentDto>.Ok(created));
     }
 
-    [HttpPost("service-sub-departments")]
-    [RequirePermission(Permissions.ProjectsWrite)]
-    public async Task<ActionResult<ApiResponse<ServiceSubDepartmentDto>>> CreateServiceSubDepartment(
-        CreateServiceSubDepartmentRequest request,
+    [HttpPost("project-masters/service-only")]
+    [RequirePermission("settings.masters.manage")]
+    public async Task<ActionResult<ApiResponse<ProjectMasterRowDto>>> CreateServiceOnly(
+        CreateServiceOnlyRequest request,
         CancellationToken ct)
     {
-        var created = await catalogs.CreateServiceSubDepartmentAsync(request.DepartmentId, request.Name, ct);
-        return Ok(ApiResponse<ServiceSubDepartmentDto>.Ok(created));
-    }
-
-    [HttpPost("service-catalog")]
-    [RequirePermission(Permissions.ProjectsWrite)]
-    public async Task<ActionResult<ApiResponse<ServiceHierarchyItemDto>>> CreateServiceCatalog(
-        CreateServiceCatalogRequest request,
-        CancellationToken ct)
-    {
-        var created = await catalogs.CreateServiceCatalogAsync(request, ct);
-        return Ok(ApiResponse<ServiceHierarchyItemDto>.Ok(created));
-    }
-
-    [HttpPut("service-catalog/{id:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
-    public async Task<ActionResult<ApiResponse<ServiceHierarchyItemDto>>> UpdateServiceCatalog(
-        Guid id,
-        UpdateServiceCatalogRequest request,
-        CancellationToken ct)
-    {
-        var updated = await catalogs.UpdateServiceCatalogAsync(id, request, ct);
-        return Ok(ApiResponse<ServiceHierarchyItemDto>.Ok(updated));
-    }
-
-    [HttpDelete("service-catalog/{id:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
-    public async Task<ActionResult<ApiResponse<Guid>>> DeleteServiceCatalog(Guid id, CancellationToken ct)
-    {
-        await catalogs.DeleteServiceCatalogAsync(id, ct);
-        return Ok(ApiResponse<Guid>.Ok(id));
+        var created = await projectMasters.CreateServiceOnlyAsync(request, ct);
+        return Ok(ApiResponse<ProjectMasterRowDto>.Ok(created));
     }
 }

@@ -28,6 +28,7 @@ import {
   createProject,
   addProjectService,
   createProjectInvoice,
+  toCreateInvoicePayload,
   saveWbsDraft,
   publishWbs,
   uploadProjectDocument,
@@ -1813,6 +1814,55 @@ export function ProjectOnboardingPage() {
     setCurrentRowVersion(0);
   }
 
+  /** × on TK Customer / Partner Name empties the rest of the form, including the copy kept for when the user leaves and comes back. */
+  function clearCustomerAndForm() {
+    const today = new Date().toISOString().slice(0, 10);
+    clearForm();
+    setPoFile(null);
+    setProjectIssuedDate(today);
+    setClientDropOpen(false);
+    setSvDropOpen(false);
+    setPickerDept("");
+    setPickerSubDept("");
+    setPickerSearch("");
+    setPickerExpanded({});
+    const snap: OnboardingFormSnapshot = {
+      isRenewal,
+      wbsSearch: "",
+      renewalProject: null,
+      selectedClientId: "",
+      clientSearch: "",
+      selectedSubVenture: "",
+      svSearch: "",
+      contractType: "",
+      engagementManager: "",
+      salesPerson: "",
+      projectType: "",
+      projectIssuedDate: today,
+      billingModel: "",
+      paymentTerms: "",
+      customPayments: [{ label: "First Payment", pct: 100 }],
+      currency: "INR",
+      taxPercent: 18,
+      poStatus: "",
+      poNumber: "",
+      poDate: "",
+      targetDate: "",
+      contactName: "",
+      contactNumber: "",
+      contactEmail: "",
+      sectionAComments: "",
+      sectionBComments: "",
+      selectedServices: {},
+      serviceRows: [],
+      invoiceRows: [],
+      currentDraftId: null,
+      currentRowVersion: 0,
+    };
+    latestSnapRef.current = snap;
+    writeOnboardingFormState(snap);
+  }
+
   // Comprehensive form validation: returns first missing/invalid field error message, or null if all valid
   function validateFullForm(): string | null {
     // 1. Renewal mode check
@@ -2102,33 +2152,40 @@ export function ProjectOnboardingPage() {
             }
 
             // Save invoice rows to backend database
+            const failedInvoices: string[] = [];
             for (let i = 0; i < invoiceRows.length; i++) {
               const inv = invoiceRows[i];
-              const isRaised = inv.invoiceStatus === "Raised";
+              const svcRow = serviceRows.find((s) => s.rowId === inv.serviceId);
               try {
-                await createProjectInvoice(backendProj.id, {
-                  milestoneName: inv.milestone,
-                  amount: inv.amount,
-                  taxAmount: inv.amount * ((taxPercent || 18) / 100),
-                  totalAmount: inv.amount * (1 + (taxPercent || 18) / 100),
-                  status: isRaised ? "Raised" : "Pending",
-                  invoiceNumber: isRaised ? (inv.invoiceNumber?.trim() || null) : null,
-                  invoiceDate: inv.targetDate || null,
-                  dueDate: inv.targetDate || null,
-                  remarks: inv.remarks || null,
-                  sortOrder: i,
-                });
+                await createProjectInvoice(
+                  backendProj.id,
+                  toCreateInvoicePayload(
+                    { ...inv, resourceLevel: svcRow?.resourceLevel || "" },
+                    i,
+                    taxPercent || 18,
+                  ),
+                );
               } catch (invErr) {
                 console.warn("Project invoice save to database failed:", invErr);
+                failedInvoices.push(inv.milestone || `row ${i + 1}`);
               }
             }
 
+            let poUploadFailed = false;
             if (poFile) {
               try {
                 await uploadProjectDocument(backendProj.id, poFile, "PO", poNumber, poDate);
               } catch (docErr) {
                 console.warn("PO document upload failed:", docErr);
+                poUploadFailed = true;
               }
+            }
+            if (failedInvoices.length || poUploadFailed) {
+              const parts = [
+                failedInvoices.length ? `${failedInvoices.length} invoice row(s)` : "",
+                poUploadFailed ? "the PO document" : "",
+              ].filter(Boolean);
+              toast.error(`WBS was created, but ${parts.join(" and ")} could not be saved. Open the project and save them again.`);
             }
           }
         } catch (backendErr) {
@@ -2704,11 +2761,7 @@ export function ProjectOnboardingPage() {
                     {selectedClientId && !renewalFieldsLocked && (
                       <span
                         onMouseDown={() => {
-                          setSelectedClientId("");
-                          setClientSearch("");
-                          setSvSearch("");
-                          setSelectedSubVenture("");
-                          setEngagementManager("");
+                          clearCustomerAndForm();
                         }}
                         style={{
                           position: "absolute",

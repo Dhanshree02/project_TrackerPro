@@ -39,6 +39,7 @@ export interface Employee {
   designationId?: string;
   role: string;
   jobRoleId?: string;
+  jobRoleName?: string;
   reportingManager: string;
   reportingManagerId?: string;
   businessUnit: string;

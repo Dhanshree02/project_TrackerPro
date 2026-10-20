@@ -51,6 +51,13 @@ export interface DemoPersona {
   avatar: string;
   department: string;
   designation: string;
+  /** Sub-department from employee profile (`tbl_employees.SubDepartment`). */
+  subDepartment?: string;
+  /** On-floor role from `JobRoleId` → `master.mst_roles.Name`. */
+  onFloorRole?: string;
+  /** RBAC access role (`auth.tbl_roles` via login or Assigned RBAC on profile). */
+  accessRole?: string;
+  /** Same as accessRole — used for permissions + dev user switch. */
   roleKey: string;
   permissions: string[];
 }

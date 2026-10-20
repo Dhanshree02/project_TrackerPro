@@ -16,7 +16,13 @@ public sealed record ProjectInvoiceDto(
     string? Remarks,
     int SortOrder,
     DateTime CreatedAtUtc,
-    DateTime? UpdatedAtUtc);
+    DateTime? UpdatedAtUtc,
+    string? ServiceName = null,
+    int? Qty = null,
+    decimal? UnitPrice = null,
+    string? Currency = null,
+    string? ResourceLevel = null,
+    string? PaymentStatus = null);
 
 public sealed record CreateProjectInvoiceRequest(
     string MilestoneName,
@@ -31,7 +37,13 @@ public sealed record CreateProjectInvoiceRequest(
     DateOnly? DueDate = null,
     DateOnly? PaymentDate = null,
     string? Remarks = null,
-    int SortOrder = 0);
+    int SortOrder = 0,
+    string? ServiceName = null,
+    int? Qty = null,
+    decimal? UnitPrice = null,
+    string? Currency = null,
+    string? ResourceLevel = null,
+    string? PaymentStatus = null);
 
 public sealed record UpdateProjectInvoiceRequest(
     string? MilestoneName = null,
@@ -46,7 +58,13 @@ public sealed record UpdateProjectInvoiceRequest(
     DateOnly? DueDate = null,
     DateOnly? PaymentDate = null,
     string? Remarks = null,
-    int? SortOrder = null);
+    int? SortOrder = null,
+    string? ServiceName = null,
+    int? Qty = null,
+    decimal? UnitPrice = null,
+    string? Currency = null,
+    string? ResourceLevel = null,
+    string? PaymentStatus = null);
 
 public sealed record AutoGenerateInvoicesSummaryDto(
     Guid ProjectId,

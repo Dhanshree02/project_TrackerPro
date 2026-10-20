@@ -45,9 +45,16 @@ export default defineConfig(({ command, mode }) => {
       viteReact(),
     ],
     server: {
-      host: "::",
+      host: true,
       port: 3000,
+      strictPort: true,
       allowedHosts: true,
+      origin: process.env.VITE_DEV_ORIGIN || undefined,
+      hmr: {
+        // Docker publishes 3000 as 39107. LAN browsers must use the host port,
+        // not the container port, or the page looks unreachable over IP.
+        clientPort: Number(process.env.VITE_HMR_CLIENT_PORT || process.env.UAT_CLEAN_FRONTEND_PORT || 39107),
+      },
       watch: {
         usePolling: true,
         awaitWriteFinish: {

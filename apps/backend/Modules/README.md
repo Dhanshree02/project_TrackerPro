@@ -15,7 +15,7 @@ Modules/
 ├── Reports/       # reserved
 ├── Repository/    # reserved
 ├── Resources/     # reserved — workload, bench, onboarding/offboarding
-└── Settings/      # reserved
+└── Settings/      # not started — masters/settings API deferred; frontend-only for now
 ```
 
 ## Convention per module

@@ -145,6 +145,7 @@ export interface ApiEmployeeDetail {
   departmentId?: string | null;
   designationId?: string | null;
   jobRoleId?: string | null;
+  jobRoleName?: string | null;
 }
 
 export interface ApiExitedEmployee {
@@ -173,6 +174,9 @@ export interface ApiMetaOption {
   /** RBAC role mapped to a designation (mst_designations.DefaultRoleId → roles.Name). */
   defaultRoleName?: string | null;
   defaultRoleDisplayName?: string | null;
+  /** On-floor role mapped from docs/rbac.xlsx via mst_designations.JobRoleId. */
+  jobRoleId?: string | null;
+  jobRoleName?: string | null;
 }
 
 interface PagedEnvelope<T> {
@@ -378,8 +382,34 @@ export async function fetchEmailDomainOptions(): Promise<ApiMetaOption[]> {
   return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/email-domains")) ?? [];
 }
 
-export async function fetchReportingManagerOptions(): Promise<ApiMetaOption[]> {
-  return (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/reporting-managers")) ?? [];
+export function employeesToReportingManagerOptions(
+  employees: ApiEmployeeListItem[],
+  excludeEmployeeCode?: string,
+): ApiMetaOption[] {
+  return employees
+    .filter((e) => !excludeEmployeeCode || e.employeeCode !== excludeEmployeeCode)
+    .map((emp) => ({
+      id: emp.id,
+      code: emp.employeeCode,
+      name: `${emp.fullName.trim()} (${emp.employeeCode})`,
+      parentId: null,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true }));
+}
+
+export async function fetchReportingManagerOptions(excludeEmployeeCode?: string): Promise<ApiMetaOption[]> {
+  try {
+    const fromMeta =
+      (await apiFetch<ApiMetaOption[]>("/api/v1/employees/meta/reporting-managers")) ?? [];
+    if (fromMeta.length > 0) {
+      if (!excludeEmployeeCode) return fromMeta;
+      return fromMeta.filter((m) => m.code !== excludeEmployeeCode);
+    }
+  } catch {
+    // fall back to employee roster (older API or empty catalog)
+  }
+  const employees = await fetchAllEmployees();
+  return employeesToReportingManagerOptions(employees, excludeEmployeeCode);
 }
 
 export async function fetchBusinessUnitOptions(): Promise<ApiMetaOption[]> {
@@ -500,6 +530,8 @@ export function toUiEmployeeFromList(item: ApiEmployeeListItem): Employee {
     department: item.department ?? "—",
     designation: item.designation ?? "—",
     role: item.role ?? "Employee",
+    jobRoleId: item.jobRoleId ?? "",
+    jobRoleName: item.jobRoleName || item.jobRole || "",
     reportingManager: item.reportingManagerName?.trim() || "—",
     businessUnit: item.businessUnit ?? "",
     workLocation: item.workLocation ?? "",
@@ -653,6 +685,7 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     departmentId: detail.departmentId ?? "",
     designationId: detail.designationId ?? "",
     jobRoleId: detail.jobRoleId ?? "",
+    jobRoleName: detail.jobRoleName ?? "",
     reportingManagerId: detail.reportingManagerId ?? "",
     workerType: detail.employmentType ?? "",
     complianceStatus: (detail.complianceStatus as Employee["complianceStatus"]) || "Pending",

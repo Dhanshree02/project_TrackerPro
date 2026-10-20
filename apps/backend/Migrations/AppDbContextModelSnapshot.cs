@@ -1013,6 +1013,61 @@ namespace PMS.API.Migrations
                     b.ToTable("tbl_project_drafts", "project");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectInterview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comments")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("InterviewDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly>("InterviewTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResourceName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("tbl_project_interviews", "project");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectInvoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1028,6 +1083,10 @@ namespace PMS.API.Migrations
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Currency")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -1050,6 +1109,10 @@ namespace PMS.API.Migrations
                     b.Property<DateOnly?>("PaymentDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("PaymentStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<decimal?>("Percentage")
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
@@ -1057,8 +1120,19 @@ namespace PMS.API.Migrations
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("Qty")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Remarks")
                         .HasColumnType("text");
+
+                    b.Property<string>("ResourceLevel")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ServiceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("integer");
@@ -1073,6 +1147,10 @@ namespace PMS.API.Migrations
                         .HasColumnType("numeric(18,2)");
 
                     b.Property<decimal>("TotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal?>("UnitPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
@@ -3761,6 +3839,17 @@ namespace PMS.API.Migrations
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectDocument", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectInterview", b =>
                 {
                     b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
                         .WithMany()

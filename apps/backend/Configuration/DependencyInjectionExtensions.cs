@@ -49,6 +49,8 @@ public static class DependencyInjectionExtensions
         // ---- Features (modules) ----
         services.AddScoped<IClientService, ClientService>();
         services.AddScoped<ICatalogService, CatalogService>();
+        services.AddScoped<IProjectMastersService, ProjectMastersService>();
+        services.AddScoped<IResourceMastersService, ResourceMastersService>();
         services.AddScoped<IEmployeeService, EmployeeService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRepositoryService, RepositoryService>();
@@ -57,9 +59,11 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectAppService, ProjectAppService>();
         services.AddScoped<IProjectDraftService, ProjectDraftService>();
         services.AddScoped<IProjectTeamMemberService, ProjectTeamMemberService>();
+        services.AddScoped<IProjectInterviewService, ProjectInterviewService>();
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
         services.AddScoped<IRbacAccessService, RbacAccessService>();
         services.AddHostedService<RbacBaselineHostedService>();
+        services.AddHostedService<OrgRoleMatrixHostedService>();
         services.AddScoped<IDashboardService, DashboardService>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----

@@ -683,8 +683,9 @@ export function EmployeeProfilePage() {
                 <Row label="Sub-Department" value={emp.subDepartment} />
                 <Row
                   label="On Floor Role"
-                  value={formatOnFloorRoleDisplay(emp.role) || emp.role}
+                  value={formatOnFloorRoleDisplay(emp.jobRoleName) || emp.jobRoleName || "—"}
                 />
+                <Row label="Assigned RBAC Role" value={emp.role || "—"} />
                 <Row label="Reporting Manager" value={emp.reportingManager} />
                 <Row label="Work Location" value={emp.workLocation} />
                 {emp.workLocation === "Onsite" && (

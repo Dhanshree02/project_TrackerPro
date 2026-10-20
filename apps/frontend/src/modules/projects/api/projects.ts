@@ -1,4 +1,4 @@
-import { apiFetch, API_BASE } from "@/lib/api-client";
+import { apiFetch, apiFetchBlob } from "@/lib/api-client";
 import { deriveProjectDates } from "@/lib/project-dates";
 
 export interface ApiProject {
@@ -340,6 +340,12 @@ export interface ApiProjectInvoice {
   remarks?: string | null;
   sortOrder: number;
   createdAtUtc: string;
+  serviceName?: string | null;
+  qty?: number | null;
+  unitPrice?: number | null;
+  currency?: string | null;
+  resourceLevel?: string | null;
+  paymentStatus?: string | null;
 }
 
 export interface CreateProjectInvoicePayload {
@@ -355,21 +361,35 @@ export interface CreateProjectInvoicePayload {
   paymentDate?: string | null;
   remarks?: string | null;
   sortOrder?: number;
+  serviceName?: string | null;
+  qty?: number | null;
+  unitPrice?: number | null;
+  currency?: string | null;
+  resourceLevel?: string | null;
+  paymentStatus?: string | null;
 }
+
+export type UpdateProjectInvoicePayload = Partial<CreateProjectInvoicePayload>;
 
 // ── Project Documents ──
 
 export interface ApiProjectDocument {
   id: string;
   projectId: string;
+  documentType?: string | null;
   fileName: string;
-  category: string;
-  size: number;
-  uploadedBy: string;
-  filePath: string;
+  originalFileName?: string | null;
+  filePath?: string | null;
+  contentType?: string | null;
+  sizeBytes?: number;
+  description?: string | null;
+  createdAtUtc?: string;
+  category?: string;
+  size?: number;
+  uploadedBy?: string;
   poNumber?: string | null;
   poDate?: string | null;
-  uploadedAtUtc: string;
+  uploadedAtUtc?: string;
 }
 
 // ── WBS Draft & Publishing ──
@@ -465,18 +485,9 @@ export function mapApiProjectToProject(
   }));
 
   const rawInvoices: any[] = (apiInvoices ?? (ap as any).invoices ?? (ap as any).projectInvoices ?? []);
-  const invoices = rawInvoices.map((inv: any, idx: number) => ({
-    id: inv.id ?? `inv-${idx}`,
-    serviceId: inv.projectServiceId ?? "",
-    serviceName: inv.serviceName ?? "",
-    milestone: inv.milestoneName ?? inv.milestone ?? `Milestone ${idx + 1}`,
-    targetDate: inv.invoiceDate ?? inv.dueDate ?? inv.targetDate ?? "",
-    invoiceDate: inv.invoiceDate ?? inv.dueDate ?? inv.targetDate ?? "",
-    unitPrice: inv.amount ?? 0,
-    amount: inv.amount ?? 0,
-    status: inv.status ?? "Not Raised",
-    remarks: inv.remarks ?? inv.invoiceNumber ?? "",
-  }));
+  const invoices = rawInvoices.map((inv: any, idx: number) =>
+    mapApiInvoiceToScheduleRow(inv, idx, ap.currency || "INR"),
+  );
 
   const wbsDetails = {
     contractType: ap.contractType ?? undefined,
@@ -867,7 +878,7 @@ export async function createProjectInvoice(projectId: string, payload: CreatePro
 export async function updateProjectInvoice(
   projectId: string,
   invoiceId: string,
-  payload: CreateProjectInvoicePayload
+  payload: UpdateProjectInvoicePayload
 ): Promise<ApiProjectInvoice> {
   return apiFetch<ApiProjectInvoice>(`/api/v1/projects/${projectId}/invoices/${invoiceId}`, {
     method: "PUT",
@@ -909,7 +920,119 @@ export async function uploadProjectDocument(
 
 /** Download Project Document URL */
 export function getProjectDocumentDownloadUrl(projectId: string, documentId: string): string {
-  return `${API_BASE}/api/v1/projects/${projectId}/documents/${documentId}/download`;
+  return `/api/v1/projects/${projectId}/documents/${documentId}/download`;
+}
+
+export async function fetchProjectDocumentBlob(projectId: string, documentId: string): Promise<Blob> {
+  return apiFetchBlob(getProjectDocumentDownloadUrl(projectId, documentId));
+}
+
+export function latestPoDocument(docs: ApiProjectDocument[]): ApiProjectDocument | null {
+  const pos = docs.filter((doc) => {
+    const kind = (doc.documentType || doc.category || "").trim().toLowerCase();
+    return kind === "po";
+  });
+  pos.sort((a, b) => (b.createdAtUtc || b.uploadedAtUtc || "").localeCompare(a.createdAtUtc || a.uploadedAtUtc || ""));
+  return pos[0] ?? null;
+}
+
+export function poDocumentFileName(doc: ApiProjectDocument): string {
+  return doc.originalFileName || doc.fileName || "PO document";
+}
+
+/** Shape stored on `project.tbl_project_invoices` and shown on the WBS schedule. */
+export function mapApiInvoiceToScheduleRow(inv: any, idx: number, projectCurrency = "INR") {
+  const status = String(inv.status ?? inv.invoiceStatus ?? "");
+  const paymentReceived =
+    inv.paymentStatus === "Received" ||
+    status === "Paid" ||
+    Boolean(inv.paymentDate || inv.paymentReceivedDate);
+  const raised =
+    paymentReceived ||
+    status === "Raised" ||
+    status === "Paid" ||
+    inv.invoiceStatus === "Raised";
+  const invoiceNumber = String(inv.invoiceNumber ?? "").trim();
+  const targetDate = String(inv.dueDate ?? inv.invoiceDate ?? inv.targetDate ?? inv.invoiceTargetDate ?? "").slice(0, 10);
+  const paymentDate = paymentReceived
+    ? String(inv.paymentDate ?? inv.paymentReceivedDate ?? "").slice(0, 10)
+    : "";
+  const amount = Number(inv.amount ?? inv.invoiceAmount ?? 0);
+  const qty = Number(inv.qty ?? 1) || 1;
+  const unitPrice = inv.unitPrice != null && inv.unitPrice !== "" ? Number(inv.unitPrice) : amount;
+  return {
+    id: inv.id ?? `inv-${idx}`,
+    serviceId: inv.projectServiceId ?? inv.serviceId ?? "",
+    serviceName: inv.serviceName ?? "",
+    milestone: inv.milestoneName ?? inv.milestone ?? `Milestone ${idx + 1}`,
+    targetDate,
+    invoiceDate: targetDate,
+    invoiceTargetDate: targetDate,
+    unitPrice,
+    qty,
+    currency: inv.currency || projectCurrency || "INR",
+    amount,
+    invoiceAmount: amount,
+    status: paymentReceived ? "Paid" : raised ? "Raised" : status || "Pending",
+    invoiceStatus: raised ? "Raised" : "Not Raised",
+    invoiceNumber,
+    paymentStatus: paymentReceived ? "Received" : "Not Received",
+    paymentDate,
+    paymentReceivedDate: paymentDate,
+    remarks: invoiceNumber,
+    resourceLevel: inv.resourceLevel ?? "",
+  };
+}
+
+export function toCreateInvoicePayload(
+  inv: {
+    milestone?: string;
+    milestoneName?: string;
+    amount?: number;
+    unitPrice?: number;
+    qty?: number;
+    currency?: string;
+    serviceName?: string;
+    resourceLevel?: string;
+    invoiceStatus?: string;
+    paymentStatus?: string;
+    status?: string;
+    invoiceNumber?: string;
+    targetDate?: string;
+    invoiceDate?: string;
+    paymentDate?: string;
+    paymentReceivedDate?: string;
+    remarks?: string;
+  },
+  sortOrder = 0,
+  taxPercent = 18,
+): CreateProjectInvoicePayload {
+  const amount = Number(inv.amount) || 0;
+  const paymentReceived = inv.paymentStatus === "Received" || inv.status === "Paid";
+  const raised =
+    paymentReceived || inv.invoiceStatus === "Raised" || inv.status === "Raised" || inv.status === "Paid";
+  const date = String(inv.targetDate || inv.invoiceDate || "").slice(0, 10);
+  const payDate = String(inv.paymentDate || inv.paymentReceivedDate || "").slice(0, 10);
+  const taxAmount = Math.round(amount * (taxPercent / 100) * 100) / 100;
+  return {
+    milestoneName: (inv.milestone || inv.milestoneName || "Milestone").trim() || "Milestone",
+    amount,
+    unitPrice: inv.unitPrice ?? null,
+    qty: inv.qty ?? null,
+    currency: inv.currency || null,
+    serviceName: inv.serviceName || null,
+    resourceLevel: inv.resourceLevel || null,
+    taxAmount,
+    totalAmount: Math.round((amount + taxAmount) * 100) / 100,
+    status: paymentReceived ? "Paid" : raised ? "Raised" : "Pending",
+    paymentStatus: paymentReceived ? "Received" : "Not Received",
+    invoiceNumber: raised ? inv.invoiceNumber?.trim() || null : null,
+    invoiceDate: date || null,
+    dueDate: date || null,
+    paymentDate: paymentReceived ? payDate || null : null,
+    remarks: null,
+    sortOrder,
+  };
 }
 
 // ── WBS Draft & Renewal Methods ──

@@ -18,6 +18,11 @@ public interface IProjectTeamMemberService
         bool internsOnly = false,
         CancellationToken ct = default);
 
+    Task<IReadOnlyList<EmployeeAllocationBookingDto>> ListOtherAllocationsAsync(
+        Guid projectId,
+        Guid employeeId,
+        CancellationToken ct = default);
+
     Task<ProjectTeamMemberDto> AddAsync(Guid projectId, CreateProjectTeamMemberRequest request, CancellationToken ct = default);
 
     Task<ProjectTeamMemberDto> UpdateAsync(

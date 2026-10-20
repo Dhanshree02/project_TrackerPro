@@ -3,7 +3,6 @@ export interface ProjectMasterItem {
   contractType: string;
   group?: string;
   department: string;
-  subDepartment?: string;
   service: string;
   tools: string;
   duration: string;
@@ -23,8 +22,6 @@ export interface SimpleMasterItem {
   name: string;
   code?: string;
   description?: string;
-  countryId?: string;
-  countryName?: string;
   createdAt: string;
 }
 

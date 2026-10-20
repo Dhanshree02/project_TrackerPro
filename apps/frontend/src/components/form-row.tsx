@@ -15,9 +15,11 @@ export interface FieldProps {
   value?: React.ReactNode;
   className?: string;
   error?: string;
+  /** Use a div when the field contains more than one button, so a click does not activate the first button. */
+  as?: "label" | "div";
 }
 
-export function Field({ label, required, children, value, className, error }: FieldProps) {
+export function Field({ label, required, children, value, className, error, as = "label" }: FieldProps) {
   if (value !== undefined && children === undefined) {
     return (
       <div className={cn("block", className)}>
@@ -27,14 +29,16 @@ export function Field({ label, required, children, value, className, error }: Fi
     );
   }
 
+  const Tag = as === "div" ? "div" : "label";
+
   return (
-    <label className={cn("block", className)}>
+    <Tag className={cn("block", className)}>
       <span className={FORM_LABEL_CLS}>
         {label}{required && <span className="text-destructive"> *</span>}
       </span>
       {children}
       {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}
-    </label>
+    </Tag>
   );
 }
 

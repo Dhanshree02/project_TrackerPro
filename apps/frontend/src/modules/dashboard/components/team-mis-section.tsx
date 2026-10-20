@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
   type ChartConfig,
@@ -360,9 +360,7 @@ function TotalTeamChartBody({
               tipAnchor,
               chartSeriesLabel(teamChartConfig, "totalTeamSize"),
             )}
-          >
-            <LabelList dataKey="totalTeamSize" position="top" className="fill-foreground" fontSize={11} />
-          </Bar>
+          />
           <Bar
             isAnimationActive={isGrowingIn("onsiteTeam")}
             animationDuration={LEGEND_BAR_GROW_MS}
@@ -379,9 +377,7 @@ function TotalTeamChartBody({
               tipAnchor,
               chartSeriesLabel(teamChartConfig, "onsiteTeam"),
             )}
-          >
-            <LabelList dataKey="onsiteTeam" position="top" className="fill-foreground" fontSize={11} />
-          </Bar>
+          />
           <Bar
             isAnimationActive={isGrowingIn("offsiteTeam")}
             animationDuration={LEGEND_BAR_GROW_MS}
@@ -398,9 +394,7 @@ function TotalTeamChartBody({
               tipAnchor,
               chartSeriesLabel(teamChartConfig, "offsiteTeam"),
             )}
-          >
-            <LabelList dataKey="offsiteTeam" position="top" className="fill-foreground" fontSize={11} />
-          </Bar>
+          />
         </BarChart>
       </ChartContainer>
       </ColumnBarHoverScope>

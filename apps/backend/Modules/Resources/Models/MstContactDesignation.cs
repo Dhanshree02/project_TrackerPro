@@ -6,7 +6,7 @@ namespace PMS.API.Modules.Resources.Models;
 /// Contact-person designation for customer onboarding (SPOC, CISO, …).
 /// Separate from <see cref="MstDesignation"/>, which is employee job titles.
 /// </summary>
-public class MstContactDesignation : BaseEntity, INamedCatalogRow
+public class MstContactDesignation : BaseEntity
 {
     public string Code { get; set; } = string.Empty;
 

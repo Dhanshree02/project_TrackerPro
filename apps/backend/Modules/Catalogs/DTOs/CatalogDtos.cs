@@ -4,12 +4,6 @@ public sealed record CatalogOptionDto(Guid Id, string Code, string Name, string?
 
 public sealed record AddressCityDto(Guid Id, string Code, string Name, string? Line, int SortOrder);
 
-public sealed record CreateAddressCityRequest(string Name, string? Line);
-
-public sealed record UpsertNamedCatalogRequest(string Name, string? Code);
-
-public sealed record UpsertCityRequest(string Name, string? Code, Guid CountryId);
-
 public sealed record CityCatalogOptionDto(Guid Id, string Code, string Name, Guid CountryId);
 
 public sealed record ServiceGroupDto(Guid Id, string Code, string Name, int SortOrder);
@@ -63,22 +57,50 @@ public sealed record ServiceHierarchyGroupDto(
     int SortOrder,
     IReadOnlyList<ServiceHierarchyDeptDto> Departments);
 
+public sealed record ProjectMasterRowDto(
+    Guid Id,
+    Guid GroupId,
+    string ContractType,
+    Guid DepartmentId,
+    string Department,
+    Guid SubDepartmentId,
+    string SubDepartment,
+    string Service,
+    string Code,
+    string? Tools,
+    int? DurationDays,
+    decimal? UnitPrice,
+    DateTime CreatedAtUtc);
+
+public sealed record CreateProjectMasterRequest(
+    string ContractType,
+    string Department,
+    string Service,
+    string Tools,
+    int DurationDays,
+    decimal UnitPrice,
+    string? SubDepartment = null);
+
+public sealed record UpdateProjectMasterRequest(
+    string ContractType,
+    string Department,
+    string Service,
+    string Tools,
+    int DurationDays,
+    decimal UnitPrice,
+    string? SubDepartment = null);
+
 public sealed record CreateServiceGroupRequest(string Name);
 
-public sealed record CreateServiceDepartmentRequest(Guid GroupId, string Name);
+public sealed record CreateServiceDepartmentRequest(
+    string ContractType,
+    string Name);
 
-public sealed record CreateServiceSubDepartmentRequest(Guid DepartmentId, string Name);
-
-public sealed record CreateServiceCatalogRequest(
-    Guid SubDepartmentId,
-    string Name,
-    string? DefaultTools,
-    decimal? DefaultUnitPrice,
-    int? DefaultDurationDays);
-
-public sealed record UpdateServiceCatalogRequest(
-    string? Name,
-    Guid? SubDepartmentId,
-    string DefaultTools,
-    decimal DefaultUnitPrice,
-    int DefaultDurationDays);
+public sealed record CreateServiceOnlyRequest(
+    string ContractType,
+    string Department,
+    string Service,
+    string? Tools = null,
+    int? DurationDays = null,
+    decimal? UnitPrice = null,
+    string? SubDepartment = null);

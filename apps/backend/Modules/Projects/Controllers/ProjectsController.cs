@@ -12,6 +12,7 @@ namespace PMS.API.Modules.Projects.Controllers;
 public class ProjectsController(
     IProjectAppService projectService,
     IProjectTeamMemberService teamMemberService,
+    IProjectInterviewService interviewService,
     IProjectTaskService taskService) : ControllerBase
 {
     [HttpGet]
@@ -595,6 +596,50 @@ public class ProjectsController(
     {
         var items = await teamMemberService.SearchCandidatesAsync(projectId, search, limit, internsOnly, ct);
         return Ok(ApiResponse<IReadOnlyList<ProjectTeamCandidateDto>>.Ok(items));
+    }
+
+    [HttpGet("{projectId:guid}/team-members/allocations")]
+    [RequirePermission(Permissions.ProjectsRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<EmployeeAllocationBookingDto>>>> GetEmployeeAllocations(
+        Guid projectId,
+        [FromQuery] Guid employeeId,
+        CancellationToken ct = default)
+    {
+        var items = await teamMemberService.ListOtherAllocationsAsync(projectId, employeeId, ct);
+        return Ok(ApiResponse<IReadOnlyList<EmployeeAllocationBookingDto>>.Ok(items));
+    }
+
+    [HttpGet("{projectId:guid}/interviews")]
+    [RequirePermission(Permissions.ProjectsRead)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectInterviewDto>>>> GetInterviews(
+        Guid projectId,
+        CancellationToken ct)
+    {
+        var items = await interviewService.ListAsync(projectId, ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectInterviewDto>>.Ok(items));
+    }
+
+    [HttpPost("{projectId:guid}/interviews")]
+    [RequirePermission(Permissions.ProjectsWrite)]
+    public async Task<ActionResult<ApiResponse<ProjectInterviewDto>>> CreateInterview(
+        Guid projectId,
+        [FromBody] CreateProjectInterviewRequest request,
+        CancellationToken ct)
+    {
+        var created = await interviewService.CreateAsync(projectId, request, ct);
+        return Ok(ApiResponse<ProjectInterviewDto>.Ok(created));
+    }
+
+    [HttpPut("{projectId:guid}/interviews/{interviewId:guid}")]
+    [RequirePermission(Permissions.ProjectsWrite)]
+    public async Task<ActionResult<ApiResponse<ProjectInterviewDto>>> UpdateInterview(
+        Guid projectId,
+        Guid interviewId,
+        [FromBody] UpdateProjectInterviewRequest request,
+        CancellationToken ct)
+    {
+        var updated = await interviewService.UpdateAsync(projectId, interviewId, request, ct);
+        return Ok(ApiResponse<ProjectInterviewDto>.Ok(updated));
     }
 
     [HttpGet("{projectId:guid}/team-members/{memberId:guid}")]

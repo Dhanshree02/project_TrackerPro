@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
   type ChartConfig,
@@ -275,9 +275,7 @@ function OnsiteAllocationChart({ months }: { months: RoleAllocation["months"] })
               tipAnchor,
               chartSeriesLabel(onsiteChartConfig, "onsiteTm"),
             )}
-          >
-            <LabelList dataKey="onsiteTm" position="top" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
           <Bar
             isAnimationActive={isGrowingIn("onsiteLeads")}
             animationDuration={LEGEND_BAR_GROW_MS}
@@ -294,9 +292,7 @@ function OnsiteAllocationChart({ months }: { months: RoleAllocation["months"] })
               tipAnchor,
               chartSeriesLabel(onsiteChartConfig, "onsiteLeads"),
             )}
-          >
-            <LabelList dataKey="onsiteLeads" position="top" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
           <Bar
             isAnimationActive={isGrowingIn("onsitePm")}
             animationDuration={LEGEND_BAR_GROW_MS}
@@ -313,9 +309,7 @@ function OnsiteAllocationChart({ months }: { months: RoleAllocation["months"] })
               tipAnchor,
               chartSeriesLabel(onsiteChartConfig, "onsitePm"),
             )}
-          >
-            <LabelList dataKey="onsitePm" position="top" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
         </BarChart>
       </ChartContainer>
       </ColumnBarHoverScope>
@@ -356,9 +350,7 @@ function OffsiteAllocationChart({
             radius={4}
             hide={isHidden("m0")}
             {...columnBarProps("m0", setHover, "var(--color-m0)", 4, tipAnchor, chartSeriesLabel(config, "m0"))}
-          >
-            <LabelList dataKey="m0" position="top" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
           <Bar
             isAnimationActive={isGrowingIn("m1")}
             animationDuration={LEGEND_BAR_GROW_MS}
@@ -368,9 +360,7 @@ function OffsiteAllocationChart({
             radius={4}
             hide={isHidden("m1")}
             {...columnBarProps("m1", setHover, "var(--color-m1)", 4, tipAnchor, chartSeriesLabel(config, "m1"))}
-          >
-            <LabelList dataKey="m1" position="top" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
           <Bar
             isAnimationActive={isGrowingIn("m2")}
             animationDuration={LEGEND_BAR_GROW_MS}
@@ -380,9 +370,7 @@ function OffsiteAllocationChart({
             radius={4}
             hide={isHidden("m2")}
             {...columnBarProps("m2", setHover, "var(--color-m2)", 4, tipAnchor, chartSeriesLabel(config, "m2"))}
-          >
-            <LabelList dataKey="m2" position="top" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
         </BarChart>
       </ChartContainer>
       </ColumnBarHoverScope>

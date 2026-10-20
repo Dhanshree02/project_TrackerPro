@@ -20,7 +20,7 @@ modules/<feature>/
 |--------|--------|--------|
 | `dashboard` | `/` | MIS charts + `api/dashboard` |
 | `repository` | `/repository` | includes document viewer |
-| `settings` | `/settings*`, masters UI | `masters/` store + catalog sections |
+| `settings` | `/settings*` | **Frontend only** — masters UI + roles page; no Settings backend module yet (see `settings/README.md`) |
 | `employees` | `/employee-directory*`, `/exit-summary`, `/resources*` redirects | form modal, bulk upload |
 | `customers` | `/customers*` | KYC modal, detail loader |
 | `projects` | `/projects*` | onboarding, detail loader, WBS preview |

@@ -43,7 +43,7 @@ import {
   toDecimalNumberInput,
   type TkIdPrefix,
 } from "@/lib/form-validation";
-import { CreatableCatalogSelect, SearchableSelect } from "@/components/creatable-catalog-select";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { TkIdField } from "@/components/tk-id-field";
 import { WorkEmailField } from "@/components/work-email-field";
 import { FORM_CONTROL_CLS, FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
@@ -51,15 +51,10 @@ import { EmployeeBulkUploadMenu } from "@/modules/employees/components/employee-
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import { formatSubDepartmentDisplay, normalizeSubDepartmentKey } from "@/lib/sub-department";
+import { formatOnFloorRoleDisplay, normalizeOnFloorRole, uniqueOnFloorRoleLabels } from "@/lib/on-floor-role";
+import { ON_FLOOR_ROLES } from "@/lib/org-role-matrix";
 import {
-  createBusinessUnitOption,
-  createDepartmentOption,
-  createDesignationOption,
   createEmployee,
-  createJobRoleOption,
-  createOfficeOption,
-  createReportingManagerOption,
-  createWorkLocationOption,
   fetchAllEmployees,
   fetchBusinessUnitOptions,
   fetchDepartmentOptions,
@@ -72,11 +67,8 @@ import {
   fetchReportingManagerOptions,
   fetchWorkLocationOptions,
   fetchCertificationOptions,
-  createCertificationOption,
   fetchGraduationDegreeOptions,
-  createGraduationDegreeOption,
   fetchPostGraduationDegreeOptions,
-  createPostGraduationDegreeOption,
   toUiEmployeeFromList,
   uploadEmployeeDocuments,
   type ApiMetaOption,
@@ -129,6 +121,7 @@ type DirectorySortKey =
   | "name"
   | "department"
   | "designation"
+  | "jobRoleName"
   | "subDepartment"
   | "reportingManager"
   | "workLocation"
@@ -152,6 +145,7 @@ const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: str
   { label: "Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-52 min-w-[185px]" },
+  { label: "On Floor Role", key: "jobRoleName", className: "w-44 min-w-[160px]" },
   { label: "Sub-Department", key: "subDepartment", className: "w-52 min-w-[185px]" },
   { label: "Reporting Manager", key: "reportingManager", className: "w-48 min-w-[170px]" },
   { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
@@ -166,6 +160,7 @@ const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className
   { label: "Employee Name", key: "name", className: "w-52 min-w-[180px]" },
   { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
   { label: "Designation", key: "designation", className: "w-64 min-w-[210px]" },
+  { label: "On Floor Role", key: "jobRoleName", className: "w-44 min-w-[160px]" },
   { label: "Sub-Department", key: "subDepartment", className: "w-52 min-w-[185px]" },
 ];
 
@@ -834,6 +829,7 @@ export function EmployeeDirectoryPage() {
   const [dept, setDept] = useState("");
   const [desig, setDesig] = useState("");
   const [subDept, setSubDept] = useState("");
+  const [onFloorRole, setOnFloorRole] = useState("");
   const [status, setStatus] = useState("");
   const [deptCatalog, setDeptCatalog] = useState<ApiMetaOption[]>([]);
   const [desigCatalog, setDesigCatalog] = useState<ApiMetaOption[]>([]);
@@ -927,6 +923,11 @@ export function EmployeeDirectoryPage() {
     return [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
   }, [desigCatalog, deptCatalog, dbEmployees, dept, desig]);
 
+  const onFloorRoleFilterOptions = useMemo(
+    () => uniqueOnFloorRoleLabels([...ON_FLOOR_ROLES, ...dbEmployees.map((e) => e.jobRoleName)]),
+    [dbEmployees],
+  );
+
   // -- Deep Comprehensive Employee Search --------------
   const matchesEmployeeSearch = (e: Employee, query: string): boolean => {
     if (!query) return true;
@@ -951,6 +952,7 @@ export function EmployeeDirectoryPage() {
       e.department,
       e.designation,
       e.subDepartment,
+      e.jobRoleName,
       e.role,
       e.businessUnit,
       e.workLocation,
@@ -1004,6 +1006,7 @@ export function EmployeeDirectoryPage() {
         (!dept || e.department === dept) &&
         (!desig || e.designation === desig) &&
         (!subDept || normalizeSubDepartmentKey(e.subDepartment) === normalizeSubDepartmentKey(subDept)) &&
+        (!onFloorRole || normalizeOnFloorRole(e.jobRoleName) === normalizeOnFloorRole(onFloorRole)) &&
         (!status ||
           e.status === status ||
           (status === "Active" && e.status === "Resignation Under Review"))
@@ -1013,7 +1016,7 @@ export function EmployeeDirectoryPage() {
       const cmp = compareEmployees(a, b, sortKey);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [dbEmployees, q, dept, desig, subDept, status, sortKey, sortDir]);
+  }, [dbEmployees, q, dept, desig, subDept, onFloorRole, status, sortKey, sortDir]);
 
   // -- Pool Filtering ----------------------------------
   const poolRows = useMemo(() => {
@@ -1024,6 +1027,7 @@ export function EmployeeDirectoryPage() {
         (!dept || e.department === dept) &&
         (!desig || e.designation === desig) &&
         (!subDept || normalizeSubDepartmentKey(e.subDepartment) === normalizeSubDepartmentKey(subDept)) &&
+        (!onFloorRole || normalizeOnFloorRole(e.jobRoleName) === normalizeOnFloorRole(onFloorRole)) &&
         (!status ||
           e.status === status ||
           (status === "Active" && e.status === "Resignation Under Review"))
@@ -1033,7 +1037,7 @@ export function EmployeeDirectoryPage() {
       const cmp = comparePoolEmployees(a, b, poolSortKey);
       return poolSortDir === "asc" ? cmp : -cmp;
     });
-  }, [dbEmployees, q, dept, desig, subDept, status, poolSortKey, poolSortDir]);
+  }, [dbEmployees, q, dept, desig, subDept, onFloorRole, status, poolSortKey, poolSortDir]);
 
   // Determine active rows based on tab
   const activeRows = tab === "directory" ? directoryRows : poolRows;
@@ -1046,7 +1050,7 @@ export function EmployeeDirectoryPage() {
   // Reset page when filters, tab, or pageSize change
   useEffect(() => {
     setPage(1);
-  }, [q, dept, desig, subDept, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
+  }, [q, dept, desig, subDept, onFloorRole, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
 
   // Admin and HR both manage the full employee directory (HR uses it for
   // onboarding); every other role is redirected.
@@ -1058,12 +1062,13 @@ export function EmployeeDirectoryPage() {
       ? `${activeRows.length} of ${dbEmployees.length} employees`
       : `${activeRows.length} of ${dbEmployees.length} resources active`;
 
-  const hasActiveFilters = Boolean(q || dept || desig || subDept || status);
+  const hasActiveFilters = Boolean(q || dept || desig || subDept || onFloorRole || status);
   const clearAllFilters = () => {
     setQ("");
     setDept("");
     setDesig("");
     setSubDept("");
+    setOnFloorRole("");
     setStatus("");
   };
 
@@ -1188,6 +1193,15 @@ export function EmployeeDirectoryPage() {
             />
           </div>
 
+          <div className="w-full md:w-44 shrink-0">
+            <FilterSelect
+              value={onFloorRole}
+              onChange={setOnFloorRole}
+              placeholder="All On Floor Roles"
+              options={onFloorRoleFilterOptions}
+            />
+          </div>
+
           {/* Status Filter */}
           <div className="w-full md:w-36 shrink-0">
             <FilterSelect
@@ -1272,6 +1286,12 @@ export function EmployeeDirectoryPage() {
                       {dash(e.designation)}
                     </td>
                     <td
+                      className="w-44 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate"
+                      title={formatOnFloorRoleDisplay(e.jobRoleName) || e.jobRoleName}
+                    >
+                      {dash(formatOnFloorRoleDisplay(e.jobRoleName) || e.jobRoleName)}
+                    </td>
+                    <td
                       className={cn(
                         "whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate",
                         basicDirectoryView ? "w-52 min-w-[185px]" : "w-52 min-w-[185px]",
@@ -1319,7 +1339,7 @@ export function EmployeeDirectoryPage() {
                 {pageRows.length === 0 && (
                   <tr>
                     <td
-                      colSpan={basicDirectoryView ? 5 : 11}
+                      colSpan={basicDirectoryView ? 6 : 12}
                       className="px-4 py-10 text-center text-sm text-muted-foreground"
                     >
                       {isLoading

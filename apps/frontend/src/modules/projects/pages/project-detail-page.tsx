@@ -1,6 +1,6 @@
 import { getRouteApi, Link, Navigate, notFound } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown } from "lucide-react";
+import { ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
@@ -9,7 +9,7 @@ import { usePermissions } from "@/lib/permissions";
 import { projects, clients, getPerson, people, invoices, type WBSNode, type Project, type Client, type Task, type Person, type WbsService } from "@/lib/domain-models";
 import { HealthPill, StatusPill, ProgressBar, TaskStatusPill, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { getProjectEMs, getProjectPMs, getProjectTLs, getProjectTeam, getTaskMeta, getDept, getSubDept, DH_TASK_STATUSES, mapTaskStatus, type DhTaskStatus, type Billability, type ResourceType, people as dhPeople } from "@/lib/project-helpers";
-import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type InterviewStatus, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhInterview, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/workspace-store";
+import { dhStore, useDhStore, getPrereq, canAssignPMs, getStagesList, allClients, allProjects, type DhIssueStatus, type IssueCategory, type DhPriority, type PrereqStatus, type PrereqCollectionStatus, type DhProjectPrereq, type DhAdditionalRequirement, type RequirementStatus, type DhComment, type DhIssue, type DhAlert, type DhEscalation, type DhAppreciation, type LeadershipRole } from "@/lib/workspace-store";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Field } from "@/components/form-row";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
@@ -21,8 +21,6 @@ import {
   fetchProjects,
   mapApiProjectToProject,
   updateProjectStatus,
-  uploadProjectDocument,
-  getProjectDocumentDownloadUrl,
   updateTaskStage,
   updateProjectTask,
   addTaskAssignment,
@@ -37,11 +35,20 @@ import {
   fetchProjectInvoices,
   createProjectInvoice,
   updateProjectInvoice,
+  fetchProjectDocuments,
+  uploadProjectDocument,
+  fetchProjectDocumentBlob,
+  getProjectDocumentDownloadUrl,
+  latestPoDocument,
+  poDocumentFileName,
+  toCreateInvoicePayload,
   type ApiProject,
+  type ApiProjectInvoice,
   type ApiProjectService,
   type ApiProjectTask,
   type ApiTaskAssignmentHistoryEntry,
 } from "@/modules/projects/api/projects";
+import { apiDownload } from "@/lib/api-client";
 import {
   fetchProjectTeamMembers,
   searchProjectTeamCandidates,
@@ -52,9 +59,18 @@ import {
   isManagerRole,
   parseAllocationDuration,
   formatAllocationDuration,
+  fetchEmployeeAllocations,
   type ApiProjectTeamMember,
   type ApiProjectTeamCandidate,
+  type EmployeeAllocationBooking,
 } from "@/modules/projects/api/project-team-members";
+import {
+  fetchProjectInterviews,
+  createProjectInterview,
+  updateProjectInterview,
+  type InterviewResult,
+  type ProjectInterview,
+} from "@/modules/projects/api/project-interviews";
 import { resolveCustomerRouteId } from "@/lib/client-route-id";
 import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
 import { findProjectByWbsId, isRenewedProject } from "@/lib/project-renewal";
@@ -65,6 +81,8 @@ import { fetchEmployees, loadEmployeesWithOnFloorRole, matchesOnFloorRole, type 
 import {
   formatOnFloorRoleDisplay,
   ON_FLOOR_MANAGER,
+  ON_FLOOR_PROJECT_MANAGER,
+  isOnFloorProjectManager,
   ON_FLOOR_SENIOR_MANAGER,
 } from "@/lib/on-floor-role";
 
@@ -94,6 +112,9 @@ function formatDateString(dateStr: string | undefined | null): string {
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
+
+const invoiceBackfillStarted = new Set<string>();
+const poBackfillStarted = new Set<string>();
 
 function toDateInputValue(raw: string | undefined | null): string {
   if (!raw?.trim()) return "";
@@ -150,11 +171,58 @@ function isAfterDay(day: Date, boundary: Date): boolean {
   return left > right;
 }
 
+function isDedicatedBooking(booking: EmployeeAllocationBooking): boolean {
+  return booking.resourceType.trim().toLowerCase() === "dedicated";
+}
+
+function bookingDay(raw: string): Date | undefined {
+  const iso = raw.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!iso) return undefined;
+  const d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function dayStamp(day: Date): number {
+  return day.getFullYear() * 10000 + (day.getMonth() + 1) * 100 + day.getDate();
+}
+
+function bookingCoversDay(day: Date, booking: EmployeeAllocationBooking): boolean {
+  const start = bookingDay(booking.startDate);
+  const end = bookingDay(booking.endDate);
+  if (!start || !end) return false;
+  const stamp = dayStamp(day);
+  return stamp >= dayStamp(start) && stamp <= dayStamp(end);
+}
+
+function bookingOverlapsRange(from: Date, to: Date, booking: EmployeeAllocationBooking): boolean {
+  const start = bookingDay(booking.startDate);
+  const end = bookingDay(booking.endDate);
+  if (!start || !end) return false;
+  return dayStamp(from) <= dayStamp(end) && dayStamp(to) >= dayStamp(start);
+}
+
+function dedicatedClash(
+  from: Date | undefined,
+  to: Date | undefined,
+  bookings: EmployeeAllocationBooking[],
+): EmployeeAllocationBooking | undefined {
+  const dedicated = bookings.filter(isDedicatedBooking);
+  if (from && to) return dedicated.find((booking) => bookingOverlapsRange(from, to, booking));
+  const day = from ?? to;
+  if (!day) return undefined;
+  return dedicated.find((booking) => bookingCoversDay(day, booking));
+}
+
+function dedicatedClashMessage(booking: EmployeeAllocationBooking): string {
+  return `This person is Dedicated on ${booking.projectName} until ${formatDate(booking.endDate)}. Choose dates that do not overlap that allocation.`;
+}
+
 function DateRangePicker({
   value,
   onChange,
   disablePastStart = false,
   maxEndDate,
+  bookings = [],
 }: {
   value: string;
   onChange: (val: string) => void;
@@ -162,6 +230,8 @@ function DateRangePicker({
   disablePastStart?: boolean;
   /** Allocation end date cannot be after the project end date. */
   maxEndDate?: string;
+  /** Other projects this person is already booked on. */
+  bookings?: EmployeeAllocationBooking[];
 }) {
   // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
   // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
@@ -199,8 +269,10 @@ function DateRangePicker({
 
   const projectEnd = parseStoredDate(maxEndDate?.slice(0, 10));
 
-  // Single shared month — both calendars always show the same month
-  const [currentMonth, setCurrentMonth] = useState<Date>(parsedRange.from ?? new Date());
+  const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+  // Each calendar keeps its own month. A click on one side must not move the other.
+  const [fromMonth, setFromMonth] = useState<Date>(startOfMonth(parsedRange.from ?? new Date()));
+  const [toMonth, setToMonth] = useState<Date>(startOfMonth(parsedRange.to ?? parsedRange.from ?? new Date()));
 
   // Format date as dd-mm-yyyy for the text inputs
   const toInputFmt = (d: Date | undefined) => {
@@ -231,15 +303,27 @@ function DateRangePicker({
   };
 
   // Click on start calendar
+  const rejectDedicated = (clash: EmployeeAllocationBooking | undefined) => {
+    if (!clash) return false;
+    toast.error(dedicatedClashMessage(clash));
+    return true;
+  };
+
   const handleFromDay = (day: Date) => {
     if (disablePastStart && isBeforeDay(day, startOfToday())) return;
     if (projectEnd && isAfterDay(day, projectEnd)) {
       toast.error("Start date cannot be after the project end date");
       return;
     }
+    if (rejectDedicated(dedicatedClash(day, undefined, bookings))) return;
     setFromInput(toInputFmt(day));
     // If picked start > current end, clear end
     const newTo = parsedRange.to && day > parsedRange.to ? undefined : parsedRange.to;
+    if (newTo && rejectDedicated(dedicatedClash(day, newTo, bookings))) {
+      setToInput("");
+      commit(day, undefined);
+      return;
+    }
     if (!newTo) setToInput("");
     commit(day, newTo);
   };
@@ -257,6 +341,8 @@ function DateRangePicker({
       toast.error("End date must be after start date");
       return;
     }
+    if (rejectDedicated(dedicatedClash(day, undefined, bookings))) return;
+    if (from && rejectDedicated(dedicatedClash(from, day, bookings))) return;
     setToInput(toInputFmt(day));
     commit(from, day);
   };
@@ -272,8 +358,15 @@ function DateRangePicker({
       toast.error("Start date cannot be after the project end date");
       return;
     }
+    if (d && rejectDedicated(dedicatedClash(d, undefined, bookings))) return;
+    if (d && parsedRange.to && rejectDedicated(dedicatedClash(d, parsedRange.to, bookings))) {
+      setFromInput(next);
+      setToInput("");
+      commit(d, undefined);
+      return;
+    }
     setFromInput(next);
-    if (d) { setCurrentMonth(d); commit(d, parsedRange.to); }
+    if (d) commit(d, parsedRange.to);
   };
 
   const handleToInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,8 +380,10 @@ function DateRangePicker({
       toast.error("End date cannot be after the project end date");
       return;
     }
+    if (d && rejectDedicated(dedicatedClash(d, undefined, bookings))) return;
+    if (d && parsedRange.from && rejectDedicated(dedicatedClash(parsedRange.from, d, bookings))) return;
     setToInput(next);
-    if (d) { setCurrentMonth(d); commit(parsedRange.from, d); }
+    if (d) commit(parsedRange.from, d);
   };
 
   const handleClear = () => {
@@ -296,53 +391,138 @@ function DateRangePicker({
     onChange("");
   };
 
+  const shiftMonth = (month: Date, delta: number) => new Date(month.getFullYear(), month.getMonth() + delta, 1);
+  const monthLabel = (month: Date) => month.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const isDedicatedDay = (day: Date) => bookings.some((booking) => isDedicatedBooking(booking) && bookingCoversDay(day, booking));
+  const isSharedDay = (day: Date) =>
+    bookings.some((booking) => !isDedicatedBooking(booking) && bookingCoversDay(day, booking)) && !isDedicatedDay(day);
+
+  const startDisabled = (day: Date) => {
+    if (disablePastStart && isBeforeDay(day, startOfToday())) return true;
+    if (projectEnd && isAfterDay(day, projectEnd)) return true;
+    return isDedicatedDay(day);
+  };
+  const endDisabled = (day: Date) => {
+    const earliest = disablePastStart
+      ? parsedRange.from && parsedRange.from > startOfToday()
+        ? parsedRange.from
+        : startOfToday()
+      : parsedRange.from;
+    if (earliest && isBeforeDay(day, earliest)) return true;
+    if (projectEnd && isAfterDay(day, projectEnd)) return true;
+    return isDedicatedDay(day);
+  };
+
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
+      {bookings.length > 0 && (
+        <div className="space-y-1.5 border-b border-border bg-muted/30 px-3 py-2">
+          <div className="flex flex-wrap gap-3 text-[10px] font-medium text-muted-foreground">
+            {bookings.some(isDedicatedBooking) && (
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-sm bg-rose-400" /> Dedicated — blocked
+              </span>
+            )}
+            {bookings.some((booking) => !isDedicatedBooking(booking)) && (
+              <span className="inline-flex items-center gap-1">
+                <span className="h-2 w-2 rounded-sm bg-sky-400" /> Shared
+              </span>
+            )}
+          </div>
+          <ul className="space-y-0.5 text-[11px] text-foreground">
+            {bookings.map((booking) => (
+              <li key={`${booking.projectId}-${booking.startDate}-${booking.resourceType}`}>
+                {isDedicatedBooking(booking) ? "Dedicated" : "Shared"} on {booking.projectName}
+                {" · "}
+                {formatDate(booking.startDate)} → {formatDate(booking.endDate)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {/* Two side-by-side small calendars */}
       <div className="flex gap-0 divide-x divide-border">
         {/* Start date calendar */}
         <div className="flex-1 min-w-0">
           <p className="px-3 pt-2 pb-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Start Date</p>
+          <div className="flex items-center justify-between px-2 pt-1">
+            <button
+              type="button"
+              aria-label="Start date previous month"
+              onClick={() => setFromMonth((month) => shiftMonth(month, -1))}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-foreground hover:bg-accent"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <span className="text-[11px] font-medium">{monthLabel(fromMonth)}</span>
+            <button
+              type="button"
+              aria-label="Start date next month"
+              onClick={() => setFromMonth((month) => shiftMonth(month, 1))}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-foreground hover:bg-accent"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <CalendarUI
             mode="single"
             selected={parsedRange.from}
             onSelect={(day) => day && handleFromDay(day)}
-            month={currentMonth}
-            onMonthChange={setCurrentMonth}
+            month={fromMonth}
+            hideNavigation
+            disableNavigation
             showOutsideDays
             captionLayout="label"
-            disabled={(() => {
-              const matchers: Array<{ before: Date } | { after: Date }> = [];
-              if (disablePastStart) matchers.push({ before: startOfToday() });
-              if (projectEnd) matchers.push({ after: projectEnd });
-              return matchers.length > 0 ? matchers : undefined;
-            })()}
-            className="w-full [--cell-size:1.45rem] text-[10px]"
+            disabled={startDisabled}
+            modifiers={{ dedicated: isDedicatedDay, shared: isSharedDay }}
+            modifiersClassNames={{
+              dedicated: "bg-rose-100 text-rose-800",
+              shared: "bg-sky-100 text-sky-900",
+            }}
+            classNames={{ month_caption: "hidden", nav: "hidden" }}
+            className="w-full [--cell-size:1.45rem] text-[10px] pt-1"
           />
         </div>
         {/* End date calendar */}
         <div className="flex-1 min-w-0">
           <p className="px-3 pt-2 pb-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">End Date</p>
+          <div className="flex items-center justify-between px-2 pt-1">
+            <button
+              type="button"
+              aria-label="End date previous month"
+              onClick={() => setToMonth((month) => shiftMonth(month, -1))}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-foreground hover:bg-accent"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+            <span className="text-[11px] font-medium">{monthLabel(toMonth)}</span>
+            <button
+              type="button"
+              aria-label="End date next month"
+              onClick={() => setToMonth((month) => shiftMonth(month, 1))}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-md text-foreground hover:bg-accent"
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
           <CalendarUI
             mode="single"
             selected={parsedRange.to}
             onSelect={(day) => day && handleToDay(day)}
-            month={currentMonth}
-            onMonthChange={setCurrentMonth}
+            month={toMonth}
+            hideNavigation
+            disableNavigation
             showOutsideDays
             captionLayout="label"
-            disabled={(() => {
-              const matchers: Array<{ before: Date } | { after: Date }> = [];
-              const earliest = disablePastStart
-                ? parsedRange.from && parsedRange.from > startOfToday()
-                  ? parsedRange.from
-                  : startOfToday()
-                : parsedRange.from;
-              if (earliest) matchers.push({ before: earliest });
-              if (projectEnd) matchers.push({ after: projectEnd });
-              return matchers.length > 0 ? matchers : undefined;
-            })()}
-            className="w-full [--cell-size:1.45rem] text-[10px]"
+            disabled={endDisabled}
+            modifiers={{ dedicated: isDedicatedDay, shared: isSharedDay }}
+            modifiersClassNames={{
+              dedicated: "bg-rose-100 text-rose-800",
+              shared: "bg-sky-100 text-sky-900",
+            }}
+            classNames={{ month_caption: "hidden", nav: "hidden" }}
+            className="w-full [--cell-size:1.45rem] text-[10px] pt-1"
           />
         </div>
       </div>
@@ -412,7 +592,7 @@ function isStoredManager(member: ApiProjectTeamMember): boolean {
 
 /**
  * Assigned managers are placed by On Floor Role (mst_roles.Name).
- * Manager → Project Managers. Sr. Manager → Senior Project Managers.
+ * Manager / Project Manager → Project Managers. Sr. Manager → Senior Project Managers.
  */
 async function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
   const employees = await loadEmployeesWithOnFloorRole();
@@ -431,7 +611,7 @@ async function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
     const employee = byId.get(member.employeeId.toLowerCase());
     const onFloorRole = employee?.jobRoleName || null;
     const person = { employeeId: member.employeeId, name };
-    if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_MANAGER)) {
+    if (isOnFloorProjectManager({ jobRoleName: onFloorRole })) {
       projectManagers.push(person);
     } else if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_SENIOR_MANAGER)) {
       seniorProjectManagers.push(person);
@@ -486,11 +666,18 @@ export function ProjectDetailPage() {
   }, []);
   const [liveServiceDates, setLiveServiceDates] = useState<Array<{ startDate?: string | null; endDate?: string | null }> | null>(null);
   const [dbServices, setDbServices] = useState<ApiProjectService[] | null>(null);
+  const [dbInvoices, setDbInvoices] = useState<ApiProjectInvoice[] | null>(null);
+  const [savedPo, setSavedPo] = useState<{ id: string; fileName: string } | null>(null);
+  const [poLoaded, setPoLoaded] = useState(false);
+  const [poPreviewUrl, setPoPreviewUrl] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     setLiveServiceDates(null);
     setDbServices(null);
     setDbLeaders(null);
+    setDbInvoices(null);
+    setSavedPo(null);
+    setPoLoaded(false);
     const rawIsGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
     if (rawId && (rawIsGuid || rawId.length > 20)) {
       if (rawIsGuid) {
@@ -502,6 +689,7 @@ export function ProjectDetailPage() {
       fetchProject(rawId).then(async (p) => {
         if (cancelled || !p) return;
         setDbProject(p);
+        void loadProjectBilling(p);
         if (!rawIsGuid) {
           fetchProjectTeamMembers(p.id).then(async (items) => {
             const leaders = await managersFromTeamMembers(items);
@@ -537,6 +725,74 @@ export function ProjectDetailPage() {
         }
       }).catch(console.error);
     }
+    async function loadProjectBilling(p: ApiProject) {
+      try {
+        let rows = await fetchProjectInvoices(p.id);
+        if (cancelled) return;
+        if (rows.length === 0 && !invoiceBackfillStarted.has(p.id)) {
+          const localProject = allProjects().find((item) => item.id === p.id);
+          const localInvoices = (localProject?.wbsDetails?.accounts?.invoices ?? []) as any[];
+          if (localInvoices.length > 0) {
+            invoiceBackfillStarted.add(p.id);
+            const created: ApiProjectInvoice[] = [];
+            for (let i = 0; i < localInvoices.length; i++) {
+              try {
+                created.push(
+                  await createProjectInvoice(
+                    p.id,
+                    toCreateInvoicePayload(localInvoices[i], i, p.taxPercent ?? 18),
+                  ),
+                );
+              } catch (err) {
+                console.warn("Could not save a stored invoice row", err);
+              }
+            }
+            if (created.length) rows = created;
+          }
+        }
+        if (!cancelled) setDbInvoices(rows);
+      } catch (err) {
+        console.warn("Could not load project invoices", err);
+        if (!cancelled) setDbInvoices(null);
+      }
+
+      try {
+        const docs = await fetchProjectDocuments(p.id);
+        if (cancelled) return;
+        const po = latestPoDocument(docs);
+        if (po) {
+          setSavedPo({ id: po.id, fileName: poDocumentFileName(po) });
+          setPoLoaded(true);
+          return;
+        }
+        if (!poBackfillStarted.has(p.id)) {
+          const localProject = allProjects().find((item) => item.id === p.id);
+          const localName = localProject?.wbsDetails?.accounts?.poFileName as string | undefined;
+          const localUrl = localProject?.wbsDetails?.accounts?.poFileDataUrl as string | undefined;
+          if (localName && localUrl) {
+            poBackfillStarted.add(p.id);
+            const blob = await (await fetch(localUrl)).blob();
+            const file = new File([blob], localName, { type: blob.type || "application/octet-stream" });
+            const uploaded = await uploadProjectDocument(p.id, file, "PO");
+            if (cancelled) return;
+            setSavedPo({ id: uploaded.id, fileName: poDocumentFileName(uploaded) });
+            setDbProject((current) =>
+              current
+                ? {
+                    ...current,
+                    poStatus: current.poStatus === "PO Not Required" ? current.poStatus : "PO Received",
+                  }
+                : current,
+            );
+          }
+        }
+        if (!cancelled) setPoLoaded(true);
+      } catch (err) {
+        console.warn("Could not load the PO document", err);
+        if (!cancelled) setPoLoaded(true);
+      }
+    }
+
     return () => { cancelled = true; };
   }, [rawId]);
 
@@ -549,7 +805,9 @@ export function ProjectDetailPage() {
         p.wbsId === rawId ||
         p.projectSeqId?.toLowerCase() === rawId.toLowerCase(),
     );
-    const mappedDb = dbProject ? mapApiProjectToProject(dbProject, dbServices ?? undefined) : undefined;
+    const mappedDb = dbProject
+      ? mapApiProjectToProject(dbProject, dbServices ?? undefined, dbInvoices ?? undefined)
+      : undefined;
     const base = mappedDb
       ? fromStore
         ? {
@@ -565,17 +823,41 @@ export function ProjectDetailPage() {
               accounts: {
                 ...(fromStore.wbsDetails?.accounts ?? {}),
                 ...(mappedDb.wbsDetails?.accounts ?? {}),
-                poFileDataUrl:
-                  mappedDb.wbsDetails?.accounts?.poFileDataUrl || fromStore.wbsDetails?.accounts?.poFileDataUrl,
+                poFileName:
+                  savedPo?.fileName ||
+                  (poLoaded ? "" : fromStore.wbsDetails?.accounts?.poFileName || ""),
+                poFileDataUrl: poLoaded
+                  ? undefined
+                  : mappedDb.wbsDetails?.accounts?.poFileDataUrl || fromStore.wbsDetails?.accounts?.poFileDataUrl,
                 invoices:
-                  (mappedDb.wbsDetails?.accounts?.invoices?.length
-                    ? mappedDb.wbsDetails.accounts.invoices
-                    : fromStore.wbsDetails?.accounts?.invoices) ?? [],
+                  dbInvoices !== null
+                    ? (mappedDb.wbsDetails?.accounts?.invoices ?? [])
+                    : ((mappedDb.wbsDetails?.accounts?.invoices?.length
+                        ? mappedDb.wbsDetails.accounts.invoices
+                        : fromStore.wbsDetails?.accounts?.invoices) ?? []),
               },
             },
           }
         : mappedDb
       : loaderData?.project ?? fromStore;
+    const attachBilling = (proj: any) => {
+      if (!proj?.wbsDetails?.accounts) return proj;
+      const invoices =
+        dbInvoices !== null
+          ? (mappedDb?.wbsDetails?.accounts?.invoices ?? [])
+          : proj.wbsDetails.accounts.invoices;
+      return {
+        ...proj,
+        wbsDetails: {
+          ...proj.wbsDetails,
+          accounts: {
+            ...proj.wbsDetails.accounts,
+            poFileName: savedPo?.fileName || (poLoaded ? "" : proj.wbsDetails.accounts.poFileName || ""),
+            invoices,
+          },
+        },
+      };
+    };
     if (!base) return base;
     const withManagers = dbProject
       ? {
@@ -612,18 +894,18 @@ export function ProjectDetailPage() {
           const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
           return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
         })();
-    if (!dbProject || !dbServices?.length) return dated;
-    const mapped = mapApiProjectToProject(dbProject, dbServices);
-    return {
+    if (!dbProject || !dbServices?.length) return attachBilling(dated);
+    const mapped = mapApiProjectToProject(dbProject, dbServices, dbInvoices ?? undefined);
+    return attachBilling({
       ...dated,
       wbsDetails: {
         ...(mapped.wbsDetails ?? {}),
         ...(dated.wbsDetails ?? {}),
         services: mapped.wbsDetails?.services ?? dated.wbsDetails?.services ?? [],
       },
-    };
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawId, extraCount, poDocuments, dbProject, dbLeaders, liveServiceDates, dbServices, loaderData?.project]);
+  }, [rawId, extraCount, poDocuments, dbProject, dbLeaders, liveServiceDates, dbServices, dbInvoices, savedPo, poLoaded, loaderData?.project]);
 
   const client: Client = useMemo(() => {
     if (!project) return loaderData?.client ?? {
@@ -690,8 +972,9 @@ export function ProjectDetailPage() {
   }, [project?.id, project?.wbsDetails?.accounts?.invoices]);
 
   const snapshotInvoices = useDhStore((s) => s.invoices);
-  const raisedInvoices = snapshotInvoices.filter(
-    (i) => i.projectId === project.id && i.invoiceStatus === "Raised",
+  const scheduleInvoices = (project.wbsDetails?.accounts?.invoices ?? []) as any[];
+  const raisedInvoices = scheduleInvoices.filter(
+    (i) => i.invoiceStatus === "Raised" || i.paymentStatus === "Received",
   );
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
@@ -788,9 +1071,11 @@ export function ProjectDetailPage() {
     });
 
     // 2. Check invoices payment status
-    const projInvoices = isDhanshree
-      ? snapshotInvoices.filter((i) => i.projectId === project.id)
-      : invoices.filter((i) => i.projectId === project.id);
+    const projInvoices = dbInvoices !== null
+      ? scheduleInvoices
+      : isDhanshree
+        ? snapshotInvoices.filter((i) => i.projectId === project.id)
+        : invoices.filter((i) => i.projectId === project.id);
 
     const pendingInvoices = projInvoices.filter(
       (inv) => inv.paymentStatus !== "Received" && inv.paymentStatus !== "completed"
@@ -826,22 +1111,92 @@ export function ProjectDetailPage() {
   const team = project.teamIds.map(getPerson);
 
   const poDoc = poDocuments[project.id];
-  const poFileName = poDoc?.fileName || project.wbsDetails?.accounts?.poFileName || "";
-  const poFileUrl = poDoc?.dataUrl || project.wbsDetails?.accounts?.poFileDataUrl || "";
+  const poFileName = savedPo?.fileName || project.wbsDetails?.accounts?.poFileName || poDoc?.fileName || "";
+  const poFileUrl = poLoaded ? "" : poDoc?.dataUrl || project.wbsDetails?.accounts?.poFileDataUrl || "";
   const poStatus = project.wbsDetails?.accounts?.poStatus || "";
   const showPoDocumentPanel = Boolean(project.wbsDetails?.accounts) && poStatus !== "PO Not Required";
   const canAttachPo = (isDhanshree || isAccounts || isPmoFamily || isSales) && !isViewOnly;
+  const canViewPo = Boolean(savedPo || poFileUrl);
   const [poPreviewOpen, setPoPreviewOpen] = useState(false);
 
-  const handleDownloadPO = () => {
-    if (!poFileName) return;
-    const element = document.createElement("a");
-    if (poFileUrl) {
-      element.href = poFileUrl;
-    } else {
-      const file = new Blob(["Mock PO File Content for project: " + project.name], { type: "application/pdf" });
-      element.href = URL.createObjectURL(file);
+  async function persistInvoicePatch(invoiceId: string, patch: Partial<ApiProjectInvoice>) {
+    if (!isApiGuid(project.id) || !isApiGuid(invoiceId)) {
+      toast.error("This invoice is not stored on the project yet");
+      return false;
     }
+    const previous = (dbInvoices ?? scheduleInvoices).find((row) => row.id === invoiceId);
+    setDbInvoices((rows) => {
+      const source = rows ?? scheduleInvoices;
+      return source.map((row) => (row.id === invoiceId ? { ...row, ...patch } : row));
+    });
+    try {
+      const updated = await updateProjectInvoice(project.id, invoiceId, {
+        status: patch.status,
+        invoiceNumber: patch.invoiceNumber,
+        invoiceDate: patch.invoiceDate,
+        dueDate: patch.dueDate,
+        paymentDate: patch.paymentDate,
+        paymentStatus: patch.paymentStatus,
+      });
+      setDbInvoices((rows) => {
+        const source = rows ?? scheduleInvoices;
+        return source.map((row) => (row.id === invoiceId ? updated : row));
+      });
+      return true;
+    } catch (err) {
+      if (previous) {
+        setDbInvoices((rows) => {
+          const source = rows ?? scheduleInvoices;
+          return source.map((row) => (row.id === invoiceId ? previous : row));
+        });
+      }
+      toast.error(err instanceof Error ? err.message : "Could not save the invoice");
+      return false;
+    }
+  }
+
+  const saveInvoiceDate = (invoiceId: string, value: string) =>
+    persistInvoicePatch(invoiceId, { invoiceDate: value || null, dueDate: value || null });
+
+  const saveInvoiceRaised = (invoiceId: string, invoiceNumber: string) =>
+    persistInvoicePatch(invoiceId, {
+      status: "Raised",
+      invoiceNumber,
+      paymentStatus: "Not Received",
+    });
+
+  const saveInvoicePaid = (invoiceId: string, paymentDate?: string) => {
+    const today = new Date().toISOString().slice(0, 10);
+    return persistInvoicePatch(invoiceId, {
+      status: "Paid",
+      paymentStatus: "Received",
+      paymentDate: paymentDate || today,
+    });
+  };
+
+  const saveInvoiceUnpaid = (invoiceId: string) =>
+    persistInvoicePatch(invoiceId, {
+      status: "Raised",
+      paymentStatus: "Not Received",
+      paymentDate: null,
+    });
+
+  const handleDownloadPO = async () => {
+    if (savedPo) {
+      try {
+        await apiDownload(getProjectDocumentDownloadUrl(project.id, savedPo.id), savedPo.fileName);
+        toast.success("Download started", { description: savedPo.fileName });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not download the PO document");
+      }
+      return;
+    }
+    if (!poFileName || !poFileUrl) {
+      toast.error("No PO document is attached");
+      return;
+    }
+    const element = document.createElement("a");
+    element.href = poFileUrl;
     element.download = poFileName;
     document.body.appendChild(element);
     element.click();
@@ -849,22 +1204,44 @@ export function ProjectDetailPage() {
     toast.success("Download started", { description: poFileName });
   };
 
+  const openPoPreview = async () => {
+    if (poPreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(poPreviewUrl);
+    if (savedPo) {
+      try {
+        const blob = await fetchProjectDocumentBlob(project.id, savedPo.id);
+        setPoPreviewUrl(URL.createObjectURL(blob));
+        setPoPreviewOpen(true);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Could not open the PO document");
+      }
+      return;
+    }
+    if (!poFileUrl) {
+      toast.error("No PO document is attached");
+      return;
+    }
+    setPoPreviewUrl(poFileUrl);
+    setPoPreviewOpen(true);
+  };
+
   const handleAttachPo = async (file: File | undefined) => {
     if (!file) return;
+    if (!isApiGuid(project.id)) {
+      toast.error("This project is not saved in the database yet");
+      return;
+    }
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
-      });
-      dhStore.attachPoDocument(project.id, file.name, dataUrl);
-      uploadProjectDocument(project.id, file, "PO").catch((err) => {
-        console.warn("Failed to upload PO document to backend:", err);
-      });
+      const uploaded = await uploadProjectDocument(project.id, file, "PO");
+      setSavedPo({ id: uploaded.id, fileName: poDocumentFileName(uploaded) });
+      setPoLoaded(true);
+      setDbProject((current) =>
+        current
+          ? { ...current, poStatus: current.poStatus === "PO Not Required" ? current.poStatus : "PO Received" }
+          : current,
+      );
       toast.success("PO document attached", { description: file.name });
-    } catch {
-      toast.error("Could not read the PO document. Please try again.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save the PO document");
     }
   };
 
@@ -1223,9 +1600,17 @@ export function ProjectDetailPage() {
               onLeadershipSaved={applyLeadershipRows}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
-                const existing = snapshotInvoices.find((i) => i.id === invoiceId);
+                const existing = scheduleInvoices.find((i) => i.id === invoiceId);
                 setInvoiceNumberInput(existing?.invoiceNumber?.trim() || "");
                 setRaiseModalOpen(true);
+              }}
+              onInvoiceDateChange={saveInvoiceDate}
+              onMarkPaid={async (invoiceId) => {
+                const ok = await saveInvoicePaid(invoiceId);
+                if (ok) {
+                  dhStore.updatePaymentStatus(project.id, invoiceId, "Received", user.id, user.name);
+                  toast.success("Payment marked as Received");
+                }
               }}
               poDocumentPanel={
                 showPoDocumentPanel ? (
@@ -1233,9 +1618,9 @@ export function ProjectDetailPage() {
                     fileName={poFileName}
                     poStatus={poStatus}
                     canAttach={canAttachPo}
-                    canView={Boolean(poFileUrl)}
-                    onView={() => setPoPreviewOpen(true)}
-                    onDownload={handleDownloadPO}
+                    canView={canViewPo}
+                    onView={() => { void openPoPreview(); }}
+                    onDownload={() => { void handleDownloadPO(); }}
                     onAttach={handleAttachPo}
                   />
                 ) : null
@@ -1270,9 +1655,9 @@ export function ProjectDetailPage() {
                   fileName={poFileName}
                   poStatus={poStatus}
                   canAttach={false}
-                  canView={Boolean(poFileUrl)}
-                  onView={() => setPoPreviewOpen(true)}
-                  onDownload={handleDownloadPO}
+                  canView={canViewPo}
+                  onView={() => { void openPoPreview(); }}
+                  onDownload={() => { void handleDownloadPO(); }}
                   onAttach={handleAttachPo}
                 />
               )}
@@ -1302,11 +1687,7 @@ export function ProjectDetailPage() {
                                 type="date"
                                 value={toDateInputValue(inv.invoiceTargetDate)}
                                 onChange={(e) => {
-                                  const val = e.target.value;
-                                  dhStore.updateInvoiceTargetDate(project.id, inv.id, val);
-                                  updateProjectInvoice(project.id, inv.id, { invoiceDate: val || null, dueDate: val || null }).catch((err) =>
-                                    console.warn("Backend invoice date update failed:", err)
-                                  );
+                                  void saveInvoiceDate(inv.id, e.target.value);
                                 }}
                                 className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               />
@@ -1331,11 +1712,9 @@ export function ProjectDetailPage() {
                                 value={toDateInputValue(inv.paymentReceivedDate)}
                                 onChange={(e) => {
                                   const val = e.target.value;
-                                  dhStore.updatePaymentReceivedDate(project.id, inv.id, val);
-                                  updateProjectInvoice(project.id, inv.id, {
-                                    paymentDate: val || null,
-                                    status: val ? "Paid" : "Raised",
-                                  }).catch((err) => console.warn("Backend payment date update failed:", err));
+                                  void (val ? saveInvoicePaid(inv.id, val) : saveInvoiceUnpaid(inv.id)).then((ok) => {
+                                    if (ok) dhStore.updatePaymentReceivedDate(project.id, inv.id, val);
+                                  });
                                 }}
                                 className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               />
@@ -1384,11 +1763,7 @@ export function ProjectDetailPage() {
                                   type="date"
                                   value={toDateInputValue(inv.invoiceTargetDate)}
                                   onChange={(e) => {
-                                    const val = e.target.value;
-                                    dhStore.updateInvoiceTargetDate(project.id, inv.id, val);
-                                    updateProjectInvoice(project.id, inv.id, { invoiceDate: val || null, dueDate: val || null }).catch((err) =>
-                                      console.warn("Backend invoice date update failed:", err)
-                                    );
+                                    void saveInvoiceDate(inv.id, e.target.value);
                                   }}
                                   className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 />
@@ -1414,8 +1789,12 @@ export function ProjectDetailPage() {
                                   value={inv.paymentStatus}
                                   onChange={(e) => {
                                     const val = e.target.value as "Not Received" | "Received";
-                                    dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
-                                    toast.success(`Payment Status updated to ${val}`);
+                                    void (val === "Received" ? saveInvoicePaid(inv.id, inv.paymentReceivedDate) : saveInvoiceUnpaid(inv.id))
+                                      .then((ok) => {
+                                        if (!ok) return;
+                                        dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
+                                        toast.success(`Payment Status updated to ${val}`);
+                                      });
                                   }}
                                   className={cn(
                                     "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
@@ -1438,11 +1817,9 @@ export function ProjectDetailPage() {
                                   value={toDateInputValue(inv.paymentReceivedDate)}
                                   onChange={(e) => {
                                     const val = e.target.value;
-                                    dhStore.updatePaymentReceivedDate(project.id, inv.id, val);
-                                    updateProjectInvoice(project.id, inv.id, {
-                                      paymentDate: val || null,
-                                      status: val ? "Paid" : "Raised",
-                                    }).catch((err) => console.warn("Backend payment date update failed:", err));
+                                    void (val ? saveInvoicePaid(inv.id, val) : saveInvoiceUnpaid(inv.id)).then((ok) => {
+                                      if (ok) dhStore.updatePaymentReceivedDate(project.id, inv.id, val);
+                                    });
                                   }}
                                   className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 />
@@ -1591,29 +1968,14 @@ export function ProjectDetailPage() {
                     toast.error("Invoice Number is mandatory");
                     return;
                   }
-                  if (raiseInvoiceId) {
-                    dhStore.raiseInvoice(project.id, raiseInvoiceId, invoiceNumberInput.trim(), user.id, user.name);
-                    const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raiseInvoiceId);
-                    if (isGuid) {
-                      updateProjectInvoice(project.id, raiseInvoiceId, {
-                        invoiceNumber: invoiceNumberInput.trim(),
-                        status: "Raised",
-                        invoiceDate: new Date().toISOString().slice(0, 10),
-                      }).catch((err) => {
-                        console.warn("Failed to update invoice on backend:", err);
-                      });
-                    } else {
-                      createProjectInvoice(project.id, {
-                        invoiceNumber: invoiceNumberInput.trim(),
-                        status: "Raised",
-                        invoiceDate: new Date().toISOString().slice(0, 10),
-                      }).catch((err) => {
-                        console.warn("Failed to create invoice on backend:", err);
-                      });
-                    }
+                  if (!raiseInvoiceId) return;
+                  const number = invoiceNumberInput.trim();
+                  void saveInvoiceRaised(raiseInvoiceId, number).then((ok) => {
+                    if (!ok) return;
+                    dhStore.raiseInvoice(project.id, raiseInvoiceId, number, user.id, user.name);
                     toast.success("Invoice raised successfully!");
-                  }
-                  setRaiseModalOpen(false);
+                    setRaiseModalOpen(false);
+                  });
                 }}
                 className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
               >
@@ -1626,8 +1988,12 @@ export function ProjectDetailPage() {
 
       <KycDocPreviewModal
         open={poPreviewOpen}
-        onClose={() => setPoPreviewOpen(false)}
-        previewUrl={poFileUrl || null}
+        onClose={() => {
+          if (poPreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(poPreviewUrl);
+          setPoPreviewUrl(null);
+          setPoPreviewOpen(false);
+        }}
+        previewUrl={poPreviewUrl || poFileUrl || null}
         fileName={poFileName || "PO_Document"}
         clientName={project.name}
       />
@@ -1651,6 +2017,8 @@ function WbsTab({
   project,
   client,
   onRaiseInvoice,
+  onInvoiceDateChange,
+  onMarkPaid,
   onNavigateToHealthAlerts,
   poDocumentPanel,
   onLeadershipSaved,
@@ -1658,11 +2026,12 @@ function WbsTab({
   project: Project;
   client?: Client;
   onRaiseInvoice: (invoiceId: string) => void;
+  onInvoiceDateChange: (invoiceId: string, value: string) => void;
+  onMarkPaid: (invoiceId: string) => void;
   onNavigateToHealthAlerts?: () => void;
   poDocumentPanel?: React.ReactNode;
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
 }) {
-  const snapshotInvoices = useDhStore((s) => s.invoices);
   const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
   const hideAmounts = isPmFamily || hideBudget;
   const hidePrereq = isPmFamily || isAccounts;
@@ -1843,13 +2212,10 @@ function WbsTab({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {wbsDetails.accounts.invoices.map((inv: any) => {
-                    const liveInv = snapshotInvoices.find(
-                      (li) => li.projectId === project.id && li.id === inv.id
-                    );
-                    const isPaid = liveInv?.paymentStatus === "Received";
-                    const isRaised = liveInv?.invoiceStatus === "Raised";
-                    const displayInvoiceNo = liveInv?.invoiceNumber || inv.remarks || "-";
-                    const displayDate = liveInv?.invoiceTargetDate || inv.targetDate || inv.invoiceDate || "";
+                    const isPaid = inv.paymentStatus === "Received";
+                    const isRaised = inv.invoiceStatus === "Raised" || isPaid;
+                    const displayInvoiceNo = inv.invoiceNumber || inv.remarks || "-";
+                    const displayDate = inv.invoiceTargetDate || inv.targetDate || inv.invoiceDate || "";
 
                     return (
                       <tr key={inv.id} className="hover:bg-accent/30">
@@ -1859,14 +2225,7 @@ function WbsTab({
                             <input
                               type="date"
                               value={toDateInputValue(displayDate)}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                const invId = liveInv?.id || inv.id;
-                                dhStore.updateInvoiceTargetDate(project.id, invId, val);
-                                updateProjectInvoice(project.id, invId, { invoiceDate: val || null, dueDate: val || null }).catch((err) =>
-                                  console.warn("Backend invoice date update failed:", err)
-                                );
-                              }}
+                              onChange={(e) => onInvoiceDateChange(inv.id, e.target.value)}
                               className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
                             />
                           ) : (
@@ -1887,7 +2246,7 @@ function WbsTab({
                               </span>
                               {canRaise && (
                                 <button
-                                  onClick={() => setConfirmPaidId(liveInv?.id || inv.id)}
+                                  onClick={() => setConfirmPaidId(inv.id)}
                                   className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
                                 >
                                   Mark Paid
@@ -1897,7 +2256,7 @@ function WbsTab({
                           ) : (
                             canRaise ? (
                               <button
-                                onClick={() => onRaiseInvoice(liveInv?.id || inv.id)}
+                                onClick={() => onRaiseInvoice(inv.id)}
                                 className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
                               >
                                 Raise Invoice
@@ -1938,9 +2297,10 @@ function WbsTab({
                 <button
                   type="button"
                   onClick={() => {
-                    dhStore.updatePaymentStatus(project.id, confirmPaidId, "Received", user.id, user.name);
-                    toast.success("Payment marked as Received");
+                    if (!confirmPaidId) return;
+                    const invoiceId = confirmPaidId;
                     setConfirmPaidId(null);
+                    onMarkPaid(invoiceId);
                   }}
                   className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
                 >
@@ -2397,7 +2757,8 @@ function OverviewTab({
   const originalProjectId = (project.renewedFromProjectId || originalProject?.id || "").trim();
 
   const wbs = project.wbsDetails;
-  const poDocName = useDhStore((s) => s.poDocuments[project.id]?.fileName) || wbs?.accounts?.poFileName || "";
+  const storedPoName = useDhStore((s) => s.poDocuments[project.id]?.fileName);
+  const poDocName = wbs?.accounts?.poFileName || storedPoName || "";
 
   // Service lines live on the project services API. The project payload alone does not
   // carry line totals, so Overview reads them here (same source as the WBS tab).
@@ -2885,9 +3246,9 @@ function isActiveEmployeeStatus(status?: string | null): boolean {
   return (status || "").trim().toLowerCase() === "active";
 }
 
-/** On Floor Role from mst_roles.Name: Manager. */
+/** On Floor Role from mst_roles.Name: Manager or Project Manager. */
 export function isEmployeePM(emp: { jobRoleName?: string | null; role?: string | null }): boolean {
-  return matchesOnFloorRole(emp, ON_FLOOR_MANAGER);
+  return isOnFloorProjectManager(emp);
 }
 
 /** On Floor Role from mst_roles.Name: Sr. Manager. */
@@ -3213,7 +3574,7 @@ function ChangeLeaderPanel({
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
               {role === "Project Manager"
-                ? `On Floor Role: ${ON_FLOOR_MANAGER}`
+                ? `On Floor Role: ${ON_FLOOR_MANAGER} or ${ON_FLOOR_PROJECT_MANAGER}`
                 : role === "Senior Project Manager"
                   ? `On Floor Role: ${ON_FLOOR_SENIOR_MANAGER}`
                   : role === "Team Lead"
@@ -3308,7 +3669,7 @@ function ChangeLeaderPanel({
                     : search.trim()
                       ? "No match"
                       : role === "Project Manager"
-                        ? `No Active employees with On Floor Role ${ON_FLOOR_MANAGER}`
+                        ? `No Active employees with On Floor Role ${ON_FLOOR_MANAGER} or ${ON_FLOOR_PROJECT_MANAGER}`
                         : role === "Senior Project Manager"
                           ? `No Active employees with On Floor Role ${ON_FLOOR_SENIOR_MANAGER}`
                           : "No match"}
@@ -5000,6 +5361,7 @@ function DhTeamTab({
         toast.error("Could not update team member", {
           description: err instanceof Error ? err.message : "API error",
         });
+        throw err;
       }
       return;
     }
@@ -5058,6 +5420,7 @@ function DhTeamTab({
         toast.error("Could not update shadow member", {
           description: err instanceof Error ? err.message : "API error",
         });
+        throw err;
       }
       return;
     }
@@ -5344,10 +5707,14 @@ function DhTeamTab({
           row={teamTab === "project" ? rows.find((r) => r.person.id === action.person!.id) : shadowRows.find((r) => r.person.id === action.person!.id)}
           onClose={() => setAction({ type: null, person: null })}
           onSaveEdit={async (patch) => {
-            if (teamTab === "project") {
-              await updateRow(action.person!.id, patch);
-            } else {
-              await updateShadowRow(action.person!.id, patch);
+            try {
+              if (teamTab === "project") {
+                await updateRow(action.person!.id, patch);
+              } else {
+                await updateShadowRow(action.person!.id, patch);
+              }
+            } catch {
+              return;
             }
             toast.success("Resource updated");
             setAction({ type: null, person: null });
@@ -5513,6 +5880,24 @@ function TeamActionModal({
     duration: row?.duration ?? "",
     asTeamLead: isTeamLead,
   });
+  const [editBookings, setEditBookings] = useState<EmployeeAllocationBooking[]>([]);
+  useEffect(() => {
+    if (action !== "edit" || !isApiGuid(project.id) || !isApiGuid(person.id)) {
+      setEditBookings([]);
+      return;
+    }
+    let active = true;
+    fetchEmployeeAllocations(project.id, person.id)
+      .then((rows) => {
+        if (active) setEditBookings(rows);
+      })
+      .catch(() => {
+        if (active) setEditBookings([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [action, project.id, person.id]);
   const [praise, setPraise] = useState({ message: "", tag: "Team Player" });
   const [feedback, setFeedback] = useState({ strengths: "", improvements: "", comments: "", rating: 4 });
   const [requestNote, setRequestNote] = useState("");
@@ -5571,12 +5956,13 @@ function TeamActionModal({
     return (
       <Modal title={`Edit Allocation — ${person.name}`} onClose={onClose}>
         <div className="space-y-3">
-          <Field label="Allocation Duration">
+          <Field label="Allocation Duration" as="div">
             <DateRangePicker
               value={editState.duration}
               onChange={(val) => setEditState((s) => ({ ...s, duration: val }))}
               disablePastStart
               maxEndDate={project.endDate ? String(project.endDate).slice(0, 10) : undefined}
+              bookings={editBookings}
             />
           </Field>
 
@@ -5737,6 +6123,7 @@ function AddTeamMemberModal({
   const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [resourceQuery, setResourceQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState<ApiProjectTeamCandidate | null>(null);
+  const [allocationBookings, setAllocationBookings] = useState<EmployeeAllocationBooking[]>([]);
   const [submitting, setSubmitting] = useState(false);
   // Project Team + Shadow Team both load from DB when the project is an API GUID.
   // Shadow uses internsOnly=true (TKI- / EmploymentType=Intern / intern role text).
@@ -5779,6 +6166,25 @@ function AddTeamMemberModal({
     };
   }, [useApiResources, internsOnly, project.id, resourceQuery, existingPersonIds.join("|"), selectedCandidate?.id]);
 
+  useEffect(() => {
+    if (!useApiResources || !selectedPersonId) {
+      setAllocationBookings([]);
+      return;
+    }
+    let active = true;
+    fetchEmployeeAllocations(project.id, selectedPersonId)
+      .then((rows) => {
+        if (!active) return;
+        setAllocationBookings(rows);
+      })
+      .catch(() => {
+        if (active) setAllocationBookings([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [useApiResources, project.id, selectedPersonId]);
+
   // Filter out already assigned people (mock path)
   const availablePeople = people.filter((p) => !existingPersonIds.includes(p.id));
 
@@ -5808,6 +6214,11 @@ function AddTeamMemberModal({
     const dates = parseAllocationDuration(duration);
     if (!dates) {
       toast.error("Please select both start and end dates for allocation duration");
+      return;
+    }
+    const clash = dedicatedClash(bookingDay(dates.start), bookingDay(dates.end), allocationBookings);
+    if (clash) {
+      toast.error(dedicatedClashMessage(clash));
       return;
     }
 
@@ -5874,7 +6285,7 @@ function AddTeamMemberModal({
           />
         </Field>
 
-        <Field label="Department" required>
+        <Field label="Department">
           {selectedPersonId ? (
             <div className="px-3 py-2 text-sm text-muted-foreground">
               {useApiResources
@@ -5886,7 +6297,7 @@ function AddTeamMemberModal({
           )}
         </Field>
 
-        <Field label="Sub Department" required>
+        <Field label="Sub Department">
           {selectedPersonId ? (
             <div className="px-3 py-2 text-sm text-muted-foreground">
               {useApiResources
@@ -5898,12 +6309,13 @@ function AddTeamMemberModal({
           )}
         </Field>
 
-        <Field label="Allocation Duration" required>
+        <Field label="Allocation Duration" required as="div">
           <DateRangePicker
             value={duration}
             onChange={setDuration}
             disablePastStart
             maxEndDate={project.endDate ? String(project.endDate).slice(0, 10) : undefined}
+            bookings={allocationBookings}
           />
         </Field>
 
@@ -6798,7 +7210,6 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
   const { user } = useRoleContext();
   const [commTab, setCommTab] = useState<"Interview Scheduling" | "Additional Customer Requirement">("Interview Scheduling");
 
-  const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
   const projectRequirements = store.requirements.filter((r) => r.projectId === project.id);
   const isEM = user.role === "Engagement Manager" || user.role === "Dhanshree";
 
@@ -6817,7 +7228,7 @@ function DhClientEngagementTab({ project, clientName }: { project: Project; clie
       </div>
 
       {commTab === "Interview Scheduling" && (
-        <InterviewSchedulingPanel interviews={projectInterviews} project={project} isEM={isEM} />
+        <InterviewSchedulingPanel project={project} isEM={isEM} />
       )}
       {commTab === "Additional Customer Requirement" && (
         <AdditionalRequirementsPanel requirements={projectRequirements} project={project} clientName={clientName} />
@@ -7203,7 +7614,6 @@ function ClientCommTab({ project }: { project: Project }) {
   const { user } = useRoleContext();
   const [commTab, setCommTab] = useState<"Interview Scheduling" | "Prerequisite Validation">("Interview Scheduling");
 
-  const projectInterviews = store.interviews.filter((i) => i.projectId === project.id);
   const projectPrereq = store.prereqs[project.id];
   const isEM = user.role === "Engagement Manager" || user.role === "Dhanshree";
 
@@ -7221,107 +7631,379 @@ function ClientCommTab({ project }: { project: Project }) {
         ))}
       </div>
 
-      {commTab === "Interview Scheduling" && <InterviewSchedulingPanel interviews={projectInterviews} project={project} isEM={isEM} />}
+      {commTab === "Interview Scheduling" && <InterviewSchedulingPanel project={project} isEM={isEM} />}
       {commTab === "Prerequisite Validation" && projectPrereq && <PrerequisiteValidationPanel prereq={projectPrereq} project={project} isEM={isEM} />}
     </div>
   );
 }
 
-function InterviewSchedulingPanel({ interviews, project, isEM }: { interviews: DhInterview[]; project: Project; isEM: boolean }) {
-  const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ resourceId: project.teamIds[0] || "u5", client: "Customer", date: new Date().toISOString().slice(0, 10), round: "Technical Round 1", interviewer: "Architect" });
+function interviewResultClass(result: InterviewResult): string {
+  if (result === "Selected") return "border-success/30 bg-success/10 text-success";
+  if (result === "Rejected") return "border-destructive/30 bg-destructive/10 text-destructive";
+  if (result === "Postponed") return "border-warning/30 bg-warning/15 text-warning-foreground";
+  return "border-info/30 bg-info/10 text-info";
+}
 
-  const teamPool = useMemo(() => project.teamIds.map(getPerson), [project]);
+function formatInterviewTime(value: string): string {
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return value;
+  const hour = Number(match[1]);
+  const minute = match[2];
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${String(hour12).padStart(2, "0")}:${minute} ${suffix}`;
+}
 
-  const handleSchedule = () => {
-    dhStore.addInterview({
-      projectId: project.id,
-      resourceId: formData.resourceId,
-      resourceName: getPerson(formData.resourceId).name,
-      employeeId: "ENG-001",
-      clientName: formData.client,
-      projectName: project.name,
-      interviewDate: formData.date,
-      interviewTime: "10:00 AM",
-      interviewRound: formData.round,
-      interviewer: formData.interviewer,
-      notes: "",
-      status: "Pending",
-    });
-    toast.success("Interview scheduled persistently");
-    setShowModal(false);
+function InterviewSchedulingPanel({ project }: { project: Project; isEM?: boolean }) {
+  const [interviews, setInterviews] = useState<ProjectInterview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [teamMembers, setTeamMembers] = useState<ApiProjectTeamMember[]>([]);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [resultTarget, setResultTarget] = useState<ProjectInterview | null>(null);
+  const [rescheduleTarget, setRescheduleTarget] = useState<ProjectInterview | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [resourceId, setResourceId] = useState("");
+  const [interviewDate, setInterviewDate] = useState("");
+  const [interviewTime, setInterviewTime] = useState("");
+  const [scheduleErrors, setScheduleErrors] = useState<{ resource?: string; date?: string; time?: string }>({});
+  const [resultValue, setResultValue] = useState<InterviewResult>("Pending");
+  const [comments, setComments] = useState("");
+  const [resultError, setResultError] = useState("");
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleErrors, setRescheduleErrors] = useState<{ date?: string; time?: string }>({});
+
+  const loadInterviews = useCallback(async () => {
+    if (!isApiGuid(project.id)) {
+      setInterviews([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      setInterviews(await fetchProjectInterviews(project.id));
+    } catch (err) {
+      toast.error("Could not load interviews", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [project.id]);
+
+  useEffect(() => {
+    void loadInterviews();
+  }, [loadInterviews]);
+
+  useEffect(() => {
+    if (!isApiGuid(project.id)) {
+      setTeamMembers([]);
+      return;
+    }
+    let active = true;
+    Promise.all([
+      fetchProjectTeamMembers(project.id),
+      fetchProjectTeamMembers(project.id, { shadow: true }),
+    ])
+      .then(([projectTeam, shadowTeam]) => {
+        if (!active) return;
+        const seen = new Set<string>();
+        const members = [...projectTeam, ...shadowTeam].filter((member) => {
+          if (isManagerRole(member.memberRole)) return false;
+          const key = member.employeeId.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setTeamMembers(members);
+      })
+      .catch(() => {
+        if (active) setTeamMembers([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
+
+  const openSchedule = () => {
+    setResourceId("");
+    setInterviewDate("");
+    setInterviewTime("");
+    setScheduleErrors({});
+    setScheduleOpen(true);
   };
 
-  const updateStatus = (interviewId: string, newStatus: InterviewStatus) => {
-    dhStore.updateInterviewStatus(interviewId, newStatus, "engagement_manager");
-    toast.success(`Interview status updated to ${newStatus}`);
+  const handleSchedule = async () => {
+    const nextErrors: { resource?: string; date?: string; time?: string } = {};
+    if (!resourceId) nextErrors.resource = "Resource name is required";
+    if (!interviewDate) nextErrors.date = "Interview date is required";
+    if (!interviewTime) nextErrors.time = "Interview time is required";
+    setScheduleErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setSaving(true);
+    try {
+      const created = await createProjectInterview(project.id, {
+        employeeId: resourceId,
+        interviewDate,
+        interviewTime: interviewTime.length === 5 ? `${interviewTime}:00` : interviewTime,
+      });
+      setInterviews((rows) => [created, ...rows.filter((row) => row.id !== created.id)]);
+      toast.success("Interview scheduled");
+      setScheduleOpen(false);
+    } catch (err) {
+      toast.error("Could not schedule the interview", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
+  const openResult = (row: ProjectInterview) => {
+    setResultTarget(row);
+    setResultValue(row.result);
+    setComments(row.comments ?? "");
+    setResultError("");
+  };
+
+  const saveResult = async () => {
+    if (!resultTarget) return;
+    if (resultValue === "Postponed" && !comments.trim()) {
+      setResultError("Add a comment when the interview is postponed");
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await updateProjectInterview(project.id, resultTarget.id, {
+        result: resultValue,
+        comments: comments.trim(),
+      });
+      setInterviews((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
+      toast.success("Interview result saved");
+      setResultTarget(null);
+    } catch (err) {
+      toast.error("Could not save the interview result", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openReschedule = (row: ProjectInterview) => {
+    setRescheduleTarget(row);
+    setRescheduleDate(row.interviewDate.slice(0, 10));
+    setRescheduleTime(row.interviewTime.slice(0, 5));
+    setRescheduleErrors({});
+  };
+
+  const saveReschedule = async () => {
+    if (!rescheduleTarget) return;
+    const nextErrors: { date?: string; time?: string } = {};
+    if (!rescheduleDate) nextErrors.date = "Interview date is required";
+    if (!rescheduleTime) nextErrors.time = "Interview time is required";
+    setRescheduleErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    setSaving(true);
+    try {
+      const updated = await updateProjectInterview(project.id, rescheduleTarget.id, {
+        interviewDate: rescheduleDate,
+        interviewTime: rescheduleTime.length === 5 ? `${rescheduleTime}:00` : rescheduleTime,
+        result: "Pending",
+      });
+      setInterviews((rows) => rows.map((row) => (row.id === updated.id ? updated : row)));
+      toast.success("Interview rescheduled");
+      setRescheduleTarget(null);
+    } catch (err) {
+      toast.error("Could not reschedule the interview", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputCls = "h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   return (
     <div className="space-y-3">
-      {isEM && (
-        <button onClick={() => setShowModal(true)} className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Scheduled Interviews ({interviews.length})
+        </h4>
+        <button
+          type="button"
+          onClick={openSchedule}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+        >
           <Plus className="h-3.5 w-3.5" /> Schedule Interview
         </button>
+      </div>
+
+      {loading ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">Loading interviews…</div>
+      ) : interviews.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-border bg-card px-6 py-12 text-center">
+          <p className="text-sm font-medium text-foreground">No interviews scheduled</p>
+          <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
+            Schedule an interview for a team member added on the Team tab.
+          </p>
+          <button
+            type="button"
+            onClick={openSchedule}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> Schedule Interview
+          </button>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="w-full min-w-[860px] text-sm">
+            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium">Resource Name</th>
+                <th className="px-3 py-2 font-medium">Interview Date</th>
+                <th className="px-3 py-2 font-medium">Interview Time</th>
+                <th className="px-3 py-2 font-medium">Interview Result</th>
+                <th className="px-3 py-2 font-medium">Comments</th>
+                <th className="px-3 py-2 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {interviews.map((row) => (
+                <tr key={row.id} className="hover:bg-accent/30">
+                  <td className="px-3 py-2.5 font-medium">{row.resourceName}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">{formatDate(row.interviewDate)}</td>
+                  <td className="px-3 py-2.5 whitespace-nowrap">{formatInterviewTime(row.interviewTime)}</td>
+                  <td className="px-3 py-2.5">
+                    <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", interviewResultClass(row.result))}>
+                      {row.result}
+                    </span>
+                  </td>
+                  <td className="max-w-[240px] px-3 py-2.5 text-xs text-muted-foreground">
+                    <span className="line-clamp-2" title={row.comments || ""}>{row.comments?.trim() || "—"}</span>
+                  </td>
+                  <td className="px-3 py-2.5">
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => openResult(row)}
+                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] font-medium hover:bg-accent"
+                      >
+                        <Pencil className="h-3 w-3" /> Edit Result
+                      </button>
+                      {row.result === "Postponed" && (
+                        <button
+                          type="button"
+                          onClick={() => openReschedule(row)}
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] font-medium hover:bg-accent"
+                        >
+                          <CalendarDays className="h-3 w-3" /> Reschedule
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      {showModal && (
-        <Modal title="Schedule Interview" onClose={() => setShowModal(false)} draggable>
+      {scheduleOpen && (
+        <Modal title="Schedule Interview" onClose={() => setScheduleOpen(false)} draggable>
           <div className="space-y-3">
-            <Field label="Resource">
-              <select value={formData.resourceId} onChange={(e) => setFormData((s) => ({ ...s, resourceId: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {teamPool.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            <Field label="Resource Name" required as="div">
+              <select
+                value={resourceId}
+                onChange={(e) => setResourceId(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">Select a team member</option>
+                {teamMembers.map((member) => (
+                  <option key={member.employeeId} value={member.employeeId}>
+                    {member.employeeName}
+                  </option>
+                ))}
               </select>
+              {teamMembers.length === 0 && (
+                <p className="mt-1 text-[11px] text-muted-foreground">Add team members on the Team tab first. Project Managers and Senior Project Managers are not listed.</p>
+              )}
+              {scheduleErrors.resource && <p className="mt-1 text-[11px] text-destructive">{scheduleErrors.resource}</p>}
             </Field>
-            <Field label="Customer"><input value={formData.client} onChange={(e) => setFormData((s) => ({ ...s, client: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
-            <Field label="Date"><input type="date" value={formData.date} onChange={(e) => setFormData((s) => ({ ...s, date: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
-            <Field label="Round"><input value={formData.round} onChange={(e) => setFormData((s) => ({ ...s, round: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
-            <Field label="Interviewer"><input value={formData.interviewer} onChange={(e) => setFormData((s) => ({ ...s, interviewer: e.target.value }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></Field>
+            <Field label="Interview Date" required as="div">
+              <input type="date" value={interviewDate} onChange={(e) => setInterviewDate(e.target.value)} className={inputCls} />
+              {scheduleErrors.date && <p className="mt-1 text-[11px] text-destructive">{scheduleErrors.date}</p>}
+            </Field>
+            <Field label="Interview Time" required as="div">
+              <input type="time" value={interviewTime} onChange={(e) => setInterviewTime(e.target.value)} className={inputCls} />
+              {scheduleErrors.time && <p className="mt-1 text-[11px] text-destructive">{scheduleErrors.time}</p>}
+            </Field>
             <div className="flex justify-end gap-2 border-t border-border pt-3">
-              <button onClick={() => setShowModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-              <button onClick={handleSchedule} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Schedule</button>
+              <button type="button" onClick={() => setScheduleOpen(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button type="button" onClick={() => void handleSchedule()} disabled={saving} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+                Schedule Interview
+              </button>
             </div>
           </div>
         </Modal>
       )}
 
-      {interviews.length === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No interviews scheduled</p></div>
-      ) : (
-        <div className="space-y-2">
-          {interviews.map((iv) => {
-            const statusColor = iv.status === "Selected" ? "border-success/30 bg-success/10 text-success" : iv.status === "Rejected" ? "border-destructive/30 bg-destructive/10 text-destructive" : iv.status === "Pending" ? "border-info/30 bg-info/10 text-info" : "border-warning/30 bg-warning/15 text-warning-foreground";
-            return (
-              <div key={iv.id} className="rounded-lg border border-border bg-card p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium">{iv.resourceName}</h4>
-                    <p className="mt-1 text-xs text-muted-foreground">{iv.clientName} · {iv.interviewRound}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(iv.interviewDate).toLocaleDateString()} · {iv.interviewer}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", statusColor)}>{iv.status}</span>
-                    {isEM && (
-                      <select
-                        value={iv.status}
-                        onChange={(e) => updateStatus(iv.id, e.target.value as InterviewStatus)}
-                        className={cn(
-                          "h-7 rounded-md border px-2 text-[10px] font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                          iv.status === "Selected" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
-                            iv.status === "Rejected" ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" :
-                              iv.status === "Pending" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-                                "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-                        )}
-                      >
-                        {(["Pending", "Selected", "Rejected", "Postponed"] as InterviewStatus[]).map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {resultTarget && (
+        <Modal title="Edit Interview Result" onClose={() => setResultTarget(null)} draggable>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {resultTarget.resourceName} · {formatDate(resultTarget.interviewDate)} · {formatInterviewTime(resultTarget.interviewTime)}
+            </p>
+            <Field label="Interview Result" required as="div">
+              <select value={resultValue} onChange={(e) => setResultValue(e.target.value as InterviewResult)} className={inputCls}>
+                {(["Pending", "Selected", "Rejected", "Postponed"] as InterviewResult[]).map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Comments" as="div">
+              <textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                rows={4}
+                placeholder={resultValue === "Postponed" ? "Reason for postponement" : "Remarks or feedback"}
+                className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              {resultError && <p className="mt-1 text-[11px] text-destructive">{resultError}</p>}
+            </Field>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button type="button" onClick={() => setResultTarget(null)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button type="button" onClick={() => void saveResult()} disabled={saving} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {rescheduleTarget && (
+        <Modal title="Reschedule Interview" onClose={() => setRescheduleTarget(null)} draggable>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">{rescheduleTarget.resourceName}</p>
+            <Field label="Interview Date" required as="div">
+              <input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} className={inputCls} />
+              {rescheduleErrors.date && <p className="mt-1 text-[11px] text-destructive">{rescheduleErrors.date}</p>}
+            </Field>
+            <Field label="Interview Time" required as="div">
+              <input type="time" value={rescheduleTime} onChange={(e) => setRescheduleTime(e.target.value)} className={inputCls} />
+              {rescheduleErrors.time && <p className="mt-1 text-[11px] text-destructive">{rescheduleErrors.time}</p>}
+            </Field>
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button type="button" onClick={() => setRescheduleTarget(null)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button type="button" onClick={() => void saveReschedule()} disabled={saving} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -8435,7 +9117,7 @@ function WbsAssignmentModal({
                 })}
                 {pmVisiblePool.length === 0 && (
                   <li className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {!employeesReady ? "Loading employees…" : pmQuery ? "No match" : `No employees with On Floor Role ${ON_FLOOR_MANAGER}`}
+                    {!employeesReady ? "Loading employees…" : pmQuery ? "No match" : `No employees with On Floor Role ${ON_FLOOR_MANAGER} or ${ON_FLOOR_PROJECT_MANAGER}`}
                   </li>
                 )}
               </ul>

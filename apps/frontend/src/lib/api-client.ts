@@ -13,6 +13,18 @@ const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   (import.meta.env.DEV ? "" : "http://localhost:5194");
 
+function personaHeaders(init?: HeadersInit): Headers {
+  const headers = new Headers(init);
+  const currentRole = getStoredDemoRole();
+  const persona = getDemoPersona(currentRole);
+  if (persona) {
+    headers.set("X-User-Email", persona.email);
+    headers.set("X-User-Role", persona.roleKey || "Admin");
+    headers.set("X-User-Id", persona.id);
+  }
+  return headers;
+}
+
 interface ApiEnvelope<T> {
   data: T | null;
   meta: {
@@ -63,16 +75,26 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return result.envelope.data as T;
 }
 
+/** Authenticated file bytes (PO preview and download). */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const headers = personaHeaders();
+  const res = await fetch(`${API_BASE}${path}`, { headers, credentials: "include" });
+  if (!res.ok) {
+    let message = `Download failed (${res.status})`;
+    try {
+      const envelope = (await res.json()) as ApiEnvelope<unknown>;
+      message = envelope.errors?.[0]?.message ?? message;
+    } catch {
+      // non-JSON error body
+    }
+    throw new Error(message);
+  }
+  return res.blob();
+}
+
 /** Authenticated file download (Excel sample, etc.). */
 export async function apiDownload(path: string, filename: string): Promise<void> {
-  const headers = new Headers();
-  const currentRole = getStoredDemoRole();
-  const persona = getDemoPersona(currentRole);
-  if (persona) {
-    headers.set("X-User-Email", persona.email);
-    headers.set("X-User-Role", persona.roleKey || "Admin");
-    headers.set("X-User-Id", persona.id);
-  }
+  const headers = personaHeaders();
 
   const res = await fetch(`${API_BASE}${path}`, { headers, credentials: "include" });
 
@@ -102,18 +124,9 @@ async function rawFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<{ ok: boolean; status: number; envelope: T }> {
-  const headers = new Headers(init?.headers);
+  const headers = personaHeaders(init?.headers);
   if (!(init?.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
-  }
-
-  // Send switched user context to backend
-  const currentRole = getStoredDemoRole();
-  const persona = getDemoPersona(currentRole);
-  if (persona) {
-    headers.set("X-User-Email", persona.email);
-    headers.set("X-User-Role", persona.roleKey || "Admin");
-    headers.set("X-User-Id", persona.id);
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });

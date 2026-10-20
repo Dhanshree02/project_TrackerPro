@@ -33,6 +33,17 @@ public sealed record ProjectTeamCandidateDto(
     string? Department,
     string? SubDepartment);
 
+/// <summary>
+/// Another project's team booking for the person being added.
+/// ResourceType is "Dedicated" or "Shared Resource".
+/// </summary>
+public sealed record EmployeeAllocationBookingDto(
+    Guid ProjectId,
+    string ProjectName,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    string ResourceType);
+
 public sealed record CreateProjectTeamMemberRequest(
     Guid EmployeeId,
     DateOnly AllocationStartDate,

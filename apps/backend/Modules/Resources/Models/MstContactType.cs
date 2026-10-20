@@ -6,7 +6,7 @@ namespace PMS.API.Modules.Resources.Models;
 /// Contact-person type for customer onboarding (Accounts, Procurement, …).
 /// Stored as the contact's <c>ContactType</c> name until Settings CRUD exists.
 /// </summary>
-public class MstContactType : BaseEntity, INamedCatalogRow
+public class MstContactType : BaseEntity
 {
     public string Code { get; set; } = string.Empty;
 

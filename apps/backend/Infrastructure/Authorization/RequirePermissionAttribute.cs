@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using PMS.API.Infrastructure.Authentication;
@@ -26,5 +27,28 @@ public sealed class RequirePermissionAttribute(string permission) : Attribute, I
         {
             context.Result = new ForbidResult();
         }
+    }
+}
+
+/// <summary>
+/// Allows the action when the caller has any one of the listed permission keys.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
+public sealed class RequireAnyPermissionAttribute(params string[] permissions) : Attribute, IAuthorizationFilter
+{
+    public void OnAuthorization(AuthorizationFilterContext context)
+    {
+        var user = context.HttpContext.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            context.Result = new UnauthorizedResult();
+            return;
+        }
+
+        if (permissions.Any(permission => user.HasClaim(AuthClaimTypes.Permission, permission)))
+            return;
+
+        context.Result = new ForbidResult();
     }
 }

@@ -4,6 +4,7 @@ using System.Text;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Resources.Validators;
@@ -224,7 +225,7 @@ internal static class EmployeeBulkWorkbook
 
     public static async Task<byte[]> BuildSampleAsync(AppDbContext db, CancellationToken ct = default)
     {
-        // 1. Fetch live master options from database (dynamically reflects any additions in settings/masters)
+        // 1. Fetch live master options from database
         var departments = await db.Departments
             .Where(d => d.DeletedAtUtc == null && d.IsActive)
             .OrderBy(d => d.Name)
@@ -810,8 +811,10 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             var departments = await db.Departments.ToListAsync(ct);
             var designations = await db.Designations
                 .Include(d => d.DefaultRole)
+                .Include(d => d.JobRole)
                 .Include(d => d.Roles)
                 .ToListAsync(ct);
+            var orgRoleMaps = await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
             var roles = await db.JobRoles.ToListAsync(ct);
             var employeeStatuses = await db.EmployeeStatuses.ToListAsync(ct);
             var managers = await db.Employees
@@ -877,7 +880,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 if (string.IsNullOrWhiteSpace(address))
                     rowErrors.Add("Current Address - City is required.");
                 else if (!addressCities.Contains(address.Trim()))
-                    rowErrors.Add($"Current Address - City '{address.Trim()}' is not in the master list. Add it under Settings → Masters → Resource Masters.");
+                    rowErrors.Add($"Current Address - City '{address.Trim()}' is not in the master list.");
                 var altPhone = GetValue(values, "altphone");
                 if (!string.IsNullOrWhiteSpace(altPhone) && !PhoneRules.IsValid(altPhone))
                     rowErrors.Add("Alternate Phone must be a valid 10-digit Indian mobile number.");
@@ -925,15 +928,36 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 var roleName = GetValue(values, "role");
                 if (matchedDesig is not null)
                 {
-                    // Automatic mapping of On Floor Role & RBAC Role from Book 3.xlsx linkage
-                    var activeJobRole = matchedDesig.Roles.FirstOrDefault(r => r.IsActive);
-                    if (activeJobRole is not null)
+                    if (orgRoleMaps.TryGetValue(matchedDesig.Id, out var map))
                     {
-                        jobRoleId = activeJobRole.Id;
+                        if (map.OnFloorRoleId is Guid mappedJobRoleId)
+                        {
+                            jobRoleId = mappedJobRoleId;
+                        }
+                        if (map.RbacRole is not null)
+                        {
+                            roleName = map.RbacRole.Name;
+                        }
                     }
-                    if (matchedDesig.DefaultRole is not null)
+                    else if (matchedDesig.JobRoleId is Guid mappedJobRoleId)
                     {
-                        roleName = matchedDesig.DefaultRole.Name;
+                        jobRoleId = mappedJobRoleId;
+                        if (matchedDesig.DefaultRole is not null)
+                        {
+                            roleName = matchedDesig.DefaultRole.Name;
+                        }
+                    }
+                    else
+                    {
+                        var activeJobRole = matchedDesig.JobRole ?? matchedDesig.Roles.FirstOrDefault(r => r.IsActive);
+                        if (activeJobRole is not null)
+                        {
+                            jobRoleId = activeJobRole.Id;
+                        }
+                        if (matchedDesig.DefaultRole is not null)
+                        {
+                            roleName = matchedDesig.DefaultRole.Name;
+                        }
                     }
                 }
                 else if (!string.IsNullOrWhiteSpace(roleName))

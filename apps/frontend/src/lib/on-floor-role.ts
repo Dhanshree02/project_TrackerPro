@@ -4,13 +4,21 @@
  * APIs expose `jobRoleId` + `jobRoleName`; RBAC access role stays in `tbl_employees."Role"`.
  * Team Dashboard filter: `GET /api/v1/my-team/on-floor-roles`. Onboarding: `GET /api/v1/employees/meta/roles`.
  */
-/** Canonical on-floor role names (no parenthetical abbreviations). */
+/** Canonical on-floor role names from docs/rbac.xlsx. */
 export const ON_FLOOR_LEADER = "Leader";
+export const ON_FLOOR_IT_ADMIN = "IT Admin";
+export const ON_FLOOR_ACCOUNTS = "Accounts";
+export const ON_FLOOR_HR = "HR";
 export const ON_FLOOR_TEAM_MEMBER = "Team Member";
 export const ON_FLOOR_TEAM_LEADER = "Team Leader";
 export const ON_FLOOR_MANAGER = "Manager";
+export const ON_FLOOR_PROJECT_MANAGER = "Project Manager";
 export const ON_FLOOR_SENIOR_MANAGER = "Sr. Manager";
 export const ON_FLOOR_HEAD_OF_DEPARTMENT = "Head Of Department";
+
+export function isOnFloorProjectManager(emp: { jobRoleName?: string | null }): boolean {
+  return matchesOnFloorRole(emp, ON_FLOOR_MANAGER) || matchesOnFloorRole(emp, ON_FLOOR_PROJECT_MANAGER);
+}
 
 /** Removes trailing abbreviation suffixes such as "Leader (L)" → "Leader". */
 export function formatOnFloorRoleDisplay(value?: string | null): string {

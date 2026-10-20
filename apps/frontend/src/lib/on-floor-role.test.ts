@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   formatOnFloorRoleDisplay,
+  isOnFloorProjectManager,
   matchesOnFloorRole,
   normalizeOnFloorRole,
   ON_FLOOR_MANAGER,
+  ON_FLOOR_PROJECT_MANAGER,
 } from "./on-floor-role";
 
 describe("on-floor-role", () => {
@@ -21,5 +23,11 @@ describe("on-floor-role", () => {
     ).toBe(true);
     expect(matchesOnFloorRole({ jobRoleName: "Manager" }, ON_FLOOR_MANAGER)).toBe(true);
     expect(normalizeOnFloorRole("Leader (L)")).toBe("leader");
+  });
+
+  it("treats Manager and Project Manager as assignable PMs", () => {
+    expect(isOnFloorProjectManager({ jobRoleName: ON_FLOOR_MANAGER })).toBe(true);
+    expect(isOnFloorProjectManager({ jobRoleName: ON_FLOOR_PROJECT_MANAGER })).toBe(true);
+    expect(isOnFloorProjectManager({ jobRoleName: "Team Member" })).toBe(false);
   });
 });

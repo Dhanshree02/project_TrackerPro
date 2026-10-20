@@ -1,10 +1,14 @@
-import { useState, useMemo, useEffect, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Search, Bell, ChevronDown, Check } from "lucide-react";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/user-personas";
-import { getCachedEmployeePersonas, loadEmployeePersonas } from "@/lib/employee-personas";
+import {
+  getCachedEmployeePersonas,
+  loadEmployeePersonas,
+  personaOrgSubtitle,
+} from "@/lib/employee-personas";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -23,6 +27,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
   const [switchPersonas, setSwitchPersonas] = useState<DemoPersona[]>(() =>
     getCachedEmployeePersonas(),
   );
+  const deptFilterScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     void loadEmployeePersonas()
@@ -171,8 +176,11 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent align="end" className="w-96 max-w-[95vw] p-2.5 shadow-2xl border border-border/80">
-            <div className="px-1 pt-0.5 pb-2">
+          <DropdownMenuContent
+            align="end"
+            className="w-96 max-w-[95vw] overflow-x-visible p-2.5 shadow-2xl border border-border/80"
+          >
+            <div className="min-w-0 px-1 pt-0.5 pb-2">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-xs font-bold tracking-tight text-foreground">
@@ -199,8 +207,9 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
                       {activePersona.code}
                     </span>
                   </div>
-                  <p className="truncate text-[10px] text-muted-foreground">
-                    {activePersona.designation || activePersona.label} • {activePersona.roleKey}
+                  <p className="truncate text-[10px] text-muted-foreground">{personaOrgSubtitle(activePersona)}</p>
+                  <p className="truncate text-[9px] font-medium text-primary/90">
+                    Access: {activePersona.accessRole ?? activePersona.roleKey}
                   </p>
                 </div>
                 <span className="rounded-full bg-primary/15 text-[9px] font-bold text-primary px-2 py-0.5 uppercase tracking-wide">
@@ -232,8 +241,19 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
                 )}
               </div>
 
-              {/* Department quick filter pills */}
-              <div className="flex items-center gap-1 overflow-x-auto mt-2 pb-1 scrollbar-none">
+              {/* Department quick filter pills — horizontal scroll (many departments) */}
+              <div
+                ref={deptFilterScrollRef}
+                className="dept-filter-scroll mt-2 flex w-full min-w-0 max-w-full flex-nowrap items-center gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1.5 [-webkit-overflow-scrolling:touch]"
+                onWheel={(e) => {
+                  const el = deptFilterScrollRef.current;
+                  if (!el || el.scrollWidth <= el.clientWidth + 1) return;
+                  if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+                  e.preventDefault();
+                  e.stopPropagation();
+                  el.scrollLeft += e.deltaY;
+                }}
+              >
                 {departments.map((dept) => {
                   const count =
                     dept === "All" ? switchPersonas.length : switchPersonas.filter((p) => p.category === dept).length;
@@ -313,15 +333,12 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
                                   {persona.code}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground truncate">
-                                <span className="truncate font-normal">
-                                  {persona.designation || persona.label}
-                                </span>
-                                <span className="text-muted-foreground/30">•</span>
-                                <span className="shrink-0 text-[9px] font-medium text-primary/80">
-                                  {persona.roleKey}
-                                </span>
-                              </div>
+                              <p className="truncate text-[10px] text-muted-foreground">
+                                {personaOrgSubtitle(persona)}
+                              </p>
+                              <p className="truncate text-[9px] font-medium text-primary/85">
+                                Access: {persona.accessRole ?? persona.roleKey}
+                              </p>
                             </div>
                           </div>
                           {isSelected && <Check className="h-4 w-4 shrink-0 text-primary ml-2" />}

@@ -57,31 +57,24 @@ public sealed class RbacNode
 
 public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment environment) : IRbacAccessService
 {
-    public const string BaselineVersion = "excel-v02";
-
     public async Task EnsureBaselineAsync(CancellationToken ct = default)
     {
-        var baseline = await LoadBaselineAsync(ct);
         await db.Database.ExecuteSqlRawAsync(
             """
-            CREATE TABLE IF NOT EXISTS master.mst_rbac_baseline (
-                "Version" character varying(40) PRIMARY KEY,
-                "AppliedAtUtc" timestamp with time zone NOT NULL
-            );
+            DROP TABLE IF EXISTS master.mst_rbac_baseline;
             ALTER TABLE master.mst_widgets ADD COLUMN IF NOT EXISTS "ParentWidgetId" uuid;
             ALTER TABLE master.mst_widgets DROP CONSTRAINT IF EXISTS "mst_widgets_ParentWidgetId_fkey";
             """,
             ct);
 
-        var applied = await db.Database.SqlQueryRaw<string>(
-            """SELECT "Version" AS "Value" FROM master.mst_rbac_baseline""").ToListAsync(ct);
-        if (applied.Contains(BaselineVersion))
+        var moduleCount = (await db.Database.SqlQueryRaw<int>(
+            """SELECT COUNT(*)::int AS "Value" FROM master.mst_modules""").ToListAsync(ct))
+            .FirstOrDefault();
+        if (moduleCount == 0)
         {
-            await EnsureParentWidgetConstraintAsync(ct);
-            return;
+            await ReplaceCatalogAsync(await LoadBaselineAsync(ct), ct);
         }
 
-        await ReplaceCatalogAsync(baseline, ct);
         await EnsureParentWidgetConstraintAsync(ct);
     }
 
@@ -480,13 +473,6 @@ public sealed class RbacAccessService(AppDbContext db, IWebHostEnvironment envir
             }
         }
 
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"""
-            INSERT INTO master.mst_rbac_baseline ("Version", "AppliedAtUtc")
-            VALUES ({BaselineVersion}, {now})
-            ON CONFLICT ("Version") DO UPDATE SET "AppliedAtUtc" = EXCLUDED."AppliedAtUtc"
-            """,
-            ct);
         await tx.CommitAsync(ct);
     }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
   type ChartConfig,
@@ -300,9 +300,7 @@ function ProjectCountChart({
             radius={4}
             hide={isHidden("m0")}
             {...rowBarProps("m0", setHover, "var(--color-m0)", 4, tipAnchor, chartSeriesLabel(chartConfig, "m0"))}
-          >
-            <LabelList dataKey="m0" position="right" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
           <Bar
             isAnimationActive={isGrowingIn("m1")}
             animationDuration={LEGEND_BAR_GROW_MS}
@@ -313,9 +311,7 @@ function ProjectCountChart({
             radius={4}
             hide={isHidden("m1")}
             {...rowBarProps("m1", setHover, "var(--color-m1)", 4, tipAnchor, chartSeriesLabel(chartConfig, "m1"))}
-          >
-            <LabelList dataKey="m1" position="right" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
           <Bar
             isAnimationActive={isGrowingIn("m2")}
             animationDuration={LEGEND_BAR_GROW_MS}
@@ -326,9 +322,7 @@ function ProjectCountChart({
             radius={4}
             hide={isHidden("m2")}
             {...rowBarProps("m2", setHover, "var(--color-m2)", 4, tipAnchor, chartSeriesLabel(chartConfig, "m2"))}
-          >
-            <LabelList dataKey="m2" position="right" className="fill-foreground" fontSize={10} />
-          </Bar>
+          />
         </BarChart>
       </ChartContainer>
       </ColumnBarHoverScope>

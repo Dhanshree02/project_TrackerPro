@@ -387,3 +387,26 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.85);
 }
+
+/* User switcher — department filter chips (horizontal scroll) */
+.dept-filter-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--primary) 45%, transparent) transparent;
+}
+
+.dept-filter-scroll::-webkit-scrollbar {
+  height: 5px;
+}
+
+.dept-filter-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dept-filter-scroll::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: color-mix(in oklch, var(--primary) 40%, transparent);
+}
+
+.dept-filter-scroll::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--primary) 60%, transparent);
+}

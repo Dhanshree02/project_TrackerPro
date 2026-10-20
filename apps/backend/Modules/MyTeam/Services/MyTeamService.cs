@@ -174,9 +174,17 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
     {
         var names = await db.JobRoles
             .AsNoTracking()
-            .Where(r => r.IsActive && r.DeletedAtUtc == null)
+            .Where(r => r.IsActive && r.DeletedAtUtc == null && r.DesignationId == null)
             .Select(r => r.Name)
             .ToListAsync(ct);
+        if (names.Count == 0)
+        {
+            names = await db.JobRoles
+                .AsNoTracking()
+                .Where(r => r.IsActive && r.DeletedAtUtc == null)
+                .Select(r => r.Name)
+                .ToListAsync(ct);
+        }
 
         return names
             .Where(n => !string.IsNullOrWhiteSpace(n))

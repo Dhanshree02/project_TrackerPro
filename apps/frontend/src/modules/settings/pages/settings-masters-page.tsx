@@ -25,6 +25,7 @@ export function SettingsMastersPage() {
   const { can, isDhanshree } = useRoleContext();
   const { hasAny } = usePermissions();
   const [activeTab, setActiveTab] = useState<MasterTab>("projects");
+  const [resourceCount, setResourceCount] = useState<number | null>(null);
 
   const allowed =
     isDhanshree ||
@@ -38,20 +39,14 @@ export function SettingsMastersPage() {
     contractTypes,
     groups,
     departments,
+    departmentsForContractType,
     services,
     customerMasters,
-    getDepartmentsForContract,
-    getSubDepartments,
-    getServicesForSubDepartment,
-    getGroupId,
-    getDepartmentId,
-    getSubDepartmentId,
-    saveProjectMaster,
+    addProjectMaster,
     updateProjectMaster,
     deleteProjectMaster,
     addContractType,
     addDepartment,
-    addSubDepartment,
     addService,
     addCustomerMasterItem,
     updateCustomerMasterItem,
@@ -135,6 +130,17 @@ export function SettingsMastersPage() {
           >
             <Users className="h-4 w-4" />
             <span>Resource Masters</span>
+            {resourceCount !== null && (
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-[10px] px-1.5 py-0",
+                  activeTab === "resources" ? "bg-primary/15 text-primary font-semibold" : "",
+                )}
+              >
+                {resourceCount}
+              </Badge>
+            )}
             {activeTab === "resources" && (
               <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
@@ -160,19 +166,13 @@ export function SettingsMastersPage() {
           contractTypes={contractTypes}
           groups={groups}
           departments={departments}
+          departmentsForContractType={departmentsForContractType}
           services={services}
-          getDepartmentsForContract={getDepartmentsForContract}
-          getSubDepartments={getSubDepartments}
-          getServicesForSubDepartment={getServicesForSubDepartment}
-          getGroupId={getGroupId}
-          getDepartmentId={getDepartmentId}
-          getSubDepartmentId={getSubDepartmentId}
-          onSave={saveProjectMaster}
+          onAdd={addProjectMaster}
           onUpdate={updateProjectMaster}
           onDelete={deleteProjectMaster}
           onAddContractType={addContractType}
           onAddDepartment={addDepartment}
-          onAddSubDepartment={addSubDepartment}
           onAddService={addService}
         />
       )}
@@ -186,7 +186,7 @@ export function SettingsMastersPage() {
         />
       )}
 
-      {activeTab === "resources" && <ResourceMastersSection />}
+      {activeTab === "resources" && <ResourceMastersSection onCountChange={setResourceCount} />}
     </AppShell>
   );
 }

@@ -17,25 +17,23 @@ ROLE_NAMES = {
     "Accounts": "Accounts",
     "HR": "HR",
     "Sales Manger": "Sales Manager",
-    "Sales team member": "Sales team member",
-    "PMO (Project Management Office)": "PMO",
-    "EM (Engagement Manager)": "EngagementManager",
-    "R&D -Team member": "R&D - Team member",
-    "SOC - Team Member": "SOC-Team Member",
-    "SOC - Team Leader": "SOC-Team Leader",
-    "SOC - Manager": "SOC-Manager",
-    "SOC - Senior Manager": "SOC-Senior Manager",
-    "SOC - HOD": "SOC-HOD",
-    "Consulting -Team member": "Consulting-Team member",
-    "Consulting - Team Leader": "Consulting-Team Leader",
+    "Sales team member": "Sales Team Member",
+    "PMO (Project Management Office)": "PMO (Project Management Office)",
+    "EM (Engagement Manager)": "EM (Engagement Manager)",
+    "R&D -Team member": "R&D -Team member",
+    "SOC - Team Member": "SOC- Team Member",
+    "SOC - Team Leader": "SOC- Team Leader",
+    "SOC - Manager": "SOC- Manager",
+    "SOC - Senior Manager": "SOC- Senior Manager",
+    "SOC - HOD": "SOC- HOD",
+    "Consulting -Team member": "Consulting -Team member",
+    "Consulting - Team Leader": "Consulting -Team Leader",
     "Consulting - Manager": "Consulting-Manager",
-    "Consulting - Senior Manager": "Consulting-Senior Manager",
     "Consulting - HOD": "Consulting-HOD",
     "Testing - Team Member": "Testing-Team Member",
     "Testing - Team Leader": "Testing-Team Leader",
     "Testing - Manager": "Testing-Manager",
-    "Testing - Senior Manager": "Testing Senior Manager",
-    "Testing - HOD": "Testing HOD",
+    "Testing - Senior Manager": "Testing- Senior Manager",
     "Intern": "Intern",
 }
 
@@ -95,6 +93,8 @@ def main() -> None:
         label = grid.get((row, 1), "").strip()
         if not label:
             break
+        if label not in ROLE_NAMES:
+            continue
         roles.append((row, ROLE_NAMES[label]))
 
     leaves = []
