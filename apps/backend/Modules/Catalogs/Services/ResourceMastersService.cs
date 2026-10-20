@@ -1,11 +1,11 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Modules.Catalogs.DTOs;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Users.Models;
 using PMS.API.Shared.Common.Models;
-using PMS.API.Shared.Constants;
 using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.Catalogs.Services;
@@ -42,10 +42,8 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
         var departmentName = RequireName(request.Department, "Department", 150);
         var designationName = RequireName(request.Designation, "Designation", 150);
         var subDepartment = RequireName(request.SubDepartment, "Sub-Department", 250);
-        var onFloorName = RequireName(request.OnFloorRole, "On Floor Role", 150);
         var rbac = await RequireRbacAsync(request.RbacRoleId, ct);
         var department = await ResolveDepartmentAsync(departmentName, ct);
-        var onFloor = await ResolveOnFloorRoleAsync(onFloorName, ct);
 
         var matches = await db.Designations
             .IgnoreQueryFilters()
@@ -80,7 +78,7 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
             db.Designations.Add(designation);
         }
 
-        await LinkHierarchyAsync(designation, department, onFloor, rbac, subDepartment, ct);
+        await LinkHierarchyAsync(designation, department, rbac, subDepartment, ct);
         await db.SaveChangesAsync(ct);
         return await LoadHierarchyRowAsync(designation.Id, ct);
     }
@@ -93,16 +91,13 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
         var departmentName = RequireName(request.Department, "Department", 150);
         var designationName = RequireName(request.Designation, "Designation", 150);
         var subDepartment = RequireName(request.SubDepartment, "Sub-Department", 250);
-        var onFloorName = RequireName(request.OnFloorRole, "On Floor Role", 150);
         var rbac = await RequireRbacAsync(request.RbacRoleId, ct);
         var department = await ResolveDepartmentAsync(departmentName, ct);
-        var onFloor = await ResolveOnFloorRoleAsync(onFloorName, ct);
 
         var designation = await db.Designations
             .FirstOrDefaultAsync(d => d.Id == designationId, ct)
             ?? throw new NotFoundException("Department hierarchy row was not found.");
 
-        var previousOnFloorId = designation.JobRoleId;
         var matches = await db.Designations
             .IgnoreQueryFilters()
             .Where(d =>
@@ -121,9 +116,7 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
         designation.DepartmentId = department.Id;
         designation.IsActive = true;
         designation.DeletedAtUtc = null;
-        await LinkHierarchyAsync(designation, department, onFloor, rbac, subDepartment, ct);
-        await db.SaveChangesAsync(ct);
-        await RetireUnusedCustomOnFloorAsync(previousOnFloorId, designation.Id, ct);
+        await LinkHierarchyAsync(designation, department, rbac, subDepartment, ct);
         await db.SaveChangesAsync(ct);
         return await LoadHierarchyRowAsync(designation.Id, ct);
     }
@@ -139,7 +132,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
             throw new ConflictException(
                 $"\"{designation.Name}\" is assigned to employees. Move those employees before deleting it.");
 
-        var previousOnFloorId = designation.JobRoleId;
         var departmentId = designation.DepartmentId;
         var maps = await db.OrgRoleMaps
             .IgnoreQueryFilters()
@@ -153,7 +145,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
         designation.IsActive = false;
         db.Designations.Remove(designation);
         await db.SaveChangesAsync(ct);
-        await RetireUnusedCustomOnFloorAsync(previousOnFloorId, designation.Id, ct);
         await RetireUnusedDepartmentAsync(departmentId, ct);
         await db.SaveChangesAsync(ct);
     }
@@ -304,13 +295,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
                 d.SubDepartment))
             .ToListAsync(ct);
 
-        var onFloorRoles = await db.JobRoles
-            .AsNoTracking()
-            .Where(r => r.IsActive)
-            .OrderBy(r => r.Name)
-            .Select(r => new NamedMasterDto(r.Id, r.Code, r.Name))
-            .ToListAsync(ct);
-
         var rbacRoles = await db.Roles
             .AsNoTracking()
             .Where(r => r.IsActive)
@@ -323,13 +307,11 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
             .AsNoTracking()
             .Where(d => d.IsActive)
             .Include(d => d.Department)
-            .Include(d => d.JobRole)
             .Include(d => d.DefaultRole)
             .ToListAsync(ct);
 
         var maps = await db.OrgRoleMaps
             .AsNoTracking()
-            .Include(m => m.OnFloorRole)
             .Include(m => m.RbacRole)
             .ToListAsync(ct);
         var mapByDesignation = maps
@@ -340,9 +322,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
             .Select(d =>
             {
                 mapByDesignation.TryGetValue(d.Id, out var map);
-                var floor = map?.OnFloorRole is { IsActive: true, DeletedAtUtc: null }
-                    ? map.OnFloorRole
-                    : d.JobRole is { IsActive: true, DeletedAtUtc: null } ? d.JobRole : null;
                 var rbac = map?.RbacRole is { IsActive: true, DeletedAtUtc: null }
                     ? map.RbacRole
                     : d.DefaultRole is { IsActive: true, DeletedAtUtc: null } ? d.DefaultRole : null;
@@ -356,8 +335,8 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
                     d.Id,
                     d.Name,
                     subDepartment,
-                    floor?.Id,
-                    floor?.Name,
+                    null,
+                    null,
                     rbac?.Id,
                     rbac?.Name,
                     string.IsNullOrWhiteSpace(rbac?.DisplayName) ? rbac?.Name : rbac!.DisplayName);
@@ -366,7 +345,7 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
             .ThenBy(r => r.Designation, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return new DepartmentHierarchyBundleDto(rows, departments, designationOptions, onFloorRoles, rbacRoles);
+        return new DepartmentHierarchyBundleDto(rows, departments, designationOptions, [], rbacRoles);
     }
 
     private async Task<DepartmentHierarchyRowDto> LoadHierarchyRowAsync(Guid designationId, CancellationToken ct)
@@ -379,13 +358,11 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
     private async Task LinkHierarchyAsync(
         MstDesignation designation,
         MstDepartment department,
-        MstRole onFloor,
         Role rbac,
         string subDepartment,
         CancellationToken ct)
     {
         designation.DepartmentId = department.Id;
-        designation.JobRoleId = onFloor.Id;
         designation.DefaultRoleId = rbac.Id;
         designation.SubDepartment = subDepartment;
 
@@ -398,19 +375,20 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
             {
                 DepartmentId = department.Id,
                 DesignationId = designation.Id,
-                OnFloorRoleId = onFloor.Id,
                 RbacRoleId = rbac.Id,
                 SubDepartment = subDepartment,
             };
             db.OrgRoleMaps.Add(map);
-            return;
+        }
+        else
+        {
+            map.DeletedAtUtc = null;
+            map.DepartmentId = department.Id;
+            map.RbacRoleId = rbac.Id;
+            map.SubDepartment = subDepartment;
         }
 
-        map.DeletedAtUtc = null;
-        map.DepartmentId = department.Id;
-        map.OnFloorRoleId = onFloor.Id;
-        map.RbacRoleId = rbac.Id;
-        map.SubDepartment = subDepartment;
+        await OrgRoleMatrixSync.SyncSubDepartmentLinksAsync(db, ct);
     }
 
     private async Task<MstDepartment> ResolveDepartmentAsync(string name, CancellationToken ct)
@@ -447,52 +425,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
         return created;
     }
 
-    private async Task<MstRole> ResolveOnFloorRoleAsync(string name, CancellationToken ct)
-    {
-        var matches = await db.JobRoles
-            .IgnoreQueryFilters()
-            .Where(r => r.Name.ToLower() == name.ToLower())
-            .ToListAsync(ct);
-        var live = matches
-            .Where(r => r.DeletedAtUtc == null && r.IsActive)
-            .OrderBy(r => r.DesignationId.HasValue)
-            .ThenBy(r => r.CreatedAtUtc)
-            .FirstOrDefault();
-        if (live is not null)
-        {
-            if (IsCanonicalOnFloor(live.Name))
-                live.DesignationId = null;
-            return live;
-        }
-
-        if (matches.Count > 0)
-        {
-            var keeper = matches
-                .OrderBy(r => r.Name.StartsWith("retired_", StringComparison.OrdinalIgnoreCase))
-                .ThenBy(r => r.CreatedAtUtc)
-                .First();
-            foreach (var extra in matches.Where(r => r.Id != keeper.Id))
-                ParkOnFloor(extra);
-            keeper.DeletedAtUtc = null;
-            keeper.IsActive = true;
-            keeper.Name = name;
-            keeper.DesignationId = null;
-            return keeper;
-        }
-
-        var created = new MstRole
-        {
-            Code = await UniqueCodeAsync(
-                Truncate(OrgRoleMatrix.OnFloorCode(name), 80),
-                code => db.JobRoles.IgnoreQueryFilters().AnyAsync(r => r.Code == code, ct)),
-            Name = name,
-            IsActive = true,
-            DesignationId = null,
-        };
-        db.JobRoles.Add(created);
-        return created;
-    }
-
     private async Task<Role> RequireRbacAsync(Guid id, CancellationToken ct)
     {
         if (id == Guid.Empty)
@@ -503,25 +435,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
         if (!role.IsActive)
             throw new ConflictException($"\"{RoleLabel(role)}\" is inactive. Choose an active access role.");
         return role;
-    }
-
-    private async Task RetireUnusedCustomOnFloorAsync(Guid? roleId, Guid exceptDesignationId, CancellationToken ct)
-    {
-        if (roleId is not Guid id) return;
-        var role = await db.JobRoles.IgnoreQueryFilters().FirstOrDefaultAsync(r => r.Id == id, ct);
-        if (role is null || role.DeletedAtUtc is not null) return;
-        if (IsCanonicalOnFloor(role.Name)) return;
-
-        var usedByDesignation = await db.Designations.AnyAsync(
-            d => d.Id != exceptDesignationId && d.JobRoleId == id, ct);
-        var usedByMap = await db.OrgRoleMaps.AnyAsync(
-            m => m.DesignationId != exceptDesignationId && m.OnFloorRoleId == id, ct);
-        var usedByEmployee = await db.Employees.AnyAsync(e => e.JobRoleId == id, ct);
-        if (usedByDesignation || usedByMap || usedByEmployee) return;
-
-        ParkOnFloor(role);
-        role.IsActive = false;
-        role.DeletedAtUtc = DateTime.UtcNow;
     }
 
     private async Task<NamedMasterDto> SaveEmailDomainAsync(Guid? id, string rawName, CancellationToken ct)
@@ -920,9 +833,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
     private static string RoleLabel(Role role) =>
         string.IsNullOrWhiteSpace(role.DisplayName) ? role.Name : role.DisplayName;
 
-    private static bool IsCanonicalOnFloor(string name) =>
-        OrgRoleMatrix.OnFloorRoles.Contains(name.Trim(), StringComparer.OrdinalIgnoreCase);
-
     private static string NormalizeDomain(string raw)
     {
         var domain = raw.Trim().TrimStart('@').Trim().ToLowerInvariant();
@@ -958,14 +868,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
         var token = row.Id.ToString("N")[..8];
         row.Name = Truncate($"retired {token} {row.Name}", 150);
         row.Code = Truncate($"x{token}", 80);
-        row.IsActive = false;
-    }
-
-    private static void ParkOnFloor(MstRole row)
-    {
-        var token = row.Id.ToString("N")[..8];
-        row.Name = Truncate($"retired_{token}_{row.Name}", 150);
-        row.Code = Truncate($"retired_{token}", 80);
         row.IsActive = false;
     }
 

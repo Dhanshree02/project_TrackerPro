@@ -5,7 +5,15 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-20
+**Last updated:** 2026-10-21
+
+- **`database/trackerpro-uat.sql` and `database/pms_uat.sql` match `pms_uat_clean`.** Regenerated with `pg_dump --no-owner --no-acl` after the sub-department catalog, on-floor role map, and Roles & Permissions removal.
+
+- **Sub-departments are ids in `master.mst_sub_departments`.** The name is the catalog row. A designation can point at more than one sub-department through `master.mst_designation_sub_departments`. The same ids are linked from `master.mst_org_role_sub_departments` and `resource.tbl_onfloorrole_subdepartment`. `resource.tbl_employees."SubDepartmentId"` points at the one sub-department on that person. The old text columns stay as the display name. Migration `20261020182948_AddSubDepartmentCatalog` is applied on `pms_uat_clean`. Rebuild `pms-backend:uat-clean` so startup fills the links.
+
+- **On Floor Role comes from `resource.tbl_onfloorrole`.** Each row is one designation from `docs/rbac.xlsx`, storing the on-floor name plus `DepartmentId`, `DesignationId`, `SubDepartment`, and `RbacRoleId`. Startup `OrgRoleMatrixSync` fills those ids from the live department, designation, and `auth.tbl_roles` rows. Employee Directory **All On Floor Roles** and Team Dashboard load the distinct names from that table. Onboarding shows the mapped name as a read-only field after a designation is chosen. Employee list and detail `jobRoleName` are that mapped name. Migration `20261020160744_AddOnFloorRoleMap` is applied on `pms_uat_clean`. Rebuild `pms-backend:uat-clean` so the seed runs.
+
+- **Roles & Permissions is cleared.** The Settings screen, `/settings-security-roles`, frontend `src/lib/rbac/`, and backend `Modules/Rbac` (`/api/v1/rbac`) are gone. `[RequirePermission]` and `[RequireAnyPermission]` are removed, so authenticated calls are no longer blocked by permission claims. `auth.tbl_roles` stays (role names for Assigned RBAC Role and login) but the `Permissions` jsonb column is dropped. `master.mst_roles` is dropped, along with `resource.tbl_employees.JobRoleId`, `master.mst_designations.JobRoleId`, and `master.mst_org_role_map.OnFloorRoleId`. Widget grants are dropped: `auth.vw_role_widget_matrix`, `auth.tbl_role_widget_permissions`, `master.mst_widgets`, `master.mst_submodules`, `master.mst_modules`. `master.mst_org_role_map` stays and still stores Department, Designation, Sub-Department, and `RbacRoleId`. Resource Masters no longer asks for On Floor Role. Permission checks on the frontend currently allow every screen until Roles & Permissions is rebuilt. Migration `20261020154155_RemoveRbacPermissionsAndOnFloorRoles` is applied on `pms_uat_clean`. `pms-backend:uat-clean` was rebuilt and restarted. The `:39107` frontend is bind-mounted from this checkout.
 
 - **Timesheet Approval Week Range shows Mon–Sun.** The approval list and Review modal use `formatWeekRange(weekStart)` (same as Timesheet History), not a single start date. If `:39107` is bind-mounted from `project_TrackerPro_UAT`, copy `timesheets-page.tsx` there.
 

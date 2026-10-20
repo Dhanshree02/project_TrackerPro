@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict xk1qooZUccyUpfC0Rehx7fQjApz13StIZVoLpiNeqmZnXhkzPBebV06wBQs5hZ2
+\restrict 8ba6MS7SffgDkEIqLmu8mMg5XCY2r3sjcuhnALVZXae9w7PhHGRV7gmWbdiztFS
 
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
@@ -118,34 +118,12 @@ CREATE TABLE auth.tbl_refresh_tokens (
 
 
 --
--- Name: tbl_role_widget_permissions; Type: TABLE; Schema: auth; Owner: -
---
-
-CREATE TABLE auth.tbl_role_widget_permissions (
-    "Id" uuid DEFAULT gen_random_uuid() NOT NULL,
-    "RoleId" uuid NOT NULL,
-    "WidgetId" uuid NOT NULL,
-    "CanView" smallint DEFAULT 0 NOT NULL,
-    "CanManage" smallint DEFAULT 0 NOT NULL,
-    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone,
-    CONSTRAINT "CHK_role_widget_can_manage_binary" CHECK (("CanManage" = ANY (ARRAY[0, 1]))),
-    CONSTRAINT "CHK_role_widget_can_view_binary" CHECK (("CanView" = ANY (ARRAY[0, 1]))),
-    CONSTRAINT "CHK_role_widget_manage_requires_view" CHECK ((("CanManage" = 0) OR ("CanView" = 1)))
-);
-
-
---
 -- Name: tbl_roles; Type: TABLE; Schema: auth; Owner: -
 --
 
 CREATE TABLE auth.tbl_roles (
     "Id" uuid NOT NULL,
     "DisplayName" character varying(100) NOT NULL,
-    "Permissions" jsonb NOT NULL,
     "CreatedAtUtc" timestamp with time zone NOT NULL,
     "UpdatedAtUtc" timestamp with time zone,
     "CreatedBy" uuid,
@@ -187,97 +165,6 @@ CREATE TABLE auth.tbl_users (
     "AuthProvider" character varying(50) DEFAULT 'Local'::character varying NOT NULL,
     "MicrosoftOid" character varying(100)
 );
-
-
---
--- Name: mst_modules; Type: TABLE; Schema: master; Owner: -
---
-
-CREATE TABLE master.mst_modules (
-    "Id" uuid DEFAULT gen_random_uuid() NOT NULL,
-    "Code" character varying(80) NOT NULL,
-    "Name" character varying(150) NOT NULL,
-    "Icon" character varying(80),
-    "SortOrder" integer DEFAULT 0 NOT NULL,
-    "IsActive" boolean DEFAULT true NOT NULL,
-    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
-);
-
-
---
--- Name: mst_submodules; Type: TABLE; Schema: master; Owner: -
---
-
-CREATE TABLE master.mst_submodules (
-    "Id" uuid DEFAULT gen_random_uuid() NOT NULL,
-    "ModuleId" uuid NOT NULL,
-    "ParentSubmoduleId" uuid,
-    "Code" character varying(80) NOT NULL,
-    "Name" character varying(150) NOT NULL,
-    "RoutePrefix" character varying(150),
-    "SortOrder" integer DEFAULT 0 NOT NULL,
-    "IsActive" boolean DEFAULT true NOT NULL,
-    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
-);
-
-
---
--- Name: mst_widgets; Type: TABLE; Schema: master; Owner: -
---
-
-CREATE TABLE master.mst_widgets (
-    "Id" uuid DEFAULT gen_random_uuid() NOT NULL,
-    "SubmoduleId" uuid,
-    "ModuleId" uuid,
-    "Code" character varying(100) NOT NULL,
-    "Name" character varying(150) NOT NULL,
-    "WidgetKey" character varying(200) NOT NULL,
-    "WidgetType" character varying(40) DEFAULT 'widget'::character varying NOT NULL,
-    "HasManageAction" boolean DEFAULT true NOT NULL,
-    "Description" character varying(500),
-    "SortOrder" integer DEFAULT 0 NOT NULL,
-    "IsActive" boolean DEFAULT true NOT NULL,
-    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone,
-    "ParentWidgetId" uuid
-);
-
-
---
--- Name: vw_role_widget_matrix; Type: VIEW; Schema: auth; Owner: -
---
-
-CREATE VIEW auth.vw_role_widget_matrix AS
- SELECT r."Id" AS "RoleId",
-    r."Name" AS "RoleName",
-    m."Code" AS "ModuleCode",
-    m."Name" AS "ModuleName",
-    sm."Code" AS "SubmoduleCode",
-    sm."Name" AS "SubmoduleName",
-    w."Id" AS "WidgetId",
-    w."WidgetKey",
-    w."Name" AS "WidgetName",
-    w."WidgetType",
-    w."HasManageAction",
-    COALESCE((rwp."CanView")::integer, 0) AS "CanView",
-    COALESCE((rwp."CanManage")::integer, 0) AS "CanManage"
-   FROM ((((auth.tbl_roles r
-     CROSS JOIN master.mst_widgets w)
-     LEFT JOIN master.mst_submodules sm ON ((w."SubmoduleId" = sm."Id")))
-     LEFT JOIN master.mst_modules m ON (((sm."ModuleId" = m."Id") OR (w."ModuleId" = m."Id"))))
-     LEFT JOIN auth.tbl_role_widget_permissions rwp ON (((rwp."RoleId" = r."Id") AND (rwp."WidgetId" = w."Id"))))
-  WHERE (w."DeletedAtUtc" IS NULL);
 
 
 --
@@ -524,6 +411,17 @@ CREATE TABLE master.mst_departments (
 
 
 --
+-- Name: mst_designation_sub_departments; Type: TABLE; Schema: master; Owner: -
+--
+
+CREATE TABLE master.mst_designation_sub_departments (
+    "Id" uuid NOT NULL,
+    "DesignationId" uuid NOT NULL,
+    "SubDepartmentId" uuid NOT NULL
+);
+
+
+--
 -- Name: mst_designations; Type: TABLE; Schema: master; Owner: -
 --
 
@@ -652,6 +550,35 @@ CREATE TABLE master.mst_offices (
 
 
 --
+-- Name: mst_org_role_map; Type: TABLE; Schema: master; Owner: -
+--
+
+CREATE TABLE master.mst_org_role_map (
+    "Id" uuid NOT NULL,
+    "DepartmentId" uuid,
+    "DesignationId" uuid NOT NULL,
+    "SubDepartment" character varying(250),
+    "RbacRoleId" uuid,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: mst_org_role_sub_departments; Type: TABLE; Schema: master; Owner: -
+--
+
+CREATE TABLE master.mst_org_role_sub_departments (
+    "Id" uuid NOT NULL,
+    "OrgRoleMapId" uuid NOT NULL,
+    "SubDepartmentId" uuid NOT NULL
+);
+
+
+--
 -- Name: mst_post_graduation_degrees; Type: TABLE; Schema: master; Owner: -
 --
 
@@ -669,16 +596,6 @@ CREATE TABLE master.mst_post_graduation_degrees (
 
 
 --
--- Name: mst_rbac_baseline; Type: TABLE; Schema: master; Owner: -
---
-
-CREATE TABLE master.mst_rbac_baseline (
-    "Version" character varying(40) NOT NULL,
-    "AppliedAtUtc" timestamp with time zone NOT NULL
-);
-
-
---
 -- Name: mst_reporting_managers; Type: TABLE; Schema: master; Owner: -
 --
 
@@ -692,24 +609,6 @@ CREATE TABLE master.mst_reporting_managers (
     "IsActive" boolean DEFAULT true NOT NULL,
     "SortOrder" integer DEFAULT 0 NOT NULL,
     "CreatedAtUtc" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
-);
-
-
---
--- Name: mst_roles; Type: TABLE; Schema: master; Owner: -
---
-
-CREATE TABLE master.mst_roles (
-    "Id" uuid NOT NULL,
-    "Code" character varying(80) NOT NULL,
-    "Name" character varying(150) NOT NULL,
-    "IsActive" boolean NOT NULL,
-    "DesignationId" uuid NOT NULL,
-    "CreatedAtUtc" timestamp with time zone NOT NULL,
     "UpdatedAtUtc" timestamp with time zone,
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
@@ -814,6 +713,24 @@ CREATE TABLE master.mst_service_sub_departments (
 
 
 --
+-- Name: mst_sub_departments; Type: TABLE; Schema: master; Owner: -
+--
+
+CREATE TABLE master.mst_sub_departments (
+    "Id" uuid NOT NULL,
+    "Code" character varying(80) NOT NULL,
+    "Name" character varying(250) NOT NULL,
+    "IsActive" boolean NOT NULL,
+    "DepartmentId" uuid,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
 -- Name: mst_work_locations; Type: TABLE; Schema: master; Owner: -
 --
 
@@ -896,6 +813,27 @@ CREATE TABLE project.tbl_project_drafts (
 
 
 --
+-- Name: tbl_project_interviews; Type: TABLE; Schema: project; Owner: -
+--
+
+CREATE TABLE project.tbl_project_interviews (
+    "Id" uuid NOT NULL,
+    "ProjectId" uuid NOT NULL,
+    "EmployeeId" uuid NOT NULL,
+    "ResourceName" character varying(200) NOT NULL,
+    "InterviewDate" date NOT NULL,
+    "InterviewTime" time without time zone NOT NULL,
+    "Result" character varying(20) NOT NULL,
+    "Comments" text,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
 -- Name: tbl_project_invoices; Type: TABLE; Schema: project; Owner: -
 --
 
@@ -918,7 +856,13 @@ CREATE TABLE project.tbl_project_invoices (
     "UpdatedAtUtc" timestamp with time zone,
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
+    "DeletedAtUtc" timestamp with time zone,
+    "ServiceName" character varying(255),
+    "Qty" integer,
+    "UnitPrice" numeric(18,2),
+    "Currency" character varying(10),
+    "ResourceLevel" character varying(500),
+    "PaymentStatus" character varying(40)
 );
 
 
@@ -1242,7 +1186,6 @@ CREATE TABLE resource.tbl_employees (
     "CreatedBy" uuid,
     "UpdatedBy" uuid,
     "DeletedAtUtc" timestamp with time zone,
-    "JobRoleId" uuid,
     "NationalityId" uuid,
     "ProbationPeriod" character varying(40),
     "SalaryBandId" uuid,
@@ -1269,7 +1212,8 @@ CREATE TABLE resource.tbl_employees (
     "ClientEngManagerMapping" text,
     "ProjectSite" character varying(80),
     "EngagementManagerEmployeeId" uuid,
-    "ProjectManagerId" uuid
+    "ProjectManagerId" uuid,
+    "SubDepartmentId" uuid
 );
 
 
@@ -1306,6 +1250,36 @@ CREATE TABLE resource.tbl_exited_employees (
     "DeletedAtUtc" timestamp with time zone,
     "ClearanceCompleted" boolean DEFAULT false NOT NULL,
     "ExitRating" numeric(3,1)
+);
+
+
+--
+-- Name: tbl_onfloorrole; Type: TABLE; Schema: resource; Owner: -
+--
+
+CREATE TABLE resource.tbl_onfloorrole (
+    "Id" uuid NOT NULL,
+    "Name" character varying(150) NOT NULL,
+    "DepartmentId" uuid,
+    "DesignationId" uuid NOT NULL,
+    "SubDepartment" character varying(250),
+    "RbacRoleId" uuid,
+    "CreatedAtUtc" timestamp with time zone NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
+-- Name: tbl_onfloorrole_subdepartment; Type: TABLE; Schema: resource; Owner: -
+--
+
+CREATE TABLE resource.tbl_onfloorrole_subdepartment (
+    "Id" uuid NOT NULL,
+    "OnFloorRoleId" uuid NOT NULL,
+    "SubDepartmentId" uuid NOT NULL
 );
 
 
@@ -1478,1909 +1452,38 @@ COPY auth.tbl_refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "Revo
 
 
 --
--- Data for Name: tbl_role_widget_permissions; Type: TABLE DATA; Schema: auth; Owner: -
---
-
-COPY auth.tbl_role_widget_permissions ("Id", "RoleId", "WidgetId", "CanView", "CanManage", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-48ca86d5-210a-49db-8804-a1b810d0b6e3	bb568e26-548b-4ca5-9221-fefb9c9143b3	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.980829+00	\N	\N	\N
-4836d80e-969d-4dc7-849e-3c51fbe3217f	bb568e26-548b-4ca5-9221-fefb9c9143b3	0715172e-7505-4a8f-939a-e27353177c40	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.99146+00	\N	\N	\N
-cba2512d-a689-4c2c-ac73-aad36f631e69	bb568e26-548b-4ca5-9221-fefb9c9143b3	b4688d29-cdec-474a-ad46-d462e82c3315	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.996549+00	\N	\N	\N
-0482978f-31a2-4852-b37b-368246370f83	bb568e26-548b-4ca5-9221-fefb9c9143b3	138500fe-e9a5-442f-a477-447becae383a	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.001349+00	\N	\N	\N
-28f08f98-750b-48d8-bf3e-65d8bb87924d	bb568e26-548b-4ca5-9221-fefb9c9143b3	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.011405+00	\N	\N	\N
-dd2c8e2a-b454-4b7e-bd8c-461054bc8fcd	bb568e26-548b-4ca5-9221-fefb9c9143b3	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.016062+00	\N	\N	\N
-9668620d-c1a6-4652-9ba8-a385c8a3901d	bb568e26-548b-4ca5-9221-fefb9c9143b3	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.020587+00	\N	\N	\N
-b7d36203-42c1-435c-8081-9a5f4abff8c0	bb568e26-548b-4ca5-9221-fefb9c9143b3	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.02476+00	\N	\N	\N
-751fee04-9df1-4bd3-bd72-c583d6886489	bb568e26-548b-4ca5-9221-fefb9c9143b3	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.028535+00	\N	\N	\N
-7ecb0d38-bd02-4dcc-a09e-94f2ec71a743	bb568e26-548b-4ca5-9221-fefb9c9143b3	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.032599+00	\N	\N	\N
-d2aa7751-6a02-4d08-be0d-1ce9ed9791dd	bb568e26-548b-4ca5-9221-fefb9c9143b3	79772eb3-a4e3-46fe-9159-5b7b26672f7a	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.036298+00	\N	\N	\N
-94e234f6-62d2-49e9-8338-45f8f092b17d	bb568e26-548b-4ca5-9221-fefb9c9143b3	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.040076+00	\N	\N	\N
-7565cdbc-71b7-4727-9288-3705110b1e94	bb568e26-548b-4ca5-9221-fefb9c9143b3	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.987697+00	\N	\N	\N
-26fee771-dce8-4544-b422-a1085ef95341	bb568e26-548b-4ca5-9221-fefb9c9143b3	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.994238+00	\N	\N	\N
-fe8367ad-7a6c-4dd1-b0d1-afb3b8297855	bb568e26-548b-4ca5-9221-fefb9c9143b3	ff391477-5c5b-4d00-acec-8c8f24a6c104	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.999067+00	\N	\N	\N
-5b9a89f7-61fb-4018-9bab-baac53a2c6b0	bb568e26-548b-4ca5-9221-fefb9c9143b3	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.007375+00	\N	\N	\N
-40f5f05b-d964-40fd-a499-085b542907da	bb568e26-548b-4ca5-9221-fefb9c9143b3	e30a9b42-be35-4881-b2c5-7d3d29c65433	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.013583+00	\N	\N	\N
-0d8dcd3d-f22b-4a34-b8bd-4e4a85c2ad2b	bb568e26-548b-4ca5-9221-fefb9c9143b3	46752962-8366-4417-b6f3-2f33f03eb94d	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.01826+00	\N	\N	\N
-d18a6a65-77b4-4fd2-965e-966a5328257b	bb568e26-548b-4ca5-9221-fefb9c9143b3	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.02253+00	\N	\N	\N
-f3ffbba5-e5f0-40db-b8ff-c5f92141b8b1	bb568e26-548b-4ca5-9221-fefb9c9143b3	80116733-ffd8-4460-b2c1-07660b30cd68	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.026745+00	\N	\N	\N
-c872bbb9-3318-4c7f-b878-d50e8a3abfec	bb568e26-548b-4ca5-9221-fefb9c9143b3	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.030792+00	\N	\N	\N
-028a6a9b-ff09-46d0-9403-d033dbb30033	bb568e26-548b-4ca5-9221-fefb9c9143b3	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.03446+00	\N	\N	\N
-b8717d2c-43ad-4331-87a0-35a0f2b4b97f	bb568e26-548b-4ca5-9221-fefb9c9143b3	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.038291+00	\N	\N	\N
-f4eb21d8-c69f-4998-9e77-9b2a1fa20cc1	cd2a32ed-32fc-47bc-88a9-e6fc48863869	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.51243+00	\N	\N	\N
-46d5ae02-9a76-4106-aaa5-8f7cbf656056	cd2a32ed-32fc-47bc-88a9-e6fc48863869	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.519622+00	\N	\N	\N
-7327f8cd-d7ef-450c-bdbc-7c2b5c0eb488	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.522334+00	\N	\N	\N
-826910aa-bb52-425a-98a3-0ee320eb9878	cd2a32ed-32fc-47bc-88a9-e6fc48863869	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.525248+00	\N	\N	\N
-77736243-84c2-42c3-b1de-47c45698f541	cd2a32ed-32fc-47bc-88a9-e6fc48863869	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.52862+00	\N	\N	\N
-573ac334-4b31-4ead-bcb5-9dbf68635077	cd2a32ed-32fc-47bc-88a9-e6fc48863869	ff391477-5c5b-4d00-acec-8c8f24a6c104	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.531068+00	\N	\N	\N
-d7734a86-5022-4f0a-bc9c-82faf472f3ea	cd2a32ed-32fc-47bc-88a9-e6fc48863869	138500fe-e9a5-442f-a477-447becae383a	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.53354+00	\N	\N	\N
-6dd563f0-e726-417a-a135-8e9f1035729d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.536151+00	\N	\N	\N
-f4b52c9c-bd3d-435d-9f35-c4ec97e08a75	cd2a32ed-32fc-47bc-88a9-e6fc48863869	b37894ab-88ea-48f1-865f-4793fd6681aa	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.538435+00	\N	\N	\N
-850c8cb9-3c2f-42b3-9406-5e4899da5034	cd2a32ed-32fc-47bc-88a9-e6fc48863869	e30a9b42-be35-4881-b2c5-7d3d29c65433	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.540779+00	\N	\N	\N
-1d20af64-942c-4716-8a3d-4330f1c05540	cd2a32ed-32fc-47bc-88a9-e6fc48863869	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.542841+00	\N	\N	\N
-a7ebff38-d907-4a25-aabe-9163bc029c5c	cd2a32ed-32fc-47bc-88a9-e6fc48863869	46752962-8366-4417-b6f3-2f33f03eb94d	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.545212+00	\N	\N	\N
-aec6b86b-e152-46ba-89fa-aee7f75f0bf9	cd2a32ed-32fc-47bc-88a9-e6fc48863869	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.547431+00	\N	\N	\N
-da2cd230-f62f-4c13-9144-0526cf3cd1eb	cd2a32ed-32fc-47bc-88a9-e6fc48863869	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.549426+00	\N	\N	\N
-dfc3591f-e9b9-4a36-ba70-bf8295c9f6e1	cd2a32ed-32fc-47bc-88a9-e6fc48863869	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.551725+00	\N	\N	\N
-b06a2c1d-19b5-428f-adf9-2f8ba5d57438	cd2a32ed-32fc-47bc-88a9-e6fc48863869	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.553754+00	\N	\N	\N
-feaf33dd-3f4a-4630-9699-514eaba2406c	cd2a32ed-32fc-47bc-88a9-e6fc48863869	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.55548+00	\N	\N	\N
-a3715a2e-47b2-430f-ad13-bf774a4edf64	cd2a32ed-32fc-47bc-88a9-e6fc48863869	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.557378+00	\N	\N	\N
-260f9281-5c64-4032-ab9e-a33fa0e271db	cd2a32ed-32fc-47bc-88a9-e6fc48863869	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.559292+00	\N	\N	\N
-c02f04fa-a693-4eb4-83e7-427b0d27c79a	cd2a32ed-32fc-47bc-88a9-e6fc48863869	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.561094+00	\N	\N	\N
-6c6d5048-fc13-4ac1-b10a-a651425dc251	cd2a32ed-32fc-47bc-88a9-e6fc48863869	79772eb3-a4e3-46fe-9159-5b7b26672f7a	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.563109+00	\N	\N	\N
-9f4973fa-558f-441f-8fe7-11be1ef4f3f0	cd2a32ed-32fc-47bc-88a9-e6fc48863869	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.564857+00	\N	\N	\N
-a4ad217a-bbd5-47e1-8076-fa1123c455ea	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.566626+00	\N	\N	\N
-8d4f6440-c223-4bd4-b61d-443c976e7a2c	62a927b7-9fd8-461a-b64e-1aa441eeba4d	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a75f46f3-7bda-4481-b1eb-f0dbda5d0100	a5bfe265-981a-4723-b7bb-6ddc389db7f0	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81ef7998-c086-40f4-8cf3-46b382b28e9c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ed73af75-6e40-494e-b1da-78afad111d77	b552183f-2695-41f9-860e-16d5fe94c4aa	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2dc65562-56e5-4b22-8426-d11c1cb2b8ea	914d8500-03b6-4a43-a250-244effca1cf1	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c7700f42-b8e3-402c-9136-7f7946a387c7	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6d2e043f-592a-45f5-8b54-48a6b020325f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-519a6dc9-6950-4bfd-8d33-198dd1eb6f84	a5023c9e-367f-41e1-ba02-bdb2929edc89	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ba614e4f-9887-4dd0-86ac-445c866bdbfc	f5c742d1-e0cc-4bf8-b860-a673ac407393	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3077e15d-ade1-44f8-a6db-7426e3c8d235	1a62b1f8-1810-464d-a67b-168d7e419827	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fd7e9f48-919c-4b3f-ab5a-f33690e66e09	aba61e5b-422a-4461-b9da-8dba8f6d3f85	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ea3af2b7-41c0-48a6-8a4b-c14f43dd9351	111cc3cd-6d35-43ce-be91-dde90d3d4015	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6981aef8-72fb-4915-9de5-4f6ad1019b02	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f850d647-b226-4109-8670-b3cc91093fef	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f40312de-f44d-4795-bd7b-207e82f157b6	768a11f9-ded7-4f6f-ba86-073e279255d9	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e4d94b39-83f0-42a2-ba5d-0b5807eb136d	701aaa2c-a899-4def-bf5f-e17511874409	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-36180d3c-11d5-4b34-a92b-f2dbe6aa6eae	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d9f67531-e851-4202-b7ea-ab73595206ca	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fde908c9-2fec-4d82-858e-1944ca8ea84c	64c49f37-a38a-46a6-9622-7427f1501658	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bc1a44c4-b3a9-4d1e-8ef1-2c1fb80ae8d8	92aa9169-28d9-4754-a570-553b067642ed	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-62b95dd1-8848-40cf-8aff-6fa818bff7e4	a3793f87-7f3c-41a1-a675-236fc1b710ab	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-079ebc45-540d-4ba8-a2a8-2db593207040	29ad5710-1621-4c24-ac75-dedfc168ba1a	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-42c31d5b-0518-418b-a878-c6931e9ee034	efc1df20-ca04-44a6-87b2-7cae1ff50a88	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a28af3f3-f3a1-415c-8a28-20a0548fee06	c787fe3b-4b33-40ee-8794-c1148202f81a	1fb35ea6-75db-407c-ab56-6ff6229ce488	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5d31f7bf-101f-463c-8aab-4b93408ed07b	f29af015-7833-4f9a-ac57-6fbef5bf91ec	1fb35ea6-75db-407c-ab56-6ff6229ce488	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0401ff58-38e6-4bdf-b11a-c93657cd6be7	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-810dcc8f-6a63-4e35-ad0b-1f120811a1cb	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fc72dda5-cb90-4e02-8c65-f4678b5c8027	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-92040b24-00ae-49b8-8f71-bcbee6df8bf2	b552183f-2695-41f9-860e-16d5fe94c4aa	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eece0551-63f6-4b70-915e-fe21f17b5127	914d8500-03b6-4a43-a250-244effca1cf1	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-95f3c902-31d6-439a-8c8f-eb5ca412c6aa	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81291292-3331-4bdc-9c47-b745f32732f8	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fffb684c-bbc2-49b4-bc4b-ac6d2f35f686	a5023c9e-367f-41e1-ba02-bdb2929edc89	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4c62e7cd-f967-4dc8-bd74-655a9d8511bf	f5c742d1-e0cc-4bf8-b860-a673ac407393	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c917475c-2f30-4867-8190-3ae05b917d7f	1a62b1f8-1810-464d-a67b-168d7e419827	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6c33a645-6c03-40a1-b3c3-dd6c747e1f48	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c0abfaff-f707-4505-b7b4-e0cd12d84528	111cc3cd-6d35-43ce-be91-dde90d3d4015	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2e4a5ced-b655-4d7d-8c6c-f9889cf88694	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c42e9fcc-ac1c-4ae7-ae97-7746f336f7c9	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-960bbb7b-ba0b-4794-8156-f7b9fa8a3306	768a11f9-ded7-4f6f-ba86-073e279255d9	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-74ac8bf7-9e21-4b1d-9f00-97b4a7583379	701aaa2c-a899-4def-bf5f-e17511874409	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4c9c6976-642b-4e3f-8e59-33715a7c06f9	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d6f8d97a-a3d5-4b5f-8340-3675ed49c916	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e97cfb02-702f-438d-8c0a-578df488a8dd	64c49f37-a38a-46a6-9622-7427f1501658	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8491aa0f-d57d-4628-bae3-dcee9a66db66	92aa9169-28d9-4754-a570-553b067642ed	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dbee18a6-7c63-406f-abe1-45e35f64c269	a3793f87-7f3c-41a1-a675-236fc1b710ab	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b985247a-0cfe-4bca-bbfd-19288cd40676	29ad5710-1621-4c24-ac75-dedfc168ba1a	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dd249a6a-2c2c-4125-822c-76106dd792a9	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3844788e-1299-41c5-8487-66e3648eb0b3	c787fe3b-4b33-40ee-8794-c1148202f81a	c947fd61-3e18-4478-b8b7-3fc7419c91cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-35065c8d-4b48-4376-b254-5e5ae2d8536e	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-454c7913-abfc-4642-bc26-6cb4e4fc81cd	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-09a7deb8-530e-4a73-97ef-32beefbb1ede	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c49b2a51-3136-42b9-90e9-e956188ee5ef	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-df8fa617-6279-43f2-a92c-d68d801c541a	b552183f-2695-41f9-860e-16d5fe94c4aa	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4cc0a14f-099a-4238-8a70-1da72ebbfa59	914d8500-03b6-4a43-a250-244effca1cf1	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-41525e29-b710-4df9-9492-5e45d873a1b5	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c57fcd7b-3d75-4ec5-8d8a-442ad81d78e2	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4c06f1dc-97db-4eb8-a9f2-d01835fff641	a5023c9e-367f-41e1-ba02-bdb2929edc89	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3703fdf9-671f-4cf3-ba9b-712180de4440	f5c742d1-e0cc-4bf8-b860-a673ac407393	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-218a2f27-2c35-4739-b3fc-7feb2afaec5c	1a62b1f8-1810-464d-a67b-168d7e419827	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7a70bb37-1fd0-4b6c-8144-7cd91b2c444c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ffb2898e-df77-4d27-a027-7fa79e5095ed	111cc3cd-6d35-43ce-be91-dde90d3d4015	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0ab15ca4-baf0-4921-b480-896641a22662	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f03963cd-d98b-480c-a494-a5809abe3890	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5017c939-f8bb-4b67-b1a0-39852587e50f	768a11f9-ded7-4f6f-ba86-073e279255d9	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ce8b1115-0621-4757-a8e2-0add7fb1fac3	701aaa2c-a899-4def-bf5f-e17511874409	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e49a2e19-79ac-4c70-8ef3-b07e5cbbbb7d	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9cadc8d5-3425-402f-a857-5826be56171f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-064519a5-3c18-4177-bbbb-2a71825a6879	64c49f37-a38a-46a6-9622-7427f1501658	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6d8a7862-fda0-45c4-be01-2f17005cf87e	92aa9169-28d9-4754-a570-553b067642ed	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2891be8a-e2eb-4b83-9273-58ee086d311a	a3793f87-7f3c-41a1-a675-236fc1b710ab	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1910a5d2-c41d-4289-8aaa-af28f7dc123c	29ad5710-1621-4c24-ac75-dedfc168ba1a	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a478b4fa-e612-4de9-8e88-64447865db12	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1b46d515-a9b6-4985-a820-63511a00a86a	c787fe3b-4b33-40ee-8794-c1148202f81a	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-14ebdf4a-3fd2-48ca-acd2-1f80529d6a32	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-df9fae24-4d89-4982-a45a-6b029a018468	bb568e26-548b-4ca5-9221-fefb9c9143b3	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.984401+00	\N	\N	\N
-1528e503-b443-4a9a-ae57-e39d7bd8c06b	bb568e26-548b-4ca5-9221-fefb9c9143b3	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.986071+00	\N	\N	\N
-9eb63089-18eb-4cdb-8241-4428015b344f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c947fd61-3e18-4478-b8b7-3fc7419c91cc	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.517056+00	\N	\N	\N
-7dd64fc4-11e0-4523-83ea-58b445708001	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.518499+00	\N	\N	\N
-0337e6d1-036c-462b-8274-1ed65fd456ac	62a927b7-9fd8-461a-b64e-1aa441eeba4d	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-924d5388-b899-48aa-a542-fa88d78f176c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b23d27d8-b021-4699-ae5a-6aed21b6d94c	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e1fbc3f0-0192-49e5-ba8f-933672992938	b552183f-2695-41f9-860e-16d5fe94c4aa	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ffa5249e-1982-4f21-92fa-addedd2b2f9f	914d8500-03b6-4a43-a250-244effca1cf1	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f04342b8-12d5-40f3-a9f1-6ff9ea2a4c1f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bab6911c-9168-446b-8052-9a1d60ab58cd	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c8336539-a8e9-4fe6-aa4e-27b91dfa89d8	a5023c9e-367f-41e1-ba02-bdb2929edc89	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6e22d23d-b717-4206-af5f-92f18e28738b	f5c742d1-e0cc-4bf8-b860-a673ac407393	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-05e555e4-ea7f-472d-a579-42baf8a5c906	1a62b1f8-1810-464d-a67b-168d7e419827	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7f4e1261-10bf-45e0-a3d0-127328964b1c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c08bc65e-4e75-4f6d-9354-8adcd89e7193	111cc3cd-6d35-43ce-be91-dde90d3d4015	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fb1c3304-debb-47e6-9612-8deb1e355a32	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-91265c6b-b16a-4a3e-9b87-b64e84f3207e	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-85a18cca-2cb4-48c7-9edd-b5529526e126	768a11f9-ded7-4f6f-ba86-073e279255d9	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-17457635-9ecb-45ae-ab8b-08b77f03d77b	701aaa2c-a899-4def-bf5f-e17511874409	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1636d308-cb48-47ce-89b2-f2e04af30f42	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9a44e0e5-6d6e-4ea4-b449-1213d589e8cd	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a71cd855-25c8-41a4-8406-317a9b9e4f02	64c49f37-a38a-46a6-9622-7427f1501658	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-665b96a0-8156-4045-8008-9a6e9666a3b5	92aa9169-28d9-4754-a570-553b067642ed	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b215e279-35b0-49b5-9ed7-1cfc52d22571	a3793f87-7f3c-41a1-a675-236fc1b710ab	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cf03187a-0807-4cf3-bd83-d80c39627824	29ad5710-1621-4c24-ac75-dedfc168ba1a	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-290821bc-2763-4021-8e70-0f9e8f011ba0	efc1df20-ca04-44a6-87b2-7cae1ff50a88	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-53b32601-6d23-4dc9-af3d-d0a50ff6fa15	c787fe3b-4b33-40ee-8794-c1148202f81a	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-71f7b3e9-2eae-49b1-a252-680efc349022	f29af015-7833-4f9a-ac57-6fbef5bf91ec	243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9ceef315-e0cb-4e45-b72f-c2177987f21d	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-10001318-b421-44b1-8946-be25922a7076	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ab26dd91-1373-4902-ac5a-2ba24d1e681b	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-39da9bcf-d275-4396-b596-9925ad773d3e	b552183f-2695-41f9-860e-16d5fe94c4aa	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-63079a09-2a75-41ab-b5de-03282af9d367	914d8500-03b6-4a43-a250-244effca1cf1	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a1031930-d77c-40e0-a1b1-df20ad235516	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-86125563-ef0a-4dde-a8d1-90ffb9d62954	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5ab62bce-cfb4-44cb-b177-f634ebac54c6	a5023c9e-367f-41e1-ba02-bdb2929edc89	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ab01e8a5-ef9f-4bab-b956-2a3fa2dcc58f	f5c742d1-e0cc-4bf8-b860-a673ac407393	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a429210c-aaac-4b6b-a4ca-38bfdb7f613c	1a62b1f8-1810-464d-a67b-168d7e419827	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2303ccf2-fb8f-498a-9879-bf024f867881	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c8efd1f8-6cb6-4ddb-9231-e1aa1445f045	111cc3cd-6d35-43ce-be91-dde90d3d4015	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-27658323-e3cb-4600-993b-5646012082e0	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e9374359-1e20-4ef7-909b-018a62c7cc7f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e79a36ef-9039-4824-af25-8638d3cdec69	768a11f9-ded7-4f6f-ba86-073e279255d9	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-008f3f53-0848-49b4-80f8-4b9adf934233	701aaa2c-a899-4def-bf5f-e17511874409	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4d9698b1-feb3-4cf0-a811-c8bb3793005c	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-091691a9-1fed-4597-94a4-4ecd35a3aed3	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4b1335ae-8d9e-4408-91c6-43e0d78a0f33	64c49f37-a38a-46a6-9622-7427f1501658	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-62da3d90-3f92-4186-acca-b902581ef2f1	92aa9169-28d9-4754-a570-553b067642ed	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-95f69491-9267-403b-b9d1-465eb999d49d	a3793f87-7f3c-41a1-a675-236fc1b710ab	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7c10a92f-415d-4900-8465-19641eff451d	29ad5710-1621-4c24-ac75-dedfc168ba1a	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6be1d072-e482-4080-a713-e1e66a98c09d	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d24adf8b-5ab6-46e1-b3de-7a1055c10f22	c787fe3b-4b33-40ee-8794-c1148202f81a	0d848450-737f-4689-b5c8-3cfdf7e062c4	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1d74f152-1890-4cd6-9e25-0388e76975cd	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ecd4b9be-e474-4f27-826d-ef01c5f48097	62a927b7-9fd8-461a-b64e-1aa441eeba4d	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-334fff63-9f02-4634-970f-be9f1475bc9a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c0d24162-bd9c-4c63-9a24-9c53fe745840	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-55a0ffc2-842c-44dc-804d-2a2b7396f026	b552183f-2695-41f9-860e-16d5fe94c4aa	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e7c3017f-6b39-4d52-9127-83b52d7e16e4	914d8500-03b6-4a43-a250-244effca1cf1	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1ef60feb-1647-4bc5-a9f5-c1fbb1ff2767	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7084ba23-57f4-45e0-8eb7-a80903fb65ef	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5ac54d21-a61e-4dba-8783-18a586e5933e	a5023c9e-367f-41e1-ba02-bdb2929edc89	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-36945945-dc2a-4a26-a214-35dd7fc117d9	f5c742d1-e0cc-4bf8-b860-a673ac407393	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-80ada612-30d9-4529-92dd-383ecaa4fd4d	1a62b1f8-1810-464d-a67b-168d7e419827	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f7863e3-451b-48c9-8502-ac452de24cde	aba61e5b-422a-4461-b9da-8dba8f6d3f85	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e1d6050b-e7cc-49a5-9ec6-bb291b9998a6	111cc3cd-6d35-43ce-be91-dde90d3d4015	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ade02fa2-3462-4b6e-8524-73a6df7a8bc7	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f42cbb30-587a-4363-8da6-d765290d15c7	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-60c9a37e-b9b3-4243-bf4b-e0e80d7dc6a9	768a11f9-ded7-4f6f-ba86-073e279255d9	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ed5a6d3c-e93d-484e-a4cf-cf04271929e8	701aaa2c-a899-4def-bf5f-e17511874409	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-080fa8ef-b660-4a56-8069-b7a29c745d05	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8ac9e174-4c08-4fdc-831b-940cec719b01	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-73940149-c58d-49de-9a10-244ac257f4d5	64c49f37-a38a-46a6-9622-7427f1501658	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b572c7c7-8ba8-4949-acde-0fb135ade979	92aa9169-28d9-4754-a570-553b067642ed	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3796451c-caa1-441e-9b97-b288ef9b93a0	a3793f87-7f3c-41a1-a675-236fc1b710ab	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e77aa7b8-7335-455c-8103-c91b493e1d1d	29ad5710-1621-4c24-ac75-dedfc168ba1a	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cc1e2adc-4f31-4a4f-9342-822215811e83	efc1df20-ca04-44a6-87b2-7cae1ff50a88	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a413cfcc-c18d-4ef3-9eac-e728cae9347c	c787fe3b-4b33-40ee-8794-c1148202f81a	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f83f5f53-b4d2-452b-ad6b-c88e79caa81d	f29af015-7833-4f9a-ac57-6fbef5bf91ec	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8f059601-adba-4f51-abfe-a9d5f63ae66f	bb568e26-548b-4ca5-9221-fefb9c9143b3	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.988946+00	\N	\N	\N
-9218c5b3-cfd0-4f19-8c7f-4004a42fb086	bb568e26-548b-4ca5-9221-fefb9c9143b3	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.990467+00	\N	\N	\N
-e462b0d3-e3b9-4039-85d5-d1b6effa6d4f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0d848450-737f-4689-b5c8-3cfdf7e062c4	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.520671+00	\N	\N	\N
-ecd28fb0-9736-4c0d-a24a-348f3a49959f	cd2a32ed-32fc-47bc-88a9-e6fc48863869	28b838b1-fbdd-4571-8cea-9a1aa5bb6393	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.52149+00	\N	\N	\N
-f23b2229-d3da-4ae7-9fb3-a0abeafd2c3b	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0715172e-7505-4a8f-939a-e27353177c40	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f2698ecf-5386-454d-b024-fec5a88f2b0a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0715172e-7505-4a8f-939a-e27353177c40	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dc7d9c63-3ca3-4eaa-b305-7f10dc417361	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0715172e-7505-4a8f-939a-e27353177c40	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-56906e54-0166-4183-bf48-4bb901d60422	b552183f-2695-41f9-860e-16d5fe94c4aa	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f1d2aaa5-19e7-468c-b454-ea7d75a57cc8	914d8500-03b6-4a43-a250-244effca1cf1	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-30867221-8781-40ba-aaf4-2717c1440f34	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f2ad6662-66b5-4b8b-a61c-eaf69e72124a	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-74a3343b-2a1f-4efa-a225-bbc8f9d5648a	a5023c9e-367f-41e1-ba02-bdb2929edc89	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-70caf53e-3547-479a-80e8-d51cbe8028b8	f5c742d1-e0cc-4bf8-b860-a673ac407393	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1f8f8256-cff9-4bc4-8f7b-baae5ab8be7b	1a62b1f8-1810-464d-a67b-168d7e419827	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f0d19921-27a1-4af4-b957-0f0be47546ae	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-757860ec-517d-42f4-9b87-75dc3a5885bf	111cc3cd-6d35-43ce-be91-dde90d3d4015	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-626ac10b-b5a7-4fca-9bb1-800adef5978f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67a1f3dc-d058-45f8-9f2c-f4985caa1343	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-46e5f162-cbf6-4ac4-aabe-fc3769070128	768a11f9-ded7-4f6f-ba86-073e279255d9	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-542c6cbc-68f4-42ce-badb-73bf79d25778	701aaa2c-a899-4def-bf5f-e17511874409	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5b4229f0-c408-4839-98dc-c8aefc68d504	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0c99e9d0-5275-4b36-9451-3f2ba4870976	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-72ed3dde-7c9e-4c46-b2a1-bb5a9ef4a998	64c49f37-a38a-46a6-9622-7427f1501658	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-96851d50-668b-4ee9-bbd0-2f28c20d6b9f	92aa9169-28d9-4754-a570-553b067642ed	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5a4d1340-acf8-4406-a64f-7dca3cb833de	a3793f87-7f3c-41a1-a675-236fc1b710ab	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0ac2efc0-b0cd-4fb5-a351-1bf0aa1c08bf	29ad5710-1621-4c24-ac75-dedfc168ba1a	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-45d23798-923a-4ccf-8a8c-48d50be57004	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d7eee7d5-fddb-4011-8204-72f737bd2e03	c787fe3b-4b33-40ee-8794-c1148202f81a	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5ec6c4da-e1a2-4793-8b1b-4c763179f696	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0715172e-7505-4a8f-939a-e27353177c40	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-64c515ae-85dc-4c3d-9c38-ca16c70c7b22	62a927b7-9fd8-461a-b64e-1aa441eeba4d	14b89bdd-3f24-421d-ab27-e9496532a46f	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e96bac84-cf4c-4582-bc99-6286f3887553	a5bfe265-981a-4723-b7bb-6ddc389db7f0	14b89bdd-3f24-421d-ab27-e9496532a46f	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-154c4481-d207-493e-9e5b-311935c15213	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	14b89bdd-3f24-421d-ab27-e9496532a46f	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e18e354e-7ebd-4860-860c-3e9febef79d1	b552183f-2695-41f9-860e-16d5fe94c4aa	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e5fc25e4-ab69-4d17-b0b1-4ae0b4be1d93	914d8500-03b6-4a43-a250-244effca1cf1	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e4316566-08f8-4a80-a537-9101b275ef76	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-672ad995-6715-465a-b9d8-62de76a299af	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ffff2677-16da-497c-be9c-6f92ac93a520	a5023c9e-367f-41e1-ba02-bdb2929edc89	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a9f39428-6cd6-4bf3-96a4-f8536ff03828	f5c742d1-e0cc-4bf8-b860-a673ac407393	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d40f548d-3fae-431a-827d-5086c264f67f	1a62b1f8-1810-464d-a67b-168d7e419827	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bc03206e-566c-46b6-8530-db85f72065ca	aba61e5b-422a-4461-b9da-8dba8f6d3f85	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-45d0046d-a276-4a96-85b7-c51074e1227a	111cc3cd-6d35-43ce-be91-dde90d3d4015	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-63b5e003-804c-4844-8321-7f1e04bee040	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-47e9ff83-0513-4797-a67a-42debf4c378c	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-be6493e0-d0c3-41ef-97a6-1b3d81e3e015	768a11f9-ded7-4f6f-ba86-073e279255d9	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9f896199-cd1a-41e3-b4be-cdcc20ecd73c	701aaa2c-a899-4def-bf5f-e17511874409	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-970ad11f-a5f9-406b-b9d6-661e6bdcf31a	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4844cbb3-e1f3-450e-a914-60cffc28ac6f	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-10f487c4-8833-4f12-bae7-88052a285104	64c49f37-a38a-46a6-9622-7427f1501658	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6af7b750-087c-4046-bb0a-a88a1d3f2c6e	92aa9169-28d9-4754-a570-553b067642ed	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-51386b75-58ff-45b2-808d-7f593074bf23	a3793f87-7f3c-41a1-a675-236fc1b710ab	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8de63cc4-3898-43c3-816c-06ec8c0f3a0d	29ad5710-1621-4c24-ac75-dedfc168ba1a	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ed87e8a2-0417-4410-84f9-c2e4e16895b1	efc1df20-ca04-44a6-87b2-7cae1ff50a88	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7247fdcb-1e40-4f2d-9d97-57b5ca9f2570	c787fe3b-4b33-40ee-8794-c1148202f81a	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aaff7c75-7588-4c48-8062-95583e268e57	f29af015-7833-4f9a-ac57-6fbef5bf91ec	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-76ced71b-7225-42cd-b57d-37cb4be1d620	62a927b7-9fd8-461a-b64e-1aa441eeba4d	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1614d67c-6c4e-4e7c-88f1-272609ff5dc9	a5bfe265-981a-4723-b7bb-6ddc389db7f0	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9977a644-4976-4956-be47-a4ff533c7638	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-043c01f6-3007-493b-80be-75f37165d1b7	b552183f-2695-41f9-860e-16d5fe94c4aa	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5a2d0112-62ec-4717-9cf8-c1f3c1b6911e	914d8500-03b6-4a43-a250-244effca1cf1	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2a439581-bef4-4456-9677-fd47575e4bef	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-804c969c-622c-4f8f-8c82-b64421732d0c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7e5a35c1-ebb0-4b61-ac07-ef90342d43d2	a5023c9e-367f-41e1-ba02-bdb2929edc89	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8e24b173-9f7e-406e-ae38-451ece6efe2c	f5c742d1-e0cc-4bf8-b860-a673ac407393	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fac97213-8942-42f8-a8da-7886165bea87	1a62b1f8-1810-464d-a67b-168d7e419827	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ed2d7392-a8d7-4b65-bc6d-66537ba0fbcd	aba61e5b-422a-4461-b9da-8dba8f6d3f85	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5171d45e-28da-4ae0-bf21-692c882e922a	111cc3cd-6d35-43ce-be91-dde90d3d4015	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d9b58a1e-c73c-4222-9e18-f90cba5dbc75	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-41a7566e-4de2-4fd6-8adc-cc64560cdcbf	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b40d98bd-616f-4e0d-bf07-21e570eaae5d	768a11f9-ded7-4f6f-ba86-073e279255d9	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-16ef6f45-2c67-49cc-95d8-cf689efdbd33	701aaa2c-a899-4def-bf5f-e17511874409	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8298be1f-3520-41ef-a9fb-1953fecbde8a	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b9c337c7-2e36-403d-8346-7ca65fab2948	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bd2b4f31-7d98-4675-8dc8-b744cfc962ee	64c49f37-a38a-46a6-9622-7427f1501658	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fd92ab06-0a69-4fbc-9e77-b041517701c6	92aa9169-28d9-4754-a570-553b067642ed	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-760b0398-9114-4225-a1aa-2c550957f35a	a3793f87-7f3c-41a1-a675-236fc1b710ab	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-69102cf8-04d8-44b2-84a5-97c5fc075183	29ad5710-1621-4c24-ac75-dedfc168ba1a	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b42b2876-c92a-461e-b0f8-79d618aba8eb	efc1df20-ca04-44a6-87b2-7cae1ff50a88	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6df8aa1f-787b-4630-b88e-73db0cd461fa	c787fe3b-4b33-40ee-8794-c1148202f81a	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f62426ae-0b86-4a1f-8bf0-3685780bb0c4	f29af015-7833-4f9a-ac57-6fbef5bf91ec	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fd65179d-8957-4b05-af19-09d9232af407	bb568e26-548b-4ca5-9221-fefb9c9143b3	14b89bdd-3f24-421d-ab27-e9496532a46f	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.992636+00	\N	\N	\N
-5ed16acf-cba7-48ed-8f6c-0f68aba8c39c	bb568e26-548b-4ca5-9221-fefb9c9143b3	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.993429+00	\N	\N	\N
-e5effbae-c6dd-41e1-a438-1dd610911f90	cd2a32ed-32fc-47bc-88a9-e6fc48863869	14b89bdd-3f24-421d-ab27-e9496532a46f	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.52318+00	\N	\N	\N
-14bdaa3e-6a22-4fb6-8feb-57b4efac277a	cd2a32ed-32fc-47bc-88a9-e6fc48863869	ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.524202+00	\N	\N	\N
-53ea0385-a70f-41cd-9015-b0a46eb4b36d	62a927b7-9fd8-461a-b64e-1aa441eeba4d	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1b57cd7c-71c2-4e1b-a085-c48183e95daa	a5bfe265-981a-4723-b7bb-6ddc389db7f0	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-45898083-79e7-4b98-b962-12ba385ad4d1	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3cb73a43-f870-4796-864a-68645b0a4e64	b552183f-2695-41f9-860e-16d5fe94c4aa	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-de7ae1ea-29c9-407e-b7c4-dfc7127adbaf	914d8500-03b6-4a43-a250-244effca1cf1	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-06b407e0-b0ff-4521-9ee9-69b669f119c7	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eb3de980-cc56-45a9-b436-c7acdc3c2f7c	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6159c325-06b4-404a-9e98-09e6d702ecf5	a5023c9e-367f-41e1-ba02-bdb2929edc89	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b77dc1dc-b6b9-42eb-9d09-d5287cea1afe	f5c742d1-e0cc-4bf8-b860-a673ac407393	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fa53738e-0774-4683-b007-37d93a4ca9c9	1a62b1f8-1810-464d-a67b-168d7e419827	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8701b141-d08b-4d13-8b0c-719097a520b0	aba61e5b-422a-4461-b9da-8dba8f6d3f85	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4a3fcf95-3442-4b5b-becd-9453d619b78a	111cc3cd-6d35-43ce-be91-dde90d3d4015	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e42b07e3-b514-4a9b-afdc-defa446ff512	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a0a9721c-a74b-4182-9786-e140c64246b3	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-78f06788-bb53-4ae3-ac02-4918ef2b22cf	768a11f9-ded7-4f6f-ba86-073e279255d9	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2f947754-3a79-4d19-803f-021e6c17c9e3	701aaa2c-a899-4def-bf5f-e17511874409	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-27110cb7-e127-425f-89ac-fa7d093b130e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7b050e28-ce9c-48a4-9dc9-45569acbe547	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-01dedb2c-69d6-4abb-9dc9-1208f86b00f5	64c49f37-a38a-46a6-9622-7427f1501658	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c77c3952-6755-4661-8640-2f181c57f88c	92aa9169-28d9-4754-a570-553b067642ed	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-245f5626-a619-4e6c-bceb-552d67969ea6	a3793f87-7f3c-41a1-a675-236fc1b710ab	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9d43166f-85e4-4516-bfe2-4f799de245c9	29ad5710-1621-4c24-ac75-dedfc168ba1a	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aa8c5cc0-cdd8-4b89-a79e-8113ba6850d2	efc1df20-ca04-44a6-87b2-7cae1ff50a88	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f4fe8e3-c337-405d-be33-ba2e32ec679b	c787fe3b-4b33-40ee-8794-c1148202f81a	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dee4374e-9bd3-4fff-bf9d-7c6ffa9d8d98	f29af015-7833-4f9a-ac57-6fbef5bf91ec	f0d0cffe-82ea-4213-90ed-a16f5f5297a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4f3d3451-b05b-451a-bf36-b80e2ae64568	62a927b7-9fd8-461a-b64e-1aa441eeba4d	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0a2119fd-9b8c-4799-8e8c-01dce53a718e	a5bfe265-981a-4723-b7bb-6ddc389db7f0	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b32cb2d-62c8-422d-be6f-f125cd33156e	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bff51da2-7f61-48c8-87ee-3ce858bc8475	b552183f-2695-41f9-860e-16d5fe94c4aa	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6e36154c-d6f7-4dfe-8caa-5b930bc14745	914d8500-03b6-4a43-a250-244effca1cf1	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ef1a7446-df7f-4738-8483-2ce711ae8a24	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	8974718d-5b19-4fd1-8594-78910612c57c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c895b7b7-a706-4839-888e-3ada21e55af5	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fefa90bd-fa4d-4f5c-9f7f-3947f69cbb54	a5023c9e-367f-41e1-ba02-bdb2929edc89	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b3f143e1-4cd0-4e5a-9db4-1ba9bff20b04	f5c742d1-e0cc-4bf8-b860-a673ac407393	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81b6624e-1c4c-4b8a-befb-aa1a930c9304	1a62b1f8-1810-464d-a67b-168d7e419827	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-37d6d229-dd8f-4168-bcec-5c61e8036975	aba61e5b-422a-4461-b9da-8dba8f6d3f85	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-432e51a4-d990-4fd6-afd4-728bebba4cf5	111cc3cd-6d35-43ce-be91-dde90d3d4015	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ba30b356-ba9e-49c3-8356-cd8415326d45	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c0921b71-ba30-4815-b1b9-276b6a192068	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-744950d1-8044-4559-9136-6cedc251343b	768a11f9-ded7-4f6f-ba86-073e279255d9	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6742163a-a52f-4518-a06c-ecb26c0a0c2c	701aaa2c-a899-4def-bf5f-e17511874409	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-73a939a2-fe30-4201-bef1-873feff0bf5a	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b1776846-5ceb-4585-8319-bfc6b34deae2	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fa756c12-9259-40c1-a65f-3ecd537cdcf2	64c49f37-a38a-46a6-9622-7427f1501658	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8c5b5751-23da-47bf-99cd-82e0d14c3939	92aa9169-28d9-4754-a570-553b067642ed	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ef40fd76-b70f-4705-926b-b3e8049b41c8	a3793f87-7f3c-41a1-a675-236fc1b710ab	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c44430db-6b7b-4922-a56e-56ed1e0a5111	29ad5710-1621-4c24-ac75-dedfc168ba1a	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bc4043ae-2fee-4504-b007-ac29a3055a80	efc1df20-ca04-44a6-87b2-7cae1ff50a88	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-90ae80db-b667-4e3f-b0ec-80585f1e37b5	c787fe3b-4b33-40ee-8794-c1148202f81a	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f507efe5-d57b-4744-beea-ea395087249b	f29af015-7833-4f9a-ac57-6fbef5bf91ec	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-05cb654a-45f8-47f6-b367-35dc9fc1c479	62a927b7-9fd8-461a-b64e-1aa441eeba4d	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dba9aad9-849a-4d9d-a38f-35e3c91b5e94	a5bfe265-981a-4723-b7bb-6ddc389db7f0	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dc66733b-712b-42b8-876f-b758e5a8b6d8	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-168cab97-91d4-4157-90be-6e080cc83c01	b552183f-2695-41f9-860e-16d5fe94c4aa	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f51c3ebb-8ede-4cd2-8e50-9ea456e11ce0	914d8500-03b6-4a43-a250-244effca1cf1	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a5913400-9d06-4081-8a2d-1355e2adfd3e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-676248cf-91e4-469f-b182-b0b979ff8d48	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81189d89-35fe-4576-bc00-51d9d0e28b42	a5023c9e-367f-41e1-ba02-bdb2929edc89	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81cbe9b4-0a1a-4159-a049-b4edbb2b8ed6	f5c742d1-e0cc-4bf8-b860-a673ac407393	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-76a40cc7-207b-472c-b294-d8bfeab741eb	1a62b1f8-1810-464d-a67b-168d7e419827	3fdefd12-cdec-4d2b-b15b-975a47381b41	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-56d9ede0-7350-4344-a42a-ea3a58f336a7	aba61e5b-422a-4461-b9da-8dba8f6d3f85	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-87799200-cc19-47c5-9ca3-de3b50e87e12	111cc3cd-6d35-43ce-be91-dde90d3d4015	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-165c30c0-b158-4f31-846e-209d60c41b6d	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-394a02e1-0d73-4eb6-a8f5-76c20342f018	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f8fe633-1031-4e05-8284-a1fd34e4a05b	768a11f9-ded7-4f6f-ba86-073e279255d9	3fdefd12-cdec-4d2b-b15b-975a47381b41	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-68bc4b05-51e8-444c-84dc-1fccd46720b7	701aaa2c-a899-4def-bf5f-e17511874409	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1bc7c873-8d7b-4594-8654-16e7cd5af181	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1e019c66-9fe3-445a-8127-cb2a11f3ea22	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7b994b4d-7250-4564-ae94-5239c21b4f1b	64c49f37-a38a-46a6-9622-7427f1501658	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-73d5e668-4c1e-4bdc-9ae3-9de1686bc9da	92aa9169-28d9-4754-a570-553b067642ed	3fdefd12-cdec-4d2b-b15b-975a47381b41	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4460cd87-3fc0-4d8b-a4b4-d4c5d8597c9d	a3793f87-7f3c-41a1-a675-236fc1b710ab	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-830cfb59-981a-480b-ab23-39beba31f50f	29ad5710-1621-4c24-ac75-dedfc168ba1a	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-af51cd2a-12ed-4048-9e0c-62693ad37777	efc1df20-ca04-44a6-87b2-7cae1ff50a88	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7819ba9f-22a9-4e51-a04d-ea47922b9536	c787fe3b-4b33-40ee-8794-c1148202f81a	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13f15a3c-d6ae-436a-9755-b04da41d575f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	3fdefd12-cdec-4d2b-b15b-975a47381b41	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-274d144d-5d2b-4854-a65a-9731b3381c9c	bb568e26-548b-4ca5-9221-fefb9c9143b3	8974718d-5b19-4fd1-8594-78910612c57c	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.99507+00	\N	\N	\N
-64bf0494-3768-4dde-b3ad-950d082ab14d	bb568e26-548b-4ca5-9221-fefb9c9143b3	3fdefd12-cdec-4d2b-b15b-975a47381b41	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.995808+00	\N	\N	\N
-1a5bf4d1-2bf4-4e8b-a516-87005d9b7648	cd2a32ed-32fc-47bc-88a9-e6fc48863869	8974718d-5b19-4fd1-8594-78910612c57c	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.526613+00	\N	\N	\N
-6dc152f7-3ab1-4b3d-8b9e-1bc5db6889ca	cd2a32ed-32fc-47bc-88a9-e6fc48863869	3fdefd12-cdec-4d2b-b15b-975a47381b41	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.527464+00	\N	\N	\N
-e202cfb6-6153-4c54-b1e4-7dd6a699e6b7	62a927b7-9fd8-461a-b64e-1aa441eeba4d	b4688d29-cdec-474a-ad46-d462e82c3315	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5de0b4b1-4131-4c55-9209-6e66d60e1366	a5bfe265-981a-4723-b7bb-6ddc389db7f0	b4688d29-cdec-474a-ad46-d462e82c3315	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b170c61-7b52-4528-b022-341b3c3034eb	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	b4688d29-cdec-474a-ad46-d462e82c3315	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4f32fba3-6dec-4ab9-8681-691023d42639	b552183f-2695-41f9-860e-16d5fe94c4aa	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0d69219d-2cb6-491d-98e6-6591da7606ca	914d8500-03b6-4a43-a250-244effca1cf1	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0f95154f-9a10-45ff-8365-4290e49e4098	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	b4688d29-cdec-474a-ad46-d462e82c3315	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0461b16b-55b3-4d6a-896d-fca3e9ad2c2d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-212b7351-b7eb-4aee-ae7f-fd0be96f1eff	a5023c9e-367f-41e1-ba02-bdb2929edc89	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c668e6e4-efbf-4cca-bbab-125029011fa7	f5c742d1-e0cc-4bf8-b860-a673ac407393	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e3526fe8-b37c-4448-9c23-f6ce14722a7c	1a62b1f8-1810-464d-a67b-168d7e419827	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c6480458-fafb-4692-93a4-24db583c031c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3cf06413-52a2-4fd3-b4d4-b3308e189bd3	111cc3cd-6d35-43ce-be91-dde90d3d4015	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2fb5c234-1852-414c-9cd6-756d5700001e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1131d3f0-e3b0-426e-bc70-116af0c205ef	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20782962-3f87-4203-94ba-793bed60c30a	768a11f9-ded7-4f6f-ba86-073e279255d9	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bce58ac3-e066-443f-87e4-2ad2a21d47fd	701aaa2c-a899-4def-bf5f-e17511874409	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b1be8f66-251b-4483-aeac-318d7a621561	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2e05aab8-5178-413d-808a-3b51468a7b50	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bd055855-864d-4a8f-9a8a-794a770fd5fc	64c49f37-a38a-46a6-9622-7427f1501658	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5af2650e-a9e2-446d-833c-165760ca34dc	92aa9169-28d9-4754-a570-553b067642ed	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a76fcacb-9a1f-4562-b81c-2e0609366817	a3793f87-7f3c-41a1-a675-236fc1b710ab	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8630a311-dc2e-401e-893c-28d90b762c5a	29ad5710-1621-4c24-ac75-dedfc168ba1a	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-65bf2714-091e-44a2-a684-49a8e96c3812	efc1df20-ca04-44a6-87b2-7cae1ff50a88	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-db7a0572-5f85-4351-8787-041d4bce4ef5	c787fe3b-4b33-40ee-8794-c1148202f81a	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3ff1128b-d6b6-4e3e-b7be-35e7ee99b307	f29af015-7833-4f9a-ac57-6fbef5bf91ec	b4688d29-cdec-474a-ad46-d462e82c3315	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8426300e-c3b0-455d-80fd-ffb8b1393d98	62a927b7-9fd8-461a-b64e-1aa441eeba4d	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-91bd9170-209f-409a-918d-65172085b440	a5bfe265-981a-4723-b7bb-6ddc389db7f0	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-147f89c6-e63b-4e1c-8f9f-26efd1ddf5fc	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c2cbc3a3-03f0-4758-a8b1-8a42f70db435	b552183f-2695-41f9-860e-16d5fe94c4aa	1a8615c6-6bf9-4af0-ac31-30733620f7a5	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f7dfede6-d80b-49fb-ba74-324bac1fe767	914d8500-03b6-4a43-a250-244effca1cf1	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-338f8d1c-974f-4859-bd91-b4a2ca2f31ce	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b3b2fb03-34ab-400f-9fda-1fb04665f3b8	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f03df745-edfd-48b5-989e-16a30897a646	a5023c9e-367f-41e1-ba02-bdb2929edc89	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3933239c-5f3c-4f0f-b710-e68b32bfbbcf	f5c742d1-e0cc-4bf8-b860-a673ac407393	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e0362856-d7a3-4a7c-a099-59f2030e2ee7	1a62b1f8-1810-464d-a67b-168d7e419827	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fc551c53-f07f-4b25-bbc7-c343c2f685ed	aba61e5b-422a-4461-b9da-8dba8f6d3f85	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4970e525-d9cb-49b2-9dc1-65c24728564c	111cc3cd-6d35-43ce-be91-dde90d3d4015	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a40551aa-5f52-4c7d-8396-d6f294bb7bb8	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-29fa0c65-dc14-4ef4-8c34-931e5300e179	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-861dd2bc-814a-4f50-a9bd-530e27d9e0db	768a11f9-ded7-4f6f-ba86-073e279255d9	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6582dcf3-cf26-4b5e-999e-d11fde06d54f	701aaa2c-a899-4def-bf5f-e17511874409	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-30714645-5fc0-4af7-8611-e880ff49057b	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-98226ab9-7492-4a7a-b387-c2c848440ee5	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1131036d-5c6a-40bd-b5c3-55bb0e126cbe	64c49f37-a38a-46a6-9622-7427f1501658	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-26a3f10e-638e-4b33-b758-128991bb63ea	92aa9169-28d9-4754-a570-553b067642ed	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d8509930-43fd-4d8a-81d7-a85c050b0ed8	a3793f87-7f3c-41a1-a675-236fc1b710ab	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fe8f81f4-cb9b-4096-856a-6cf8374f9867	29ad5710-1621-4c24-ac75-dedfc168ba1a	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-29051cc1-5a5b-4a1d-a40e-3b826f018f15	efc1df20-ca04-44a6-87b2-7cae1ff50a88	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-795e3371-a31c-4639-80ba-bd522adf8872	c787fe3b-4b33-40ee-8794-c1148202f81a	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b707b5ee-def5-4878-8b06-1bc60461904b	f29af015-7833-4f9a-ac57-6fbef5bf91ec	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-58b00a0a-b61c-4759-b7e7-83e4d522433f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-041a521d-0b49-46d8-96b1-d3333f2d9483	a5bfe265-981a-4723-b7bb-6ddc389db7f0	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e35cfb51-1bac-4536-967d-6fba9899985b	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d0f971e3-acee-4ec3-a1de-18428409ec9e	b552183f-2695-41f9-860e-16d5fe94c4aa	18655585-39ff-4afa-ab87-90c6a20379f7	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-613c5606-a225-4351-ade6-95bbb00117b2	914d8500-03b6-4a43-a250-244effca1cf1	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-83726275-6af8-49a8-bb98-b4723e10cc8e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c15ed253-89fc-4529-b575-9a367932e411	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-18c96b66-3870-4a3f-bd69-b52e9d3254ad	a5023c9e-367f-41e1-ba02-bdb2929edc89	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6d7ec440-db1d-488b-a9a2-e32df60b2e31	f5c742d1-e0cc-4bf8-b860-a673ac407393	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-97ad95e6-befa-43ed-8332-e80e864c753b	1a62b1f8-1810-464d-a67b-168d7e419827	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-afb4a10d-857d-47a7-91ae-ba5a933b8ce5	aba61e5b-422a-4461-b9da-8dba8f6d3f85	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-923f5779-5c60-4c9e-8ae1-46a433300ad8	111cc3cd-6d35-43ce-be91-dde90d3d4015	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c171bf4d-fb1d-4656-a20a-f9bf07d58f46	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f9f87484-fd1c-4d16-a2e6-1ef6ff398feb	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4d17bf09-cc93-4906-9af2-b154523e4c8b	768a11f9-ded7-4f6f-ba86-073e279255d9	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-62ba78c9-8329-4145-8e28-6f1132455179	701aaa2c-a899-4def-bf5f-e17511874409	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dede65ad-4b6b-4c43-a301-8c877597c50e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8cb5114b-32a2-4ded-a895-b809f2fc0d25	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-99248db1-82a8-4452-b3e9-1b6576270d80	64c49f37-a38a-46a6-9622-7427f1501658	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ae5d8693-9b33-4a50-80fa-3ccabb3b420c	92aa9169-28d9-4754-a570-553b067642ed	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-23685d7c-1d27-4363-98d5-52dd53a6f666	a3793f87-7f3c-41a1-a675-236fc1b710ab	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0a5be525-f256-41fd-8e1f-1972f71b7d8f	29ad5710-1621-4c24-ac75-dedfc168ba1a	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-abe197d5-6d66-49fd-b934-341fc2730a37	efc1df20-ca04-44a6-87b2-7cae1ff50a88	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2bd02bff-b5d4-44d4-816a-28876b8b7033	c787fe3b-4b33-40ee-8794-c1148202f81a	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a8c50178-10a8-410e-aef0-582bf71f76a4	f29af015-7833-4f9a-ac57-6fbef5bf91ec	18655585-39ff-4afa-ab87-90c6a20379f7	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-441fba51-711f-4d59-8440-7842d435d5a1	bb568e26-548b-4ca5-9221-fefb9c9143b3	1a8615c6-6bf9-4af0-ac31-30733620f7a5	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.997477+00	\N	\N	\N
-9b02e4cd-07b9-4413-b3fd-e24107ab9e12	bb568e26-548b-4ca5-9221-fefb9c9143b3	18655585-39ff-4afa-ab87-90c6a20379f7	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.998177+00	\N	\N	\N
-00350074-587a-4f56-acf8-0f36ac932a69	cd2a32ed-32fc-47bc-88a9-e6fc48863869	1a8615c6-6bf9-4af0-ac31-30733620f7a5	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.529443+00	\N	\N	\N
-59957665-5ceb-45b7-adc2-9ec53ea9e5f8	cd2a32ed-32fc-47bc-88a9-e6fc48863869	18655585-39ff-4afa-ab87-90c6a20379f7	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.53028+00	\N	\N	\N
-0b059600-3f7d-41f3-a06b-69efe73f0750	62a927b7-9fd8-461a-b64e-1aa441eeba4d	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3cff8e30-a7e4-4af8-be94-713d0dc15e8d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4f59a277-2259-42ab-ae5f-26966cebd62f	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f4d70a2a-0dd8-4cf8-a0db-236884f33b5c	b552183f-2695-41f9-860e-16d5fe94c4aa	ff391477-5c5b-4d00-acec-8c8f24a6c104	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-091ee674-b613-4ef8-a054-b38104222968	914d8500-03b6-4a43-a250-244effca1cf1	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9f1306a5-bbcd-471f-8fa3-742dc06b1d44	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-11e65901-f36d-4770-90d9-bf982658acdb	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-73fbc95f-9617-4c7e-b80a-af4be1f0dd1d	a5023c9e-367f-41e1-ba02-bdb2929edc89	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-31b32e6a-70c9-4ec2-83f7-baa6f07ed963	f5c742d1-e0cc-4bf8-b860-a673ac407393	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1cac90c0-8ca4-4548-a51e-89839fd40c43	1a62b1f8-1810-464d-a67b-168d7e419827	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b02e7523-6d4a-4279-b5d7-ff963864879a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1a992596-e962-4d4c-b41c-e5e1287409a3	111cc3cd-6d35-43ce-be91-dde90d3d4015	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c499df47-3dbd-4147-b523-9a2f3c3de28c	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1d66e055-cce8-4ad6-abf6-28f387fd5c0c	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6db37414-4cf1-4a73-84c4-e4cd90ea107b	768a11f9-ded7-4f6f-ba86-073e279255d9	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eeeae120-4318-43cb-9ba6-203f850bd6e8	701aaa2c-a899-4def-bf5f-e17511874409	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0a990f59-0549-4650-be01-c34bbac596c1	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a4f6d033-6aae-455c-9846-13716e5fdb5c	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-49ed6d4c-219d-41db-9de6-fdff3f237ed3	64c49f37-a38a-46a6-9622-7427f1501658	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9b950421-0b0b-411b-8b51-2bf62f9a79b2	92aa9169-28d9-4754-a570-553b067642ed	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-57a64ee9-6288-4678-ba74-5cbfe3bdb8b5	a3793f87-7f3c-41a1-a675-236fc1b710ab	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f523d249-6f8b-4bd4-8d6f-f352995bd45c	29ad5710-1621-4c24-ac75-dedfc168ba1a	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bcfa46e6-dbb0-4202-b00c-a71012d8bcdd	efc1df20-ca04-44a6-87b2-7cae1ff50a88	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0b148803-77a8-432d-9b51-3bf0c6691ce4	c787fe3b-4b33-40ee-8794-c1148202f81a	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-42b0564b-7d31-41f0-9e6d-515a1964fa31	f29af015-7833-4f9a-ac57-6fbef5bf91ec	ff391477-5c5b-4d00-acec-8c8f24a6c104	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a21fb17a-8504-4e8f-9793-3ca90b30ef48	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2982ec1c-993d-4cac-b736-8c820d702414	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4080bf34-331e-4c9a-a887-dad74b68bcdb	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2982ec1c-993d-4cac-b736-8c820d702414	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5d04c597-33cd-46aa-8178-cbab6fe605be	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2982ec1c-993d-4cac-b736-8c820d702414	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-74e0bd6c-4b0e-4e32-bc69-c567cc782e63	b552183f-2695-41f9-860e-16d5fe94c4aa	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bf94813a-ae1b-4711-a846-457a5faf8869	914d8500-03b6-4a43-a250-244effca1cf1	2982ec1c-993d-4cac-b736-8c820d702414	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ce1a6564-a6e4-4691-a060-4d3f6b995107	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2982ec1c-993d-4cac-b736-8c820d702414	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d21504f5-0da4-4e38-8621-82626995d31b	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bbe5304d-2cf5-4b50-b76e-36eaaf745bdc	a5023c9e-367f-41e1-ba02-bdb2929edc89	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-074a86ee-d708-4d7b-b212-6bfbbf9b4da6	f5c742d1-e0cc-4bf8-b860-a673ac407393	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0ac461fa-a743-4913-8ad0-677529acb444	1a62b1f8-1810-464d-a67b-168d7e419827	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-65daaf82-e7e3-49b5-a193-f05c9659da96	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dbc1a762-0068-4267-9367-1a576adf8b3c	111cc3cd-6d35-43ce-be91-dde90d3d4015	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d62c1fe7-af0c-4ebe-b7e0-d2105d74dbd0	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ab117d34-3d97-40ef-b002-b1160d2b69a2	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2982ec1c-993d-4cac-b736-8c820d702414	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9fd3f176-4fc4-4ff1-8ad5-d5c82d41cb9c	768a11f9-ded7-4f6f-ba86-073e279255d9	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0da6e0fa-01ac-44ed-ba58-3ea354144294	701aaa2c-a899-4def-bf5f-e17511874409	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e943a808-3c91-4814-8225-3fdc0f352838	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a8566458-de44-407e-9b8f-0cc2ea60afed	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ff6b47dc-d7c3-411c-a180-784fb129bb98	64c49f37-a38a-46a6-9622-7427f1501658	2982ec1c-993d-4cac-b736-8c820d702414	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3e47671c-00db-4abe-b83a-f099c7f1e8d5	92aa9169-28d9-4754-a570-553b067642ed	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f4d3f547-8a4b-40ef-86fb-8085d5c7580b	a3793f87-7f3c-41a1-a675-236fc1b710ab	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d3adf346-ac22-4fad-a54a-d77f505cf8ed	29ad5710-1621-4c24-ac75-dedfc168ba1a	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e1952510-bd95-4747-85f7-ce4718975beb	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-77309931-6224-413c-8453-f74805f2d73a	c787fe3b-4b33-40ee-8794-c1148202f81a	2982ec1c-993d-4cac-b736-8c820d702414	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d5d8414a-a12d-46f9-9f5e-2e7e0d3ff805	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-205089fc-7859-4b7e-af5e-117a069b0a55	62a927b7-9fd8-461a-b64e-1aa441eeba4d	cc7f088c-5908-4491-a5cf-041b96d30eff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-263911a8-e8c7-47fc-ba34-23fdb8fa9f4a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	cc7f088c-5908-4491-a5cf-041b96d30eff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1ec0db87-d6b2-469e-b0e0-0fd685cd3f32	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	cc7f088c-5908-4491-a5cf-041b96d30eff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5e146c44-4985-402e-ba3c-3f63b661bb4c	b552183f-2695-41f9-860e-16d5fe94c4aa	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f7480672-ff23-45ea-84df-0e8edf1a8082	914d8500-03b6-4a43-a250-244effca1cf1	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a84a68e2-a35d-4a85-9c14-2594af7eceda	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3f791fab-ea92-4510-a94c-6204892c4a60	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	cc7f088c-5908-4491-a5cf-041b96d30eff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d15136c4-9187-42cf-ab39-e78da043c3ab	a5023c9e-367f-41e1-ba02-bdb2929edc89	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2480f273-825d-486c-b5c6-0f2486921da7	f5c742d1-e0cc-4bf8-b860-a673ac407393	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-734fcd3b-866c-4823-8fdf-9c7372dd2161	1a62b1f8-1810-464d-a67b-168d7e419827	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-42a872ba-063a-4914-b2d7-b064616d25cf	aba61e5b-422a-4461-b9da-8dba8f6d3f85	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eb254e72-5439-440a-a7f1-9adb05d0e06b	111cc3cd-6d35-43ce-be91-dde90d3d4015	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bde1f823-1d09-47df-b19f-ca071c5c7cca	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-89a6ba19-5418-46f0-ba4a-c4d699215477	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-276c57f2-5013-40d4-8439-53a105baa238	768a11f9-ded7-4f6f-ba86-073e279255d9	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7522e0d2-f4bf-47d7-838f-5e8a8bd03daf	701aaa2c-a899-4def-bf5f-e17511874409	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-555fe410-5f90-47af-b119-069c4b9cb5b0	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-52851c9f-3830-4eb7-9233-bfe8ca09d558	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ddaec92f-4c85-42f1-a0ce-774b32baa0a1	64c49f37-a38a-46a6-9622-7427f1501658	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-79f64a1a-3173-49c4-a295-18fe80c69242	92aa9169-28d9-4754-a570-553b067642ed	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cc9a9223-dd16-4c8e-bd7c-ad2ab2e66e38	a3793f87-7f3c-41a1-a675-236fc1b710ab	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b4cfc52-ed5d-4ed1-8e1a-51ad790f55f1	29ad5710-1621-4c24-ac75-dedfc168ba1a	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9b8a9d28-1fdd-4e41-9734-c6e0d2048af6	efc1df20-ca04-44a6-87b2-7cae1ff50a88	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a9e80730-76a3-49bd-b76c-3b126ed03668	c787fe3b-4b33-40ee-8794-c1148202f81a	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b8abeed3-b1f4-45ec-bd3b-7db039e78849	f29af015-7833-4f9a-ac57-6fbef5bf91ec	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2bb5f2f5-7578-4343-8a43-a7b9b35da507	bb568e26-548b-4ca5-9221-fefb9c9143b3	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:41.999845+00	\N	\N	\N
-14d491fa-bfc7-4c95-b6ee-c3d94eef54c0	bb568e26-548b-4ca5-9221-fefb9c9143b3	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.000722+00	\N	\N	\N
-ff448def-cd3a-467f-be0b-8ab2cebc36f1	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2982ec1c-993d-4cac-b736-8c820d702414	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.531851+00	\N	\N	\N
-d485c828-807b-4d18-8511-31ff23433076	cd2a32ed-32fc-47bc-88a9-e6fc48863869	cc7f088c-5908-4491-a5cf-041b96d30eff	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.532823+00	\N	\N	\N
-182d4a9d-b697-47b2-ada6-580e6310bd5f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-198c9f1c-e531-4a94-b5ab-89148e708100	a5bfe265-981a-4723-b7bb-6ddc389db7f0	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9b4f2731-3422-4091-bcf6-f84f0635ac58	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-31e7f24f-7e3e-486a-94da-2885d74ca4ee	b552183f-2695-41f9-860e-16d5fe94c4aa	138500fe-e9a5-442f-a477-447becae383a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3f515538-1a72-4de5-ad47-c2f58bb81419	914d8500-03b6-4a43-a250-244effca1cf1	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8ea5bc8e-0ff9-48ef-8e1b-449a68653c85	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-138341fa-94cf-45f2-a9e4-ff438bee7a82	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	138500fe-e9a5-442f-a477-447becae383a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6bce96e5-19a0-451e-ac1c-b993dfcc4170	a5023c9e-367f-41e1-ba02-bdb2929edc89	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d1322afa-f80c-4dec-b6fb-7c47f6daba3d	f5c742d1-e0cc-4bf8-b860-a673ac407393	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c168395c-10f0-4c88-be47-287151e62885	1a62b1f8-1810-464d-a67b-168d7e419827	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c4f830a8-4495-4d70-8588-3ccb4024d0ee	aba61e5b-422a-4461-b9da-8dba8f6d3f85	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-879823f0-080b-4eac-a0f0-fa21a0844ca4	111cc3cd-6d35-43ce-be91-dde90d3d4015	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7793a2ab-4487-4fda-bbec-01366e514686	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b0dcf8d2-5374-45a0-965e-23967e7d90c7	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-93b48af5-63c6-4024-91dd-95e7aad6acc6	768a11f9-ded7-4f6f-ba86-073e279255d9	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4ba3f48d-c27a-49ae-b0b8-93a3427de87b	701aaa2c-a899-4def-bf5f-e17511874409	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0455b5e4-666c-4ec8-8f9e-452c9421b31e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c8f24a48-7ddd-4005-9b56-3be3a45c5696	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7fec771f-804f-451a-8026-919698d17503	64c49f37-a38a-46a6-9622-7427f1501658	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b4235ef3-0732-437e-8dbf-6732d16e56df	92aa9169-28d9-4754-a570-553b067642ed	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-467c4997-699c-4394-b978-e6362fae05c0	a3793f87-7f3c-41a1-a675-236fc1b710ab	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a6aff772-4627-4c4e-aab4-d07b56515066	29ad5710-1621-4c24-ac75-dedfc168ba1a	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e420a12a-c336-4180-891e-dadb9114f942	efc1df20-ca04-44a6-87b2-7cae1ff50a88	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-34c4bb7c-5935-4348-9a82-2eac28e60d8d	c787fe3b-4b33-40ee-8794-c1148202f81a	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e6b3d2dd-a787-4759-a3df-2844090a3cba	f29af015-7833-4f9a-ac57-6fbef5bf91ec	138500fe-e9a5-442f-a477-447becae383a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6606bc7b-fc7b-47c4-8cc2-1536ec838116	62a927b7-9fd8-461a-b64e-1aa441eeba4d	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f6169827-10fa-4a8e-b4d7-878564593df1	a5bfe265-981a-4723-b7bb-6ddc389db7f0	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f21777f4-857b-4b19-918b-065bbc212139	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c399b8c4-6ade-40f4-bd1e-f4792b794a77	b552183f-2695-41f9-860e-16d5fe94c4aa	71fa16ac-b721-4895-b39d-a71ebe280319	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d47ab2d5-1a62-4fc5-9fc4-96a216c966f2	914d8500-03b6-4a43-a250-244effca1cf1	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6031d81e-1046-4fb6-9b45-b4fd4c5e7ba7	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fa95a471-1df3-4609-961b-130364e08557	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	71fa16ac-b721-4895-b39d-a71ebe280319	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aa87d621-a334-4d5e-a2b6-901f69ec0622	a5023c9e-367f-41e1-ba02-bdb2929edc89	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e6b09d6a-a632-4434-b34c-44aacd0fdd21	f5c742d1-e0cc-4bf8-b860-a673ac407393	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-68995d8b-79f3-44cc-91d4-8bd0e8046796	1a62b1f8-1810-464d-a67b-168d7e419827	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ff2b2e29-2084-4f07-9f81-cef309bb4c85	aba61e5b-422a-4461-b9da-8dba8f6d3f85	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7b8eb585-609e-4d03-b047-36c7d206369d	111cc3cd-6d35-43ce-be91-dde90d3d4015	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d6fb742f-febc-41ed-9a94-43951a075238	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3d5c8497-25ea-4571-b7a9-244693a83cea	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-08fa577e-0eee-42d4-bbf3-1c10893a719a	768a11f9-ded7-4f6f-ba86-073e279255d9	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-61c30707-7d8b-4151-a991-30d63bdb83de	701aaa2c-a899-4def-bf5f-e17511874409	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-28b73821-8255-481a-83d4-6347a34147bd	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f0eb1447-3e7e-4a1c-9e08-6e3da1e9b4f8	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-79129e2e-e4d3-4a1f-81dd-c4b8aef6d90f	64c49f37-a38a-46a6-9622-7427f1501658	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-43f2d020-fbfb-4bb7-b0bb-7ce7f11ad38d	92aa9169-28d9-4754-a570-553b067642ed	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e08834ed-8ab0-430f-9839-234c6845d22d	a3793f87-7f3c-41a1-a675-236fc1b710ab	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6936a645-1097-4399-be50-968452cb43f2	29ad5710-1621-4c24-ac75-dedfc168ba1a	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f1630bba-4d6f-4c47-b73b-19390850e998	efc1df20-ca04-44a6-87b2-7cae1ff50a88	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-344172f0-14a3-4745-95eb-c9fae4c3309a	c787fe3b-4b33-40ee-8794-c1148202f81a	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d4e89fe2-d3ff-4c08-9108-1cc093eb502d	f29af015-7833-4f9a-ac57-6fbef5bf91ec	71fa16ac-b721-4895-b39d-a71ebe280319	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1c3bd3e2-88ff-4c48-90a5-1423f9cb5616	62a927b7-9fd8-461a-b64e-1aa441eeba4d	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-df93fb8c-a505-4d6b-9cb2-71762554536e	a5bfe265-981a-4723-b7bb-6ddc389db7f0	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d375cff6-9726-4a47-a5a8-23e03ed5deeb	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-11831047-1e4b-4262-877f-6fda58401829	b552183f-2695-41f9-860e-16d5fe94c4aa	54734790-2dba-4cf6-bce5-a76fa63d96cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2435cdc4-2795-46b0-8eec-c1e55ce12ec9	914d8500-03b6-4a43-a250-244effca1cf1	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cd5c6f1a-c77f-4956-9049-7e895b4fb9eb	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5576b75b-01c3-4ba5-ac5e-b820571cb18a	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0282f9be-4f8d-4d2f-8ffa-c64bd7d534c2	a5023c9e-367f-41e1-ba02-bdb2929edc89	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d5849964-72ec-4ab8-b2ef-9e5c9f3d4ba6	f5c742d1-e0cc-4bf8-b860-a673ac407393	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eb3a1199-95fc-4894-9bc3-8cbcffeeae36	1a62b1f8-1810-464d-a67b-168d7e419827	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-78b6d1c3-6514-497e-89c8-5e188929ea07	aba61e5b-422a-4461-b9da-8dba8f6d3f85	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b2cafb58-3317-44ad-ba9a-489c6f3fe303	111cc3cd-6d35-43ce-be91-dde90d3d4015	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-50e2ce43-b4db-4487-9d5b-3fadb1780702	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-89208699-dc43-4c41-b012-acfc65dd3351	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e4d06aaf-5e5d-431f-8239-8f302a18e409	768a11f9-ded7-4f6f-ba86-073e279255d9	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9448f6f0-6837-4027-96b3-c7f4da81facb	701aaa2c-a899-4def-bf5f-e17511874409	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4d360349-f594-4584-bf5d-f074e6bc0369	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e515cc33-fcd5-4791-b0cb-8fe5a368a318	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f654cc90-303d-4131-a7ee-97f3428a5d7c	64c49f37-a38a-46a6-9622-7427f1501658	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c35353ea-e7ec-4ebe-9f2b-1171e79cc9b5	92aa9169-28d9-4754-a570-553b067642ed	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-69947609-912d-46d8-bbba-a2745e8f36c3	a3793f87-7f3c-41a1-a675-236fc1b710ab	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1d47c881-a6a0-49c8-874f-1a8b43eb5068	29ad5710-1621-4c24-ac75-dedfc168ba1a	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fb4422fa-a0d3-4f5d-ab86-365a304875e4	efc1df20-ca04-44a6-87b2-7cae1ff50a88	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c3f8b930-5b0d-493e-89d1-cadb604e80ee	c787fe3b-4b33-40ee-8794-c1148202f81a	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dea2f41b-5974-4fbb-9197-7c03c7604c65	f29af015-7833-4f9a-ac57-6fbef5bf91ec	54734790-2dba-4cf6-bce5-a76fa63d96cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7f21859b-12c7-4698-9c99-73b7e48a625b	bb568e26-548b-4ca5-9221-fefb9c9143b3	71fa16ac-b721-4895-b39d-a71ebe280319	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.002082+00	\N	\N	\N
-26969f57-969c-4232-86c8-d91c89220ae2	bb568e26-548b-4ca5-9221-fefb9c9143b3	54734790-2dba-4cf6-bce5-a76fa63d96cb	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.002902+00	\N	\N	\N
-f5c2e483-8712-4c34-9b22-980ad858350a	cd2a32ed-32fc-47bc-88a9-e6fc48863869	71fa16ac-b721-4895-b39d-a71ebe280319	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.534251+00	\N	\N	\N
-d59ca50c-0775-4c44-982e-7cbcf324cb1e	cd2a32ed-32fc-47bc-88a9-e6fc48863869	54734790-2dba-4cf6-bce5-a76fa63d96cb	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.535056+00	\N	\N	\N
-593cf84c-df34-4a9b-aec4-db870d3f2a2e	62a927b7-9fd8-461a-b64e-1aa441eeba4d	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f1f9e624-be79-4f30-a462-09ac4adaae40	a5bfe265-981a-4723-b7bb-6ddc389db7f0	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c82abaef-ca7f-4665-b4d4-5334769345c4	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b64c1d25-3502-4a60-86cf-0f810e6b5e6d	b552183f-2695-41f9-860e-16d5fe94c4aa	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d56de82c-846f-477d-9fb3-b13a4e8b5c71	914d8500-03b6-4a43-a250-244effca1cf1	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-15972380-55fa-44eb-be3d-cdde0ed2373c	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-78bfbc98-250b-41a8-9c33-b7be6a8e90c0	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c1e9bbf5-dfd0-47fb-8586-9a1110a47e5f	a5023c9e-367f-41e1-ba02-bdb2929edc89	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e75963f3-6a5a-44e6-bc46-c8ef0dcebbcd	f5c742d1-e0cc-4bf8-b860-a673ac407393	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4e74edb0-b214-4c05-9644-66987c161169	1a62b1f8-1810-464d-a67b-168d7e419827	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5d04cbf4-6611-4632-93d3-6da8f0e6c765	aba61e5b-422a-4461-b9da-8dba8f6d3f85	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-26160b9f-4eef-4e98-a5f9-1d92ba440f21	111cc3cd-6d35-43ce-be91-dde90d3d4015	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5658fa61-0b7d-4371-b939-2c1244775e31	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-97ff2d44-3557-4f07-8e7a-6b10da3a1866	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e306a568-d702-48fc-9bf2-9e072433dfc9	768a11f9-ded7-4f6f-ba86-073e279255d9	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b1155354-01c2-4086-b9a1-557927fac528	701aaa2c-a899-4def-bf5f-e17511874409	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d355da12-c7e6-4c01-a2e2-6292bc301505	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4e182d89-c166-40a2-bafc-5a7911babbb9	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7c9f3347-d408-4d7e-be16-3b6b9dd23954	64c49f37-a38a-46a6-9622-7427f1501658	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9349d1f1-44fe-45f8-91bc-4ddff9c5be52	92aa9169-28d9-4754-a570-553b067642ed	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0c5b2d8f-1581-4e0d-bf71-fc29d9358855	a3793f87-7f3c-41a1-a675-236fc1b710ab	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-69f0dd86-ae75-4efa-ba4c-28a5d4b10390	29ad5710-1621-4c24-ac75-dedfc168ba1a	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f666b8f1-dd12-43b2-adb2-665fedbe16db	efc1df20-ca04-44a6-87b2-7cae1ff50a88	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a0470cb7-924c-42ec-8d78-53e05238f695	c787fe3b-4b33-40ee-8794-c1148202f81a	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e7e4ad7d-f4a9-486e-9f5e-7a80e214fb70	f29af015-7833-4f9a-ac57-6fbef5bf91ec	8bf85094-f1ca-43cf-9f8d-40c2444be4cb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9f34aed9-c8e3-42ec-b596-8bf1e208b640	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a1e609a1-50c9-4c44-9f78-9c005aa426b1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-07451c0b-ffd8-413c-bf6d-1a823995c3a2	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a1e609a1-50c9-4c44-9f78-9c005aa426b1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2df32e94-0018-4dcc-ad08-5a8c6c906565	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a1e609a1-50c9-4c44-9f78-9c005aa426b1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e6615281-226d-4b9c-8134-8e62f9928a30	b552183f-2695-41f9-860e-16d5fe94c4aa	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c893c238-3274-4be5-a9f4-64aa2a10fc9c	914d8500-03b6-4a43-a250-244effca1cf1	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bc679bf8-36ae-4b5d-bb76-fd6cf1a7161e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ee476ec6-c7ab-4f86-a9ae-bcdf075ed2d8	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6f4b564e-fc0c-4792-a8da-a34a538c3ede	a5023c9e-367f-41e1-ba02-bdb2929edc89	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-47b6b6af-447a-47c9-aaf8-c38d8c4a3010	f5c742d1-e0cc-4bf8-b860-a673ac407393	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c7bffa44-aaa8-4ab4-a146-90d0bcbb03b4	1a62b1f8-1810-464d-a67b-168d7e419827	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c6e51d05-700f-415e-8f9f-26044a539134	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-df223085-7183-47f4-aef9-3707ed66fc18	111cc3cd-6d35-43ce-be91-dde90d3d4015	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9458a6b9-6682-4737-83d9-641a1be87be4	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9d7e7d3d-18ff-454f-8f04-d27a7d1ce544	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a1e609a1-50c9-4c44-9f78-9c005aa426b1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a70d7c9b-2114-4dd8-8e46-7ba012e38bb3	768a11f9-ded7-4f6f-ba86-073e279255d9	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a6e0caac-4063-4af9-a60c-2403b2674a6e	701aaa2c-a899-4def-bf5f-e17511874409	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7ff0f701-10bf-46f5-b5e5-7d11408cc3fb	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0976d33a-7fbb-42c1-9023-7166c72533e5	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d58e2822-cc87-4d35-8e72-f36c6392df80	64c49f37-a38a-46a6-9622-7427f1501658	a1e609a1-50c9-4c44-9f78-9c005aa426b1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0f6cd258-857e-4e2b-8889-c2bba9a7b5d7	92aa9169-28d9-4754-a570-553b067642ed	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6b20fb68-24d1-451a-bf9d-d16f7636be80	a3793f87-7f3c-41a1-a675-236fc1b710ab	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d610059d-e959-490e-ad53-c557cb2925cd	29ad5710-1621-4c24-ac75-dedfc168ba1a	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-527260a0-a42d-4d24-858a-06c19520309b	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b7a2b941-35fb-45f8-bccf-bae78fa1a0a7	c787fe3b-4b33-40ee-8794-c1148202f81a	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4e30d6f7-4022-4496-baab-8459c37763de	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a1e609a1-50c9-4c44-9f78-9c005aa426b1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-06f88d17-73f2-4ebd-abcf-b242bb9213ad	62a927b7-9fd8-461a-b64e-1aa441eeba4d	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5a7a88b7-fb26-4fda-9f5b-c662bef19701	a5bfe265-981a-4723-b7bb-6ddc389db7f0	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0aa15f64-2541-408e-9c34-47538d1f1bae	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dd0dfae8-5ea1-467c-aa0e-05953752f5b2	b552183f-2695-41f9-860e-16d5fe94c4aa	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1b542b5c-2fcb-4172-95ba-6e68f67cdc3c	914d8500-03b6-4a43-a250-244effca1cf1	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ed070982-01e4-439c-8c16-1e2dcd1e24f0	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b1f86d3f-3dd2-49df-9f81-4119447aab61	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	23680726-f4b7-4c96-9449-3228dc1a8a98	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67651e64-06be-4b70-8599-6f7c0a3a7da8	a5023c9e-367f-41e1-ba02-bdb2929edc89	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-80ee191b-eaa1-408b-8dac-7cde93f614e5	f5c742d1-e0cc-4bf8-b860-a673ac407393	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-97e9595d-3bf8-40c3-b502-55aaec9af1a8	1a62b1f8-1810-464d-a67b-168d7e419827	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d9e578f6-3eb6-429f-9959-4af9fcb7d438	aba61e5b-422a-4461-b9da-8dba8f6d3f85	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2c1c7c30-16b8-450c-8b43-78aeb402fb62	111cc3cd-6d35-43ce-be91-dde90d3d4015	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c67d84a6-6cfb-4f87-9f9c-4560bcecdef6	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1700ccf4-a04c-4e18-9f38-6d7d6f191a12	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6aed2603-3187-47e9-b5e1-69ceafbf19d3	768a11f9-ded7-4f6f-ba86-073e279255d9	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-da5b2754-dd5a-4f99-afc0-c4db248fa58d	701aaa2c-a899-4def-bf5f-e17511874409	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b4ca9c54-7a78-42ce-b914-169714f5657e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3e82f1ec-8464-40f8-a000-cf74ce974705	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-adcebfcd-63b2-4dad-9e2f-1917dfdcee7a	64c49f37-a38a-46a6-9622-7427f1501658	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-267f3ab6-07ac-46a6-99c0-81ca6889ae40	92aa9169-28d9-4754-a570-553b067642ed	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b1087144-44e9-4853-83ac-275a1e6ce665	a3793f87-7f3c-41a1-a675-236fc1b710ab	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2fffd8f9-c995-4915-84cf-f091cce5740b	29ad5710-1621-4c24-ac75-dedfc168ba1a	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-106292c2-75de-4d05-b161-26b9c15145f1	efc1df20-ca04-44a6-87b2-7cae1ff50a88	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0ae6b8b2-153f-4d13-93d6-ed0f08419a15	c787fe3b-4b33-40ee-8794-c1148202f81a	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cfcdf9f7-cb4a-4f0b-8390-0680237e83ec	f29af015-7833-4f9a-ac57-6fbef5bf91ec	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e6ac2452-ccd2-4e89-800f-27af8c5c54e0	bb568e26-548b-4ca5-9221-fefb9c9143b3	a1e609a1-50c9-4c44-9f78-9c005aa426b1	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.009723+00	\N	\N	\N
-07370953-2dfd-4038-a3dd-2cf1a16fee75	bb568e26-548b-4ca5-9221-fefb9c9143b3	23680726-f4b7-4c96-9449-3228dc1a8a98	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.010573+00	\N	\N	\N
-c552979c-ede5-4c7c-94e2-f7a3ed078677	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a1e609a1-50c9-4c44-9f78-9c005aa426b1	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.536979+00	\N	\N	\N
-3d9ade7b-8dff-4dea-b180-3bd33a19a789	cd2a32ed-32fc-47bc-88a9-e6fc48863869	23680726-f4b7-4c96-9449-3228dc1a8a98	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.537701+00	\N	\N	\N
-76866d8b-9656-4228-be1a-360e41b194c2	62a927b7-9fd8-461a-b64e-1aa441eeba4d	b37894ab-88ea-48f1-865f-4793fd6681aa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e9eac8f5-b45c-46a4-b1be-0ca7552ecbea	a5bfe265-981a-4723-b7bb-6ddc389db7f0	b37894ab-88ea-48f1-865f-4793fd6681aa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0e3d7c91-b226-4104-a037-ad08ad63566a	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	b37894ab-88ea-48f1-865f-4793fd6681aa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a8d3131d-b514-4f79-96c5-7cd76a72f142	b552183f-2695-41f9-860e-16d5fe94c4aa	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c2bb5230-618a-4eec-b32e-df22d8eae6e4	914d8500-03b6-4a43-a250-244effca1cf1	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-52e809a7-5cb4-421e-a0fc-93d271f193a6	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-de62efb9-7634-4f54-a5a3-4c5262b2ef6e	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-391c067f-c14a-4fbe-8df2-3bcbe36eea0f	a5023c9e-367f-41e1-ba02-bdb2929edc89	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d805702e-ba27-45a1-a0f1-cd59ed31ca7b	f5c742d1-e0cc-4bf8-b860-a673ac407393	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8f6d092d-8c8d-4229-bef4-13ddd823e770	1a62b1f8-1810-464d-a67b-168d7e419827	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8c7f115c-dc11-4ae1-a169-9806abf1b6af	aba61e5b-422a-4461-b9da-8dba8f6d3f85	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1f135e03-f494-494e-b42e-936bdbefcdfe	111cc3cd-6d35-43ce-be91-dde90d3d4015	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4fabbea4-1517-4d0e-928d-5e71f658ef51	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0d6ebf82-ba91-4deb-a151-42fe1b5d4467	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-63c8747e-85fa-4c00-99a8-592482af8006	768a11f9-ded7-4f6f-ba86-073e279255d9	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fc652379-d887-4227-be5a-6dc83e4c2fc1	701aaa2c-a899-4def-bf5f-e17511874409	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3a6921df-c331-4a77-8b62-7f38af10193b	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f4de733b-999d-45df-b467-c746d31c34f4	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f596d46b-7a3a-4c6f-9d40-b12b513046e7	64c49f37-a38a-46a6-9622-7427f1501658	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ee0be7da-b915-4d23-9028-34f5fcf2b4af	92aa9169-28d9-4754-a570-553b067642ed	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-75f07d2f-fa8b-4ab7-818b-71148be1887c	a3793f87-7f3c-41a1-a675-236fc1b710ab	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9a648e66-8ec0-4fa3-86fd-cdcd60cc57b1	29ad5710-1621-4c24-ac75-dedfc168ba1a	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b024a2ef-b0d3-47c2-96ea-634d9073235f	efc1df20-ca04-44a6-87b2-7cae1ff50a88	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cd4bf26b-2dfd-4836-8b31-739e1a2d66ef	c787fe3b-4b33-40ee-8794-c1148202f81a	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b7a45097-8e8b-41da-808c-3ad2ee94b23f	f29af015-7833-4f9a-ac57-6fbef5bf91ec	b37894ab-88ea-48f1-865f-4793fd6681aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-edf06141-594e-4fc7-8b6b-62b70108af81	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5528e733-5774-4e87-8bf9-e328729605d3	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4cf6434b-95e5-4419-9244-cdbe855d4436	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5c81bb13-be37-42cf-8338-8077fbeb9861	b552183f-2695-41f9-860e-16d5fe94c4aa	a175d333-a95f-4240-93d1-37b9fdfec5dc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-01692c77-8836-462a-b7be-a8d9a01761da	914d8500-03b6-4a43-a250-244effca1cf1	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2f448e4c-ce65-4bbb-8046-03bbe5eb14fb	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3718a5c6-6879-4b7e-8086-1297e7e00f19	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8f9804d9-52b7-4d44-a5ba-60271fb88728	a5023c9e-367f-41e1-ba02-bdb2929edc89	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fa9cde8e-f800-499b-a4d8-8abca93785a3	f5c742d1-e0cc-4bf8-b860-a673ac407393	a175d333-a95f-4240-93d1-37b9fdfec5dc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fdb728cb-494a-4aad-9874-9fa1813083ea	1a62b1f8-1810-464d-a67b-168d7e419827	a175d333-a95f-4240-93d1-37b9fdfec5dc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ba4e8ae5-1832-47b8-82c7-3ba46328634f	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-908444d0-6a72-4a03-b98e-67e73fad7197	111cc3cd-6d35-43ce-be91-dde90d3d4015	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-709e66eb-4371-4f8b-b489-21a946e731e6	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-28318a86-27b9-42e9-b657-a6c398ac6ab6	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b945bb0c-6752-44ba-9eac-74f56e59da83	768a11f9-ded7-4f6f-ba86-073e279255d9	a175d333-a95f-4240-93d1-37b9fdfec5dc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9441cd63-0f64-4654-9fa8-9fa757184e39	701aaa2c-a899-4def-bf5f-e17511874409	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6552a426-8e65-4526-afe8-1527f45c7159	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-291cc82a-212d-4b17-8c7b-5d7d03475fe5	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2916193e-0408-40e2-9d44-b30439215c29	64c49f37-a38a-46a6-9622-7427f1501658	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aed30082-caab-462d-b519-8f3c058c749d	92aa9169-28d9-4754-a570-553b067642ed	a175d333-a95f-4240-93d1-37b9fdfec5dc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9c5e30ce-7240-472c-bd7e-9bd209905141	a3793f87-7f3c-41a1-a675-236fc1b710ab	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c385b89e-d474-41f9-ab41-64be2668dc0c	29ad5710-1621-4c24-ac75-dedfc168ba1a	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c2f5f799-fe3a-448d-a1b1-5bbbda5b2389	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0b1a6a9b-6862-4fec-8612-cdd3b022b2b5	c787fe3b-4b33-40ee-8794-c1148202f81a	a175d333-a95f-4240-93d1-37b9fdfec5dc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6d23d1a7-c860-41da-adf5-5e28ad54efc9	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a175d333-a95f-4240-93d1-37b9fdfec5dc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1722dfa2-31b5-4c16-be98-ddf925f210bc	62a927b7-9fd8-461a-b64e-1aa441eeba4d	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bea7a2c2-1e52-491b-b711-d410b09cd759	a5bfe265-981a-4723-b7bb-6ddc389db7f0	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f033f297-05b9-406c-9a3e-151603cd1027	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-922d5a44-4e89-4e68-81d3-e7192193f1ee	b552183f-2695-41f9-860e-16d5fe94c4aa	72828d86-6bba-4e4c-99f4-73cc45cff6de	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-245f0222-f3a3-4109-9cb3-4a94ae571e7c	914d8500-03b6-4a43-a250-244effca1cf1	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b247ed88-72c3-4202-b280-2777cbc99ba6	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6c09bb16-6efe-4479-99dc-469965a50dbd	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e839e8b2-13c3-4282-a692-f3150b59f42e	a5023c9e-367f-41e1-ba02-bdb2929edc89	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-78406695-8a97-40bb-98e2-54288278a491	f5c742d1-e0cc-4bf8-b860-a673ac407393	72828d86-6bba-4e4c-99f4-73cc45cff6de	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-42f063e0-b214-48c5-bdca-b4548d9290ce	1a62b1f8-1810-464d-a67b-168d7e419827	72828d86-6bba-4e4c-99f4-73cc45cff6de	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b6eee8c2-69b8-4bef-a31a-b6d13f5c77c2	aba61e5b-422a-4461-b9da-8dba8f6d3f85	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-92ec211a-fa4d-44d1-a88a-619caaad5306	111cc3cd-6d35-43ce-be91-dde90d3d4015	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-90499b0a-d878-4248-bdd3-8cfacff6bb2f	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-74df23f0-ac73-4d2c-b9a9-041cac38580c	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5270bd43-0b44-4431-9cf8-dd972d7c3587	768a11f9-ded7-4f6f-ba86-073e279255d9	72828d86-6bba-4e4c-99f4-73cc45cff6de	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8a0f524b-78ed-48ea-bf73-077b79d4de2b	701aaa2c-a899-4def-bf5f-e17511874409	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-54342cc8-ad40-4eb3-b07c-50c9b8867b9c	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-61b487ed-2c91-4438-89fb-78a99a047c44	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fac70eb9-a2ca-4f3f-bae4-a43d77736b92	64c49f37-a38a-46a6-9622-7427f1501658	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8ec60d78-0455-4453-bbcd-fdfebbb2e46b	92aa9169-28d9-4754-a570-553b067642ed	72828d86-6bba-4e4c-99f4-73cc45cff6de	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4eb5e63d-5489-4427-a8b3-afc30c771d46	a3793f87-7f3c-41a1-a675-236fc1b710ab	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-57ed69d7-f075-491e-9471-8f512885e2e6	29ad5710-1621-4c24-ac75-dedfc168ba1a	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0c74a56a-cc5a-4eee-a772-ddf9dcd4ee03	efc1df20-ca04-44a6-87b2-7cae1ff50a88	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ed79bd89-5986-4213-9dbb-4554b6162667	c787fe3b-4b33-40ee-8794-c1148202f81a	72828d86-6bba-4e4c-99f4-73cc45cff6de	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-312f2ec0-dfc8-4ec3-804c-8dacd8f739b3	f29af015-7833-4f9a-ac57-6fbef5bf91ec	72828d86-6bba-4e4c-99f4-73cc45cff6de	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b287367-e4ba-491b-8f4e-276d7b274617	bb568e26-548b-4ca5-9221-fefb9c9143b3	a175d333-a95f-4240-93d1-37b9fdfec5dc	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.012151+00	\N	\N	\N
-7dfbfd43-ae6c-4cc7-b18d-05af07464bf5	bb568e26-548b-4ca5-9221-fefb9c9143b3	72828d86-6bba-4e4c-99f4-73cc45cff6de	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.01286+00	\N	\N	\N
-4b8db9fb-c1cb-4e03-be72-b9f4a62cf865	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a175d333-a95f-4240-93d1-37b9fdfec5dc	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.539189+00	\N	\N	\N
-45d81337-206d-4aff-9406-9f7b76012ad6	cd2a32ed-32fc-47bc-88a9-e6fc48863869	72828d86-6bba-4e4c-99f4-73cc45cff6de	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.540045+00	\N	\N	\N
-c660d69b-31c8-4390-84a5-533deff15166	62a927b7-9fd8-461a-b64e-1aa441eeba4d	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-25a7c4e2-0c28-44bb-ab80-509db004b4a4	a5bfe265-981a-4723-b7bb-6ddc389db7f0	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c208c241-3001-43c1-95a5-76ac246382cc	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-041bca76-aeb0-4200-b8fb-81c74342458e	b552183f-2695-41f9-860e-16d5fe94c4aa	e30a9b42-be35-4881-b2c5-7d3d29c65433	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-555ff457-4921-420a-8310-d99dc36b9008	914d8500-03b6-4a43-a250-244effca1cf1	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-79919893-e114-401b-832a-9c53e137bff3	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-97fe636b-29a8-43f1-bb14-686fa2863794	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9b7c7aee-c644-41ff-aad6-33b5d555d3c6	a5023c9e-367f-41e1-ba02-bdb2929edc89	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d65a4223-0ead-4616-a4e8-d2a5dbe433ec	f5c742d1-e0cc-4bf8-b860-a673ac407393	e30a9b42-be35-4881-b2c5-7d3d29c65433	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6a8ca627-a6dd-481c-b963-17c36500b721	1a62b1f8-1810-464d-a67b-168d7e419827	e30a9b42-be35-4881-b2c5-7d3d29c65433	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-30224219-a6bc-43b4-bba4-6584f0842c2b	aba61e5b-422a-4461-b9da-8dba8f6d3f85	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7e7ac4fe-85d0-4fdb-9d35-4ea2a6997e89	111cc3cd-6d35-43ce-be91-dde90d3d4015	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6b8e2ae6-663c-43b7-ad81-a31f91946e35	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-50d420c0-6761-489b-8cff-84e948380b3d	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-09ff01a4-bd2e-4521-8054-278f5c66b05b	768a11f9-ded7-4f6f-ba86-073e279255d9	e30a9b42-be35-4881-b2c5-7d3d29c65433	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7591423a-ba5f-4343-a7e4-9fb0f59c66c1	701aaa2c-a899-4def-bf5f-e17511874409	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-55f9caca-f589-4db5-a1bf-f13d4740ef62	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20519da0-19f1-4888-b1fe-b4ed99716729	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eb00deb0-b5ed-4b64-b944-1012e59dca46	64c49f37-a38a-46a6-9622-7427f1501658	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2bfc3835-7e40-418a-bf4f-b1fd344218b4	92aa9169-28d9-4754-a570-553b067642ed	e30a9b42-be35-4881-b2c5-7d3d29c65433	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6bc73d48-ce87-41a4-b42e-8a19e8870071	a3793f87-7f3c-41a1-a675-236fc1b710ab	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b084d8b3-8b05-4b66-aed6-e803d77c0957	29ad5710-1621-4c24-ac75-dedfc168ba1a	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6fb7e12f-f6d3-413a-a463-a00841837754	efc1df20-ca04-44a6-87b2-7cae1ff50a88	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a9ffe1f1-f20a-4c05-a499-eeb22dda7c81	c787fe3b-4b33-40ee-8794-c1148202f81a	e30a9b42-be35-4881-b2c5-7d3d29c65433	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-41bb8eda-e3a1-4eea-bb45-ce9c96f06db1	f29af015-7833-4f9a-ac57-6fbef5bf91ec	e30a9b42-be35-4881-b2c5-7d3d29c65433	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3385dba1-8486-4959-b50b-24ba3ef24d3f	62a927b7-9fd8-461a-b64e-1aa441eeba4d	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-41c51ef4-d0d1-4cb2-b622-daab9b239c7c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fd6c5d17-9325-42cf-b02f-5cbe09305d90	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d2951f39-a3eb-4578-ad8d-652bcc9f8ca8	b552183f-2695-41f9-860e-16d5fe94c4aa	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-14f2f0e1-3aa6-4364-85d8-ac1a4372c830	914d8500-03b6-4a43-a250-244effca1cf1	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-909a462e-e631-4223-b2e2-7dd2274ba282	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-35d2952e-9b6d-4633-9e74-35bcef15cae0	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c8397d33-7014-47a7-9721-77610708dd20	a5023c9e-367f-41e1-ba02-bdb2929edc89	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5ccff180-0e07-4327-838e-526dbfde95c9	f5c742d1-e0cc-4bf8-b860-a673ac407393	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c3ecbddb-6e6a-4b29-9ce3-9417db118922	1a62b1f8-1810-464d-a67b-168d7e419827	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-28e9a920-a4af-4b32-8a51-5d78a163bd6b	aba61e5b-422a-4461-b9da-8dba8f6d3f85	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a4e9c2a1-7410-4fd7-a5d5-470f3a96b2b9	111cc3cd-6d35-43ce-be91-dde90d3d4015	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0f70a47b-06a8-4097-88d5-d083a6f576ac	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e6275175-cc5c-4ffb-babf-066b2901265d	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a6c33253-fa94-4149-93dc-ca4a1f61b95e	768a11f9-ded7-4f6f-ba86-073e279255d9	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0738cd4c-c5b3-461e-a63a-8c196da3cc76	701aaa2c-a899-4def-bf5f-e17511874409	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-50bf307a-76a4-4c6d-94a5-48efe18b2711	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-de0ba4f9-8034-4728-a401-214d3e9602bd	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-697805a9-f6ef-4ff7-a000-4cac5a34a287	64c49f37-a38a-46a6-9622-7427f1501658	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0345e272-09cb-45c4-80f7-094ead8157e5	92aa9169-28d9-4754-a570-553b067642ed	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-133e663e-a3d5-40dd-9f7b-a7f2d2cc90e3	a3793f87-7f3c-41a1-a675-236fc1b710ab	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ff5aefdb-4e01-4aa4-9abc-7ce0897c7a08	29ad5710-1621-4c24-ac75-dedfc168ba1a	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4eb278b3-93e1-4c59-8275-abff062d7632	efc1df20-ca04-44a6-87b2-7cae1ff50a88	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-01e1c91c-d848-4952-b7e6-cd41d870206c	c787fe3b-4b33-40ee-8794-c1148202f81a	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d996db82-278d-47bb-82ce-1da0b2820ea6	f29af015-7833-4f9a-ac57-6fbef5bf91ec	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ab365c2a-c5fb-4295-9616-87438d8e93b5	62a927b7-9fd8-461a-b64e-1aa441eeba4d	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8df1d949-1cee-467c-abfe-93b0a9903e83	a5bfe265-981a-4723-b7bb-6ddc389db7f0	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2b5eee10-dcdd-4de5-bc48-fb9be4577580	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9b803def-1c5b-4f6b-83e6-b322b5cfcac3	b552183f-2695-41f9-860e-16d5fe94c4aa	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-209dce1e-06ec-4aa4-bc7b-9f4bf43fff68	914d8500-03b6-4a43-a250-244effca1cf1	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7ae2f4a8-ff49-4fff-b685-e70f5b1771c7	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e0cb2150-99ba-45a3-a81d-20be575acb4d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-45bf4869-a758-40c8-b9e3-7adc04fb78bc	a5023c9e-367f-41e1-ba02-bdb2929edc89	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-52fe924d-4ab3-4b11-a2bc-b19889c527dd	f5c742d1-e0cc-4bf8-b860-a673ac407393	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ade6f000-cc23-4483-9469-0ce24dafdb99	1a62b1f8-1810-464d-a67b-168d7e419827	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-da16607a-7be0-4426-b711-bca2dd34345a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-be8abc75-4f4a-4f51-bddf-8fd391234ef3	111cc3cd-6d35-43ce-be91-dde90d3d4015	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cd997710-15d3-4ea1-a754-7a87e57a0213	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6bdb6c7f-333d-4010-bbb5-df6787b21259	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c4ab036e-95d7-47bc-89d6-30e06c60798a	768a11f9-ded7-4f6f-ba86-073e279255d9	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3a7b4358-10cd-4016-a002-65979ac9acb0	701aaa2c-a899-4def-bf5f-e17511874409	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7b27f141-aef9-4c8a-8b1c-6761ed3ff61d	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-347f9c78-dcaa-41e1-b6f3-6ec94936106b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-84418c48-2ef5-44af-88aa-aeaa1a12da4d	64c49f37-a38a-46a6-9622-7427f1501658	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d9bf88bd-a0e0-49b4-9a9f-9baa4c86c5c0	92aa9169-28d9-4754-a570-553b067642ed	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-246a6910-6240-4fad-a217-e021b8e828be	a3793f87-7f3c-41a1-a675-236fc1b710ab	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-de4e5bf3-51f0-4665-9ee8-69cac4710ed5	29ad5710-1621-4c24-ac75-dedfc168ba1a	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-00d22afd-8aae-478f-9d95-12fb23d78a1e	efc1df20-ca04-44a6-87b2-7cae1ff50a88	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2e2ec600-a793-4407-b78b-f1579d715a9a	c787fe3b-4b33-40ee-8794-c1148202f81a	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7268f2c1-803d-4922-9de3-9a6a6d0cf06e	f29af015-7833-4f9a-ac57-6fbef5bf91ec	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c6e27f4c-8742-426e-96e4-42725a95b4ed	bb568e26-548b-4ca5-9221-fefb9c9143b3	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.014649+00	\N	\N	\N
-de8a6976-d565-4fa5-a0e0-b80a2062eb13	bb568e26-548b-4ca5-9221-fefb9c9143b3	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.015372+00	\N	\N	\N
-1965aac4-220f-4c3b-a2f2-7a5f42d45942	cd2a32ed-32fc-47bc-88a9-e6fc48863869	7c4c59e8-f857-4f75-a1c8-92e0d06f0806	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.541417+00	\N	\N	\N
-0bb1412c-2374-4a03-8a05-c306054d7b4a	cd2a32ed-32fc-47bc-88a9-e6fc48863869	ea1d2c55-4aaf-4d8e-972b-1533985f7aff	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.542136+00	\N	\N	\N
-a562d7f3-4a98-4aea-b984-6b5eff73484a	62a927b7-9fd8-461a-b64e-1aa441eeba4d	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-19abe1cb-3c36-433e-90db-972789f84a69	a5bfe265-981a-4723-b7bb-6ddc389db7f0	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b8fd61fe-69f7-4461-b48c-47ead21e74e7	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2bcc08a1-63d5-4386-a5ad-cde040f129bf	b552183f-2695-41f9-860e-16d5fe94c4aa	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-be043c2f-c5c6-4472-b154-5cc6d6283650	914d8500-03b6-4a43-a250-244effca1cf1	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7e81545a-2566-4588-b10f-cfb8b998a491	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ae95d4b2-3a45-4257-8ef5-e485b73bfb77	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8b647486-df9c-4731-b5eb-2849a3bcbfe1	a5023c9e-367f-41e1-ba02-bdb2929edc89	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f5ea7e7-6425-4470-9ee1-f72433fc9fd3	f5c742d1-e0cc-4bf8-b860-a673ac407393	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2ccfd13d-b179-489e-b3dd-fad132559ac6	1a62b1f8-1810-464d-a67b-168d7e419827	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1332771d-9571-45ce-ae79-362ba9acb60d	aba61e5b-422a-4461-b9da-8dba8f6d3f85	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20cbab50-ad7c-4170-a7ac-f04449ca5dda	111cc3cd-6d35-43ce-be91-dde90d3d4015	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7bf7d1df-9be6-4415-ab16-362dbc5e3270	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7a28a44f-d35f-4354-939c-dc2202961658	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9ad828f3-f7d3-4284-9e0b-902dc8749a24	768a11f9-ded7-4f6f-ba86-073e279255d9	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-561cf4e7-1300-4482-a9ab-78c057fd2ed6	701aaa2c-a899-4def-bf5f-e17511874409	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7cd4edcc-0235-4ebb-9d1c-8196bcecc1ab	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-49fb1924-8cc7-49ff-8724-55af7884e021	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-54a50bb2-0890-44a1-bf77-d0272905ea19	64c49f37-a38a-46a6-9622-7427f1501658	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6722e8eb-0820-4dea-b843-9657681188ea	92aa9169-28d9-4754-a570-553b067642ed	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13683129-e7e6-4f73-87d0-9af255397844	a3793f87-7f3c-41a1-a675-236fc1b710ab	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bb8a0926-4786-4bd6-bb61-c2a69dd605cd	29ad5710-1621-4c24-ac75-dedfc168ba1a	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a6514f42-edef-46bf-b0cd-ae000d921cf2	efc1df20-ca04-44a6-87b2-7cae1ff50a88	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-01f53a20-a1d6-4eb5-bcc8-a401fdc53313	c787fe3b-4b33-40ee-8794-c1148202f81a	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-864efe54-bbbe-49d0-aa87-4ae75fa89dbf	f29af015-7833-4f9a-ac57-6fbef5bf91ec	80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f0e6372-fe5c-4800-b68e-2e115235ff01	62a927b7-9fd8-461a-b64e-1aa441eeba4d	59297618-e8bb-4800-8db0-d5336affb59e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-76002455-4f8f-4608-bd3f-ff4fcf02261e	a5bfe265-981a-4723-b7bb-6ddc389db7f0	59297618-e8bb-4800-8db0-d5336affb59e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-34a16ef2-42c3-4476-9b5b-cfb812a56a7d	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	59297618-e8bb-4800-8db0-d5336affb59e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e1e5e9b9-0336-44cb-b0dc-c01f754eb498	b552183f-2695-41f9-860e-16d5fe94c4aa	59297618-e8bb-4800-8db0-d5336affb59e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9b6ea887-69d4-477f-8699-1f0d0ba60ca3	914d8500-03b6-4a43-a250-244effca1cf1	59297618-e8bb-4800-8db0-d5336affb59e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4136d3de-f1a6-4a2c-82a1-7a7ced4ee455	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	59297618-e8bb-4800-8db0-d5336affb59e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-742685b5-8a6c-49ca-9f0a-ba8cde1da410	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f459e288-e26d-4297-93e9-76ad0a450bc3	a5023c9e-367f-41e1-ba02-bdb2929edc89	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1ac5ab59-dda0-433b-a041-1fa523e2999a	f5c742d1-e0cc-4bf8-b860-a673ac407393	59297618-e8bb-4800-8db0-d5336affb59e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e0e1c698-2857-4cbf-8f42-5bf0e6ebe5a8	1a62b1f8-1810-464d-a67b-168d7e419827	59297618-e8bb-4800-8db0-d5336affb59e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e2e31e64-2bec-4ef0-b31d-865b9ded55d9	aba61e5b-422a-4461-b9da-8dba8f6d3f85	59297618-e8bb-4800-8db0-d5336affb59e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1865c3f2-82f9-4a14-beb3-da01c6fac7e5	111cc3cd-6d35-43ce-be91-dde90d3d4015	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3781b36c-3439-47e4-ab82-0905a234d722	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-492275bf-87a1-4d89-8cf3-1abc0b9b2785	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0eb6b1b3-0c24-4344-a1c1-4735710dcf79	768a11f9-ded7-4f6f-ba86-073e279255d9	59297618-e8bb-4800-8db0-d5336affb59e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-90f3ef4f-20e6-416a-8211-63721888b098	701aaa2c-a899-4def-bf5f-e17511874409	59297618-e8bb-4800-8db0-d5336affb59e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7648766b-a0ee-4caf-951e-bc6af08e7865	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d477d9e8-4bc5-4d93-8c70-f355c9d7a956	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f8a3a48d-5e9c-4b01-ab24-b0c2e2316373	64c49f37-a38a-46a6-9622-7427f1501658	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-25daed66-5bab-4563-ab21-b8119484d070	92aa9169-28d9-4754-a570-553b067642ed	59297618-e8bb-4800-8db0-d5336affb59e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ac87a5d2-19e3-438b-ac12-94d69a9393b6	a3793f87-7f3c-41a1-a675-236fc1b710ab	59297618-e8bb-4800-8db0-d5336affb59e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-43db8e89-6fe0-46c7-b06a-a7eb75c41242	29ad5710-1621-4c24-ac75-dedfc168ba1a	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cf5372e1-5342-4ca5-9cd8-99f17d5ea859	efc1df20-ca04-44a6-87b2-7cae1ff50a88	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3c0bfa3c-6da3-40cf-958d-bc713968ab90	c787fe3b-4b33-40ee-8794-c1148202f81a	59297618-e8bb-4800-8db0-d5336affb59e	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d8500121-5f35-4d6d-af32-3d9b9849c614	f29af015-7833-4f9a-ac57-6fbef5bf91ec	59297618-e8bb-4800-8db0-d5336affb59e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8ea987dd-5d5f-475f-b154-1600561abadd	62a927b7-9fd8-461a-b64e-1aa441eeba4d	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d72b63fa-2130-4cca-a918-b2cdb15148aa	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bae1107c-56b6-4947-941d-1979c9434318	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dda3bdd5-9ad6-4d54-a9be-4d3a0fe6e054	b552183f-2695-41f9-860e-16d5fe94c4aa	a9b98ffe-9f91-4814-9876-ead8cdfc3566	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b552c1c0-a231-4b6c-b26a-688ab72cc22c	914d8500-03b6-4a43-a250-244effca1cf1	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-30b39ce2-fcf0-4d8d-87f0-02320b94b464	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-66645480-387b-4688-b539-f1c9402fbc50	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c63ad5bc-247a-45c6-ac08-b24df20eab84	a5023c9e-367f-41e1-ba02-bdb2929edc89	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c89d6619-e8cf-4ad2-8175-68988835fdc3	f5c742d1-e0cc-4bf8-b860-a673ac407393	a9b98ffe-9f91-4814-9876-ead8cdfc3566	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-17c6505f-8c32-4ed2-b24c-d9b51b82c550	1a62b1f8-1810-464d-a67b-168d7e419827	a9b98ffe-9f91-4814-9876-ead8cdfc3566	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4d33a1df-d557-4ebf-893c-cee8f32256b7	aba61e5b-422a-4461-b9da-8dba8f6d3f85	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a424fd1c-2f19-4fa2-a2d4-1e6578c6ee23	111cc3cd-6d35-43ce-be91-dde90d3d4015	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-03df872a-3c97-446c-855a-60169ce13b38	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3214e9da-261c-4795-8514-de23851b0b32	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-83b939fa-e752-441b-a01a-876eaa10504c	768a11f9-ded7-4f6f-ba86-073e279255d9	a9b98ffe-9f91-4814-9876-ead8cdfc3566	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-21c7735e-72ad-4c36-9150-ed40c7d5f950	701aaa2c-a899-4def-bf5f-e17511874409	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-341a16e1-9420-4eb2-ac1a-54b4d7e200f5	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-daf7c65b-c8a4-4d8a-8fdb-eaaa876e2bd8	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cb038a72-17ae-4791-9043-ca9df832276e	64c49f37-a38a-46a6-9622-7427f1501658	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6bb0008a-b590-45eb-90f1-5f2a9574b554	92aa9169-28d9-4754-a570-553b067642ed	a9b98ffe-9f91-4814-9876-ead8cdfc3566	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5dac3c05-df0a-49c6-bf4d-4d2d59c14d95	a3793f87-7f3c-41a1-a675-236fc1b710ab	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b93e3cbc-5573-43a7-b749-9ebd78b5bbd8	29ad5710-1621-4c24-ac75-dedfc168ba1a	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a28a1ddc-9b88-40bb-b88e-ccf7ecc2eeac	efc1df20-ca04-44a6-87b2-7cae1ff50a88	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8806ac6f-8274-43b2-a252-3c8091f2226e	c787fe3b-4b33-40ee-8794-c1148202f81a	a9b98ffe-9f91-4814-9876-ead8cdfc3566	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b9eab0cb-efa1-4bc7-a1da-36103b09f741	f29af015-7833-4f9a-ac57-6fbef5bf91ec	a9b98ffe-9f91-4814-9876-ead8cdfc3566	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-77e157c5-fe43-4497-9032-d3a02633d47e	bb568e26-548b-4ca5-9221-fefb9c9143b3	59297618-e8bb-4800-8db0-d5336affb59e	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.016772+00	\N	\N	\N
-892e9b47-d8a1-415e-86a9-4ad44886df0e	bb568e26-548b-4ca5-9221-fefb9c9143b3	a9b98ffe-9f91-4814-9876-ead8cdfc3566	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.017518+00	\N	\N	\N
-b7f59ca3-f499-41d5-9ce5-fb0f2762d8ab	cd2a32ed-32fc-47bc-88a9-e6fc48863869	59297618-e8bb-4800-8db0-d5336affb59e	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.543736+00	\N	\N	\N
-e9a72abf-09de-4b89-8c2f-84690262683d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	a9b98ffe-9f91-4814-9876-ead8cdfc3566	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.544427+00	\N	\N	\N
-8ca98979-a5d9-426a-a94e-f764ccc71349	62a927b7-9fd8-461a-b64e-1aa441eeba4d	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a871b410-6759-46bf-9d93-5b5dd03a8352	a5bfe265-981a-4723-b7bb-6ddc389db7f0	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1c7b121d-a445-4efe-8ee3-fa65fd4b0fd1	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f96df91a-171f-40e1-8fb1-7c168be85c5c	b552183f-2695-41f9-860e-16d5fe94c4aa	46752962-8366-4417-b6f3-2f33f03eb94d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3e1c7be8-74ba-4b60-ba74-91a4b6950ee5	914d8500-03b6-4a43-a250-244effca1cf1	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-17868294-7488-4119-ba88-64e523fde1a3	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f388e946-356a-4ed7-b5e6-7d044fe2df31	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	46752962-8366-4417-b6f3-2f33f03eb94d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b907d940-6d67-4d16-81b0-244db62970da	a5023c9e-367f-41e1-ba02-bdb2929edc89	46752962-8366-4417-b6f3-2f33f03eb94d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7aeb1cf4-1621-4e10-8c3c-66b87c4fc8a9	f5c742d1-e0cc-4bf8-b860-a673ac407393	46752962-8366-4417-b6f3-2f33f03eb94d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67d3213c-59f4-4167-83bc-20598f4a3099	1a62b1f8-1810-464d-a67b-168d7e419827	46752962-8366-4417-b6f3-2f33f03eb94d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67a51e6e-5452-49de-88d0-cd95b3671839	aba61e5b-422a-4461-b9da-8dba8f6d3f85	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6914bc0d-967d-4d27-a9ba-006f8e28d574	111cc3cd-6d35-43ce-be91-dde90d3d4015	46752962-8366-4417-b6f3-2f33f03eb94d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a1f10a84-a4f6-4193-8569-19e24efa2210	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-448c2dca-6dde-43d0-8f97-5fa0c0889462	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f3060aa5-8e2e-4182-ba24-2318c00cf25e	768a11f9-ded7-4f6f-ba86-073e279255d9	46752962-8366-4417-b6f3-2f33f03eb94d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ff8ab81a-cae3-4f31-b164-c209a2d0da52	701aaa2c-a899-4def-bf5f-e17511874409	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-df0e4655-d413-4d49-ac4c-181a667c7e74	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	46752962-8366-4417-b6f3-2f33f03eb94d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-af10aeb1-fa16-42de-97b1-6f0fef469f59	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a15db2fb-3ca6-465c-a390-ffd0ee103640	64c49f37-a38a-46a6-9622-7427f1501658	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-86c6a5c8-117f-4dff-8fad-e21366f48bbf	92aa9169-28d9-4754-a570-553b067642ed	46752962-8366-4417-b6f3-2f33f03eb94d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fc284b1d-f08e-4af9-a877-aef8e7a05548	a3793f87-7f3c-41a1-a675-236fc1b710ab	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5804eac7-a012-4fb0-b685-14b1651823cf	29ad5710-1621-4c24-ac75-dedfc168ba1a	46752962-8366-4417-b6f3-2f33f03eb94d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-184c4dbc-4aff-4dcb-9fc9-5e26968253d0	efc1df20-ca04-44a6-87b2-7cae1ff50a88	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3e8b9ef6-45c0-4dc2-a79f-a604d1046410	c787fe3b-4b33-40ee-8794-c1148202f81a	46752962-8366-4417-b6f3-2f33f03eb94d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-48f6afd6-ccf8-4fad-9e4a-3f231f7e2759	f29af015-7833-4f9a-ac57-6fbef5bf91ec	46752962-8366-4417-b6f3-2f33f03eb94d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a07c1489-ec64-4478-8274-8977120251d5	62a927b7-9fd8-461a-b64e-1aa441eeba4d	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ecbadafe-44b8-40fd-a6f0-3dff375e9d95	a5bfe265-981a-4723-b7bb-6ddc389db7f0	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-676a677f-fe30-4ab1-a38a-a59ac43918a3	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-633abe3b-e9c0-45f3-beca-ad95add6e68d	b552183f-2695-41f9-860e-16d5fe94c4aa	3eaf848f-e2f3-4d9b-a5ba-73240c595610	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e21449de-62f4-45e0-b5e6-2de0812d2c07	914d8500-03b6-4a43-a250-244effca1cf1	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4d67aaa4-c2c2-4634-862c-c1bdc34c8884	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-745b99e1-1ad3-4c60-96e6-96b937dbad33	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-17d8dd47-eb4a-46da-94d7-216de798c9d2	a5023c9e-367f-41e1-ba02-bdb2929edc89	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-363b969b-9a58-44d3-b76d-8e286bc777ee	f5c742d1-e0cc-4bf8-b860-a673ac407393	3eaf848f-e2f3-4d9b-a5ba-73240c595610	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d6c2d02a-b772-448f-bc71-1db90342fb41	1a62b1f8-1810-464d-a67b-168d7e419827	3eaf848f-e2f3-4d9b-a5ba-73240c595610	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bcf1f74c-45af-4e35-929d-2bde33ebb83f	aba61e5b-422a-4461-b9da-8dba8f6d3f85	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6af2c9af-7fe6-4d4a-816d-4dc85b664976	111cc3cd-6d35-43ce-be91-dde90d3d4015	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fd5764e2-5219-4f18-9fa6-f551f193dcc3	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-56ed27dc-83d9-4d97-b855-9b36b9db314a	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0ab39911-6330-4911-ac5b-860ddca2cf40	768a11f9-ded7-4f6f-ba86-073e279255d9	3eaf848f-e2f3-4d9b-a5ba-73240c595610	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-49f6a998-2b7a-4335-b644-5165d8912648	701aaa2c-a899-4def-bf5f-e17511874409	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b02c8ddf-6523-4a74-98b6-564d34a31e9f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-69306bb5-5f7f-469d-a10d-264512355c52	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ec8667ef-abc1-4c42-9a50-af97474e8bc0	64c49f37-a38a-46a6-9622-7427f1501658	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e9e526d8-78d8-4419-ba72-1a57f77436ed	92aa9169-28d9-4754-a570-553b067642ed	3eaf848f-e2f3-4d9b-a5ba-73240c595610	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b34c79c-dd88-466f-871d-1883d88d3f28	a3793f87-7f3c-41a1-a675-236fc1b710ab	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7fa24aaa-6366-4be5-86a7-dce69f3688b2	29ad5710-1621-4c24-ac75-dedfc168ba1a	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6b48e0f2-8055-4f80-acf4-41323ae7421d	efc1df20-ca04-44a6-87b2-7cae1ff50a88	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-16b1ac15-ddf1-4e6a-a2e9-8bdc939a2ed4	c787fe3b-4b33-40ee-8794-c1148202f81a	3eaf848f-e2f3-4d9b-a5ba-73240c595610	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2050b386-cc87-4fa7-b5c2-7774a4143ba8	f29af015-7833-4f9a-ac57-6fbef5bf91ec	3eaf848f-e2f3-4d9b-a5ba-73240c595610	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b7c48ae5-d18d-466d-8ddd-3a7840e0fd38	62a927b7-9fd8-461a-b64e-1aa441eeba4d	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d7a6788c-ed41-4101-84cb-08315d08ffd9	a5bfe265-981a-4723-b7bb-6ddc389db7f0	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f3582f2d-1989-450a-9cd8-5627700109f6	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-09d201fd-1a68-404a-86e3-5ebb2371bc78	b552183f-2695-41f9-860e-16d5fe94c4aa	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9f0e6192-c10c-49c7-994a-e1431cb6d3ed	914d8500-03b6-4a43-a250-244effca1cf1	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cbd2d1af-0095-4000-ad3d-876f92355605	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-76d2d449-aeff-4558-a6f8-b056972f925d	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-223a958f-0c61-4e47-a015-2e0f91326461	a5023c9e-367f-41e1-ba02-bdb2929edc89	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c27f2cf8-ba90-4369-90b3-c44ba4542a8f	f5c742d1-e0cc-4bf8-b860-a673ac407393	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-095627ce-6459-4782-b8be-a23bbb4fa423	1a62b1f8-1810-464d-a67b-168d7e419827	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b9c773e-ff1b-4c2e-9c49-64a44b5b20e4	aba61e5b-422a-4461-b9da-8dba8f6d3f85	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0ffee169-e088-4b3a-bbc0-7ae2305fb60c	111cc3cd-6d35-43ce-be91-dde90d3d4015	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c4aae0cf-d468-4a7d-a8fa-5018657821e2	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ba66a957-9504-4dea-86fc-10c1e816735d	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dc4a9e03-3b9d-481a-8c39-4fee98a47a81	768a11f9-ded7-4f6f-ba86-073e279255d9	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6444c6c1-10d8-4311-b64e-54085bd03233	701aaa2c-a899-4def-bf5f-e17511874409	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-280cb490-f100-4c78-aa1b-aa598b928343	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e8da08b3-2c52-414f-9aec-10c23500e6ab	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f9a751ef-17c6-4f4c-bbdf-9f5926cf1933	64c49f37-a38a-46a6-9622-7427f1501658	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7dfa91f1-9fb2-46ab-bfda-30eb4c645a0c	92aa9169-28d9-4754-a570-553b067642ed	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6b9d8dd1-195f-42b3-b7c6-517dd9bd1231	a3793f87-7f3c-41a1-a675-236fc1b710ab	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-95a1eed4-8223-44e6-8ef6-1b1ee5511934	29ad5710-1621-4c24-ac75-dedfc168ba1a	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c96e23ae-6dac-49a3-835b-db40d0f7ea0d	efc1df20-ca04-44a6-87b2-7cae1ff50a88	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a0163a57-1235-439c-aac6-8db3ba3a90ad	c787fe3b-4b33-40ee-8794-c1148202f81a	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fa868ccf-7432-4aa4-8de1-7d022df9bc20	f29af015-7833-4f9a-ac57-6fbef5bf91ec	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3fbe716f-ae43-41b5-9d6d-6446c79494d4	bb568e26-548b-4ca5-9221-fefb9c9143b3	3eaf848f-e2f3-4d9b-a5ba-73240c595610	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.019058+00	\N	\N	\N
-f3ae54a0-70ef-452b-a97e-e37dcc3db501	bb568e26-548b-4ca5-9221-fefb9c9143b3	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.019675+00	\N	\N	\N
-a7388b8b-41cb-4320-861e-b56fb8b76315	cd2a32ed-32fc-47bc-88a9-e6fc48863869	3eaf848f-e2f3-4d9b-a5ba-73240c595610	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.546078+00	\N	\N	\N
-c1230cb7-dfe7-46fb-97f8-06ede72fcfe2	cd2a32ed-32fc-47bc-88a9-e6fc48863869	71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.54679+00	\N	\N	\N
-91377a70-9399-4963-b2c1-2c084e353381	62a927b7-9fd8-461a-b64e-1aa441eeba4d	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8e282a37-860b-42c5-8ba2-06e001b3885f	a5bfe265-981a-4723-b7bb-6ddc389db7f0	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f51521a-5f90-4b42-8efe-ba51d67758b0	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-742d939d-8218-4a8b-bcdf-9217d5cf1942	b552183f-2695-41f9-860e-16d5fe94c4aa	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-57a3b9a5-9df8-4d34-bebc-63d60ccc8f29	914d8500-03b6-4a43-a250-244effca1cf1	4847f750-3894-4f72-b784-35cfc2ec87fe	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b23b09ba-6077-4bb2-afbd-ecbebbb8fac6	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d16f4afe-3791-4bc5-9bff-40be9f0d953e	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	4847f750-3894-4f72-b784-35cfc2ec87fe	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2a3a6a23-0ee6-4478-860a-acc552f2669e	a5023c9e-367f-41e1-ba02-bdb2929edc89	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0120ae4c-e1b0-4143-8602-66c987fb4b90	f5c742d1-e0cc-4bf8-b860-a673ac407393	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cbf45917-98b7-4243-814d-ad3345945e28	1a62b1f8-1810-464d-a67b-168d7e419827	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7a18bc1d-4247-418a-b915-898c8ab8aa47	aba61e5b-422a-4461-b9da-8dba8f6d3f85	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0878b8b8-b25b-4767-a79b-320cbc5e1c46	111cc3cd-6d35-43ce-be91-dde90d3d4015	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b709701c-4156-4c0e-b2bc-f139e74a4c51	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-beb8445e-3447-4b4e-8735-f3fed0cbe10e	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-269c2c40-3af9-4bf9-aa49-0c87f1effe3f	768a11f9-ded7-4f6f-ba86-073e279255d9	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3ab09fa0-f09f-41f9-aa43-09d809fcb103	701aaa2c-a899-4def-bf5f-e17511874409	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5a213a5e-c861-4dfe-9e01-27c5dc726f98	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9082ab42-c068-4c98-a3f0-f705408dad2e	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3bebf6fc-71b0-4061-a8f3-9d28113ef636	64c49f37-a38a-46a6-9622-7427f1501658	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ed461773-c275-4e55-9e39-e5889860f004	92aa9169-28d9-4754-a570-553b067642ed	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f30915b3-7c52-48b1-beb8-6986ac8731ad	a3793f87-7f3c-41a1-a675-236fc1b710ab	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7839afb7-68a0-453f-a51e-7703a5bf3c20	29ad5710-1621-4c24-ac75-dedfc168ba1a	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-22c44860-0f4c-4cc6-a4f8-6c54187a1690	efc1df20-ca04-44a6-87b2-7cae1ff50a88	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ec8b3e4c-5626-4b4f-8fc7-2e59064442dd	c787fe3b-4b33-40ee-8794-c1148202f81a	4847f750-3894-4f72-b784-35cfc2ec87fe	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13d6a235-8fa0-4644-a485-778745a70f09	f29af015-7833-4f9a-ac57-6fbef5bf91ec	4847f750-3894-4f72-b784-35cfc2ec87fe	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-008b0f27-2ee0-4ef9-beb5-d0744ee95669	62a927b7-9fd8-461a-b64e-1aa441eeba4d	4122810c-78c0-460e-89c9-ced09ff24787	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0f3acfeb-37e9-4c5e-bb0f-2222b9ef6219	a5bfe265-981a-4723-b7bb-6ddc389db7f0	4122810c-78c0-460e-89c9-ced09ff24787	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13509e4f-603d-4603-a3c1-814bb26ab9c4	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	4122810c-78c0-460e-89c9-ced09ff24787	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-de56c332-de0e-4ca6-91b8-d205fdc65c65	b552183f-2695-41f9-860e-16d5fe94c4aa	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-141dfbf1-10ce-4723-a497-a4a2cff0e77f	914d8500-03b6-4a43-a250-244effca1cf1	4122810c-78c0-460e-89c9-ced09ff24787	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bee58644-af99-40fe-ac6e-5ab66a41a3b4	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	4122810c-78c0-460e-89c9-ced09ff24787	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b1724c71-5fdd-4942-87ba-5f06e2b88f67	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-606a0bb9-2433-4ce7-9318-f4e7de0d5e92	a5023c9e-367f-41e1-ba02-bdb2929edc89	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a361da69-b0ea-4c78-a6bd-faea58971213	f5c742d1-e0cc-4bf8-b860-a673ac407393	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1c4a8f6c-dbb2-4b2c-bee6-ba069f6703ec	1a62b1f8-1810-464d-a67b-168d7e419827	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-df596343-9002-4c5c-972e-ff5e1cee42dc	aba61e5b-422a-4461-b9da-8dba8f6d3f85	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ba113a34-3e3d-40b4-be98-24dfe38e87ac	111cc3cd-6d35-43ce-be91-dde90d3d4015	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4ae7a1a8-d04d-4778-be9c-17ef1debe225	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5cc859ce-c3cc-46c2-b1fd-3dc793d37580	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b0406122-9f68-4102-862b-c0cb542122a5	768a11f9-ded7-4f6f-ba86-073e279255d9	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b54b0a9a-72ff-474d-ae72-8b34ea10f437	701aaa2c-a899-4def-bf5f-e17511874409	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4f84d38e-43fb-4bf1-bd74-6b99fef6a7f2	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d568787b-8bfe-4b4d-bf6c-d3b45324864b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d50f1ccd-2a84-4a80-b131-0e70aa87d999	64c49f37-a38a-46a6-9622-7427f1501658	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b8290796-8b9c-45e8-868a-bcf98c331a32	92aa9169-28d9-4754-a570-553b067642ed	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8cff6e14-136a-4a99-a3bf-5e7cd9c5aaf2	a3793f87-7f3c-41a1-a675-236fc1b710ab	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2678aa5f-33f1-42a9-b63c-9fa919cef64b	29ad5710-1621-4c24-ac75-dedfc168ba1a	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6435d49a-15c5-4957-ab36-f9922c25aafc	efc1df20-ca04-44a6-87b2-7cae1ff50a88	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-46a09402-aaf2-41a3-9620-d8565ee5b24e	c787fe3b-4b33-40ee-8794-c1148202f81a	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5cf8d1c4-39ed-4d3e-92e7-951da9f89c7b	f29af015-7833-4f9a-ac57-6fbef5bf91ec	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f2d68a39-af31-4645-a590-31690b8effaf	62a927b7-9fd8-461a-b64e-1aa441eeba4d	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fc25e16b-5979-49ed-80c9-a4ec5f39014e	a5bfe265-981a-4723-b7bb-6ddc389db7f0	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d0a22e0e-f3c5-41f4-90a2-d54b80310079	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-88520809-b083-4539-9bf5-337124a93dc7	b552183f-2695-41f9-860e-16d5fe94c4aa	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3152e62d-ccc2-4adb-9b05-9ab5d23b5423	914d8500-03b6-4a43-a250-244effca1cf1	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e2746629-bc18-471d-9241-75034e93338e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1d990762-88e4-44cc-9e6d-a97132f43c04	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-12798eba-be2c-46f6-962e-05be07e289bf	a5023c9e-367f-41e1-ba02-bdb2929edc89	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0cf205f3-b281-4e22-8840-9d895a171037	f5c742d1-e0cc-4bf8-b860-a673ac407393	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a7b53391-e6aa-4013-884b-ee4cf8a41abe	1a62b1f8-1810-464d-a67b-168d7e419827	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fc358539-44f7-475d-9822-8de4c0ef0578	aba61e5b-422a-4461-b9da-8dba8f6d3f85	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d722c456-6672-45a1-919f-a3ef43c053ea	111cc3cd-6d35-43ce-be91-dde90d3d4015	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6aa77121-a838-440e-bd15-91f58debe407	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5fdd6d4b-601b-4310-9c45-80ce262baf91	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-765aa772-7e4b-49fd-9a82-b386b151a66c	768a11f9-ded7-4f6f-ba86-073e279255d9	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5263e5a6-24f4-486e-b09c-31af3bb8aae7	701aaa2c-a899-4def-bf5f-e17511874409	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f7634207-97c2-4804-9dd0-e804d1497e4f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8e6d6171-39ae-4bba-a445-7ab9992a017a	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b6d61302-2389-4759-bb3f-4c87440c742f	64c49f37-a38a-46a6-9622-7427f1501658	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8a4a7ebc-6a39-400b-a7d6-2e898603705c	92aa9169-28d9-4754-a570-553b067642ed	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-77c7a4b4-03fd-478e-a4c3-d19bcd11be1a	a3793f87-7f3c-41a1-a675-236fc1b710ab	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cd3bf441-40ac-408c-96f6-675da67a621d	29ad5710-1621-4c24-ac75-dedfc168ba1a	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-19b03327-4c7a-41f9-ba3e-f26b8d3656de	efc1df20-ca04-44a6-87b2-7cae1ff50a88	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4213e7db-05bb-403e-af22-5b99554af276	c787fe3b-4b33-40ee-8794-c1148202f81a	4f4e2505-103b-4b48-8e5d-de047a3102ed	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ad1a5bba-f8f0-4939-b137-48f632f0ec8c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-32cfb819-d73b-4f54-bac2-84b307f337a2	bb568e26-548b-4ca5-9221-fefb9c9143b3	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.021248+00	\N	\N	\N
-ef4f713a-b0e3-4998-b8df-8c6aff182c4f	bb568e26-548b-4ca5-9221-fefb9c9143b3	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.021888+00	\N	\N	\N
-8fc79af0-a9e4-46dc-aef5-8da5754e39e4	cd2a32ed-32fc-47bc-88a9-e6fc48863869	4122810c-78c0-460e-89c9-ced09ff24787	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.548116+00	\N	\N	\N
-21d4a0ec-f85a-4f7d-83db-7c27518d72e4	cd2a32ed-32fc-47bc-88a9-e6fc48863869	4f4e2505-103b-4b48-8e5d-de047a3102ed	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.548795+00	\N	\N	\N
-c2f703c3-07d5-4b86-a04a-0cfdbb6cb328	62a927b7-9fd8-461a-b64e-1aa441eeba4d	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d690f2bb-73e6-451b-9209-59e06cddfcd2	a5bfe265-981a-4723-b7bb-6ddc389db7f0	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-38b46e48-9801-4e69-8fa8-68a60a487522	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-afd6c9c6-a43c-4be8-800a-65cc2415cd6b	b552183f-2695-41f9-860e-16d5fe94c4aa	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-afa4c694-7cef-4a4a-a2a6-d426bc13d215	914d8500-03b6-4a43-a250-244effca1cf1	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0b69e809-feec-4b72-952c-be3fd1900276	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-017a3d41-3715-45c9-8776-7fd51306b677	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f9ba47af-bba4-4552-a167-f405d543a7e8	a5023c9e-367f-41e1-ba02-bdb2929edc89	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a7dc9f9a-3433-4bde-bef1-21565a266dc0	f5c742d1-e0cc-4bf8-b860-a673ac407393	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5100bc45-99c5-4180-97ed-9ac8078284e9	1a62b1f8-1810-464d-a67b-168d7e419827	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13657ab8-5cf7-47c4-b0a8-c2bb110b7131	aba61e5b-422a-4461-b9da-8dba8f6d3f85	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b0b1b08-9c1e-4fd5-9b28-1623e7f910b9	111cc3cd-6d35-43ce-be91-dde90d3d4015	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1570e8eb-13c6-4e37-ad69-1b63f1548b22	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ac7bf6db-ddba-4a6e-8401-373a6ae14614	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9bcb5591-3736-4066-b3fa-f3da4fb08eec	768a11f9-ded7-4f6f-ba86-073e279255d9	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7078e157-b771-46d4-a9b5-36cca051b1e3	701aaa2c-a899-4def-bf5f-e17511874409	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f7524d1d-b306-4cfa-9922-f0c159a5e58b	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-12111a84-bbd0-4142-a6ba-0896dd2a4955	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-593858c7-9800-484d-a920-8befdc9c3c34	64c49f37-a38a-46a6-9622-7427f1501658	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c761f378-9362-4d65-acd4-9dd88a0f78a6	92aa9169-28d9-4754-a570-553b067642ed	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ffcae0e5-1d09-4bf3-be54-f36d565dfe3d	a3793f87-7f3c-41a1-a675-236fc1b710ab	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a094d54c-351e-4e8f-9473-c62b42149715	29ad5710-1621-4c24-ac75-dedfc168ba1a	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-73bc7df4-8829-47cd-9cd0-c80e52e31856	efc1df20-ca04-44a6-87b2-7cae1ff50a88	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0e04797f-925c-4734-9907-497c835c5e03	c787fe3b-4b33-40ee-8794-c1148202f81a	419ed897-0783-4d66-95b1-9ec8e4a86e7b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2c0e14e6-655d-4341-99f2-4b95635825d0	f29af015-7833-4f9a-ac57-6fbef5bf91ec	419ed897-0783-4d66-95b1-9ec8e4a86e7b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f13c902d-8a3b-4a0e-9a77-9a6ea75c73da	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0c39c751-2295-44e2-8f0e-49eef215d68f	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9095a92b-d0b5-404b-8d24-2538befca0bc	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0c39c751-2295-44e2-8f0e-49eef215d68f	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6b74e3ea-4340-458e-b6f5-de652ee8cddc	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0c39c751-2295-44e2-8f0e-49eef215d68f	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aa215f91-a04a-4714-a2bc-43492b71d53e	b552183f-2695-41f9-860e-16d5fe94c4aa	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d7a05052-bf83-46b8-9f79-fbb715f98216	914d8500-03b6-4a43-a250-244effca1cf1	0c39c751-2295-44e2-8f0e-49eef215d68f	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-11dc38ee-de1c-47b5-9271-083720739b30	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0c39c751-2295-44e2-8f0e-49eef215d68f	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9188ebde-77d0-4264-ad60-d3a3fc1a9020	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-30bed472-17a1-4fb8-be60-e7c1a928627f	a5023c9e-367f-41e1-ba02-bdb2929edc89	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-93bbfef3-0f38-4bc4-bbb6-612cd30f736c	f5c742d1-e0cc-4bf8-b860-a673ac407393	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1a98eb3a-9bec-4098-b909-a45eadeabfe1	1a62b1f8-1810-464d-a67b-168d7e419827	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7ceebec1-6c87-4e99-9631-3349e0a7b150	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d26c5018-eb41-487f-b913-3790c6581393	111cc3cd-6d35-43ce-be91-dde90d3d4015	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-801dc7f4-c760-45ad-bc7f-a586b44473a5	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ae694433-cba4-494b-a92f-b5a41d14a8b7	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4201a15a-929b-42c2-99e8-cbfba6d4e75b	768a11f9-ded7-4f6f-ba86-073e279255d9	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ec6ed5c0-426c-4b79-aa06-d1b6e403a705	701aaa2c-a899-4def-bf5f-e17511874409	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-223846ea-3d65-497b-ac52-cfebea718738	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7b9e8b1b-e16a-4f6d-bfa3-9ec8850e2475	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c3bb4e31-ea0e-49be-b114-1f979045e541	64c49f37-a38a-46a6-9622-7427f1501658	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b9ccdbcb-4448-43c1-be18-0ab7cac1e73b	92aa9169-28d9-4754-a570-553b067642ed	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e721e69e-1538-45c1-950a-3d7907ce76e3	a3793f87-7f3c-41a1-a675-236fc1b710ab	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-07997740-f048-4af8-ae49-7b6f2b77f8c8	29ad5710-1621-4c24-ac75-dedfc168ba1a	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b7813bc7-738a-4921-8bf7-7a99ac0372db	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c851baee-8591-4540-8c17-f3cfd242ad21	c787fe3b-4b33-40ee-8794-c1148202f81a	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e6591ccb-78fb-45b3-b083-42078766c7c6	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-833a3b62-c175-4350-94d9-357ebd7057c0	62a927b7-9fd8-461a-b64e-1aa441eeba4d	7294bf50-9237-42f7-8da6-bbcf9926a350	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-db22529b-975f-4522-aa8a-68a13051a3c2	a5bfe265-981a-4723-b7bb-6ddc389db7f0	7294bf50-9237-42f7-8da6-bbcf9926a350	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-73c26436-8cec-407f-9c5f-8827e3358692	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	7294bf50-9237-42f7-8da6-bbcf9926a350	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-54222b71-3bed-4ff5-9e53-383a592539c9	b552183f-2695-41f9-860e-16d5fe94c4aa	7294bf50-9237-42f7-8da6-bbcf9926a350	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a2b361a7-8905-4507-b102-c959d95b32e3	914d8500-03b6-4a43-a250-244effca1cf1	7294bf50-9237-42f7-8da6-bbcf9926a350	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-afa5b5c9-a0f0-4878-8e7e-90516ac24f7d	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	7294bf50-9237-42f7-8da6-bbcf9926a350	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1845dc58-d0ad-4072-a1c9-9171eb395dc2	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8dca098f-b705-45af-8d89-a691e2ffcc53	a5023c9e-367f-41e1-ba02-bdb2929edc89	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fe2320c0-15b5-4e72-8194-b51938a4d59c	f5c742d1-e0cc-4bf8-b860-a673ac407393	7294bf50-9237-42f7-8da6-bbcf9926a350	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-89e0416a-7d87-4874-b901-6f4c7ad38f6c	1a62b1f8-1810-464d-a67b-168d7e419827	7294bf50-9237-42f7-8da6-bbcf9926a350	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d2c44c03-0178-4d3d-bde2-b5253fe4b85a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-43e7cf91-6451-4365-93d3-c38f2b228d5f	111cc3cd-6d35-43ce-be91-dde90d3d4015	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-317556df-0506-4a4f-b3c4-52479e409a96	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7f57fc0e-7b39-4db9-bb68-9c40aef1d003	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-765dc45b-34a5-4aa5-869e-aee57efeffa8	768a11f9-ded7-4f6f-ba86-073e279255d9	7294bf50-9237-42f7-8da6-bbcf9926a350	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a67ed196-3f5f-4df1-b4c0-3f53462890ae	701aaa2c-a899-4def-bf5f-e17511874409	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5a012bbe-b139-465e-8c30-13d54b6e0064	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d8f87abb-d0be-4f6a-9fec-303d3a6a80a0	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5bb80c51-dcda-4520-896c-061b41b88c88	64c49f37-a38a-46a6-9622-7427f1501658	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-15e9da01-e39b-4c55-84e7-a3b9dc0d4631	92aa9169-28d9-4754-a570-553b067642ed	7294bf50-9237-42f7-8da6-bbcf9926a350	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9f61bd2d-6740-4f51-9aa0-0f9aaef870b0	a3793f87-7f3c-41a1-a675-236fc1b710ab	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6833a660-a978-4b49-bbcb-f269f36f762f	29ad5710-1621-4c24-ac75-dedfc168ba1a	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-30c11bca-6b0d-4f7d-8b21-95e6afad07f0	efc1df20-ca04-44a6-87b2-7cae1ff50a88	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-83f950c5-356b-4f6f-8925-14f19f1acac1	c787fe3b-4b33-40ee-8794-c1148202f81a	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9c4ee971-8704-46d0-998c-fa3c7f131234	f29af015-7833-4f9a-ac57-6fbef5bf91ec	7294bf50-9237-42f7-8da6-bbcf9926a350	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-653005fc-2563-4f43-a1b7-bf36ed0e0df6	bb568e26-548b-4ca5-9221-fefb9c9143b3	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.023375+00	\N	\N	\N
-77f06214-ce14-4c3d-8d78-f62b277467e9	bb568e26-548b-4ca5-9221-fefb9c9143b3	7294bf50-9237-42f7-8da6-bbcf9926a350	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.023983+00	\N	\N	\N
-e20eed4a-6d24-48f1-bf1a-9651a87778b8	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0c39c751-2295-44e2-8f0e-49eef215d68f	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.550381+00	\N	\N	\N
-5f3d8ff7-51e9-4e15-9848-42b2df9d8de3	cd2a32ed-32fc-47bc-88a9-e6fc48863869	7294bf50-9237-42f7-8da6-bbcf9926a350	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.55103+00	\N	\N	\N
-26b03992-8eb2-4b13-a187-32cd93477728	62a927b7-9fd8-461a-b64e-1aa441eeba4d	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-834c01bf-a7b2-455f-abdd-02028fd76fde	a5bfe265-981a-4723-b7bb-6ddc389db7f0	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-80c22d5e-b111-41a3-b8bf-843f83c42a30	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13137478-1a24-4174-b340-4fd99b7138a1	b552183f-2695-41f9-860e-16d5fe94c4aa	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-209d9467-81c2-41dd-bb78-2d4825de87c6	914d8500-03b6-4a43-a250-244effca1cf1	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f58b37e4-8525-41f3-b497-739939779800	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-60ed15b4-c02a-4201-b3ca-95a4f8c0e491	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cd659253-6bf6-4d5b-a546-a54b76c57a8c	a5023c9e-367f-41e1-ba02-bdb2929edc89	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-11a0eeb6-aec6-4faf-b85a-eeec42aba3c4	f5c742d1-e0cc-4bf8-b860-a673ac407393	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1606b817-385e-42f7-99e3-248575a0d171	1a62b1f8-1810-464d-a67b-168d7e419827	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b3d899c8-0841-403c-87ae-384515c60bb9	aba61e5b-422a-4461-b9da-8dba8f6d3f85	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d7321ff7-eccf-4135-809a-0bdbe925bd3b	111cc3cd-6d35-43ce-be91-dde90d3d4015	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-503d2b86-ac4f-4023-b4e1-64183dec5c2c	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-218d70c0-c84d-403c-b3da-73572a5b9881	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-60b696eb-48ae-4dc6-9228-ecc93ee303f8	768a11f9-ded7-4f6f-ba86-073e279255d9	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-102380b7-228a-4971-a58a-522399c0fdf9	701aaa2c-a899-4def-bf5f-e17511874409	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f0a8b66-84ee-4961-8940-b3abb8d91e97	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-68fbec6f-2236-417b-8695-cf1d7a4c8826	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a66aa202-1e14-4041-846d-7e66e162e3bf	64c49f37-a38a-46a6-9622-7427f1501658	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4402ccc8-39a2-41d1-81b9-1e040bb055f2	92aa9169-28d9-4754-a570-553b067642ed	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f38cfa27-6cbb-4336-bca5-803ee0decf3f	a3793f87-7f3c-41a1-a675-236fc1b710ab	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b8831d9a-76d1-490f-ac44-084696bec05e	29ad5710-1621-4c24-ac75-dedfc168ba1a	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20350e2d-e8c0-47d2-9ed4-1a41746c50f7	efc1df20-ca04-44a6-87b2-7cae1ff50a88	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b1278b0c-875a-438a-9bfb-267ba74780f3	c787fe3b-4b33-40ee-8794-c1148202f81a	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f6b45f5d-1911-41aa-8fcb-580f381a699c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0c63a861-1edb-46e6-bf89-57d9921f294b	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cf6c9e28-9d61-421e-a007-e1100acca024	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7b9f3306-3b74-48c8-b1e9-7103677bab82	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81ca8ef7-6a1e-4cd4-9a8c-36d9fdc73e55	b552183f-2695-41f9-860e-16d5fe94c4aa	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13ec8b94-4ff8-4062-9507-e6d7fe5ab9e9	914d8500-03b6-4a43-a250-244effca1cf1	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3ce5c399-7c84-4605-b0a8-c6e0d4dbb17b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5dd00a18-0653-4bd6-8bbe-086d6aa1f26e	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6bb6b827-f79a-4af8-ac38-183f7cfba61e	a5023c9e-367f-41e1-ba02-bdb2929edc89	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6bf69d8d-cda4-43d7-837f-916b3df91b5c	f5c742d1-e0cc-4bf8-b860-a673ac407393	2c73880a-dd00-49fb-b150-2b7efd53b6ce	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d31a776d-5cc7-4228-8dab-394cedae25df	1a62b1f8-1810-464d-a67b-168d7e419827	2c73880a-dd00-49fb-b150-2b7efd53b6ce	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7c24c4b8-2797-421c-a7a6-d23363f517b1	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2c73880a-dd00-49fb-b150-2b7efd53b6ce	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a060a557-85c9-49b9-8797-017b2d82b711	111cc3cd-6d35-43ce-be91-dde90d3d4015	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3f6d64ba-c1aa-4313-89c4-fc1878423167	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e15de9bb-31b3-4ca1-aa73-7c5e688aef88	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a2b1909d-13ac-4b44-b3ec-bb537d847184	768a11f9-ded7-4f6f-ba86-073e279255d9	2c73880a-dd00-49fb-b150-2b7efd53b6ce	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1ff09f63-82b2-4766-82a0-bda3997325d2	701aaa2c-a899-4def-bf5f-e17511874409	2c73880a-dd00-49fb-b150-2b7efd53b6ce	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f66fd055-a30e-422e-8b77-87dc02c7bb4f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e5d5c11e-91cd-473b-a1ff-77801f30322c	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-19afaf4a-4acd-4888-8c30-0987bb739d08	64c49f37-a38a-46a6-9622-7427f1501658	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0cb8d89d-9c63-4334-a46d-7d82523f5775	92aa9169-28d9-4754-a570-553b067642ed	2c73880a-dd00-49fb-b150-2b7efd53b6ce	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-417b29dd-e56c-4fbf-b955-b0922c340d67	a3793f87-7f3c-41a1-a675-236fc1b710ab	2c73880a-dd00-49fb-b150-2b7efd53b6ce	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a950df49-042e-4bd9-8986-6af4832632e9	29ad5710-1621-4c24-ac75-dedfc168ba1a	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-338d0b22-c4ad-4570-8a32-757a319a99b1	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-282d0d89-6a2e-449c-bfe4-8cfaa323c482	c787fe3b-4b33-40ee-8794-c1148202f81a	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-842a2fe9-115a-44b3-ac50-968d075ae3b1	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2c73880a-dd00-49fb-b150-2b7efd53b6ce	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7a66c7e8-e238-461b-b568-c228c178ec1e	62a927b7-9fd8-461a-b64e-1aa441eeba4d	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5197b6aa-e0f3-45d6-b912-abcb48fbcb5a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-61caf135-5954-426d-ad1a-255b6d6120b0	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3c2e6422-8518-4446-a35c-39209f5ee91c	b552183f-2695-41f9-860e-16d5fe94c4aa	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8a8573a6-76de-43b6-ad41-39ff106e62c4	914d8500-03b6-4a43-a250-244effca1cf1	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-54c5e8db-72b1-4e92-9b5b-80919259006d	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d762c201-ce40-49c5-a1c5-f8d194790342	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-78957b39-b53d-4ea2-b5b7-5dfbe2141bdc	a5023c9e-367f-41e1-ba02-bdb2929edc89	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cda8da83-a347-4702-94b7-47af3b64bb62	f5c742d1-e0cc-4bf8-b860-a673ac407393	348d4a64-a060-4216-80f3-b94596c5b641	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-52755e12-24fd-4d92-94b0-1d37fd7a5c41	1a62b1f8-1810-464d-a67b-168d7e419827	348d4a64-a060-4216-80f3-b94596c5b641	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2312b411-c996-476f-b86b-23d651c29008	aba61e5b-422a-4461-b9da-8dba8f6d3f85	348d4a64-a060-4216-80f3-b94596c5b641	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bc650805-7107-4dac-a941-7abb1d6e32aa	111cc3cd-6d35-43ce-be91-dde90d3d4015	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ee3a81ec-afad-46fa-829d-cfa013c4add4	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-591762eb-7f1b-493b-bfc1-3c9163048336	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5a33bf31-bfaf-4dc1-85f5-33b858b93cd2	768a11f9-ded7-4f6f-ba86-073e279255d9	348d4a64-a060-4216-80f3-b94596c5b641	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3c38c0a9-0a8b-4311-a28d-34239c691394	701aaa2c-a899-4def-bf5f-e17511874409	348d4a64-a060-4216-80f3-b94596c5b641	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8724d6ee-20d2-4614-abc0-a81750f32d05	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c9933ea7-9b87-46ed-8c9b-76441d17e346	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c2330b32-7a3d-43c8-9429-eb26feb7595d	64c49f37-a38a-46a6-9622-7427f1501658	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-53147ea4-8af4-430b-81ba-2a7f82f49c88	92aa9169-28d9-4754-a570-553b067642ed	348d4a64-a060-4216-80f3-b94596c5b641	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cbc26fd3-a21b-47af-9901-73cdd1286465	a3793f87-7f3c-41a1-a675-236fc1b710ab	348d4a64-a060-4216-80f3-b94596c5b641	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bc3ff2d5-2ea6-4ba7-abd5-3a915b0400da	29ad5710-1621-4c24-ac75-dedfc168ba1a	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b8c86d7a-5683-4642-8a99-934556cd87c7	efc1df20-ca04-44a6-87b2-7cae1ff50a88	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-38b11f41-561e-400e-89d0-0030b6ac41bd	c787fe3b-4b33-40ee-8794-c1148202f81a	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d37484e3-9a9b-4f45-b369-d885f452b1c3	f29af015-7833-4f9a-ac57-6fbef5bf91ec	348d4a64-a060-4216-80f3-b94596c5b641	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-def98adf-9fef-442e-a186-a4e0f2cddc60	bb568e26-548b-4ca5-9221-fefb9c9143b3	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.025533+00	\N	\N	\N
-91c432ab-f556-4f08-81c2-882ffecdaecf	bb568e26-548b-4ca5-9221-fefb9c9143b3	348d4a64-a060-4216-80f3-b94596c5b641	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.026128+00	\N	\N	\N
-b0307b96-a18c-43fd-8c6c-2b5c69111b21	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2c73880a-dd00-49fb-b150-2b7efd53b6ce	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.552549+00	\N	\N	\N
-a1e077a8-df5f-445a-ab58-bdf3767f8a52	cd2a32ed-32fc-47bc-88a9-e6fc48863869	348d4a64-a060-4216-80f3-b94596c5b641	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.553161+00	\N	\N	\N
-7137f261-8edb-4d88-b57c-ec3315960336	62a927b7-9fd8-461a-b64e-1aa441eeba4d	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3e48b3c1-e644-4868-8f88-f958ea7d9bfe	a5bfe265-981a-4723-b7bb-6ddc389db7f0	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2742e6f7-b8fd-42c8-857e-2fef43f57284	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8518e6e9-3d18-4fc7-aaff-3d74016f6337	b552183f-2695-41f9-860e-16d5fe94c4aa	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0d78ba80-5f5e-4991-a938-b0247fa382fc	914d8500-03b6-4a43-a250-244effca1cf1	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ae6d8869-1d2c-4d77-abe8-9abfbbfc029f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a6c3e741-c6d1-4892-8f27-3a4ad64e5d8b	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d854c216-f40f-4410-b1be-d63fcf60147f	a5023c9e-367f-41e1-ba02-bdb2929edc89	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cd9ee18e-4276-4231-ad2e-18c539f1df75	f5c742d1-e0cc-4bf8-b860-a673ac407393	80116733-ffd8-4460-b2c1-07660b30cd68	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9b907bed-8a30-470a-8a87-cd120af221db	1a62b1f8-1810-464d-a67b-168d7e419827	80116733-ffd8-4460-b2c1-07660b30cd68	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e04d1283-b0d8-4be4-89db-171af1ce09a8	aba61e5b-422a-4461-b9da-8dba8f6d3f85	80116733-ffd8-4460-b2c1-07660b30cd68	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-73d6cec6-b23f-465f-ba87-a88ad752601e	111cc3cd-6d35-43ce-be91-dde90d3d4015	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-06dab69e-13f9-4473-8cc5-b467f65c4c91	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e76115b9-471a-4a12-9205-a3d1204236ef	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6c51e1c8-693e-4236-b331-1dd215b25115	768a11f9-ded7-4f6f-ba86-073e279255d9	80116733-ffd8-4460-b2c1-07660b30cd68	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d22b68b7-37b8-4b38-bdd4-05a5e3b768b7	701aaa2c-a899-4def-bf5f-e17511874409	80116733-ffd8-4460-b2c1-07660b30cd68	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9547b28b-c511-42b8-9c19-ce3df0d3f2c0	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cc1dac90-b9a9-434c-ac71-d52ae329dc49	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ee7c3971-a2a3-42d0-b5bc-3c673141e443	64c49f37-a38a-46a6-9622-7427f1501658	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a94c26e9-89ae-4829-89ce-17152a8716ae	92aa9169-28d9-4754-a570-553b067642ed	80116733-ffd8-4460-b2c1-07660b30cd68	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dee17c31-1084-452e-90bb-a5cafe98d04b	a3793f87-7f3c-41a1-a675-236fc1b710ab	80116733-ffd8-4460-b2c1-07660b30cd68	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7c67e3a2-47bd-4861-a036-bcae42394f18	29ad5710-1621-4c24-ac75-dedfc168ba1a	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13f3b528-2d34-4830-8c3d-4eec873c89ad	efc1df20-ca04-44a6-87b2-7cae1ff50a88	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aa06e1fe-80e3-4221-8dd8-31fbc2bea588	c787fe3b-4b33-40ee-8794-c1148202f81a	80116733-ffd8-4460-b2c1-07660b30cd68	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e85b2f40-82f3-44bd-a1cb-113320e8fcf0	f29af015-7833-4f9a-ac57-6fbef5bf91ec	80116733-ffd8-4460-b2c1-07660b30cd68	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-355918ef-9753-4b47-aaf8-cd3efffb999a	62a927b7-9fd8-461a-b64e-1aa441eeba4d	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3e62a8a6-17df-48e5-9abe-6ae6640ef4da	a5bfe265-981a-4723-b7bb-6ddc389db7f0	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20f5975b-c418-4f3e-9df2-cc11baa0c15a	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-009ff665-d8af-443c-af2a-b84448a52a25	b552183f-2695-41f9-860e-16d5fe94c4aa	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-02296227-4df8-4e19-9f1d-23dc53bc0be3	914d8500-03b6-4a43-a250-244effca1cf1	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1b2a41f8-e1a1-4451-9014-6bf36a6e654e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-682d76d2-db5e-4270-b1d9-937a801b90b5	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8c51d392-5376-4a59-962d-0fffbf7654cb	a5023c9e-367f-41e1-ba02-bdb2929edc89	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a09cf2da-52b1-4e6d-ae38-54e029a72e9b	f5c742d1-e0cc-4bf8-b860-a673ac407393	ed2782f9-8ee8-499e-afb7-35c15185896a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-195384a4-31c3-41ef-a9f7-e3a10f8400e3	1a62b1f8-1810-464d-a67b-168d7e419827	ed2782f9-8ee8-499e-afb7-35c15185896a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8b948f02-4e1c-4423-9dca-15b6ed3d39cb	aba61e5b-422a-4461-b9da-8dba8f6d3f85	ed2782f9-8ee8-499e-afb7-35c15185896a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-59b4b744-b8bf-4665-bf5d-38b055954ff2	111cc3cd-6d35-43ce-be91-dde90d3d4015	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a99df1f4-48f1-4c0a-bd11-b50fca9aca0a	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d7c8ad26-7472-4194-9425-2baf0811b28e	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7efd653e-ba6f-4b11-ac24-00c67908218f	768a11f9-ded7-4f6f-ba86-073e279255d9	ed2782f9-8ee8-499e-afb7-35c15185896a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20a7d01b-5328-4ad9-acb9-4738702fd883	701aaa2c-a899-4def-bf5f-e17511874409	ed2782f9-8ee8-499e-afb7-35c15185896a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aae190b5-20b1-405f-8af9-7745101baf73	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67ee9a8c-f0f4-4552-ba34-e586b30e28c0	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-72d28ec5-24fc-4a91-bbeb-c441261c93cf	64c49f37-a38a-46a6-9622-7427f1501658	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-192238c0-a83f-4120-9f9c-cc5aa43d9a61	92aa9169-28d9-4754-a570-553b067642ed	ed2782f9-8ee8-499e-afb7-35c15185896a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f65a3085-0cd2-42fb-ae5c-096edf13fb6d	a3793f87-7f3c-41a1-a675-236fc1b710ab	ed2782f9-8ee8-499e-afb7-35c15185896a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8b451ecb-d37b-4e4d-81ed-05117be1b7b3	29ad5710-1621-4c24-ac75-dedfc168ba1a	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e97338d0-9e59-4b67-9712-a195140f45ab	efc1df20-ca04-44a6-87b2-7cae1ff50a88	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3bf8b790-7a93-4222-9d69-2898329451e5	c787fe3b-4b33-40ee-8794-c1148202f81a	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7c623266-cc1b-4613-acaa-3e7e85aa88c8	f29af015-7833-4f9a-ac57-6fbef5bf91ec	ed2782f9-8ee8-499e-afb7-35c15185896a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f5ae2a00-ade3-4a82-899a-d544ae3caa12	62a927b7-9fd8-461a-b64e-1aa441eeba4d	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e8b63335-60ec-4b50-8046-7d0862f5f6e2	a5bfe265-981a-4723-b7bb-6ddc389db7f0	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9371c88c-8868-4209-b295-af652847c0b1	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a71ebe2d-489a-4d59-9a4b-403ccf6e810e	b552183f-2695-41f9-860e-16d5fe94c4aa	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-17ec308d-b010-44d5-b9ab-f59d10820a35	914d8500-03b6-4a43-a250-244effca1cf1	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-def802e7-d279-44fe-8146-4a8875f3c874	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-afa61373-e7cb-4d3e-a340-3eea83569f81	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0dcdd376-1ab3-4939-8e15-bb71eeb04530	a5023c9e-367f-41e1-ba02-bdb2929edc89	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ce2015fb-5e23-49b7-b2eb-4efcc1a93eb0	f5c742d1-e0cc-4bf8-b860-a673ac407393	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7c971539-a3bd-413a-8258-c290a17410bd	1a62b1f8-1810-464d-a67b-168d7e419827	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-00718e86-e474-4cca-8cdb-1a60191a9e78	aba61e5b-422a-4461-b9da-8dba8f6d3f85	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a973ab7a-eb91-4720-848d-4d9fd24b9cf3	111cc3cd-6d35-43ce-be91-dde90d3d4015	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-56df1f38-f88d-4ba5-b063-1565e51a0c91	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-18275c40-3999-4a2e-a9db-084d60972927	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-09d70873-69a3-41d0-876f-d68fc2d9fc0d	768a11f9-ded7-4f6f-ba86-073e279255d9	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2195feae-249f-40f7-b59a-397ae0d805a1	701aaa2c-a899-4def-bf5f-e17511874409	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e3b77ee7-bbbf-4257-ac43-41bd5995258f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7bc132c1-a2fd-45cc-8b1f-271723451776	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5d78a8dd-14cc-486c-8280-f1f0abb7b1b6	64c49f37-a38a-46a6-9622-7427f1501658	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-88549956-9ce8-48c5-87d0-8a1ba7ac0466	92aa9169-28d9-4754-a570-553b067642ed	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-45752bd5-f8bd-4a51-a69e-c6a8c80e019e	a3793f87-7f3c-41a1-a675-236fc1b710ab	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-383a5e31-9523-4d2b-8054-09d3a615b92d	29ad5710-1621-4c24-ac75-dedfc168ba1a	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-42f935b3-888f-4d66-8014-dbe602f787f5	efc1df20-ca04-44a6-87b2-7cae1ff50a88	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c913a21a-77e1-4eb7-a29c-79107ffa3bef	c787fe3b-4b33-40ee-8794-c1148202f81a	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-15c78f62-6564-4c4c-a6d8-9f7bf7b053bc	f29af015-7833-4f9a-ac57-6fbef5bf91ec	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fcde2f48-ba34-49d1-96cb-6ee1ff8dc410	bb568e26-548b-4ca5-9221-fefb9c9143b3	ed2782f9-8ee8-499e-afb7-35c15185896a	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.027387+00	\N	\N	\N
-d0ae6f34-2c17-4596-8267-dee4431ffd22	bb568e26-548b-4ca5-9221-fefb9c9143b3	cdbb9415-06f7-4902-b4e5-084edd0d23ff	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.027966+00	\N	\N	\N
-ce49290f-f7aa-4955-ba90-9eb4107b6d5c	cd2a32ed-32fc-47bc-88a9-e6fc48863869	ed2782f9-8ee8-499e-afb7-35c15185896a	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.55434+00	\N	\N	\N
-9addb209-02dc-4660-9a7a-8d6d04e1cd21	cd2a32ed-32fc-47bc-88a9-e6fc48863869	cdbb9415-06f7-4902-b4e5-084edd0d23ff	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.554914+00	\N	\N	\N
-46f52f2d-a876-4612-99b4-5a0e1b394e5e	62a927b7-9fd8-461a-b64e-1aa441eeba4d	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b27150f9-5b73-405b-8d77-d560d4838593	a5bfe265-981a-4723-b7bb-6ddc389db7f0	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2ad3575d-22c8-43c0-ad47-6ae543b92e3a	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e6e21e96-2968-4043-a011-0aaf7b8a30a4	b552183f-2695-41f9-860e-16d5fe94c4aa	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-10625b02-c14d-4e83-9315-be6b3aac5d8e	914d8500-03b6-4a43-a250-244effca1cf1	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ef8eba26-7a94-4beb-bf5b-d7fb36249286	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-04732638-8e3e-420c-88d5-68cf061e0f77	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	89eef935-c78d-4512-857c-c156cdc05182	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-159438ac-bcb8-45d6-bf17-919989af7473	a5023c9e-367f-41e1-ba02-bdb2929edc89	89eef935-c78d-4512-857c-c156cdc05182	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-36a4f1db-1cf0-42c2-8277-c09f18bcbfa2	f5c742d1-e0cc-4bf8-b860-a673ac407393	89eef935-c78d-4512-857c-c156cdc05182	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fe698530-8529-47dd-aa08-aefe710a86ad	1a62b1f8-1810-464d-a67b-168d7e419827	89eef935-c78d-4512-857c-c156cdc05182	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c601ee50-9717-489a-a3fe-b80c77789e2c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	89eef935-c78d-4512-857c-c156cdc05182	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1bd40fb9-9012-4e64-ac62-db40ee4cc33f	111cc3cd-6d35-43ce-be91-dde90d3d4015	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d6e86d45-bcdd-4fc5-a22a-886fb2858c34	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d263bf62-d432-4973-a474-62070e012bc2	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-23e86dec-1939-4c6c-9aa3-beff347c6a58	768a11f9-ded7-4f6f-ba86-073e279255d9	89eef935-c78d-4512-857c-c156cdc05182	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ede63cb1-29ef-4f13-92b2-e1088d087eb4	701aaa2c-a899-4def-bf5f-e17511874409	89eef935-c78d-4512-857c-c156cdc05182	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8af50da2-90b5-41c8-95d7-0bc897134067	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b6acf566-5167-4b51-90a3-99d75df95244	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3a547ee1-d83e-44a5-bce3-8c3ab0cd47a3	64c49f37-a38a-46a6-9622-7427f1501658	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c3cd3622-b89d-4ffd-a73a-e9a546e31eb3	92aa9169-28d9-4754-a570-553b067642ed	89eef935-c78d-4512-857c-c156cdc05182	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-58dfbd9b-c2b3-4946-a7ca-64055cd14e41	a3793f87-7f3c-41a1-a675-236fc1b710ab	89eef935-c78d-4512-857c-c156cdc05182	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2be6ca77-a667-44ee-8a31-002ba08ef25d	29ad5710-1621-4c24-ac75-dedfc168ba1a	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dd0c78a4-81df-4766-a987-5551353ebeef	efc1df20-ca04-44a6-87b2-7cae1ff50a88	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7303f69c-a3f4-4435-b7f6-12d1bfba8477	c787fe3b-4b33-40ee-8794-c1148202f81a	89eef935-c78d-4512-857c-c156cdc05182	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d2c31dcc-55c1-4473-9a08-57ebef906903	f29af015-7833-4f9a-ac57-6fbef5bf91ec	89eef935-c78d-4512-857c-c156cdc05182	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-69e3945e-d8be-4941-930f-598551e7891c	62a927b7-9fd8-461a-b64e-1aa441eeba4d	8a7a6289-fe5c-44bc-bf98-94338ea7a170	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9134ac07-3755-4216-9cb0-64471efd3cfb	a5bfe265-981a-4723-b7bb-6ddc389db7f0	8a7a6289-fe5c-44bc-bf98-94338ea7a170	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-776924b1-38d0-45cf-a410-add2341437db	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	8a7a6289-fe5c-44bc-bf98-94338ea7a170	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8e301ac4-a867-4a52-ab1d-0680ac80a2fa	b552183f-2695-41f9-860e-16d5fe94c4aa	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-25a5cc07-31fc-4e2a-85e7-d404e8d7dd4f	914d8500-03b6-4a43-a250-244effca1cf1	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8770c80a-64e1-4fb4-b7f7-25b28ada42d7	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0d2f66ad-a6c0-4b94-abe4-ccb6fcffe124	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	8a7a6289-fe5c-44bc-bf98-94338ea7a170	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20673310-c632-43e1-88a1-62909a33eb5e	a5023c9e-367f-41e1-ba02-bdb2929edc89	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7bc4c4df-5932-443c-9688-3aee997cedce	f5c742d1-e0cc-4bf8-b860-a673ac407393	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d72ead82-e29e-484d-8429-7e8d77e30b41	1a62b1f8-1810-464d-a67b-168d7e419827	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0a0c816b-14a4-4c25-8293-5fbbe3b4ca8d	aba61e5b-422a-4461-b9da-8dba8f6d3f85	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7db4bce8-036f-42d0-bb4c-16ca9fa89b64	111cc3cd-6d35-43ce-be91-dde90d3d4015	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ee194658-07e8-4cd7-b82b-2dcaf652ca73	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1d062f02-5e7a-4f1b-a983-926898914490	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-57a10417-2ba8-42d1-917f-2e61be8291a8	768a11f9-ded7-4f6f-ba86-073e279255d9	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-26219332-3cf7-4d88-b06e-b467822396bc	701aaa2c-a899-4def-bf5f-e17511874409	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-22b2848e-1e80-477f-958c-fe1f087c6bdc	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d4e8ecb1-370b-4799-abeb-e66647b90acc	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9dd122fc-a70b-47de-983e-0b42bf8f79bb	64c49f37-a38a-46a6-9622-7427f1501658	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0371daaf-b296-47af-9d4b-e76660f296c4	92aa9169-28d9-4754-a570-553b067642ed	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8d1a56ca-ff95-4849-927e-154e638c169f	a3793f87-7f3c-41a1-a675-236fc1b710ab	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-98b9c9c5-dffb-4bb5-a336-1630d03f20b7	29ad5710-1621-4c24-ac75-dedfc168ba1a	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a531321d-da0f-4711-94f1-a3183e697177	efc1df20-ca04-44a6-87b2-7cae1ff50a88	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f7e8ed4e-3883-4d69-9541-eed0832707d4	c787fe3b-4b33-40ee-8794-c1148202f81a	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-79432d02-1d25-4862-b706-5228674a19a2	f29af015-7833-4f9a-ac57-6fbef5bf91ec	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b835fa55-4ba0-42f5-a8a3-917a19b81d66	62a927b7-9fd8-461a-b64e-1aa441eeba4d	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b6ff4790-b492-48c6-8c2c-5824581a8e23	a5bfe265-981a-4723-b7bb-6ddc389db7f0	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1d3bb1b3-65eb-4063-b4ed-6ea6af892994	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-48096092-c773-44c6-a60e-1e06bc4019aa	b552183f-2695-41f9-860e-16d5fe94c4aa	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eb5f617a-00f3-4851-8e61-565a43b3e9f0	914d8500-03b6-4a43-a250-244effca1cf1	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-35113f65-4820-4d81-b12d-05b925f1806c	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7084ce9d-ceb4-489a-a829-28172835af26	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c8a06d28-b295-4ec7-96e2-0948a46b979c	a5023c9e-367f-41e1-ba02-bdb2929edc89	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8d6ab283-b122-45e2-8652-ab33d1b7ef58	f5c742d1-e0cc-4bf8-b860-a673ac407393	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f2fa6342-07c8-401f-ba71-3e745b07fafd	1a62b1f8-1810-464d-a67b-168d7e419827	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-922c076a-0b75-4dde-a33a-31be1ddd1d63	aba61e5b-422a-4461-b9da-8dba8f6d3f85	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1562329f-b7dd-4ac9-be88-7cfc7ac8aa47	111cc3cd-6d35-43ce-be91-dde90d3d4015	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-10b71afb-9f5f-4774-9a67-991a2dc98aac	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-76f6641a-3401-4790-915d-3f7718a4f17b	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-80cb192b-01c9-45b1-9969-905071337ade	768a11f9-ded7-4f6f-ba86-073e279255d9	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9ffbbd6a-c7fe-4860-985f-ae4b85779f55	701aaa2c-a899-4def-bf5f-e17511874409	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-719a2b0f-c68c-4d17-bdfd-759d24b6cb92	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-be4081d5-82db-439c-8ae5-bf5d770d5134	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4e8793c2-9157-4942-b7ce-6a1479cc2f5b	64c49f37-a38a-46a6-9622-7427f1501658	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-05d408b3-cfaf-4ba3-9234-5ea97c3ca130	92aa9169-28d9-4754-a570-553b067642ed	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a598e782-7006-40e0-aa71-368f5338f3d9	a3793f87-7f3c-41a1-a675-236fc1b710ab	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4135a094-aec0-46fd-b40b-879d0843fc97	29ad5710-1621-4c24-ac75-dedfc168ba1a	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-85b500bd-8837-4865-9564-18855f1183b1	efc1df20-ca04-44a6-87b2-7cae1ff50a88	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ed00376e-6dc0-4d67-97de-2b663546ff6b	c787fe3b-4b33-40ee-8794-c1148202f81a	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b4029d8b-4a80-4000-bc89-0a4dcf1b48c4	f29af015-7833-4f9a-ac57-6fbef5bf91ec	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-36712f4f-4dc0-4e6a-8ba1-95c254c1d77e	bb568e26-548b-4ca5-9221-fefb9c9143b3	8a7a6289-fe5c-44bc-bf98-94338ea7a170	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.02942+00	\N	\N	\N
-44f48aac-e496-4dd4-96ff-3dc2552e89ef	bb568e26-548b-4ca5-9221-fefb9c9143b3	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.03003+00	\N	\N	\N
-c5e18bb9-cf0f-4dae-90b8-9bc9ff605354	cd2a32ed-32fc-47bc-88a9-e6fc48863869	8a7a6289-fe5c-44bc-bf98-94338ea7a170	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.556223+00	\N	\N	\N
-a5323382-b6f0-4685-ba75-1c49f7bb9d05	cd2a32ed-32fc-47bc-88a9-e6fc48863869	81f5c5fd-09d0-46c8-813c-f0149b0b35aa	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.556813+00	\N	\N	\N
-6137ebdd-91e6-4fc0-9bcc-23a1460f85b6	62a927b7-9fd8-461a-b64e-1aa441eeba4d	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2ce571d7-4150-4e08-afb8-6c419288c5db	a5bfe265-981a-4723-b7bb-6ddc389db7f0	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b26f8bfc-8301-48e3-80bd-a14b04b49e63	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cf3d0448-0882-459b-ae18-0570921b7217	b552183f-2695-41f9-860e-16d5fe94c4aa	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3d9d6525-95d3-4178-8b69-777ea0ca4261	914d8500-03b6-4a43-a250-244effca1cf1	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7db500e8-4e08-4ece-9be5-171ba0b7bc2b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-47bc9be2-62ff-4663-9e0c-5dd411711940	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a142a7b1-eaa3-483f-9f3f-70a7e27bff47	a5023c9e-367f-41e1-ba02-bdb2929edc89	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0b60121f-91e7-4328-a9b5-73b22c8d7e83	f5c742d1-e0cc-4bf8-b860-a673ac407393	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-994f3a25-554e-44c4-ac97-b261a3e9c35a	1a62b1f8-1810-464d-a67b-168d7e419827	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-02d28b80-57de-4e3d-ae87-3ba8b39e46c4	aba61e5b-422a-4461-b9da-8dba8f6d3f85	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-649711f7-54bd-4203-80b5-ca8867ae7ed2	111cc3cd-6d35-43ce-be91-dde90d3d4015	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6d6dad88-8d21-4403-8d95-26d43fc63e87	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d78e19cc-b108-41db-9be3-8e449fc80410	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5cdfef02-5ba4-4395-a9e2-0d0f6955a830	768a11f9-ded7-4f6f-ba86-073e279255d9	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7d6bc117-64eb-400e-94e7-2f9b6d1cb85a	701aaa2c-a899-4def-bf5f-e17511874409	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eba3449c-9d96-44f6-9796-0bd13102bd9c	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-53fe6545-9cca-4dec-9594-7bc6b9a1f448	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-da64cb53-c960-45f1-8fff-808ab304662c	64c49f37-a38a-46a6-9622-7427f1501658	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-15f5cc10-995d-40d6-aae7-53ff83218641	92aa9169-28d9-4754-a570-553b067642ed	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-60e6476e-f308-487c-9496-9d4376a3ef9b	a3793f87-7f3c-41a1-a675-236fc1b710ab	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b2c76a7a-2ff2-4859-8fdb-aefbd7b08ced	29ad5710-1621-4c24-ac75-dedfc168ba1a	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-06d437f4-ff2d-4b98-8cc9-76a0651276b4	efc1df20-ca04-44a6-87b2-7cae1ff50a88	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c1554802-21ce-4f4c-ae5c-6150220e1b8a	c787fe3b-4b33-40ee-8794-c1148202f81a	b55ab137-7996-4c69-9b4c-463b9a5f697e	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5e8a6ec2-c626-44d6-9e6e-1c07a74c791c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	b55ab137-7996-4c69-9b4c-463b9a5f697e	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-908a7b6a-1219-4765-a46e-43b6c5f35bcd	62a927b7-9fd8-461a-b64e-1aa441eeba4d	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6d59f02d-4342-4540-b3e8-2c1b4fb2d7e5	a5bfe265-981a-4723-b7bb-6ddc389db7f0	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ee6c2904-c676-4fca-8150-be238999eb59	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bae143df-ef9b-40e3-9a15-ba3429b7c59e	b552183f-2695-41f9-860e-16d5fe94c4aa	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-59abe2ab-463a-4d50-98eb-d4a49db7e318	914d8500-03b6-4a43-a250-244effca1cf1	081efe03-6ebc-4949-ad7b-4487541e425b	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-19622467-ac57-47b5-b5ff-3d944908e9d9	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-52f6ba3e-f4cf-4b1d-a304-d41647df25b5	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-07021f69-571f-46d0-a424-3e3fb1753702	a5023c9e-367f-41e1-ba02-bdb2929edc89	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6c3e0e26-c7a7-49f8-83ee-51dce22ba268	f5c742d1-e0cc-4bf8-b860-a673ac407393	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e2cb31eb-3aee-4469-8657-4a31415f8e0f	1a62b1f8-1810-464d-a67b-168d7e419827	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-53bfbfa6-255e-4c71-a3f7-1111bc15634e	aba61e5b-422a-4461-b9da-8dba8f6d3f85	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d4daf92d-afc5-4514-bd27-bf2fc9b1c6e0	111cc3cd-6d35-43ce-be91-dde90d3d4015	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a2fe3bb8-1e88-4a8e-9de9-aa867fee86f6	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-82c8b39e-1db4-45cd-8cbc-ec04ad024ef0	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c7a6ee57-f1dc-4111-b3cb-be9a6de5b7ee	768a11f9-ded7-4f6f-ba86-073e279255d9	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-187d3ef3-b2ec-4fc7-bcdd-dedd607c2dc9	701aaa2c-a899-4def-bf5f-e17511874409	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fb30a156-d22f-4682-9e53-76c66543fdba	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-96dfa781-02c4-47eb-869f-797cefc15c53	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d4a00cec-0988-4895-ab4d-7e298c298f52	64c49f37-a38a-46a6-9622-7427f1501658	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a06ae178-2883-4b54-b89a-7b8c164b6cd4	92aa9169-28d9-4754-a570-553b067642ed	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2cd19573-061c-40a3-8f41-d34a10ca8f29	a3793f87-7f3c-41a1-a675-236fc1b710ab	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-12880e96-b2b3-447d-8604-8d8ddac96719	29ad5710-1621-4c24-ac75-dedfc168ba1a	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0f2dac1b-0c6b-49ce-a7f5-a60c54dd7977	efc1df20-ca04-44a6-87b2-7cae1ff50a88	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-201aef53-b766-4393-8fe6-1f8d7417860e	c787fe3b-4b33-40ee-8794-c1148202f81a	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-66158dca-4a95-4aff-9821-d2d279b4e39c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1d5d66eb-46cb-4f2c-b0fa-015b0bd04409	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2b0844c6-53d7-402c-8c27-9921a45ac27f	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-41fe12f7-cc90-4364-a6e6-ad5aba77a6d8	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8abee3eb-722e-4468-b2fe-4df425952f0e	b552183f-2695-41f9-860e-16d5fe94c4aa	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-16a9b47a-cee8-4513-980b-ff970359eb1c	914d8500-03b6-4a43-a250-244effca1cf1	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4c909466-cce0-479e-aaea-008f816ae60e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e224ef16-7495-41a5-80d0-7e6581fdcd7f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ec3ab084-f0e7-45f8-b251-a23cf4f38395	a5023c9e-367f-41e1-ba02-bdb2929edc89	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4546914f-2f6b-4f23-bfbc-1ac31f0d797c	f5c742d1-e0cc-4bf8-b860-a673ac407393	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f9a82923-9508-4ab4-991d-6c64dffa53e6	1a62b1f8-1810-464d-a67b-168d7e419827	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f8346a86-8f47-44e5-92e3-50c66ffdcff3	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4a1d0ec4-0adb-424a-ba58-ece17c046a73	111cc3cd-6d35-43ce-be91-dde90d3d4015	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7df8dd59-7cdd-4696-b903-28fd2e5e169e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8ee2eba9-bc04-434d-9e72-80a0ef133a25	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7b10c415-7277-496c-8a54-6f7614fc8ab1	768a11f9-ded7-4f6f-ba86-073e279255d9	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-12d5946e-5104-46fd-9d93-1f75e34efa9e	701aaa2c-a899-4def-bf5f-e17511874409	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dc1b24ca-6ce9-4956-b4d1-f23c2e9eb9e8	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-58016510-da91-4415-83a1-097db18482f0	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b71dd0be-1793-4602-ada5-aa53f1ce44d9	64c49f37-a38a-46a6-9622-7427f1501658	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-439ba880-bd30-4c8a-aa40-264f7a74ed18	92aa9169-28d9-4754-a570-553b067642ed	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6f2a5c04-0648-4c38-b263-2268391ed990	a3793f87-7f3c-41a1-a675-236fc1b710ab	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1aa216e9-fb68-402c-8e26-fd1427e3b348	29ad5710-1621-4c24-ac75-dedfc168ba1a	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-75d17660-2148-4eb2-8311-93ed7e18d702	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f24f5798-6305-49aa-b7b1-98b689448a2d	c787fe3b-4b33-40ee-8794-c1148202f81a	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-65b73a6d-c267-4325-9d20-d5ce6892a322	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-12c43cdc-e21d-4429-ab5c-cb0671c87b3c	bb568e26-548b-4ca5-9221-fefb9c9143b3	081efe03-6ebc-4949-ad7b-4487541e425b	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.031414+00	\N	\N	\N
-adcdb474-1848-42ea-b60b-9d2f1fcb7728	bb568e26-548b-4ca5-9221-fefb9c9143b3	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.032+00	\N	\N	\N
-bea8243e-1060-4ce3-bc4a-e47e7e28450d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	081efe03-6ebc-4949-ad7b-4487541e425b	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.558089+00	\N	\N	\N
-fac31a13-f2e0-492d-b9bc-01135a296699	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0ad76796-6f90-4468-b472-f8bdc6ccb8fa	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.558697+00	\N	\N	\N
-78af1314-9e3d-475e-8ad8-4ed63be8e971	62a927b7-9fd8-461a-b64e-1aa441eeba4d	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ee8e98a8-8b48-418c-89fb-bb4f840aa0ce	a5bfe265-981a-4723-b7bb-6ddc389db7f0	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c3d44a12-11f6-4c08-99f5-878a7b4e53fa	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3d0b28bc-4764-4cbf-b623-45f4aa357c3b	b552183f-2695-41f9-860e-16d5fe94c4aa	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a431abe5-7b2d-4db9-8fc1-14e67ee611ff	914d8500-03b6-4a43-a250-244effca1cf1	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2dbb8286-74e2-48cc-942f-bef2bfe06ce2	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e1122024-3b5d-4307-adc9-a23d7ebfa80a	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-79d4751b-38a9-4877-aecb-2bc3b70bb3e3	a5023c9e-367f-41e1-ba02-bdb2929edc89	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8a8a51c7-b7f9-4b3c-994d-f94ea797976a	f5c742d1-e0cc-4bf8-b860-a673ac407393	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-40deccdc-05ae-4e16-a41b-204b5b577e63	1a62b1f8-1810-464d-a67b-168d7e419827	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b848ab66-f839-4807-b405-61538e5bc0a9	aba61e5b-422a-4461-b9da-8dba8f6d3f85	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e4a11a61-3c58-455c-97d7-ee601c74c28c	111cc3cd-6d35-43ce-be91-dde90d3d4015	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dfa2e381-9d0c-4a4f-b0f2-b16c702c1094	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-47b1d36e-a500-4bd1-9db3-3787e41b2c26	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-78ab782b-b6e8-472c-a0be-54a94370fdfb	768a11f9-ded7-4f6f-ba86-073e279255d9	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-63bd03a9-aede-49ec-8c5a-f972c3dbe12d	701aaa2c-a899-4def-bf5f-e17511874409	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a9ca8f1c-3e28-4e28-ab1f-d1cc20193396	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9d4778c7-5f8d-472d-a617-8f346f284b18	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20a964cc-ac8b-42cc-acfa-9cfc36df4baa	64c49f37-a38a-46a6-9622-7427f1501658	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6978f4d8-0a64-43c6-89bb-1053ac89989f	92aa9169-28d9-4754-a570-553b067642ed	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d9f77369-7372-4089-aa89-9b0cbe85368c	a3793f87-7f3c-41a1-a675-236fc1b710ab	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4274d9f1-0fde-4a56-bf0f-b43d5c31a81f	29ad5710-1621-4c24-ac75-dedfc168ba1a	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-875bf2d2-750c-4798-bd3e-12de2c0d4477	efc1df20-ca04-44a6-87b2-7cae1ff50a88	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a1ca2192-eeb8-4501-8276-1068a41c3dc5	c787fe3b-4b33-40ee-8794-c1148202f81a	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fa99eaf9-1576-437c-9205-9989491c0d15	f29af015-7833-4f9a-ac57-6fbef5bf91ec	115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-13a54dc1-df50-4a48-bc8d-2643bb4e5293	62a927b7-9fd8-461a-b64e-1aa441eeba4d	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e2564c89-5e24-4cc3-ba3a-75d0b2269cbe	a5bfe265-981a-4723-b7bb-6ddc389db7f0	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0d197fdd-48aa-4535-aead-79049e23bca3	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-09e97f43-310b-4802-896b-7542affff41a	b552183f-2695-41f9-860e-16d5fe94c4aa	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-64c4ed0b-d79e-4256-8c7a-a28a8d9d1c03	914d8500-03b6-4a43-a250-244effca1cf1	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6a2639b7-9178-40b1-a3c0-6960ff46c99a	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e63f2eb0-89bf-4ed7-b5b3-9b4544db1b2b	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b631f364-7889-4af0-98f7-c29b91239090	a5023c9e-367f-41e1-ba02-bdb2929edc89	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bb939794-99d0-4708-a402-ed6c0e7017f9	f5c742d1-e0cc-4bf8-b860-a673ac407393	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e44c9f39-9e7d-422c-8185-725abf805105	1a62b1f8-1810-464d-a67b-168d7e419827	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2ddbe509-e991-45b3-b140-019573aace7a	aba61e5b-422a-4461-b9da-8dba8f6d3f85	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bd604b4c-0bae-4575-ae55-ddff4c102792	111cc3cd-6d35-43ce-be91-dde90d3d4015	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-495bfe79-fccf-4807-a863-d7c2c851df69	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-427d2bfb-bd27-4052-8c42-d3e47082de70	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-78062da9-46fa-4e62-852c-6436aee7d445	768a11f9-ded7-4f6f-ba86-073e279255d9	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e00ab6c8-565d-4438-b230-9887e5fbb609	701aaa2c-a899-4def-bf5f-e17511874409	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f1f231f7-b6fd-4b8e-afd6-d43e2b356481	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f7ba48b5-14a2-4382-9fa0-c60987941ed2	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-655f70ab-624a-4b5e-a05c-8abce7328cdb	64c49f37-a38a-46a6-9622-7427f1501658	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0e88527a-8899-498d-bde6-f2c9b4955a73	92aa9169-28d9-4754-a570-553b067642ed	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ef647a2b-7375-4926-b7c4-27e56c4faa5b	a3793f87-7f3c-41a1-a675-236fc1b710ab	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-731faa43-5d0f-4250-9372-df4b78358818	29ad5710-1621-4c24-ac75-dedfc168ba1a	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fafee59f-a7da-4dee-b274-237bd20ab80c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0a482180-8b13-4494-893a-9978ac596258	c787fe3b-4b33-40ee-8794-c1148202f81a	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-df185ad1-0f02-4581-8274-6b5db509e36c	f29af015-7833-4f9a-ac57-6fbef5bf91ec	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-155937f3-2b7d-431a-b6af-1da0393e7fb3	62a927b7-9fd8-461a-b64e-1aa441eeba4d	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7dabd298-eaf2-46cd-b4f4-3e38b602a5a2	a5bfe265-981a-4723-b7bb-6ddc389db7f0	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7af910c5-67d0-46ab-9528-5f9185a3fd85	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6a6defce-0685-477b-b956-c4024d6e0471	b552183f-2695-41f9-860e-16d5fe94c4aa	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67e92f2d-bad0-47b4-91dc-58b0e15fa5c9	914d8500-03b6-4a43-a250-244effca1cf1	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-995f1970-7213-4550-88cc-8bddab2a293b	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-849d9c83-cd68-4ea9-a463-83a36ea490f8	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-951a0eba-1e83-46c7-a1fc-030c5eabb2ac	a5023c9e-367f-41e1-ba02-bdb2929edc89	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-66a3e5ad-1852-4e6d-812c-a6fa5104d0f7	f5c742d1-e0cc-4bf8-b860-a673ac407393	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e5232e71-db06-417a-9412-2b0d3251a75c	1a62b1f8-1810-464d-a67b-168d7e419827	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a6c2e606-5602-40e8-a42e-6bd312eff107	aba61e5b-422a-4461-b9da-8dba8f6d3f85	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7667060f-210f-4e6b-ba7e-e4177b6c7973	111cc3cd-6d35-43ce-be91-dde90d3d4015	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7a91f3fb-b1f6-4dc9-b634-46e791b7b19e	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-89d765cb-5319-43fd-8578-9bca69fde2d7	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fb98068f-54e7-4232-b9d6-b9e3c63262bb	768a11f9-ded7-4f6f-ba86-073e279255d9	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b066b6ba-4731-4907-86f3-637bddf5a944	701aaa2c-a899-4def-bf5f-e17511874409	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0159ea52-ac34-47b1-9a52-523469aeb9d7	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a2272d4a-db65-4855-a7fb-aba74e71da43	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7cc3b639-34f1-4df6-a73e-3b39b776b78d	64c49f37-a38a-46a6-9622-7427f1501658	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-be5701dd-d594-45e5-83ca-1bc846995ae6	92aa9169-28d9-4754-a570-553b067642ed	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-98593efd-aa95-46a0-b1af-49c7bb0e5b80	a3793f87-7f3c-41a1-a675-236fc1b710ab	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ca93f2bc-07cc-4c91-96f2-24da787882d4	29ad5710-1621-4c24-ac75-dedfc168ba1a	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-76cb73c6-502a-4d4b-a511-8aa5b3606691	efc1df20-ca04-44a6-87b2-7cae1ff50a88	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8d120aff-364e-4f5b-bc81-47f013923723	c787fe3b-4b33-40ee-8794-c1148202f81a	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3671b91a-a0aa-447d-a993-e94f92d231dd	f29af015-7833-4f9a-ac57-6fbef5bf91ec	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ebf98ecd-0b25-43bb-bf7d-447fb99eaf41	bb568e26-548b-4ca5-9221-fefb9c9143b3	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.033345+00	\N	\N	\N
-0888146c-0f2e-4c4e-89f6-49f7978bd4ab	bb568e26-548b-4ca5-9221-fefb9c9143b3	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.033869+00	\N	\N	\N
-4cd77e94-71f4-4a1b-9f0f-0b35bbe23c93	cd2a32ed-32fc-47bc-88a9-e6fc48863869	5938dcb6-8dd5-4431-b144-f5f22f4d09bb	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.559896+00	\N	\N	\N
-8ec07912-2886-4c87-97d5-1d89001e071d	cd2a32ed-32fc-47bc-88a9-e6fc48863869	f5809fb6-cb04-44c9-b19e-e2e6530fce0d	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.560498+00	\N	\N	\N
-725f9dd4-835c-4751-9a46-0f8796072fea	62a927b7-9fd8-461a-b64e-1aa441eeba4d	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a9b31f74-3f95-40e9-ba71-f257e1c3c95e	a5bfe265-981a-4723-b7bb-6ddc389db7f0	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-739f7e5f-40bf-45b3-86b6-dd957a04fc15	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6cafac57-dc32-4eaa-92c5-1f9146323c59	b552183f-2695-41f9-860e-16d5fe94c4aa	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8d852792-2ab6-4267-abca-72ca012905d3	914d8500-03b6-4a43-a250-244effca1cf1	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67797303-ad5c-4fa2-a433-4c9b8dee7b6e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d7bae918-adbc-4e9e-b06b-d8bdba076957	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f0e90847-040e-44cd-800c-f3a02c61e3b0	a5023c9e-367f-41e1-ba02-bdb2929edc89	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e332cb07-0187-4996-9f72-314ef62c39bc	f5c742d1-e0cc-4bf8-b860-a673ac407393	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6cbfa300-f441-44f5-81d0-eb7361100f04	1a62b1f8-1810-464d-a67b-168d7e419827	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3dee641a-70b4-48c4-a6f2-1457fc0e0c1c	aba61e5b-422a-4461-b9da-8dba8f6d3f85	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cca2ccaa-6372-4bf5-b669-ff85d5bbf33f	111cc3cd-6d35-43ce-be91-dde90d3d4015	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-305aad6d-6a1c-4672-b110-f9a2b9e2de37	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-36e686f5-f775-46f1-98d2-048884fb541b	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-05629398-dd74-461f-ae3f-f61ad060e8f6	768a11f9-ded7-4f6f-ba86-073e279255d9	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-084c3e0d-e0dd-4260-8678-143481d8de7d	701aaa2c-a899-4def-bf5f-e17511874409	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-197c36b1-4a68-4014-971d-5f5769d06c4b	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-196e5bf6-effe-48b4-bfac-a27791772b80	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ef1d1606-c39c-4754-a18f-6d36274d273c	64c49f37-a38a-46a6-9622-7427f1501658	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b463049b-c44e-4453-b283-31e12647c6db	92aa9169-28d9-4754-a570-553b067642ed	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0bad7405-9605-4b66-9e54-3c65d79a67e9	a3793f87-7f3c-41a1-a675-236fc1b710ab	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eb9c9b3e-5546-4af4-ac33-f035215ce9de	29ad5710-1621-4c24-ac75-dedfc168ba1a	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c9dba16e-15a6-44f3-9cc5-ea6b47fc52ec	efc1df20-ca04-44a6-87b2-7cae1ff50a88	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0e8fd09c-b196-426b-80df-b1978a19ffbe	c787fe3b-4b33-40ee-8794-c1148202f81a	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d5eab1e7-dbe8-4997-b9a1-3b1bed26edbd	f29af015-7833-4f9a-ac57-6fbef5bf91ec	22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9957e303-975b-43ea-b834-ac7ab9a70f02	62a927b7-9fd8-461a-b64e-1aa441eeba4d	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0bb0e2af-608e-4557-9612-4a04b88df007	a5bfe265-981a-4723-b7bb-6ddc389db7f0	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-afa58fe4-67e3-41ba-b673-ef8f7bdbcea7	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fb207661-6e20-41ff-af37-2624a1a85b37	b552183f-2695-41f9-860e-16d5fe94c4aa	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-780180e7-b1b1-4bdf-8dc7-3831dafb0790	914d8500-03b6-4a43-a250-244effca1cf1	0a2ae113-dee2-4e2d-86f8-617d04404f37	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f219370c-782c-4534-85cb-a1bc919a4bfc	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	0a2ae113-dee2-4e2d-86f8-617d04404f37	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0709a93f-ed29-46ba-95d6-10edd66d6710	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-330ee72c-5de3-4568-b3e1-a4e5519befd4	a5023c9e-367f-41e1-ba02-bdb2929edc89	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5789f0fe-79f5-4554-a4c1-7449f5926eb9	f5c742d1-e0cc-4bf8-b860-a673ac407393	0a2ae113-dee2-4e2d-86f8-617d04404f37	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-39395e12-bf92-41da-b8fd-a91e3579b3f4	1a62b1f8-1810-464d-a67b-168d7e419827	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-93517150-f8d8-4af7-ad57-647e9e395c94	aba61e5b-422a-4461-b9da-8dba8f6d3f85	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9f390ecc-cf7d-4c77-b482-6d64d59d6f47	111cc3cd-6d35-43ce-be91-dde90d3d4015	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c4b8987e-95c5-4982-b762-a9c7745416f8	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-26874efa-0c84-48aa-a127-43f959c7bb11	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4942900b-6980-4e11-a54e-15713fa51a20	768a11f9-ded7-4f6f-ba86-073e279255d9	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c927ba37-5261-47e2-82a7-154225eb7c72	701aaa2c-a899-4def-bf5f-e17511874409	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5c262bca-7e64-434d-99da-ba3f9af33e12	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bc26c544-9680-4d13-9f11-83013347896d	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d9acf6a3-f9f6-4a82-9247-0be4a1bc658f	64c49f37-a38a-46a6-9622-7427f1501658	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-51c2d380-e179-4c58-b2e9-288d78567b55	92aa9169-28d9-4754-a570-553b067642ed	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4f069f87-5257-47bc-bfe0-ab89c650b3b4	a3793f87-7f3c-41a1-a675-236fc1b710ab	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7f9a9f3f-e09a-410b-af44-fa8ae76c6092	29ad5710-1621-4c24-ac75-dedfc168ba1a	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2bd8215e-10d3-420a-a0df-145fc7a2b988	efc1df20-ca04-44a6-87b2-7cae1ff50a88	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-43a89549-0664-4714-bad9-1e55751eda07	c787fe3b-4b33-40ee-8794-c1148202f81a	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8ff5d9c6-a2a5-40ff-a467-44be56cae6ec	f29af015-7833-4f9a-ac57-6fbef5bf91ec	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a15bba60-06d2-47a8-b102-a38916aad16c	62a927b7-9fd8-461a-b64e-1aa441eeba4d	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c010a9e6-8432-4f57-b642-0240b15a2a0e	a5bfe265-981a-4723-b7bb-6ddc389db7f0	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-54d516b1-c937-4ea7-b3ce-47097afb2b96	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bf7808fc-073c-4f38-949e-06b99fa6e2c0	b552183f-2695-41f9-860e-16d5fe94c4aa	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a7b4b643-c5c1-40ab-8e83-daaa2acdc23b	914d8500-03b6-4a43-a250-244effca1cf1	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8bc73bbb-aff3-40fd-9914-08c391623d78	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b74cc376-6bd4-4f41-805c-2ad1f36dc509	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-905188cd-f1ce-44aa-8dcd-e9a2bf8bad49	a5023c9e-367f-41e1-ba02-bdb2929edc89	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a239dfbb-e4bd-4a85-84aa-9ffd2e89f9ba	f5c742d1-e0cc-4bf8-b860-a673ac407393	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d545ed9e-110b-4c8a-8279-51a1950d00a2	1a62b1f8-1810-464d-a67b-168d7e419827	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5005ebdd-976d-4051-ad02-7be8d8118334	aba61e5b-422a-4461-b9da-8dba8f6d3f85	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-664e3728-0795-42d9-8898-2fe90a6097d1	111cc3cd-6d35-43ce-be91-dde90d3d4015	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-60be8a0f-b4b0-49eb-a49f-269bec06c2f3	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dbd64bc3-003b-4926-9023-7a8994920e69	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6e818d2b-ee50-415d-af37-e1cda32f1144	768a11f9-ded7-4f6f-ba86-073e279255d9	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6169ba23-918b-42ac-8c00-63a9a624083a	701aaa2c-a899-4def-bf5f-e17511874409	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-53ea0724-3def-4690-9381-a3f8025f7c9c	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-54108eff-8dc6-4fa3-8492-53c932b888f9	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1cae835b-f4a9-4830-962f-2cfaf0e94a47	64c49f37-a38a-46a6-9622-7427f1501658	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3fe47a0e-fe6e-46bd-bcfa-b8cf22a20cde	92aa9169-28d9-4754-a570-553b067642ed	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b7e630c6-ca3c-47a7-a387-9e6076fa9e8d	a3793f87-7f3c-41a1-a675-236fc1b710ab	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ec2e8892-d5ea-4859-a715-f40405081233	29ad5710-1621-4c24-ac75-dedfc168ba1a	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4c864739-fab6-4acd-a8cb-9c5583064143	efc1df20-ca04-44a6-87b2-7cae1ff50a88	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-28f12b20-3f8f-4b73-87e8-c2d3eab5ae2a	c787fe3b-4b33-40ee-8794-c1148202f81a	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-49d7ff8e-e45f-4ce0-bc86-6a6033c5f988	f29af015-7833-4f9a-ac57-6fbef5bf91ec	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2310556c-7268-4913-bbc7-dbcb857699b6	bb568e26-548b-4ca5-9221-fefb9c9143b3	0a2ae113-dee2-4e2d-86f8-617d04404f37	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.035061+00	\N	\N	\N
-08569272-64fa-46c2-8821-ac8f12d2110f	bb568e26-548b-4ca5-9221-fefb9c9143b3	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.03569+00	\N	\N	\N
-9c2be82c-9332-4289-a7ec-602f388b00ac	cd2a32ed-32fc-47bc-88a9-e6fc48863869	bdcf221c-7e9a-470a-b4af-dd30cfc292ba	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.562502+00	\N	\N	\N
-c6ddc60d-99b1-4159-bd9d-f9140e900802	cd2a32ed-32fc-47bc-88a9-e6fc48863869	0a2ae113-dee2-4e2d-86f8-617d04404f37	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.561786+00	\N	\N	\N
-fb4e1148-5dca-4148-8ef4-9b8cc2af386b	62a927b7-9fd8-461a-b64e-1aa441eeba4d	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e2506ee0-e0dc-435e-8150-1bffcc015269	a5bfe265-981a-4723-b7bb-6ddc389db7f0	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-71a1170b-c8d4-4153-9728-904d4460daf8	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67d88799-133b-4bad-8827-45b48282d7fa	b552183f-2695-41f9-860e-16d5fe94c4aa	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fb8bbf5c-d3fc-4a4b-9594-6ccfeca245b0	914d8500-03b6-4a43-a250-244effca1cf1	79772eb3-a4e3-46fe-9159-5b7b26672f7a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-de879152-4664-48d7-9037-63fbae14d34c	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	79772eb3-a4e3-46fe-9159-5b7b26672f7a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-686197e1-3e03-43a2-acc3-b88adba0d8ae	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2a8705df-a332-43d3-90ad-091aae392255	a5023c9e-367f-41e1-ba02-bdb2929edc89	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-db7d2579-87f8-422a-b4d6-ec13382c1b4a	f5c742d1-e0cc-4bf8-b860-a673ac407393	79772eb3-a4e3-46fe-9159-5b7b26672f7a	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-455b82d1-5a73-44c3-b06b-07c168ac2bd1	1a62b1f8-1810-464d-a67b-168d7e419827	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a202975b-4491-40e6-af90-4fd739032878	aba61e5b-422a-4461-b9da-8dba8f6d3f85	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-45f5394d-bb5b-45cd-9f80-192f6a9be61a	111cc3cd-6d35-43ce-be91-dde90d3d4015	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-04ac1b5f-838d-47be-8940-c48efba7bf60	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-feaba940-d6c1-4cab-8e4e-a35c140ffe37	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-73f8d643-5486-4ddc-992b-85f32fa33b76	768a11f9-ded7-4f6f-ba86-073e279255d9	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ea8c2c62-11d0-4ae6-a817-b1ade3f94fd0	701aaa2c-a899-4def-bf5f-e17511874409	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4bda8d9d-de1e-45e4-982d-e2deb5c48f9f	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3ec06662-5424-4301-921e-32f3363791bf	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8bad50e8-a3a0-4c05-8d1c-865e90e3212b	64c49f37-a38a-46a6-9622-7427f1501658	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f3b556c-cae3-47f8-bafb-adae9842f6ea	92aa9169-28d9-4754-a570-553b067642ed	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81dfea60-0042-45bb-bb35-f4c71ee8424f	a3793f87-7f3c-41a1-a675-236fc1b710ab	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4d8d1859-00d7-42f8-be53-40f2c0a6ede8	29ad5710-1621-4c24-ac75-dedfc168ba1a	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9200340c-6ccb-44fa-b3bc-8977676baead	efc1df20-ca04-44a6-87b2-7cae1ff50a88	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b5da0b0-d7b5-4b66-8b80-93512ebe223b	c787fe3b-4b33-40ee-8794-c1148202f81a	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81fb834e-833e-4f18-b7e6-478055c6feb3	f29af015-7833-4f9a-ac57-6fbef5bf91ec	79772eb3-a4e3-46fe-9159-5b7b26672f7a	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5d2d6fb4-7444-4225-9145-891885ba1e6c	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2dffe9b5-bcc5-4685-9adc-62266a7f03f0	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ef0c327d-21a4-4cf2-8aab-d4273adc5977	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-247fefbb-fc01-489e-8c32-568668a3214d	b552183f-2695-41f9-860e-16d5fe94c4aa	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-028eea02-a0a8-4902-8948-86c0d1166fa7	914d8500-03b6-4a43-a250-244effca1cf1	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8f364895-9824-4211-9be6-78ed915f7cbd	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-514c4d47-fc21-4fc7-a285-0301008329a2	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c7e59240-83dd-4497-aa3c-5079131416f9	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3914ad6d-e5b3-4ca5-aacc-7ffe8f5199ca	a5023c9e-367f-41e1-ba02-bdb2929edc89	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c57a56b2-9056-413e-b7d3-ed016270b54b	f5c742d1-e0cc-4bf8-b860-a673ac407393	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0ae963ef-625f-4c26-a932-1b92d9068a0c	1a62b1f8-1810-464d-a67b-168d7e419827	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3c5a76cb-00a2-4d92-bae5-69a1f584e3fd	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cf08b832-f172-471a-a212-9abee798b3a0	111cc3cd-6d35-43ce-be91-dde90d3d4015	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-81294297-6b41-4187-91eb-52754ac17cb5	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fc490e89-b9df-46f2-8c5d-70589d8d06c2	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9fd8880a-6ca9-4e90-afd7-eba3a90131e5	768a11f9-ded7-4f6f-ba86-073e279255d9	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b619e224-d483-4466-90ab-7cdbcc05068c	701aaa2c-a899-4def-bf5f-e17511874409	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8b918ecf-c42b-4e6d-abe0-5bc953bd3277	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a674c930-f30c-4e4a-af2a-6daf72d2c9c2	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1e63e22a-53e5-41a8-a966-808be64b1eaf	64c49f37-a38a-46a6-9622-7427f1501658	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d4b1aa0c-4cec-4f77-8cfc-3c9abf7cf60a	92aa9169-28d9-4754-a570-553b067642ed	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c2fcdfba-ae5a-4530-8a90-fb332e3ae7d9	a3793f87-7f3c-41a1-a675-236fc1b710ab	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eceef3e0-27ef-4753-b8a4-fa93db30bf2e	29ad5710-1621-4c24-ac75-dedfc168ba1a	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d7360d0c-adbc-41d7-9b59-551049d0ddfe	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b42cf9ae-467f-4a9a-9f20-8b44f31e5f97	c787fe3b-4b33-40ee-8794-c1148202f81a	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-65c48244-6118-4d9e-8e52-ed52c14b6029	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c7e59240-83dd-4497-aa3c-5079131416f9	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-93000f07-011c-4d5b-9ef1-ae091a4ff4d5	62a927b7-9fd8-461a-b64e-1aa441eeba4d	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-921cc83b-4145-4e5b-affb-dd968ca3d2aa	a5bfe265-981a-4723-b7bb-6ddc389db7f0	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f29ad125-c164-4081-adf6-d66eb1fb3a8f	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a803f9fd-e5f4-4d2a-b5a1-b73de9d48b77	b552183f-2695-41f9-860e-16d5fe94c4aa	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-27b6eeec-6854-4641-9fc9-ce384d159972	914d8500-03b6-4a43-a250-244effca1cf1	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3c72bc39-6c87-4a78-9e7c-75c1f6f31b99	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2694f716-02e7-4597-800e-cda87617a5ed	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c20d10ef-6da5-4f3e-b79e-58ede45c0cee	a5023c9e-367f-41e1-ba02-bdb2929edc89	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0f3e3009-bcc1-43ac-8b8c-4b8163776261	f5c742d1-e0cc-4bf8-b860-a673ac407393	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cfb40439-a06b-412d-82c4-d2a80b01b629	1a62b1f8-1810-464d-a67b-168d7e419827	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-93b07ae8-dce0-4ce8-abeb-e94a3e49f9c3	aba61e5b-422a-4461-b9da-8dba8f6d3f85	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-55a7bdf0-af93-48e8-9f8d-394d65df747e	111cc3cd-6d35-43ce-be91-dde90d3d4015	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-03d88273-a5e5-4e64-aaab-56f48de75fe2	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fb8590d6-a552-4cf0-b3ae-0a1fffbf190f	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-636e0b45-8559-44e8-ab42-d6244e591bce	768a11f9-ded7-4f6f-ba86-073e279255d9	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0b1e3fd4-b1aa-4843-b20d-4686341d3d7b	701aaa2c-a899-4def-bf5f-e17511874409	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7a77a5c9-632a-421a-aeba-9bffcdade33e	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-48837491-9cbb-418e-a2db-d54e0eedda11	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8df940c8-a613-4e37-8211-24026179f582	64c49f37-a38a-46a6-9622-7427f1501658	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b2e52ee-b0dc-4111-b70b-b1404c184a58	92aa9169-28d9-4754-a570-553b067642ed	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6be43cf8-0e73-47f6-83a3-735eef4a9b24	a3793f87-7f3c-41a1-a675-236fc1b710ab	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cac5844e-9aab-47d8-a4ee-b3fd3449100f	29ad5710-1621-4c24-ac75-dedfc168ba1a	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-97dfecd8-426b-4d39-8854-ac97653a0f19	efc1df20-ca04-44a6-87b2-7cae1ff50a88	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c53fd9ad-4ab4-46b7-99b0-f4d86ae22563	c787fe3b-4b33-40ee-8794-c1148202f81a	127d970c-15d2-4298-9f40-eb608c113dd1	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aa583792-d339-4c4b-83bd-62ba8dd34cd8	f29af015-7833-4f9a-ac57-6fbef5bf91ec	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a7e6e68b-b66f-41cf-bddd-b1028b854223	bb568e26-548b-4ca5-9221-fefb9c9143b3	c7e59240-83dd-4497-aa3c-5079131416f9	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.037084+00	\N	\N	\N
-98af65bd-2095-4fe7-b9fa-fe528f2bb0fb	bb568e26-548b-4ca5-9221-fefb9c9143b3	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.037687+00	\N	\N	\N
-dd963269-f1dd-4121-ad8a-24bf9f479298	cd2a32ed-32fc-47bc-88a9-e6fc48863869	127d970c-15d2-4298-9f40-eb608c113dd1	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.564312+00	\N	\N	\N
-19c82c0a-060b-4797-94bc-e5f2abf65b6b	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c7e59240-83dd-4497-aa3c-5079131416f9	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.563734+00	\N	\N	\N
-5c52c86a-eaa5-4ee5-8e9c-b072eec9b591	62a927b7-9fd8-461a-b64e-1aa441eeba4d	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e2cfa959-6723-4cea-b1f5-338e3295287d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-183794ba-f30a-499f-8bdb-9329c8fffbc2	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1139720e-8235-48d6-9f0a-aaa9e4b6c3b1	b552183f-2695-41f9-860e-16d5fe94c4aa	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-91fd4773-8a3e-4925-90fa-215da4308794	914d8500-03b6-4a43-a250-244effca1cf1	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f1e10c1e-e4b2-4e78-8a31-b6da758d833f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9e4d3fef-1706-4b4b-bb5c-3f816ea450ac	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a1420671-259d-4f69-b44e-85f46d702be8	a5023c9e-367f-41e1-ba02-bdb2929edc89	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-173aee8f-c039-4230-9324-e54d99d9453d	f5c742d1-e0cc-4bf8-b860-a673ac407393	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7ab469b5-60ed-4c3d-9c9e-1eb98a6ec69a	1a62b1f8-1810-464d-a67b-168d7e419827	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-330b4eab-d3ac-4b85-81e3-a121a21f9b37	aba61e5b-422a-4461-b9da-8dba8f6d3f85	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-91ef473e-42f2-448e-a85e-98c4a2294e30	111cc3cd-6d35-43ce-be91-dde90d3d4015	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67926153-6c42-40a0-a40c-9394d7a13a69	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9c9a01aa-c3c4-4e81-a03e-eccd7d10cede	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-55ec8f11-8f9d-463a-8c23-eabe402ea382	768a11f9-ded7-4f6f-ba86-073e279255d9	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-08661203-b7ef-4700-8a6a-6187dcbe827c	701aaa2c-a899-4def-bf5f-e17511874409	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6be76122-b8ef-4d8e-960e-78c49f2d4bce	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-72236958-bc59-4817-9e80-3bd8198b615d	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-08df6c72-2965-423a-8250-52d3b134657e	64c49f37-a38a-46a6-9622-7427f1501658	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d86eb83a-f349-406e-888d-a2bacdef2769	92aa9169-28d9-4754-a570-553b067642ed	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0162604b-3193-4fc7-af71-3d90e29d018a	a3793f87-7f3c-41a1-a675-236fc1b710ab	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2deca782-fe31-4151-8557-d917d7fb1cae	29ad5710-1621-4c24-ac75-dedfc168ba1a	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ae972c2a-890f-48ba-8f2b-34328d60f668	efc1df20-ca04-44a6-87b2-7cae1ff50a88	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-217c38e3-716a-41ac-a2a5-a1452ba63448	c787fe3b-4b33-40ee-8794-c1148202f81a	b921081d-4d72-4341-aaf6-651a1af92449	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-504b0495-f60d-41d2-b295-fd985b792ae3	f29af015-7833-4f9a-ac57-6fbef5bf91ec	b921081d-4d72-4341-aaf6-651a1af92449	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6ce4941a-138d-4aef-8382-7526b0694e85	62a927b7-9fd8-461a-b64e-1aa441eeba4d	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f75a664f-e02d-4a4d-945a-4969311e1e3a	a5bfe265-981a-4723-b7bb-6ddc389db7f0	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ecca848e-efd1-4354-9acf-6cd2f6c22d3d	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-902fb46b-a312-432f-b4bd-deb0b66b2a78	b552183f-2695-41f9-860e-16d5fe94c4aa	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-efc0a70d-0be8-4037-923d-7a12479ac24c	914d8500-03b6-4a43-a250-244effca1cf1	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-87c55a08-32aa-4322-8ac0-71f7e4691d6e	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d6843ee6-0b7d-43be-945d-870d4fddfba8	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-83a43248-1a77-401d-9da9-bfa340a0512e	a5023c9e-367f-41e1-ba02-bdb2929edc89	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1cef0f10-f4f4-4881-a54f-3bdc0748faf4	f5c742d1-e0cc-4bf8-b860-a673ac407393	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c97bdc7b-41fc-4b65-93ce-96a51d281486	1a62b1f8-1810-464d-a67b-168d7e419827	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fc0dbb4f-8422-49e4-8d51-809f1915a431	aba61e5b-422a-4461-b9da-8dba8f6d3f85	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c46a719a-9420-4817-a715-129f77d27fac	111cc3cd-6d35-43ce-be91-dde90d3d4015	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-312eb497-d114-40aa-995f-2e36c5f7c7e8	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b6fb7870-8891-4975-b584-00c730aa7172	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e1866c1a-8889-42df-bc5e-9f8f84fcc515	768a11f9-ded7-4f6f-ba86-073e279255d9	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d6dc2a24-9c67-43aa-a6c8-ab6702add1d5	701aaa2c-a899-4def-bf5f-e17511874409	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6207bdc7-79de-46bd-9cb3-9c85cc5ea750	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ddcec099-1083-40c6-a4ad-ee785fb40828	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4ac09e08-9804-4fee-8142-7140ac432390	64c49f37-a38a-46a6-9622-7427f1501658	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-65a1b4b3-f42c-4511-9708-3680d147add8	92aa9169-28d9-4754-a570-553b067642ed	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-67c7838e-9b61-45dc-8f2c-49fafc6566f9	a3793f87-7f3c-41a1-a675-236fc1b710ab	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ee8722ad-1b79-4efe-bd8c-e343f9a75699	29ad5710-1621-4c24-ac75-dedfc168ba1a	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-248e7af7-649a-4926-82eb-108608d59554	efc1df20-ca04-44a6-87b2-7cae1ff50a88	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8f5270a7-3f6c-44bf-8473-da4be666eac8	c787fe3b-4b33-40ee-8794-c1148202f81a	33ce3a33-9773-47d9-97b2-af72f8b21061	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-561a7882-8eb3-4173-add7-78a0bd8e0266	f29af015-7833-4f9a-ac57-6fbef5bf91ec	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f74bc9c8-75cb-417e-9c0c-be0c4f15ec86	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-eba52ddc-1092-4757-b0d4-454ed2c5a554	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fad05074-9d5d-41d7-bb18-90010113dc83	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bd7ca0ab-00c5-4103-9742-6a169516284c	b552183f-2695-41f9-860e-16d5fe94c4aa	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b8323ab-f8ca-4581-a3a5-31629ec26a45	914d8500-03b6-4a43-a250-244effca1cf1	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-642ea2fb-26ba-45ee-9e34-205b675a00e0	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f675b68d-0357-4bba-944b-2a7659e2c840	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c0cbf478-c636-4b4a-a068-56fe8214c615	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-55c7183d-fe91-4ea5-9f3a-2df9ead708ae	a5023c9e-367f-41e1-ba02-bdb2929edc89	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a19eaac8-9601-4c27-9fee-2cf071a57c06	f5c742d1-e0cc-4bf8-b860-a673ac407393	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4e1c247b-6624-4b4d-99bf-a0c6ddffb0bc	1a62b1f8-1810-464d-a67b-168d7e419827	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e000843f-c166-464a-95fa-e8f63dad3791	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-39886411-f855-4bf1-8c71-55a9f7ba4b8a	111cc3cd-6d35-43ce-be91-dde90d3d4015	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-acdb412f-a469-42cc-81c8-d12aefc8ccaf	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ecc085c9-a373-45b9-b8a4-127d1d913935	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-efdc547c-015b-4638-ac17-c7bd1f80e23d	768a11f9-ded7-4f6f-ba86-073e279255d9	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cb5cf0fb-85f3-46b2-8f88-69f50c5e2635	701aaa2c-a899-4def-bf5f-e17511874409	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a17daf0f-71f8-4c7d-a78f-09bd9bf7ed61	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1f5f573f-113f-4e9b-8a45-b3b77d4c998b	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0774ba2d-7e5f-4205-a0c1-85148ce57e41	64c49f37-a38a-46a6-9622-7427f1501658	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f50a6c1f-3587-4820-a292-dd686301102e	92aa9169-28d9-4754-a570-553b067642ed	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-da921b54-83d7-4e75-8d17-60038632e35b	a3793f87-7f3c-41a1-a675-236fc1b710ab	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-54b40340-e976-4db4-9369-0765b8dec222	29ad5710-1621-4c24-ac75-dedfc168ba1a	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3ccc1e17-a37b-4cd9-ab13-e2c109f6469c	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-46f4d0d6-06b5-4fc9-8c2d-65577155fc1f	c787fe3b-4b33-40ee-8794-c1148202f81a	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9ef9b849-11ab-49b5-9c0a-2c96bdfe80a9	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c0cbf478-c636-4b4a-a068-56fe8214c615	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b8718014-2a09-4f7d-a965-e104cff4f730	bb568e26-548b-4ca5-9221-fefb9c9143b3	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.038869+00	\N	\N	\N
-7b8dfd75-8fe2-40be-8dce-eb9cbf83779c	bb568e26-548b-4ca5-9221-fefb9c9143b3	c0cbf478-c636-4b4a-a068-56fe8214c615	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.039488+00	\N	\N	\N
-ab660e67-c2a7-4a35-b8e2-6f1a2b6a53bb	cd2a32ed-32fc-47bc-88a9-e6fc48863869	33ce3a33-9773-47d9-97b2-af72f8b21061	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.565451+00	\N	\N	\N
-9029a193-a8a0-4100-94d2-60054da9e420	cd2a32ed-32fc-47bc-88a9-e6fc48863869	c0cbf478-c636-4b4a-a068-56fe8214c615	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.56601+00	\N	\N	\N
-e8bc0352-a423-471e-871f-78e63477a50e	62a927b7-9fd8-461a-b64e-1aa441eeba4d	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d62ab4f4-1df0-4eca-a184-4d10f352233c	a5bfe265-981a-4723-b7bb-6ddc389db7f0	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9271b1b2-3dae-4ecd-9ba2-cb4ace9205e8	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b42ca60-1e9d-4946-8b14-c865de2d26aa	b552183f-2695-41f9-860e-16d5fe94c4aa	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-62f213d0-c228-4e05-a347-01713a952e57	914d8500-03b6-4a43-a250-244effca1cf1	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3925b1db-0f44-412b-b830-11b39a00a92d	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3fb11039-d25d-4271-9f3c-9b178c3e297f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	1	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e0c0d36d-a887-41ce-a9d9-64f7d591894c	a5023c9e-367f-41e1-ba02-bdb2929edc89	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8e3d662c-d5cd-475f-872d-c3829c9d1e4e	f5c742d1-e0cc-4bf8-b860-a673ac407393	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-15b9d430-e2d0-4a46-954c-8f743163b103	1a62b1f8-1810-464d-a67b-168d7e419827	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-271f77c8-d008-4464-ad1a-1b23d8e8d326	aba61e5b-422a-4461-b9da-8dba8f6d3f85	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a262d4c2-6516-4b3d-ac6a-cfa0eb2bf3f9	111cc3cd-6d35-43ce-be91-dde90d3d4015	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-0d474fef-02bf-42eb-8b7b-72a86b8f2b18	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2e408d3f-e260-460a-9a5c-760585b509f9	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e89df2a0-cf14-4d6a-9f7f-71447375a122	768a11f9-ded7-4f6f-ba86-073e279255d9	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-321a8401-197c-4df3-ba52-906bcfeabf5a	701aaa2c-a899-4def-bf5f-e17511874409	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-14564707-d78b-4a44-a685-59b28b4aad2d	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f20bb1b9-513f-488b-b596-616b66e98e4a	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-02803de3-73ad-4c70-a5c3-15885a2190c0	64c49f37-a38a-46a6-9622-7427f1501658	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-222cc1a1-41dc-4626-83c3-10ca36ccb65a	92aa9169-28d9-4754-a570-553b067642ed	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5f083b7f-689f-4ae9-bae6-d0a53ace8db4	a3793f87-7f3c-41a1-a675-236fc1b710ab	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-75374332-6a97-47d0-9fd5-955530612d52	29ad5710-1621-4c24-ac75-dedfc168ba1a	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9d78a739-cb06-4b1a-855c-b53b363380e7	efc1df20-ca04-44a6-87b2-7cae1ff50a88	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2cd0412c-fc1f-4c42-bfa2-1208787c88ca	c787fe3b-4b33-40ee-8794-c1148202f81a	c318eb4e-569f-4c41-9010-7ab7a20efd6d	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-20f65c61-c407-468b-bd29-ea8814454d29	f29af015-7833-4f9a-ac57-6fbef5bf91ec	c318eb4e-569f-4c41-9010-7ab7a20efd6d	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d0cff603-779f-4d32-a903-54a9fcad9b10	62a927b7-9fd8-461a-b64e-1aa441eeba4d	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-da226873-0e75-41b7-a181-f329f5a2215d	a5bfe265-981a-4723-b7bb-6ddc389db7f0	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-aa016109-5bd1-4393-b4b2-279aaff16906	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9197c2f7-d577-45b6-9389-88d326d5cc89	b552183f-2695-41f9-860e-16d5fe94c4aa	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-680622c4-d947-4368-834a-528808e0db93	914d8500-03b6-4a43-a250-244effca1cf1	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-252cd260-1e7a-49c2-92da-7501326c3473	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d10d72da-d2a9-45ec-9095-e5b57f6041b1	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9a6ee549-d732-4ac1-b898-57534c024007	a5023c9e-367f-41e1-ba02-bdb2929edc89	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bdaa304a-90e7-4c0b-a35b-518188a19c47	f5c742d1-e0cc-4bf8-b860-a673ac407393	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a10af4b0-80ad-488d-bdf1-de04523b0dab	1a62b1f8-1810-464d-a67b-168d7e419827	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6aefc387-f3c6-472b-a12a-56aa1b6df3c0	aba61e5b-422a-4461-b9da-8dba8f6d3f85	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-875db15c-5d54-48b4-aafc-419e6f028488	111cc3cd-6d35-43ce-be91-dde90d3d4015	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-05746edd-cfb7-4f1f-8be4-99ec3b38f202	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-25d145b7-52b4-4a5e-8860-f995355ec8e1	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-ffbe917c-16e7-4145-98e4-001bccd001f4	768a11f9-ded7-4f6f-ba86-073e279255d9	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-912caf4d-2451-4867-9df6-6828109cefac	701aaa2c-a899-4def-bf5f-e17511874409	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b20a41df-f50a-42ce-bd51-b09a21a4b368	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cd2da11d-dbd6-4192-abc8-04592b191540	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-85b0d285-7741-4c48-aaa7-ae0c35be908f	64c49f37-a38a-46a6-9622-7427f1501658	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e43b467b-1de8-4a8f-bd64-27468c5a21aa	92aa9169-28d9-4754-a570-553b067642ed	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3b5eaed8-7301-492c-8d85-06b4870d4b76	a3793f87-7f3c-41a1-a675-236fc1b710ab	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8b6d2cfe-4fce-45b4-87fc-486672366abb	29ad5710-1621-4c24-ac75-dedfc168ba1a	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-25f07d93-547c-4cb7-a103-10930618a35e	efc1df20-ca04-44a6-87b2-7cae1ff50a88	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cb8c84a5-c914-4424-9a28-ec1e3cf69af2	c787fe3b-4b33-40ee-8794-c1148202f81a	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9450fde0-d73d-4c8a-bb6d-f160e77a72af	f29af015-7833-4f9a-ac57-6fbef5bf91ec	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8141d637-a40b-4dc2-8e58-8bb60e9b1f5b	62a927b7-9fd8-461a-b64e-1aa441eeba4d	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d07e3571-4351-488d-a4ca-379a28ae1c45	a5bfe265-981a-4723-b7bb-6ddc389db7f0	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-5ae451be-6a06-4a64-9b21-a098a4eb3be6	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-85902615-634b-4fcf-8f0d-9e6542a47255	b552183f-2695-41f9-860e-16d5fe94c4aa	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-56ca9b08-c17a-4f0c-a37c-c102ab6813df	914d8500-03b6-4a43-a250-244effca1cf1	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-8a53bcb1-f194-417f-a265-dca45f0cf4c0	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6ea680cb-5d48-4577-a24c-ec2a084c9f94	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c576db7e-27dd-4cd6-a3ce-7c32a28efc08	a5023c9e-367f-41e1-ba02-bdb2929edc89	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-70530960-97e7-4b22-9b7b-90170ed8cc3b	f5c742d1-e0cc-4bf8-b860-a673ac407393	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-07c62eda-14d9-40f8-822a-7bc645fb50d3	1a62b1f8-1810-464d-a67b-168d7e419827	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-9e1b415a-3223-4666-83e7-d10bd1eff705	aba61e5b-422a-4461-b9da-8dba8f6d3f85	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d2a45361-50bf-4f91-8ce9-5a2e0be4eb22	111cc3cd-6d35-43ce-be91-dde90d3d4015	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b3fbde80-d1dd-4641-88c2-ae23023842f6	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-84170c64-f04d-4fe7-902f-b2b2ab7d905b	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-23985fdb-f1cf-4160-ac49-8eb8bea2f289	768a11f9-ded7-4f6f-ba86-073e279255d9	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6cd21f6a-381c-4d5d-b666-22bb2b2f9c52	701aaa2c-a899-4def-bf5f-e17511874409	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3420767d-0525-498d-9ace-433905c6f2b4	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-258a6285-92bc-4780-bada-103d8bd679ee	4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-24444a4e-e80c-46da-a057-e65507b60f76	64c49f37-a38a-46a6-9622-7427f1501658	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d4fedb63-180f-47fb-bad0-2fbf837c745b	92aa9169-28d9-4754-a570-553b067642ed	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-423a0069-3c84-47db-923f-bac28bc9355c	a3793f87-7f3c-41a1-a675-236fc1b710ab	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-45ac0b86-1ebb-454d-85f7-764fa20a7554	29ad5710-1621-4c24-ac75-dedfc168ba1a	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e1e90c92-468d-4832-905f-e17c7365c4ad	efc1df20-ca04-44a6-87b2-7cae1ff50a88	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2293ee17-86f3-4876-b7c2-8fe10e4ba51d	c787fe3b-4b33-40ee-8794-c1148202f81a	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-89e0d5d4-901a-4762-8704-bf6e9d46bc8a	f29af015-7833-4f9a-ac57-6fbef5bf91ec	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-932e5363-616e-41c6-956c-99fd374c3fa6	bb568e26-548b-4ca5-9221-fefb9c9143b3	162048e6-dc24-4f36-941e-213f4da09f8c	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.040762+00	\N	\N	\N
-f2fe2ed3-b4ee-4e84-9d52-75d89289f17a	bb568e26-548b-4ca5-9221-fefb9c9143b3	5a06245d-0234-4b8e-9a81-c70c2627ed63	1	1	2026-10-17 13:13:54.745484+00	2026-10-17 13:17:42.041569+00	\N	\N	\N
-7d774c79-40b7-4923-ab1e-74a56a1ad15c	cd2a32ed-32fc-47bc-88a9-e6fc48863869	162048e6-dc24-4f36-941e-213f4da09f8c	1	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.567305+00	\N	\N	\N
-10b4315e-d70d-45c5-8cb1-801d9d4fbdbb	cd2a32ed-32fc-47bc-88a9-e6fc48863869	5a06245d-0234-4b8e-9a81-c70c2627ed63	0	0	2026-10-17 13:13:54.745484+00	2026-10-17 13:20:34.567864+00	\N	\N	\N
-\.
-
-
---
 -- Data for Name: tbl_roles; Type: TABLE DATA; Schema: auth; Owner: -
 --
 
-COPY auth.tbl_roles ("Id", "DisplayName", "Permissions", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Name", "Description", "IsActive", "IsSystemRole") FROM stdin;
-a0000000-0000-0000-0000-000000000001	Admin	["dashboard.view", "action-center.view", "projects.view", "projects:read", "projects.create", "projects:write", "projects.edit", "projects:write", "projects.delete", "projects:write", "projects.close", "projects:close", "projects.approve", "projects.assign", "projects.export", "projects.import", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "issues:raise", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health.manage", "issues:manage", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.communication.view", "projects.communication.create", "projects.pmo.view", "projects.pmo.manage", "projects.prerequisite.view", "projects.prerequisite.manage", "projects.services-deliverables.view", "projects.services-deliverables.manage", "projects.invoice-schedule.view", "projects.invoice-schedule.manage", "invoices:raise", "invoices:payment", "projects.assigned-projects.view", "reports.view", "reports:read", "reports.export", "reports.finance.view", "resources.view", "resources:read", "resources.manage", "resources:manage", "resources.directory.view", "resources.kpi.view", "customers.view", "clients:read", "customers.create", "clients:write", "customers.edit", "clients:write", "customers.delete", "clients:write", "customers.approve", "clients:approve", "customers.assign", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "timesheets:monitor", "my-team.timesheet-approval.approve", "timesheets:approve", "my-team.timesheet-approval.reject", "timesheets:approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "timesheets:submit", "my-team.my-timesheet.edit", "wbs.view", "wbs:read", "wbs.allocate", "wbs:allocate", "approvals.view", "approvals:manage", "approvals.approve", "timesheets:approve", "approvals.reject", "timesheets:approve", "portfolio.view", "settings.view", "settings.roles.view", "settings.roles.manage", "roles:manage", "settings.permissions.view", "settings.permissions.manage", "users:manage", "settings.audit.view", "audit:read"]	2026-09-25 04:41:26.317908+00	2026-09-25 05:11:29.711189+00	\N	\N	\N	Admin	Super-admin — full access to every module, submodule and action.	t	t
-62a927b7-9fd8-461a-b64e-1aa441eeba4d	Chief Executive Officer	["dashboard.view", "action-center.view", "action_center.bucket_list.view", "action_center.bucket_list.manage", "action_center.bucket_timer.view", "action_center.bucket_timer.manage", "action_center.approvals.view", "action_center.approvals.manage", "action_center.alerts.view", "action_center.alerts.manage", "action_center.notifications.view", "action_center.notifications.manage", "action_center.acknowledge.view", "action_center.acknowledge.manage", "approvals.view", "approvals.approve", "approvals.reject", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.communication.view", "projects.communication.create", "approvals:manage", "issues:manage", "issues:raise", "projects.view", "projects.overview.view", "projects.overview.extension", "projects.budget.view", "projects.wbs.view", "projects.wbs.prerequisite", "projects.team.view", "projects.tasks.view", "projects.task.view", "projects.health.view", "projects.invoice.view", "projects.pmo.view", "projects.prerequisite.view", "projects.services-deliverables.view", "projects.invoice-schedule.view", "projects.assigned-projects.view", "wbs.view", "portfolio.view", "projects:read", "reports.view", "reports.sales", "reports.wbs_tracker", "reports.po_tracker", "reports.invoice_tracker", "reports.wbs-tracker", "reports.po-tracker", "reports.invoice-tracker", "reports.export", "reports.finance.view", "reports:read", "resources.view", "resources.directory.view", "resources.kpi.view", "resources.pool", "resources.profile.view", "resources.profile.personal", "resources.profile.org", "resources.profile.employment", "resources.profile.skills", "resources.profile.kpi", "resources.profile.finance", "resources.profile.report", "resources.exit_summary", "resources:read", "customers.view", "clients:read", "timesheet.my", "timesheet.approve", "my_team.dashboard", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "timesheets:monitor", "timesheets:approve", "timesheets:submit", "repository.view", "repository.download", "repository.logs", "settings.view", "settings.roles.view", "settings.masters.view"]	2026-09-24 12:13:06.784762+00	2026-09-28 13:27:59.951304+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	CEO	Global executive visibility, business analytics, all approvals.	t	t
-768a11f9-ded7-4f6f-ba86-073e279255d9	Consulting Team Member	["dashboard.view", "projects.view", "projects.assigned-projects.view", "projects.task.view", "projects.task.update-status", "projects.health.raise-issue", "repository.view", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "issues:raise", "timesheets:submit", "projects:read"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Consulting-Team member	Audit checklists, evidence collection, task updates, own timesheets.	t	t
-1a62b1f8-1810-464d-a67b-168d7e419827	SOC Team Member	["dashboard.view", "projects.view", "projects.assigned-projects.view", "projects.task.view", "projects.task.update-status", "projects.health.raise-issue", "repository.view", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "issues:raise", "timesheets:submit", "projects:read"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	SOC-Team Member	SIEM monitoring, alert analysis, shift logs, own timesheets.	t	t
-cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts & Finance	["dashboard.view", "projects.view", "projects.overview.view", "projects.health.view", "projects.invoice-schedule.view", "projects.invoice-schedule.manage", "reports.view", "reports.export", "reports.finance.view", "reports.po-tracker", "reports.invoice-tracker", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "repository.view", "clients:read", "invoices:raise", "invoices:payment", "reports:read"]	2026-08-07 07:49:59.669429+00	2026-09-24 12:13:06.784762+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	Accounts	Invoicing schedule, milestone payments, PO tracking, financial reports.	t	t
-92aa9169-28d9-4754-a570-553b067642ed	Testing Team Member	["dashboard.view", "projects.view", "projects.assigned-projects.view", "projects.task.view", "projects.task.update-status", "projects.health.raise-issue", "repository.view", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "issues:raise", "timesheets:submit", "projects:read"]	2026-09-24 12:13:06.784762+00	2026-09-28 12:04:37.731077+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	Testing-Team Member	Test execution, defect logging, task status updates, own timesheets.	t	t
-f5c742d1-e0cc-4bf8-b860-a673ac407393	R&D Team Member	["dashboard.view", "projects.view", "projects.assigned-projects.view", "projects.task.view", "projects.task.update-status", "repository.view", "repository.upload", "repository.download", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "issues:raise", "timesheets:submit", "projects:read"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	R&D - Team member	Python/Tool development, sprint tasks, code repository, own timesheets.	t	t
-a5bfe265-981a-4723-b7bb-6ddc389db7f0	Chief Operating Officer	["dashboard.view", "action-center.view", "action_center.bucket_list.view", "action_center.bucket_list.manage", "action_center.bucket_timer.view", "action_center.bucket_timer.manage", "action_center.approvals.view", "action_center.approvals.manage", "action_center.alerts.view", "action_center.alerts.manage", "action_center.notifications.view", "action_center.notifications.manage", "action_center.acknowledge.view", "action_center.acknowledge.manage", "approvals.view", "approvals.approve", "approvals.reject", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.communication.view", "projects.communication.create", "approvals:manage", "issues:manage", "issues:raise", "projects.view", "projects.overview.view", "projects.overview.extension", "projects.budget.view", "projects.wbs.view", "projects.wbs.prerequisite", "projects.team.view", "projects.tasks.view", "projects.task.view", "projects.health.view", "projects.invoice.view", "projects.pmo.view", "projects.prerequisite.view", "projects.services-deliverables.view", "projects.invoice-schedule.view", "projects.assigned-projects.view", "wbs.view", "portfolio.view", "projects:read", "reports.view", "reports.sales", "reports.wbs_tracker", "reports.po_tracker", "reports.invoice_tracker", "reports.wbs-tracker", "reports.po-tracker", "reports.invoice-tracker", "reports.export", "reports.finance.view", "reports:read", "resources.view", "resources.directory.view", "resources.kpi.view", "resources.pool", "resources.profile.view", "resources.profile.personal", "resources.profile.org", "resources.profile.employment", "resources.profile.skills", "resources.profile.kpi", "resources.profile.finance", "resources.profile.report", "resources.exit_summary", "resources:read", "customers.view", "clients:read", "timesheet.my", "timesheet.approve", "my_team.dashboard", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "timesheets:monitor", "timesheets:approve", "timesheets:submit", "repository.view", "repository.download", "repository.logs", "settings.view", "settings.roles.view", "settings.masters.view"]	2026-09-24 12:13:06.784762+00	2026-09-28 10:21:52.975541+00	\N	\N	\N	COO	Operational oversight across all departments and projects.	t	t
-66e48815-4d4f-41d0-9c5f-26a7b7ba296c	Chief Technology Officer	["dashboard.view", "action-center.view", "action_center.bucket_list.view", "action_center.bucket_list.manage", "action_center.bucket_timer.view", "action_center.bucket_timer.manage", "action_center.approvals.view", "action_center.approvals.manage", "action_center.alerts.view", "action_center.alerts.manage", "action_center.notifications.view", "action_center.notifications.manage", "action_center.acknowledge.view", "action_center.acknowledge.manage", "approvals.view", "approvals.approve", "approvals.reject", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.communication.view", "projects.communication.create", "approvals:manage", "issues:manage", "issues:raise", "projects.view", "projects.overview.view", "projects.overview.extension", "projects.budget.view", "projects.wbs.view", "projects.wbs.prerequisite", "projects.team.view", "projects.tasks.view", "projects.task.view", "projects.health.view", "projects.invoice.view", "projects.pmo.view", "projects.prerequisite.view", "projects.services-deliverables.view", "projects.invoice-schedule.view", "projects.assigned-projects.view", "wbs.view", "portfolio.view", "projects:read", "reports.view", "reports.sales", "reports.wbs_tracker", "reports.po_tracker", "reports.invoice_tracker", "reports.wbs-tracker", "reports.po-tracker", "reports.invoice-tracker", "reports.export", "reports.finance.view", "reports:read", "resources.view", "resources.directory.view", "resources.kpi.view", "resources.pool", "resources.profile.view", "resources.profile.personal", "resources.profile.org", "resources.profile.employment", "resources.profile.skills", "resources.profile.kpi", "resources.profile.finance", "resources.profile.report", "resources.exit_summary", "resources:read", "customers.view", "clients:read", "timesheet.my", "timesheet.approve", "my_team.dashboard", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "timesheets:monitor", "timesheets:approve", "timesheets:submit", "repository.view", "repository.download", "repository.logs", "settings.view", "settings.roles.view", "settings.masters.view"]	2026-09-24 12:13:06.784762+00	2026-09-28 10:21:52.975541+00	\N	\N	\N	CTO	Technical architecture, R&D governance, engineering oversight.	t	t
-b552183f-2695-41f9-860e-16d5fe94c4aa	IT Administrator	["dashboard.view", "resources.view", "resources.directory.view", "resources.manage", "settings.view", "settings.masters.manage", "repository.view", "repository.upload", "repository.download", "resources:read", "resources:manage"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	IT Admin	IT infrastructure, corporate email domains, device & user setup.	t	t
-bb568e26-548b-4ca5-9221-fefb9c9143b3	Human Resources	["resources.view", "resources.directory.view", "resources.manage", "resources.kpi.view", "resources.profile.org", "resources.profile.employment", "resources.profile.skills", "resources.profile.finance", "repository.view", "repository.upload", "repository.download", "settings.view", "settings.masters.manage", "resources:read", "resources:manage"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	HR	Employee directory, onboarding/offboarding, skills, KPI/rating tabs.	t	t
-914d8500-03b6-4a43-a250-244effca1cf1	Sales Manager	["dashboard.view", "projects.view", "projects.create", "projects.overview.view", "projects.overview.edit", "projects.health.view", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "customers.create", "customers.edit", "customers.assign", "customers.approve", "reports.view", "reports.export", "reports.sales", "repository.view", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "clients:read", "clients:write", "clients:approve", "projects:write", "wbs:read", "timesheets:submit"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Sales Manager	Customer onboarding, client management, proposal drafting, pipeline.	t	t
-7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	Sales Team Member	["dashboard.view", "projects.view", "projects.overview.view", "customers.view", "customers.create", "customers.edit", "reports.view", "reports.sales", "repository.view", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "clients:read", "clients:write", "timesheets:submit"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Sales team member	Proposal drafting, pipeline viewing, sales reports.	t	t
-2acf8b94-0756-4db8-bb6f-8372ac04a2d1	Project Management Office	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.budget.view", "projects.pmo.view", "projects.pmo.manage", "projects.health.view", "projects.health.manage", "reports.view", "reports.export", "reports.wbs-tracker", "resources.view", "resources.directory.view", "customers.view", "repository.view", "my-team.dashboard.view", "approvals.view", "wbs.view", "wbs.allocate", "clients:read", "projects:read", "wbs:read", "wbs:allocate", "timesheets:monitor", "issues:manage", "resources:read", "reports:read", "approvals:manage"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	PMO	Global governance, WBS allocation, timesheet monitoring, approvals.	t	t
-a5023c9e-367f-41e1-ba02-bdb2929edc89	Engagement Manager (EM)	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "projects.communication.view", "projects.communication.create", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "customers.edit", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "clients:read", "projects:read", "projects:write", "issues:raise", "issues:manage", "timesheets:approve"]	2026-08-07 07:49:59.669429+00	2026-09-24 12:13:06.784762+00	\N	\N	\N	EngagementManager	Customer relationship, client project overview, health & escalations.	t	t
-c787fe3b-4b33-40ee-8794-c1148202f81a	Testing Head of Department	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.health.view", "projects.health.manage", "projects.health-issues.view", "projects.alerts.view", "projects.escalation.view", "reports.view", "reports.export", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "approvals.view", "approvals.approve", "approvals.reject", "projects:read", "projects:close", "issues:manage", "timesheets:approve", "approvals:manage", "reports:read"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Testing HOD	Complete oversight of Testing department, health escalations, approvals.	t	t
-efc1df20-ca04-44a6-87b2-7cae1ff50a88	Testing Senior Manager	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.alerts.view", "projects.escalation.view", "resources.view", "resources.directory.view", "customers.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "projects:read", "projects:write", "issues:raise", "issues:manage", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Testing Senior Manager	Delivery oversight across testing projects, QA resource management.	t	t
-29ad5710-1621-4c24-ac75-dedfc168ba1a	Testing Project Manager	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "resources.view", "resources.directory.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "projects:read", "projects:write", "issues:raise", "timesheets:submit", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Testing-Manager	QA project tasks, test deliverables, defect tracking, QA timesheets.	t	t
-a3793f87-7f3c-41a1-a675-236fc1b710ab	Testing Team Leader	["dashboard.view", "projects.view", "projects.overview.view", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "projects:read", "issues:raise", "timesheets:submit", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Testing-Team Leader	Test run execution, defect triage, test task assignment, timesheet review.	t	t
-64c49f37-a38a-46a6-9622-7427f1501658	Consulting Head of Dept	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.health.view", "projects.health.manage", "projects.health-issues.view", "projects.alerts.view", "projects.escalation.view", "reports.view", "reports.export", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "approvals.view", "approvals.approve", "approvals.reject", "projects:read", "projects:close", "issues:manage", "timesheets:approve", "approvals:manage", "reports:read"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Consulting-HOD	Complete oversight of Consulting department, GRC engagements.	t	t
-f29af015-7833-4f9a-ac57-6fbef5bf91ec	Intern	["projects.view", "projects.assigned-projects.view", "projects.task.view", "projects.task.update-status", "repository.view", "repository.download", "my-team.dashboard.view", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "timesheets:submit", "projects:read"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Intern	Read-only training access to assigned tasks and document repository.	t	t
-4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	Consulting Senior Manager	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.alerts.view", "projects.escalation.view", "resources.view", "resources.directory.view", "customers.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "projects:read", "projects:write", "issues:raise", "issues:manage", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Consulting-Senior Manager	Delivery oversight across consulting & audit projects.	t	t
-e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	Consulting Project Manager	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "resources.view", "resources.directory.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "projects:read", "projects:write", "issues:raise", "timesheets:submit", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Consulting-Manager	GRC audit projects, client deliverables, audit timesheet approvals.	t	t
-701aaa2c-a899-4def-bf5f-e17511874409	Consulting Team Leader	["dashboard.view", "projects.view", "projects.overview.view", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "projects:read", "issues:raise", "timesheets:submit", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Consulting-Team Leader	Senior audit execution, audit task assignment, timesheet review.	t	t
-3d068c2f-d0a1-4045-bad9-0f3a43efec4f	SOC Head of Department	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.health.view", "projects.health.manage", "projects.health-issues.view", "projects.alerts.view", "projects.escalation.view", "reports.view", "reports.export", "resources.view", "resources.directory.view", "resources.kpi.view", "customers.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "approvals.view", "approvals.approve", "approvals.reject", "projects:read", "projects:close", "issues:manage", "timesheets:approve", "approvals:manage", "reports:read"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	SOC-HOD	Complete oversight of SOC/Operations, 24/7 monitoring governance.	t	t
-b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	SOC Senior Manager	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.budget.view", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.alerts.view", "projects.escalation.view", "resources.view", "resources.directory.view", "customers.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "projects:read", "projects:write", "issues:raise", "issues:manage", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	SOC-Senior Manager	Operations delivery oversight, client SLA tracking, incident reviews.	t	t
-111cc3cd-6d35-43ce-be91-dde90d3d4015	SOC Manager	["dashboard.view", "action-center.view", "projects.view", "projects.overview.view", "projects.overview.edit", "projects.team.view", "projects.team.assign", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.edit-issue", "projects.health.resolve-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "projects.health-issues.edit", "projects.health-issues.resolve", "projects.alerts.view", "projects.alerts.create", "projects.alerts.resolve", "projects.escalation.view", "projects.escalation.create", "projects.escalation.resolve", "resources.view", "resources.directory.view", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.timesheet-approval.reject", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "projects:read", "projects:write", "issues:raise", "timesheets:submit", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	SOC-Manager	Incident management, shift scheduling, operations timesheets.	t	t
-aba61e5b-422a-4461-b9da-8dba8f6d3f85	SOC Shift / Team Leader	["dashboard.view", "projects.view", "projects.overview.view", "projects.task.view", "projects.task.create", "projects.task.edit", "projects.task.assign", "projects.task.update-status", "projects.health.view", "projects.health.raise-issue", "projects.health.comment", "projects.health-issues.view", "projects.health-issues.create", "repository.view", "my-team.dashboard.view", "my-team.timesheet-approval.view", "my-team.timesheet-approval.approve", "my-team.my-timesheet.view", "my-team.my-timesheet.submit", "my-team.my-timesheet.edit", "projects:read", "issues:raise", "timesheets:submit", "timesheets:approve"]	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	SOC-Team Leader	Shift oversight, alert escalation, task assignments, timesheet review.	t	t
+COPY auth.tbl_roles ("Id", "DisplayName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Name", "Description", "IsActive", "IsSystemRole") FROM stdin;
+a0000000-0000-0000-0000-000000000001	Admin	2026-09-25 04:41:26.317908+00	2026-09-25 05:11:29.711189+00	\N	\N	\N	Admin	Super-admin — full access to every module, submodule and action.	t	t
+914d8500-03b6-4a43-a250-244effca1cf1	Sales Manager	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Sales Manager	Customer onboarding, client management, proposal drafting, pipeline.	t	t
+7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	Sales Team Member	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Sales team member	Proposal drafting, pipeline viewing, sales reports.	t	t
+c787fe3b-4b33-40ee-8794-c1148202f81a	Testing Head of Department	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Testing HOD	Complete oversight of Testing department, health escalations, approvals.	t	t
+f29af015-7833-4f9a-ac57-6fbef5bf91ec	Intern	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Intern	Read-only training access to assigned tasks and document repository.	t	t
+4abcc3c7-63ba-4ea6-baa5-c55d5f4f1089	Consulting Senior Manager	2026-09-24 12:13:06.784762+00	\N	\N	\N	\N	Consulting-Senior Manager	Delivery oversight across consulting & audit projects.	t	t
+111cc3cd-6d35-43ce-be91-dde90d3d4015	SOC- Manager	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	SOC-Manager	Incident management, shift scheduling, operations timesheets.	t	t
+1a62b1f8-1810-464d-a67b-168d7e419827	SOC- Team Member	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	SOC-Team Member	SIEM monitoring, alert analysis, shift logs, own timesheets.	t	t
+29ad5710-1621-4c24-ac75-dedfc168ba1a	Testing-Manager	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Testing-Manager	QA project tasks, test deliverables, defect tracking, QA timesheets.	t	t
+2acf8b94-0756-4db8-bb6f-8372ac04a2d1	PMO (Project Management Office)	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	PMO	Global governance, WBS allocation, timesheet monitoring, approvals.	t	t
+3d068c2f-d0a1-4045-bad9-0f3a43efec4f	SOC- HOD	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	SOC-HOD	Complete oversight of SOC/Operations, 24/7 monitoring governance.	t	t
+62a927b7-9fd8-461a-b64e-1aa441eeba4d	CEO	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	CEO	Global executive visibility, business analytics, all approvals.	t	t
+64c49f37-a38a-46a6-9622-7427f1501658	Consulting-HOD	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Consulting-HOD	Complete oversight of Consulting department, GRC engagements.	t	t
+66e48815-4d4f-41d0-9c5f-26a7b7ba296c	CTO	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	CTO	Technical architecture, R&D governance, engineering oversight.	t	t
+701aaa2c-a899-4def-bf5f-e17511874409	Consulting -Team Leader	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Consulting-Team Leader	Senior audit execution, audit task assignment, timesheet review.	t	t
+768a11f9-ded7-4f6f-ba86-073e279255d9	Consulting -Team member	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Consulting-Team member	Audit checklists, evidence collection, task updates, own timesheets.	t	t
+92aa9169-28d9-4754-a570-553b067642ed	Testing-Team Member	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Testing-Team Member	Test execution, defect logging, task status updates, own timesheets.	t	t
+a3793f87-7f3c-41a1-a675-236fc1b710ab	Testing-Team Leader	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Testing-Team Leader	Test run execution, defect triage, test task assignment, timesheet review.	t	t
+a5023c9e-367f-41e1-ba02-bdb2929edc89	EM (Engagement Manager)	2026-08-07 07:49:59.669429+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	EngagementManager	Customer relationship, client project overview, health & escalations.	t	t
+a5bfe265-981a-4723-b7bb-6ddc389db7f0	COO	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	COO	Operational oversight across all departments and projects.	t	t
+aba61e5b-422a-4461-b9da-8dba8f6d3f85	SOC- Team Leader	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	SOC-Team Leader	Shift oversight, alert escalation, task assignments, timesheet review.	t	t
+b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	SOC- Senior Manager	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	SOC-Senior Manager	Operations delivery oversight, client SLA tracking, incident reviews.	t	t
+b552183f-2695-41f9-860e-16d5fe94c4aa	IT Admin	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	IT Admin	IT infrastructure, corporate email domains, device & user setup.	t	t
+bb568e26-548b-4ca5-9221-fefb9c9143b3	HR	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	HR	Employee directory, onboarding/offboarding, skills, KPI/rating tabs.	t	t
+cd2a32ed-32fc-47bc-88a9-e6fc48863869	Accounts	2026-08-07 07:49:59.669429+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Accounts	Invoicing schedule, milestone payments, PO tracking, financial reports.	t	t
+e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	Consulting-Manager	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Consulting-Manager	GRC audit projects, client deliverables, audit timesheet approvals.	t	t
+efc1df20-ca04-44a6-87b2-7cae1ff50a88	Testing- Senior Manager	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Testing Senior Manager	Delivery oversight across testing projects, QA resource management.	t	t
+f5c742d1-e0cc-4bf8-b860-a673ac407393	R&D -Team member	2026-09-24 12:13:06.784762+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	R&D - Team member	Python/Tool development, sprint tasks, code repository, own timesheets.	t	t
 \.
 
 
@@ -3413,6 +1516,7 @@ COPY customer.tbl_client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Em
 994f1b38-e2e1-4e84-a6a9-44707059954d	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Krshna	krsna@adityabirla.com	8723463284	CIO	Technical	f	2026-10-14 04:10:42.001025+00	2026-10-14 04:14:49.555943+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	2026-10-14 04:14:49.555943+00	India	+91
 17552817-df66-49cb-843f-e4a269871e53	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Omakar	omkar@gmail.com	8723463284	CIO	Technical	f	2026-10-14 04:14:49.55821+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	India	+91
 3faf9dea-ce22-4338-80f0-46dc0a7838de	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Abhi Mistry	abhi@adityabirla.com	9874237847	Accounts Head	Accounts	f	2026-10-14 04:14:49.55821+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	India	+91
+cdd36d63-2277-4409-89c1-1b43236e0d0f	\N	a585a207-e23c-4694-9a6e-1dfea515c585	test	test@gg.com	5645467676	Desg Test	Test cnt	f	2026-10-18 10:28:17.271962+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
 \.
 
 
@@ -3421,7 +1525,8 @@ COPY customer.tbl_client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Em
 --
 
 COPY customer.tbl_clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince", "SalesManager", "SalesManagerId", "KycDocumentPath", "BillingMedium", "GroupSpocName", "GroupSpocContact", "ClientCode", "CreatedByName", "GroupSpocPhoneCode") FROM stdin;
-bf01f81e-b09c-47c1-811c-40a58a56db12	Aditya Birla	Logistics	AB	\N	New	Active	Pradeep Singh	Dhanshree	9348753534	\N	Group SPOC	2026-10-14 04:10:41.986238+00	2026-10-14 04:14:49.553313+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	\N	\N	Navi Mumbai	India	Resume_Omkar_Gaikwad.pdf	\N	\N	f175fde9-14f8-40e8-b564-47d8a29d84ff	ea72f142-d2b7-4d74-8877-4c5c64106d84	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-10-14	Sales User	\N	\N	Portal Based	Dhanshree	9348753534	C001	admin	+91
+5a526476-8299-49a7-af85-4a322006bde9	test cust	INDUSTRY Test	TC	\N	New	Active	Atharv Reddy	test spoc	3233333333	\N	Group SPOC	2026-10-18 10:28:17.255787+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	test city	India	TK_PMS_Tool_BRD_Module_V05.pdf	\N	033446c7-c133-4395-bdaa-69b5f227a7a8	8e0492bb-3e1c-47b8-890c-a2aa8cdd3a03	08a60e15-809d-4e3b-8add-82ddc53f77ed	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-10-18	Omkar Reddy	776f2cf7-c4cc-4299-b38f-afbcaff7703e	\N	Portal Based	test spoc	3233333333	C002	admin	\N
+bf01f81e-b09c-47c1-811c-40a58a56db12	Aditya Birla	Logistics	AB	\N	New	Active	Karan Wardhan	Dhanshree	9348753534	\N	Group SPOC	2026-10-14 04:10:41.986238+00	2026-10-19 12:34:42.476388+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	Navi Mumbai	India	Resume_Omkar_Gaikwad.pdf	\N	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	f175fde9-14f8-40e8-b564-47d8a29d84ff	ea72f142-d2b7-4d74-8877-4c5c64106d84	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-10-14	Sales User	\N	\N	Portal Based	Dhanshree	9348753534	C001	admin	+91
 \.
 
 
@@ -3431,6 +1536,7 @@ bf01f81e-b09c-47c1-811c-40a58a56db12	Aditya Birla	Logistics	AB	\N	New	Active	Pra
 
 COPY customer.tbl_sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Notes", "KycDocumentName", "KycDocumentPath", "SubVentureCode") FROM stdin;
 c005cbc3-03a8-4dec-b3d0-c44868e18f28	bf01f81e-b09c-47c1-811c-40a58a56db12	Aditya Birla_Finance	2026-10-14 04:10:41.986238+00	2026-10-14 04:10:42.078291+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	\N	Important client	Resume_Omkar_Gaikwad.pdf	KYC/20261014_041042_070_Aditya_Birla_Aditya_Birla_Finance_Resume_Omkar_Gaikwad.pdf	C001-01
+a585a207-e23c-4694-9a6e-1dfea515c585	5a526476-8299-49a7-af85-4a322006bde9	sub test cust	2026-10-18 10:28:17.255787+00	2026-10-18 10:28:17.400741+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	TK_PMS_Tool_BRD_Module_V05.pdf	KYC/20261018_102817_392_test_cust_sub_test_cust_TK_PMS_Tool_BRD_Module_V05.pdf	C002-01
 \.
 
 
@@ -3567,6 +1673,7 @@ fa93d47b-4401-49d0-ac56-9640fae57c62	kopar_khairane_trans_harbour_line	Kopar Kha
 5e852901-34fc-427c-8078-b983bde00595	seawoods_darave_trans_harbour_line	Seawoods-Darave (Trans-Harbour Line)	Trans-Harbour Line	t	126	2026-10-10 06:56:25.008136+00	\N	\N	\N	\N
 3f3d276a-317e-4ac4-962a-968cff8de665	cbd_belapur_trans_harbour_line	CBD Belapur (Trans-Harbour Line)	Trans-Harbour Line	t	127	2026-10-10 06:56:25.008136+00	\N	\N	\N	\N
 196262d4-9a4e-4158-a3a6-60babccaf66b	panvel_trans_harbour_line	Panvel (Trans-Harbour Line)	Trans-Harbour Line	t	128	2026-10-10 06:56:25.008136+00	\N	\N	\N	\N
+085f5e38-ecf0-4362-87e2-33b348b0a938	zz_probe_city	ZZ Probe City	Probe Line	f	129	2026-10-18 13:00:09.453122+00	2026-10-18 13:00:09.771013+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.771013+00
 \.
 
 
@@ -3576,6 +1683,8 @@ fa93d47b-4401-49d0-ac56-9640fae57c62	kopar_khairane_trans_harbour_line	Kopar Kha
 
 COPY master.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
 1ab2e67e-5e47-4f6d-8035-dd6a5c5f6b85	talakunchi_networks_private_limited	Talakunchi Networks Private Limited	t	1	2026-09-03 12:17:46.134222+00	\N	\N	\N	\N
+8d074538-ddf6-4d28-894e-ef01ff8dbd9f	zz_probe_unit	ZZ Probe Unit	f	2	2026-10-18 13:00:09.292041+00	2026-10-18 13:00:09.693684+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.693684+00
+9b7b8b3c-a2b7-4627-8489-adfe5f0059bd	zz_ui_probe_unit	ZZ UI Probe Unit Edited	f	3	2026-10-18 13:01:10.914455+00	2026-10-18 13:01:42.321832+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-18 13:01:42.321832+00
 \.
 
 
@@ -3613,6 +1722,7 @@ e5540bc7-50d2-4d70-a943-acd46aa882c5	cpts	cPTS	t	2026-09-08 04:59:44.231454+00	\
 e5ca396a-d689-4010-a451-39b1b99a7bd2	offensive_security_web_expert_(oswe)	Offensive Security Web Expert (OSWE)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
 ef4cd7da-14f7-4f0d-afd0-99ca3bb6ffe2	certified_information_systems_auditor_(cisa)	Certified Information Systems Auditor (CISA)	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
 fc483ca5-d867-433f-a4d6-bac79879517f	crtp	CRTP	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
+d20bc297-e08b-4694-aa66-2d2b9fb83c2c	zz_probe_cert	ZZ Probe Cert	f	2026-10-18 13:00:09.427314+00	2026-10-18 13:00:09.755834+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.755834+00
 \.
 
 
@@ -3758,6 +1868,8 @@ fc8929c1-64ad-4185-bd6e-c706486b8a41	gb_london	London	t	1da1becb-cf4e-4eb4-a6d6-
 fcf5dd98-6fe2-4ae3-8084-9966e94eb443	cn_beijing	Beijing	t	8b34d450-add9-4da2-ab29-651c187ae702	2026-08-20 11:37:06.005856+00	\N	\N	\N	\N
 fddb7350-b051-4870-bda3-17f51b79fd67	se_gothenburg	Gothenburg	t	990888a7-50d0-45f0-b650-2686f87c4fd0	2026-08-20 11:37:06.005856+00	\N	\N	\N	\N
 fe6526bc-a57b-4c6e-8094-be6327614409	in_tiruchirappalli	Tiruchirappalli	t	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-08-20 11:37:06.005856+00	\N	\N	\N	\N
+24749751-d539-4881-b91d-32a9b4dbae45	89	Testing mumbai	t	1f7dfdc6-768e-4227-8536-4fd280141d03	2026-10-18 10:03:14.25146+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+08a60e15-809d-4e3b-8add-82ddc53f77ed	TESTCITY	test city	t	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-10-18 10:25:02.72587+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -3771,6 +1883,8 @@ COPY master.mst_contact_designations ("Id", "Code", "Name", "IsActive", "SortOrd
 4289316a-ac66-4577-93b2-b27a1f631bd7	ciso	CISO	t	2	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
 634aee41-eb57-41e4-b296-af2a255a7e79	accounts_head	Accounts Head	t	5	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
 8a02dfd7-d731-4231-8eba-29f36d2254c7	spoc	SPOC	t	1	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
+933ad32d-02a3-4727-ac62-34f2c9ea0d0e	SPOC2	SPOC 2	f	6	2026-10-18 10:02:22.563596+00	2026-10-18 10:05:15.669759+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-18 10:05:15.669759+00
+3039b17d-83f5-42c4-a26c-359a3d35502a	DESGTEST	Desg Test	t	7	2026-10-18 10:23:39.063418+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -3783,6 +1897,8 @@ COPY master.mst_contact_types ("Id", "Code", "Name", "IsActive", "SortOrder", "C
 670b9a05-6ee2-488e-962c-51cf3cdb86fa	procurement	Procurement	t	2	2026-09-09 07:39:28.906477+00	\N	\N	\N	\N
 6ddcfdba-7311-4f61-b285-88e09a772497	accounts	Accounts	t	1	2026-09-09 07:39:28.906477+00	\N	\N	\N	\N
 b28647ac-40d2-449e-b90c-b71cbae83f8d	technical	Technical	t	3	2026-09-09 07:39:28.906477+00	\N	\N	\N	\N
+38ead690-dc4e-4ba1-b830-228c184bcd66	LEGAL2	Legal 2	f	5	2026-10-18 10:03:24.899562+00	2026-10-18 10:05:55.982374+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-18 10:05:55.982374+00
+fce7509c-4c38-4afb-b889-8ad5a6474f39	TESTCNT	Test cnt	t	6	2026-10-18 10:24:42.875996+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -3831,6 +1947,8 @@ c9bb9747-7e0f-424e-864b-182d7a8c4230	NP	Nepal	t	2026-08-20 11:37:05.749911+00	20
 d725a52a-22a3-48d6-b035-001c1aa15eae	MY	Malaysia	t	2026-08-20 11:37:05.749911+00	2026-09-02 05:13:48.939145+00	\N	\N	\N	+60	9
 e341a797-6da6-4427-9bc1-f3271b6882c1	ID	Indonesia	t	2026-08-20 11:37:05.749911+00	2026-09-02 05:13:48.939145+00	\N	\N	\N	+62	10
 ecb5e362-682e-46d2-bee2-ef0b022ebb13	BD	Bangladesh	t	2026-08-20 11:37:05.749911+00	2026-09-02 05:13:48.939145+00	\N	\N	\N	+880	10
+1f7dfdc6-768e-4227-8536-4fd280141d03	TESTI	Testing country	t	2026-10-18 10:02:47.856163+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	+91	10
+f20c0081-5dae-4dcd-b1b0-b40f46f10c48	TESTC	test country	t	2026-10-18 10:25:24.74245+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	+91	10
 \.
 
 
@@ -3849,6 +1967,127 @@ bcbd68c8-c3f3-4396-abb0-0b0e13637958	functional_accounts	Functional - Accounts	t
 3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	services_operations	Services - Operations	t	2026-09-02 10:24:51.872711+00	\N	\N	\N	\N
 be8e036d-ad13-4c79-89ec-294e490a6816	services_consulting	Services - Consulting	t	2026-09-02 10:24:51.907068+00	\N	\N	\N	\N
 0aed67b8-c454-439a-a07f-4f46d46d58af	services_testing	Services - Testing	t	2026-09-02 10:24:51.926627+00	\N	\N	\N	\N
+36d04440-a8bb-47f1-a6d9-1f4d144b0bdb	x36d04440	retired 36d04440 ZZ Probe Department	f	2026-10-18 13:00:09.499474+00	2026-10-18 13:00:09.799922+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.799912+00
+40fed4c8-89b7-4276-b4ef-47fe8cf1ea87	x40fed4c8	retired 40fed4c8 ZZ UI Department	f	2026-10-18 13:02:39.916388+00	2026-10-18 13:02:54.816575+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-18 13:02:54.816554+00
+316c6b23-b976-4e7f-ae22-c8ea15c365cb	x316c6b23	retired 316c6b23 ZZ Sub Dept	f	2026-10-18 13:13:54.032822+00	2026-10-18 13:13:54.123387+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:13:54.123373+00
+\.
+
+
+--
+-- Data for Name: mst_designation_sub_departments; Type: TABLE DATA; Schema: master; Owner: -
+--
+
+COPY master.mst_designation_sub_departments ("Id", "DesignationId", "SubDepartmentId") FROM stdin;
+014fc89d-794b-44ef-8abd-41427c392936	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+077e87a0-a09d-49d7-a9d1-00d59ea42241	3b7ea453-324e-40a0-bb41-77a0795d5af5	db0addff-605e-439f-917b-38016a398755
+0bc357a1-c2b9-4412-a93e-1f74deab3add	85cc9fbe-98a4-464d-a638-05f40529c6de	b651aec8-5455-4329-8251-0ceb62cea798
+13664489-6706-4aec-83f4-51ee1a22df7c	a697a798-caaf-4248-8e4e-7e89096a9c30	682d36c0-4256-42ab-811e-054ab3a5b10f
+145500ab-138b-4527-beda-51d93f8264e3	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	88b29e0c-39b7-4169-ab5c-350075014a84
+15583bae-c17b-449e-b7bc-a1a030f9083f	e228c999-bf54-48b4-a373-d2bc9db88554	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+15a01eff-19bb-4da7-b8ec-f609abad87f4	2b1558e3-158a-4a84-ae80-053129861a64	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+183c02e5-3da6-4aba-9267-169f95008f63	444df30d-c195-42ad-b9a7-d80cdef69ccd	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+1a6b335e-3c0c-4941-a7c0-34903fe5c5b7	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	63765624-d7d1-472d-abd4-627127646998
+1ba89153-0e8c-4d18-a530-6269667ab74a	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	682d36c0-4256-42ab-811e-054ab3a5b10f
+1c7d781a-855e-4c25-864b-04195c2de344	195d6a81-8457-4b60-9382-6a3a0664f0e9	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+1d2b840e-da85-4178-8ba1-c9296b46ef55	834c9e15-c70d-4a0b-bb12-5e55f23c181d	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+1e63480c-a16d-4eae-b9c7-cd38e0812473	138434a2-625f-4df5-836d-fcf0cfceef79	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+23ce469d-5cae-4bfc-976f-e09395ed57d4	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+2420bae9-794d-405d-b707-56ac29745e5a	155642eb-a633-4460-b658-aca9fde2d817	5d962383-f175-4dd8-af63-8a566a0d2255
+25248684-af34-4f67-9348-8471a984851b	b5f39dd8-c305-489d-9f7d-9adfd010a134	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+262e7767-bb61-4d6e-b249-788f1543f341	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	c88d783b-b628-4f3a-a972-aa56aeed5e77
+2a0bcfd2-fde2-4a08-85b8-b386b29cf39b	163d8c87-8f90-4295-a926-2e912c625a1c	682d36c0-4256-42ab-811e-054ab3a5b10f
+30053577-3aee-4015-876e-f492a7fbf099	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+30c88444-1650-4e4d-a188-9f2bdc31928c	af8a1442-c5ee-409d-aa91-61c9dba852ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+3464b7d4-e171-4411-befb-c2784d0677e0	2076a9b1-e432-46a9-99b1-36e732159856	63765624-d7d1-472d-abd4-627127646998
+358c0b90-ccdb-4bdf-9a2b-1f9066d7f961	73bd55bb-5d0e-4381-8ad2-2238377fca93	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+35eed459-a43f-428d-b011-2df2100de6e8	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	5d962383-f175-4dd8-af63-8a566a0d2255
+376c41d1-e02e-4434-919f-90f2bd753735	c1fa4328-a970-48a1-bc08-d50fe36bf44c	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+4000f2b9-7ad5-413e-9721-51d2f7cf61e6	4ef1cb5b-9688-4ce2-95b3-6a0863200166	5d962383-f175-4dd8-af63-8a566a0d2255
+40e3567c-7e1c-46f3-bcc5-27e273dae7a9	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	682d36c0-4256-42ab-811e-054ab3a5b10f
+42bfac32-0d80-4ead-84c9-8d49c30364da	bb7ccd5f-2f60-49fb-b984-f11fc47add22	63765624-d7d1-472d-abd4-627127646998
+4360a647-ddce-402a-8884-da40ef4410cc	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	db0addff-605e-439f-917b-38016a398755
+47f63fe8-d159-4ea0-8258-a7ad718c047d	3356f353-1566-4df6-9958-fa01d67d13c7	7682acb3-561b-4951-801b-c1564adda131
+4fd00c5c-b49b-4df3-8418-5107eccded35	157d001c-b056-45b1-96a3-3c05bcd8d99c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+4ff8258b-80ae-4ca3-b0ba-cf9f82f3d278	168d11d7-ca26-4d61-b870-51779dc63023	682d36c0-4256-42ab-811e-054ab3a5b10f
+5228a830-c75c-4b9a-bb7d-628ee79399ca	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	63765624-d7d1-472d-abd4-627127646998
+530f44d7-1255-4eef-a1cf-afe11ad3cc60	a697a798-caaf-4248-8e4e-7e89096a9c30	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+544a8888-8aeb-44ba-bd03-1e862a437616	4b680e29-b4fb-4689-9afb-67a7f089f52b	b651aec8-5455-4329-8251-0ceb62cea798
+55894080-eef9-4c52-9856-a07bed6e9cae	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	c88d783b-b628-4f3a-a972-aa56aeed5e77
+584c6656-c705-4529-818b-c6c0bb13151d	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+58966b5c-7c3f-4d29-a832-06735eb4ecae	2a76927c-461a-48e4-8190-dea7361ef3db	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+58b271e1-8610-4248-96f2-66a3dea24d8a	4650d4e0-f73c-4688-ae5f-830a46348ff9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+5b9e9145-54a1-4b88-8c61-9b668ad7c3ea	1e7faab8-273d-40df-9f9a-485160186c5a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+6243b939-c1e6-4b8c-860f-7c92cab80dde	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+627c0877-41cf-452c-af37-b2ca6c726d73	f20a7445-0b01-4f20-85a5-853101d864ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+6ab164b1-d141-4b7c-8763-27e1b359b054	c6c6cd04-6df3-4593-b686-e4b9d362c96f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+6b856b26-e23f-42e6-919c-4d4972f3941b	0525d830-ead9-44a0-871f-91b7845fec26	61bbeadf-3044-4123-929c-4b1e6e2e613e
+6cf1dd68-496a-4e6b-9d4a-77cbb5c8b7db	3e60b693-d3dd-4481-95c4-9f02da21625c	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+6f54a896-1af5-4a19-af36-2aa384788aff	e2b4be77-2b20-4064-974d-e6322e7240b4	88b29e0c-39b7-4169-ab5c-350075014a84
+7066e597-00b0-4f94-9227-8001a11a0810	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	682d36c0-4256-42ab-811e-054ab3a5b10f
+718c1547-a294-41b7-91c5-da2ba63a133c	168d11d7-ca26-4d61-b870-51779dc63023	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+722ecc9c-c167-4ba0-ace4-f144a13b76ec	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+73023437-eadc-4ad4-ae31-5b6657228325	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	5d962383-f175-4dd8-af63-8a566a0d2255
+73eb9def-0cd2-453e-b31a-a7528328964e	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+788f96ba-6594-4276-abcd-6e81dfab154b	da990f6e-3379-4cc4-89b7-0ead29da472b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+78c0fc06-2836-4dab-ba9f-f36e1c683ff9	c0f974c3-f49c-449a-9276-aa64ce501344	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+79b335f1-b60a-4141-8fd6-1c0ec1c1e104	168d11d7-ca26-4d61-b870-51779dc63023	db0addff-605e-439f-917b-38016a398755
+7a349272-aaf5-4c03-8f0a-0829ee75c0ff	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	45755b2a-741a-4990-ab78-8f65090f75b1
+832c6892-6cc1-435b-ba6a-7c8b93a9afa9	1f97b442-95c5-4b11-93a0-ea146534ae85	5d962383-f175-4dd8-af63-8a566a0d2255
+84c05895-3f3f-49ff-be6f-d2d61cbba3e9	272973a6-c052-4aef-bf32-9e24f7eb6cc9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+852a6440-d277-489d-afaa-5724f6099037	48429bb5-c583-4684-b30a-7ed443b671ca	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+8a3d744c-68c0-4d41-9a43-b79ac19dcdc8	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+8c21bd6f-bc68-43e6-a650-eb02d9af03a4	6d25ff6d-e13d-440f-b775-215547af7acb	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+8ddbc9f1-fa20-4413-b5a9-e911e48c280f	485012d4-2c28-4bc4-92c7-3609e3e3749e	c88d783b-b628-4f3a-a972-aa56aeed5e77
+9126869a-5a1a-4782-bf4d-8449620cbba7	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+98d30e46-b3d5-4bdf-a8df-5860aa72fded	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+9ab2afd5-4efa-465b-92b6-1114f032504a	a697a798-caaf-4248-8e4e-7e89096a9c30	db0addff-605e-439f-917b-38016a398755
+9bfc0c45-9261-4791-a3f7-441efbd0ab9a	e2c675a7-92dc-4477-be75-9a304cbe4def	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+9ff61449-58c2-4197-94c6-2a5f8957683b	e228c999-bf54-48b4-a373-d2bc9db88554	db0addff-605e-439f-917b-38016a398755
+a1a00d3d-6331-4b95-92a5-7b6184cb1989	d8a2b9e5-f54d-4344-a78d-c6c840467543	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+a2f5bb12-1b22-4a1e-b610-69f77ada4376	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	db0addff-605e-439f-917b-38016a398755
+a4502b82-ab51-45f6-a4ee-9c29386c0aa3	caa227a1-2dcf-4195-ab9c-8f76d1862daa	63765624-d7d1-472d-abd4-627127646998
+a6fc2bee-823f-4b65-8875-7ffd44f38901	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+a7f29d70-5735-48f1-ac0d-844ee34cd29a	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a8c7ab46-9b90-479f-8e81-69f5d705406d	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	682d36c0-4256-42ab-811e-054ab3a5b10f
+ac276e1c-8cc9-4466-bcc8-f75c99f59052	911f6d7f-8d43-40f2-897a-2f416abf8cf9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+b1b0ed3b-dfbf-49ec-8344-aa2c782a730d	778f1120-9633-4933-9160-ddaa46668838	a12ac80b-a665-4301-898e-e9ca3d44bb20
+b235ad6b-9414-4986-89d9-532cdf54f1d6	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	db0addff-605e-439f-917b-38016a398755
+b3f417ed-0a77-4f58-a771-1f03792d1372	4f972924-350a-47fb-a6b6-f2b34bb6b621	682d36c0-4256-42ab-811e-054ab3a5b10f
+b829eaa7-00d8-4bfe-87f9-1aa11c4639de	e36018c5-bf48-4f93-bef7-93e8864a0b51	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+b82c8a38-129f-4a13-a96b-55a0c5cb4141	9858c224-f97f-4ff8-908d-f46bd5e2243c	db0addff-605e-439f-917b-38016a398755
+ba6133f7-5f3e-4e87-aa9a-c38285e2886c	e228c999-bf54-48b4-a373-d2bc9db88554	682d36c0-4256-42ab-811e-054ab3a5b10f
+be2b85fb-1413-4c8e-b13d-139e942eaa8c	e2b10def-c91d-45da-94c5-f5530e743aa2	63765624-d7d1-472d-abd4-627127646998
+bf16df48-330d-40cd-a50a-8742b02ffae1	f8502c44-b289-49e4-8401-3dcad4d5bbe0	63765624-d7d1-472d-abd4-627127646998
+c3f0b37b-b59a-4326-92c8-c3325646e1cf	4f972924-350a-47fb-a6b6-f2b34bb6b621	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+cb0afefa-713b-4ec8-9c80-defd25e3bc05	9050e021-7d84-4401-820e-c0e768abb1ab	63765624-d7d1-472d-abd4-627127646998
+cb71d193-6d3d-4206-a708-439761b0e98f	ea315f7d-d597-41b3-a999-4f3851bcd020	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+ce46ad9d-2b3c-467c-a748-fd925e9c453f	163d8c87-8f90-4295-a926-2e912c625a1c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d0596877-8e8a-45d9-a1f0-09b8bb6413b3	9858c224-f97f-4ff8-908d-f46bd5e2243c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d10ac6bd-6972-4037-a439-6c3059d29047	163d8c87-8f90-4295-a926-2e912c625a1c	db0addff-605e-439f-917b-38016a398755
+dab0f703-5bec-445c-918b-9b08b4eb7793	7c2380da-3ee6-46ad-93d6-a79ce3027f29	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+deacb9cd-1d6d-4df5-b80b-eb9b75929206	7d542941-65b9-499b-81b3-239748d6da52	c88d783b-b628-4f3a-a972-aa56aeed5e77
+e1fd8cf9-571b-4796-99b2-778208b21487	767a00dd-6f09-4f64-a44e-8fbe901222af	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+e3079d8b-6364-4038-b62c-f52aa409334d	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	c88d783b-b628-4f3a-a972-aa56aeed5e77
+e359b224-a6e1-4a8c-888b-2b1aecfff47a	c70b9832-841e-4864-9b85-eaba3c0a995f	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+e469b198-92d5-48aa-89c9-74fbfdf0a369	9858c224-f97f-4ff8-908d-f46bd5e2243c	682d36c0-4256-42ab-811e-054ab3a5b10f
+e8a446d7-d380-4385-883a-301b1232942c	c0e1a001-0000-4000-8000-000000000001	63765624-d7d1-472d-abd4-627127646998
+e956a222-a1e7-4e23-840e-915bbf6ad276	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+ea49b1c3-3b7b-462d-8036-18e256c2f73f	b3309eea-7374-4a8d-ac13-481b2a7fd492	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+ec5beec0-2382-4452-beb4-fe1fda24068b	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	db0addff-605e-439f-917b-38016a398755
+ecb4a832-2e91-4791-883a-cb9550ce6db6	6193be76-40ad-4973-9ee7-246a4d8f4109	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+f06cf183-d22e-4233-af5e-6651420e4d27	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	7682acb3-561b-4951-801b-c1564adda131
+f0c0b636-c820-413c-a1e9-99aac4d2a238	9dc69952-eae6-4ec0-a327-67392315f089	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+f0ed9b9a-9636-439a-a4b7-41d2c75c0ec9	ae255622-ddcc-45ea-a699-8ec416fe57ab	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+f1d4ab66-b6b3-49ab-8cba-db5429d89f30	6e606c29-2ebf-4ab8-8006-aaedd5680009	5d962383-f175-4dd8-af63-8a566a0d2255
+f4bae1b9-c63d-4980-94a3-b4efc4ac3a01	3b7ea453-324e-40a0-bb41-77a0795d5af5	682d36c0-4256-42ab-811e-054ab3a5b10f
+f5ee3852-272c-40bc-bc8e-80abfd5aaf19	3b7ea453-324e-40a0-bb41-77a0795d5af5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+f65aa899-2fb2-4139-883c-b5755889d850	8b57cfd5-5d4e-44a3-9646-b36873c111c2	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+f6616663-c9ba-433b-8eb6-0890f85f7744	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+f792ec70-f6d3-4ea1-ba81-948fbbcb6175	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	7682acb3-561b-4951-801b-c1564adda131
+f876cc7c-f755-4a17-a741-4e1befd8962a	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	b651aec8-5455-4329-8251-0ceb62cea798
+f88d8bda-b850-464b-b0bc-9afd913b54ca	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+fb186e06-2842-4c09-acdc-3f4cfa7adb59	4f972924-350a-47fb-a6b6-f2b34bb6b621	db0addff-605e-439f-917b-38016a398755
+fb8d3423-c3f6-4517-a56c-defe474a387e	e8c22eff-0daf-4690-a537-c8b0b6110a01	63765624-d7d1-472d-abd4-627127646998
 \.
 
 
@@ -3857,94 +2096,97 @@ be8e036d-ad13-4c79-89ec-294e490a6816	services_consulting	Services - Consulting	t
 --
 
 COPY master.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "SubDepartment", "DefaultRoleId") FROM stdin;
-c0e1a001-0000-4000-8000-000000000001	core_intern	Intern	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-f8502c44-b289-49e4-8401-3dcad4d5bbe0	functional_it_admini_intern	Intern	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 10:24:51.794108+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-caa227a1-2dcf-4195-ab9c-8f76d1862daa	functional_accounts_intern	Intern	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.809802+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-e8c22eff-0daf-4690-a537-c8b0b6110a01	functional_hr_intern	Intern	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.824863+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-e2b10def-c91d-45da-94c5-f5530e743aa2	functional_sales_intern	Intern	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.841726+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-9050e021-7d84-4401-820e-c0e768abb1ab	functional_project_m_intern	Intern	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.861092+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-bb7ccd5f-2f60-49fb-b984-f11fc47add22	rd_research_and_deve_intern	Intern	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 10:24:51.870785+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	services_operations_intern	Intern	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.904989+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-2076a9b1-e432-46a9-99b1-36e732159856	services_consulting_intern	Intern	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.924658+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-47dbf38f-c022-47bc-8444-d0dfb35ff3fd	services_testing_intern	Intern	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:52.004312+00	2026-10-13 17:54:19.140561+00	\N	\N	\N	\N	f29af015-7833-4f9a-ac57-6fbef5bf91ec
-778f1120-9633-4933-9160-ddaa46668838	core_director_and_chief_executive_officer	Director and Chief Executive Officer	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-09-02 10:24:51.776662+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Leading Sales & A/C Dept.	62a927b7-9fd8-461a-b64e-1aa441eeba4d
-ffed7aa1-e88f-4281-919f-8d49fbabf5a5	core_director_and_chief_operating_officer	Director and Chief Operating Officer	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-09-02 10:24:51.781954+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Leading Delivery Dept.	a5bfe265-981a-4723-b7bb-6ddc389db7f0
-0525d830-ead9-44a0-871f-91b7845fec26	core_director_and_chief_technology_officer	Director and Chief Technology Officer	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-09-02 10:24:51.783926+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Leading Compliance & HR Dept.	66e48815-4d4f-41d0-9c5f-26a7b7ba296c
-da990f6e-3379-4cc4-89b7-0ead29da472b	functional_it_admini_it_admin	IT Admin	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 10:24:51.787896+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa
-c70b9832-841e-4864-9b85-eaba3c0a995f	functional_it_admini_desktop_support_engineer_i	Desktop Support Engineer - I	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 10:24:51.78998+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa
-73bd55bb-5d0e-4381-8ad2-2238377fca93	functional_it_admini_desktop_support_engineer_ii	Desktop Support Engineer - II	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 10:24:51.792134+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa
-155642eb-a633-4460-b658-aca9fde2d817	functional_accounts_accountant_i	Accountant - I	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.797934+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
-8dc0d8fe-593d-422a-8b27-5b68fbe6d224	functional_accounts_accountant_ii	Accountant - II	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.799807+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
-6e606c29-2ebf-4ab8-8006-aaedd5680009	functional_accounts_accountant_iii	Accountant - III	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.801711+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
-4ef1cb5b-9688-4ce2-95b3-6a0863200166	functional_accounts_senior_accountant_i	Senior Accountant - I	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.803595+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
-96efad7d-8b7f-4d7f-a862-c0a6bec3789f	functional_accounts_senior_accountant_ii	Senior Accountant - II	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.805714+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
-1f97b442-95c5-4b11-93a0-ea146534ae85	functional_accounts_senior_accountant_iii	Senior Accountant - III	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.807813+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
-8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	functional_hr_hr_head	HR Head	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.814553+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
-7d542941-65b9-499b-81b3-239748d6da52	functional_hr_recruitment_coordinator_i	Recruitment Coordinator - I	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.8165+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
-c2e248c8-e917-445f-9f7b-1e25d7bb5abe	functional_hr_recruitment_coordinator_ii	Recruitment Coordinator - II	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.818555+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
-485012d4-2c28-4bc4-92c7-3609e3e3749e	functional_hr_senior_hr_executive_i	Senior HR Executive - I	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.820547+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
-e4e20503-cd55-4393-83fd-6c7e7d7d0a49	functional_hr_senior_hr_executive_ii	Senior HR Executive - II	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.8227+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
-b2b687ef-fd62-4cb7-a826-b40a35da7b2c	functional_sales_business_development_associate_i	Business Development Associate - I	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.828797+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Sales	914d8500-03b6-4a43-a250-244effca1cf1
-157d001c-b056-45b1-96a3-3c05bcd8d99c	functional_sales_customer_success_representative_ii	Customer Success Representative - II	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.830775+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Sales	914d8500-03b6-4a43-a250-244effca1cf1
-6193be76-40ad-4973-9ee7-246a4d8f4109	functional_sales_director_product_sales	Director - Product Sales	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.832885+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
-e2c675a7-92dc-4477-be75-9a304cbe4def	functional_sales_sales_associate	Sales Associate	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.83517+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
-272973a6-c052-4aef-bf32-9e24f7eb6cc9	functional_sales_associate_customer_success_representative_i	Associate Customer Success Representative - I	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.837646+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
-7e7d954f-34b5-4c23-8c3f-698ec920e9e4	functional_sales_associate_customer_success_representative_ii	Associate Customer Success Representative - II	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.839641+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
-b3309eea-7374-4a8d-ac13-481b2a7fd492	functional_project_m_associate_pmo_i	Associate PMO - I	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.845704+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
-2a76927c-461a-48e4-8190-dea7361ef3db	functional_project_m_associate_pmo_ii	Associate PMO - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.847585+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
-c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	functional_project_m_senior_pmo_i	Senior PMO - I	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.849476+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
-138434a2-625f-4df5-836d-fcf0cfceef79	functional_project_m_senior_pmo_ii	Senior PMO - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.851761+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
-834c9e15-c70d-4a0b-bb12-5e55f23c181d	functional_project_m_delivery_account_manager_i	Delivery Account Manager - I	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.853646+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89
-d8a2b9e5-f54d-4344-a78d-c6c840467543	functional_project_m_delivery_account_manager_ii	Delivery Account Manager - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.855524+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89
-8b57cfd5-5d4e-44a3-9646-b36873c111c2	functional_project_m_senior_delivery_account_manager_i	Senior Delivery Account Manager - I	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.857373+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89
-9dc69952-eae6-4ec0-a327-67392315f089	functional_project_m_senior_delivery_account_manager_ii	Senior Delivery Account Manager - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.859188+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89
-f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	rd_research_and_deve_python_developer_i	Python Developer - I	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 10:24:51.864858+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393
-3356f353-1566-4df6-9958-fa01d67d13c7	rd_research_and_deve_python_developer_ii	Python Developer - II	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 10:24:51.866732+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393
-9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	rd_research_and_deve_python_developer_iii	Python Developer - III	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 10:24:51.868943+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393
-6d25ff6d-e13d-440f-b775-215547af7acb	services_operations_soc_analyst_i	SOC Analyst - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.874793+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-48429bb5-c583-4684-b30a-7ed443b671ca	services_operations_soc_analyst_ii	SOC Analyst - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.876768+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-f20a7445-0b01-4f20-85a5-853101d864ee	services_operations_soc_analyst_iii	SOC Analyst - III	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.878659+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-0c1a5ef4-7fca-45dc-8253-87afa21a1df9	services_operations_soc_analyst_iv	SOC Analyst - IV	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.880491+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-ea315f7d-d597-41b3-a999-4f3851bcd020	services_operations_siem_admin_i	SIEM Admin - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.88251+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-4650d4e0-f73c-4688-ae5f-830a46348ff9	services_operations_siem_admin_ii	SIEM Admin - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.884354+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-af8a1442-c5ee-409d-aa91-61c9dba852ee	services_operations_siem_admin_iii	SIEM Admin - III	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.886248+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-e36018c5-bf48-4f93-bef7-93e8864a0b51	services_operations_siem_admin_iv	SIEM Admin - IV	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.888229+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85
-73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	services_operations_soc_consultant_i	SOC Consultant - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.890218+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-911f6d7f-8d43-40f2-897a-2f416abf8cf9	services_operations_soc_consultant_ii	SOC Consultant - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.892032+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
-444df30d-c195-42ad-b9a7-d80cdef69ccd	services_operations_soc_shift_lead_i	SOC Shift Lead - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.894767+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85
-c0f974c3-f49c-449a-9276-aa64ce501344	services_operations_soc_shift_lead_ii	SOC Shift Lead - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.896662+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85
-b5f39dd8-c305-489d-9f7d-9adfd010a134	services_operations_soc_lead_i	SOC Lead - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.899202+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	111cc3cd-6d35-43ce-be91-dde90d3d4015
-eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	services_operations_soc_lead_ii	SOC Lead - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.901107+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Operations	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7
-ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	services_operations_principal_manager_i	Principal Manager - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N	Services - Operations	3d068c2f-d0a1-4045-bad9-0f3a43efec4f
-1e7faab8-273d-40df-9f9a-485160186c5a	services_consulting_grc_auditor_i	GRC Auditor - I	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.908929+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
-2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	services_consulting_grc_auditor_ii	GRC Auditor - II	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.910823+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
-8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	services_consulting_grc_auditor_iii	GRC Auditor - III	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.912801+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
-7c2380da-3ee6-46ad-93d6-a79ce3027f29	services_consulting_grc_auditor_iv	GRC Auditor - IV	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.915028+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
-dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	services_consulting_senior_grc_auditor_i	Senior GRC Auditor - I	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.916903+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Consulting	701aaa2c-a899-4def-bf5f-e17511874409
-3e60b693-d3dd-4481-95c4-9f02da21625c	services_consulting_senior_grc_auditor_ii	Senior GRC Auditor - II	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.91882+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Consulting	701aaa2c-a899-4def-bf5f-e17511874409
-195d6a81-8457-4b60-9382-6a3a0664f0e9	services_consulting_associate_manager_iii	Associate Manager - III	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.920769+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Consulting	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a
-2b1558e3-158a-4a84-ae80-053129861a64	services_consulting_senior_vice_president_principal_consultant	Senior Vice President - Principal Consultant	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.922717+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Consulting	64c49f37-a38a-46a6-9622-7427f1501658
-4f972924-350a-47fb-a6b6-f2b34bb6b621	services_testing_pentester_i	PenTester - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.928383+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
-0b6ab354-1fcf-4a00-9be3-e58e99c425ed	services_testing_pentester_ii	PenTester - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.930296+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
-163d8c87-8f90-4295-a926-2e912c625a1c	services_testing_pentester_iii	PenTester - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.932399+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
-9858c224-f97f-4ff8-908d-f46bd5e2243c	services_testing_pentester_iv	PenTester - IV	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.93473+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
-632bf06c-f646-4edd-bf2d-e3cd2e034c7f	services_testing_senior_pentester_i	Senior Pentester - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.936785+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
-e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	services_testing_senior_pentester_ii	Senior Pentester - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.93907+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
-e228c999-bf54-48b4-a373-d2bc9db88554	services_testing_associate_manager_i	Associate Manager - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.953968+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab
-168d11d7-ca26-4d61-b870-51779dc63023	services_testing_associate_manager_ii	Associate Manager - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.955906+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab
-aaf4ca75-5fa5-4de2-8353-a5e93beecb56	services_testing_associate_manager_iii	Associate Manager - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.957817+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab
-3b7ea453-324e-40a0-bb41-77a0795d5af5	services_testing_associate_project_manager	Associate Project Manager	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.961716+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	29ad5710-1621-4c24-ac75-dedfc168ba1a
-a697a798-caaf-4248-8e4e-7e89096a9c30	services_testing_manager_i	Manager - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.966138+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	efc1df20-ca04-44a6-87b2-7cae1ff50a88
-ae255622-ddcc-45ea-a699-8ec416fe57ab	services_testing_devsecops_practitioner_i	DevSecOps Practitioner - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.969279+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed
-35a6b1af-dc78-4632-a9f4-eedabdbdcb52	services_testing_devsecops_practitioner_ii	DevSecOps Practitioner - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.97275+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed
-767a00dd-6f09-4f64-a44e-8fbe901222af	services_testing_devsecops_practitioner_iii	DevSecOps Practitioner - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.976579+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed
-c6c6cd04-6df3-4593-b686-e4b9d362c96f	services_testing_devsecops_associate	DevSecOps Associate	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.980181+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - DevSecOps	a3793f87-7f3c-41a1-a675-236fc1b710ab
-c1fa4328-a970-48a1-bc08-d50fe36bf44c	services_testing_devsecops_specialist_ii	DevSecOps Specialist - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.983425+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - DevSecOps	29ad5710-1621-4c24-ac75-dedfc168ba1a
-0a60fb48-99c4-44d0-8d97-ff687ccffc9f	services_testing_red_team_practitioner_ii	Red Team Practitioner - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.986648+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed
-85cc9fbe-98a4-464d-a638-05f40529c6de	services_testing_red_team_practitioner_iii	Red Team Practitioner - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.991312+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed
-4b680e29-b4fb-4689-9afb-67a7f089f52b	services_testing_red_team_specialist_ii	Red Team Specialist - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.994166+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - Red Team	29ad5710-1621-4c24-ac75-dedfc168ba1a
-8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	services_testing_senior_cloud_security_consultant_i	Senior Cloud Security Consultant - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.997244+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - Cloud & AI	29ad5710-1621-4c24-ac75-dedfc168ba1a
-e2b4be77-2b20-4064-974d-e6322e7240b4	services_testing_associate_ai_engineer_contractual	Associate AI Engineer - Contractual	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:52.001242+00	2026-10-10 07:26:56.213994+00	\N	\N	\N	Services - Testing - Cloud & AI	92aa9169-28d9-4754-a570-553b067642ed
+0525d830-ead9-44a0-871f-91b7845fec26	core_director_and_chief_technology_officer	Director and Chief Technology Officer	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-09-02 10:24:51.783926+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Leading Compliance & HR Department	66e48815-4d4f-41d0-9c5f-26a7b7ba296c
+0b6ab354-1fcf-4a00-9be3-e58e99c425ed	services_testing_pentester_ii	PenTester - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.930296+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
+0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	services_operations_intern	Intern	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.904989+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+0c1a5ef4-7fca-45dc-8253-87afa21a1df9	services_operations_soc_analyst_iv	SOC Analyst - IV	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.880491+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+138434a2-625f-4df5-836d-fcf0cfceef79	functional_project_m_senior_pmo_ii	Senior PMO - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.851761+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
+41d1dc59-ea33-44eb-8958-dcf35ad051b0	zz_probe_department_zz_probe_designation	ZZ Probe Designation Edited	f	36d04440-a8bb-47f1-a6d9-1f4d144b0bdb	2026-10-18 13:00:09.499474+00	2026-10-18 13:00:09.78908+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.78908+00	\N	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+711d4f25-dd76-46cc-accd-4e17e0d6f5cd	zz_ui_department_zz_ui_designation	ZZ UI Designation	f	40fed4c8-89b7-4276-b4ef-47fe8cf1ea87	2026-10-18 13:02:39.916388+00	2026-10-18 13:02:54.804242+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-18 13:02:54.804242+00	\N	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+6105c483-1e32-49ff-848c-f193525e6297	zz_sub_dept_zz_sub_designation	ZZ Sub Designation	f	316c6b23-b976-4e7f-ae22-c8ea15c365cb	2026-10-18 13:13:54.032822+00	2026-10-18 13:13:54.103213+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:13:54.103213+00	ZZ Probe Sub-Department	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+0a60fb48-99c4-44d0-8d97-ff687ccffc9f	services_testing_red_team_practitioner_ii	Red Team Practitioner - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.986648+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed
+155642eb-a633-4460-b658-aca9fde2d817	functional_accounts_accountant_i	Accountant - I	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.797934+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+157d001c-b056-45b1-96a3-3c05bcd8d99c	functional_sales_customer_success_representative_ii	Customer Success Representative - II	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.830775+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Sales	914d8500-03b6-4a43-a250-244effca1cf1
+163d8c87-8f90-4295-a926-2e912c625a1c	services_testing_pentester_iii	PenTester - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.932399+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
+168d11d7-ca26-4d61-b870-51779dc63023	services_testing_associate_manager_ii	Associate Manager - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.955906+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab
+195d6a81-8457-4b60-9382-6a3a0664f0e9	services_consulting_associate_manager_iii	Associate Manager - III	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.920769+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Consulting	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a
+1e7faab8-273d-40df-9f9a-485160186c5a	services_consulting_grc_auditor_i	GRC Auditor - I	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.908929+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
+1f97b442-95c5-4b11-93a0-ea146534ae85	functional_accounts_senior_accountant_iii	Senior Accountant - III	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.807813+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+2076a9b1-e432-46a9-99b1-36e732159856	services_consulting_intern	Intern	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.924658+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+272973a6-c052-4aef-bf32-9e24f7eb6cc9	functional_sales_associate_customer_success_representative_i	Associate Customer Success Representative - I	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.837646+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
+2a76927c-461a-48e4-8190-dea7361ef3db	functional_project_m_associate_pmo_ii	Associate PMO - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.847585+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
+2b1558e3-158a-4a84-ae80-053129861a64	services_consulting_senior_vice_president_principal_consultant	Senior Vice President - Principal Consultant	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.922717+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Consulting	64c49f37-a38a-46a6-9622-7427f1501658
+2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	services_consulting_grc_auditor_ii	GRC Auditor - II	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.910823+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
+3356f353-1566-4df6-9958-fa01d67d13c7	rd_research_and_deve_python_developer_ii	Python Developer - II	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 10:24:51.866732+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393
+35a6b1af-dc78-4632-a9f4-eedabdbdcb52	services_testing_devsecops_practitioner_ii	DevSecOps Practitioner - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.97275+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed
+3b7ea453-324e-40a0-bb41-77a0795d5af5	services_testing_associate_project_manager	Associate Project Manager	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.961716+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	29ad5710-1621-4c24-ac75-dedfc168ba1a
+3e60b693-d3dd-4481-95c4-9f02da21625c	services_consulting_senior_grc_auditor_ii	Senior GRC Auditor - II	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.91882+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Consulting	701aaa2c-a899-4def-bf5f-e17511874409
+444df30d-c195-42ad-b9a7-d80cdef69ccd	services_operations_soc_shift_lead_i	SOC Shift Lead - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.894767+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85
+4650d4e0-f73c-4688-ae5f-830a46348ff9	services_operations_siem_admin_ii	SIEM Admin - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.884354+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+47dbf38f-c022-47bc-8444-d0dfb35ff3fd	services_testing_intern	Intern	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:52.004312+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+48429bb5-c583-4684-b30a-7ed443b671ca	services_operations_soc_analyst_ii	SOC Analyst - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.876768+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+485012d4-2c28-4bc4-92c7-3609e3e3749e	functional_hr_senior_hr_executive_i	Senior HR Executive - I	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.820547+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
+4b680e29-b4fb-4689-9afb-67a7f089f52b	services_testing_red_team_specialist_ii	Red Team Specialist - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.994166+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - Red Team	29ad5710-1621-4c24-ac75-dedfc168ba1a
+4ef1cb5b-9688-4ce2-95b3-6a0863200166	functional_accounts_senior_accountant_i	Senior Accountant - I	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.803595+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+4f972924-350a-47fb-a6b6-f2b34bb6b621	services_testing_pentester_i	PenTester - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.928383+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
+6193be76-40ad-4973-9ee7-246a4d8f4109	functional_sales_director_product_sales	Director - Product Sales	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.832885+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
+632bf06c-f646-4edd-bf2d-e3cd2e034c7f	services_testing_senior_pentester_i	Senior Pentester - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.936785+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
+6d25ff6d-e13d-440f-b775-215547af7acb	services_operations_soc_analyst_i	SOC Analyst - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.874793+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+6e606c29-2ebf-4ab8-8006-aaedd5680009	functional_accounts_accountant_iii	Accountant - III	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.801711+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	services_operations_soc_consultant_i	SOC Consultant - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.890218+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+73bd55bb-5d0e-4381-8ad2-2238377fca93	functional_it_admini_desktop_support_engineer_ii	Desktop Support Engineer - II	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 10:24:51.792134+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa
+767a00dd-6f09-4f64-a44e-8fbe901222af	services_testing_devsecops_practitioner_iii	DevSecOps Practitioner - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.976579+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed
+778f1120-9633-4933-9160-ddaa46668838	core_director_and_chief_executive_officer	Director and Chief Executive Officer	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-09-02 10:24:51.776662+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Leading Sales & A/C Department	62a927b7-9fd8-461a-b64e-1aa441eeba4d
+7c2380da-3ee6-46ad-93d6-a79ce3027f29	services_consulting_grc_auditor_iv	GRC Auditor - IV	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.915028+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
+7d542941-65b9-499b-81b3-239748d6da52	functional_hr_recruitment_coordinator_i	Recruitment Coordinator - I	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.8165+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
+7e7d954f-34b5-4c23-8c3f-698ec920e9e4	functional_sales_associate_customer_success_representative_ii	Associate Customer Success Representative - II	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.839641+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
+834c9e15-c70d-4a0b-bb12-5e55f23c181d	functional_project_m_delivery_account_manager_i	Delivery Account Manager - I	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.853646+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89
+85cc9fbe-98a4-464d-a638-05f40529c6de	services_testing_red_team_practitioner_iii	Red Team Practitioner - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.991312+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed
+8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	services_consulting_grc_auditor_iii	GRC Auditor - III	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.912801+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
+8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	services_testing_senior_cloud_security_consultant_i	Senior Cloud Security Consultant - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.997244+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - Cloud & AI	29ad5710-1621-4c24-ac75-dedfc168ba1a
+8b57cfd5-5d4e-44a3-9646-b36873c111c2	functional_project_m_senior_delivery_account_manager_i	Senior Delivery Account Manager - I	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.857373+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89
+8dc0d8fe-593d-422a-8b27-5b68fbe6d224	functional_accounts_accountant_ii	Accountant - II	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.799807+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	functional_hr_hr_head	HR Head	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.814553+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
+9050e021-7d84-4401-820e-c0e768abb1ab	functional_project_m_intern	Intern	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.861092+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+911f6d7f-8d43-40f2-897a-2f416abf8cf9	services_operations_soc_consultant_ii	SOC Consultant - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.892032+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+96efad7d-8b7f-4d7f-a862-c0a6bec3789f	functional_accounts_senior_accountant_ii	Senior Accountant - II	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.805714+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
+9858c224-f97f-4ff8-908d-f46bd5e2243c	services_testing_pentester_iv	PenTester - IV	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.93473+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
+9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	rd_research_and_deve_python_developer_iii	Python Developer - III	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 10:24:51.868943+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393
+9dc69952-eae6-4ec0-a327-67392315f089	functional_project_m_senior_delivery_account_manager_ii	Senior Delivery Account Manager - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.859188+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89
+a697a798-caaf-4248-8e4e-7e89096a9c30	services_testing_manager_i	Manager - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.966138+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	efc1df20-ca04-44a6-87b2-7cae1ff50a88
+aaf4ca75-5fa5-4de2-8353-a5e93beecb56	services_testing_associate_manager_iii	Associate Manager - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.957817+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab
+ae255622-ddcc-45ea-a699-8ec416fe57ab	services_testing_devsecops_practitioner_i	DevSecOps Practitioner - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.969279+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed
+af8a1442-c5ee-409d-aa91-61c9dba852ee	services_operations_siem_admin_iii	SIEM Admin - III	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.886248+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+b2b687ef-fd62-4cb7-a826-b40a35da7b2c	functional_sales_business_development_associate_i	Business Development Associate - I	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.828797+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Sales	914d8500-03b6-4a43-a250-244effca1cf1
+b3309eea-7374-4a8d-ac13-481b2a7fd492	functional_project_m_associate_pmo_i	Associate PMO - I	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.845704+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
+b5f39dd8-c305-489d-9f7d-9adfd010a134	services_operations_soc_lead_i	SOC Lead - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.899202+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	111cc3cd-6d35-43ce-be91-dde90d3d4015
+bb7ccd5f-2f60-49fb-b984-f11fc47add22	rd_research_and_deve_intern	Intern	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 10:24:51.870785+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+c0e1a001-0000-4000-8000-000000000001	core_intern	Intern	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-10-13 17:54:19.140561+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+c0f974c3-f49c-449a-9276-aa64ce501344	services_operations_soc_shift_lead_ii	SOC Shift Lead - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.896662+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85
+c1fa4328-a970-48a1-bc08-d50fe36bf44c	services_testing_devsecops_specialist_ii	DevSecOps Specialist - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.983425+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - DevSecOps	29ad5710-1621-4c24-ac75-dedfc168ba1a
+c2e248c8-e917-445f-9f7b-1e25d7bb5abe	functional_hr_recruitment_coordinator_ii	Recruitment Coordinator - II	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.818555+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
+c6c6cd04-6df3-4593-b686-e4b9d362c96f	services_testing_devsecops_associate	DevSecOps Associate	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.980181+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - DevSecOps	a3793f87-7f3c-41a1-a675-236fc1b710ab
+c70b9832-841e-4864-9b85-eaba3c0a995f	functional_it_admini_desktop_support_engineer_i	Desktop Support Engineer - I	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 10:24:51.78998+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa
+c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	functional_project_m_senior_pmo_i	Senior PMO - I	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.849476+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
+caa227a1-2dcf-4195-ab9c-8f76d1862daa	functional_accounts_intern	Intern	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 10:24:51.809802+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+d8a2b9e5-f54d-4344-a78d-c6c840467543	functional_project_m_delivery_account_manager_ii	Delivery Account Manager - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 10:24:51.855524+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89
+da990f6e-3379-4cc4-89b7-0ead29da472b	functional_it_admini_it_admin	IT Admin	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 10:24:51.787896+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa
+dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	services_consulting_senior_grc_auditor_i	Senior GRC Auditor - I	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 10:24:51.916903+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Consulting	701aaa2c-a899-4def-bf5f-e17511874409
+e228c999-bf54-48b4-a373-d2bc9db88554	services_testing_associate_manager_i	Associate Manager - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.953968+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab
+e2b10def-c91d-45da-94c5-f5530e743aa2	functional_sales_intern	Intern	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.841726+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+e2b4be77-2b20-4064-974d-e6322e7240b4	services_testing_associate_ai_engineer_contractual	Associate AI Engineer - Contractual	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:52.001242+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Testing - Cloud & AI	92aa9169-28d9-4754-a570-553b067642ed
+e2c675a7-92dc-4477-be75-9a304cbe4def	functional_sales_sales_associate	Sales Associate	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 10:24:51.83517+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
+e36018c5-bf48-4f93-bef7-93e8864a0b51	services_operations_siem_admin_iv	SIEM Admin - IV	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.888229+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85
+e4e20503-cd55-4393-83fd-6c7e7d7d0a49	functional_hr_senior_hr_executive_ii	Senior HR Executive - II	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.8227+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
+e8c22eff-0daf-4690-a537-c8b0b6110a01	functional_hr_intern	Intern	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 10:24:51.824863+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	services_testing_senior_pentester_ii	Senior Pentester - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 10:24:51.93907+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
+ea315f7d-d597-41b3-a999-4f3851bcd020	services_operations_siem_admin_i	SIEM Admin - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.88251+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	services_operations_principal_manager_i	Principal Manager - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-10-10 07:26:56.213994+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	3d068c2f-d0a1-4045-bad9-0f3a43efec4f
+eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	services_operations_soc_lead_ii	SOC Lead - II	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.901107+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7
+f20a7445-0b01-4f20-85a5-853101d864ee	services_operations_soc_analyst_iii	SOC Analyst - III	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 10:24:51.878659+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
+f8502c44-b289-49e4-8401-3dcad4d5bbe0	functional_it_admini_intern	Intern	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 10:24:51.794108+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec
+f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	rd_research_and_deve_python_developer_i	Python Developer - I	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 10:24:51.864858+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393
+ffed7aa1-e88f-4281-919f-8d49fbabf5a5	core_director_and_chief_operating_officer	Director and Chief Operating Officer	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-09-02 10:24:51.781954+00	2026-10-18 07:48:56.513137+00	\N	\N	\N	Leading Delivery Department	a5bfe265-981a-4723-b7bb-6ddc389db7f0
 \.
 
 
@@ -3956,6 +2198,7 @@ COPY master.mst_email_domains ("Id", "Code", "DomainName", "DisplayName", "IsAct
 5112286a-225d-4b86-b16f-74211d9c5779	talakunchi_com	talakunchi.com	@talakunchi.com	t	1	2026-08-21 19:12:04.483485+00	\N	\N	\N	\N
 a19f97e1-8bf5-4b14-823a-b653b62c2954	talakunchi_in	talakunchi.in	@talakunchi.in	t	2	2026-08-21 19:12:04.483485+00	\N	\N	\N	\N
 fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-21 19:12:04.483485+00	\N	\N	\N	\N
+9f408de4-fcac-4b0f-b696-df83a2c0c248	zz_probe_example	zz-probe-edited.example	zz-probe-edited.example	f	4	2026-10-18 13:00:09.206787+00	2026-10-18 13:00:09.676327+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.676327+00
 \.
 
 
@@ -3987,6 +2230,7 @@ a77f78ff-221e-400c-8b14-0c847b34bc92	bsc	B.Sc	t	2026-09-08 04:59:44.231454+00	\N
 ce12fc28-02e3-4f2c-bf7d-53607b188057	bca	BCA	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
 e89b166b-ebc0-4132-8170-92ea1e78e9d0	be	BE	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
 09e8e464-0642-466a-8ca4-37f3bc37d4d0	be	B.E.	t	2026-09-11 05:28:07.455053+00	\N	\N	\N	\N
+6620d8cb-2725-465f-956e-6a7ba990bd6d	zz_probe_btech	ZZ Probe BTech	f	2026-10-18 13:00:09.3461+00	2026-10-18 13:00:09.725032+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.725032+00
 \.
 
 
@@ -4003,23 +2247,9 @@ c7e82721-829b-4450-8393-022587178471	energy	Energy	t	2026-08-18 07:55:36.166597+
 e722474e-d845-42b8-978e-91a6ec78f080	manufacturing	Manufacturing	t	2026-08-18 07:55:36.166597+00	\N	\N	\N	\N
 ff5e83cc-9c1c-4056-ab0b-42a70714ddd3	media	Media	t	2026-08-20 06:15:51.759149+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 dcb2b955-8d33-4b9b-b04a-64208dce1520	telecom	Telecom	t	2026-09-09 07:16:02.332706+00	\N	\N	\N	\N
-\.
-
-
---
--- Data for Name: mst_modules; Type: TABLE DATA; Schema: master; Owner: -
---
-
-COPY master.mst_modules ("Id", "Code", "Name", "Icon", "SortOrder", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-d84c3132-0da2-4eca-ac2c-ea73c80e08a4	dashboard	Dashboard	\N	1	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-3e11d388-1e40-4118-b746-9311f375b2a8	action-center	Action Center	\N	2	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects	Projects	\N	3	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	reports	Reports	\N	4	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b213dace-b668-452d-940c-a3dba5a49310	resource	Resource	\N	5	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-84f78eb3-988b-48c4-863d-ea8a48a7bc1d	customers	Customers	\N	6	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b527569b-8f89-43a7-8181-3939e9728c25	repository	Repository	\N	7	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	my-team	My team	\N	8	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings	Settings	\N	9	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
+3660a2cd-772b-4686-a733-126d361946a5	ZZTI	ZZ Temp Industry Renamed	f	2026-10-18 09:56:57.884294+00	2026-10-18 09:56:58.15001+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	2026-10-18 09:56:58.15001+00
+7dcea719-4730-4150-aace-58a3b63aec79	BANKING2	Banking 2	f	2026-10-18 10:02:32.030552+00	2026-10-18 10:05:22.613792+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-18 10:05:22.613792+00
+8e0492bb-3e1c-47b8-890c-a2aa8cdd3a03	INDUSTRYTEST	INDUSTRY Test	t	2026-10-18 10:24:11.848396+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4080,6 +2310,223 @@ COPY master.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "So
 
 
 --
+-- Data for Name: mst_org_role_map; Type: TABLE DATA; Schema: master; Owner: -
+--
+
+COPY master.mst_org_role_map ("Id", "DepartmentId", "DesignationId", "SubDepartment", "RbacRoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+003fd050-8939-4d05-ac2b-29876038cb76	be8e036d-ad13-4c79-89ec-294e490a6816	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+047399e0-7821-4f80-be7a-78057c4c2f5f	be8e036d-ad13-4c79-89ec-294e490a6816	195d6a81-8457-4b60-9382-6a3a0664f0e9	Services - Consulting	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+0717101c-438d-4f69-b0ef-a56fcaf47a45	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+0a1dda59-5a52-496e-8d30-5f082dbe343e	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	e36018c5-bf48-4f93-bef7-93e8864a0b51	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+0a909d87-52c0-4ec8-b6f8-b8111cf7310e	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+0f8dfe0e-d5d5-4a23-b9dc-cff6d71ae84f	8e4e88f1-e294-4554-80cc-92ed6169caeb	2a76927c-461a-48e4-8190-dea7361ef3db	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+128f2bec-ea83-4f7e-8115-9899a302d677	bcbd68c8-c3f3-4396-abb0-0b0e13637958	155642eb-a633-4460-b658-aca9fde2d817	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+159c2701-2318-4ba7-b809-fa07d078305e	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+15e4938e-241c-4f53-b64e-56a4b2201981	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+1c213096-46a8-48e1-b353-fdf2d25074ab	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	c70b9832-841e-4864-9b85-eaba3c0a995f	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+222358f3-3516-49b6-b7db-60f936d4a8c9	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	Leading Compliance & HR Department	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+2a21a67d-6020-4c2c-b06c-9e394c101fab	be8e036d-ad13-4c79-89ec-294e490a6816	1e7faab8-273d-40df-9f9a-485160186c5a	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+2d9893c2-a2b8-4a26-a41d-85061c629ec2	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+2faf5d1b-751e-4a11-9b34-33bf797eef82	13c91c98-00ae-4211-acb8-d06e35953806	e2c675a7-92dc-4477-be75-9a304cbe4def	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+305ab402-2d28-4607-ad44-7b1031dea076	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea315f7d-d597-41b3-a999-4f3851bcd020	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+325fcf79-60ee-46bc-931d-612002282ff3	0aed67b8-c454-439a-a07f-4f46d46d58af	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	Services - Testing - Cloud & AI	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+3514262c-d7ec-4d76-81c8-20995e4d22f8	bcbd68c8-c3f3-4396-abb0-0b0e13637958	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+359026a0-80bd-4c27-99f3-f63fb1741c6d	310a2f16-15f6-4b82-95f6-ab18b5b429f5	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+36243b2d-d487-49db-87d4-a46216df15ae	13c91c98-00ae-4211-acb8-d06e35953806	157d001c-b056-45b1-96a3-3c05bcd8d99c	Functional - Sales	914d8500-03b6-4a43-a250-244effca1cf1	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+36732dd0-7171-4b3e-a7a6-48427a14f504	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	911f6d7f-8d43-40f2-897a-2f416abf8cf9	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+378f0582-07ec-4a86-a0ff-56575cc28dd0	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	af8a1442-c5ee-409d-aa91-61c9dba852ee	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+37fe770e-4c51-4e31-bbb6-0ca302286b91	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+38bd29af-b288-4b62-ae24-679d6b2713ac	8e4e88f1-e294-4554-80cc-92ed6169caeb	834c9e15-c70d-4a0b-bb12-5e55f23c181d	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+3bce413c-a323-4f80-a417-190414a3d56b	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	6d25ff6d-e13d-440f-b775-215547af7acb	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+3c8fda3c-c84a-4ef8-80ed-327dc87a3abc	13c91c98-00ae-4211-acb8-d06e35953806	6193be76-40ad-4973-9ee7-246a4d8f4109	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+3f714252-8945-41a7-8520-1c1c8925854e	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	444df30d-c195-42ad-b9a7-d80cdef69ccd	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+4192b456-ca31-4de0-a8ce-698c41732ec4	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+45469efe-b575-417d-adb7-5c9ee591cb05	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+4804833e-7bbf-4746-9e57-16542de6c3dc	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	Services - Operations	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+49b9c24a-e70e-4cf8-a8c4-e81a49af294b	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+4f83891a-823a-406f-aa9f-5e23abeaba11	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	c0e1a001-0000-4000-8000-000000000001	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+50581768-4796-4731-b6e2-fc50e877f192	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+554562de-10b1-4365-9e6e-cf769630de75	be8e036d-ad13-4c79-89ec-294e490a6816	2076a9b1-e432-46a9-99b1-36e732159856	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+5808fbe9-5fd4-4e3f-86b4-5a0ad69517bd	be8e036d-ad13-4c79-89ec-294e490a6816	7c2380da-3ee6-46ad-93d6-a79ce3027f29	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+5d79d51f-fcd5-40a1-96e8-8a8ae7c76c00	0aed67b8-c454-439a-a07f-4f46d46d58af	4b680e29-b4fb-4689-9afb-67a7f089f52b	Services - Testing - Red Team	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+5e1badcc-b621-4c3b-b729-4f3ddf5877a0	8e4e88f1-e294-4554-80cc-92ed6169caeb	9dc69952-eae6-4ec0-a327-67392315f089	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+5f392507-7f0b-4614-9679-fcc103e3dbc7	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	73bd55bb-5d0e-4381-8ad2-2238377fca93	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+651dc356-0c28-457e-bc56-69fdf6ea321f	898c36e9-1cb7-4c56-9148-a3b6893c0149	bb7ccd5f-2f60-49fb-b984-f11fc47add22	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+6c3fcc16-3602-4bf5-9dd2-7e51fe23d336	0aed67b8-c454-439a-a07f-4f46d46d58af	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+6ccedaf4-671c-4375-8200-f860eb7d46d9	8e4e88f1-e294-4554-80cc-92ed6169caeb	138434a2-625f-4df5-836d-fcf0cfceef79	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+6df1609a-13f1-469d-96a1-253b2bc66b4f	8e4e88f1-e294-4554-80cc-92ed6169caeb	9050e021-7d84-4401-820e-c0e768abb1ab	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+72fc796a-c5ba-4bf3-b93f-5b8f52491aed	be8e036d-ad13-4c79-89ec-294e490a6816	2b1558e3-158a-4a84-ae80-053129861a64	Services - Consulting	64c49f37-a38a-46a6-9622-7427f1501658	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+73687605-0927-471b-b8c2-ec61f4d5164e	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+7428ebde-4c77-4358-bc21-6acef30a85a4	13c91c98-00ae-4211-acb8-d06e35953806	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+759ce52f-d3bf-414e-bd79-c33c038dfdf6	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+766c6052-09ad-44e4-8746-ed4795e712f1	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	Services - Operations	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+76ad509e-ba7a-412e-a0cb-be0b8eeb8305	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+79d8ed54-9a91-4486-a19f-e5485de7b490	0aed67b8-c454-439a-a07f-4f46d46d58af	e2b4be77-2b20-4064-974d-e6322e7240b4	Services - Testing - Cloud & AI	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+7d7850cf-72da-411d-ba58-bd2d4a43ca28	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	c0f974c3-f49c-449a-9276-aa64ce501344	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+81a34a8f-1fb9-431f-bc96-1bb95dab3fdb	8e4e88f1-e294-4554-80cc-92ed6169caeb	8b57cfd5-5d4e-44a3-9646-b36873c111c2	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+81e65582-e98d-4ded-b699-ea7fcb82f071	bcbd68c8-c3f3-4396-abb0-0b0e13637958	4ef1cb5b-9688-4ce2-95b3-6a0863200166	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+837d9855-e239-4046-83d9-ae224ecce6ef	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+85559f41-c8d4-44b1-8906-a5e1d064f78c	bcbd68c8-c3f3-4396-abb0-0b0e13637958	1f97b442-95c5-4b11-93a0-ea146534ae85	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+86237191-01ee-4aad-9a6b-e75600c375fc	0aed67b8-c454-439a-a07f-4f46d46d58af	c6c6cd04-6df3-4593-b686-e4b9d362c96f	Services - Testing - DevSecOps	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+872930ee-4d00-4d37-a2cb-dc57167f6973	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+8a351e0a-8631-4aca-9598-81b276dbc990	0aed67b8-c454-439a-a07f-4f46d46d58af	767a00dd-6f09-4f64-a44e-8fbe901222af	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+8a92cbcd-7247-4f89-94a4-546013a78a29	13c91c98-00ae-4211-acb8-d06e35953806	e2b10def-c91d-45da-94c5-f5530e743aa2	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+8fbc1e25-42da-426a-be89-975dde3326bc	be8e036d-ad13-4c79-89ec-294e490a6816	3e60b693-d3dd-4481-95c4-9f02da21625c	Services - Consulting	701aaa2c-a899-4def-bf5f-e17511874409	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+98b476d3-39f3-4af1-83df-00639379db5e	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	48429bb5-c583-4684-b30a-7ed443b671ca	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+999c4385-21ef-4a47-800f-1c08938edcee	be8e036d-ad13-4c79-89ec-294e490a6816	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	Services - Consulting	701aaa2c-a899-4def-bf5f-e17511874409	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+a0c6147f-a977-4215-840a-60f95d2bd729	898c36e9-1cb7-4c56-9148-a3b6893c0149	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+a2113157-8223-486e-a506-90ae7a3daa93	310a2f16-15f6-4b82-95f6-ab18b5b429f5	7d542941-65b9-499b-81b3-239748d6da52	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+a220a973-9f98-4654-8a57-ee6b44579be5	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	Leading Delivery Department	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+a3451572-fefd-4cec-aa55-b28d3d3cac92	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	778f1120-9633-4933-9160-ddaa46668838	Leading Sales & A/C Department	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+a77285b6-5266-4959-8399-f34dfbfcb44e	be8e036d-ad13-4c79-89ec-294e490a6816	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+a7cb72a9-ec77-44e1-998a-a0638f8becc5	0aed67b8-c454-439a-a07f-4f46d46d58af	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+ab07d7c9-e503-4641-8db6-25ac3fc0993e	bcbd68c8-c3f3-4396-abb0-0b0e13637958	caa227a1-2dcf-4195-ab9c-8f76d1862daa	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+af28c045-efab-45db-83dc-c487bab9019f	8e4e88f1-e294-4554-80cc-92ed6169caeb	d8a2b9e5-f54d-4344-a78d-c6c840467543	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+b11be1e9-662a-4bc7-b06b-7f401c8b00b3	898c36e9-1cb7-4c56-9148-a3b6893c0149	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+b2819c45-99c7-4306-9ffb-1d585f0a29d0	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	f20a7445-0b01-4f20-85a5-853101d864ee	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+b3eb1bdf-188b-4292-9cfd-f72381c366f0	0aed67b8-c454-439a-a07f-4f46d46d58af	c1fa4328-a970-48a1-bc08-d50fe36bf44c	Services - Testing - DevSecOps	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+b79f5fee-71cf-4fe3-b61f-7e3811fedcea	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+b823d89e-aab0-477f-8b85-7129d59dd202	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+bf03ad3b-c399-4afa-a0e2-682f1d475fe8	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+c034e919-e8b3-4bcc-8ee2-72f4fe2ad36f	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+c1010573-777c-45fa-8b66-c77e8e4cbc3f	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e8c22eff-0daf-4690-a537-c8b0b6110a01	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+caa92f5c-1925-436c-9bf0-b270d5ddb38d	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	Services - Operations	111cc3cd-6d35-43ce-be91-dde90d3d4015	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+ccff1a9e-10e0-43e8-9379-77811383a397	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	4650d4e0-f73c-4688-ae5f-830a46348ff9	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+cf705a0a-b654-4219-955c-a187d514a84f	0aed67b8-c454-439a-a07f-4f46d46d58af	ae255622-ddcc-45ea-a699-8ec416fe57ab	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+da6c7063-b8d6-47d9-8ad6-e5654b1a6190	13c91c98-00ae-4211-acb8-d06e35953806	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	Functional - Sales	914d8500-03b6-4a43-a250-244effca1cf1	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+e064b573-153e-4f5c-bca0-37d89be9564a	bcbd68c8-c3f3-4396-abb0-0b0e13637958	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+e323d911-96c9-4d01-be14-6ff9f00b5f68	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+e91d743d-70da-4bbe-92ce-8e9bf436acd9	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	0aed67b8-c454-439a-a07f-4f46d46d58af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+ef3cba27-0a2a-4348-82e3-7d86feed3e31	bcbd68c8-c3f3-4396-abb0-0b0e13637958	6e606c29-2ebf-4ab8-8006-aaedd5680009	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+fcd178d9-a936-4f02-a42a-ea9bdcf646a2	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9fbe-98a4-464d-a638-05f40529c6de	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed	2026-10-18 09:38:17.830203+00	\N	\N	\N	\N
+e99606cb-d413-47ce-9373-9e6384c53f67	36d04440-a8bb-47f1-a6d9-1f4d144b0bdb	41d1dc59-ea33-44eb-8958-dcf35ad051b0	\N	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 13:00:09.499474+00	2026-10-18 13:00:09.78908+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.78908+00
+c461074d-4d3d-4573-9947-e6e8b0c1d921	40fed4c8-89b7-4276-b4ef-47fe8cf1ea87	711d4f25-dd76-46cc-accd-4e17e0d6f5cd	\N	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 13:02:39.916388+00	2026-10-18 13:02:54.804242+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-18 13:02:54.804242+00
+f3262a1f-1da9-4619-b644-0bfab7a16c27	316c6b23-b976-4e7f-ae22-c8ea15c365cb	6105c483-1e32-49ff-848c-f193525e6297	ZZ Probe Sub-Department	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-18 13:13:54.032822+00	2026-10-18 13:13:54.103213+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:13:54.103213+00
+\.
+
+
+--
+-- Data for Name: mst_org_role_sub_departments; Type: TABLE DATA; Schema: master; Owner: -
+--
+
+COPY master.mst_org_role_sub_departments ("Id", "OrgRoleMapId", "SubDepartmentId") FROM stdin;
+01348ab7-092d-4b41-aed9-5a9660a24a2a	cf705a0a-b654-4219-955c-a187d514a84f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+02686d04-b5cb-4080-a3d1-291005390b29	0717101c-438d-4f69-b0ef-a56fcaf47a45	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+04301914-a9e7-4375-b7b2-b14c908a2023	36732dd0-7171-4b3e-a7a6-48427a14f504	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+04e7ad4f-e1ba-469f-a06d-754a0ba87ab5	45469efe-b575-417d-adb7-5c9ee591cb05	682d36c0-4256-42ab-811e-054ab3a5b10f
+07696895-e1c2-44c1-94d5-f1d8f439f2bc	50581768-4796-4731-b6e2-fc50e877f192	63765624-d7d1-472d-abd4-627127646998
+089e0269-8678-44f5-8c54-667b7df3f738	e323d911-96c9-4d01-be14-6ff9f00b5f68	682d36c0-4256-42ab-811e-054ab3a5b10f
+090c75d8-7d51-477b-988e-5b80a967f645	81a34a8f-1fb9-431f-bc96-1bb95dab3fdb	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+0931a7ee-40db-40bb-9b73-d0c4c574134e	b11be1e9-662a-4bc7-b06b-7f401c8b00b3	7682acb3-561b-4951-801b-c1564adda131
+0a374110-795f-4b25-a46e-8f0343d7d4ad	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	682d36c0-4256-42ab-811e-054ab3a5b10f
+0c3fe398-2701-444e-ad0d-e5d8905004fc	caa92f5c-1925-436c-9bf0-b270d5ddb38d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+0c5f121b-0223-42e4-bb17-75836f072500	378f0582-07ec-4a86-a0ff-56575cc28dd0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+0cef76e1-f8da-4f6e-92b6-ed9cc265d541	222358f3-3516-49b6-b7db-60f936d4a8c9	61bbeadf-3044-4123-929c-4b1e6e2e613e
+0e02f806-c24b-4d77-b9e0-28dc0e86d900	73687605-0927-471b-b8c2-ec61f4d5164e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+12af79a8-40c2-4328-a0a6-f32de9df8e54	e064b573-153e-4f5c-bca0-37d89be9564a	5d962383-f175-4dd8-af63-8a566a0d2255
+15ab0cb4-e6af-446d-9210-3455780310bb	0f8dfe0e-d5d5-4a23-b9dc-cff6d71ae84f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+15f493d3-a7d9-4067-8ad3-0d655d2486ed	5808fbe9-5fd4-4e3f-86b4-5a0ad69517bd	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+1a500407-6d9e-4937-84fb-78ff9c7a2f6d	5f392507-7f0b-4614-9679-fcc103e3dbc7	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+1a9d4df8-416b-4528-9881-6bbb9261198c	872930ee-4d00-4d37-a2cb-dc57167f6973	db0addff-605e-439f-917b-38016a398755
+232b2a26-a7d7-4192-ac29-bb89f4900165	0717101c-438d-4f69-b0ef-a56fcaf47a45	682d36c0-4256-42ab-811e-054ab3a5b10f
+25312246-a41f-43ac-b82a-71a97833aca0	7d7850cf-72da-411d-ba58-bd2d4a43ca28	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+27efd2e4-aed3-4a53-923b-8b22ef6cea38	554562de-10b1-4365-9e6e-cf769630de75	63765624-d7d1-472d-abd4-627127646998
+2abb3187-723f-4a7f-963e-3fec855c6300	4192b456-ca31-4de0-a8ce-698c41732ec4	63765624-d7d1-472d-abd4-627127646998
+2b4ad28c-8679-4583-8f38-fa3449b32eaf	a7cb72a9-ec77-44e1-998a-a0638f8becc5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+2b60a2ea-0450-4a9c-a218-081e799ef37e	b3eb1bdf-188b-4292-9cfd-f72381c366f0	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+2c6d02a2-f8bc-4ca6-8859-383eb420ed66	b79f5fee-71cf-4fe3-b61f-7e3811fedcea	c88d783b-b628-4f3a-a972-aa56aeed5e77
+2d24be23-4f65-4383-9e99-f8877e702c11	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	63765624-d7d1-472d-abd4-627127646998
+2d685897-22d0-41ea-a4e5-83d797fb2ae8	af28c045-efab-45db-83dc-c487bab9019f	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+2d7eaab9-8468-4215-9c5e-e25844da228b	bf03ad3b-c399-4afa-a0e2-682f1d475fe8	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+333543b7-ceb4-4180-86d9-2c5e6d439e02	159c2701-2318-4ba7-b809-fa07d078305e	db0addff-605e-439f-917b-38016a398755
+3a6ff35d-f430-451f-a6d2-7a89d7c0aab3	81e65582-e98d-4ded-b699-ea7fcb82f071	5d962383-f175-4dd8-af63-8a566a0d2255
+3aed3762-3d38-4391-945c-13969b130898	c034e919-e8b3-4bcc-8ee2-72f4fe2ad36f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+3b0ff8ef-bebd-4463-8dda-794bbcae8548	38bd29af-b288-4b62-ae24-679d6b2713ac	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+3d530115-e182-4f14-ab14-fe734477c375	4804833e-7bbf-4746-9e57-16542de6c3dc	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+3ddd902f-c743-41ee-9c5a-675f1eb9d654	999c4385-21ef-4a47-800f-1c08938edcee	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+3e1c254a-dc43-4b0b-b586-2486eed0f59a	5e1badcc-b621-4c3b-b729-4f3ddf5877a0	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+3ebb45cc-96fc-45b5-81a8-b32c7b6fb8db	da6c7063-b8d6-47d9-8ad6-e5654b1a6190	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+418b2437-8b16-41dc-959a-95fafefadd97	0a1dda59-5a52-496e-8d30-5f082dbe343e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+44e3f4d1-a84d-4e95-bb26-9d6c9b60d3fa	e323d911-96c9-4d01-be14-6ff9f00b5f68	db0addff-605e-439f-917b-38016a398755
+4725116c-fd91-4c7d-98f5-19367fda4c13	a0c6147f-a977-4215-840a-60f95d2bd729	7682acb3-561b-4951-801b-c1564adda131
+4977ee1a-9757-4a33-bfa8-9675ad32d50a	7428ebde-4c77-4358-bc21-6acef30a85a4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+50a42de2-f79b-4eb4-881c-f5a27c79704c	872930ee-4d00-4d37-a2cb-dc57167f6973	682d36c0-4256-42ab-811e-054ab3a5b10f
+566b19c4-8e8f-4232-ab81-d8abe831fd2f	159c2701-2318-4ba7-b809-fa07d078305e	682d36c0-4256-42ab-811e-054ab3a5b10f
+573a13fe-5012-4d3c-9cdd-e1a0054cf125	3f714252-8945-41a7-8520-1c1c8925854e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+582d4b3b-7182-4412-b586-e55ae04ee400	b2819c45-99c7-4306-9ffb-1d585f0a29d0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+5dabde45-6a4a-42b4-86c2-a9246f4fbe5e	a2113157-8223-486e-a506-90ae7a3daa93	c88d783b-b628-4f3a-a972-aa56aeed5e77
+636dbe7a-2595-45de-90b2-92088ba58ae3	759ce52f-d3bf-414e-bd79-c33c038dfdf6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+63e9521d-5eb0-4e37-be62-e9c71cc1f781	45469efe-b575-417d-adb7-5c9ee591cb05	db0addff-605e-439f-917b-38016a398755
+64f30be8-4dea-43d1-8f2d-4519a82159cb	e91d743d-70da-4bbe-92ce-8e9bf436acd9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+650519ad-1aca-48ba-82a9-6128f824a147	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	682d36c0-4256-42ab-811e-054ab3a5b10f
+6709d7c6-465e-4985-a2d5-5f5ea648666c	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	682d36c0-4256-42ab-811e-054ab3a5b10f
+6a97f07d-9b1c-4441-9a0e-104658382012	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	db0addff-605e-439f-917b-38016a398755
+6c13b49d-3454-41a7-a246-42f8e720f41a	6c3fcc16-3602-4bf5-9dd2-7e51fe23d336	b651aec8-5455-4329-8251-0ceb62cea798
+728bde48-eb53-45c5-8579-87023b260d1c	2d9893c2-a2b8-4a26-a41d-85061c629ec2	c88d783b-b628-4f3a-a972-aa56aeed5e77
+748ebbb8-c88f-4a20-a527-697ef4214d72	837d9855-e239-4046-83d9-ae224ecce6ef	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+7aad3cd6-eeca-4d4f-bea0-898958bb35e1	6df1609a-13f1-469d-96a1-253b2bc66b4f	63765624-d7d1-472d-abd4-627127646998
+7d327c1e-c603-4c5b-89dd-d45e8856b9f5	c1010573-777c-45fa-8b66-c77e8e4cbc3f	63765624-d7d1-472d-abd4-627127646998
+7ed38aaa-136f-44a2-8dd1-2ab3b94eb822	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+84833d40-8ae0-4d86-bead-d0e3184ceb75	3bce413c-a323-4f80-a417-190414a3d56b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+84a19538-022f-4aa7-91f4-bd3c5d44a095	766c6052-09ad-44e4-8746-ed4795e712f1	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+860e9de1-e053-4c31-88c6-ed91ccfb4056	0717101c-438d-4f69-b0ef-a56fcaf47a45	db0addff-605e-439f-917b-38016a398755
+894d59f6-34c0-4592-8cbd-52b175ef7414	98b476d3-39f3-4af1-83df-00639379db5e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+8b586d41-b33f-422e-ba1b-fff825002793	305ab402-2d28-4607-ad44-7b1031dea076	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+8f0d715d-e780-478d-9294-b8b4baf43c98	3c8fda3c-c84a-4ef8-80ed-327dc87a3abc	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+90b98367-d22c-4043-b260-69a27601bc21	5d79d51f-fcd5-40a1-96e8-8a8ae7c76c00	b651aec8-5455-4329-8251-0ceb62cea798
+94cbce2b-2ac9-4356-9a40-16b9522af4c0	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+97be6601-706e-413f-a81f-663915903283	37fe770e-4c51-4e31-bbb6-0ca302286b91	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+9d33e782-07db-4dd2-aed0-49967788ff67	a220a973-9f98-4654-8a57-ee6b44579be5	45755b2a-741a-4990-ab78-8f65090f75b1
+9f1aaf26-40e2-4cfc-a65d-f19d875e9faf	a77285b6-5266-4959-8399-f34dfbfcb44e	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a0f332e4-5d66-4bab-ae2f-7de71d059eb6	73687605-0927-471b-b8c2-ec61f4d5164e	682d36c0-4256-42ab-811e-054ab3a5b10f
+a17a837d-f43f-44a2-affd-88f980c7db8f	15e4938e-241c-4f53-b64e-56a4b2201981	c88d783b-b628-4f3a-a972-aa56aeed5e77
+a4e582fe-8bb4-4eb4-9a5e-57dfd8a692bc	651dc356-0c28-457e-bc56-69fdf6ea321f	63765624-d7d1-472d-abd4-627127646998
+a82d34b3-82f7-41a9-b024-dc7fbbb0914f	159c2701-2318-4ba7-b809-fa07d078305e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+ad1fa7b3-301f-44dc-9b5f-f1c8645238ed	047399e0-7821-4f80-be7a-78057c4c2f5f	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+ad777426-6067-4d51-a304-c90a0e96f203	a3451572-fefd-4cec-aa55-b28d3d3cac92	a12ac80b-a665-4301-898e-e9ca3d44bb20
+ada13c5c-edb2-4308-a30c-91d3e7e541a3	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	682d36c0-4256-42ab-811e-054ab3a5b10f
+b26b59e8-6318-4304-b225-5d35e850a6cd	003fd050-8939-4d05-ac2b-29876038cb76	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+b32d0700-87c6-4adb-bfc6-9bd47e23fc6a	86237191-01ee-4aad-9a6b-e75600c375fc	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+b4b2cfa3-61c3-4c89-9a00-5c651f39b408	3514262c-d7ec-4d76-81c8-20995e4d22f8	5d962383-f175-4dd8-af63-8a566a0d2255
+b597b1ad-46e4-4589-ba33-655e8b6d1433	325fcf79-60ee-46bc-931d-612002282ff3	88b29e0c-39b7-4169-ab5c-350075014a84
+b5d2e784-6b2b-41b0-92c2-8add3b64ab33	72fc796a-c5ba-4bf3-b93f-5b8f52491aed	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+bc85da70-4299-48d0-8ffb-4d349971102a	4f83891a-823a-406f-aa9f-5e23abeaba11	63765624-d7d1-472d-abd4-627127646998
+be4d7b20-84ef-488f-9291-d71fe77e214c	759ce52f-d3bf-414e-bd79-c33c038dfdf6	682d36c0-4256-42ab-811e-054ab3a5b10f
+bf3e10c5-3496-4d8f-801f-89abfce3f772	ab07d7c9-e503-4641-8db6-25ac3fc0993e	63765624-d7d1-472d-abd4-627127646998
+bfb0abb9-98e7-4c85-b6c4-6f29b5c48ccb	872930ee-4d00-4d37-a2cb-dc57167f6973	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+c591f26a-f050-493c-842c-d5007efb4db2	8a351e0a-8631-4aca-9598-81b276dbc990	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+c827b03f-aab6-4d6b-9be4-cfbb842cd5d1	36243b2d-d487-49db-87d4-a46216df15ae	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+c8448852-7c53-4ce3-8b36-5c0aa6ebf3d4	79d8ed54-9a91-4486-a19f-e5485de7b490	88b29e0c-39b7-4169-ab5c-350075014a84
+cdeaacb9-ce14-4eb5-95c6-fb9897bf997d	128f2bec-ea83-4f7e-8115-9899a302d677	5d962383-f175-4dd8-af63-8a566a0d2255
+d3739473-3a60-4727-9e2f-8a931dbbfeed	759ce52f-d3bf-414e-bd79-c33c038dfdf6	db0addff-605e-439f-917b-38016a398755
+d4dc9532-48f2-40c5-9113-4d8e68474810	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d7e58e12-3739-4160-8729-677544fedc52	85559f41-c8d4-44b1-8906-a5e1d064f78c	5d962383-f175-4dd8-af63-8a566a0d2255
+d997dccf-7b14-4fc5-903c-fe6e05781e88	8a92cbcd-7247-4f89-94a4-546013a78a29	63765624-d7d1-472d-abd4-627127646998
+db8e544f-1a49-447d-8fc4-5d2b0c1b0535	2faf5d1b-751e-4a11-9b34-33bf797eef82	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+dbf15e64-586c-402f-a754-4d29d7e69957	76ad509e-ba7a-412e-a0cb-be0b8eeb8305	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+ded0ecee-fb3b-47ac-8a3f-fc46bf825edb	ef3cba27-0a2a-4348-82e3-7d86feed3e31	5d962383-f175-4dd8-af63-8a566a0d2255
+e4add41c-f4d7-43c7-8a03-a3fc9930cdd2	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	db0addff-605e-439f-917b-38016a398755
+e5c24c61-62aa-4d91-870f-9ae0aea809e3	359026a0-80bd-4c27-99f3-f63fb1741c6d	c88d783b-b628-4f3a-a972-aa56aeed5e77
+e7547107-749d-49df-98bc-1981ae8f5219	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+e851f7ae-eca5-4f33-8ce5-a3d8a262bbf1	1c213096-46a8-48e1-b353-fdf2d25074ab	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+e98b2e32-b702-45fa-b82d-7f0e728dc1c0	2a21a67d-6020-4c2c-b06c-9e394c101fab	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+ec837678-c343-48ab-97a6-44b1a8ba1aed	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	db0addff-605e-439f-917b-38016a398755
+f03fe821-ff36-49e9-ac68-c803122092bc	ccff1a9e-10e0-43e8-9379-77811383a397	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f0e1c893-d5d6-4a2d-ae02-0d7605177576	8fbc1e25-42da-426a-be89-975dde3326bc	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+f1ba77e7-2de1-41e7-b901-7b2c9e65c701	6ccedaf4-671c-4375-8200-f860eb7d46d9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+f4934bbb-9d23-40df-92ae-5e82b95a8c47	b823d89e-aab0-477f-8b85-7129d59dd202	7682acb3-561b-4951-801b-c1564adda131
+f5aa4de1-1d28-4188-b28f-98dce9fca18a	fcd178d9-a936-4f02-a42a-ea9bdcf646a2	b651aec8-5455-4329-8251-0ceb62cea798
+f6c2b966-212f-47f3-8d71-f79f08ef7633	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	db0addff-605e-439f-917b-38016a398755
+f7b15f5f-5a77-4344-ba22-e73fc802dc1b	e323d911-96c9-4d01-be14-6ff9f00b5f68	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+fc46d083-68a3-4150-93bb-8b2d90bf9c96	45469efe-b575-417d-adb7-5c9ee591cb05	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+fc4f29be-d35a-4516-abcb-50816abf4219	73687605-0927-471b-b8c2-ec61f4d5164e	db0addff-605e-439f-917b-38016a398755
+\.
+
+
+--
 -- Data for Name: mst_post_graduation_degrees; Type: TABLE DATA; Schema: master; Owner: -
 --
 
@@ -4093,17 +2540,7 @@ c7bd4e1d-4826-421d-b473-3a926672050e	ma	M.A.	t	2026-09-08 04:59:44.231454+00	\N	
 e0725237-7a46-48ee-9ff1-3969f2571d2a	mcom	M.Com	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
 e2722a3d-0767-4299-afa9-04d89c28cd7c	mca	MCA	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
 ec8299cf-acb1-4a26-aed5-a03db0ff8bfe	ms	MS	t	2026-09-08 04:59:44.231454+00	\N	\N	\N	\N
-\.
-
-
---
--- Data for Name: mst_rbac_baseline; Type: TABLE DATA; Schema: master; Owner: -
---
-
-COPY master.mst_rbac_baseline ("Version", "AppliedAtUtc") FROM stdin;
-excel-v01	2026-10-02 20:21:30.487358+00
-excel-v02	2026-10-02 20:44:58.13955+00
-excel-v03	2026-10-17 13:13:54.745484+00
+69a230fc-d84b-402c-85f7-25a048cc61fd	zz_probe_mba	ZZ Probe MBA	f	2026-10-18 13:00:09.404433+00	2026-10-18 13:00:09.74092+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.74092+00
 \.
 
 
@@ -4112,102 +2549,6 @@ excel-v03	2026-10-17 13:13:54.745484+00
 --
 
 COPY master.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-\.
-
-
---
--- Data for Name: mst_roles; Type: TABLE DATA; Schema: master; Owner: -
---
-
-COPY master.mst_roles ("Id", "Code", "Name", "IsActive", "DesignationId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-6032fef5-eb05-42bd-9f10-72f12e154243	services_operations_soc_shift_lead_i_team_leader_tl_	Team Leader	t	444df30d-c195-42ad-b9a7-d80cdef69ccd	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-218cd458-a6bc-43f8-8eda-02c89193fc35	services_operations_soc_shift_lead_ii_team_leader_tl_	Team Leader	t	c0f974c3-f49c-449a-9276-aa64ce501344	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-22215465-c056-4ba4-a867-23ed37658a09	services_consulting_senior_grc_auditor_i_team_leader_tl_	Team Leader	t	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-4e574ffd-c3a9-4a15-832a-5dabfb352dc3	services_consulting_senior_grc_auditor_ii_team_leader_tl_	Team Leader	t	3e60b693-d3dd-4481-95c4-9f02da21625c	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-da59e567-3ee0-4a98-9b1e-83f8e6c01e2c	services_testing_associate_manager_i_team_leader_tl_	Team Leader	t	e228c999-bf54-48b4-a373-d2bc9db88554	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-20d077b9-894b-4bf3-b491-5df765e645f0	services_testing_associate_manager_ii_team_leader_tl_	Team Leader	t	168d11d7-ca26-4d61-b870-51779dc63023	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-8ec384d1-5b99-45c9-a95d-8f3325f56ea4	services_testing_associate_manager_iii_team_leader_tl_	Team Leader	t	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-111000c1-ff0c-499c-a9cb-34febe2ac32d	services_testing_devsecops_associate_team_leader_tl_	Team Leader	t	c6c6cd04-6df3-4593-b686-e4b9d362c96f	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-c0e1a001-0000-4000-8000-000000000002	core_intern_team_member_tm	Team Member	t	c0e1a001-0000-4000-8000-000000000001	2026-10-13 17:54:19.140561+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-f67d5930-703b-4497-a4ea-2add60f7fb58	functional_project_m_associate_pmo_ii_team_member_tm_	Team Member	t	2a76927c-461a-48e4-8190-dea7361ef3db	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-9fb9b5b5-bc14-4597-8953-7a1ea10dc0dd	functional_project_m_delivery_account_manager_i_team_member_tm_	Team Member	t	834c9e15-c70d-4a0b-bb12-5e55f23c181d	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-db77e167-7f67-43f6-9e2d-4ebaf6f9f802	functional_project_m_delivery_account_manager_ii_team_member_tm_	Team Member	t	d8a2b9e5-f54d-4344-a78d-c6c840467543	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-eaa98dba-df5b-4b1d-b2d5-20b159a0a070	services_operations_soc_analyst_i_team_member_tm_	Team Member	t	6d25ff6d-e13d-440f-b775-215547af7acb	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-b4e88d70-1263-47af-96a9-203ee422e8b1	services_operations_soc_consultant_ii_team_member_tm_	Team Member	t	911f6d7f-8d43-40f2-897a-2f416abf8cf9	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-074ea1a8-d519-4cda-87a4-978cd1eec45a	services_consulting_grc_auditor_i_team_member_tm_	Team Member	t	1e7faab8-273d-40df-9f9a-485160186c5a	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-6886e92b-a2c5-4057-9330-47394a2aac65	services_consulting_grc_auditor_ii_team_member_tm_	Team Member	t	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-40354601-9ac5-41e0-9ddb-6603e5614a86	services_consulting_grc_auditor_iii_team_member_tm_	Team Member	t	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-3efb18e5-f8d5-4de9-8959-ab5401f64b74	services_consulting_grc_auditor_iv_team_member_tm_	Team Member	t	7c2380da-3ee6-46ad-93d6-a79ce3027f29	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-a955782d-de73-4939-94f8-5cbf9a2461c2	services_testing_pentester_i_team_member_tm_	Team Member	t	4f972924-350a-47fb-a6b6-f2b34bb6b621	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-2cd464a5-b857-46fc-89ea-5dea92640964	services_testing_pentester_ii_team_member_tm_	Team Member	t	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-568997bf-75a1-46d9-9bdb-6fc05c3b2be1	services_testing_pentester_iii_team_member_tm_	Team Member	t	163d8c87-8f90-4295-a926-2e912c625a1c	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-3db9d726-85c9-4714-8c95-b5c6ebd45fd4	services_testing_pentester_iv_team_member_tm_	Team Member	t	9858c224-f97f-4ff8-908d-f46bd5e2243c	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-736d1ddd-c56a-4c4f-b266-bc4f6be6ed9c	services_testing_senior_pentester_i_team_member_tm_	Team Member	t	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-5378a1ad-7ab3-40e5-9048-5165efab2140	services_testing_senior_pentester_ii_team_member_tm_	Team Member	t	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-4e547334-4964-4dbe-81a4-a316d9394d03	services_testing_devsecops_practitioner_i_team_member_tm_	Team Member	t	ae255622-ddcc-45ea-a699-8ec416fe57ab	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-8ea442c3-8ed7-4b6a-a3db-dd74706e9cce	services_testing_devsecops_practitioner_ii_team_member_tm_	Team Member	t	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-70206c08-0203-4784-8b09-d04d0cff95af	services_testing_devsecops_practitioner_iii_team_member_tm_	Team Member	t	767a00dd-6f09-4f64-a44e-8fbe901222af	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-5a206a6a-dabc-4dfe-b28f-00cc01bc11da	services_testing_red_team_practitioner_ii_team_member_tm_	Team Member	t	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-c45f4397-0370-43f5-98c7-f419234fa6d8	services_testing_red_team_practitioner_iii_team_member_tm_	Team Member	t	85cc9fbe-98a4-464d-a638-05f40529c6de	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-fc382efa-48c8-4cc3-a724-2e54c1d6d6e0	services_testing_associate_ai_engineer_contractual_team_member_tm_	Team Member	t	e2b4be77-2b20-4064-974d-e6322e7240b4	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-6c0bebbb-cc4d-4433-83e9-d65fb5291d75	services_consulting_intern_team_member_tm_	Team Member	t	2076a9b1-e432-46a9-99b1-36e732159856	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-6c1b3c1d-4159-41b9-9171-1e4f2501cc32	functional_project_m_intern_team_member_tm_	Team Member	t	9050e021-7d84-4401-820e-c0e768abb1ab	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-1d19d6af-78b4-45ef-bcb3-db1b3896f153	services_operations_intern_team_member_tm_	Team Member	t	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-859254f8-a1b4-4812-b1d0-aacf111f7235	rd_research_and_deve_intern_team_member_tm_	Team Member	t	bb7ccd5f-2f60-49fb-b984-f11fc47add22	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-98e28e22-95e4-41ee-9178-2912de24f21a	functional_accounts_intern_team_member_tm_	Team Member	t	caa227a1-2dcf-4195-ab9c-8f76d1862daa	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-f43fddea-4dd9-4603-a79c-1710224115ae	functional_it_admini_intern_team_member_tm_	Team Member	t	f8502c44-b289-49e4-8401-3dcad4d5bbe0	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-0b340900-7bd0-4931-8978-832c678c7cbd	functional_sales_intern_team_member_tm_	Team Member	t	e2b10def-c91d-45da-94c5-f5530e743aa2	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-94fc014e-37ce-4eb4-8588-ff56a79be98e	core_director_and_chief_executive_officer_leader_l_	Leader	t	778f1120-9633-4933-9160-ddaa46668838	2026-09-03 11:55:46.803606+00	2026-10-17 10:02:45.200263+00	\N	\N	\N
-3dd672a7-e6a9-42c8-bdbf-4d1340efc1da	core_director_and_chief_operating_officer_leader_l_	Leader	t	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	2026-09-03 11:55:46.803606+00	2026-10-17 10:02:45.200263+00	\N	\N	\N
-0028e31d-d2ff-4a71-b5b2-5f0566961d46	core_director_and_chief_technology_officer_leader_l_	Leader	t	0525d830-ead9-44a0-871f-91b7845fec26	2026-09-03 11:55:46.803606+00	2026-10-17 10:02:45.200263+00	\N	\N	\N
-446498d0-e9e6-4dbb-8fbe-b87bb853a2af	functional_project_m_senior_pmo_i_team_leader_tl_	Team Leader	t	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-7bd6b8a7-be33-43ba-b4d7-4d290e71b91e	functional_hr_intern_team_member_tm_	Team Member	t	e8c22eff-0daf-4690-a537-c8b0b6110a01	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-32d7cead-40d2-4d94-89fb-3e48d4160b7c	services_testing_intern_team_member_tm_	Team Member	t	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-8225915b-d1c2-49cc-a4fb-d2d49df23e2b	r_functional_it_administration_it_admin_it_admin	IT Admin	t	da990f6e-3379-4cc4-89b7-0ead29da472b	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-08583f63-4f74-4913-ac74-1f2861288884	r_functional_it_administration_desktop_support_engineer_i_it_admin	IT Admin	t	c70b9832-841e-4864-9b85-eaba3c0a995f	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-208b0c7a-a690-45e9-ad9b-5eabc0cdea39	r_functional_it_administration_desktop_support_engineer_ii_it_admin	IT Admin	t	73bd55bb-5d0e-4381-8ad2-2238377fca93	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-3f0d60be-b6cd-4fa6-9f7f-7d7b90e0296f	r_functional_accounts_accountant_i_accounts	Accounts	t	155642eb-a633-4460-b658-aca9fde2d817	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-5cc5612a-0485-467a-8274-fdc9f892e863	r_functional_accounts_accountant_ii_accounts	Accounts	t	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-3acd2d8a-b2b6-4222-a75b-6edd7f7059d9	r_functional_accounts_accountant_iii_accounts	Accounts	t	6e606c29-2ebf-4ab8-8006-aaedd5680009	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-b77a5c55-f887-4013-8ff3-9496897bbe38	r_functional_accounts_senior_accountant_i_accounts	Accounts	t	4ef1cb5b-9688-4ce2-95b3-6a0863200166	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-93b5e35c-065d-4d27-a075-4797e2424f23	r_functional_accounts_senior_accountant_ii_accounts	Accounts	t	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-422b597e-b1f1-4aba-88c5-9ade45a38c00	r_functional_accounts_senior_accountant_iii_accounts	Accounts	t	1f97b442-95c5-4b11-93a0-ea146534ae85	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-c7d75b92-f6e2-4dd7-a726-ae662ee83c95	functional_hr_hr_head_hr	HR	t	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	2026-09-03 11:55:46.803606+00	2026-10-10 07:26:56.213994+00	\N	\N	\N
-6b361aa9-a47a-4fed-9d1f-07a4e1dd5f30	functional_hr_recruitment_coordinator_i_hr	HR	t	7d542941-65b9-499b-81b3-239748d6da52	2026-09-03 11:55:46.803606+00	2026-10-10 07:26:56.213994+00	\N	\N	\N
-cc4e4c23-fccc-44ba-8423-5e4e6ec35731	functional_hr_recruitment_coordinator_ii_hr	HR	t	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	2026-09-03 11:55:46.803606+00	2026-10-10 07:26:56.213994+00	\N	\N	\N
-ebdc343e-9f43-4715-8a37-4861594c4b0a	functional_hr_senior_hr_executive_i_hr	HR	t	485012d4-2c28-4bc4-92c7-3609e3e3749e	2026-09-03 11:55:46.803606+00	2026-10-10 07:26:56.213994+00	\N	\N	\N
-1e17c9f0-a8ed-4d89-819d-738a84af4e48	functional_hr_senior_hr_executive_ii_hr	HR	t	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	2026-09-03 11:55:46.803606+00	2026-10-10 07:26:56.213994+00	\N	\N	\N
-9de62ea5-b7da-4a55-8b54-056fdf6bc621	functional_sales_business_development_associate_i_manager_mng_	Manager	t	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-7b597cd0-0153-4ddb-a7b2-f553cbafc8a9	functional_sales_customer_success_representative_ii_manager_mng_	Manager	t	157d001c-b056-45b1-96a3-3c05bcd8d99c	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-412826f2-67b6-47c9-a62c-270fa9425ce4	functional_sales_director_product_sales_team_member_tm_	Team Member	t	6193be76-40ad-4973-9ee7-246a4d8f4109	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-d0b9d2a2-d79c-4097-ae63-4bff14436d0a	functional_sales_sales_associate_team_member_tm_	Team Member	t	e2c675a7-92dc-4477-be75-9a304cbe4def	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-3e28d4a4-7d87-41ed-b921-a39dd937df76	functional_sales_associate_customer_success_representative_i_team_member_tm_	Team Member	t	272973a6-c052-4aef-bf32-9e24f7eb6cc9	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-21eac166-3ba7-40c5-a780-bbc7b3e96ddb	functional_sales_associate_customer_success_representative_ii_team_member_tm_	Team Member	t	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-48079f83-fbf9-4639-ae6b-263ca3fb752a	functional_project_m_associate_pmo_i_team_member_tm_	Team Member	t	b3309eea-7374-4a8d-ac13-481b2a7fd492	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-1cf32162-d510-4a26-a017-e2035425dc93	functional_project_m_senior_pmo_ii_manager_mng_	Manager	t	138434a2-625f-4df5-836d-fcf0cfceef79	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-c66dd6fd-9b0e-4e51-8df1-788c182986ff	r_services_operations_soc_lead_i_project_manager	Project Manager	t	b5f39dd8-c305-489d-9f7d-9adfd010a134	2026-10-10 07:26:56.213994+00	\N	\N	\N	\N
-b3a66833-fc6b-4bac-9438-959333107d3c	functional_project_m_senior_delivery_account_manager_ii_manager_mng_	Manager	t	9dc69952-eae6-4ec0-a327-67392315f089	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-57b9b89d-9123-4bd0-b8fd-a373e0648f43	functional_project_m_senior_delivery_account_manager_i_team_leader_tl_	Team Leader	t	8b57cfd5-5d4e-44a3-9646-b36873c111c2	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-97f53b35-6fab-44bf-ae37-022cb65dfe04	r_services_operations_siem_admin_iv_team_leader_tl	Team Leader	t	e36018c5-bf48-4f93-bef7-93e8864a0b51	2026-10-10 07:26:56.213994+00	2026-10-17 10:19:09.075416+00	\N	\N	\N
-fdf924c8-3a4a-40bb-9bf9-ea42d4946ecb	rd_research_and_deve_python_developer_i_team_member_tm_	Team Member	t	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-401a442f-98c4-4b95-9e07-647853bf9122	rd_research_and_deve_python_developer_ii_team_member_tm_	Team Member	t	3356f353-1566-4df6-9958-fa01d67d13c7	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-ee402c9b-252b-4eec-8880-7a4a159eac92	rd_research_and_deve_python_developer_iii_team_member_tm_	Team Member	t	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-9c970783-5b89-4fd0-b3f3-1c1953a853ab	services_operations_soc_analyst_ii_team_member_tm_	Team Member	t	48429bb5-c583-4684-b30a-7ed443b671ca	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-3f413c39-a269-4d44-9f3c-9e7f6e3ecced	services_operations_soc_analyst_iii_team_member_tm_	Team Member	t	f20a7445-0b01-4f20-85a5-853101d864ee	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-ea40e2b6-035a-4766-96bc-13ad013020c1	services_operations_soc_analyst_iv_team_member_tm_	Team Member	t	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-3000065e-1037-4a6b-a87a-4c461a756531	services_operations_siem_admin_i_team_member_tm_	Team Member	t	ea315f7d-d597-41b3-a999-4f3851bcd020	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-0997a260-4ca3-4eb2-b87a-4bd6bf235677	services_operations_siem_admin_ii_team_member_tm_	Team Member	t	4650d4e0-f73c-4688-ae5f-830a46348ff9	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-178985be-3d47-4903-983b-3a581e788e61	services_operations_siem_admin_iii_team_member_tm_	Team Member	t	af8a1442-c5ee-409d-aa91-61c9dba852ee	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-24ccdefb-8dd5-411e-8b2e-af8fb743a3cb	services_operations_soc_consultant_i_team_member_tm_	Team Member	t	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.079165+00	\N	\N	\N
-52ae8b5b-80b3-4d14-b8c5-0bc40e1f4bee	services_consulting_associate_manager_iii_manager_mng_	Manager	t	195d6a81-8457-4b60-9382-6a3a0664f0e9	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-caec3c96-23a0-4e88-845c-05f792d0dd0c	services_testing_associate_project_manager_manager_mng_	Manager	t	3b7ea453-324e-40a0-bb41-77a0795d5af5	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-a583ec5f-f30a-4b03-9e35-6afc3f1aee8d	services_testing_devsecops_specialist_ii_manager_mng_	Manager	t	c1fa4328-a970-48a1-bc08-d50fe36bf44c	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-c0cdbff8-5ed6-4e49-a562-549aecaacfd7	services_testing_red_team_specialist_ii_manager_mng_	Manager	t	4b680e29-b4fb-4689-9afb-67a7f089f52b	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-8ab74d70-fc77-4767-87ce-13a6d3f911ce	services_testing_senior_cloud_security_consultant_i_manager_mng_	Manager	t	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081112+00	\N	\N	\N
-da8092b6-b074-4c0b-9b26-4796e419a5f7	r_services_operations_soc_lead_ii_sr_manager_sr_mng	Sr. Manager	t	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	2026-10-10 07:26:56.213994+00	2026-10-17 10:19:09.081542+00	\N	\N	\N
-a3986a0e-d20f-4f20-a648-adcc724bb622	services_testing_manager_i_sr_manager_sr_mng_	Sr. Manager	t	a697a798-caaf-4248-8e4e-7e89096a9c30	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081542+00	\N	\N	\N
-1a6b97a6-b136-4096-91d4-a5c4f002374e	r_services_operations_principal_manager_i_head_of_department_hod	Head Of Department	t	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	2026-10-10 07:26:56.213994+00	2026-10-17 10:19:09.081744+00	\N	\N	\N
-6b840581-65b6-4e1d-916f-38b6018e07e0	services_consulting_senior_vice_president_principal_consultant_head_of_departmen	Head Of Department	t	2b1558e3-158a-4a84-ae80-053129861a64	2026-09-03 11:55:46.803606+00	2026-10-17 10:19:09.081744+00	\N	\N	\N
 \.
 
 
@@ -4239,8 +2580,6 @@ d0000007-0000-0000-0000-000000000007	VA001	Network Vulnerability Assessment	c000
 d0000008-0000-0000-0000-000000000008	VA002	Web Application Vulnerability Assessment	c0000007-0000-0000-0000-000000000007	Acunetix, Qualys, Rapid7	40000.00	4	\N	t	8	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 d0000009-0000-0000-0000-000000000009	VA003	Cloud Infrastructure Vulnerability Assessment	c0000008-0000-0000-0000-000000000008	Dome9, CloudSploit	50000.00	4	\N	t	9	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 d000000a-0000-0000-0000-00000000000a	RT001	Full Spectrum Red Team Exercise	c0000009-0000-0000-0000-000000000009	Cobalt Strike, Metasploit, Mimikatz	120000.00	10	\N	t	10	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
-d000000b-0000-0000-0000-00000000000b	RT002	Targeted Red Team Engagement	c0000009-0000-0000-0000-000000000009	Custom Tools, Cobalt Strike	80000.00	7	\N	t	11	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
-d000000c-0000-0000-0000-00000000000c	CS001	AWS Security Assessment	c000000a-0000-0000-0000-00000000000a	Scout2, CloudMapper, AWS Inspector	55000.00	5	\N	t	12	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 d000000d-0000-0000-0000-00000000000d	CS002	Azure Security Assessment	c000000b-0000-0000-0000-00000000000b	Azucar, Microsoft Defender, Qualys	55000.00	5	\N	t	13	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 d000000e-0000-0000-0000-00000000000e	CS003	Google Cloud Security Assessment	c000000c-0000-0000-0000-00000000000c	GCP Security Command Center	50000.00	5	\N	t	14	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 d000000f-0000-0000-0000-00000000000f	CODE001	Source Code Security Review	c000000d-0000-0000-0000-00000000000d	SonarQube, Checkmarx, Fortify	65000.00	6	\N	t	15	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
@@ -4262,6 +2601,11 @@ d000001e-0000-0000-0000-00000000001e	NET003	Network Segmentation Assessment	c000
 d000001f-0000-0000-0000-00000000001f	THREAT001	Threat Modeling & Risk Assessment	c000001d-0000-0000-0000-00000000001d	Microsoft Threat Modeling Tool, IriusRisk	50000.00	4	\N	t	31	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 d0000020-0000-0000-0000-000000000020	THREAT002	Cyber Threat Intelligence Report	c000001e-0000-0000-0000-00000000001e	MISP, Mandiant, CrowdStrike	40000.00	3	\N	t	32	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 d0000021-0000-0000-0000-000000000021	THREAT003	Attack Surface Analysis	c000001f-0000-0000-0000-00000000001f	Shodan, Censys, Rapid7 Sonar	45000.00	4	\N	t	33	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+d000000b-0000-0000-0000-00000000000b	RT002	Targeted Red Team Engagement	c0000009-0000-0000-0000-000000000009	Custom Tools, Cobalt Strike	80000.00	10	\N	t	11	2026-09-28 07:41:38.11983+00	2026-10-18 07:46:18.367678+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+ff646bbe-4611-4d80-a733-2d6c8644ea84	FSF	fsf	d4fd66ae-afca-43c9-8eb9-dfb3d4797a76	\N	\N	\N	\N	t	1	2026-10-18 09:29:47.339903+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+d000000c-0000-0000-0000-00000000000c	CS001	AWS Security Assessment	c000000a-0000-0000-0000-00000000000a	Scout2, CloudMapper, AWS Inspector	550000000.00	10	\N	t	12	2026-09-28 07:41:38.11983+00	2026-10-18 09:31:43.961099+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+7503a7df-4f04-4822-afee-877c328cb3ad	SOC	SOC	52e804e5-4974-44b2-ab7d-d5088795abc7	Burp	4500.00	15	\N	t	1	2026-10-18 09:35:31.941072+00	2026-10-18 09:35:55.047757+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+7f7e8f5c-a5d3-411d-b052-8b1c6c674071	SERVICE1	service_1	f9c3e149-e860-4669-bb23-23e539f289ce	azure	20000.00	3	\N	t	1	2026-10-18 10:18:01.356158+00	2026-10-18 10:19:38.355681+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 \.
 
 
@@ -4280,6 +2624,11 @@ b0000007-0000-0000-0000-000000000007	SOCIAL_ENGINEERING	Social Engineering & Awa
 b0000008-0000-0000-0000-000000000008	FORENSICS_IR	Forensics & Incident Response	a1111111-1111-1111-1111-111111111111	t	8	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 b0000009-0000-0000-0000-000000000009	NETWORK_INFRA	Network & Infrastructure	a2222222-2222-2222-2222-222222222222	t	9	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 b000000a-0000-0000-0000-00000000000a	THREAT_INTEL	Threat Intelligence & Modeling	a1111111-1111-1111-1111-111111111111	t	10	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+989349e0-b566-4378-aa34-d5b6b046106f	TESTINGDEPT	testing_dept	a2222222-2222-2222-2222-222222222222	t	10	2026-10-18 08:05:30.193102+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+c45b7e7b-01f3-460d-95a6-d9d5c6013354	ZZEMPTYDEPTCHECK	ZZ Empty Dept Check	a1111111-1111-1111-1111-111111111111	f	11	2026-10-18 08:10:50.941178+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 08:11:49.404314+00
+2875b963-449a-4c44-a6fc-ccb274ccd210	PENETRATIONTEST	penetration Test	a2222222-2222-2222-2222-222222222222	t	11	2026-10-18 09:25:27.729475+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+a18c1408-67e9-4715-ab16-c71f5ac91347	TESTINGDEPT1	Testing dept	a1111111-1111-1111-1111-111111111111	t	12	2026-10-18 09:34:56.055383+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+9227f16e-6363-4fd3-8df0-73466793e314	DEPTTESTING	Dept testing	a1111111-1111-1111-1111-111111111111	t	13	2026-10-18 10:17:36.099103+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4329,123 +2678,37 @@ c000001c-0000-0000-0000-00000000001c	SUB_NET_SEG	Network Segmentation Assessment
 c000001d-0000-0000-0000-00000000001d	SUB_THREAT_MOD	Threat Modeling & Risk Assessment	b000000a-0000-0000-0000-00000000000a	t	1	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 c000001e-0000-0000-0000-00000000001e	SUB_THREAT_REP	Cyber Threat Intelligence Report	b000000a-0000-0000-0000-00000000000a	t	2	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
 c000001f-0000-0000-0000-00000000001f	SUB_ATTACK_SURF	Attack Surface Analysis	b000000a-0000-0000-0000-00000000000a	t	3	2026-09-28 07:41:38.11983+00	\N	\N	\N	\N
+c552b8ee-ce22-4f27-8fb2-6ca8eb254073	ZZTEMPSUBDEPT	ZZ Temp Subdept	b0000004-0000-0000-0000-000000000004	f	4	2026-10-18 08:03:08.477637+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 08:04:37.610157+00
+d4fd66ae-afca-43c9-8eb9-dfb3d4797a76	DW	dw	2875b963-449a-4c44-a6fc-ccb274ccd210	t	1	2026-10-18 09:29:35.777718+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+52e804e5-4974-44b2-ab7d-d5088795abc7	ITEM	-	a18c1408-67e9-4715-ab16-c71f5ac91347	t	1	2026-10-18 09:35:11.180665+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+f9c3e149-e860-4669-bb23-23e539f289ce	SUBDEPTTEST	Sub dept test	9227f16e-6363-4fd3-8df0-73466793e314	t	1	2026-10-18 10:17:51.018843+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
 --
--- Data for Name: mst_submodules; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_sub_departments; Type: TABLE DATA; Schema: master; Owner: -
 --
 
-COPY master.mst_submodules ("Id", "ModuleId", "ParentSubmoduleId", "Code", "Name", "RoutePrefix", "SortOrder", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-99d11bd0-eb3c-46d6-bbf6-9a6c399fe313	3e11d388-1e40-4118-b746-9311f375b2a8	\N	bucket-list	Bucket List	\N	6	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c7c543fe-5aa3-4bee-99d8-0c18542bc9dc	3e11d388-1e40-4118-b746-9311f375b2a8	\N	approvals	Approvals	\N	8	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f57cd254-c53d-48dd-a893-331c1777fbab	3e11d388-1e40-4118-b746-9311f375b2a8	\N	alerts	Alerts	\N	9	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-741aa968-061d-41b1-bba7-0fc06050ddea	3e11d388-1e40-4118-b746-9311f375b2a8	\N	notifications	Notifications	\N	10	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7ab2765c-5fce-47f5-82cc-3b33fbcf9d0b	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	\N	projects-cards	projects Cards	\N	11	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-443c243c-82c4-41db-8b41-6a27db71d882	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	7ab2765c-5fce-47f5-82cc-3b33fbcf9d0b	projects-overview	Overview	\N	11	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-7390ce46-effd-4287-ad10-b8b94457663f	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	7ab2765c-5fce-47f5-82cc-3b33fbcf9d0b	projects-wbs	WBS	\N	16	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-26daa454-60e0-4f1c-983f-e9837671d707	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	7ab2765c-5fce-47f5-82cc-3b33fbcf9d0b	projects-team	Team	\N	19	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-cf11dfda-58b7-4bcf-bf4d-a3f70a6817fb	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	7ab2765c-5fce-47f5-82cc-3b33fbcf9d0b	projects-task	Task	\N	20	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	7ab2765c-5fce-47f5-82cc-3b33fbcf9d0b	projects-health	Health	\N	21	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-a92c2772-de0f-480f-95e3-cbb9e6eb4491	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	7ab2765c-5fce-47f5-82cc-3b33fbcf9d0b	projects-invoice	Invoice	\N	27	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c0047743-7e13-4776-ad25-34f909b419f0	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	\N	sales-report	Sales Report	\N	28	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-fca0cae9-632b-4573-bfe2-2b5cd0e32fa8	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	\N	wbs-tracker	WBS Tracker	\N	29	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-c4c77ea6-426c-4cb2-a1ab-2099cd4530ff	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	\N	po-tracker	PO Tracker	\N	30	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-6cfdda96-b1bf-4a18-94ce-6d28424073e9	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	\N	invoice-tracker	Invoice tracker	\N	31	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d6f94967-30f5-4ec5-bc73-006336e00273	b213dace-b668-452d-940c-a3dba5a49310	\N	resource-directory	Resource Directory	\N	32	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-b5bf5cb6-f61b-4d12-b255-3979e0c553cb	b213dace-b668-452d-940c-a3dba5a49310	d6f94967-30f5-4ec5-bc73-006336e00273	resource-resource-detailes	Resource Detailes	\N	32	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-291f95f8-c47c-42d0-a9ef-999d471a3804	b213dace-b668-452d-940c-a3dba5a49310	\N	reource-pool	Reource Pool	\N	38	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-21707efd-ac08-42cf-9092-2ea23070a7fa	b213dace-b668-452d-940c-a3dba5a49310	\N	exit-summary	Exit Summary	\N	39	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-dc760041-6fd0-4dce-8b14-6a9ddad68e7b	84f78eb3-988b-48c4-863d-ea8a48a7bc1d	\N	customers-card	Customers Card	\N	40	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-4ef4000a-d02b-4a69-81e1-b8662944cae9	84f78eb3-988b-48c4-863d-ea8a48a7bc1d	dc760041-6fd0-4dce-8b14-6a9ddad68e7b	customers-customer-profile	Customer profile	\N	40	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-bcc1d9eb-da4e-4104-b814-11e0035b3b4d	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	\N	team-dashboard	Team Dashboard	\N	42	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-54f08a75-ff57-4068-84c8-e3de68108153	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	\N	timesheets	Timesheets	\N	43	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d6030601-0bb5-4752-971d-ec9c3210d240	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	54f08a75-ff57-4068-84c8-e3de68108153	my-team-my-timsheet	My timsheet	\N	43	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2e5e629b-8b33-4342-a2c4-bb7ce3822404	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	54f08a75-ff57-4068-84c8-e3de68108153	my-team-timesheet-approval	Timesheet Approval	\N	44	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-2105252b-c034-4722-8184-d7069911b6c2	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	\N	roles-permission	Roles & Permission	\N	45	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-14606017-e761-42a4-8f72-61e8808fb1a4	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	2105252b-c034-4722-8184-d7069911b6c2	settings-moduleswise-access	Moduleswise Access	\N	45	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-1090c009-1e34-4f5e-b480-58d1dc077a6e	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	2105252b-c034-4722-8184-d7069911b6c2	settings-user-role-access	User Role Access	\N	46	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f8fed00b-8c6a-4c39-b476-d9e383016342	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	\N	masters	Masters	\N	47	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-e3e10110-97ca-4cdc-b524-6ca87311e851	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	f8fed00b-8c6a-4c39-b476-d9e383016342	settings-project-masters	Project Masters	\N	47	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-f5d39b51-3926-41bd-8b34-bde39bdfc1a5	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	f8fed00b-8c6a-4c39-b476-d9e383016342	settings-customer-masters	Customer Masters	\N	48	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-d0ff538d-e99a-4354-aff8-9be371660dcb	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	f8fed00b-8c6a-4c39-b476-d9e383016342	settings-resource-master	Resource Master	\N	49	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N
-\.
-
-
---
--- Data for Name: mst_widgets; Type: TABLE DATA; Schema: master; Owner: -
---
-
-COPY master.mst_widgets ("Id", "SubmoduleId", "ModuleId", "Code", "Name", "WidgetKey", "WidgetType", "HasManageAction", "Description", "SortOrder", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "ParentWidgetId") FROM stdin;
-1fb35ea6-75db-407c-ab56-6ff6229ce488	\N	d84c3132-0da2-4eca-ac2c-ea73c80e08a4	dashboard	Dashboard	Dashboard	module	t	\N	1	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-c947fd61-3e18-4478-b8b7-3fc7419c91cc	\N	d84c3132-0da2-4eca-ac2c-ea73c80e08a4	dashboard-kpi-s	KPI'S	Dashboard|KPI'S	widget	t	\N	1	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-2d4ec8b9-86c8-460a-b75c-2784e6a2e89a	\N	d84c3132-0da2-4eca-ac2c-ea73c80e08a4	dashboard-assigned-projects	Assigned Projects	Dashboard|Assigned Projects	widget	t	\N	2	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-243fffbc-6f1a-4d1b-bdd1-06cbb4aa6226	\N	d84c3132-0da2-4eca-ac2c-ea73c80e08a4	dashboard-pending-issues	Pending issues	Dashboard|Pending issues	widget	t	\N	3	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-0d848450-737f-4689-b5c8-3cfdf7e062c4	\N	d84c3132-0da2-4eca-ac2c-ea73c80e08a4	dashboard-project-stauts	Project stauts	Dashboard|Project stauts	widget	t	\N	4	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-28b838b1-fbdd-4571-8cea-9a1aa5bb6393	\N	d84c3132-0da2-4eca-ac2c-ea73c80e08a4	dashboard-pending-approvals	Pending approvals	Dashboard|Pending approvals	widget	t	\N	5	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-0715172e-7505-4a8f-939a-e27353177c40	\N	3e11d388-1e40-4118-b746-9311f375b2a8	action-center	Action Center	Action Center	module	t	\N	6	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-14b89bdd-3f24-421d-ab27-e9496532a46f	99d11bd0-eb3c-46d6-bbf6-9a6c399fe313	3e11d388-1e40-4118-b746-9311f375b2a8	action-center-bucket-list	Bucket List	Action Center|Bucket List	submodule	t	\N	6	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-ed5dab85-6c5c-4af6-b4ac-7cf33cf6b0e7	99d11bd0-eb3c-46d6-bbf6-9a6c399fe313	3e11d388-1e40-4118-b746-9311f375b2a8	action-center-bucket-list-raise-issues	Raise issues	Action Center|Bucket List|Raise issues	widget	t	\N	6	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-f0d0cffe-82ea-4213-90ed-a16f5f5297a5	99d11bd0-eb3c-46d6-bbf6-9a6c399fe313	3e11d388-1e40-4118-b746-9311f375b2a8	action-center-bucket-list-start-timer	Start timer	Action Center|Bucket List|Start timer	widget	t	\N	7	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-8974718d-5b19-4fd1-8594-78910612c57c	c7c543fe-5aa3-4bee-99d8-0c18542bc9dc	3e11d388-1e40-4118-b746-9311f375b2a8	action-center-approvals	Approvals	Action Center|Approvals	submodule	t	\N	8	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-3fdefd12-cdec-4d2b-b15b-975a47381b41	f57cd254-c53d-48dd-a893-331c1777fbab	3e11d388-1e40-4118-b746-9311f375b2a8	action-center-alerts	Alerts	Action Center|Alerts	submodule	t	\N	9	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-b4688d29-cdec-474a-ad46-d462e82c3315	741aa968-061d-41b1-bba7-0fc06050ddea	3e11d388-1e40-4118-b746-9311f375b2a8	action-center-notifications	Notifications	Action Center|Notifications	submodule	t	\N	10	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-1a8615c6-6bf9-4af0-ac31-30733620f7a5	\N	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects	Projects	Projects	module	t	\N	11	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-18655585-39ff-4afa-ab87-90c6a20379f7	7ab2765c-5fce-47f5-82cc-3b33fbcf9d0b	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards	projects Cards	Projects|projects Cards	submodule	t	\N	11	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-ff391477-5c5b-4d00-acec-8c8f24a6c104	443c243c-82c4-41db-8b41-6a27db71d882	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-overview	Overview	Projects|projects Cards|Overview	sub-submodule	t	\N	11	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-2982ec1c-993d-4cac-b736-8c820d702414	443c243c-82c4-41db-8b41-6a27db71d882	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-overview-budget	Budget	Projects|projects Cards|Overview|Budget	widget	t	\N	11	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-cc7f088c-5908-4491-a5cf-041b96d30eff	443c243c-82c4-41db-8b41-6a27db71d882	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-overview-extension-request	Extension Request	Projects|projects Cards|Overview|Extension Request	widget	t	\N	12	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-138500fe-e9a5-442f-a477-447becae383a	443c243c-82c4-41db-8b41-6a27db71d882	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-overview-sr-project-manger	Sr.project Manger	Projects|projects Cards|Overview|Sr.project Manger	widget	t	\N	13	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-71fa16ac-b721-4895-b39d-a71ebe280319	443c243c-82c4-41db-8b41-6a27db71d882	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-overview-project-manager	Project manager	Projects|projects Cards|Overview|Project manager	widget	t	\N	14	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-54734790-2dba-4cf6-bce5-a76fa63d96cb	443c243c-82c4-41db-8b41-6a27db71d882	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-overview-team-leads	Team leads	Projects|projects Cards|Overview|Team leads	widget	t	\N	15	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-8bf85094-f1ca-43cf-9f8d-40c2444be4cb	7390ce46-effd-4287-ad10-b8b94457663f	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-wbs	WBS	Projects|projects Cards|WBS	sub-submodule	t	\N	16	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-a1e609a1-50c9-4c44-9f78-9c005aa426b1	7390ce46-effd-4287-ad10-b8b94457663f	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-wbs-billing-information	Billing Information	Projects|projects Cards|WBS|Billing Information	widget	t	\N	16	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-23680726-f4b7-4c96-9449-3228dc1a8a98	7390ce46-effd-4287-ad10-b8b94457663f	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-wbs-pmo-intake-prerequiste-workflow	PMO Intake & Prerequiste Workflow	Projects|projects Cards|WBS|PMO Intake & Prerequiste Workflow	widget	t	\N	17	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-b37894ab-88ea-48f1-865f-4793fd6681aa	7390ce46-effd-4287-ad10-b8b94457663f	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-wbs-invoice-schedule	Invoice Schedule	Projects|projects Cards|WBS|Invoice Schedule	widget	t	\N	18	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-a175d333-a95f-4240-93d1-37b9fdfec5dc	26daa454-60e0-4f1c-983f-e9837671d707	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-team	Team	Projects|projects Cards|Team	sub-submodule	t	\N	19	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-72828d86-6bba-4e4c-99f4-73cc45cff6de	cf11dfda-58b7-4bcf-bf4d-a3f70a6817fb	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-task	Task	Projects|projects Cards|Task	sub-submodule	t	\N	20	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-e30a9b42-be35-4881-b2c5-7d3d29c65433	b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-health	Health	Projects|projects Cards|Health	sub-submodule	t	\N	21	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-7c4c59e8-f857-4f75-a1c8-92e0d06f0806	b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-health-issues	Issues	Projects|projects Cards|Health|Issues	widget	t	\N	21	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-ea1d2c55-4aaf-4d8e-972b-1533985f7aff	b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-health-aletrs	Aletrs	Projects|projects Cards|Health|Aletrs	widget	t	\N	22	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-80e93c90-33b0-4b45-a5a4-d2ebc9ff00a6	b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-health-escalation	Escalation	Projects|projects Cards|Health|Escalation	widget	t	\N	23	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-59297618-e8bb-4800-8db0-d5336affb59e	b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-health-appreciation	Appreciation	Projects|projects Cards|Health|Appreciation	widget	t	\N	24	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-a9b98ffe-9f91-4814-9876-ead8cdfc3566	b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-health-customer-engagment	Customer Engagment	Projects|projects Cards|Health|Customer Engagment	widget	t	\N	25	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-46752962-8366-4417-b6f3-2f33f03eb94d	b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-health-customer-engagment-interview-scheduling	Interview Scheduling	Projects|projects Cards|Health|Customer Engagment|Interview Scheduling	tab	t	\N	25	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	a9b98ffe-9f91-4814-9876-ead8cdfc3566
-3eaf848f-e2f3-4d9b-a5ba-73240c595610	b46de7a9-070b-4b7f-ba1a-3e163e635013	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-health-customer-engagment-additional-customer-requiremen	Additional customer Requirement	Projects|projects Cards|Health|Customer Engagment|Additional customer Requirement	tab	t	\N	26	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	a9b98ffe-9f91-4814-9876-ead8cdfc3566
-71c9319d-ccb3-4b6c-8f33-f1b1116c1e85	a92c2772-de0f-480f-95e3-cbb9e6eb4491	1e7ce2fd-aba0-4c19-87dd-19219a4063ea	projects-projects-cards-invoice	Invoice	Projects|projects Cards|Invoice	sub-submodule	t	\N	27	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-4847f750-3894-4f72-b784-35cfc2ec87fe	\N	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	reports	Reports	Reports	module	t	\N	28	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-4122810c-78c0-460e-89c9-ced09ff24787	c0047743-7e13-4776-ad25-34f909b419f0	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	reports-sales-report	Sales Report	Reports|Sales Report	submodule	t	\N	28	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-4f4e2505-103b-4b48-8e5d-de047a3102ed	fca0cae9-632b-4573-bfe2-2b5cd0e32fa8	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	reports-wbs-tracker	WBS Tracker	Reports|WBS Tracker	submodule	t	\N	29	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-419ed897-0783-4d66-95b1-9ec8e4a86e7b	c4c77ea6-426c-4cb2-a1ab-2099cd4530ff	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	reports-po-tracker	PO Tracker	Reports|PO Tracker	submodule	t	\N	30	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-0c39c751-2295-44e2-8f0e-49eef215d68f	6cfdda96-b1bf-4a18-94ce-6d28424073e9	b8abd7a6-9b18-4737-aa3f-0ff10a2a3c18	reports-invoice-tracker	Invoice tracker	Reports|Invoice tracker	submodule	t	\N	31	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-7294bf50-9237-42f7-8da6-bbcf9926a350	\N	b213dace-b668-452d-940c-a3dba5a49310	resource	Resource	Resource	module	t	\N	32	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-90d9d8ba-6c8a-4a89-bb60-d33a114bb1cc	d6f94967-30f5-4ec5-bc73-006336e00273	b213dace-b668-452d-940c-a3dba5a49310	resource-resource-directory	Resource Directory	Resource|Resource Directory	submodule	t	\N	32	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-2c73880a-dd00-49fb-b150-2b7efd53b6ce	b5bf5cb6-f61b-4d12-b255-3979e0c553cb	b213dace-b668-452d-940c-a3dba5a49310	resource-resource-directory-resource-detailes	Resource Detailes	Resource|Resource Directory|Resource Detailes	sub-submodule	t	\N	32	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-348d4a64-a060-4216-80f3-b94596c5b641	b5bf5cb6-f61b-4d12-b255-3979e0c553cb	b213dace-b668-452d-940c-a3dba5a49310	resource-resource-directory-resource-detailes-personal-information	Personal Information	Resource|Resource Directory|Resource Detailes|Personal Information	widget	t	\N	32	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-80116733-ffd8-4460-b2c1-07660b30cd68	b5bf5cb6-f61b-4d12-b255-3979e0c553cb	b213dace-b668-452d-940c-a3dba5a49310	resource-resource-directory-resource-detailes-orgnization-deatile	orgnization deatile	Resource|Resource Directory|Resource Detailes|orgnization deatile	widget	t	\N	33	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-ed2782f9-8ee8-499e-afb7-35c15185896a	b5bf5cb6-f61b-4d12-b255-3979e0c553cb	b213dace-b668-452d-940c-a3dba5a49310	resource-resource-directory-resource-detailes-employment-and-bond	employment and bond	Resource|Resource Directory|Resource Detailes|employment and bond	widget	t	\N	34	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-cdbb9415-06f7-4902-b4e5-084edd0d23ff	b5bf5cb6-f61b-4d12-b255-3979e0c553cb	b213dace-b668-452d-940c-a3dba5a49310	resource-resource-directory-resource-detailes-eduacation-and-experience	Eduacation and experience	Resource|Resource Directory|Resource Detailes|Eduacation and experience	widget	t	\N	35	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-89eef935-c78d-4512-857c-c156cdc05182	b5bf5cb6-f61b-4d12-b255-3979e0c553cb	b213dace-b668-452d-940c-a3dba5a49310	resource-resource-directory-resource-detailes-pmo-information	Pmo information	Resource|Resource Directory|Resource Detailes|Pmo information	widget	t	\N	36	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-8a7a6289-fe5c-44bc-bf98-94338ea7a170	b5bf5cb6-f61b-4d12-b255-3979e0c553cb	b213dace-b668-452d-940c-a3dba5a49310	resource-resource-directory-resource-detailes-activity-logs	Activity Logs	Resource|Resource Directory|Resource Detailes|Activity Logs	widget	t	\N	37	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-81f5c5fd-09d0-46c8-813c-f0149b0b35aa	291f95f8-c47c-42d0-a9ef-999d471a3804	b213dace-b668-452d-940c-a3dba5a49310	resource-reource-pool	Reource Pool	Resource|Reource Pool	submodule	t	\N	38	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-b55ab137-7996-4c69-9b4c-463b9a5f697e	21707efd-ac08-42cf-9092-2ea23070a7fa	b213dace-b668-452d-940c-a3dba5a49310	resource-exit-summary	Exit Summary	Resource|Exit Summary	submodule	t	\N	39	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-081efe03-6ebc-4949-ad7b-4487541e425b	\N	84f78eb3-988b-48c4-863d-ea8a48a7bc1d	customers	Customers	Customers	module	t	\N	40	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-0ad76796-6f90-4468-b472-f8bdc6ccb8fa	dc760041-6fd0-4dce-8b14-6a9ddad68e7b	84f78eb3-988b-48c4-863d-ea8a48a7bc1d	customers-customers-card	Customers Card	Customers|Customers Card	submodule	t	\N	40	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-115bc512-72fc-4ea6-8bbd-4dbe2382c3ef	4ef4000a-d02b-4a69-81e1-b8662944cae9	84f78eb3-988b-48c4-863d-ea8a48a7bc1d	customers-customers-card-customer-profile	Customer profile	Customers|Customers Card|Customer profile	sub-submodule	t	\N	40	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-5938dcb6-8dd5-4431-b144-f5f22f4d09bb	\N	b527569b-8f89-43a7-8181-3939e9728c25	repository	Repository	Repository	module	t	\N	41	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-f5809fb6-cb04-44c9-b19e-e2e6530fce0d	\N	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	my-team	My team	My team	module	t	\N	42	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-22fe1e2f-3f51-492d-b6b7-b7acbf8b5a85	bcc1d9eb-da4e-4104-b814-11e0035b3b4d	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	my-team-team-dashboard	Team Dashboard	My team|Team Dashboard	submodule	t	\N	42	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-0a2ae113-dee2-4e2d-86f8-617d04404f37	54f08a75-ff57-4068-84c8-e3de68108153	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	my-team-timesheets	Timesheets	My team|Timesheets	submodule	t	\N	43	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-bdcf221c-7e9a-470a-b4af-dd30cfc292ba	d6030601-0bb5-4752-971d-ec9c3210d240	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	my-team-timesheets-my-timsheet	My timsheet	My team|Timesheets|My timsheet	sub-submodule	t	\N	43	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-79772eb3-a4e3-46fe-9159-5b7b26672f7a	2e5e629b-8b33-4342-a2c4-bb7ce3822404	c6d7e5a2-bf5b-4066-b3b5-02f221ea66cf	my-team-timesheets-timesheet-approval	Timesheet Approval	My team|Timesheets|Timesheet Approval	sub-submodule	t	\N	44	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-c7e59240-83dd-4497-aa3c-5079131416f9	\N	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings	Settings	Settings	module	t	\N	45	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-127d970c-15d2-4298-9f40-eb608c113dd1	2105252b-c034-4722-8184-d7069911b6c2	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings-roles-permission	Roles & Permission	Settings|Roles & Permission	submodule	t	\N	45	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-b921081d-4d72-4341-aaf6-651a1af92449	14606017-e761-42a4-8f72-61e8808fb1a4	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings-roles-permission-moduleswise-access	Moduleswise Access	Settings|Roles & Permission|Moduleswise Access	sub-submodule	t	\N	45	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-33ce3a33-9773-47d9-97b2-af72f8b21061	1090c009-1e34-4f5e-b480-58d1dc077a6e	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings-roles-permission-user-role-access	User Role Access	Settings|Roles & Permission|User Role Access	sub-submodule	t	\N	46	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-c0cbf478-c636-4b4a-a068-56fe8214c615	f8fed00b-8c6a-4c39-b476-d9e383016342	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings-masters	Masters	Settings|Masters	submodule	t	\N	47	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-c318eb4e-569f-4c41-9010-7ab7a20efd6d	e3e10110-97ca-4cdc-b524-6ca87311e851	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings-masters-project-masters	Project Masters	Settings|Masters|Project Masters	sub-submodule	t	\N	47	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-162048e6-dc24-4f36-941e-213f4da09f8c	f5d39b51-3926-41bd-8b34-bde39bdfc1a5	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings-masters-customer-masters	Customer Masters	Settings|Masters|Customer Masters	sub-submodule	t	\N	48	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
-5a06245d-0234-4b8e-9a81-c70c2627ed63	d0ff538d-e99a-4354-aff8-9be371660dcb	a1f811e2-a4ec-4e63-aaf9-bb909ae0574d	settings-masters-resource-master	Resource Master	Settings|Masters|Resource Master	sub-submodule	t	\N	49	t	2026-10-17 13:13:54.745484+00	\N	\N	\N	\N	\N
+COPY master.mst_sub_departments ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+45755b2a-741a-4990-ab78-8f65090f75b1	leading_delivery_department	Leading Delivery Department	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+4dc4a56b-f458-4047-a1ca-345eaa08b5e3	functional_it_administration	Functional - IT Administration	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+5d962383-f175-4dd8-af63-8a566a0d2255	functional_accounts	Functional - Accounts	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+61bbeadf-3044-4123-929c-4b1e6e2e613e	leading_compliance_hr_department	Leading Compliance & HR Department	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+63765624-d7d1-472d-abd4-627127646998	across_all_sub_departments	Across all Sub Departments	t	\N	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+63bc0f54-4d35-4279-bb62-4daeff6ceeaa	em_engagement_manager	EM (Engagement Manager)	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+682d36c0-4256-42ab-811e-054ab3a5b10f	service_testing_appsec	Service - Testing - AppSec	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	services_consulting	Services - Consulting	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+7682acb3-561b-4951-801b-c1564adda131	r_d_research_development	R&D (Research & Development)	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+88b29e0c-39b7-4169-ab5c-350075014a84	services_testing_cloud_ai	Services - Testing - Cloud & AI	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+8bfa4c2a-cb0e-4bd0-b184-43d105be44b9	services_testing_devsecops	Services - Testing - DevSecOps	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+a12ac80b-a665-4301-898e-e9ca3d44bb20	leading_sales_a_c_department	Leading Sales & A/C Department	t	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+b651aec8-5455-4329-8251-0ceb62cea798	services_testing_red_team	Services - Testing - Red Team	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+c88d783b-b628-4f3a-a972-aa56aeed5e77	functional_hr	Functional - HR	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+cfdb2071-d50e-4ea3-b732-19eb08f1e629	services_operations	Services - Operations	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+db0addff-605e-439f-917b-38016a398755	service_testing_mobile	Service - Testing - Mobile	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+e99b7773-5d71-4dca-ad36-b896dcfb71c4	service_testing_infra	Service - Testing - Infra	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+fa773eb9-162f-4ea8-9fc4-9c54a3068582	functional_sales	Functional - Sales	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
+fd84aa38-11ef-46af-ade7-241f2a2c08fd	pmo_project_management_office	PMO (Project Management Office)	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-10-20 18:31:50.075909+00	\N	\N	\N	\N
 \.
 
 
@@ -4457,6 +2720,7 @@ COPY master.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "
 3bc10d7b-a705-4ec9-b7b5-71858572a8cc	suvidha_square_andheri	Suvidha Square, Andheri	t	2	2026-09-03 12:26:58.067087+00	2026-09-10 06:34:25.480503+00	\N	\N	\N
 58e569dc-cb93-4832-bf22-2e8d4836dc65	onsite	Onsite	t	1	2026-09-03 12:26:58.067087+00	2026-09-10 06:34:25.480503+00	\N	\N	\N
 8d0b23a2-9459-4fbe-a7bf-624abd410c40	navare_plaza_dombivli	Navare Plaza, Dombivli	t	3	2026-09-03 12:26:58.067087+00	2026-09-10 06:34:25.480503+00	\N	\N	\N
+bb1fb7b0-c12c-4dd0-86b8-f4461feb6306	zz_probe_location	ZZ Probe Location	f	4	2026-10-18 13:00:09.320026+00	2026-10-18 13:00:09.708791+00	00000000-0000-0000-0000-000000000004	00000000-0000-0000-0000-000000000004	2026-10-18 13:00:09.708791+00
 \.
 
 
@@ -4467,6 +2731,8 @@ COPY master.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "
 COPY project.log_project_task_assignments ("Id", "TaskId", "EmployeeId", "Action", "ResourceName", "TeamType", "OccurredAtUtc", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
 9367bd5d-911b-44a3-ad0f-20f6748b58fc	76163f06-d217-45a1-a127-30f59b86d5a1	ffcdc44f-996b-4ef6-90e6-db858823a4c4	Assign	Aditya Menon	Project Team	2026-10-17 13:21:33.01246+00	2026-10-17 13:21:33.028806+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 cfa880ff-4721-420c-859f-6a8787fa22a1	d97b4bad-ccd2-42c0-b1ff-e52787ef8f0c	cc295432-e771-4d6f-9cc3-079cc5d9b576	Assign	Alok Deshpande	Project Team	2026-10-17 13:21:37.65345+00	2026-10-17 13:21:37.653558+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+8bcd6cf7-f31a-4e72-990e-76813c6dc6c6	76163f06-d217-45a1-a127-30f59b86d5a1	ffcdc44f-996b-4ef6-90e6-db858823a4c4	Unassign	Aditya Menon	Project Team	2026-10-18 04:00:19.513513+00	2026-10-18 04:00:19.518318+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+b7b5575c-3dae-4ad9-ab15-785da82bd53b	3757f288-0451-44bc-b54c-e29a3a758d69	b9c0b8fc-4c96-42fb-8669-d68097cf5392	Assign	Aditi Roy	Project Team	2026-10-18 05:58:43.268394+00	2026-10-18 05:58:43.274124+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4477,6 +2743,7 @@ cfa880ff-4721-420c-859f-6a8787fa22a1	d97b4bad-ccd2-42c0-b1ff-e52787ef8f0c	cc2954
 COPY project.tbl_project_documents ("Id", "ProjectId", "DocumentType", "FileName", "OriginalFileName", "FilePath", "ContentType", "SizeBytes", "Description", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
 c95ad522-124d-46ea-bf8e-692d229d7ee8	89744e80-08e3-4f7c-a4ba-78ff0ce54634	PO	20261014_042140_885_Omkar_Gaikwad_Resume.pdf	Omkar_Gaikwad_Resume.pdf	PO/20261014_042140_885_Omkar_Gaikwad_Resume.pdf	application/pdf	131096	\N	2026-10-14 04:21:40.892904+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
 8181c91d-ce68-43c7-9fb8-d89ecfe88150	8e260568-b761-4795-ad27-12bddd698d9d	PO	20261014_070925_360_ai_ml_sahil_lad.pdf	ai_ml_sahil_lad.pdf	PO/20261014_070925_360_ai_ml_sahil_lad.pdf	application/pdf	112021	\N	2026-10-14 07:09:25.395943+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
+998d8328-c606-4880-bd7c-7de2bc787f09	96427433-d1b9-4089-bcee-e95f02d3154d	PO	20261019_102554_436_employee-bulk-upload-sample.xlsx	employee-bulk-upload-sample.xlsx	PO/20261019_102554_436_employee-bulk-upload-sample.xlsx	application/vnd.openxmlformats-officedocument.spreadsheetml.sheet	42350	\N	2026-10-19 10:25:54.43961+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4490,18 +2757,60 @@ d53cbbc1-d83c-437e-bf19-af4aca663b1c	Aditya Birla(Aditya Birla_Finance)_AWS Secu
 
 
 --
+-- Data for Name: tbl_project_interviews; Type: TABLE DATA; Schema: project; Owner: -
+--
+
+COPY project.tbl_project_interviews ("Id", "ProjectId", "EmployeeId", "ResourceName", "InterviewDate", "InterviewTime", "Result", "Comments", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+df35b30e-a543-4f25-b28f-7045105efee0	89744e80-08e3-4f7c-a4ba-78ff0ce54634	3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	Harsh Gupta	2026-10-24	14:15:00	Pending	Moved after postponement.	2026-10-19 11:27:24.080268+00	2026-10-19 11:27:36.486322+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N
+f95c0b35-3134-4314-83ed-2f5d1b8794a3	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b9c0b8fc-4c96-42fb-8669-d68097cf5392	Aditi Roy	2026-11-02	15:45:00	Pending	Candidate requested a later slot.	2026-10-19 11:30:20.460154+00	2026-10-19 11:31:13.960902+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+1bcc21d4-f76a-4d84-b36a-d8c6ab75b9e1	96427433-d1b9-4089-bcee-e95f02d3154d	78b71d74-d255-4ac0-a75f-ead11a61427a	Aarav Desai	2026-10-20	19:06:00	Selected	\N	2026-10-19 11:35:23.771997+00	2026-10-19 11:36:34.403176+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+\.
+
+
+--
 -- Data for Name: tbl_project_invoices; Type: TABLE DATA; Schema: project; Owner: -
 --
 
-COPY project.tbl_project_invoices ("Id", "ProjectId", "MilestoneName", "Percentage", "Amount", "TaxAmount", "TotalAmount", "Status", "InvoiceNumber", "InvoiceDate", "DueDate", "PaymentDate", "Remarks", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-bcb08f48-d6bf-44cf-b68d-ec53fc62419b	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 1	\N	9167.00	1650.06	10817.06	Pending	\N	2026-10-14	2026-10-14	\N	\N	0	2026-10-14 04:21:40.799722+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
-eade89db-0274-4797-9e29-ecac97e3258d	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 2	\N	9167.00	1650.06	10817.06	Pending	\N	2026-11-14	2026-11-14	\N	\N	1	2026-10-14 04:21:40.824467+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
-830996d5-cd07-4f1b-8d09-94ff7237b3af	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 3	\N	9167.00	1650.06	10817.06	Pending	\N	2026-11-14	2026-11-14	\N	\N	2	2026-10-14 04:21:40.83588+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
-739f1382-6ff6-4d5f-b48a-73e6f8432d96	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 4	\N	9167.00	1650.06	10817.06	Pending	\N	2026-12-14	2026-12-14	\N	\N	3	2026-10-14 04:21:40.847109+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
-bb321de3-2a05-4bf9-bad0-2a87f14b179f	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 5	\N	9167.00	1650.06	10817.06	Pending	\N	2026-12-14	2026-12-14	\N	\N	4	2026-10-14 04:21:40.857457+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
-fd1561d6-3da8-477c-adf7-9e30d7e3fc69	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 6	\N	9167.00	1650.06	10817.06	Pending	\N	2027-01-14	2027-01-14	\N	\N	5	2026-10-14 04:21:40.867817+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
-6994cd4c-49d7-4efc-8c8c-5ddd15a93593	8e260568-b761-4795-ad27-12bddd698d9d	Month 1	\N	55000.00	9900.00	64900.00	Pending	\N	2026-10-27	2026-10-27	\N	\N	0	2026-10-14 07:09:24.895848+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
-e5f25f3e-86d7-4840-a987-86ad8b21fe52	8e260568-b761-4795-ad27-12bddd698d9d	Month 1	\N	85000.00	15300.00	100300.00	Pending	\N	2026-10-22	2026-10-22	\N	\N	1	2026-10-14 07:09:25.170342+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
+COPY project.tbl_project_invoices ("Id", "ProjectId", "MilestoneName", "Percentage", "Amount", "TaxAmount", "TotalAmount", "Status", "InvoiceNumber", "InvoiceDate", "DueDate", "PaymentDate", "Remarks", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "ServiceName", "Qty", "UnitPrice", "Currency", "ResourceLevel", "PaymentStatus") FROM stdin;
+eade89db-0274-4797-9e29-ecac97e3258d	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 2	\N	9167.00	1650.06	10817.06	Pending	\N	2026-11-14	2026-11-14	\N	\N	1	2026-10-14 04:21:40.824467+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	\N	\N	\N	\N	\N	\N
+830996d5-cd07-4f1b-8d09-94ff7237b3af	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 3	\N	9167.00	1650.06	10817.06	Pending	\N	2026-11-14	2026-11-14	\N	\N	2	2026-10-14 04:21:40.83588+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	\N	\N	\N	\N	\N	\N
+739f1382-6ff6-4d5f-b48a-73e6f8432d96	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 4	\N	9167.00	1650.06	10817.06	Pending	\N	2026-12-14	2026-12-14	\N	\N	3	2026-10-14 04:21:40.847109+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	\N	\N	\N	\N	\N	\N
+bb321de3-2a05-4bf9-bad0-2a87f14b179f	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 5	\N	9167.00	1650.06	10817.06	Pending	\N	2026-12-14	2026-12-14	\N	\N	4	2026-10-14 04:21:40.857457+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	\N	\N	\N	\N	\N	\N
+fd1561d6-3da8-477c-adf7-9e30d7e3fc69	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 6	\N	9167.00	1650.06	10817.06	Pending	\N	2027-01-14	2027-01-14	\N	\N	5	2026-10-14 04:21:40.867817+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	\N	\N	\N	\N	\N	\N
+6994cd4c-49d7-4efc-8c8c-5ddd15a93593	8e260568-b761-4795-ad27-12bddd698d9d	Month 1	\N	55000.00	9900.00	64900.00	Pending	\N	2026-10-27	2026-10-27	\N	\N	0	2026-10-14 07:09:24.895848+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	\N	\N	\N	\N	\N	\N
+e5f25f3e-86d7-4840-a987-86ad8b21fe52	8e260568-b761-4795-ad27-12bddd698d9d	Month 1	\N	85000.00	15300.00	100300.00	Pending	\N	2026-10-22	2026-10-22	\N	\N	1	2026-10-14 07:09:25.170342+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	\N	\N	\N	\N	\N	\N
+0bc23c87-ca5f-4e66-94d1-7dc7fc5a5821	8e260568-b761-4795-ad27-12bddd698d9d	Month 3 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	3	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+143cb821-3251-46d8-be50-e547f1ccd715	8e260568-b761-4795-ad27-12bddd698d9d	Month 11 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	11	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+2a57dd6d-3c37-4ea5-95ec-b3d206c08df1	8e260568-b761-4795-ad27-12bddd698d9d	Month 8 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	8	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+38ce2d31-4f63-4fe2-99fd-a6676c9554d7	8e260568-b761-4795-ad27-12bddd698d9d	Month 6 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	6	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+44a02d31-f966-44e6-b089-d332c89da064	8e260568-b761-4795-ad27-12bddd698d9d	Month 4 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	4	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+4ab73b49-f85e-4267-870e-557518689dd5	8e260568-b761-4795-ad27-12bddd698d9d	Month 2 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	2	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+4c9b5c02-9998-4723-a181-4a2e131fb4dd	8e260568-b761-4795-ad27-12bddd698d9d	Month 12 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	12	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+7f5715db-f93e-40d2-ae56-da4512e2bfc7	8e260568-b761-4795-ad27-12bddd698d9d	Month 1 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	1	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+c05c8bc6-9e5d-4d86-bf7f-7ee62dcd7220	8e260568-b761-4795-ad27-12bddd698d9d	Month 9 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	9	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+c131fda2-2b1a-4081-b336-22108194fa92	8e260568-b761-4795-ad27-12bddd698d9d	Month 10 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	10	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+f4fe0625-505a-47a7-b65d-59e0adeb6428	8e260568-b761-4795-ad27-12bddd698d9d	Month 7 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	7	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+f8a92be9-b337-412f-b259-986d1321ecb2	8e260568-b761-4795-ad27-12bddd698d9d	Month 5 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	5	2026-10-18 04:00:19.62913+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+0d371a89-04fd-43b6-a8b8-6f33b11908f9	8e260568-b761-4795-ad27-12bddd698d9d	Month 4 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	4	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+2b84f497-110e-47e0-b507-b49a0d93a450	8e260568-b761-4795-ad27-12bddd698d9d	Month 7 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	7	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+2e8dd96b-cf81-45a4-b959-578665ce00b2	8e260568-b761-4795-ad27-12bddd698d9d	Month 9 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	9	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+3d44a04e-188b-45ef-9d4e-9fc2c4192292	8e260568-b761-4795-ad27-12bddd698d9d	Month 6 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	6	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+3d4f613e-2117-4a52-bc51-ead77ae0b369	8e260568-b761-4795-ad27-12bddd698d9d	Month 10 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	10	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+3f44e460-137f-4674-8367-211e40e87592	8e260568-b761-4795-ad27-12bddd698d9d	Month 3 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	3	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+5fa22305-a691-41b7-aace-229ef483fe6d	8e260568-b761-4795-ad27-12bddd698d9d	Month 5 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	5	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+616e104f-8c17-474b-b4a3-20eea9066ad5	8e260568-b761-4795-ad27-12bddd698d9d	Month 2 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	2	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+a6a97984-af59-46bc-b3f9-f4b5f5c65f07	8e260568-b761-4795-ad27-12bddd698d9d	Month 8 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	8	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+ac367cb5-0603-4ca9-9801-7f7361afb82c	8e260568-b761-4795-ad27-12bddd698d9d	Month 11 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	11	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+b3b7e16d-9a9a-4bc1-a7bc-e4dfa6f3c368	8e260568-b761-4795-ad27-12bddd698d9d	Month 1 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	1	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+f4097cd9-138e-4c87-932c-ba646082b98c	8e260568-b761-4795-ad27-12bddd698d9d	Month 12 Retainer (8.33%)	8.33	11666.67	2100.00	13766.67	Pending	\N	\N	\N	\N	\N	12	2026-10-18 04:02:03.565713+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N
+bcb08f48-d6bf-44cf-b68d-ec53fc62419b	89744e80-08e3-4f7c-a4ba-78ff0ce54634	Month 1	\N	9167.00	1650.06	10817.06	Pending	\N	2026-10-14	2026-10-14	\N	\N	0	2026-10-14 04:21:40.799722+00	2026-10-19 10:14:56.50391+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	\N	\N
+477d97da-a48b-4d2d-bff7-1a58a77ced27	96427433-d1b9-4089-bcee-e95f02d3154d	Month 1	\N	80000.00	14400.00	94400.00	Paid	23123	2026-10-15	2026-10-15	2026-10-16	\N	0	2026-10-19 10:25:54.341795+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	Targeted Red Team Engagement	1	80000.00	INR	L1	Received
+b3a31523-7791-477c-a75f-cbb52040332a	96427433-d1b9-4089-bcee-e95f02d3154d	Month 1	\N	14167.00	2550.06	16717.06	Raised	12321	2026-10-06	2026-10-06	\N	\N	1	2026-10-19 10:25:54.355775+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	ISO 27001 Security Audit	1	85000.00	INR	L2	Not Received
+5ab05b9a-a2e9-4ba7-a49b-afc3a4c1a864	96427433-d1b9-4089-bcee-e95f02d3154d	Month 2	\N	14167.00	2550.06	16717.06	Pending	\N	2026-10-21	2026-10-21	\N	\N	2	2026-10-19 10:25:54.367094+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	ISO 27001 Security Audit	1	85000.00	INR	L2	Not Received
+6409b633-931a-4c61-92e7-01000c5c8614	96427433-d1b9-4089-bcee-e95f02d3154d	Month 3	\N	14167.00	2550.06	16717.06	Pending	\N	2026-10-23	2026-10-23	\N	\N	3	2026-10-19 10:25:54.377581+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	ISO 27001 Security Audit	1	85000.00	INR	L2	Not Received
+f2298411-736d-464a-bd60-06fd5b8054fa	96427433-d1b9-4089-bcee-e95f02d3154d	Month 4	\N	14167.00	2550.06	16717.06	Pending	\N	2026-10-09	2026-10-09	\N	\N	4	2026-10-19 10:25:54.388757+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	ISO 27001 Security Audit	1	85000.00	INR	L2	Not Received
+bf1ec0e4-ce61-4bb3-9bbe-9dffb6881586	96427433-d1b9-4089-bcee-e95f02d3154d	Month 5	\N	14167.00	2550.06	16717.06	Pending	\N	2026-10-17	2026-10-17	\N	\N	5	2026-10-19 10:25:54.39893+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	ISO 27001 Security Audit	1	85000.00	INR	L2	Not Received
+5ad70841-9142-490d-94e7-0e1a6e23d6b1	96427433-d1b9-4089-bcee-e95f02d3154d	Month 6	\N	14167.00	2550.06	16717.06	Pending	\N	2026-10-14	2026-10-14	\N	\N	6	2026-10-19 10:25:54.409328+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	ISO 27001 Security Audit	1	85000.00	INR	L2	Not Received
 \.
 
 
@@ -4513,6 +2822,10 @@ COPY project.tbl_project_services ("Id", "ProjectId", "ServiceCatalogId", "TaskI
 b91ca6a8-82ad-4bb8-8397-27b0a1c9938e	89744e80-08e3-4f7c-a4ba-78ff0ce54634	\N	WBS-01	Cloud Security	AWS Security Assessment	AWS Security Assessment	1	\N	L1	Half yearly	Offsite	\N	NA	Remote	PDF	Monthly Advance	Scout2, CloudMapper, AWS Inspector	2026-10-14	2027-04-14	131	1048	131	1048	55000.00	55000.00	0	2026-10-14 04:21:40.760314+00	2026-10-14 04:29:11.987368+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	\N	Advance Received	Pending To Collect	t	Pending To Validate
 1a7796a3-3296-4f53-a764-d1092171eb9d	8e260568-b761-4795-ad27-12bddd698d9d	\N	WBS-01	Cloud Security	Azure Security Assessment	Azure Security Assessment	1	\N	L1	Once	Onsite	Pune	NA	Remote	Excel	Monthly Arrears	Azucar, Microsoft Defender, Qualys	2026-10-14	2026-10-20	5	40	5	40	55000.00	55000.00	0	2026-10-14 07:09:24.254822+00	2026-10-14 07:09:59.689522+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	\N	Advance Received	Pending To Collect	t	Pending To Validate
 e0494ab5-859c-442b-9998-66e5cfb3ecbe	8e260568-b761-4795-ad27-12bddd698d9d	\N	WBS-02	Compliance & Audit	ISO 27001 Security Audit	ISO 27001 Security Audit	1	\N	L2	Once	Onsite	Kolhapur	NA	Remote	PDF	Monthly Arrears	AuditBoard, Drata, Vanta	2026-10-14	2026-10-23	8	64	8	64	85000.00	85000.00	1	2026-10-14 07:09:24.548035+00	2026-10-14 07:10:00.899816+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	\N	Advance Received	Pending To Collect	t	Pending To Validate
+5529002b-5340-4e4e-8d21-45adb2a23037	8e260568-b761-4795-ad27-12bddd698d9d	\N	\N	General	\N	Custom Service	1	\N	\N	Once	Offsite	\N	Fixed	Agile	\N	Monthly Arrears	\N	2026-10-14	2026-10-23	5	40	5	40	0.00	0.00	0	2026-10-18 04:00:19.370027+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+a47ece44-9b09-4b4e-acbc-4e1a66ec8401	8e260568-b761-4795-ad27-12bddd698d9d	\N	\N	General	\N	Custom Service	1	\N	\N	Once	Offsite	\N	Fixed	Agile	\N	Monthly Arrears	\N	2026-10-14	2026-10-23	5	40	5	40	0.00	0.00	0	2026-10-18 04:02:03.448525+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	Advance Pending	Pending To Collect	f	Pending To Validate
+32c68ca2-cb1b-43e9-96a9-d34dd2c89bfb	96427433-d1b9-4089-bcee-e95f02d3154d	\N	WBS-01	Red Team & Adversary Simulation	Adversary Simulation	Targeted Red Team Engagement	1	Service 1	L1	Once	Onsite	Pune	NA	Remote	Excel	Monthly Advance	Custom Tools, Cobalt Strike	2026-10-19	2026-10-30	10	80	10	80	80000.00	80000.00	0	2026-10-19 10:25:54.267805+00	2026-10-19 10:27:55.923109+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	Advance Received	Pending To Collect	t	Pending To Validate
+6ace031a-2e4e-4517-83ac-bf1078882b71	96427433-d1b9-4089-bcee-e95f02d3154d	\N	WBS-02	Compliance & Audit	ISO 27001 Security Audit	ISO 27001 Security Audit	1	Service 2	L2	Half yearly	Offsite	\N	NA	Remote	Squad 1	Monthly Advance	AuditBoard, Drata, Vanta	2026-10-19	2027-04-19	131	1048	131	1048	85000.00	85000.00	1	2026-10-19 10:25:54.318218+00	2026-10-19 10:27:58.002258+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	Advance Received	Pending To Collect	t	Pending To Validate
 \.
 
 
@@ -4521,8 +2834,9 @@ e0494ab5-859c-442b-9998-66e5cfb3ecbe	8e260568-b761-4795-ad27-12bddd698d9d	\N	WBS
 --
 
 COPY project.tbl_project_task_assignments ("Id", "TaskId", "EmployeeId", "Role", "AllocatedHours", "UtilizedHours", "TimerStartedAtUtc", "TimerAccumulatedSeconds", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-efc8ff42-50eb-4e68-9cbd-26746f236d0f	76163f06-d217-45a1-a127-30f59b86d5a1	ffcdc44f-996b-4ef6-90e6-db858823a4c4	Contributor	40.00	0.00	\N	0	t	2026-10-17 13:21:33.028806+00	2026-10-17 13:21:33.172306+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 467636cf-419e-47ce-9443-0e20fd38bad4	d97b4bad-ccd2-42c0-b1ff-e52787ef8f0c	cc295432-e771-4d6f-9cc3-079cc5d9b576	Contributor	64.00	0.00	\N	0	t	2026-10-17 13:21:37.653558+00	2026-10-17 13:21:37.700534+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+efc8ff42-50eb-4e68-9cbd-26746f236d0f	76163f06-d217-45a1-a127-30f59b86d5a1	ffcdc44f-996b-4ef6-90e6-db858823a4c4	Contributor	40.00	0.00	\N	0	t	2026-10-17 13:21:33.028806+00	2026-10-18 04:00:19.518318+00	049ac489-bbd3-4153-b933-aec7b7baec89	cc9bf92a-b923-8364-be83-4bb68db79cd2	2026-10-18 04:00:19.518318+00
+e3ffdda6-7663-4d89-83b3-b6596a0089b6	3757f288-0451-44bc-b54c-e29a3a758d69	b9c0b8fc-4c96-42fb-8669-d68097cf5392	Contributor	524.00	0.00	\N	0	t	2026-10-18 05:58:43.274124+00	2026-10-18 05:58:43.292963+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 \.
 
 
@@ -4535,6 +2849,11 @@ COPY project.tbl_project_tasks ("Id", "ProjectId", "ProjectServiceId", "Title", 
 3757f288-0451-44bc-b54c-e29a3a758d69	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b91ca6a8-82ad-4bb8-8397-27b0a1c9938e	Task 01	NA	Quarter 1	AP1	Not Started	medium	2026-10-14	2027-04-14	\N	\N	524.00	0.00	0	10	2026-10-14 04:28:52.764637+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
 d97b4bad-ccd2-42c0-b1ff-e52787ef8f0c	8e260568-b761-4795-ad27-12bddd698d9d	e0494ab5-859c-442b-9998-66e5cfb3ecbe	Task 01	NA		AP1	Not Started	medium	2026-10-14	2026-10-23	\N	\N	64.00	0.00	0	20	2026-10-14 07:10:26.068485+00	\N	00000000-0000-4000-8000-000000000004	\N	\N
 76163f06-d217-45a1-a127-30f59b86d5a1	8e260568-b761-4795-ad27-12bddd698d9d	1a7796a3-3296-4f53-a764-d1092171eb9d	Task 01	NA		AP1	Ongoing	medium	2026-10-14	2026-10-20	2026-10-14	2026-10-21	40.00	0.00	0	10	2026-10-14 07:10:26.068485+00	2026-10-16 07:28:47.629625+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	\N
+9077037b-28c1-459e-af55-dbf3faf79996	8e260568-b761-4795-ad27-12bddd698d9d	5529002b-5340-4e4e-8d21-45adb2a23037	Task 01	Initial Test		AP1	Not Started	medium	2026-10-14	2026-10-23	\N	\N	40.00	0.00	0	30	2026-10-18 04:00:19.48887+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+c5525158-23a3-4f31-a8f2-5026a880d3c9	8e260568-b761-4795-ad27-12bddd698d9d	a47ece44-9b09-4b4e-acbc-4e1a66ec8401	Task 01	Initial Test		AP1	Not Started	medium	2026-10-14	2026-10-23	\N	\N	40.00	0.00	0	40	2026-10-18 04:02:03.487494+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+07d22ba2-61f8-4c4b-965d-451a49e43518	96427433-d1b9-4089-bcee-e95f02d3154d	6ace031a-2e4e-4517-83ac-bf1078882b71	Task 01	NA	Quarter 2	AP1	Not Started	medium	2026-10-19	2027-04-19	\N	\N	524.00	0.00	0	30	2026-10-19 10:27:34.74909+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b2f0840e-dc0d-45a6-932f-5f892ab2cd9a	96427433-d1b9-4089-bcee-e95f02d3154d	32c68ca2-cb1b-43e9-96a9-d34dd2c89bfb	Task 01	NA		AP1	Not Started	medium	2026-10-19	2026-10-30	\N	\N	80.00	0.00	0	10	2026-10-19 10:27:34.74909+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+c161aad1-c9fd-4a5b-bf2c-937918db53a6	96427433-d1b9-4089-bcee-e95f02d3154d	6ace031a-2e4e-4517-83ac-bf1078882b71	Task 01	NA	Quarter 1	AP1	Not Started	medium	2026-10-19	2027-04-19	\N	\N	524.00	0.00	0	20	2026-10-19 10:27:34.74909+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4543,10 +2862,23 @@ d97b4bad-ccd2-42c0-b1ff-e52787ef8f0c	8e260568-b761-4795-ad27-12bddd698d9d	e0494a
 --
 
 COPY project.tbl_project_team_members ("Id", "ProjectId", "EmployeeId", "DepartmentId", "SubDepartment", "AllocationStartDate", "AllocationEndDate", "Billability", "IsTeamLead", "ResourceType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "IsShadowTeam", "MemberRole") FROM stdin;
-2f0413c0-c2e1-4857-88be-0fef3c8e8e0e	8e260568-b761-4795-ad27-12bddd698d9d	bbdc4c49-4262-4c1a-a270-1bfe3c550644	be8e036d-ad13-4c79-89ec-294e490a6816	Services - Consulting	2026-10-14	2026-10-23	Billable	f	Dedicated	2026-10-17 09:01:12.422578+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectManager
 0f16fb71-20b3-4bc1-98f7-23168931ecf8	8e260568-b761-4795-ad27-12bddd698d9d	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	Services - Operations	2026-10-14	2026-10-23	Billable	f	Dedicated	2026-10-17 09:01:15.247959+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	SeniorProjectManager
-eddfd31c-e6ae-47a3-b819-e2d40b72dd07	8e260568-b761-4795-ad27-12bddd698d9d	ffcdc44f-996b-4ef6-90e6-db858823a4c4	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	Services - Operations	2026-10-17	2026-10-23	Billable	t	Dedicated	2026-10-17 09:01:34.594564+00	2026-10-17 09:01:38.271316+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	f	ProjectTeam
 181a6069-51be-44c2-b1e1-3f71185e3e3a	8e260568-b761-4795-ad27-12bddd698d9d	cc295432-e771-4d6f-9cc3-079cc5d9b576	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - AppSec	2026-10-18	2026-10-23	Billable	t	Dedicated	2026-10-17 09:18:24.296578+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectTeam
+eddfd31c-e6ae-47a3-b819-e2d40b72dd07	8e260568-b761-4795-ad27-12bddd698d9d	ffcdc44f-996b-4ef6-90e6-db858823a4c4	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	Services - Operations	2026-10-17	2026-10-23	Billable	f	Dedicated	2026-10-17 09:01:34.594564+00	2026-10-18 04:16:01.777348+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	f	ProjectTeam
+2f0413c0-c2e1-4857-88be-0fef3c8e8e0e	8e260568-b761-4795-ad27-12bddd698d9d	bbdc4c49-4262-4c1a-a270-1bfe3c550644	be8e036d-ad13-4c79-89ec-294e490a6816	Services - Consulting	2026-10-14	2026-10-23	Billable	f	Dedicated	2026-10-17 09:01:12.422578+00	2026-10-18 04:16:08.283471+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-18 04:16:08.283471+00	f	ProjectManager
+b47f893c-7288-4be6-8907-49b75fc92545	8e260568-b761-4795-ad27-12bddd698d9d	8e139039-c490-436d-9af4-431d26334b34	0aed67b8-c454-439a-a07f-4f46d46d58af	\N	2026-10-18	2026-10-23	Non-Billable	f	Shared Resource	2026-10-18 04:17:18.554504+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	t	ShadowTeam
+c12115a9-470b-488d-981c-79ba86ff018c	89744e80-08e3-4f7c-a4ba-78ff0ce54634	dd200677-337b-440b-afcb-3a661406f98b	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - Infra	2026-10-14	2027-04-14	Billable	f	Dedicated	2026-10-18 05:54:25.87418+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	SeniorProjectManager
+8dbbf52b-1033-4ee6-b8a7-95e3d965be47	89744e80-08e3-4f7c-a4ba-78ff0ce54634	204776c8-efeb-480f-980b-a3f70be97f91	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - Infra	2026-10-14	2027-04-14	Billable	f	Dedicated	2026-10-18 05:54:52.485147+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectManager
+d6e0db76-3d03-4405-bc0a-ee6703cafd46	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b9c0b8fc-4c96-42fb-8669-d68097cf5392	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	Services - Operations	2026-10-18	2026-10-31	Billable	t	Dedicated	2026-10-18 05:56:49.03405+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectTeam
+afc2002a-6a09-4ccd-93a0-d515cb5db41d	89744e80-08e3-4f7c-a4ba-78ff0ce54634	3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - Infra	2026-10-18	2026-10-31	Billable	t	Dedicated	2026-10-18 05:56:22.079702+00	2026-10-18 05:57:14.723118+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	f	ProjectTeam
+47324f1e-7d06-4e4a-bac1-1981ba84e930	8e260568-b761-4795-ad27-12bddd698d9d	8f3346d4-6f76-4575-af6d-a69527694680	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - Mobile	2026-10-14	2026-10-23	Billable	f	Dedicated	2026-10-18 12:37:40.903362+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	SeniorProjectManager
+53bb3c58-9818-4e43-85b0-cf096f332ca4	8e260568-b761-4795-ad27-12bddd698d9d	41708635-a60e-4fbd-a76b-91c0c23d18be	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - Mobile	2026-10-14	2026-10-23	Billable	f	Dedicated	2026-10-18 04:16:11.997372+00	2026-10-19 10:19:28.595873+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-19 10:19:28.595873+00	f	ProjectManager
+adcc9aed-8994-4d9d-a028-d9039769d197	8e260568-b761-4795-ad27-12bddd698d9d	033446c7-c133-4395-bdaa-69b5f227a7a8	8e4e88f1-e294-4554-80cc-92ed6169caeb	EM (Engagement Manager)	2026-10-14	2026-10-23	Billable	f	Dedicated	2026-10-18 04:16:08.283471+00	2026-10-19 10:19:28.595873+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-19 10:19:28.595873+00	f	ProjectManager
+b728622a-17d0-4adb-97a6-ccc12307b941	8e260568-b761-4795-ad27-12bddd698d9d	776f2cf7-c4cc-4299-b38f-afbcaff7703e	13c91c98-00ae-4211-acb8-d06e35953806	Functional - Sales	2026-10-14	2026-10-23	Billable	f	Dedicated	2026-10-19 10:19:28.595873+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectManager
+68c9f309-e9da-4355-9e5a-c2d99e11aa19	96427433-d1b9-4089-bcee-e95f02d3154d	ffcdc44f-996b-4ef6-90e6-db858823a4c4	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	Services - Operations	2026-10-19	2027-04-19	Billable	f	Dedicated	2026-10-19 10:26:58.131354+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectManager
+1b820e41-e7ec-491c-b278-7594f11375b3	96427433-d1b9-4089-bcee-e95f02d3154d	bfb55863-c987-497b-9a1b-9a7bc56a9509	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - AppSec	2026-10-19	2027-04-19	Billable	f	Dedicated	2026-10-19 10:27:02.691266+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	SeniorProjectManager
+46f7bcb3-6477-4110-96c0-41e5be125651	89744e80-08e3-4f7c-a4ba-78ff0ce54634	78b71d74-d255-4ac0-a75f-ead11a61427a	898c36e9-1cb7-4c56-9148-a3b6893c0149	R&D (Research & Development)	2026-10-28	2026-10-31	Billable	f	Shared Resource	2026-10-19 11:18:36.432191+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectTeam
+3698e333-1ca1-41f9-894c-5bf8560cad38	96427433-d1b9-4089-bcee-e95f02d3154d	78b71d74-d255-4ac0-a75f-ead11a61427a	898c36e9-1cb7-4c56-9148-a3b6893c0149	R&D (Research & Development)	2026-10-31	2026-11-19	Billable	t	Dedicated	2026-10-19 10:27:24.426167+00	2026-10-19 11:45:54.311607+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	f	ProjectTeam
 \.
 
 
@@ -4555,8 +2887,9 @@ eddfd31c-e6ae-47a3-b819-e2d40b72dd07	8e260568-b761-4795-ad27-12bddd698d9d	ffcdc4
 --
 
 COPY project.tbl_projects ("Id", "ProjectCode", "WbsId", "Name", "Description", "ClientId", "SubVentureId", "Status", "Health", "Progress", "ContractType", "ProjectType", "Currency", "TaxPercent", "StartDate", "EndDate", "Budget", "Spent", "TotalHours", "TotalDays", "InvoiceValue", "ProjectManagerId", "TeamLeadId", "EngagementManager", "EngagementManagerId", "SalesPerson", "SalesPersonId", "ProjectIssuedDate", "SectionAComments", "SectionBComments", "WbsStatus", "WbsSubStatus", "RenewedFromProjectId", "PoStatus", "PoNumber", "PoDate", "BillingModel", "PaymentTerms", "TargetDate", "AccountContactName", "AccountContactPhone", "AccountContactEmail", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-89744e80-08e3-4f7c-a4ba-78ff0ce54634	P001	IN-2026-27/C001-01/P001	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01		bf01f81e-b09c-47c1-811c-40a58a56db12	c005cbc3-03a8-4dec-b3d0-c44868e18f28	ongoing	green	0	Resource	Long Term	INR	18.00	2026-10-14	2027-04-14	55000.00	0.00	1048.00	131.00	64902.36	\N	\N	Pradeep Singh	\N	Sales User	\N	2026-10-14	\N	\N	assigned	WBS Assigned	\N	PO Received	\N	\N	Monthly Advance	Start of Each Month	\N	\N	\N	\N	2026-10-14 04:21:40.721491+00	2026-10-14 12:54:05.335837+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	\N
-8e260568-b761-4795-ad27-12bddd698d9d	P002	IN-2026-27/C001-01/P002	Aditya Birla(Aditya Birla_Finance)_Mixed_02	hellloooooooo	bf01f81e-b09c-47c1-811c-40a58a56db12	c005cbc3-03a8-4dec-b3d0-c44868e18f28	ongoing	green	0	Resource	Long Term	INR	18.00	2026-10-14	2026-10-23	140000.00	0.00	104.00	13.00	165200.00	bbdc4c49-4262-4c1a-a270-1bfe3c550644	cc295432-e771-4d6f-9cc3-079cc5d9b576	Pradeep Singh	\N	Sales User	\N	2026-10-14	\N	\N	assigned	WBS Assigned	\N	PO Received	\N	\N	Monthly Arrears	End of Each Month	\N	\N	\N	\N	2026-10-14 07:09:23.532367+00	2026-10-17 09:18:24.296578+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+89744e80-08e3-4f7c-a4ba-78ff0ce54634	P001	IN-2026-27/C001-01/P001	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01		bf01f81e-b09c-47c1-811c-40a58a56db12	c005cbc3-03a8-4dec-b3d0-c44868e18f28	ongoing	green	0	Resource	Long Term	INR	18.00	2026-10-14	2027-04-14	55000.00	0.00	1048.00	131.00	64902.36	204776c8-efeb-480f-980b-a3f70be97f91	3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	Pradeep Singh	\N	Sales User	\N	2026-10-14	\N	\N	assigned	WBS Assigned	\N	PO Received	\N	\N	Monthly Advance	Start of Each Month	\N	\N	\N	\N	2026-10-14 04:21:40.721491+00	2026-10-18 05:57:14.723118+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+8e260568-b761-4795-ad27-12bddd698d9d	P002	IN-2026-27/C001-01/P002	Aditya Birla(Aditya Birla_Finance)_Mixed_02	hellloooooooo	bf01f81e-b09c-47c1-811c-40a58a56db12	c005cbc3-03a8-4dec-b3d0-c44868e18f28	ongoing	green	0	Resource	Long Term	INR	18.00	2026-10-14	2026-10-23	140000.00	0.00	184.00	23.00	495600.08	776f2cf7-c4cc-4299-b38f-afbcaff7703e	cc295432-e771-4d6f-9cc3-079cc5d9b576	Pradeep Singh	\N	Sales User	\N	2026-10-14	\N	\N	assigned	WBS Assigned	\N	PO Received	\N	\N	Monthly Arrears	End of Each Month	\N	\N	\N	\N	2026-10-14 07:09:23.532367+00	2026-10-19 10:19:28.595873+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+96427433-d1b9-4089-bcee-e95f02d3154d	P003	IN-2026-27/C001-01/P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	This is the comment related to project	bf01f81e-b09c-47c1-811c-40a58a56db12	c005cbc3-03a8-4dec-b3d0-c44868e18f28	ongoing	green	0	Resource	Long Term	INR	18.00	2026-10-19	2027-04-19	165000.00	0.00	1128.00	141.00	194702.36	ffcdc44f-996b-4ef6-90e6-db858823a4c4	78b71d74-d255-4ac0-a75f-ead11a61427a	Pradeep Singh	\N	Omkar Reddy	\N	2026-10-19	\N	\N	assigned	WBS Assigned	8e260568-b761-4795-ad27-12bddd698d9d	PO Received	\N	\N	Monthly Advance	Start of Each Month	\N	\N	\N	\N	2026-10-19 10:25:54.182447+00	2026-10-19 11:45:54.311607+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 \.
 
 
@@ -4620,6 +2953,11 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 20261007162838_AddAddressCityMaster	10.0.12
 20261012130236_AddSubVentureCode	10.0.12
 20261013080530_AddClientEditFields	10.0.12
+20261019103000_AddProjectInvoiceScheduleFields	10.0.4
+20261019124500_AddProjectInterviews	10.0.4
+20261020154155_RemoveRbacPermissionsAndOnFloorRoles	10.0.4
+20261020160744_AddOnFloorRoleMap	10.0.4
+20261020182948_AddSubDepartmentCatalog	10.0.4
 \.
 
 
@@ -4628,6 +2966,7 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 --
 
 COPY repository.log_repository_activity ("Id", "Action", "DocumentId", "FileName", "Category", "PerformedBy", "Details", "CreatedAtUtc", "DeletedAtUtc", "CreatedBy", "UpdatedBy", "UpdatedAtUtc") FROM stdin;
+56417b82-e7f6-41ec-b367-fcbbe88e7893	Viewed	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Admin User	Admin User viewed Resource Allocation SOP.pdf	2026-10-18 04:00:05.609011+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 b980db78-d1df-4564-a97a-1ae5b1f9405d	Deleted	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Admin User	Deleted Resource Allocation SOP.pdf from PMS	2026-08-25 09:40:58.873408+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 7ce0515d-7388-40bd-8448-629506b4da69	Viewed	706ab2a8-2689-806b-7e25-e5c9752e8a0b	Resource Allocation SOP.pdf	PMS	Admin User	Admin User viewed Resource Allocation SOP.pdf	2026-08-25 09:32:49.583916+00	\N	a2ef1e7d-5d70-8e86-f48d-429ce5a745dc	\N	\N
 568d9221-2331-4e91-804f-ed096870c14b	Uploaded	303c6e5f-2413-0ae7-b7c6-85aaa53e19fe	Code of Conduct 2026.pdf	IMP	Ankit Verma	Ankit Verma uploaded Code of Conduct 2026.pdf	2026-08-23 18:10:16.325673+00	\N	\N	\N	\N
@@ -4812,6 +3151,15 @@ eccf94e4-8620-48fd-82b4-3fcac4fe0525	87fd3345-a756-44df-a3e7-5f21fa6e50d3	Create
 4b848f2c-d6ac-4af9-9aed-3913accaf591	d2010072-d612-48ab-9a8a-f137b87e6034	Updated	admin@talakunchi.com	admin	Updated: Location (Onsite)	2026-10-17 08:10:04.987833+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 10cc3172-94ab-45ea-adf6-667aee1508ee	f01f614a-af85-4225-a3b4-3c463fb97bdf	Updated	admin@talakunchi.com	admin	Updated: Emergency Contact Relation, Role, Experience, Bond Status, Sub Department, Billable Status (+4 more)	2026-10-17 20:45:12.944714+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 346863c7-8098-4c20-9d36-3127bc714a58	f01f614a-af85-4225-a3b4-3c463fb97bdf	BillableStatusChanged	admin@talakunchi.com	admin	 -> Billable	2026-10-17 20:45:12.944714+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+7192d3b3-36ed-458d-9409-19ca74c28e7f	049ac489-bbd3-4153-b933-aec7b7baec89	Updated	admin@talakunchi.com	admin	Profile details updated	2026-10-18 04:00:19.227531+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+ed93fa77-0969-4f96-ad43-1abeaf523c77	049ac489-bbd3-4153-b933-aec7b7baec89	Updated	admin@talakunchi.com	admin	Profile details updated	2026-10-18 04:02:03.390904+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+0e4a3463-aa2f-465d-b509-9b7d9d1ad8f8	13428d48-c81e-4720-adba-f8490f27e535	Updated	admin@talakunchi.com	admin	Updated: Experience, Bond Status, Billable Status, Project Type, Prior Total Experience, Prior Relevant Experience (+1 more)	2026-10-18 04:09:16.798473+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+685db74e-0574-493d-bf71-aa41cbf5b5a1	13428d48-c81e-4720-adba-f8490f27e535	BillableStatusChanged	admin@talakunchi.com	admin	 -> Billable	2026-10-18 04:09:16.798473+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+9a5a46f6-217e-4043-b81c-a4158732987a	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	BillableStatusChanged	admin@talakunchi.com	admin	 -> Billable	2026-10-18 05:21:26.379919+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+a490d2a3-0ca2-4003-b551-cc2ff30b751d	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	Updated	admin@talakunchi.com	admin	Updated: Role, Joining Date, Experience, Sub Department, Billable Status, Project Type (+3 more)	2026-10-18 05:21:26.379919+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1ad173fd-86c9-48c0-b973-ac1c2345a92d	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	Updated	admin@talakunchi.com	admin	Updated: Role, Joining Date, Bond Expiry Date	2026-10-18 05:22:07.272056+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+2873ae21-eafc-4e90-99e5-f09e6eee5b70	d94878fd-4650-46bc-b84c-753c841e7404	Updated	admin@talakunchi.com	admin	Updated: Department, Designation, Role, Experience, Bond Status, Sub Department (+5 more)	2026-10-18 10:37:32.945929+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+38b25f9e-fe0b-42db-85dc-35d9eb58b80f	d94878fd-4650-46bc-b84c-753c841e7404	BillableStatusChanged	admin@talakunchi.com	admin	 -> Billable	2026-10-18 10:37:32.945929+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4819,118 +3167,118 @@ eccf94e4-8620-48fd-82b4-3fcac4fe0525	87fd3345-a756-44df-a3e7-5f21fa6e50d3	Create
 -- Data for Name: tbl_employees; Type: TABLE DATA; Schema: resource; Owner: -
 --
 
-COPY resource.tbl_employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "JobRoleId", "NationalityId", "ProbationPeriod", "SalaryBandId", "Aadhaar", "EmergencyContactName", "EmployeeStatusId", "BondDelivered", "BondDurationMonths", "BondExpiryDate", "GradDegree", "GradYear", "PostGradDegree", "PostGradYear", "ExpType", "PriorTotalExp", "PriorRelevantExp", "EmergencyContactRelation", "PmoDepartment", "SubDepartment", "BillableStatus", "ClientLocation", "ProjectType", "ProjectAllocated", "ClientEngManagerMapping", "ProjectSite", "EngagementManagerEmployeeId", "ProjectManagerId") FROM stdin;
-78b71d74-d255-4ac0-a75f-ead11a61427a	TK-0035	Aarav	Desai	aarav.desai.tk-0035@talakunchi.com	\N	9820010041	\N	\N	\N	Andheri (Western Line)	9811000697	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-05-14	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.066207+00	2026-10-17 07:58:43.572213+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	ee402c9b-252b-4eec-8880-7a4a159eac92	\N	\N	\N	\N	Arjun Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2022-05-14	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	R&D (Research & Development)	Billable	\N	Long Term	\N	\N	\N	\N	\N
-cef36bf2-c4fb-4040-b3ab-d033190ad3b4	TK-0096	Vikram	Joshi	vikram.joshi.tk-0096@talakunchi.com	\N	9820010105	\N	\N	\N	Andheri (Western Line)	9811001785	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-03-17	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.725971+00	2026-10-16 09:54:37.389691+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	736d1ddd-c56a-4c4f-b266-bc4f6be6ed9c	\N	\N	\N	\N	Rahul Sharma	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-940ec7cd-058d-4f8f-912f-08ae55bac01c	TK-0097	Manish	Mathur	manish.mathur.tk-0097@talakunchi.com	\N	9820010106	\N	\N	\N	Andheri (Western Line)	9811001802	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-04-09	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.736486+00	2026-10-16 09:54:37.284411+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.284411+00	736d1ddd-c56a-4c4f-b266-bc4f6be6ed9c	\N	\N	\N	\N	Advait Deshmukh	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-4aba0077-4d88-4e0c-8d18-9152eea3fbf9	TK-0001	Vihaan	Pillai	vihaan.pillai.tk-0001@talakunchi.com	\N	9820010001	\N	\N	\N	Andheri (Western Line)	9811000017	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	778f1120-9633-4933-9160-ddaa46668838	CEO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-03-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.636311+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	94fc014e-37ce-4eb4-8588-ff56a79be98e	\N	\N	\N	\N	Nikhil Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Leading Sales & A/C Dept.	\N	\N	\N	\N	\N	\N	\N	\N
-d17be428-1602-4e09-a164-c3c2666fad73	TK-0002	Neha	Pillai	neha.pillai.tk-0002@talakunchi.com	\N	9820010002	\N	\N	\N	Andheri (Western Line)	9811000034	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	COO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-04-16	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.651331+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3dd672a7-e6a9-42c8-bdbf-4d1340efc1da	\N	\N	\N	\N	Vihaan Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Leading Delivery Dept.	\N	\N	\N	\N	\N	\N	\N	\N
-849d2fb1-a4e4-4eb2-947b-f97057e4954b	TK-0005	Dev	Bose	dev.bose.tk-0005@talakunchi.com	\N	9820010005	\N	\N	\N	Andheri (Western Line)	9811000085	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	155642eb-a633-4460-b658-aca9fde2d817	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-06-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.683541+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3f0d60be-b6cd-4fa6-9f7f-7d7b90e0296f	\N	\N	\N	\N	Aarav Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N
-f39b20bb-8963-4917-aed5-0f1d86f0cbc3	TK-0007	Aarav	Roy	aarav.roy.tk-0007@talakunchi.com	\N	9820010007	\N	\N	\N	Andheri (Western Line)	9811000119	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	6e606c29-2ebf-4ab8-8006-aaedd5680009	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-08-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.709153+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3acd2d8a-b2b6-4222-a75b-6edd7f7059d9	\N	\N	\N	\N	Tanvi Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N
-d94878fd-4650-46bc-b84c-753c841e7404	TK-0008	Nikhil	Saxena	nikhil.saxena.tk-0008@talakunchi.com	\N	9820010009	\N	\N	\N	Andheri (Western Line)	9811000153	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	4ef1cb5b-9688-4ce2-95b3-6a0863200166	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-01	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.734742+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	b77a5c55-f887-4013-8ff3-9496897bbe38	\N	\N	\N	\N	Rajesh Sharma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N
-13428d48-c81e-4720-adba-f8490f27e535	TK-0009	Vihaan	Saxena	vihaan.saxena.tk-0009@talakunchi.com	\N	9820010010	\N	\N	\N	Andheri (Western Line)	9811000170	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.747702+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	93b5e35c-065d-4d27-a075-4797e2424f23	\N	\N	\N	\N	Harsh Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N
-e96df572-92a2-4aa3-a3b4-6f52cfcb5293	TK-0011	Aditya	Roy	aditya.roy.tk-0011@talakunchi.com	\N	9820010012	\N	\N	\N	Andheri (Western Line)	9811000204	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	HR	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-11-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.770263+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	c7d75b92-f6e2-4dd7-a726-ae662ee83c95	\N	\N	\N	\N	Harsh Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N
-9d9bfa3a-8603-4de4-8eb7-76c3935e3014	TK-0012	Advait	Singh	advait.singh.tk-0012@talakunchi.com	\N	9820010014	\N	\N	\N	Andheri (Western Line)	9811000238	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	7d542941-65b9-499b-81b3-239748d6da52	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-12-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.794393+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	6b361aa9-a47a-4fed-9d1f-07a4e1dd5f30	\N	\N	\N	\N	Priya Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N
-583e812b-e929-4e7c-9d76-33d3fc25cd7d	TK-0013	Tanvi	Gaikwad	tanvi.gaikwad.tk-0013@talakunchi.com	\N	9820010015	\N	\N	\N	Andheri (Western Line)	9811000255	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-12-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.806235+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	cc4e4c23-fccc-44ba-8423-5e4e6ec35731	\N	\N	\N	\N	Anita Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N
-70e01a7d-fd0b-4e2a-b086-d059423ca380	TK-0014	Vihaan	Kadam	vihaan.kadam.tk-0014@talakunchi.com	\N	9820010016	\N	\N	\N	Andheri (Western Line)	9811000272	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-01-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.816829+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	ebdc343e-9f43-4715-8a37-4861594c4b0a	\N	\N	\N	\N	Karan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N
-159fb3d0-937c-4f81-ad37-aa1b4f023264	TK-0015	Rajesh	Sharma	rajesh.sharma.tk-0015@talakunchi.com	\N	9820010017	\N	\N	\N	Andheri (Western Line)	9811000289	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-02-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.827405+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	1e17c9f0-a8ed-4d89-819d-738a84af4e48	\N	\N	\N	\N	Rahul Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N
-30913859-c8e8-4851-852f-28be97c74bb1	TK-0010	Sana	Pillai	sana.pillai.tk-0010@talakunchi.com	\N	9820010011	\N	\N	\N	Andheri (Western Line)	9811000187	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	1f97b442-95c5-4b11-93a0-ea146534ae85	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-10-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.759044+00	2026-10-17 09:17:09.915782+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	422b597e-b1f1-4aba-88c5-9ade45a38c00	\N	\N	\N	\N	Pallavi Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-10-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	BKC	\N	\N
-42583b6b-008c-45f6-b258-b08495712c7c	TK-0016	Harsh	Wardhan	harsh.wardhan.tk-0016@talakunchi.com	\N	9820010018	\N	\N	\N	Andheri (Western Line)	9811000306	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	c70b9832-841e-4864-9b85-eaba3c0a995f	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-03-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.838024+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	08583f63-4f74-4913-ac74-1f2861288884	\N	\N	\N	\N	Kunal Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N
-a73329ac-636f-475e-b566-321a5686fd66	TK-0017	Pallavi	Sawant	pallavi.sawant.tk-0017@talakunchi.com	\N	9820010019	\N	\N	\N	Andheri (Western Line)	9811000323	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	73bd55bb-5d0e-4381-8ad2-2238377fca93	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-03-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.848874+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	208b0c7a-a690-45e9-ad9b-5eabc0cdea39	\N	\N	\N	\N	Aarav Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N
-8bf95b5f-0a1b-4512-9fc4-0e0fd9a4503c	TK-0018	Harsh	Pandey	harsh.pandey.tk-0018@talakunchi.com	\N	9820010020	\N	\N	\N	Andheri (Western Line)	9811000340	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-04-19	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.859733+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	8225915b-d1c2-49cc-a4fb-d2d49df23e2b	\N	\N	\N	\N	Atharv Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N
-696f99d7-2380-443c-b90d-0e065642e1d4	TK-0019	Priya	Mishra	priya.mishra.tk-0019@talakunchi.com	\N	9820010022	\N	\N	\N	Andheri (Western Line)	9811000374	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-05-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.881525+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	48079f83-fbf9-4639-ae6b-263ca3fb752a	\N	\N	\N	\N	Krishna Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N
-8e0616db-48af-4b73-807f-6e250dba2072	TK-0020	Anita	Pandey	anita.pandey.tk-0020@talakunchi.com	\N	9820010023	\N	\N	\N	Andheri (Western Line)	9811000391	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	2a76927c-461a-48e4-8190-dea7361ef3db	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-06-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.891741+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	f67d5930-703b-4497-a4ea-2add60f7fb58	\N	\N	\N	\N	Reyansh Chopra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N
-d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	TK-0021	Karan	Wardhan	karan.wardhan.tk-0021@talakunchi.com	\N	9820010024	\N	\N	\N	Andheri (Western Line)	9811000408	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	834c9e15-c70d-4a0b-bb12-5e55f23c181d	EngagementManager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-06-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.901338+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	9fb9b5b5-bc14-4597-8953-7a1ea10dc0dd	\N	\N	\N	\N	Krishna Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N
-eba0b052-26bb-4216-ab6e-dff23c63bc57	TK-0022	Rahul	Mishra	rahul.mishra.tk-0022@talakunchi.com	\N	9820010025	\N	\N	\N	Andheri (Western Line)	9811000425	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	d8a2b9e5-f54d-4344-a78d-c6c840467543	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-07-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.910624+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	db77e167-7f67-43f6-9e2d-4ebaf6f9f802	\N	\N	\N	\N	Reyansh Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N
-9f646393-8fea-4b38-9f35-d88a6ab6787e	TK-0023	Aarav	Rao	aarav.rao.tk-0023@talakunchi.com	\N	9820010027	\N	\N	\N	Andheri (Western Line)	9811000459	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	8b57cfd5-5d4e-44a3-9646-b36873c111c2	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-08-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.931379+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	57b9b89d-9123-4bd0-b8fd-a373e0648f43	\N	\N	\N	\N	Arjun Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N
-033446c7-c133-4395-bdaa-69b5f227a7a8	TK-0024	Atharv	Reddy	atharv.reddy.tk-0024@talakunchi.com	\N	9820010028	\N	\N	\N	Andheri (Western Line)	9811000476	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	9dc69952-eae6-4ec0-a327-67392315f089	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-09-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.940959+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	b3a66833-fc6b-4bac-9438-959333107d3c	\N	\N	\N	\N	Ananya Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N
-2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	TK-0025	Vihaan	Mathur	vihaan.mathur.tk-0025@talakunchi.com	\N	9820010029	\N	\N	\N	Andheri (Western Line)	9811000493	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-09-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.950815+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	446498d0-e9e6-4dbb-8fbe-b87bb853a2af	\N	\N	\N	\N	Amit Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N
-be9f417e-d40a-4c66-91e6-e7fde84b46d5	TK-0026	Krishna	Pandey	krishna.pandey.tk-0026@talakunchi.com	\N	9820010030	\N	\N	\N	Andheri (Western Line)	9811000510	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	138434a2-625f-4df5-836d-fcf0cfceef79	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-10-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.959922+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	1cf32162-d510-4a26-a017-e2035425dc93	\N	\N	\N	\N	Arjun Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N
-7d2b2c7a-254e-4605-9f79-3f42ac7f9735	TK-0027	Reyansh	Chopra	reyansh.chopra.tk-0027@talakunchi.com	\N	9820010031	\N	\N	\N	Andheri (Western Line)	9811000527	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-11-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.969016+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3e28d4a4-7d87-41ed-b921-a39dd937df76	\N	\N	\N	\N	Yash Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N
-777390a6-91b9-4d9e-806c-16e046568501	TK-0028	Krishna	Joshi	krishna.joshi.tk-0028@talakunchi.com	\N	9820010032	\N	\N	\N	Andheri (Western Line)	9811000544	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.978927+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	21eac166-3ba7-40c5-a780-bbc7b3e96ddb	\N	\N	\N	\N	Suresh Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N
-13b14e34-f865-4c83-a6c0-3fdf7d196c1c	TK-0029	Reyansh	Sawant	reyansh.sawant.tk-0029@talakunchi.com	\N	9820010033	\N	\N	\N	Andheri (Western Line)	9811000561	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.988005+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	9de62ea5-b7da-4a55-8b54-056fdf6bc621	\N	\N	\N	\N	Aarav Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N
-776f2cf7-c4cc-4299-b38f-afbcaff7703e	TK-0030	Omkar	Reddy	omkar.reddy.tk-0030@talakunchi.com	\N	9820010034	\N	\N	\N	Andheri (Western Line)	9811000578	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	157d001c-b056-45b1-96a3-3c05bcd8d99c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-01-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.99725+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	7b597cd0-0153-4ddb-a7b2-f553cbafc8a9	\N	\N	\N	\N	Amit Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N
-804c8187-6f28-411f-8fa5-cc9baceba3e7	TK-0031	Arjun	Joshi	arjun.joshi.tk-0031@talakunchi.com	\N	9820010035	\N	\N	\N	Andheri (Western Line)	9811000595	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	6193be76-40ad-4973-9ee7-246a4d8f4109	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-02-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.006223+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	412826f2-67b6-47c9-a62c-270fa9425ce4	\N	\N	\N	\N	Ira Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N
-d9fd54d6-b11b-4969-a25d-8b8e3fcca417	TK-0032	Amit	Sawant	amit.sawant.tk-0032@talakunchi.com	\N	9820010037	\N	\N	\N	Andheri (Western Line)	9811000629	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	e2c675a7-92dc-4477-be75-9a304cbe4def	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-03-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.027123+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	d0b9d2a2-d79c-4097-ae63-4bff14436d0a	\N	\N	\N	\N	Pooja Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N
-9eb64ade-203d-4e4a-aaed-8eaab7d3017d	TK-0033	Yash	Wardhan	yash.wardhan.tk-0033@talakunchi.com	\N	9820010039	\N	\N	\N	Andheri (Western Line)	9811000663	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-03-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.047613+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	fdf924c8-3a4a-40bb-9bf9-ea42d4946ecb	\N	\N	\N	\N	Aarav Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N
-86862bf8-c075-44ef-9f3e-f65d2cc1bb56	TK-0034	Suresh	Desai	suresh.desai.tk-0034@talakunchi.com	\N	9820010040	\N	\N	\N	Andheri (Western Line)	9811000680	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-04-21	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.057075+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	401a442f-98c4-4b95-9e07-647853bf9122	\N	\N	\N	\N	Karan Mehra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N
-bbdc4c49-4262-4c1a-a270-1bfe3c550644	TK-0036	Amit	Wardhan	amit.wardhan.tk-0036@talakunchi.com	\N	9820010042	\N	\N	\N	Andheri (Western Line)	9811000714	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	195d6a81-8457-4b60-9382-6a3a0664f0e9	Consulting-Manager	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-06-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.075353+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	52ae8b5b-80b3-4d14-b8c5-0bc40e1f4bee	\N	\N	\N	\N	Yash Sharma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N
-e131815f-331f-46d7-81f8-5d2bed793630	TK-0037	Ira	Bose	ira.bose.tk-0037@talakunchi.com	\N	9820010043	\N	\N	\N	Andheri (Western Line)	9811000731	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	1e7faab8-273d-40df-9f9a-485160186c5a	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-06-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.084626+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	074ea1a8-d519-4cda-87a4-978cd1eec45a	\N	\N	\N	\N	Priya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N
-51df4d23-9202-43b7-9e29-4a14a838a242	TK-0038	Vihaan	Gaikwad	vihaan.gaikwad.tk-0038@talakunchi.com	\N	9820010044	\N	\N	\N	Andheri (Western Line)	9811000748	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-07-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.094147+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	6886e92b-a2c5-4057-9330-47394a2aac65	\N	\N	\N	\N	Vihaan Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N
-02814af4-08b4-42cc-92e1-ad0bba687378	TK-0039	Pooja	Bose	pooja.bose.tk-0039@talakunchi.com	\N	9820010045	\N	\N	\N	Andheri (Western Line)	9811000765	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-08-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.103381+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	40354601-9ac5-41e0-9ddb-6603e5614a86	\N	\N	\N	\N	Vivaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N
-0a213b8b-1836-4660-9116-536fc9436639	TK-0040	Krishna	Saxena	krishna.saxena.tk-0040@talakunchi.com	\N	9820010046	\N	\N	\N	Andheri (Western Line)	9811000782	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	7c2380da-3ee6-46ad-93d6-a79ce3027f29	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.113491+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3efb18e5-f8d5-4de9-8959-ab5401f64b74	\N	\N	\N	\N	Arjun Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N
-c5e35b7a-af12-4fd6-96af-e62225e715c6	TK-0041	Karan	Mehra	karan.mehra.tk-0041@talakunchi.com	\N	9820010048	\N	\N	\N	Andheri (Western Line)	9811000816	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.132457+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	22215465-c056-4ba4-a867-23ed37658a09	\N	\N	\N	\N	Aditi Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N
-ee7b555a-4400-4c03-8fe5-60fd908c0e58	TK-0042	Arjun	Mathur	arjun.mathur.tk-0042@talakunchi.com	\N	9820010049	\N	\N	\N	Andheri (Western Line)	9811000833	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	3e60b693-d3dd-4481-95c4-9f02da21625c	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-10-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.141853+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	4e574ffd-c3a9-4a15-832a-5dabfb352dc3	\N	\N	\N	\N	Ishita Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N
-218f30c7-87bd-4410-99fc-4d10da3e8014	TK-0043	Yash	Sharma	yash.sharma.tk-0043@talakunchi.com	\N	9820010050	\N	\N	\N	Andheri (Western Line)	9811000850	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2b1558e3-158a-4a84-ae80-053129861a64	Consulting-HOD	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-11-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.151497+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	6b840581-65b6-4e1d-916f-38b6018e07e0	\N	\N	\N	\N	Vihaan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N
-818ae1ea-5842-4adb-b475-ac12dba9fd2a	TK-0044	Vihaan	Bose	vihaan.bose.tk-0044@talakunchi.com	\N	9820010052	\N	\N	\N	Andheri (Western Line)	9811000884	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	SOC-HOD	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.171436+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	1a6b97a6-b136-4096-91d4-a5c4f002374e	\N	\N	\N	\N	Anita Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-d01c0ef5-731e-42de-b02a-7c996c545f15	TK-0045	Vivaan	Mathur	vivaan.mathur.tk-0045@talakunchi.com	\N	9820010053	\N	\N	\N	Andheri (Western Line)	9811000901	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea315f7d-d597-41b3-a999-4f3851bcd020	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-30	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.181143+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3000065e-1037-4a6b-a87a-4c461a756531	\N	\N	\N	\N	Sneha Choudhary	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-d73eac4c-d537-4d31-8e35-b55f8aff3e87	TK-0046	Arjun	Pillai	arjun.pillai.tk-0046@talakunchi.com	\N	9820010054	\N	\N	\N	Andheri (Western Line)	9811000918	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	4650d4e0-f73c-4688-ae5f-830a46348ff9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-01-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.190401+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	0997a260-4ca3-4eb2-b87a-4bd6bf235677	\N	\N	\N	\N	Sana Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-f90e007c-90d9-440e-8f0a-a85395e49abe	TK-0047	Vikram	Roy	vikram.roy.tk-0047@talakunchi.com	\N	9820010055	\N	\N	\N	Andheri (Western Line)	9811000935	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	af8a1442-c5ee-409d-aa91-61c9dba852ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-02-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.200068+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	178985be-3d47-4903-983b-3a581e788e61	\N	\N	\N	\N	Aditya Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-b9c0b8fc-4c96-42fb-8669-d68097cf5392	TK-0048	Aditi	Roy	aditi.roy.tk-0048@talakunchi.com	\N	9820010056	\N	\N	\N	Andheri (Western Line)	9811000952	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	e36018c5-bf48-4f93-bef7-93e8864a0b51	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-03-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.210593+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	97f53b35-6fab-44bf-ae37-022cb65dfe04	\N	\N	\N	\N	Varun Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-238c3cb7-75cf-4478-a48e-fe47465d20b6	TK-0049	Ishita	Patel	ishita.patel.tk-0049@talakunchi.com	\N	9820010057	\N	\N	\N	Andheri (Western Line)	9811000969	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	6d25ff6d-e13d-440f-b775-215547af7acb	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-04-01	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.220166+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	eaa98dba-df5b-4b1d-b2d5-20b159a0a070	\N	\N	\N	\N	Advait Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-3a209908-397f-4c90-abf6-9fe52ab98b34	TK-0050	Vihaan	Wardhan	vihaan.wardhan.tk-0050@talakunchi.com	\N	9820010058	\N	\N	\N	Andheri (Western Line)	9811000986	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	48429bb5-c583-4684-b30a-7ed443b671ca	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-04-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.230016+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	9c970783-5b89-4fd0-b3f3-1c1953a853ab	\N	\N	\N	\N	Meera Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-31057f6b-b1e5-46e3-a071-b6639b93a15c	TK-0051	Krishna	Bose	krishna.bose.tk-0051@talakunchi.com	\N	9820010059	\N	\N	\N	Andheri (Western Line)	9811001003	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	f20a7445-0b01-4f20-85a5-853101d864ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-05-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.239498+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3f413c39-a269-4d44-9f3c-9e7f6e3ecced	\N	\N	\N	\N	Kunal Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-d29c4919-9e2d-46c1-a78f-ffd2d4d32365	TK-0052	Anita	Iyer	anita.iyer.tk-0052@talakunchi.com	\N	9820010060	\N	\N	\N	Andheri (Western Line)	9811001020	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-06-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.249213+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	ea40e2b6-035a-4766-96bc-13ad013020c1	\N	\N	\N	\N	Trisha Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-f8b1a855-954d-4f8b-aad7-be5502a7413a	TK-0053	Sneha	Choudhary	sneha.choudhary.tk-0053@talakunchi.com	\N	9820010061	\N	\N	\N	Andheri (Western Line)	9811001037	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.259434+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	24ccdefb-8dd5-411e-8b2e-af8fb743a3cb	\N	\N	\N	\N	Aditya Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-9b7f4410-6577-4ab4-9363-e75b9d4208e9	TK-0054	Sana	Rao	sana.rao.tk-0054@talakunchi.com	\N	9820010062	\N	\N	\N	Andheri (Western Line)	9811001054	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	911f6d7f-8d43-40f2-897a-2f416abf8cf9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.26888+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	b4e88d70-1263-47af-96a9-203ee422e8b1	\N	\N	\N	\N	Siddharth Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-315ae0c9-ecdf-48ba-a662-f93c21ef31d2	TK-0056	Varun	Pandey	varun.pandey.tk-0056@talakunchi.com	\N	9820010064	\N	\N	\N	Andheri (Western Line)	9811001088	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	SOC-Senior Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-09-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.289299+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	da8092b6-b074-4c0b-9b26-4796e419a5f7	\N	\N	\N	\N	Amit Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-df8f375a-d0b0-40c0-8ada-264fc2275f4f	TK-0057	Advait	Gupta	advait.gupta.tk-0057@talakunchi.com	\N	9820010065	\N	\N	\N	Andheri (Western Line)	9811001105	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	444df30d-c195-42ad-b9a7-d80cdef69ccd	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.299121+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	6032fef5-eb05-42bd-9f10-72f12e154243	\N	\N	\N	\N	Reyansh Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-78c932da-077a-4104-919c-386de88ed062	TK-0058	Meera	Joshi	meera.joshi.tk-0058@talakunchi.com	\N	9820010066	\N	\N	\N	Andheri (Western Line)	9811001122	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	c0f974c3-f49c-449a-9276-aa64ce501344	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.309385+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	218cd458-a6bc-43f8-8eda-02c89193fc35	\N	\N	\N	\N	Nikhil Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N
-74601727-6182-498f-ac57-4c02b9e56ca0	TK-0059	Kunal	Iyer	kunal.iyer.tk-0059@talakunchi.com	\N	9820010067	\N	\N	\N	Andheri (Western Line)	9811001139	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e2b4be77-2b20-4064-974d-e6322e7240b4	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-11-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.319145+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	fc382efa-48c8-4cc3-a724-2e54c1d6d6e0	\N	\N	\N	\N	Ishaan Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N
-0a46bda6-6481-4bbe-8689-18fe959fa98a	TK-0060	Trisha	Pillai	trisha.pillai.tk-0060@talakunchi.com	\N	9820010068	\N	\N	\N	Andheri (Western Line)	9811001156	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-12-10	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.329721+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	da59e567-3ee0-4a98-9b1e-83f8e6c01e2c	\N	\N	\N	\N	Atharv Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-bbe8dd34-5945-4f0f-ab99-2cb2f7c99c95	TK-0061	Aditya	Pillai	aditya.pillai.tk-0061@talakunchi.com	\N	9820010069	\N	\N	\N	Andheri (Western Line)	9811001173	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-01-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.339329+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	da59e567-3ee0-4a98-9b1e-83f8e6c01e2c	\N	\N	\N	\N	Ishaan Pansare	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-46e3d71d-ea02-474f-b668-f836d91e059d	TK-0062	Siddharth	Iyer	siddharth.iyer.tk-0062@talakunchi.com	\N	9820010070	\N	\N	\N	Andheri (Western Line)	9811001190	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-01-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.350043+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	da59e567-3ee0-4a98-9b1e-83f8e6c01e2c	\N	\N	\N	\N	Divya Deshmukh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-e93a25e9-5347-49e1-b901-88271fdbdcf5	TK-0063	Kavya	Roy	kavya.roy.tk-0063@talakunchi.com	\N	9820010071	\N	\N	\N	Andheri (Western Line)	9811001207	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-02-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.359883+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	20d077b9-894b-4bf3-b491-5df765e645f0	\N	\N	\N	\N	Advait Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-4d8e2104-d723-45a0-856f-594f80efd0f6	TK-0064	Amit	Pillai	amit.pillai.tk-0064@talakunchi.com	\N	9820010072	\N	\N	\N	Andheri (Western Line)	9811001224	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-03-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.370485+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	20d077b9-894b-4bf3-b491-5df765e645f0	\N	\N	\N	\N	Amit Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-fb184814-7151-428d-87c3-f83814676aa5	TK-0065	Reyansh	Mathur	reyansh.mathur.tk-0065@talakunchi.com	\N	9820010073	\N	\N	\N	Andheri (Western Line)	9811001241	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-04-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.380982+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	20d077b9-894b-4bf3-b491-5df765e645f0	\N	\N	\N	\N	Rohan Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-6a1ac61a-89d6-4951-8246-621d4e1b071f	TK-0066	Nikhil	Joshi	nikhil.joshi.tk-0066@talakunchi.com	\N	9820010074	\N	\N	\N	Andheri (Western Line)	9811001258	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-04-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.39087+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	8ec384d1-5b99-45c9-a95d-8f3325f56ea4	\N	\N	\N	\N	Reyansh Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-26fd3209-693a-49d1-9224-8f7e2f3a1c58	TK-0067	Ishaan	Desai	ishaan.desai.tk-0067@talakunchi.com	\N	9820010075	\N	\N	\N	Andheri (Western Line)	9811001275	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-05-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.401399+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	8ec384d1-5b99-45c9-a95d-8f3325f56ea4	\N	\N	\N	\N	Vihaan Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	TK-0068	Atharv	Malhotra	atharv.malhotra.tk-0068@talakunchi.com	\N	9820010076	\N	\N	\N	Andheri (Western Line)	9811001292	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-06-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.411718+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	8ec384d1-5b99-45c9-a95d-8f3325f56ea4	\N	\N	\N	\N	Dev Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-900ed2a0-d8b3-439f-af86-7383cdebcd05	TK-0069	Ishaan	Pansare	ishaan.pansare.tk-0069@talakunchi.com	\N	9820010077	\N	\N	\N	Andheri (Western Line)	9811001309	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-07-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.421674+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	caec3c96-23a0-4e88-845c-05f792d0dd0c	\N	\N	\N	\N	Simran Deshmukh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-204776c8-efeb-480f-980b-a3f70be97f91	TK-0070	Divya	Deshmukh	divya.deshmukh.tk-0070@talakunchi.com	\N	9820010078	\N	\N	\N	Andheri (Western Line)	9811001326	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-07-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.43265+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	caec3c96-23a0-4e88-845c-05f792d0dd0c	\N	\N	\N	\N	Nidhi Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-41708635-a60e-4fbd-a76b-91c0c23d18be	TK-0071	Advait	Gaikwad	advait.gaikwad.tk-0071@talakunchi.com	\N	9820010079	\N	\N	\N	Andheri (Western Line)	9811001343	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-08-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.443651+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	caec3c96-23a0-4e88-845c-05f792d0dd0c	\N	\N	\N	\N	Reyansh Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-e09daabd-8da2-4dc9-89b4-03f4b79583de	TK-0072	Amit	Gaikwad	amit.gaikwad.tk-0072@talakunchi.com	\N	9820010080	\N	\N	\N	Andheri (Western Line)	9811001360	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	c6c6cd04-6df3-4593-b686-e4b9d362c96f	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-09-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.453799+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	111000c1-ff0c-499c-a9cb-34febe2ac32d	\N	\N	\N	\N	Deepak Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N
-faa36d59-2e24-4a0e-851d-42900c200d3b	TK-0073	Rohan	Deshpande	rohan.deshpande.tk-0073@talakunchi.com	\N	9820010081	\N	\N	\N	Andheri (Western Line)	9811001377	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	ae255622-ddcc-45ea-a699-8ec416fe57ab	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-10-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.465301+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	4e547334-4964-4dbe-81a4-a316d9394d03	\N	\N	\N	\N	Varun Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N
-5e82125c-9ff8-4a97-a11b-65da79677d3c	TK-0074	Reyansh	Wardhan	reyansh.wardhan.tk-0074@talakunchi.com	\N	9820010082	\N	\N	\N	Andheri (Western Line)	9811001394	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-10-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.476912+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	8ea442c3-8ed7-4b6a-a3db-dd74706e9cce	\N	\N	\N	\N	Arjun Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N
-ca561f47-f73a-4401-8c6f-a1c776d88534	TK-0075	Vihaan	Iyer	vihaan.iyer.tk-0075@talakunchi.com	\N	9820010083	\N	\N	\N	Andheri (Western Line)	9811001411	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	767a00dd-6f09-4f64-a44e-8fbe901222af	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-11-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.48702+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	70206c08-0203-4784-8b09-d04d0cff95af	\N	\N	\N	\N	Kabir Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N
-51015348-f872-4e18-b806-e44017e10e4b	TK-0076	Dev	Roy	dev.roy.tk-0076@talakunchi.com	\N	9820010084	\N	\N	\N	Andheri (Western Line)	9811001428	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	c1fa4328-a970-48a1-bc08-d50fe36bf44c	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-12-13	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.497879+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	a583ec5f-f30a-4b03-9e35-6afc3f1aee8d	\N	\N	\N	\N	Rahul Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N
-bfb55863-c987-497b-9a1b-9a7bc56a9509	TK-0077	Nidhi	Bose	nidhi.bose.tk-0077@talakunchi.com	\N	9820010086	\N	\N	\N	Andheri (Western Line)	9811001462	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-01-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.519257+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	a3986a0e-d20f-4f20-a648-adcc724bb622	\N	\N	\N	\N	Lakshmi Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-dd200677-337b-440b-afcb-3a661406f98b	TK-0078	Reyansh	Patel	reyansh.patel.tk-0078@talakunchi.com	\N	9820010087	\N	\N	\N	Andheri (Western Line)	9811001479	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-01-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.531601+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	a3986a0e-d20f-4f20-a648-adcc724bb622	\N	\N	\N	\N	Vihaan Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-8f3346d4-6f76-4575-af6d-a69527694680	TK-0079	Deepak	Singh	deepak.singh.tk-0079@talakunchi.com	\N	9820010088	\N	\N	\N	Andheri (Western Line)	9811001496	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-02-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.541706+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	a3986a0e-d20f-4f20-a648-adcc724bb622	\N	\N	\N	\N	Harsh Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-33e9644b-a618-47ed-b272-c078e19b36ef	TK-0080	Varun	Gaikwad	varun.gaikwad.tk-0080@talakunchi.com	\N	9820010089	\N	\N	\N	Andheri (Western Line)	9811001513	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-03-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.553584+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	a955782d-de73-4939-94f8-5cbf9a2461c2	\N	\N	\N	\N	Siddharth Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-6b4e0847-6c40-471e-89ec-c5b63bb828f0	TK-0081	Arjun	Menon	arjun.menon.tk-0081@talakunchi.com	\N	9820010090	\N	\N	\N	Andheri (Western Line)	9811001530	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.563741+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	a955782d-de73-4939-94f8-5cbf9a2461c2	\N	\N	\N	\N	Alok Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-450f16b6-e35c-4564-969d-6bf6ceec7ff3	TK-0082	Kabir	Sawant	kabir.sawant.tk-0082@talakunchi.com	\N	9820010091	\N	\N	\N	Andheri (Western Line)	9811001547	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-30	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.575322+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	a955782d-de73-4939-94f8-5cbf9a2461c2	\N	\N	\N	\N	Siddharth Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-31e49978-ac22-44bb-a535-11d20d8aeea3	TK-0083	Rahul	Pillai	rahul.pillai.tk-0083@talakunchi.com	\N	9820010092	\N	\N	\N	Andheri (Western Line)	9811001564	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-05-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.585583+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	2cd464a5-b857-46fc-89ea-5dea92640964	\N	\N	\N	\N	Arjun Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-246e0bb0-8a3b-4524-9d7b-3ac6d4ca7d8d	TK-0084	Manish	Malhotra	manish.malhotra.tk-0084@talakunchi.com	\N	9820010093	\N	\N	\N	Andheri (Western Line)	9811001581	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-06-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.596427+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	2cd464a5-b857-46fc-89ea-5dea92640964	\N	\N	\N	\N	Harsh Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-6d26e662-1e9f-4df8-a353-6be5ce9e5261	TK-0085	Lakshmi	Kadam	lakshmi.kadam.tk-0085@talakunchi.com	\N	9820010094	\N	\N	\N	Andheri (Western Line)	9811001598	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.606837+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	2cd464a5-b857-46fc-89ea-5dea92640964	\N	\N	\N	\N	Aarav Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-1fa56f20-56ce-4461-ac66-c7d7b34f16d6	TK-0088	Siddharth	Deshpande	siddharth.deshpande.tk-0088@talakunchi.com	\N	9820010097	\N	\N	\N	Andheri (Western Line)	9811001649	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-09-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.639521+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	568997bf-75a1-46d9-9bdb-6fc05c3b2be1	\N	\N	\N	\N	Vikram Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-cc295432-e771-4d6f-9cc3-079cc5d9b576	TK-0089	Alok	Deshpande	alok.deshpande.tk-0089@talakunchi.com	\N	9820010098	\N	\N	\N	Andheri (Western Line)	9811001666	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-10-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.651136+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3db9d726-85c9-4714-8c95-b5c6ebd45fd4	\N	\N	\N	\N	Manish Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-5ff0346b-75b8-4c62-afc7-afeb35b17a8e	TK-0090	Siddharth	Bose	siddharth.bose.tk-0090@talakunchi.com	\N	9820010099	\N	\N	\N	Andheri (Western Line)	9811001683	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-10-31	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.662063+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3db9d726-85c9-4714-8c95-b5c6ebd45fd4	\N	\N	\N	\N	Aisha Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-9c4cf836-745e-4cf9-9a22-933d5e2638c3	TK-0091	Arjun	Sawant	arjun.sawant.tk-0091@talakunchi.com	\N	9820010100	\N	\N	\N	Andheri (Western Line)	9811001700	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-11-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.672237+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	3db9d726-85c9-4714-8c95-b5c6ebd45fd4	\N	\N	\N	\N	Karan Mehta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-ca209d5b-e1e0-42bf-9dbe-47cf5ed5530c	TK-0092	Harsh	Joshi	harsh.joshi.tk-0092@talakunchi.com	\N	9820010101	\N	\N	\N	Andheri (Western Line)	9811001717	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-12-16	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.683278+00	2026-10-16 09:54:37.34871+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	5a206a6a-dabc-4dfe-b28f-00cc01bc11da	\N	\N	\N	\N	Ira Reddy	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N
-d6ea9f00-bf1b-4aa0-815f-89fe43b1c249	TK-0093	Aarav	Patel	aarav.patel.tk-0093@talakunchi.com	\N	9820010102	\N	\N	\N	Andheri (Western Line)	9811001734	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9fbe-98a4-464d-a638-05f40529c6de	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-08	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.693648+00	2026-10-16 09:54:37.363101+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	c45f4397-0370-43f5-98c7-f419234fa6d8	\N	\N	\N	\N	Neha Choudhary	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N
-f30d1ce8-8a1a-483d-ace2-419cd8672ecc	TK-0094	Manish	Bose	manish.bose.tk-0094@talakunchi.com	\N	9820010103	\N	\N	\N	Andheri (Western Line)	9811001751	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4b680e29-b4fb-4689-9afb-67a7f089f52b	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-31	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.704355+00	2026-10-16 09:54:37.37219+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	c0cdbff8-5ed6-4e49-a562-549aecaacfd7	\N	\N	\N	\N	Aarav Deshmukh	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N
-3398777f-d384-48a2-8076-9c4fb06162bb	TK-0095	Karan	Joshi	karan.joshi.tk-0095@talakunchi.com	\N	9820010104	\N	\N	\N	Andheri (Western Line)	9811001768	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-02-23	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.715255+00	2026-10-16 09:54:37.381116+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	8ab74d70-fc77-4767-87ce-13a6d3f911ce	\N	\N	\N	\N	Shaurya Pandey	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N
-87fd3345-a756-44df-a3e7-5f21fa6e50d3	TK-0098	Aisha	Mathur	aisha.mathur.tk-0098@talakunchi.com	\N	9820010107	\N	\N	\N	Andheri (Western Line)	9811001819	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-05-02	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.747534+00	2026-10-16 09:54:37.309719+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.309719+00	736d1ddd-c56a-4c4f-b266-bc4f6be6ed9c	\N	\N	\N	\N	Divya Sawant	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-d502bbdd-5186-490e-8f0a-5489d2737c6f	TKI-0001	Nikhil	Malhotra	nikhil.malhotra.tki-0001@talakunchi.com	\N	9820010004	\N	\N	\N	Andheri (Western Line)	9811000068	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	c0e1a001-0000-4000-8000-000000000001	Intern	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.672816+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	c0e1a001-0000-4000-8000-000000000002	\N	\N	\N	\N	Aditya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Guardian	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-7e3f1c8d-340c-47d7-b63d-fb047a9106aa	TKI-0002	Aarav	Mathur	aarav.mathur.tki-0002@talakunchi.com	\N	9820010008	\N	\N	\N	Andheri (Western Line)	9811000136	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	caa227a1-2dcf-4195-ab9c-8f76d1862daa	Intern	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.722404+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	98e28e22-95e4-41ee-9178-2912de24f21a	\N	\N	\N	\N	Vihaan Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-62e81e6b-7247-4c3f-a8b8-db21e613d02a	TKI-0003	Aarav	Bose	aarav.bose.tki-0003@talakunchi.com	\N	9820010013	\N	\N	\N	Andheri (Western Line)	9811000221	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e8c22eff-0daf-4690-a537-c8b0b6110a01	Intern	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-09-17	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.782523+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	7bd6b8a7-be33-43ba-b4d7-4d290e71b91e	\N	\N	\N	\N	Kavya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-2b245a46-a64c-440b-861d-24f712bd626e	TKI-0004	Kavya	Mathur	kavya.mathur.tki-0004@talakunchi.com	\N	9820010021	\N	\N	\N	Andheri (Western Line)	9811000357	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	Intern	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-10-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.870977+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	f43fddea-4dd9-4603-a79c-1710224115ae	\N	\N	\N	\N	Vihaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-9312226e-c7f8-4187-887e-67e2124098cd	TKI-0005	Kunal	Rao	kunal.rao.tki-0005@talakunchi.com	\N	9820010026	\N	\N	\N	Andheri (Western Line)	9811000442	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	9050e021-7d84-4401-820e-c0e768abb1ab	Intern	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-11-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.921408+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	6c1b3c1d-4159-41b9-9171-1e4f2501cc32	\N	\N	\N	\N	Omkar Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-f19ea8a8-4d2f-48f9-832e-311f80e49f11	TKI-0006	Ananya	Joshi	ananya.joshi.tki-0006@talakunchi.com	\N	9820010036	\N	\N	\N	Andheri (Western Line)	9811000612	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	e2b10def-c91d-45da-94c5-f5530e743aa2	Intern	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-11-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.016241+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	0b340900-7bd0-4931-8978-832c678c7cbd	\N	\N	\N	\N	Vihaan Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-405610b0-c3bd-4725-a409-5f6dbffeacb4	TKI-0007	Arjun	Wardhan	arjun.wardhan.tki-0007@talakunchi.com	\N	9820010038	\N	\N	\N	Andheri (Western Line)	9811000646	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	bb7ccd5f-2f60-49fb-b984-f11fc47add22	Intern	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-12-18	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.03788+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	859254f8-a1b4-4812-b1d0-aacf111f7235	\N	\N	\N	\N	Krishna Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-9ec115c7-5377-4f9d-b46a-2a3c97bea4de	TKI-0008	Aarav	Reddy	aarav.reddy.tki-0008@talakunchi.com	\N	9820010047	\N	\N	\N	Andheri (Western Line)	9811000799	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2076a9b1-e432-46a9-99b1-36e732159856	Intern	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-01-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.123207+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	6c0bebbb-cc4d-4433-83e9-d65fb5291d75	\N	\N	\N	\N	Vikram Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Spouse	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-5bf6d5c7-4358-49f1-bb6b-9d0b1b38d4ad	TKI-0009	Priya	Mathur	priya.mathur.tki-0009@talakunchi.com	\N	9820010051	\N	\N	\N	Andheri (Western Line)	9811000867	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	Intern	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-02-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.161403+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	1d19d6af-78b4-45ef-bcb3-db1b3896f153	\N	\N	\N	\N	Krishna Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-8e139039-c490-436d-9af4-431d26334b34	TKI-0010	Simran	Deshmukh	simran.deshmukh.tki-0010@talakunchi.com	\N	9820010085	\N	\N	\N	Andheri (Western Line)	9811001445	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	Intern	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-02-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.50859+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	32d7cead-40d2-4d94-89fb-3e48d4160b7c	\N	\N	\N	\N	Manish Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Father	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-d2010072-d612-48ab-9a8a-f137b87e6034	TK-0006	Amit	Deshmukh	amit.deshmukh.tk-0006@talakunchi.com	\N	9820010006	\N	\N	\N	Marine Lines (Western Line)	9811000102	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-07-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.698357+00	2026-10-17 08:10:04.985337+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	5cc5612a-0485-467a-8274-fdc9f892e863	\N	\N	\N	\N	Advait Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-07-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	Pune	\N	\N
-049ac489-bbd3-4153-b933-aec7b7baec89	TK-0004	Admin	User	admin@talakunchi.com	\N	9820000004	\N	\N	\N	Andheri (Western Line)	\N	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	IT Admin	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	2018-06-01	Active	Active	Ongoing	0 (Relevant: 0)	\N	Permanent	\N	No bond	\N	\N	NA	NA	\N	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.5279+00	2026-10-17 07:58:56.045855+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	8225915b-d1c2-49cc-a4fb-d2d49df23e2b	\N	\N	\N	\N	\N	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	\N	\N	NA	NA	Experienced	0	0	\N	\N	Functional - IT Administration	Billable	\N	Long Term	\N	\N	\N	\N	\N
-ffcdc44f-996b-4ef6-90e6-db858823a4c4	TK-0055	Aditya	Menon	aditya.menon@talakunchi.com	\N	9820010063	\N	\N	\N	Andheri (Western Line)	9811001071	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	SOC-Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	2021-08-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.278641+00	2026-10-17 12:23:08.126774+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	c66dd6fd-9b0e-4e51-8df1-788c182986ff	\N	\N	\N	\N	Kavya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Sibling	\N	Services - Operations	Billable	\N	Long Term	\N	\N	\N	\N	\N
-6b1f9737-c1f7-4201-8cd2-9b5e6274ebc8	TK-0086	Vihaan	Joshi	vihaan.joshi.tk-0086@talakunchi.com	\N	9820010095	\N	\N	\N	Andheri (Western Line)	9811001615	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-31	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.617282+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	568997bf-75a1-46d9-9bdb-6fc05c3b2be1	\N	\N	\N	\N	Manish Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	TK-0087	Harsh	Gupta	harsh.gupta.tk-0087@talakunchi.com	\N	9820010096	\N	\N	\N	Andheri (Western Line)	9811001632	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-08-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.628906+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	568997bf-75a1-46d9-9bdb-6fc05c3b2be1	\N	\N	\N	\N	Karan Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-23bf310d-b789-4dcc-bb7e-576b373e72cf	TK-0099	Karan	Mehta	karan.mehta.tk-0099@talakunchi.com	\N	9820010108	\N	\N	\N	Andheri (Western Line)	9811001836	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-05-25	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.767705+00	2026-10-16 09:54:37.319639+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.319639+00	5378a1ad-7ab3-40e5-9048-5165efab2140	\N	\N	\N	\N	Kunal Desai	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N
-089e3bae-d509-46db-906f-3085e0438c9c	TK-0100	Ira	Reddy	ira.reddy.tk-0100@talakunchi.com	\N	9820010109	\N	\N	\N	Andheri (Western Line)	9811001853	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-06-17	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.799186+00	2026-10-16 09:54:37.329732+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.329732+00	5378a1ad-7ab3-40e5-9048-5165efab2140	\N	\N	\N	\N	Vivaan Iyer	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N
-b20f343b-e7fa-4310-9c43-ef10ca51ff6c	TK-0101	Neha	Choudhary	neha.choudhary.tk-0101@talakunchi.com	\N	9820010110	\N	\N	\N	Andheri (Western Line)	9811001870	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-07-10	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.811056+00	2026-10-16 09:54:37.338979+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.338979+00	5378a1ad-7ab3-40e5-9048-5165efab2140	\N	\N	\N	\N	Kavya Deshpande	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N
-f01f614a-af85-4225-a3b4-3c463fb97bdf	TK-0003	Dev	Reddy	dev.reddy.tk-0003@talakunchi.com	\N	9820010003	\N	\N	\N	Andheri (Western Line)	9811000051	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	CTO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-05-09	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.662231+00	2026-10-17 20:45:12.873831+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	0028e31d-d2ff-4a71-b5b2-5f0566961d46	\N	\N	\N	\N	Sana Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-05-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Friend	\N	Leading Compliance & HR Department	Billable	\N	Long Term	\N	\N	\N	\N	\N
+COPY resource.tbl_employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "NationalityId", "ProbationPeriod", "SalaryBandId", "Aadhaar", "EmergencyContactName", "EmployeeStatusId", "BondDelivered", "BondDurationMonths", "BondExpiryDate", "GradDegree", "GradYear", "PostGradDegree", "PostGradYear", "ExpType", "PriorTotalExp", "PriorRelevantExp", "EmergencyContactRelation", "PmoDepartment", "SubDepartment", "BillableStatus", "ClientLocation", "ProjectType", "ProjectAllocated", "ClientEngManagerMapping", "ProjectSite", "EngagementManagerEmployeeId", "ProjectManagerId", "SubDepartmentId") FROM stdin;
+940ec7cd-058d-4f8f-912f-08ae55bac01c	TK-0097	Manish	Mathur	manish.mathur.tk-0097@talakunchi.com	\N	9820010106	\N	\N	\N	Andheri (Western Line)	9811001802	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-04-09	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.736486+00	2026-10-16 09:54:37.284411+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.284411+00	\N	\N	\N	\N	Advait Deshmukh	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	\N
+0a213b8b-1836-4660-9116-536fc9436639	TK-0040	Krishna	Saxena	krishna.saxena.tk-0040@talakunchi.com	\N	9820010046	\N	\N	\N	Andheri (Western Line)	9811000782	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	7c2380da-3ee6-46ad-93d6-a79ce3027f29	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.113491+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+0a46bda6-6481-4bbe-8689-18fe959fa98a	TK-0060	Trisha	Pillai	trisha.pillai.tk-0060@talakunchi.com	\N	9820010068	\N	\N	\N	Andheri (Western Line)	9811001156	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-12-10	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.329721+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+13428d48-c81e-4720-adba-f8490f27e535	TK-0009	Vihaan	Saxena	vihaan.saxena.tk-0009@talakunchi.com	\N	9820010010	\N	\N	\N	Andheri (Western Line)	9811000170	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-24	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	["Certified Ethical Hacker (CEH)"]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.747702+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-09-24	BE	2020	NA	NA	Experienced	2 Years	2 Years	Father	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
+159fb3d0-937c-4f81-ad37-aa1b4f023264	TK-0015	Rajesh	Sharma	rajesh.sharma.tk-0015@talakunchi.com	\N	9820010017	\N	\N	\N	Andheri (Western Line)	9811000289	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-02-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.827405+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
+1fa56f20-56ce-4461-ac66-c7d7b34f16d6	TK-0088	Siddharth	Deshpande	siddharth.deshpande.tk-0088@talakunchi.com	\N	9820010097	\N	\N	\N	Andheri (Western Line)	9811001649	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-09-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.639521+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vikram Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+204776c8-efeb-480f-980b-a3f70be97f91	TK-0070	Divya	Deshmukh	divya.deshmukh.tk-0070@talakunchi.com	\N	9820010078	\N	\N	\N	Andheri (Western Line)	9811001326	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-07-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.43265+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Nidhi Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+4aba0077-4d88-4e0c-8d18-9152eea3fbf9	TK-0001	Vihaan	Pillai	vihaan.pillai.tk-0001@talakunchi.com	\N	9820010001	\N	\N	\N	Andheri (Western Line)	9811000017	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	778f1120-9633-4933-9160-ddaa46668838	CEO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2026-10-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.636311+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Nikhil Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Leading Sales & A/C Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	a12ac80b-a665-4301-898e-e9ca3d44bb20
+2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	TK-0025	Vihaan	Mathur	vihaan.mathur.tk-0025@talakunchi.com	\N	9820010029	\N	\N	\N	Andheri (Western Line)	9811000493	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-09-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.950815+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+238c3cb7-75cf-4478-a48e-fe47465d20b6	TK-0049	Ishita	Patel	ishita.patel.tk-0049@talakunchi.com	\N	9820010057	\N	\N	\N	Andheri (Western Line)	9811000969	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	6d25ff6d-e13d-440f-b775-215547af7acb	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-04-01	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.220166+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+246e0bb0-8a3b-4524-9d7b-3ac6d4ca7d8d	TK-0084	Manish	Malhotra	manish.malhotra.tk-0084@talakunchi.com	\N	9820010093	\N	\N	\N	Andheri (Western Line)	9811001581	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-06-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.596427+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+26fd3209-693a-49d1-9224-8f7e2f3a1c58	TK-0067	Ishaan	Desai	ishaan.desai.tk-0067@talakunchi.com	\N	9820010075	\N	\N	\N	Andheri (Western Line)	9811001275	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-05-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.401399+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+2b245a46-a64c-440b-861d-24f712bd626e	TKI-0004	Kavya	Mathur	kavya.mathur.tki-0004@talakunchi.com	\N	9820010021	\N	\N	\N	Andheri (Western Line)	9811000357	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	Intern	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-10-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.870977+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+30913859-c8e8-4851-852f-28be97c74bb1	TK-0010	Sana	Pillai	sana.pillai.tk-0010@talakunchi.com	\N	9820010011	\N	\N	\N	Andheri (Western Line)	9811000187	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	1f97b442-95c5-4b11-93a0-ea146534ae85	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-10-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.759044+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Pallavi Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-10-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	BKC	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
+31057f6b-b1e5-46e3-a071-b6639b93a15c	TK-0051	Krishna	Bose	krishna.bose.tk-0051@talakunchi.com	\N	9820010059	\N	\N	\N	Andheri (Western Line)	9811001003	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	f20a7445-0b01-4f20-85a5-853101d864ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-05-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.239498+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kunal Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+315ae0c9-ecdf-48ba-a662-f93c21ef31d2	TK-0056	Varun	Pandey	varun.pandey.tk-0056@talakunchi.com	\N	9820010064	\N	\N	\N	Andheri (Western Line)	9811001088	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	SOC-Senior Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-09-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.289299+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+31e49978-ac22-44bb-a535-11d20d8aeea3	TK-0083	Rahul	Pillai	rahul.pillai.tk-0083@talakunchi.com	\N	9820010092	\N	\N	\N	Andheri (Western Line)	9811001564	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-05-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.585583+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+3398777f-d384-48a2-8076-9c4fb06162bb	TK-0095	Karan	Joshi	karan.joshi.tk-0095@talakunchi.com	\N	9820010104	\N	\N	\N	Andheri (Western Line)	9811001768	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-02-23	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.715255+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Shaurya Pandey	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N	88b29e0c-39b7-4169-ab5c-350075014a84
+33e9644b-a618-47ed-b272-c078e19b36ef	TK-0080	Varun	Gaikwad	varun.gaikwad.tk-0080@talakunchi.com	\N	9820010089	\N	\N	\N	Andheri (Western Line)	9811001513	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-03-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.553584+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+13b14e34-f865-4c83-a6c0-3fdf7d196c1c	TK-0029	Reyansh	Sawant	reyansh.sawant.tk-0029@talakunchi.com	\N	9820010033	\N	\N	\N	Andheri (Western Line)	9811000561	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.988005+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	TK-0087	Harsh	Gupta	harsh.gupta.tk-0087@talakunchi.com	\N	9820010096	\N	\N	\N	Andheri (Western Line)	9811001632	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-08-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.628906+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+3a209908-397f-4c90-abf6-9fe52ab98b34	TK-0050	Vihaan	Wardhan	vihaan.wardhan.tk-0050@talakunchi.com	\N	9820010058	\N	\N	\N	Andheri (Western Line)	9811000986	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	48429bb5-c583-4684-b30a-7ed443b671ca	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-04-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.230016+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Meera Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+405610b0-c3bd-4725-a409-5f6dbffeacb4	TKI-0007	Arjun	Wardhan	arjun.wardhan.tki-0007@talakunchi.com	\N	9820010038	\N	\N	\N	Andheri (Western Line)	9811000646	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	bb7ccd5f-2f60-49fb-b984-f11fc47add22	Intern	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-12-18	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.03788+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+41708635-a60e-4fbd-a76b-91c0c23d18be	TK-0071	Advait	Gaikwad	advait.gaikwad.tk-0071@talakunchi.com	\N	9820010079	\N	\N	\N	Andheri (Western Line)	9811001343	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-08-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.443651+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+42583b6b-008c-45f6-b258-b08495712c7c	TK-0016	Harsh	Wardhan	harsh.wardhan.tk-0016@talakunchi.com	\N	9820010018	\N	\N	\N	Andheri (Western Line)	9811000306	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	c70b9832-841e-4864-9b85-eaba3c0a995f	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-03-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.838024+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kunal Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+450f16b6-e35c-4564-969d-6bf6ceec7ff3	TK-0082	Kabir	Sawant	kabir.sawant.tk-0082@talakunchi.com	\N	9820010091	\N	\N	\N	Andheri (Western Line)	9811001547	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-30	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.575322+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+46e3d71d-ea02-474f-b668-f836d91e059d	TK-0062	Siddharth	Iyer	siddharth.iyer.tk-0062@talakunchi.com	\N	9820010070	\N	\N	\N	Andheri (Western Line)	9811001190	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-01-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.350043+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Divya Deshmukh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+4d8e2104-d723-45a0-856f-594f80efd0f6	TK-0064	Amit	Pillai	amit.pillai.tk-0064@talakunchi.com	\N	9820010072	\N	\N	\N	Andheri (Western Line)	9811001224	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-03-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.370485+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+51015348-f872-4e18-b806-e44017e10e4b	TK-0076	Dev	Roy	dev.roy.tk-0076@talakunchi.com	\N	9820010084	\N	\N	\N	Andheri (Western Line)	9811001428	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	c1fa4328-a970-48a1-bc08-d50fe36bf44c	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-12-13	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.497879+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+51df4d23-9202-43b7-9e29-4a14a838a242	TK-0038	Vihaan	Gaikwad	vihaan.gaikwad.tk-0038@talakunchi.com	\N	9820010044	\N	\N	\N	Andheri (Western Line)	9811000748	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-07-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.094147+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+583e812b-e929-4e7c-9d76-33d3fc25cd7d	TK-0013	Tanvi	Gaikwad	tanvi.gaikwad.tk-0013@talakunchi.com	\N	9820010015	\N	\N	\N	Andheri (Western Line)	9811000255	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-12-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.806235+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Anita Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
+218f30c7-87bd-4410-99fc-4d10da3e8014	TK-0043	Yash	Sharma	yash.sharma.tk-0043@talakunchi.com	\N	9820010050	\N	\N	\N	Andheri (Western Line)	9811000850	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2b1558e3-158a-4a84-ae80-053129861a64	Consulting-HOD	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-11-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.151497+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+5bf6d5c7-4358-49f1-bb6b-9d0b1b38d4ad	TKI-0009	Priya	Mathur	priya.mathur.tki-0009@talakunchi.com	\N	9820010051	\N	\N	\N	Andheri (Western Line)	9811000867	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	Intern	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-02-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.161403+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+5e82125c-9ff8-4a97-a11b-65da79677d3c	TK-0074	Reyansh	Wardhan	reyansh.wardhan.tk-0074@talakunchi.com	\N	9820010082	\N	\N	\N	Andheri (Western Line)	9811001394	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-10-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.476912+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	TK-0068	Atharv	Malhotra	atharv.malhotra.tk-0068@talakunchi.com	\N	9820010076	\N	\N	\N	Andheri (Western Line)	9811001292	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-06-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.411718+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Dev Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+5ff0346b-75b8-4c62-afc7-afeb35b17a8e	TK-0090	Siddharth	Bose	siddharth.bose.tk-0090@talakunchi.com	\N	9820010099	\N	\N	\N	Andheri (Western Line)	9811001683	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-10-31	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.662063+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aisha Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+62e81e6b-7247-4c3f-a8b8-db21e613d02a	TKI-0003	Aarav	Bose	aarav.bose.tki-0003@talakunchi.com	\N	9820010013	\N	\N	\N	Andheri (Western Line)	9811000221	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e8c22eff-0daf-4690-a537-c8b0b6110a01	Intern	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-09-17	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.782523+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kavya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+696f99d7-2380-443c-b90d-0e065642e1d4	TK-0019	Priya	Mishra	priya.mishra.tk-0019@talakunchi.com	\N	9820010022	\N	\N	\N	Andheri (Western Line)	9811000374	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-05-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.881525+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+6a1ac61a-89d6-4951-8246-621d4e1b071f	TK-0066	Nikhil	Joshi	nikhil.joshi.tk-0066@talakunchi.com	\N	9820010074	\N	\N	\N	Andheri (Western Line)	9811001258	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-04-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.39087+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+6b1f9737-c1f7-4201-8cd2-9b5e6274ebc8	TK-0086	Vihaan	Joshi	vihaan.joshi.tk-0086@talakunchi.com	\N	9820010095	\N	\N	\N	Andheri (Western Line)	9811001615	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-31	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.617282+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+6b4e0847-6c40-471e-89ec-c5b63bb828f0	TK-0081	Arjun	Menon	arjun.menon.tk-0081@talakunchi.com	\N	9820010090	\N	\N	\N	Andheri (Western Line)	9811001530	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.563741+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Alok Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+6d26e662-1e9f-4df8-a353-6be5ce9e5261	TK-0085	Lakshmi	Kadam	lakshmi.kadam.tk-0085@talakunchi.com	\N	9820010094	\N	\N	\N	Andheri (Western Line)	9811001598	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.606837+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+70e01a7d-fd0b-4e2a-b086-d059423ca380	TK-0014	Vihaan	Kadam	vihaan.kadam.tk-0014@talakunchi.com	\N	9820010016	\N	\N	\N	Andheri (Western Line)	9811000272	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-01-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.816829+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
+74601727-6182-498f-ac57-4c02b9e56ca0	TK-0059	Kunal	Iyer	kunal.iyer.tk-0059@talakunchi.com	\N	9820010067	\N	\N	\N	Andheri (Western Line)	9811001139	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e2b4be77-2b20-4064-974d-e6322e7240b4	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-11-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.319145+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishaan Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N	88b29e0c-39b7-4169-ab5c-350075014a84
+776f2cf7-c4cc-4299-b38f-afbcaff7703e	TK-0030	Omkar	Reddy	omkar.reddy.tk-0030@talakunchi.com	\N	9820010034	\N	\N	\N	Andheri (Western Line)	9811000578	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	157d001c-b056-45b1-96a3-3c05bcd8d99c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-01-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.99725+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+777390a6-91b9-4d9e-806c-16e046568501	TK-0028	Krishna	Joshi	krishna.joshi.tk-0028@talakunchi.com	\N	9820010032	\N	\N	\N	Andheri (Western Line)	9811000544	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.978927+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Suresh Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+78b71d74-d255-4ac0-a75f-ead11a61427a	TK-0035	Aarav	Desai	aarav.desai.tk-0035@talakunchi.com	\N	9820010041	\N	\N	\N	Andheri (Western Line)	9811000697	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-05-14	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.066207+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2022-05-14	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	R&D (Research & Development)	Billable	\N	Long Term	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131
+78c932da-077a-4104-919c-386de88ed062	TK-0058	Meera	Joshi	meera.joshi.tk-0058@talakunchi.com	\N	9820010066	\N	\N	\N	Andheri (Western Line)	9811001122	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	c0f974c3-f49c-449a-9276-aa64ce501344	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.309385+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Nikhil Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+7d2b2c7a-254e-4605-9f79-3f42ac7f9735	TK-0027	Reyansh	Chopra	reyansh.chopra.tk-0027@talakunchi.com	\N	9820010031	\N	\N	\N	Andheri (Western Line)	9811000527	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-11-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.969016+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Yash Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+7e3f1c8d-340c-47d7-b63d-fb047a9106aa	TKI-0002	Aarav	Mathur	aarav.mathur.tki-0002@talakunchi.com	\N	9820010008	\N	\N	\N	Andheri (Western Line)	9811000136	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	caa227a1-2dcf-4195-ab9c-8f76d1862daa	Intern	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.722404+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+804c8187-6f28-411f-8fa5-cc9baceba3e7	TK-0031	Arjun	Joshi	arjun.joshi.tk-0031@talakunchi.com	\N	9820010035	\N	\N	\N	Andheri (Western Line)	9811000595	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	6193be76-40ad-4973-9ee7-246a4d8f4109	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-02-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.006223+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ira Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+818ae1ea-5842-4adb-b475-ac12dba9fd2a	TK-0044	Vihaan	Bose	vihaan.bose.tk-0044@talakunchi.com	\N	9820010052	\N	\N	\N	Andheri (Western Line)	9811000884	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	SOC-HOD	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.171436+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Anita Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+849d2fb1-a4e4-4eb2-947b-f97057e4954b	TK-0005	Dev	Bose	dev.bose.tk-0005@talakunchi.com	\N	9820010005	\N	\N	\N	Andheri (Western Line)	9811000085	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	155642eb-a633-4460-b658-aca9fde2d817	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-06-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.683541+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
+86862bf8-c075-44ef-9f3e-f65d2cc1bb56	TK-0034	Suresh	Desai	suresh.desai.tk-0034@talakunchi.com	\N	9820010040	\N	\N	\N	Andheri (Western Line)	9811000680	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-04-21	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.057075+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Mehra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131
+8bf95b5f-0a1b-4512-9fc4-0e0fd9a4503c	TK-0018	Harsh	Pandey	harsh.pandey.tk-0018@talakunchi.com	\N	9820010020	\N	\N	\N	Andheri (Western Line)	9811000340	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-04-19	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.859733+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+8e0616db-48af-4b73-807f-6e250dba2072	TK-0020	Anita	Pandey	anita.pandey.tk-0020@talakunchi.com	\N	9820010023	\N	\N	\N	Andheri (Western Line)	9811000391	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	2a76927c-461a-48e4-8190-dea7361ef3db	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-06-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.891741+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Chopra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+8e139039-c490-436d-9af4-431d26334b34	TKI-0010	Simran	Deshmukh	simran.deshmukh.tki-0010@talakunchi.com	\N	9820010085	\N	\N	\N	Andheri (Western Line)	9811001445	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	Intern	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-02-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.50859+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Father	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+8f3346d4-6f76-4575-af6d-a69527694680	TK-0079	Deepak	Singh	deepak.singh.tk-0079@talakunchi.com	\N	9820010088	\N	\N	\N	Andheri (Western Line)	9811001496	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-02-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.541706+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+900ed2a0-d8b3-439f-af86-7383cdebcd05	TK-0069	Ishaan	Pansare	ishaan.pansare.tk-0069@talakunchi.com	\N	9820010077	\N	\N	\N	Andheri (Western Line)	9811001309	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-07-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.421674+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Simran Deshmukh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+9312226e-c7f8-4187-887e-67e2124098cd	TKI-0005	Kunal	Rao	kunal.rao.tki-0005@talakunchi.com	\N	9820010026	\N	\N	\N	Andheri (Western Line)	9811000442	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	9050e021-7d84-4401-820e-c0e768abb1ab	Intern	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-11-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.921408+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Omkar Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+9b7f4410-6577-4ab4-9363-e75b9d4208e9	TK-0054	Sana	Rao	sana.rao.tk-0054@talakunchi.com	\N	9820010062	\N	\N	\N	Andheri (Western Line)	9811001054	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	911f6d7f-8d43-40f2-897a-2f416abf8cf9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.26888+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+9c4cf836-745e-4cf9-9a22-933d5e2638c3	TK-0091	Arjun	Sawant	arjun.sawant.tk-0091@talakunchi.com	\N	9820010100	\N	\N	\N	Andheri (Western Line)	9811001700	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-11-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.672237+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Mehta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+9d9bfa3a-8603-4de4-8eb7-76c3935e3014	TK-0012	Advait	Singh	advait.singh.tk-0012@talakunchi.com	\N	9820010014	\N	\N	\N	Andheri (Western Line)	9811000238	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	7d542941-65b9-499b-81b3-239748d6da52	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-12-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.794393+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Priya Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
+9eb64ade-203d-4e4a-aaed-8eaab7d3017d	TK-0033	Yash	Wardhan	yash.wardhan.tk-0033@talakunchi.com	\N	9820010039	\N	\N	\N	Andheri (Western Line)	9811000663	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-03-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.047613+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131
+9ec115c7-5377-4f9d-b46a-2a3c97bea4de	TKI-0008	Aarav	Reddy	aarav.reddy.tki-0008@talakunchi.com	\N	9820010047	\N	\N	\N	Andheri (Western Line)	9811000799	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2076a9b1-e432-46a9-99b1-36e732159856	Intern	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-01-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.123207+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vikram Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Spouse	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+9f646393-8fea-4b38-9f35-d88a6ab6787e	TK-0023	Aarav	Rao	aarav.rao.tk-0023@talakunchi.com	\N	9820010027	\N	\N	\N	Andheri (Western Line)	9811000459	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	8b57cfd5-5d4e-44a3-9646-b36873c111c2	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-08-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.931379+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+a73329ac-636f-475e-b566-321a5686fd66	TK-0017	Pallavi	Sawant	pallavi.sawant.tk-0017@talakunchi.com	\N	9820010019	\N	\N	\N	Andheri (Western Line)	9811000323	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	73bd55bb-5d0e-4381-8ad2-2238377fca93	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-03-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.848874+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+b9c0b8fc-4c96-42fb-8669-d68097cf5392	TK-0048	Aditi	Roy	aditi.roy.tk-0048@talakunchi.com	\N	9820010056	\N	\N	\N	Andheri (Western Line)	9811000952	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	e36018c5-bf48-4f93-bef7-93e8864a0b51	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-03-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.210593+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Varun Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+bbdc4c49-4262-4c1a-a270-1bfe3c550644	TK-0036	Amit	Wardhan	amit.wardhan.tk-0036@talakunchi.com	\N	9820010042	\N	\N	\N	Andheri (Western Line)	9811000714	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	195d6a81-8457-4b60-9382-6a3a0664f0e9	Consulting-Manager	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-06-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.075353+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Yash Sharma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+bbe8dd34-5945-4f0f-ab99-2cb2f7c99c95	TK-0061	Aditya	Pillai	aditya.pillai.tk-0061@talakunchi.com	\N	9820010069	\N	\N	\N	Andheri (Western Line)	9811001173	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-01-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.339329+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishaan Pansare	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+be9f417e-d40a-4c66-91e6-e7fde84b46d5	TK-0026	Krishna	Pandey	krishna.pandey.tk-0026@talakunchi.com	\N	9820010030	\N	\N	\N	Andheri (Western Line)	9811000510	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	138434a2-625f-4df5-836d-fcf0cfceef79	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-10-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.959922+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+bfb55863-c987-497b-9a1b-9a7bc56a9509	TK-0077	Nidhi	Bose	nidhi.bose.tk-0077@talakunchi.com	\N	9820010086	\N	\N	\N	Andheri (Western Line)	9811001462	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-01-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.519257+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Lakshmi Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+c5e35b7a-af12-4fd6-96af-e62225e715c6	TK-0041	Karan	Mehra	karan.mehra.tk-0041@talakunchi.com	\N	9820010048	\N	\N	\N	Andheri (Western Line)	9811000816	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.132457+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditi Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+ca209d5b-e1e0-42bf-9dbe-47cf5ed5530c	TK-0092	Harsh	Joshi	harsh.joshi.tk-0092@talakunchi.com	\N	9820010101	\N	\N	\N	Andheri (Western Line)	9811001717	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-12-16	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.683278+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ira Reddy	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798
+ca561f47-f73a-4401-8c6f-a1c776d88534	TK-0075	Vihaan	Iyer	vihaan.iyer.tk-0075@talakunchi.com	\N	9820010083	\N	\N	\N	Andheri (Western Line)	9811001411	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	767a00dd-6f09-4f64-a44e-8fbe901222af	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-11-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.48702+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kabir Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+cc295432-e771-4d6f-9cc3-079cc5d9b576	TK-0089	Alok	Deshpande	alok.deshpande.tk-0089@talakunchi.com	\N	9820010098	\N	\N	\N	Andheri (Western Line)	9811001666	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-10-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.651136+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+cef36bf2-c4fb-4040-b3ab-d033190ad3b4	TK-0096	Vikram	Joshi	vikram.joshi.tk-0096@talakunchi.com	\N	9820010105	\N	\N	\N	Andheri (Western Line)	9811001785	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-03-17	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.725971+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Sharma	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+d01c0ef5-731e-42de-b02a-7c996c545f15	TK-0045	Vivaan	Mathur	vivaan.mathur.tk-0045@talakunchi.com	\N	9820010053	\N	\N	\N	Andheri (Western Line)	9811000901	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea315f7d-d597-41b3-a999-4f3851bcd020	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-30	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.181143+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sneha Choudhary	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+d17be428-1602-4e09-a164-c3c2666fad73	TK-0002	Neha	Pillai	neha.pillai.tk-0002@talakunchi.com	\N	9820010002	\N	\N	\N	Andheri (Western Line)	9811000034	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	COO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-04-16	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.651331+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Leading Delivery Department	\N	\N	\N	\N	\N	\N	\N	\N	45755b2a-741a-4990-ab78-8f65090f75b1
+d2010072-d612-48ab-9a8a-f137b87e6034	TK-0006	Amit	Deshmukh	amit.deshmukh.tk-0006@talakunchi.com	\N	9820010006	\N	\N	\N	Marine Lines (Western Line)	9811000102	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-07-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.698357+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-07-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	Pune	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
+87fd3345-a756-44df-a3e7-5f21fa6e50d3	TK-0098	Aisha	Mathur	aisha.mathur.tk-0098@talakunchi.com	\N	9820010107	\N	\N	\N	Andheri (Western Line)	9811001819	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-05-02	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.747534+00	2026-10-16 09:54:37.309719+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.309719+00	\N	\N	\N	\N	Divya Sawant	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	\N
+d502bbdd-5186-490e-8f0a-5489d2737c6f	TKI-0001	Nikhil	Malhotra	nikhil.malhotra.tki-0001@talakunchi.com	\N	9820010004	\N	\N	\N	Andheri (Western Line)	9811000068	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	c0e1a001-0000-4000-8000-000000000001	Intern	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.672816+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Guardian	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+d6ea9f00-bf1b-4aa0-815f-89fe43b1c249	TK-0093	Aarav	Patel	aarav.patel.tk-0093@talakunchi.com	\N	9820010102	\N	\N	\N	Andheri (Western Line)	9811001734	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9fbe-98a4-464d-a638-05f40529c6de	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-08	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.693648+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Neha Choudhary	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798
+d73eac4c-d537-4d31-8e35-b55f8aff3e87	TK-0046	Arjun	Pillai	arjun.pillai.tk-0046@talakunchi.com	\N	9820010054	\N	\N	\N	Andheri (Western Line)	9811000918	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	4650d4e0-f73c-4688-ae5f-830a46348ff9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-01-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.190401+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sana Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+d94878fd-4650-46bc-b84c-753c841e7404	TK-0008	Nikhil	Saxena	nikhil.saxena.tk-0008@talakunchi.com	\N	9820010009	\N	\N	\N	Andheri (Western Line)	9811000153	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	SOC-Senior Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-01	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.734742+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rajesh Sharma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-09-01	BE	2020	NA	NA	Experienced	2 Years	2 Years	Guardian	\N	Services - Operations	Billable	\N	Long Term	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	TK-0021	Karan	Wardhan	karan.wardhan.tk-0021@talakunchi.com	\N	9820010024	\N	\N	\N	Andheri (Western Line)	9811000408	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	834c9e15-c70d-4a0b-bb12-5e55f23c181d	EngagementManager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-06-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.901338+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+d9fd54d6-b11b-4969-a25d-8b8e3fcca417	TK-0032	Amit	Sawant	amit.sawant.tk-0032@talakunchi.com	\N	9820010037	\N	\N	\N	Andheri (Western Line)	9811000629	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	e2c675a7-92dc-4477-be75-9a304cbe4def	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-03-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.027123+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Pooja Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+dd200677-337b-440b-afcb-3a661406f98b	TK-0078	Reyansh	Patel	reyansh.patel.tk-0078@talakunchi.com	\N	9820010087	\N	\N	\N	Andheri (Western Line)	9811001479	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-01-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.531601+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+df8f375a-d0b0-40c0-8ada-264fc2275f4f	TK-0057	Advait	Gupta	advait.gupta.tk-0057@talakunchi.com	\N	9820010065	\N	\N	\N	Andheri (Western Line)	9811001105	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	444df30d-c195-42ad-b9a7-d80cdef69ccd	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.299121+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e09daabd-8da2-4dc9-89b4-03f4b79583de	TK-0072	Amit	Gaikwad	amit.gaikwad.tk-0072@talakunchi.com	\N	9820010080	\N	\N	\N	Andheri (Western Line)	9811001360	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	c6c6cd04-6df3-4593-b686-e4b9d362c96f	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-09-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.453799+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Deepak Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+e131815f-331f-46d7-81f8-5d2bed793630	TK-0037	Ira	Bose	ira.bose.tk-0037@talakunchi.com	\N	9820010043	\N	\N	\N	Andheri (Western Line)	9811000731	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	1e7faab8-273d-40df-9f9a-485160186c5a	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-06-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.084626+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Priya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+02814af4-08b4-42cc-92e1-ad0bba687378	TK-0039	Pooja	Bose	pooja.bose.tk-0039@talakunchi.com	\N	9820010045	\N	\N	\N	Andheri (Western Line)	9811000765	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-08-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.103381+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vivaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+033446c7-c133-4395-bdaa-69b5f227a7a8	TK-0024	Atharv	Reddy	atharv.reddy.tk-0024@talakunchi.com	\N	9820010028	\N	\N	\N	Andheri (Western Line)	9811000476	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	9dc69952-eae6-4ec0-a327-67392315f089	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-09-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.940959+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ananya Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+23bf310d-b789-4dcc-bb7e-576b373e72cf	TK-0099	Karan	Mehta	karan.mehta.tk-0099@talakunchi.com	\N	9820010108	\N	\N	\N	Andheri (Western Line)	9811001836	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-05-25	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.767705+00	2026-10-16 09:54:37.319639+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.319639+00	\N	\N	\N	\N	Kunal Desai	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	\N
+089e3bae-d509-46db-906f-3085e0438c9c	TK-0100	Ira	Reddy	ira.reddy.tk-0100@talakunchi.com	\N	9820010109	\N	\N	\N	Andheri (Western Line)	9811001853	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-06-17	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.799186+00	2026-10-16 09:54:37.329732+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.329732+00	\N	\N	\N	\N	Vivaan Iyer	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	\N
+b20f343b-e7fa-4310-9c43-ef10ca51ff6c	TK-0101	Neha	Choudhary	neha.choudhary.tk-0101@talakunchi.com	\N	9820010110	\N	\N	\N	Andheri (Western Line)	9811001870	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-07-10	Terminated	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.811056+00	2026-10-16 09:54:37.338979+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.338979+00	\N	\N	\N	\N	Kavya Deshpande	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	\N
+049ac489-bbd3-4153-b933-aec7b7baec89	TK-0004	Admin	User	admin@talakunchi.com	\N	9820000004	\N	\N	\N	Andheri (Western Line)	\N	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	Admin	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	2018-06-01	Active	Active	Ongoing	0 (Relevant: 0)	\N	Permanent	\N	No bond	\N	\N	NA	NA	\N	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.5279+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	\N	\N	NA	NA	Experienced	0	0	\N	\N	Functional - IT Administration	Billable	\N	Long Term	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+d29c4919-9e2d-46c1-a78f-ffd2d4d32365	TK-0052	Anita	Iyer	anita.iyer.tk-0052@talakunchi.com	\N	9820010060	\N	\N	\N	Andheri (Western Line)	9811001020	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-06-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.249213+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Trisha Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e93a25e9-5347-49e1-b901-88271fdbdcf5	TK-0063	Kavya	Roy	kavya.roy.tk-0063@talakunchi.com	\N	9820010071	\N	\N	\N	Andheri (Western Line)	9811001207	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-02-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.359883+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
+e96df572-92a2-4aa3-a3b4-6f52cfcb5293	TK-0011	Aditya	Roy	aditya.roy.tk-0011@talakunchi.com	\N	9820010012	\N	\N	\N	Andheri (Western Line)	9811000204	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	HR	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-11-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.770263+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
+eba0b052-26bb-4216-ab6e-dff23c63bc57	TK-0022	Rahul	Mishra	rahul.mishra.tk-0022@talakunchi.com	\N	9820010025	\N	\N	\N	Andheri (Western Line)	9811000425	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	d8a2b9e5-f54d-4344-a78d-c6c840467543	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-07-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.910624+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+ee7b555a-4400-4c03-8fe5-60fd908c0e58	TK-0042	Arjun	Mathur	arjun.mathur.tk-0042@talakunchi.com	\N	9820010049	\N	\N	\N	Andheri (Western Line)	9811000833	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	3e60b693-d3dd-4481-95c4-9f02da21625c	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-10-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.141853+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishita Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+f01f614a-af85-4225-a3b4-3c463fb97bdf	TK-0003	Dev	Reddy	dev.reddy.tk-0003@talakunchi.com	\N	9820010003	\N	\N	\N	Andheri (Western Line)	9811000051	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	CTO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-05-09	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.662231+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sana Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-05-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Friend	\N	Leading Compliance & HR Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	61bbeadf-3044-4123-929c-4b1e6e2e613e
+f19ea8a8-4d2f-48f9-832e-311f80e49f11	TKI-0006	Ananya	Joshi	ananya.joshi.tki-0006@talakunchi.com	\N	9820010036	\N	\N	\N	Andheri (Western Line)	9811000612	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	e2b10def-c91d-45da-94c5-f5530e743aa2	Intern	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-11-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.016241+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
+f30d1ce8-8a1a-483d-ace2-419cd8672ecc	TK-0094	Manish	Bose	manish.bose.tk-0094@talakunchi.com	\N	9820010103	\N	\N	\N	Andheri (Western Line)	9811001751	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4b680e29-b4fb-4689-9afb-67a7f089f52b	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-31	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.704355+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Deshmukh	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798
+f39b20bb-8963-4917-aed5-0f1d86f0cbc3	TK-0007	Aarav	Roy	aarav.roy.tk-0007@talakunchi.com	\N	9820010007	\N	\N	\N	Andheri (Western Line)	9811000119	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	6e606c29-2ebf-4ab8-8006-aaedd5680009	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-08-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.709153+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Tanvi Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
+f8b1a855-954d-4f8b-aad7-be5502a7413a	TK-0053	Sneha	Choudhary	sneha.choudhary.tk-0053@talakunchi.com	\N	9820010061	\N	\N	\N	Andheri (Western Line)	9811001037	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.259434+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f90e007c-90d9-440e-8f0a-a85395e49abe	TK-0047	Vikram	Roy	vikram.roy.tk-0047@talakunchi.com	\N	9820010055	\N	\N	\N	Andheri (Western Line)	9811000935	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	af8a1442-c5ee-409d-aa91-61c9dba852ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-02-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.200068+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+faa36d59-2e24-4a0e-851d-42900c200d3b	TK-0073	Rohan	Deshpande	rohan.deshpande.tk-0073@talakunchi.com	\N	9820010081	\N	\N	\N	Andheri (Western Line)	9811001377	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	ae255622-ddcc-45ea-a699-8ec416fe57ab	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-10-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.465301+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Varun Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+fb184814-7151-428d-87c3-f83814676aa5	TK-0065	Reyansh	Mathur	reyansh.mathur.tk-0065@talakunchi.com	\N	9820010073	\N	\N	\N	Andheri (Western Line)	9811001241	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-04-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.380982+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rohan Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
+ffcdc44f-996b-4ef6-90e6-db858823a4c4	TK-0055	Aditya	Menon	aditya.menon@talakunchi.com	\N	9820010063	\N	\N	\N	Andheri (Western Line)	9811001071	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	SOC-Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	2021-08-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.278641+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kavya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Sibling	\N	Services - Operations	Billable	\N	Long Term	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
 \.
 
 
@@ -4953,10 +3301,225 @@ f990999e-7294-4ae5-b0f9-e55b2b2be4ee	f30d1ce8-8a1a-483d-ace2-419cd8672ecc	TK-009
 
 
 --
+-- Data for Name: tbl_onfloorrole; Type: TABLE DATA; Schema: resource; Owner: -
+--
+
+COPY resource.tbl_onfloorrole ("Id", "Name", "DepartmentId", "DesignationId", "SubDepartment", "RbacRoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+01a26d31-4fcd-4ad3-b08e-1276a4620cb8	Team Leader	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	444df30d-c195-42ad-b9a7-d80cdef69ccd	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+03d492f0-4458-48e5-9ee8-06f09f660218	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	48429bb5-c583-4684-b30a-7ed443b671ca	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+0837f524-0260-4283-a37f-6e1fb06d3dcd	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+0acaaceb-a951-4492-bdba-69d5e916f8b4	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9fbe-98a4-464d-a638-05f40529c6de	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+1abc8fed-e830-4103-a5ab-c3402b166116	Team Member	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	c0e1a001-0000-4000-8000-000000000001	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+21c47c58-0be4-41bb-8407-8df5fa4b8e9d	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	af8a1442-c5ee-409d-aa91-61c9dba852ee	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+22a8384f-6070-4554-89f1-ee327ae48f16	Team Member	be8e036d-ad13-4c79-89ec-294e490a6816	2076a9b1-e432-46a9-99b1-36e732159856	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+23f52e10-894f-4e50-970b-202a3127a1d9	Team Member	8e4e88f1-e294-4554-80cc-92ed6169caeb	834c9e15-c70d-4a0b-bb12-5e55f23c181d	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+27d8ec30-01ad-45f2-a7d8-7a54c2d2c754	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	911f6d7f-8d43-40f2-897a-2f416abf8cf9	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+29119117-9aa3-4def-9db8-802f70f74e4b	Team Leader	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	c0f974c3-f49c-449a-9276-aa64ce501344	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+2d4e6116-3ec3-4c5d-9d75-35517814a964	Team Leader	be8e036d-ad13-4c79-89ec-294e490a6816	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	Services - Consulting	701aaa2c-a899-4def-bf5f-e17511874409	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+3091c873-f1f0-4632-ac1e-62d1a451c39d	Manager	13c91c98-00ae-4211-acb8-d06e35953806	157d001c-b056-45b1-96a3-3c05bcd8d99c	Functional - Sales	914d8500-03b6-4a43-a250-244effca1cf1	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+3101ee42-6788-4ae4-a80b-f7394720b740	Team Member	13c91c98-00ae-4211-acb8-d06e35953806	e2c675a7-92dc-4477-be75-9a304cbe4def	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+36339f27-5abf-4ffc-bca3-5a2333a94df2	Manager	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+39c52128-53f4-4e39-8102-4b9ccc9f5584	Team Leader	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+3d74762f-cfbc-4cb9-b172-c2aaffc64f30	Team Member	13c91c98-00ae-4211-acb8-d06e35953806	e2b10def-c91d-45da-94c5-f5530e743aa2	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+475cc74e-698a-4547-966a-823be44cfd15	Team Member	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+4766e158-b2c1-44dd-a36d-18583c490193	Team Member	8e4e88f1-e294-4554-80cc-92ed6169caeb	2a76927c-461a-48e4-8190-dea7361ef3db	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+4cc83d93-7b2f-4c97-a4a7-e9ec47735e4b	Team Member	be8e036d-ad13-4c79-89ec-294e490a6816	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+4d8c99f7-b5c4-434a-ae7c-64419a5a1bcf	HR	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+54123afd-2783-4a41-b18f-328d024e8a22	Accounts	bcbd68c8-c3f3-4396-abb0-0b0e13637958	4ef1cb5b-9688-4ce2-95b3-6a0863200166	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+56779122-3301-4a2c-bc35-085f96ee714b	HR	310a2f16-15f6-4b82-95f6-ab18b5b429f5	7d542941-65b9-499b-81b3-239748d6da52	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+56ed9417-a9fd-40ff-a517-1e75bbf02d63	Sr. Manager	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	Services - Operations	b2b2eb75-64bf-46cc-b24e-c2d34a9cc5c7	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+580f3fc7-ff2d-4881-a222-d91a7c00f491	HR	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+5814389a-4416-4e4d-96a7-58f4801e2757	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+59cf62d4-7c2d-4e4c-b075-0db51d40ea4e	Team Member	898c36e9-1cb7-4c56-9148-a3b6893c0149	bb7ccd5f-2f60-49fb-b984-f11fc47add22	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+5c9266d9-5a57-4b6c-aabc-18edce40ae96	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	f20a7445-0b01-4f20-85a5-853101d864ee	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+67084a5d-02d0-4a73-a15f-45aca43adb58	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+67306ff5-e313-43da-99bc-56b6a6ca65ee	Team Member	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+67bdeca7-fe42-4b4e-b5b6-9e8e8d410413	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	4650d4e0-f73c-4688-ae5f-830a46348ff9	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+6890c399-940e-4c2a-9aba-0dd90a50e063	Head Of Department	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	Services - Operations	3d068c2f-d0a1-4045-bad9-0f3a43efec4f	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+6eaffc67-3d6e-4bb6-9c90-0a604398090d	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+70480603-7eae-41f7-b659-052b7500ca91	Team Member	13c91c98-00ae-4211-acb8-d06e35953806	6193be76-40ad-4973-9ee7-246a4d8f4109	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+734614d6-908f-4f24-8331-c515a6d70149	Team Member	be8e036d-ad13-4c79-89ec-294e490a6816	1e7faab8-273d-40df-9f9a-485160186c5a	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+746752f8-decb-46a0-a7e1-d07a0a68dbc3	Team Member	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+7d2b7826-2f63-4796-9032-5ffa35cd5b37	Manager	be8e036d-ad13-4c79-89ec-294e490a6816	195d6a81-8457-4b60-9382-6a3a0664f0e9	Services - Consulting	e5d6f6ff-be59-4cc4-a8c6-65191d550d0a	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+7fe8d8b6-c0fc-4015-a3ff-5bb8e95ea0d5	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	ae255622-ddcc-45ea-a699-8ec416fe57ab	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+8211f0b1-d111-400b-94ab-fd663d50ec65	Team Member	898c36e9-1cb7-4c56-9148-a3b6893c0149	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+8765d1b0-e4fc-4686-91ea-f5ad4e929818	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+87ea604f-b245-49c0-9172-3956f1d6eb75	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+885809b5-843a-4ec9-bafe-da1472b73a03	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+9326acb0-20c1-4d05-89b6-d85ee3425469	Project Manager	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	Services - Operations	111cc3cd-6d35-43ce-be91-dde90d3d4015	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+9635b694-a552-42c0-9df3-a6090c9b1923	Leader	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	Leading Compliance & HR Department	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+99039771-cd5a-4878-a7b9-9cdaa02f5be6	Accounts	bcbd68c8-c3f3-4396-abb0-0b0e13637958	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+9ac666ca-eaa2-46a5-b489-66a8cc550b65	Team Member	be8e036d-ad13-4c79-89ec-294e490a6816	7c2380da-3ee6-46ad-93d6-a79ce3027f29	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+9ad0a166-cde2-4817-9acd-363d217422d9	Team Leader	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+9ed3ce2c-add0-4472-9da8-4cd5c0552867	Accounts	bcbd68c8-c3f3-4396-abb0-0b0e13637958	1f97b442-95c5-4b11-93a0-ea146534ae85	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+a1826c58-197f-4c7e-9909-a8970491fe38	Team Leader	be8e036d-ad13-4c79-89ec-294e490a6816	3e60b693-d3dd-4481-95c4-9f02da21625c	Services - Consulting	701aaa2c-a899-4def-bf5f-e17511874409	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	Sr. Manager	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	efc1df20-ca04-44a6-87b2-7cae1ff50a88	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+acbe4f0d-8058-4a88-9255-08104f0037b6	Team Member	8e4e88f1-e294-4554-80cc-92ed6169caeb	d8a2b9e5-f54d-4344-a78d-c6c840467543	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+acf26b08-e6ae-4343-9bf9-529b070835a3	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea315f7d-d597-41b3-a999-4f3851bcd020	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+ae6e9e5b-7337-47a3-8fe5-bb02a9a7f374	Manager	8e4e88f1-e294-4554-80cc-92ed6169caeb	138434a2-625f-4df5-836d-fcf0cfceef79	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+b24b3d9d-7454-4657-bb24-3c4f0f40956e	Team Member	898c36e9-1cb7-4c56-9148-a3b6893c0149	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+b25515f1-974c-4b63-a8b6-ca6e7ab95393	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+b4b2673b-fc1c-4484-8f2d-903a39dff2a9	Manager	13c91c98-00ae-4211-acb8-d06e35953806	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	Functional - Sales	914d8500-03b6-4a43-a250-244effca1cf1	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+b5974e61-080c-4de2-a977-7f0bdee29949	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	6d25ff6d-e13d-440f-b775-215547af7acb	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+b7425734-5262-4802-9a10-5e3141b11d6c	Team Member	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e8c22eff-0daf-4690-a537-c8b0b6110a01	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+b9232654-c160-4e84-bdc3-ad94a605dbe1	IT Admin	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	73bd55bb-5d0e-4381-8ad2-2238377fca93	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+b9f75ed9-10c6-4b61-ad05-b27ec89a8b3b	IT Admin	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	c70b9832-841e-4864-9b85-eaba3c0a995f	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+bb6f610b-b2f5-4b01-9ea4-fb9ad074b768	Team Leader	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	e36018c5-bf48-4f93-bef7-93e8864a0b51	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+bce667dd-cae2-404d-8013-49194e0f48d9	Team Member	bcbd68c8-c3f3-4396-abb0-0b0e13637958	caa227a1-2dcf-4195-ab9c-8f76d1862daa	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+c4d57da3-eff2-4cd1-834f-e0d77b39f299	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+c4ef6b03-baa6-47ac-8d06-c8819ddbdaa7	HR	310a2f16-15f6-4b82-95f6-ab18b5b429f5	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+c5ea1ba3-9974-4cca-9320-362527502c6e	Accounts	bcbd68c8-c3f3-4396-abb0-0b0e13637958	155642eb-a633-4460-b658-aca9fde2d817	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+c637e1a2-5677-45fa-bbbf-f88fc60a9443	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	767a00dd-6f09-4f64-a44e-8fbe901222af	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+ccf1432a-d667-4fff-8071-efbc9f841976	Accounts	bcbd68c8-c3f3-4396-abb0-0b0e13637958	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+ce7509b0-415c-4d04-a2d8-43c3ee382a72	Team Member	8e4e88f1-e294-4554-80cc-92ed6169caeb	9050e021-7d84-4401-820e-c0e768abb1ab	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+d412d761-e42e-4ab2-8e58-1df17b290365	Accounts	bcbd68c8-c3f3-4396-abb0-0b0e13637958	6e606c29-2ebf-4ab8-8006-aaedd5680009	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+d6002117-fdbb-437a-986f-dde6b5b5c162	Manager	0aed67b8-c454-439a-a07f-4f46d46d58af	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	Services - Testing - Cloud & AI	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+d862a290-2a0a-47f2-9c23-2baf830a37b9	Team Leader	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+d8d41d59-fe4b-4c54-80d3-751a7bbf714c	IT Admin	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+da608430-bf9a-4a87-9881-1c07e7f2974a	Head Of Department	be8e036d-ad13-4c79-89ec-294e490a6816	2b1558e3-158a-4a84-ae80-053129861a64	Services - Consulting	64c49f37-a38a-46a6-9622-7427f1501658	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+e061fae9-2430-4025-ad39-ff79717301a5	Team Leader	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+e1f2260d-b878-4693-86db-2513390804aa	Team Member	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+e3c262a4-4108-4592-abb0-643085d6a305	Manager	0aed67b8-c454-439a-a07f-4f46d46d58af	c1fa4328-a970-48a1-bc08-d50fe36bf44c	Services - Testing - DevSecOps	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+e3ede776-6573-4898-9195-fb2a398100b2	Team Member	13c91c98-00ae-4211-acb8-d06e35953806	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+e60fe13f-6f3e-4410-80c9-dcfbb88f0301	Leader	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	778f1120-9633-4933-9160-ddaa46668838	Leading Sales & A/C Department	62a927b7-9fd8-461a-b64e-1aa441eeba4d	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+eb9edaa3-2522-4d91-ab86-d786a7250f91	Manager	0aed67b8-c454-439a-a07f-4f46d46d58af	4b680e29-b4fb-4689-9afb-67a7f089f52b	Services - Testing - Red Team	29ad5710-1621-4c24-ac75-dedfc168ba1a	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+ec4a89e1-35a6-495a-83c9-b6a34ee00402	Team Member	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	Across all Sub Departments	f29af015-7833-4f9a-ac57-6fbef5bf91ec	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+ecc39c47-956d-49b9-8fbc-44a6433f3912	Team Member	0aed67b8-c454-439a-a07f-4f46d46d58af	e2b4be77-2b20-4064-974d-e6322e7240b4	Services - Testing - Cloud & AI	92aa9169-28d9-4754-a570-553b067642ed	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+f39ba18d-6be5-4d23-a99f-f8d7a68c43dc	HR	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+f4e2358e-5ec0-4292-8377-438dabb72fbe	Team Leader	8e4e88f1-e294-4554-80cc-92ed6169caeb	8b57cfd5-5d4e-44a3-9646-b36873c111c2	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+f51841ca-ffbc-4619-98be-201d736e4f48	Team Member	be8e036d-ad13-4c79-89ec-294e490a6816	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+f6560080-4b30-4b4b-b8ba-90d5b0ead2da	Team Leader	0aed67b8-c454-439a-a07f-4f46d46d58af	c6c6cd04-6df3-4593-b686-e4b9d362c96f	Services - Testing - DevSecOps	a3793f87-7f3c-41a1-a675-236fc1b710ab	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+f7a34722-94ab-4e14-ad50-5e5f0b44cca6	Manager	8e4e88f1-e294-4554-80cc-92ed6169caeb	9dc69952-eae6-4ec0-a327-67392315f089	EM (Engagement Manager)	a5023c9e-367f-41e1-ba02-bdb2929edc89	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+fec21974-29e7-4dcf-8438-efb813045170	Leader	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	Leading Delivery Department	a5bfe265-981a-4723-b7bb-6ddc389db7f0	2026-10-20 16:12:25.847811+00	\N	\N	\N	\N
+\.
+
+
+--
+-- Data for Name: tbl_onfloorrole_subdepartment; Type: TABLE DATA; Schema: resource; Owner: -
+--
+
+COPY resource.tbl_onfloorrole_subdepartment ("Id", "OnFloorRoleId", "SubDepartmentId") FROM stdin;
+0256674f-b091-40ad-bc6c-8b335ff8d6dd	b9f75ed9-10c6-4b61-ad05-b27ec89a8b3b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+071391fe-32a8-481c-a084-17c3df0239d1	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+0c43f8fb-783c-4e9c-8dae-d62fce333f41	f39ba18d-6be5-4d23-a99f-f8d7a68c43dc	c88d783b-b628-4f3a-a972-aa56aeed5e77
+0cf3390d-7355-41e8-870d-966ba448aaaa	e3ede776-6573-4898-9195-fb2a398100b2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+10380953-9255-4575-81f7-4ce44655b4f4	f51841ca-ffbc-4619-98be-201d736e4f48	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+11db655a-e1bc-4166-a349-df63fd132501	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+11e7d097-a618-4306-a56d-dc0b328cdeca	c4ef6b03-baa6-47ac-8d06-c8819ddbdaa7	c88d783b-b628-4f3a-a972-aa56aeed5e77
+12af92bf-b2c1-4cfd-8e46-5f1e1cf07dc7	b24b3d9d-7454-4657-bb24-3c4f0f40956e	7682acb3-561b-4951-801b-c1564adda131
+132096f4-000a-468d-a8d9-0ab759f90f92	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	db0addff-605e-439f-917b-38016a398755
+16df9b49-1260-4ae0-920c-16e38c0e87c1	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+19aec58c-c708-41d5-93b5-11693eba8740	ccf1432a-d667-4fff-8071-efbc9f841976	5d962383-f175-4dd8-af63-8a566a0d2255
+1c2c1ee0-5a27-40ba-8bec-9280d2180063	acbe4f0d-8058-4a88-9255-08104f0037b6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+1e2d853c-e92d-42ec-9ed3-a90749b8c4e8	6890c399-940e-4c2a-9aba-0dd90a50e063	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+1fee4e2b-c738-418c-aaad-fd2883b046f4	c4d57da3-eff2-4cd1-834f-e0d77b39f299	db0addff-605e-439f-917b-38016a398755
+223a223f-bd94-40c0-90cd-7e562f7c010a	2d4e6116-3ec3-4c5d-9d75-35517814a964	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+234bab70-10b1-4547-9aed-30d2a1036c0d	8211f0b1-d111-400b-94ab-fd663d50ec65	7682acb3-561b-4951-801b-c1564adda131
+2371964f-0895-4ceb-9d7b-cda4dcf592f5	5814389a-4416-4e4d-96a7-58f4801e2757	682d36c0-4256-42ab-811e-054ab3a5b10f
+25d284fa-30b9-459c-87a0-d29c5fdb609c	21c47c58-0be4-41bb-8407-8df5fa4b8e9d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+27eac9fa-9949-4d65-b385-0a6724a85c60	475cc74e-698a-4547-966a-823be44cfd15	7682acb3-561b-4951-801b-c1564adda131
+283bcfef-32af-4796-80d7-6b076bf67d71	d862a290-2a0a-47f2-9c23-2baf830a37b9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+2aeb9983-201c-4630-b832-5659c2359fcc	67bdeca7-fe42-4b4e-b5b6-9e8e8d410413	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2f4e7ad3-f379-4353-9f94-d77a832e769f	b4b2673b-fc1c-4484-8f2d-903a39dff2a9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+2ff91e60-730e-4da5-88f8-4d345f7c5d9e	36339f27-5abf-4ffc-bca3-5a2333a94df2	682d36c0-4256-42ab-811e-054ab3a5b10f
+305be1d5-8175-4335-8c04-2751bbc8a44d	36339f27-5abf-4ffc-bca3-5a2333a94df2	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+3124aafa-7fc1-4a28-b83d-e5774259d5bf	bce667dd-cae2-404d-8013-49194e0f48d9	63765624-d7d1-472d-abd4-627127646998
+333f96ca-186e-48f7-a82b-9e916a4016b5	9ad0a166-cde2-4817-9acd-363d217422d9	682d36c0-4256-42ab-811e-054ab3a5b10f
+345b18b1-2887-4607-b227-1f33121d9ee4	87ea604f-b245-49c0-9172-3956f1d6eb75	db0addff-605e-439f-917b-38016a398755
+348d2b22-f710-49e7-b75d-ff71ea54a934	7fe8d8b6-c0fc-4015-a3ff-5bb8e95ea0d5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+356b50b5-9f8d-4d53-bb5f-21e17b6b4989	4cc83d93-7b2f-4c97-a4a7-e9ec47735e4b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+35c06933-3e90-4d6d-a9ae-91a93adb09e8	d6002117-fdbb-437a-986f-dde6b5b5c162	88b29e0c-39b7-4169-ab5c-350075014a84
+3688199b-0f25-42aa-80c5-dfaaef5045b2	734614d6-908f-4f24-8331-c515a6d70149	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+3bd6b2e4-e081-43aa-a9e3-33a68a9490ac	c4d57da3-eff2-4cd1-834f-e0d77b39f299	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+40f32bae-cfe8-4d34-8802-c240842cab87	7d2b7826-2f63-4796-9032-5ffa35cd5b37	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+4efcf35c-8d55-4333-8559-273a9a227fea	1abc8fed-e830-4103-a5ab-c3402b166116	63765624-d7d1-472d-abd4-627127646998
+5125aac0-b82a-46dc-ad9e-63694004c665	ec4a89e1-35a6-495a-83c9-b6a34ee00402	63765624-d7d1-472d-abd4-627127646998
+51f7821a-9af2-435f-840e-1253b4916298	4d8c99f7-b5c4-434a-ae7c-64419a5a1bcf	c88d783b-b628-4f3a-a972-aa56aeed5e77
+54747407-1a34-48c2-bbb9-ff0a32081dcd	9ac666ca-eaa2-46a5-b489-66a8cc550b65	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+54bca425-0082-419b-be30-3b65dc852bda	f4e2358e-5ec0-4292-8377-438dabb72fbe	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+550fc3f7-e7b5-41e8-a0ae-cc75210f541f	fec21974-29e7-4dcf-8438-efb813045170	45755b2a-741a-4990-ab78-8f65090f75b1
+572437f0-d301-46fb-a7d2-5edcb563ca0e	27d8ec30-01ad-45f2-a7d8-7a54c2d2c754	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+5a2a9795-f4fb-4693-ab57-184e21925d9b	70480603-7eae-41f7-b659-052b7500ca91	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+5a472e59-de31-4194-8c41-9d60a9c80f33	01a26d31-4fcd-4ad3-b08e-1276a4620cb8	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+5c0fbb4e-60e5-4678-9981-ad7d3446464f	03d492f0-4458-48e5-9ee8-06f09f660218	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+5fabf85b-3b23-4cb7-a188-9098a3133966	3101ee42-6788-4ae4-a80b-f7394720b740	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+64196af7-166c-46c1-b8cf-de4d93efdd04	87ea604f-b245-49c0-9172-3956f1d6eb75	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+6756c955-a358-4f3f-a7e7-78b641c3e67e	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	db0addff-605e-439f-917b-38016a398755
+6818f255-947f-48ab-8058-6add0d526218	54123afd-2783-4a41-b18f-328d024e8a22	5d962383-f175-4dd8-af63-8a566a0d2255
+6981300a-d281-448b-9560-a95ff113c5d9	c637e1a2-5677-45fa-bbbf-f88fc60a9443	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+69dec449-ba58-4d90-9038-4cf6ffc6d9ec	5814389a-4416-4e4d-96a7-58f4801e2757	db0addff-605e-439f-917b-38016a398755
+705dc5f4-79fd-4b24-bf09-0fcc7986f889	9326acb0-20c1-4d05-89b6-d85ee3425469	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+719bfc27-396c-4d57-b9af-316c9ad82784	e3c262a4-4108-4592-abb0-643085d6a305	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+74945e42-5a2b-4ecd-b19a-aa6ea7d50a94	b25515f1-974c-4b63-a8b6-ca6e7ab95393	63765624-d7d1-472d-abd4-627127646998
+77d2b22e-83b2-4614-85ee-5260262d3b35	e061fae9-2430-4025-ad39-ff79717301a5	db0addff-605e-439f-917b-38016a398755
+791efc1f-41eb-4857-a520-06241cb34bcb	eb9edaa3-2522-4d91-ab86-d786a7250f91	b651aec8-5455-4329-8251-0ceb62cea798
+7cf35b89-7331-435d-a139-8c87a85e827d	746752f8-decb-46a0-a7e1-d07a0a68dbc3	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+80158e9d-0bb4-4093-9864-16a2388ceca9	22a8384f-6070-4554-89f1-ee327ae48f16	63765624-d7d1-472d-abd4-627127646998
+8118dd54-745b-4c69-8fc3-ee636f680f40	56ed9417-a9fd-40ff-a517-1e75bbf02d63	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+814fb568-7a14-4840-b431-306a6da44a13	acf26b08-e6ae-4343-9bf9-529b070835a3	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+83115aa5-9c6d-4172-8a58-cafc20cc9edd	39c52128-53f4-4e39-8102-4b9ccc9f5584	682d36c0-4256-42ab-811e-054ab3a5b10f
+862db09d-13db-4aed-a314-76f522929e57	67084a5d-02d0-4a73-a15f-45aca43adb58	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+8bc7e645-ff76-48c0-a3ef-d7854e6a8596	580f3fc7-ff2d-4881-a222-d91a7c00f491	c88d783b-b628-4f3a-a972-aa56aeed5e77
+8c946ae0-ef92-4af7-8ead-0320e9b267ff	c5ea1ba3-9974-4cca-9320-362527502c6e	5d962383-f175-4dd8-af63-8a566a0d2255
+8f6e490a-db58-497d-80bb-ca9bca2e5dc2	0acaaceb-a951-4492-bdba-69d5e916f8b4	b651aec8-5455-4329-8251-0ceb62cea798
+91d3f645-e645-4b53-aae3-a60466a41983	a1826c58-197f-4c7e-9909-a8970491fe38	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+93d70a22-ef8e-4a8f-a0d7-79fd792abbda	b7425734-5262-4802-9a10-5e3141b11d6c	63765624-d7d1-472d-abd4-627127646998
+94870357-26d6-47c2-a561-45a15d04cd97	e1f2260d-b878-4693-86db-2513390804aa	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+94e77b05-a9cb-4dd4-9e8d-5fc452a3a83e	6eaffc67-3d6e-4bb6-9c90-0a604398090d	db0addff-605e-439f-917b-38016a398755
+95405b00-372e-4498-9773-5996d437bef9	39c52128-53f4-4e39-8102-4b9ccc9f5584	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+96479a6f-6de3-4af3-8d02-60cfda391ccf	ce7509b0-415c-4d04-a2d8-43c3ee382a72	63765624-d7d1-472d-abd4-627127646998
+965f4e56-9cd1-46ad-aea6-3cd178a061fd	56779122-3301-4a2c-bc35-085f96ee714b	c88d783b-b628-4f3a-a972-aa56aeed5e77
+96bb0a74-0bb6-47ec-a1e0-172ca4f4d439	23f52e10-894f-4e50-970b-202a3127a1d9	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+991f0deb-ecd3-427f-ae93-8451d31ff66d	0837f524-0260-4283-a37f-6e1fb06d3dcd	b651aec8-5455-4329-8251-0ceb62cea798
+9c885c72-a75c-4e39-9547-084cc59dc0a2	67306ff5-e313-43da-99bc-56b6a6ca65ee	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+9cab6dbe-5ff5-4449-b667-df1207c0d87d	3d74762f-cfbc-4cb9-b172-c2aaffc64f30	63765624-d7d1-472d-abd4-627127646998
+9ddbae7a-1146-445e-8316-75f21f518d68	bb6f610b-b2f5-4b01-9ea4-fb9ad074b768	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+a1ee116b-209c-495c-8e3c-e0f1af1bfacd	b9232654-c160-4e84-bdc3-ad94a605dbe1	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+a979ef38-6d83-41b3-a232-cbdfd9dd6794	99039771-cd5a-4878-a7b9-9cdaa02f5be6	5d962383-f175-4dd8-af63-8a566a0d2255
+ac697d5e-f758-454e-9f88-41f0825ce8c0	ae6e9e5b-7337-47a3-8fe5-bb02a9a7f374	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+ac99c928-9cf3-4dd6-9518-431930d7edb6	3091c873-f1f0-4632-ac1e-62d1a451c39d	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+ad6e96ad-0c8f-4415-9474-6829e5cbc9a3	ecc39c47-956d-49b9-8fbc-44a6433f3912	88b29e0c-39b7-4169-ab5c-350075014a84
+ae6f8fca-6985-4156-8927-cb3cd2b2de76	f7a34722-94ab-4e14-ad50-5e5f0b44cca6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+b019273f-c436-486d-8883-f936a68ecd6b	4766e158-b2c1-44dd-a36d-18583c490193	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+b079d4d1-76b8-47eb-b1e5-8d34c9693554	9ed3ce2c-add0-4472-9da8-4cd5c0552867	5d962383-f175-4dd8-af63-8a566a0d2255
+b4f4ec38-7cf8-4b76-b738-d7f5a0aca45f	6eaffc67-3d6e-4bb6-9c90-0a604398090d	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+b72ab42f-43d5-4182-8294-7c4f67623b98	f6560080-4b30-4b4b-b8ba-90d5b0ead2da	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+bafdb59e-0ba3-48f6-a1d3-8931018e5b12	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	682d36c0-4256-42ab-811e-054ab3a5b10f
+c46656cf-2b20-4ef4-9668-4719b3e34677	36339f27-5abf-4ffc-bca3-5a2333a94df2	db0addff-605e-439f-917b-38016a398755
+c6987ef9-e848-470a-8c10-ce89e9b3f55c	d8d41d59-fe4b-4c54-80d3-751a7bbf714c	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+cad818e1-275c-4c5a-b580-c80938f77ba2	9635b694-a552-42c0-9df3-a6090c9b1923	61bbeadf-3044-4123-929c-4b1e6e2e613e
+cceb6c9e-073b-4833-b813-ce43fe1475b2	e061fae9-2430-4025-ad39-ff79717301a5	682d36c0-4256-42ab-811e-054ab3a5b10f
+cf2d20e8-ed0a-4388-b626-2ee6ed0cdeed	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	682d36c0-4256-42ab-811e-054ab3a5b10f
+d113383d-ac82-4bb9-a1fe-d5313d5a13fd	e061fae9-2430-4025-ad39-ff79717301a5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d63f4840-8d3a-436e-a9c0-d1ab68c4ac28	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	682d36c0-4256-42ab-811e-054ab3a5b10f
+d6c3e78c-af57-4cf7-98fa-7a98e05ffa94	6eaffc67-3d6e-4bb6-9c90-0a604398090d	682d36c0-4256-42ab-811e-054ab3a5b10f
+dacef2f9-454c-49af-aa4e-9fe8c3f36975	5814389a-4416-4e4d-96a7-58f4801e2757	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+db8a2a1c-cb30-41d1-92f8-b2ee025e63a5	87ea604f-b245-49c0-9172-3956f1d6eb75	682d36c0-4256-42ab-811e-054ab3a5b10f
+ddd89bec-a910-4573-8cdb-8fc6496d816c	9ad0a166-cde2-4817-9acd-363d217422d9	db0addff-605e-439f-917b-38016a398755
+de75e7a1-4139-4d13-aff7-f8b44ccf22d8	d412d761-e42e-4ab2-8e58-1df17b290365	5d962383-f175-4dd8-af63-8a566a0d2255
+e0e5ba30-c708-4f8b-9e7b-faab2b46a969	b5974e61-080c-4de2-a977-7f0bdee29949	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e24d882f-5b2d-4654-a42a-dd6ec58f01fc	e60fe13f-6f3e-4410-80c9-dcfbb88f0301	a12ac80b-a665-4301-898e-e9ca3d44bb20
+e41882eb-3e73-4c7b-95ee-8b499d39c44a	5c9266d9-5a57-4b6c-aabc-18edce40ae96	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e6802302-6110-4568-af10-fc18caa45548	59cf62d4-7c2d-4e4c-b075-0db51d40ea4e	63765624-d7d1-472d-abd4-627127646998
+ee7fda94-9e2e-476b-a5f8-b88d39ee1592	29119117-9aa3-4def-9db8-802f70f74e4b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f172907e-0654-4887-8daa-2646ba569313	885809b5-843a-4ec9-bafe-da1472b73a03	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f31dc0f9-0916-4709-bd9c-c5c2e026915e	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	db0addff-605e-439f-917b-38016a398755
+f89a038f-0980-401c-acdf-81888311c2b9	8765d1b0-e4fc-4686-91ea-f5ad4e929818	63765624-d7d1-472d-abd4-627127646998
+fc2be082-e20d-4511-b4a9-63161acc81f6	9ad0a166-cde2-4817-9acd-363d217422d9	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+fc6b73b1-6eba-4add-ad71-8ec50176ab31	39c52128-53f4-4e39-8102-4b9ccc9f5584	db0addff-605e-439f-917b-38016a398755
+fdc6b419-0d84-4788-af2f-cfeac991f435	c4d57da3-eff2-4cd1-834f-e0d77b39f299	682d36c0-4256-42ab-811e-054ab3a5b10f
+fec7856d-5749-4b82-8bf3-71ac4a5e6a13	da608430-bf9a-4a87-9881-1c07e7f2974a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+\.
+
+
+--
 -- Data for Name: tbl_team_day_entries; Type: TABLE DATA; Schema: timesheet; Owner: -
 --
 
 COPY timesheet.tbl_team_day_entries ("Id", "EmployeeId", "WorkDate", "Attendance", "Shift", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+df4acf33-00d4-4066-802a-94f0d91b5d31	8bf95b5f-0a1b-4512-9fc4-0e0fd9a4503c	2026-10-18	onsite	General	2026-10-18 10:40:45.088531+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4981,7 +3544,7 @@ COPY timesheet.tbl_team_member_schedules ("Id", "EmployeeId", "WorkingDays", "No
 --
 
 COPY timesheet.tbl_timesheet_entries ("Id", "TimesheetWeekId", "ProjectKey", "TaskKey", "ProjectName", "TaskName", "ReviewDecision", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-848b75ec-655f-4918-8fe3-78b6b6a66253	10c038fe-200f-4509-8e0b-1f6ba694ea57	8e260568-b761-4795-ad27-12bddd698d9d	d97b4bad-ccd2-42c0-b1ff-e52787ef8f0c	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Task 01 · ISO 27001 Security Audit	\N	2026-10-17 12:01:20.152448+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+848b75ec-655f-4918-8fe3-78b6b6a66253	10c038fe-200f-4509-8e0b-1f6ba694ea57	8e260568-b761-4795-ad27-12bddd698d9d	d97b4bad-ccd2-42c0-b1ff-e52787ef8f0c	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Task 01 · ISO 27001 Security Audit	\N	2026-10-17 12:01:20.152448+00	2026-10-18 09:54:18.949044+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 09:54:18.949044+00
 757cb740-41d6-4026-a025-51bde08cfc1c	e55eacc5-eabf-48d1-b49d-6c9898bb01fd	SEED-SEP-2026	SEED-SEP-2026-TASK	September sample timesheet	Sample delivery	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 34227563-fa89-4903-9958-07dca021d715	c8d341ae-95db-48ac-bd23-c6956767f486	SEED-SEP-2026	SEED-SEP-2026-TASK	September sample timesheet	Sample delivery	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 616464ab-df9b-46af-8617-1fb42cb2cf2e	1e593440-2205-49af-8445-142df83bb47d	SEED-SEP-2026	SEED-SEP-2026-TASK	September sample timesheet	Sample delivery	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
@@ -5477,6 +4040,9 @@ f788b8e2-1221-41e3-9da6-c9b362dd4fce	1a4174d1-b732-4b2d-b7fc-535aff8831c0	SEED-S
 5f663c38-70fd-40fe-b298-6b86e3e5c49c	5c2489a4-207a-4d8d-bc06-417b68cdf635	SEED-SEP-2026	SEED-SEP-2026-TASK	September sample timesheet	Sample delivery	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 ebe295e2-0b42-4ebf-be7d-99d3ab6f976d	bacd9372-1fb3-4881-9a16-d5c35b37c53a	SEED-SEP-2026	SEED-SEP-2026-TASK	September sample timesheet	Sample delivery	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 bd663887-471b-4bda-8887-16ae560d0110	f84ff60b-768e-4144-ab70-0816ddd29830	SEED-SEP-2026	SEED-SEP-2026-TASK	September sample timesheet	Sample delivery	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
+8f9cf3c2-e683-4fd3-ad98-e780b10ddc4a	10c038fe-200f-4509-8e0b-1f6ba694ea57	89744e80-08e3-4f7c-a4ba-78ff0ce54634	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Task 01 · AWS Security Assessment	\N	2026-10-18 09:54:18.991527+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1b355d0e-947b-41ff-8e70-68808ab3a771	d8b33348-0501-4b4f-974a-b15535a9bd9f	89744e80-08e3-4f7c-a4ba-78ff0ce54634	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Task 01 · AWS Security Assessment	\N	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b041ac7a-d02e-4d16-a0b1-adcb63f328f4	b7d53977-e4c9-4db6-aee4-e6167fb95e32	89744e80-08e3-4f7c-a4ba-78ff0ce54634	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Task 01 · AWS Security Assessment	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -5485,13 +4051,27 @@ bd663887-471b-4bda-8887-16ae560d0110	f84ff60b-768e-4144-ab70-0816ddd29830	SEED-S
 --
 
 COPY timesheet.tbl_timesheet_entry_days ("Id", "TimesheetEntryId", "DayIndex", "Hours", "Comment", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-04671555-d091-4d41-837b-97d705be6919	848b75ec-655f-4918-8fe3-78b6b6a66253	0	0.0	\N	2026-10-17 12:01:20.152448+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
-06515d7e-7cb4-44d2-a9cc-679d0ecbfee4	848b75ec-655f-4918-8fe3-78b6b6a66253	2	0.0	\N	2026-10-17 12:01:20.152448+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
-10c9fe42-9744-4979-9fad-e73270a8ef44	848b75ec-655f-4918-8fe3-78b6b6a66253	1	0.0	\N	2026-10-17 12:01:20.152448+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
-32984279-b472-4f45-9a47-d862440a2e7b	848b75ec-655f-4918-8fe3-78b6b6a66253	5	0.0	\N	2026-10-17 12:01:20.152448+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
-81a48e62-2e64-4329-8db6-963ee1e61395	848b75ec-655f-4918-8fe3-78b6b6a66253	4	0.0	\N	2026-10-17 12:01:20.152448+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
-c82cf650-d502-4a30-9e97-ef1a6ef5f1f6	848b75ec-655f-4918-8fe3-78b6b6a66253	3	0.0	\N	2026-10-17 12:01:20.152448+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
-d43dfd6d-4668-4cc3-8ee2-9bc169dcd3b0	848b75ec-655f-4918-8fe3-78b6b6a66253	6	0.0	\N	2026-10-17 12:01:20.152448+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+04671555-d091-4d41-837b-97d705be6919	848b75ec-655f-4918-8fe3-78b6b6a66253	0	0.0	\N	2026-10-17 12:01:20.152448+00	2026-10-18 09:54:18.949044+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 09:54:18.949044+00
+06515d7e-7cb4-44d2-a9cc-679d0ecbfee4	848b75ec-655f-4918-8fe3-78b6b6a66253	2	0.0	\N	2026-10-17 12:01:20.152448+00	2026-10-18 09:54:18.949044+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 09:54:18.949044+00
+10c9fe42-9744-4979-9fad-e73270a8ef44	848b75ec-655f-4918-8fe3-78b6b6a66253	1	0.0	\N	2026-10-17 12:01:20.152448+00	2026-10-18 09:54:18.949044+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 09:54:18.949044+00
+32984279-b472-4f45-9a47-d862440a2e7b	848b75ec-655f-4918-8fe3-78b6b6a66253	5	0.0	\N	2026-10-17 12:01:20.152448+00	2026-10-18 09:54:18.949044+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 09:54:18.949044+00
+81a48e62-2e64-4329-8db6-963ee1e61395	848b75ec-655f-4918-8fe3-78b6b6a66253	4	0.0	\N	2026-10-17 12:01:20.152448+00	2026-10-18 09:54:18.949044+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 09:54:18.949044+00
+c82cf650-d502-4a30-9e97-ef1a6ef5f1f6	848b75ec-655f-4918-8fe3-78b6b6a66253	3	0.0	\N	2026-10-17 12:01:20.152448+00	2026-10-18 09:54:18.949044+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 09:54:18.949044+00
+d43dfd6d-4668-4cc3-8ee2-9bc169dcd3b0	848b75ec-655f-4918-8fe3-78b6b6a66253	6	0.0	\N	2026-10-17 12:01:20.152448+00	2026-10-18 09:54:18.949044+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	2026-10-18 09:54:18.949044+00
+09091543-0616-460a-875d-8ed4343bae83	8f9cf3c2-e683-4fd3-ad98-e780b10ddc4a	1	0.0	\N	2026-10-18 09:54:18.991527+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1af561fb-560e-43e7-bb6b-65685695849b	8f9cf3c2-e683-4fd3-ad98-e780b10ddc4a	4	0.0	\N	2026-10-18 09:54:18.991527+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+4e242ec7-ccb2-4dad-9131-0aa8c2979ffd	8f9cf3c2-e683-4fd3-ad98-e780b10ddc4a	6	1.0	Done	2026-10-18 09:54:18.991527+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+67105252-81ae-44ad-9e2d-fc5f63bd8659	8f9cf3c2-e683-4fd3-ad98-e780b10ddc4a	2	0.0	\N	2026-10-18 09:54:18.991527+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+ad2b0bfa-e349-4f83-aad0-46fd465a03cf	8f9cf3c2-e683-4fd3-ad98-e780b10ddc4a	0	0.0	\N	2026-10-18 09:54:18.991527+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b8953163-6227-4f99-b159-28f8a6f5298b	8f9cf3c2-e683-4fd3-ad98-e780b10ddc4a	3	0.0	\N	2026-10-18 09:54:18.991527+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+d9721616-56e4-4e4d-b54e-226e90006fb0	8f9cf3c2-e683-4fd3-ad98-e780b10ddc4a	5	0.0	\N	2026-10-18 09:54:18.991527+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+236d4016-23ef-45fa-8616-3a379c827148	1b355d0e-947b-41ff-8e70-68808ab3a771	5	0.0	\N	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+4a1005c7-5364-439f-a012-5a400d0778a5	1b355d0e-947b-41ff-8e70-68808ab3a771	1	0.0	\N	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+8f2a2113-6c62-44d6-9e54-cf800b3e835e	1b355d0e-947b-41ff-8e70-68808ab3a771	2	0.0	\N	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b000ecc1-a474-42c5-9c50-4be6878adbbd	1b355d0e-947b-41ff-8e70-68808ab3a771	4	0.0	\N	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b60c4aea-bacf-4966-b894-85b37dba836f	1b355d0e-947b-41ff-8e70-68808ab3a771	6	1.0	Done	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b6b67a9e-853e-428c-a931-da4997547a0e	1b355d0e-947b-41ff-8e70-68808ab3a771	3	0.0	\N	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+da8f956e-9cba-4fdd-90be-7de1660bcc4c	1b355d0e-947b-41ff-8e70-68808ab3a771	0	0.0	\N	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 9d72b249-be05-4528-b29d-8f3d5bb2af91	ab251bf9-1cb0-4c1c-8abe-01511bc59ad8	1	4.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 9cb80632-1a08-404a-9b16-70cc344e9b5d	da03121f-5268-4ffd-b818-22f5a6f2aed5	1	4.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 037379b8-0a5e-4d8a-929b-2e313b33f61b	3c83285a-3c43-4dda-b061-4fbc6df3f50b	1	6.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
@@ -5552,6 +4132,13 @@ f0a7819b-b0db-4f7f-a87f-1937414bfa3b	f9aa6acf-bd44-4e77-a162-1d22de1a66eb	1	6.0	
 e3aede1f-8851-4417-abab-f2ba96cd17ab	e67ac562-fc06-4b29-8a51-6c9099441197	1	4.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 8851a9b2-dbda-4dea-b36d-73529429b690	42ae2705-3650-41ad-8557-98530cc77957	1	4.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 008f6f60-3608-4d37-96f2-49191ced4ade	610d1e31-e825-4989-80fa-bd74d0925d37	1	6.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
+331013a9-56c6-438b-886e-2305043164a9	b041ac7a-d02e-4d16-a0b1-adcb63f328f4	5	0.0	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+33e1b2bd-a5d2-4102-b9a6-e943513454a9	b041ac7a-d02e-4d16-a0b1-adcb63f328f4	3	0.0	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+4d805c5c-2d56-4706-bb41-083df2078193	b041ac7a-d02e-4d16-a0b1-adcb63f328f4	6	0.0	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+6b51a916-105a-4f83-8474-09e76da914d1	b041ac7a-d02e-4d16-a0b1-adcb63f328f4	4	0.0	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+7c80a524-ad1f-4c4f-a9be-3b7b75ad0fb2	b041ac7a-d02e-4d16-a0b1-adcb63f328f4	2	0.0	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+a31974a6-41f3-4567-bad7-6cbc620edfb5	b041ac7a-d02e-4d16-a0b1-adcb63f328f4	0	0.0	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+dabbfc9f-5b3c-4823-b28b-cc2f16f04ae0	b041ac7a-d02e-4d16-a0b1-adcb63f328f4	1	0.0	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 61fa5ab9-68b9-4ff0-9632-b6f103cd4627	eb5f26ec-73a6-420f-9ab3-8974185db66b	1	4.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 725e63c9-82f3-4f5c-b626-0ea6bb7e932d	750b525b-37f1-456d-92a9-9a0042e896bc	1	8.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 76ad45c7-9c09-4f5b-b833-ab53a67320a2	84bfba78-ba41-48e4-bb04-96fe5425f949	1	4.0	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
@@ -6778,7 +5365,7 @@ b6d417ee-67bb-4d13-89b6-3f519131d8ca	3dd16fda-2c71-493b-96cc-c371d891ff10	2	4.0	
 --
 
 COPY timesheet.tbl_timesheets ("Id", "EmployeeId", "WeekStart", "Status", "TotalHours", "SubmittedAtUtc", "ReviewedByEmployeeId", "ReviewedAtUtc", "ReviewComment", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-10c038fe-200f-4509-8e0b-1f6ba694ea57	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-05	draft	0.0	\N	\N	\N	\N	2026-10-16 09:29:04.753116+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+10c038fe-200f-4509-8e0b-1f6ba694ea57	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-05	submitted	1.0	2026-10-18 09:54:18.949044+00	\N	\N	\N	2026-10-16 09:29:04.753116+00	2026-10-18 09:54:18.991527+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 e55eacc5-eabf-48d1-b49d-6c9898bb01fd	02814af4-08b4-42cc-92e1-ad0bba687378	2026-09-21	submitted	18.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 c8d341ae-95db-48ac-bd23-c6956767f486	78c932da-077a-4104-919c-386de88ed062	2026-09-28	submitted	16.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 1e593440-2205-49af-8445-142df83bb47d	9312226e-c7f8-4187-887e-67e2124098cd	2026-09-07	submitted	6.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
@@ -6852,6 +5439,7 @@ dee89888-cfe1-4559-ba75-19c6c03f78d7	51015348-f872-4e18-b806-e44017e10e4b	2026-0
 9bc437ec-2d8e-4371-930c-9bafcd3ecd07	583e812b-e929-4e7c-9d76-33d3fc25cd7d	2026-08-31	submitted	20.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 81fe180f-d7c2-4dd3-b56e-c2ff3220c45b	9eb64ade-203d-4e4a-aaed-8eaab7d3017d	2026-09-28	submitted	4.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 2ada4c75-6320-431a-b6b7-9cf6c6a57dc1	42583b6b-008c-45f6-b258-b08495712c7c	2026-09-28	submitted	6.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
+d8b33348-0501-4b4f-974a-b15535a9bd9f	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-12	draft	1.0	\N	\N	\N	\N	2026-10-20 08:55:19.480826+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 c43880f1-c570-4ccf-ad67-d805cc665a57	02814af4-08b4-42cc-92e1-ad0bba687378	2026-09-28	submitted	4.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 88c72628-1db4-4e67-8a05-f2d17775eb35	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	2026-09-07	submitted	34.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 1673c30a-9da3-49e9-b6be-df0975b31743	f90e007c-90d9-440e-8f0a-a85395e49abe	2026-09-14	submitted	36.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
@@ -7274,6 +5862,7 @@ d6971a47-b2ba-4124-b2b9-aa8cfbc1fcf7	51015348-f872-4e18-b806-e44017e10e4b	2026-0
 5c2489a4-207a-4d8d-bc06-417b68cdf635	f30d1ce8-8a1a-483d-ace2-419cd8672ecc	2026-08-31	submitted	10.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 bacd9372-1fb3-4881-9a16-d5c35b37c53a	31e49978-ac22-44bb-a535-11d20d8aeea3	2026-09-28	submitted	12.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
 f84ff60b-768e-4144-ab70-0816ddd29830	31057f6b-b1e5-46e3-a071-b6639b93a15c	2026-08-31	submitted	14.0	2026-09-30 10:00:00+00	\N	\N	\N	2026-09-30 10:00:00+00	\N	\N	\N	\N
+b7d53977-e4c9-4db6-aee4-e6167fb95e32	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-19	draft	0.0	\N	\N	\N	\N	2026-10-20 08:55:26.948643+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -7307,22 +5896,6 @@ ALTER TABLE ONLY auth.tbl_roles
 
 ALTER TABLE ONLY auth.tbl_users
     ADD CONSTRAINT "PK_tbl_users" PRIMARY KEY ("Id");
-
-
---
--- Name: tbl_role_widget_permissions UQ_role_widget_permissions; Type: CONSTRAINT; Schema: auth; Owner: -
---
-
-ALTER TABLE ONLY auth.tbl_role_widget_permissions
-    ADD CONSTRAINT "UQ_role_widget_permissions" UNIQUE ("RoleId", "WidgetId");
-
-
---
--- Name: tbl_role_widget_permissions role_widget_permissions_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
---
-
-ALTER TABLE ONLY auth.tbl_role_widget_permissions
-    ADD CONSTRAINT role_widget_permissions_pkey PRIMARY KEY ("Id");
 
 
 --
@@ -7406,6 +5979,14 @@ ALTER TABLE ONLY master.mst_departments
 
 
 --
+-- Name: mst_designation_sub_departments PK_mst_designation_sub_departments; Type: CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_designation_sub_departments
+    ADD CONSTRAINT "PK_mst_designation_sub_departments" PRIMARY KEY ("Id");
+
+
+--
 -- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: master; Owner: -
 --
 
@@ -7430,11 +6011,19 @@ ALTER TABLE ONLY master.mst_nationalities
 
 
 --
--- Name: mst_roles PK_mst_roles; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_map PK_mst_org_role_map; Type: CONSTRAINT; Schema: master; Owner: -
 --
 
-ALTER TABLE ONLY master.mst_roles
-    ADD CONSTRAINT "PK_mst_roles" PRIMARY KEY ("Id");
+ALTER TABLE ONLY master.mst_org_role_map
+    ADD CONSTRAINT "PK_mst_org_role_map" PRIMARY KEY ("Id");
+
+
+--
+-- Name: mst_org_role_sub_departments PK_mst_org_role_sub_departments; Type: CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_org_role_sub_departments
+    ADD CONSTRAINT "PK_mst_org_role_sub_departments" PRIMARY KEY ("Id");
 
 
 --
@@ -7478,11 +6067,11 @@ ALTER TABLE ONLY master.mst_service_sub_departments
 
 
 --
--- Name: mst_submodules UQ_submodule_module_parent_code; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_sub_departments PK_mst_sub_departments; Type: CONSTRAINT; Schema: master; Owner: -
 --
 
-ALTER TABLE ONLY master.mst_submodules
-    ADD CONSTRAINT "UQ_submodule_module_parent_code" UNIQUE ("ModuleId", "ParentSubmoduleId", "Code");
+ALTER TABLE ONLY master.mst_sub_departments
+    ADD CONSTRAINT "PK_mst_sub_departments" PRIMARY KEY ("Id");
 
 
 --
@@ -7534,22 +6123,6 @@ ALTER TABLE ONLY master.mst_graduation_degrees
 
 
 --
--- Name: mst_modules mst_modules_Code_key; Type: CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_modules
-    ADD CONSTRAINT "mst_modules_Code_key" UNIQUE ("Code");
-
-
---
--- Name: mst_modules mst_modules_pkey; Type: CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_modules
-    ADD CONSTRAINT mst_modules_pkey PRIMARY KEY ("Id");
-
-
---
 -- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: master; Owner: -
 --
 
@@ -7574,43 +6147,11 @@ ALTER TABLE ONLY master.mst_post_graduation_degrees
 
 
 --
--- Name: mst_rbac_baseline mst_rbac_baseline_pkey; Type: CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_rbac_baseline
-    ADD CONSTRAINT mst_rbac_baseline_pkey PRIMARY KEY ("Version");
-
-
---
 -- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: master; Owner: -
 --
 
 ALTER TABLE ONLY master.mst_reporting_managers
     ADD CONSTRAINT mst_reporting_managers_pkey PRIMARY KEY ("Id");
-
-
---
--- Name: mst_submodules mst_submodules_pkey; Type: CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_submodules
-    ADD CONSTRAINT mst_submodules_pkey PRIMARY KEY ("Id");
-
-
---
--- Name: mst_widgets mst_widgets_WidgetKey_key; Type: CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_widgets
-    ADD CONSTRAINT "mst_widgets_WidgetKey_key" UNIQUE ("WidgetKey");
-
-
---
--- Name: mst_widgets mst_widgets_pkey; Type: CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_widgets
-    ADD CONSTRAINT mst_widgets_pkey PRIMARY KEY ("Id");
 
 
 --
@@ -7651,6 +6192,14 @@ ALTER TABLE ONLY project.tbl_project_documents
 
 ALTER TABLE ONLY project.tbl_project_drafts
     ADD CONSTRAINT "PK_tbl_project_drafts" PRIMARY KEY ("Id");
+
+
+--
+-- Name: tbl_project_interviews PK_tbl_project_interviews; Type: CONSTRAINT; Schema: project; Owner: -
+--
+
+ALTER TABLE ONLY project.tbl_project_interviews
+    ADD CONSTRAINT "PK_tbl_project_interviews" PRIMARY KEY ("Id");
 
 
 --
@@ -7766,6 +6315,22 @@ ALTER TABLE ONLY resource.tbl_exited_employees
 
 
 --
+-- Name: tbl_onfloorrole PK_tbl_onfloorrole; Type: CONSTRAINT; Schema: resource; Owner: -
+--
+
+ALTER TABLE ONLY resource.tbl_onfloorrole
+    ADD CONSTRAINT "PK_tbl_onfloorrole" PRIMARY KEY ("Id");
+
+
+--
+-- Name: tbl_onfloorrole_subdepartment PK_tbl_onfloorrole_subdepartment; Type: CONSTRAINT; Schema: resource; Owner: -
+--
+
+ALTER TABLE ONLY resource.tbl_onfloorrole_subdepartment
+    ADD CONSTRAINT "PK_tbl_onfloorrole_subdepartment" PRIMARY KEY ("Id");
+
+
+--
 -- Name: tbl_team_day_entries PK_tbl_team_day_entries; Type: CONSTRAINT; Schema: timesheet; Owner: -
 --
 
@@ -7825,27 +6390,6 @@ CREATE INDEX "IX_log_role_permission_audits_CreatedAtUtc" ON auth.log_role_permi
 --
 
 CREATE INDEX "IX_log_role_permission_audits_RoleId" ON auth.log_role_permission_audits USING btree ("RoleId");
-
-
---
--- Name: IX_role_widget_lookup; Type: INDEX; Schema: auth; Owner: -
---
-
-CREATE INDEX "IX_role_widget_lookup" ON auth.tbl_role_widget_permissions USING btree ("RoleId", "CanView", "CanManage");
-
-
---
--- Name: IX_role_widget_permissions_RoleId; Type: INDEX; Schema: auth; Owner: -
---
-
-CREATE INDEX "IX_role_widget_permissions_RoleId" ON auth.tbl_role_widget_permissions USING btree ("RoleId");
-
-
---
--- Name: IX_role_widget_permissions_WidgetId; Type: INDEX; Schema: auth; Owner: -
---
-
-CREATE INDEX "IX_role_widget_permissions_WidgetId" ON auth.tbl_role_widget_permissions USING btree ("WidgetId");
 
 
 --
@@ -8073,6 +6617,20 @@ CREATE UNIQUE INDEX "IX_mst_departments_Name" ON master.mst_departments USING bt
 
 
 --
+-- Name: IX_mst_designation_sub_departments_DesignationId_SubDepartment~; Type: INDEX; Schema: master; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_designation_sub_departments_DesignationId_SubDepartment~" ON master.mst_designation_sub_departments USING btree ("DesignationId", "SubDepartmentId");
+
+
+--
+-- Name: IX_mst_designation_sub_departments_SubDepartmentId; Type: INDEX; Schema: master; Owner: -
+--
+
+CREATE INDEX "IX_mst_designation_sub_departments_SubDepartmentId" ON master.mst_designation_sub_departments USING btree ("SubDepartmentId");
+
+
+--
 -- Name: IX_mst_designations_Code; Type: INDEX; Schema: master; Owner: -
 --
 
@@ -8122,13 +6680,6 @@ CREATE UNIQUE INDEX "IX_mst_industries_Name" ON master.mst_industries USING btre
 
 
 --
--- Name: IX_mst_modules_Code; Type: INDEX; Schema: master; Owner: -
---
-
-CREATE INDEX "IX_mst_modules_Code" ON master.mst_modules USING btree ("Code");
-
-
---
 -- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: master; Owner: -
 --
 
@@ -8157,6 +6708,41 @@ CREATE INDEX "IX_mst_offices_WorkLocationId" ON master.mst_offices USING btree (
 
 
 --
+-- Name: IX_mst_org_role_map_DepartmentId; Type: INDEX; Schema: master; Owner: -
+--
+
+CREATE INDEX "IX_mst_org_role_map_DepartmentId" ON master.mst_org_role_map USING btree ("DepartmentId");
+
+
+--
+-- Name: IX_mst_org_role_map_DesignationId; Type: INDEX; Schema: master; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_org_role_map_DesignationId" ON master.mst_org_role_map USING btree ("DesignationId");
+
+
+--
+-- Name: IX_mst_org_role_map_RbacRoleId; Type: INDEX; Schema: master; Owner: -
+--
+
+CREATE INDEX "IX_mst_org_role_map_RbacRoleId" ON master.mst_org_role_map USING btree ("RbacRoleId");
+
+
+--
+-- Name: IX_mst_org_role_sub_departments_OrgRoleMapId_SubDepartmentId; Type: INDEX; Schema: master; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_org_role_sub_departments_OrgRoleMapId_SubDepartmentId" ON master.mst_org_role_sub_departments USING btree ("OrgRoleMapId", "SubDepartmentId");
+
+
+--
+-- Name: IX_mst_org_role_sub_departments_SubDepartmentId; Type: INDEX; Schema: master; Owner: -
+--
+
+CREATE INDEX "IX_mst_org_role_sub_departments_SubDepartmentId" ON master.mst_org_role_sub_departments USING btree ("SubDepartmentId");
+
+
+--
 -- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: master; Owner: -
 --
 
@@ -8168,20 +6754,6 @@ CREATE UNIQUE INDEX "IX_mst_reporting_managers_Code" ON master.mst_reporting_man
 --
 
 CREATE INDEX "IX_mst_reporting_managers_EmployeeId" ON master.mst_reporting_managers USING btree ("EmployeeId");
-
-
---
--- Name: IX_mst_roles_Code; Type: INDEX; Schema: master; Owner: -
---
-
-CREATE UNIQUE INDEX "IX_mst_roles_Code" ON master.mst_roles USING btree ("Code");
-
-
---
--- Name: IX_mst_roles_DesignationId_Name; Type: INDEX; Schema: master; Owner: -
---
-
-CREATE UNIQUE INDEX "IX_mst_roles_DesignationId_Name" ON master.mst_roles USING btree ("DesignationId", "Name");
 
 
 --
@@ -8227,10 +6799,10 @@ CREATE INDEX "IX_mst_service_departments_GroupId" ON master.mst_service_departme
 
 
 --
--- Name: IX_mst_service_departments_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_departments_GroupId_Name; Type: INDEX; Schema: master; Owner: -
 --
 
-CREATE UNIQUE INDEX "IX_mst_service_departments_Name" ON master.mst_service_departments USING btree ("Name");
+CREATE UNIQUE INDEX "IX_mst_service_departments_GroupId_Name" ON master.mst_service_departments USING btree ("GroupId", "Name");
 
 
 --
@@ -8262,38 +6834,24 @@ CREATE UNIQUE INDEX "IX_mst_service_sub_departments_DepartmentId_Name" ON master
 
 
 --
--- Name: IX_mst_submodules_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_sub_departments_Code; Type: INDEX; Schema: master; Owner: -
 --
 
-CREATE INDEX "IX_mst_submodules_Code" ON master.mst_submodules USING btree ("Code");
-
-
---
--- Name: IX_mst_submodules_ModuleId; Type: INDEX; Schema: master; Owner: -
---
-
-CREATE INDEX "IX_mst_submodules_ModuleId" ON master.mst_submodules USING btree ("ModuleId");
+CREATE UNIQUE INDEX "IX_mst_sub_departments_Code" ON master.mst_sub_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_submodules_ParentSubmoduleId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_sub_departments_DepartmentId; Type: INDEX; Schema: master; Owner: -
 --
 
-CREATE INDEX "IX_mst_submodules_ParentSubmoduleId" ON master.mst_submodules USING btree ("ParentSubmoduleId");
-
-
---
--- Name: IX_mst_widgets_SubmoduleId; Type: INDEX; Schema: master; Owner: -
---
-
-CREATE INDEX "IX_mst_widgets_SubmoduleId" ON master.mst_widgets USING btree ("SubmoduleId");
+CREATE INDEX "IX_mst_sub_departments_DepartmentId" ON master.mst_sub_departments USING btree ("DepartmentId");
 
 
 --
--- Name: IX_mst_widgets_WidgetKey; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_sub_departments_Name; Type: INDEX; Schema: master; Owner: -
 --
 
-CREATE INDEX "IX_mst_widgets_WidgetKey" ON master.mst_widgets USING btree ("WidgetKey");
+CREATE UNIQUE INDEX "IX_mst_sub_departments_Name" ON master.mst_sub_departments USING btree ("Name");
 
 
 --
@@ -8364,6 +6922,20 @@ CREATE INDEX "IX_tbl_project_drafts_Status" ON project.tbl_project_drafts USING 
 --
 
 CREATE INDEX "IX_tbl_project_drafts_UpdatedAtUtc" ON project.tbl_project_drafts USING btree ("UpdatedAtUtc");
+
+
+--
+-- Name: IX_tbl_project_interviews_EmployeeId; Type: INDEX; Schema: project; Owner: -
+--
+
+CREATE INDEX "IX_tbl_project_interviews_EmployeeId" ON project.tbl_project_interviews USING btree ("EmployeeId");
+
+
+--
+-- Name: IX_tbl_project_interviews_ProjectId; Type: INDEX; Schema: project; Owner: -
+--
+
+CREATE INDEX "IX_tbl_project_interviews_ProjectId" ON project.tbl_project_interviews USING btree ("ProjectId");
 
 
 --
@@ -8640,13 +7212,6 @@ CREATE INDEX "IX_tbl_employees_EngagementManagerEmployeeId" ON resource.tbl_empl
 
 
 --
--- Name: IX_tbl_employees_JobRoleId; Type: INDEX; Schema: resource; Owner: -
---
-
-CREATE INDEX "IX_tbl_employees_JobRoleId" ON resource.tbl_employees USING btree ("JobRoleId");
-
-
---
 -- Name: IX_tbl_employees_NationalityId; Type: INDEX; Schema: resource; Owner: -
 --
 
@@ -8675,6 +7240,13 @@ CREATE INDEX "IX_tbl_employees_SalaryBandId" ON resource.tbl_employees USING btr
 
 
 --
+-- Name: IX_tbl_employees_SubDepartmentId; Type: INDEX; Schema: resource; Owner: -
+--
+
+CREATE INDEX "IX_tbl_employees_SubDepartmentId" ON resource.tbl_employees USING btree ("SubDepartmentId");
+
+
+--
 -- Name: IX_tbl_employees_UserId; Type: INDEX; Schema: resource; Owner: -
 --
 
@@ -8700,6 +7272,48 @@ CREATE INDEX "IX_tbl_exited_employees_EmployeeCode" ON resource.tbl_exited_emplo
 --
 
 CREATE INDEX "IX_tbl_exited_employees_OriginalEmployeeId" ON resource.tbl_exited_employees USING btree ("OriginalEmployeeId");
+
+
+--
+-- Name: IX_tbl_onfloorrole_DepartmentId; Type: INDEX; Schema: resource; Owner: -
+--
+
+CREATE INDEX "IX_tbl_onfloorrole_DepartmentId" ON resource.tbl_onfloorrole USING btree ("DepartmentId");
+
+
+--
+-- Name: IX_tbl_onfloorrole_DesignationId; Type: INDEX; Schema: resource; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_tbl_onfloorrole_DesignationId" ON resource.tbl_onfloorrole USING btree ("DesignationId");
+
+
+--
+-- Name: IX_tbl_onfloorrole_Name; Type: INDEX; Schema: resource; Owner: -
+--
+
+CREATE INDEX "IX_tbl_onfloorrole_Name" ON resource.tbl_onfloorrole USING btree ("Name");
+
+
+--
+-- Name: IX_tbl_onfloorrole_RbacRoleId; Type: INDEX; Schema: resource; Owner: -
+--
+
+CREATE INDEX "IX_tbl_onfloorrole_RbacRoleId" ON resource.tbl_onfloorrole USING btree ("RbacRoleId");
+
+
+--
+-- Name: IX_tbl_onfloorrole_subdepartment_OnFloorRoleId_SubDepartmentId; Type: INDEX; Schema: resource; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_tbl_onfloorrole_subdepartment_OnFloorRoleId_SubDepartmentId" ON resource.tbl_onfloorrole_subdepartment USING btree ("OnFloorRoleId", "SubDepartmentId");
+
+
+--
+-- Name: IX_tbl_onfloorrole_subdepartment_SubDepartmentId; Type: INDEX; Schema: resource; Owner: -
+--
+
+CREATE INDEX "IX_tbl_onfloorrole_subdepartment_SubDepartmentId" ON resource.tbl_onfloorrole_subdepartment USING btree ("SubDepartmentId");
 
 
 --
@@ -8766,22 +7380,6 @@ ALTER TABLE ONLY auth.tbl_refresh_tokens
 
 ALTER TABLE ONLY auth.tbl_users
     ADD CONSTRAINT "FK_tbl_users_tbl_roles_RoleId" FOREIGN KEY ("RoleId") REFERENCES auth.tbl_roles("Id") ON DELETE RESTRICT;
-
-
---
--- Name: tbl_role_widget_permissions role_widget_permissions_RoleId_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
---
-
-ALTER TABLE ONLY auth.tbl_role_widget_permissions
-    ADD CONSTRAINT "role_widget_permissions_RoleId_fkey" FOREIGN KEY ("RoleId") REFERENCES auth.tbl_roles("Id") ON DELETE CASCADE;
-
-
---
--- Name: tbl_role_widget_permissions role_widget_permissions_WidgetId_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
---
-
-ALTER TABLE ONLY auth.tbl_role_widget_permissions
-    ADD CONSTRAINT "role_widget_permissions_WidgetId_fkey" FOREIGN KEY ("WidgetId") REFERENCES master.mst_widgets("Id") ON DELETE CASCADE;
 
 
 --
@@ -8873,6 +7471,22 @@ ALTER TABLE ONLY master.mst_cities
 
 
 --
+-- Name: mst_designation_sub_departments FK_mst_designation_sub_departments_mst_designations_Designatio~; Type: FK CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_designation_sub_departments
+    ADD CONSTRAINT "FK_mst_designation_sub_departments_mst_designations_Designatio~" FOREIGN KEY ("DesignationId") REFERENCES master.mst_designations("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: mst_designation_sub_departments FK_mst_designation_sub_departments_mst_sub_departments_SubDepa~; Type: FK CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_designation_sub_departments
+    ADD CONSTRAINT "FK_mst_designation_sub_departments_mst_sub_departments_SubDepa~" FOREIGN KEY ("SubDepartmentId") REFERENCES master.mst_sub_departments("Id") ON DELETE CASCADE;
+
+
+--
 -- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: -
 --
 
@@ -8889,19 +7503,51 @@ ALTER TABLE ONLY master.mst_designations
 
 
 --
+-- Name: mst_org_role_map FK_mst_org_role_map_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_org_role_map
+    ADD CONSTRAINT "FK_mst_org_role_map_DepartmentId" FOREIGN KEY ("DepartmentId") REFERENCES master.mst_departments("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: mst_org_role_map FK_mst_org_role_map_DesignationId; Type: FK CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_org_role_map
+    ADD CONSTRAINT "FK_mst_org_role_map_DesignationId" FOREIGN KEY ("DesignationId") REFERENCES master.mst_designations("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: mst_org_role_map FK_mst_org_role_map_RbacRoleId; Type: FK CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_org_role_map
+    ADD CONSTRAINT "FK_mst_org_role_map_RbacRoleId" FOREIGN KEY ("RbacRoleId") REFERENCES auth.tbl_roles("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: mst_org_role_sub_departments FK_mst_org_role_sub_departments_mst_org_role_map_OrgRoleMapId; Type: FK CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_org_role_sub_departments
+    ADD CONSTRAINT "FK_mst_org_role_sub_departments_mst_org_role_map_OrgRoleMapId" FOREIGN KEY ("OrgRoleMapId") REFERENCES master.mst_org_role_map("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: mst_org_role_sub_departments FK_mst_org_role_sub_departments_mst_sub_departments_SubDepartm~; Type: FK CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_org_role_sub_departments
+    ADD CONSTRAINT "FK_mst_org_role_sub_departments_mst_sub_departments_SubDepartm~" FOREIGN KEY ("SubDepartmentId") REFERENCES master.mst_sub_departments("Id") ON DELETE CASCADE;
+
+
+--
 -- Name: mst_reporting_managers FK_mst_reporting_managers_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: master; Owner: -
 --
 
 ALTER TABLE ONLY master.mst_reporting_managers
     ADD CONSTRAINT "FK_mst_reporting_managers_tbl_employees_EmployeeId" FOREIGN KEY ("EmployeeId") REFERENCES resource.tbl_employees("Id") ON DELETE SET NULL;
-
-
---
--- Name: mst_roles FK_mst_roles_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_roles
-    ADD CONSTRAINT "FK_mst_roles_mst_designations_DesignationId" FOREIGN KEY ("DesignationId") REFERENCES master.mst_designations("Id") ON DELETE RESTRICT;
 
 
 --
@@ -8929,51 +7575,19 @@ ALTER TABLE ONLY master.mst_service_sub_departments
 
 
 --
+-- Name: mst_sub_departments FK_mst_sub_departments_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_sub_departments
+    ADD CONSTRAINT "FK_mst_sub_departments_mst_departments_DepartmentId" FOREIGN KEY ("DepartmentId") REFERENCES master.mst_departments("Id") ON DELETE SET NULL;
+
+
+--
 -- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: master; Owner: -
 --
 
 ALTER TABLE ONLY master.mst_offices
     ADD CONSTRAINT "mst_offices_WorkLocationId_fkey" FOREIGN KEY ("WorkLocationId") REFERENCES master.mst_work_locations("Id") ON DELETE CASCADE;
-
-
---
--- Name: mst_submodules mst_submodules_ModuleId_fkey; Type: FK CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_submodules
-    ADD CONSTRAINT "mst_submodules_ModuleId_fkey" FOREIGN KEY ("ModuleId") REFERENCES master.mst_modules("Id") ON DELETE CASCADE;
-
-
---
--- Name: mst_submodules mst_submodules_ParentSubmoduleId_fkey; Type: FK CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_submodules
-    ADD CONSTRAINT "mst_submodules_ParentSubmoduleId_fkey" FOREIGN KEY ("ParentSubmoduleId") REFERENCES master.mst_submodules("Id") ON DELETE CASCADE;
-
-
---
--- Name: mst_widgets mst_widgets_ModuleId_fkey; Type: FK CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_widgets
-    ADD CONSTRAINT "mst_widgets_ModuleId_fkey" FOREIGN KEY ("ModuleId") REFERENCES master.mst_modules("Id") ON DELETE CASCADE;
-
-
---
--- Name: mst_widgets mst_widgets_ParentWidgetId_fkey; Type: FK CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_widgets
-    ADD CONSTRAINT "mst_widgets_ParentWidgetId_fkey" FOREIGN KEY ("ParentWidgetId") REFERENCES master.mst_widgets("Id") ON DELETE CASCADE;
-
-
---
--- Name: mst_widgets mst_widgets_SubmoduleId_fkey; Type: FK CONSTRAINT; Schema: master; Owner: -
---
-
-ALTER TABLE ONLY master.mst_widgets
-    ADD CONSTRAINT "mst_widgets_SubmoduleId_fkey" FOREIGN KEY ("SubmoduleId") REFERENCES master.mst_submodules("Id") ON DELETE CASCADE;
 
 
 --
@@ -8998,6 +7612,14 @@ ALTER TABLE ONLY project.log_project_task_assignments
 
 ALTER TABLE ONLY project.tbl_project_documents
     ADD CONSTRAINT "FK_tbl_project_documents_tbl_projects_ProjectId" FOREIGN KEY ("ProjectId") REFERENCES project.tbl_projects("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: tbl_project_interviews FK_tbl_project_interviews_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+--
+
+ALTER TABLE ONLY project.tbl_project_interviews
+    ADD CONSTRAINT "FK_tbl_project_interviews_tbl_projects_ProjectId" FOREIGN KEY ("ProjectId") REFERENCES project.tbl_projects("Id") ON DELETE CASCADE;
 
 
 --
@@ -9193,19 +7815,19 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_mst_roles_JobRoleId; Type: FK CONSTRAINT; Schema: resource; Owner: -
---
-
-ALTER TABLE ONLY resource.tbl_employees
-    ADD CONSTRAINT "FK_tbl_employees_mst_roles_JobRoleId" FOREIGN KEY ("JobRoleId") REFERENCES master.mst_roles("Id") ON DELETE RESTRICT;
-
-
---
 -- Name: tbl_employees FK_tbl_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: resource; Owner: -
 --
 
 ALTER TABLE ONLY resource.tbl_employees
     ADD CONSTRAINT "FK_tbl_employees_mst_salary_bands_SalaryBandId" FOREIGN KEY ("SalaryBandId") REFERENCES master.mst_salary_bands("Id") ON DELETE RESTRICT;
+
+
+--
+-- Name: tbl_employees FK_tbl_employees_mst_sub_departments_SubDepartmentId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+--
+
+ALTER TABLE ONLY resource.tbl_employees
+    ADD CONSTRAINT "FK_tbl_employees_mst_sub_departments_SubDepartmentId" FOREIGN KEY ("SubDepartmentId") REFERENCES master.mst_sub_departments("Id") ON DELETE SET NULL;
 
 
 --
@@ -9238,6 +7860,46 @@ ALTER TABLE ONLY resource.tbl_employees
 
 ALTER TABLE ONLY resource.tbl_employees
     ADD CONSTRAINT "FK_tbl_employees_tbl_users_UserId" FOREIGN KEY ("UserId") REFERENCES auth.tbl_users("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: tbl_onfloorrole FK_tbl_onfloorrole_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+--
+
+ALTER TABLE ONLY resource.tbl_onfloorrole
+    ADD CONSTRAINT "FK_tbl_onfloorrole_mst_departments_DepartmentId" FOREIGN KEY ("DepartmentId") REFERENCES master.mst_departments("Id") ON DELETE SET NULL;
+
+
+--
+-- Name: tbl_onfloorrole FK_tbl_onfloorrole_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+--
+
+ALTER TABLE ONLY resource.tbl_onfloorrole
+    ADD CONSTRAINT "FK_tbl_onfloorrole_mst_designations_DesignationId" FOREIGN KEY ("DesignationId") REFERENCES master.mst_designations("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: tbl_onfloorrole_subdepartment FK_tbl_onfloorrole_subdepartment_mst_sub_departments_SubDepart~; Type: FK CONSTRAINT; Schema: resource; Owner: -
+--
+
+ALTER TABLE ONLY resource.tbl_onfloorrole_subdepartment
+    ADD CONSTRAINT "FK_tbl_onfloorrole_subdepartment_mst_sub_departments_SubDepart~" FOREIGN KEY ("SubDepartmentId") REFERENCES master.mst_sub_departments("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: tbl_onfloorrole_subdepartment FK_tbl_onfloorrole_subdepartment_tbl_onfloorrole_OnFloorRoleId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+--
+
+ALTER TABLE ONLY resource.tbl_onfloorrole_subdepartment
+    ADD CONSTRAINT "FK_tbl_onfloorrole_subdepartment_tbl_onfloorrole_OnFloorRoleId" FOREIGN KEY ("OnFloorRoleId") REFERENCES resource.tbl_onfloorrole("Id") ON DELETE CASCADE;
+
+
+--
+-- Name: tbl_onfloorrole FK_tbl_onfloorrole_tbl_roles_RbacRoleId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+--
+
+ALTER TABLE ONLY resource.tbl_onfloorrole
+    ADD CONSTRAINT "FK_tbl_onfloorrole_tbl_roles_RbacRoleId" FOREIGN KEY ("RbacRoleId") REFERENCES auth.tbl_roles("Id") ON DELETE SET NULL;
 
 
 --
@@ -9292,5 +7954,5 @@ ALTER TABLE ONLY timesheet.tbl_timesheets
 -- PostgreSQL database dump complete
 --
 
-\unrestrict xk1qooZUccyUpfC0Rehx7fQjApz13StIZVoLpiNeqmZnXhkzPBebV06wBQs5hZ2
+\unrestrict 8ba6MS7SffgDkEIqLmu8mMg5XCY2r3sjcuhnALVZXae9w7PhHGRV7gmWbdiztFS
 

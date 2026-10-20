@@ -4,10 +4,7 @@ using PMS.API.Modules.Users.Models;
 namespace PMS.API.Modules.Users.Models;
 
 /// <summary>
-/// RBAC role. Permissions are stored as a JSONB array of permission keys
-/// (e.g. <c>projects.team.assign</c> or the legacy <c>clients:read</c>) on the
-/// database row — see <c>Shared/Constants/PermissionCatalog.cs</c> for the
-/// full module/submodule/action tree.
+/// Access role stored on <c>auth.tbl_roles</c>. Permission grants are not stored on this row.
 /// </summary>
 public class Role : BaseEntity
 {
@@ -26,8 +23,6 @@ public class Role : BaseEntity
 
     /// <summary>Inactive roles cannot be assigned to users.</summary>
     public bool IsActive { get; set; } = true;
-
-    public List<string> Permissions { get; set; } = [];
 
     public ICollection<User> Users { get; set; } = [];
 }

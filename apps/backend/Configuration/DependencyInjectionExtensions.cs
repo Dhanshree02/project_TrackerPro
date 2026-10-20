@@ -13,7 +13,6 @@ using PMS.API.Modules.Dashboard.Services;
 using PMS.API.Modules.MyTeam.Services;
 using PMS.API.Modules.Timesheets.Services;
 using PMS.API.Modules.Projects.Services;
-using PMS.API.Modules.Rbac;
 using PMS.API.Modules.Repository.Services;
 using PMS.API.Modules.Resources.Services;
 using PMS.API.Modules.Users.Services;
@@ -61,8 +60,6 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectTeamMemberService, ProjectTeamMemberService>();
         services.AddScoped<IProjectInterviewService, ProjectInterviewService>();
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
-        services.AddScoped<IRbacAccessService, RbacAccessService>();
-        services.AddHostedService<RbacBaselineHostedService>();
         services.AddHostedService<OrgRoleMatrixHostedService>();
         services.AddScoped<IDashboardService, DashboardService>();
 

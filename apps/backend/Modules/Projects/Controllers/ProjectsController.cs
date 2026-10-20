@@ -16,7 +16,6 @@ public class ProjectsController(
     IProjectTaskService taskService) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<PagedResult<ProjectDto>>>> GetProjects(
         [FromQuery] ProjectQueryParameters queryParams,
         CancellationToken ct)
@@ -26,7 +25,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{id:guid}")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<ProjectDto>>> GetProjectById(
         Guid id,
         CancellationToken ct)
@@ -40,7 +38,6 @@ public class ProjectsController(
     }
 
     [HttpGet("next-code")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<NextProjectCodeDto>>> GetNextProjectCode(
         [FromQuery] Guid clientId,
         [FromQuery] Guid? subVentureId,
@@ -51,7 +48,6 @@ public class ProjectsController(
     }
 
     [HttpPost]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDto>>> CreateProject(
         [FromBody] CreateProjectRequest request,
         CancellationToken ct)
@@ -61,7 +57,6 @@ public class ProjectsController(
     }
 
     [HttpPut("{id:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDto>>> UpdateProject(
         Guid id,
         [FromBody] UpdateProjectRequest request,
@@ -72,7 +67,6 @@ public class ProjectsController(
     }
 
     [HttpDelete("{id:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProject(
         Guid id,
         CancellationToken ct)
@@ -86,7 +80,6 @@ public class ProjectsController(
     }
 
     [HttpPatch("{id:guid}/status")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDto>>> UpdateStatus(
         Guid id,
         [FromBody] UpdateProjectStatusRequest request,
@@ -97,7 +90,6 @@ public class ProjectsController(
     }
 
     [HttpPatch("{id:guid}/wbs-status")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDto>>> UpdateWbsStatus(
         Guid id,
         [FromBody] UpdateWbsStatusRequest request,
@@ -110,7 +102,6 @@ public class ProjectsController(
     // ── Project Services Endpoints ──
 
     [HttpGet("{projectId:guid}/services")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectServiceDto>>>> GetProjectServices(
         Guid projectId,
         CancellationToken ct)
@@ -120,7 +111,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/services/{serviceId:guid}")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<ProjectServiceDto>>> GetProjectServiceById(
         Guid projectId,
         Guid serviceId,
@@ -135,7 +125,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/services")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectServiceDto>>> AddProjectService(
         Guid projectId,
         [FromBody] CreateProjectServiceRequest request,
@@ -146,7 +135,6 @@ public class ProjectsController(
     }
 
     [HttpPut("{projectId:guid}/services/{serviceId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectServiceDto>>> UpdateProjectService(
         Guid projectId,
         Guid serviceId,
@@ -158,7 +146,6 @@ public class ProjectsController(
     }
 
     [HttpPatch("{projectId:guid}/services/{serviceId:guid}/prerequisite")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectServiceDto>>> UpdateServicePrerequisite(
         Guid projectId,
         Guid serviceId,
@@ -170,7 +157,6 @@ public class ProjectsController(
     }
 
     [HttpDelete("{projectId:guid}/services/{serviceId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProjectService(
         Guid projectId,
         Guid serviceId,
@@ -187,7 +173,6 @@ public class ProjectsController(
     // ── Project Tasks Endpoints ──
 
     [HttpGet("{projectId:guid}/tasks")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTaskDto>>>> GetProjectTasks(
         Guid projectId,
         CancellationToken ct)
@@ -197,7 +182,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/tasks/{taskId:guid}")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<ProjectTaskDto>>> GetProjectTaskById(
         Guid projectId,
         Guid taskId,
@@ -212,7 +196,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/tasks")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectTaskDto>>> CreateProjectTask(
         Guid projectId,
         [FromBody] CreateProjectTaskRequest request,
@@ -223,7 +206,6 @@ public class ProjectsController(
     }
 
     [HttpPut("{projectId:guid}/tasks/{taskId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectTaskDto>>> UpdateProjectTask(
         Guid projectId,
         Guid taskId,
@@ -235,7 +217,6 @@ public class ProjectsController(
     }
 
     [HttpDelete("{projectId:guid}/tasks/{taskId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProjectTask(
         Guid projectId,
         Guid taskId,
@@ -250,7 +231,6 @@ public class ProjectsController(
     }
 
     [HttpPatch("{projectId:guid}/tasks/{taskId:guid}/stage")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectTaskDto>>> UpdateTaskStage(
         Guid projectId,
         Guid taskId,
@@ -262,7 +242,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/tasks/auto-generate")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<AutoGeneratedTasksSummaryDto>>> AutoGenerateTasks(
         Guid projectId,
         CancellationToken ct)
@@ -272,7 +251,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/tasks/{taskId:guid}/assignable-resources")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<AssignableTaskResourceDto>>>> GetAssignableResources(
         Guid projectId,
         Guid taskId,
@@ -283,7 +261,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/tasks/{taskId:guid}/assignment-history")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTaskAssignmentHistoryDto>>>> GetAssignmentHistory(
         Guid projectId,
         Guid taskId,
@@ -294,7 +271,6 @@ public class ProjectsController(
     }
 
     [HttpPut("{projectId:guid}/tasks/{taskId:guid}/assignments")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTaskAssignmentDto>>>> SyncTaskAssignments(
         Guid projectId,
         Guid taskId,
@@ -308,7 +284,6 @@ public class ProjectsController(
     // ── Task Assignments & Timer Endpoints ──
 
     [HttpGet("{projectId:guid}/tasks/{taskId:guid}/assignments")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTaskAssignmentDto>>>> GetTaskAssignments(
         Guid projectId,
         Guid taskId,
@@ -319,7 +294,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/tasks/{taskId:guid}/assignments")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectTaskAssignmentDto>>> AssignTaskResource(
         Guid projectId,
         Guid taskId,
@@ -331,7 +305,6 @@ public class ProjectsController(
     }
 
     [HttpPut("{projectId:guid}/tasks/{taskId:guid}/assignments/{assignmentId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectTaskAssignmentDto>>> UpdateTaskAssignment(
         Guid projectId,
         Guid taskId,
@@ -344,7 +317,6 @@ public class ProjectsController(
     }
 
     [HttpDelete("{projectId:guid}/tasks/{taskId:guid}/assignments/{assignmentId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<bool>>> RemoveTaskAssignment(
         Guid projectId,
         Guid taskId,
@@ -360,7 +332,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/tasks/{taskId:guid}/assignments/{assignmentId:guid}/start-timer")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<TimerStatusDto>>> StartTaskTimer(
         Guid projectId,
         Guid taskId,
@@ -372,7 +343,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/tasks/{taskId:guid}/assignments/{assignmentId:guid}/stop-timer")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<TimerStatusDto>>> StopTaskTimer(
         Guid projectId,
         Guid taskId,
@@ -386,7 +356,6 @@ public class ProjectsController(
     // ── Project Invoices Endpoints ──
 
     [HttpGet("{projectId:guid}/invoices")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectInvoiceDto>>>> GetProjectInvoices(
         Guid projectId,
         CancellationToken ct)
@@ -396,7 +365,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/invoices/{invoiceId:guid}")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<ProjectInvoiceDto>>> GetProjectInvoiceById(
         Guid projectId,
         Guid invoiceId,
@@ -411,7 +379,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/invoices")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectInvoiceDto>>> CreateProjectInvoice(
         Guid projectId,
         [FromBody] CreateProjectInvoiceRequest request,
@@ -422,7 +389,6 @@ public class ProjectsController(
     }
 
     [HttpPut("{projectId:guid}/invoices/{invoiceId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectInvoiceDto>>> UpdateProjectInvoice(
         Guid projectId,
         Guid invoiceId,
@@ -434,7 +400,6 @@ public class ProjectsController(
     }
 
     [HttpDelete("{projectId:guid}/invoices/{invoiceId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProjectInvoice(
         Guid projectId,
         Guid invoiceId,
@@ -449,7 +414,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/invoices/auto-generate")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<AutoGenerateInvoicesSummaryDto>>> AutoGenerateInvoices(
         Guid projectId,
         CancellationToken ct)
@@ -461,7 +425,6 @@ public class ProjectsController(
     // ── Project Documents Endpoints ──
 
     [HttpGet("{projectId:guid}/documents")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectDocumentDto>>>> GetProjectDocuments(
         Guid projectId,
         CancellationToken ct)
@@ -471,7 +434,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/documents/{documentId:guid}")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<ProjectDocumentDto>>> GetProjectDocumentById(
         Guid projectId,
         Guid documentId,
@@ -486,7 +448,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/documents")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<ProjectDocumentDto>>> UploadProjectDocument(
         Guid projectId,
@@ -499,7 +460,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/documents/{documentId:guid}/download")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<IActionResult> DownloadProjectDocument(
         Guid projectId,
         Guid documentId,
@@ -510,7 +470,6 @@ public class ProjectsController(
     }
 
     [HttpDelete("{projectId:guid}/documents/{documentId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteProjectDocument(
         Guid projectId,
         Guid documentId,
@@ -527,7 +486,6 @@ public class ProjectsController(
     // ── Project Renewal Endpoint ──
 
     [HttpPost("{id:guid}/renew")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDto>>> RenewProject(
         Guid id,
         [FromBody] RenewProjectRequest request,
@@ -540,7 +498,6 @@ public class ProjectsController(
     // ── WBS Draft & Publish Endpoints ──
 
     [HttpPost("{id:guid}/wbs/draft")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDto>>> SaveWbsDraft(
         Guid id,
         [FromBody] SaveWbsDraftRequest request,
@@ -551,7 +508,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{id:guid}/wbs/publish")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<WbsPublishResultDto>>> PublishWbs(
         Guid id,
         [FromBody] PublishWbsRequest? request,
@@ -564,7 +520,6 @@ public class ProjectsController(
     // ── Project Team Members ──
 
     [HttpPut("{projectId:guid}/leadership")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTeamMemberDto>>>> SetLeadership(
         Guid projectId,
         [FromBody] SetProjectLeadershipRequest request,
@@ -575,7 +530,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/team-members")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTeamMemberDto>>>> GetTeamMembers(
         Guid projectId,
         [FromQuery] bool shadow = false,
@@ -586,7 +540,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/team-members/candidates")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTeamCandidateDto>>>> SearchTeamCandidates(
         Guid projectId,
         [FromQuery] string? search,
@@ -599,7 +552,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/team-members/allocations")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<EmployeeAllocationBookingDto>>>> GetEmployeeAllocations(
         Guid projectId,
         [FromQuery] Guid employeeId,
@@ -610,7 +562,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/interviews")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectInterviewDto>>>> GetInterviews(
         Guid projectId,
         CancellationToken ct)
@@ -620,7 +571,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/interviews")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectInterviewDto>>> CreateInterview(
         Guid projectId,
         [FromBody] CreateProjectInterviewRequest request,
@@ -631,7 +581,6 @@ public class ProjectsController(
     }
 
     [HttpPut("{projectId:guid}/interviews/{interviewId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectInterviewDto>>> UpdateInterview(
         Guid projectId,
         Guid interviewId,
@@ -643,7 +592,6 @@ public class ProjectsController(
     }
 
     [HttpGet("{projectId:guid}/team-members/{memberId:guid}")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<ProjectTeamMemberDto>>> GetTeamMember(
         Guid projectId,
         Guid memberId,
@@ -658,7 +606,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/team-members")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectTeamMemberDto>>> AddTeamMember(
         Guid projectId,
         [FromBody] CreateProjectTeamMemberRequest request,
@@ -672,7 +619,6 @@ public class ProjectsController(
     }
 
     [HttpPut("{projectId:guid}/team-members/{memberId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectTeamMemberDto>>> UpdateTeamMember(
         Guid projectId,
         Guid memberId,
@@ -684,7 +630,6 @@ public class ProjectsController(
     }
 
     [HttpDelete("{projectId:guid}/team-members/{memberId:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<bool>>> RemoveTeamMember(
         Guid projectId,
         Guid memberId,

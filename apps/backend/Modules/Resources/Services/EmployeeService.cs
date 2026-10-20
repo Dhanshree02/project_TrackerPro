@@ -39,7 +39,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .Include(e => e.ReportingManager)
-            .Include(e => e.JobRole)
             .Include(e => e.User).ThenInclude(u => u!.Role)
             .AsQueryable();
 
@@ -71,17 +70,11 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             query = query.Where(e => e.DesignationId == designationId.Value);
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(e => e.Status == status);
-        if (!string.IsNullOrWhiteSpace(onFloorRole))
-        {
-            var roleName = onFloorRole.Trim().ToLowerInvariant();
-            query = query.Where(e => e.JobRole != null && e.JobRole.Name.ToLower() == roleName);
-        }
         if (!string.IsNullOrWhiteSpace(role))
         {
             var roleNeedle = role.Trim().ToLowerInvariant();
             query = query.Where(e =>
                 (e.Role != null && e.Role.ToLower().Contains(roleNeedle)) ||
-                (e.JobRole != null && e.JobRole.Name != null && e.JobRole.Name.ToLower().Contains(roleNeedle)) ||
                 (e.User != null && e.User.Role != null &&
                     ((e.User.Role.Name != null && e.User.Role.Name.ToLower().Contains(roleNeedle)) ||
                      (e.User.Role.DisplayName != null && e.User.Role.DisplayName.ToLower().Contains(roleNeedle)))));
@@ -137,9 +130,18 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.ProjectType,
                 e.ProjectAllocated,
                 e.ClientEngManagerMapping,
-                e.JobRole != null ? e.JobRole.Name : null,
-                e.JobRole != null ? e.JobRole.Name : null,
-                e.JobRoleId))
+                db.OnFloorRoles
+                    .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
+                    .Select(r => r.Name)
+                    .FirstOrDefault(),
+                db.OnFloorRoles
+                    .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
+                    .Select(r => r.Name)
+                    .FirstOrDefault(),
+                db.OnFloorRoles
+                    .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
+                    .Select(r => (Guid?)r.Id)
+                    .FirstOrDefault()))
             .ToListAsync(ct);
 
         if (items.Count > 0)
@@ -220,12 +222,15 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .Include(e => e.NationalityRef)
-            .Include(e => e.JobRole)
             .Include(e => e.SalaryBandRef)
             .Include(e => e.ReportingManager)
             .FirstOrDefaultAsync(ct);
 
-        return entity is null ? null : MapDetail(entity);
+        if (entity is null) return null;
+        var floor = entity.DesignationId is Guid designationId
+            ? await db.OnFloorRoles.AsNoTracking().FirstOrDefaultAsync(r => r.DesignationId == designationId, ct)
+            : null;
+        return MapDetail(entity, floor);
     }
 
     public Task<byte[]> GetBulkSampleExcelAsync(CancellationToken ct = default) =>
@@ -305,7 +310,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             DepartmentId = request.DepartmentId,
             DesignationId = request.DesignationId,
             Role = request.Role,
-            JobRoleId = request.JobRoleId,
             ReportingManagerId = request.ReportingManagerId.HasValue
                 ? await ResolveReportingManagerIdAsync(request.ReportingManagerId.Value, ct)
                 : null,
@@ -373,6 +377,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), null, ct);
 
         await ApplyCatalogNamesAsync(entity, ct);
+        await OrgRoleMatrixSync.AssignEmployeeSubDepartmentAsync(db, entity, ct);
 
         db.Employees.Add(entity);
         try
@@ -517,11 +522,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         {
             if (entity.Role != request.Role) changes.Add("Role");
             entity.Role = request.Role;
-        }
-        if (request.JobRoleId.HasValue)
-        {
-            if (entity.JobRoleId != request.JobRoleId) changes.Add("Job Role");
-            entity.JobRoleId = request.JobRoleId;
         }
         if (request.ReportingManagerId.HasValue)
         {
@@ -882,6 +882,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), entity.Id, ct);
         await ApplyCatalogNamesAsync(entity, ct);
+        await OrgRoleMatrixSync.AssignEmployeeSubDepartmentAsync(db, entity, ct);
         try
         {
             await db.SaveChangesAsync(ct);
@@ -1117,24 +1118,30 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 d.SubDepartment,
                 d.DefaultRole != null ? d.DefaultRole.Name : null,
                 d.DefaultRole != null ? d.DefaultRole.DisplayName : null,
-                d.JobRoleId,
-                d.JobRole != null ? d.JobRole.Name : null))
+                null,
+                null))
             .ToListAsync(ct);
 
         var maps = await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
-        if (maps.Count == 0) return rows;
+        var floors = await db.OnFloorRoles.AsNoTracking().ToListAsync(ct);
+        var floorByDesignation = floors
+            .GroupBy(r => r.DesignationId)
+            .ToDictionary(g => g.Key, g => g.First());
+        if (maps.Count == 0 && floorByDesignation.Count == 0) return rows;
 
         return rows.Select(r =>
         {
-            if (!maps.TryGetValue(r.Id, out var map)) return r;
+            maps.TryGetValue(r.Id, out var map);
+            floorByDesignation.TryGetValue(r.Id, out var floor);
+            if (map is null && floor is null) return r;
             return r with
             {
-                DefaultRoleId = map.RbacRoleId ?? r.DefaultRoleId,
-                SubDepartment = map.SubDepartment ?? r.SubDepartment,
-                DefaultRoleName = map.RbacRole?.Name ?? r.DefaultRoleName,
-                DefaultRoleDisplayName = map.RbacRole?.DisplayName ?? r.DefaultRoleDisplayName,
-                JobRoleId = map.OnFloorRoleId ?? r.JobRoleId,
-                JobRoleName = map.OnFloorRole?.Name ?? r.JobRoleName,
+                DefaultRoleId = map?.RbacRoleId ?? r.DefaultRoleId,
+                SubDepartment = map?.SubDepartment ?? r.SubDepartment,
+                DefaultRoleName = map?.RbacRole?.Name ?? r.DefaultRoleName,
+                DefaultRoleDisplayName = map?.RbacRole?.DisplayName ?? r.DefaultRoleDisplayName,
+                JobRoleId = floor?.Id,
+                JobRoleName = floor?.Name,
             };
         }).ToList();
     }
@@ -1152,32 +1159,29 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         Guid? designationId,
         CancellationToken ct = default)
     {
-        if (designationId is Guid desigId)
-        {
-            var maps = await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
-            if (maps.TryGetValue(desigId, out var map)
-                && map.OnFloorRole is { IsActive: true, DeletedAtUtc: null })
-            {
-                var floor = map.OnFloorRole;
-                return [new MetaOptionDto(floor.Id, floor.Code, floor.Name, floor.DesignationId)];
-            }
+        var query = db.OnFloorRoles.AsNoTracking();
+        if (designationId is Guid id)
+            query = query.Where(r => r.DesignationId == id);
 
-            var mapped = await db.Designations
-                .AsNoTracking()
-                .Where(d => d.Id == desigId)
-                .Select(d => d.JobRole)
-                .FirstOrDefaultAsync(ct);
-            if (mapped is { IsActive: true, DeletedAtUtc: null })
-            {
-                return [new MetaOptionDto(mapped.Id, mapped.Code, mapped.Name, mapped.DesignationId)];
-            }
+        var rows = await query.OrderBy(r => r.Name).ToListAsync(ct);
+        if (designationId is null)
+        {
+            rows = rows
+                .GroupBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.OrderBy(r => r.Name).First())
+                .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
-        return await db.JobRoles
-            .Where(r => r.IsActive && r.DesignationId == null)
-            .OrderBy(r => r.Name)
-            .Select(r => new MetaOptionDto(r.Id, r.Code, r.Name, r.DesignationId))
-            .ToListAsync(ct);
+        return rows
+            .Select(r => new MetaOptionDto(
+                r.Id,
+                r.Name,
+                r.Name,
+                r.DesignationId,
+                JobRoleId: r.Id,
+                JobRoleName: r.Name))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<MetaOptionDto>> GetSalaryBandsAsync(CancellationToken ct = default)
@@ -1415,32 +1419,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DepartmentId, entity.DefaultRoleId, entity.SubDepartment);
     }
 
-    public async Task<MetaOptionDto> CreateJobRoleAsync(
+    public Task<MetaOptionDto> CreateJobRoleAsync(
         string name,
         Guid designationId,
         CancellationToken ct = default)
     {
-        var trimmed = RequireName(name);
-        var designation = await db.Designations.FirstOrDefaultAsync(d => d.Id == designationId, ct)
-            ?? throw new NotFoundException("Designation not found.");
-
-        var existing = await db.JobRoles.FirstOrDefaultAsync(
-            r => r.DesignationId == designationId && r.Name == trimmed, ct);
-        if (existing is not null)
-            return new MetaOptionDto(existing.Id, existing.Code, existing.Name, existing.DesignationId);
-
-        var entity = new MstRole
-        {
-            Code = await UniqueCodeAsync(
-                Truncate($"{designation.Code}_{Slug(trimmed)}", 80),
-                c => db.JobRoles.AnyAsync(r => r.Code == c, ct)),
-            Name = trimmed,
-            DesignationId = designationId,
-            IsActive = true,
-        };
-        db.JobRoles.Add(entity);
-        await db.SaveChangesAsync(ct);
-        return new MetaOptionDto(entity.Id, entity.Code, entity.Name, entity.DesignationId);
+        throw new ConflictException("On-floor roles are no longer stored.");
     }
 
     public async Task<IReadOnlyList<EmployeeLookupDto>> LookupEmployeesAsync(IReadOnlyList<Guid> ids, CancellationToken ct = default)
@@ -1542,7 +1526,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.ClearanceCompleted,
         e.ExitRating);
 
-    private static EmployeeDetailDto MapDetail(Employee e) => new(
+    private static EmployeeDetailDto MapDetail(Employee e, OnFloorRole? floor = null) => new(
         e.Id,
         e.EmployeeCode,
         e.FirstName,
@@ -1622,8 +1606,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.EmployeeStatusId,
         e.DepartmentId,
         e.DesignationId,
-        e.JobRoleId,
-        e.JobRole?.Name);
+        floor?.Id,
+        floor?.Name);
 
     private static string MapDirectoryStatusFromEmployeeStatusName(string name)
     {
@@ -1659,8 +1643,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             entity.NationalityId = await ResolveNationalityIdAsync(entity.Nationality, ct);
         }
 
-        // Department → Designation → On Floor Role → RBAC Role is one row in
-        // master.mst_org_role_map. Designation columns stay as a copy.
+        // Department → Designation → RBAC Role is one row in master.mst_org_role_map.
         if (entity.DesignationId is Guid desigId)
         {
             var maps = await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
@@ -1669,11 +1652,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 if (map.DepartmentId is Guid mapDeptId)
                 {
                     entity.DepartmentId = mapDeptId;
-                }
-
-                if (map.OnFloorRoleId is Guid mappedJobRoleId)
-                {
-                    entity.JobRoleId = mappedJobRoleId;
                 }
 
                 if (map.RbacRole is not null
@@ -1691,22 +1669,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             {
                 var desig = await db.Designations
                     .Include(d => d.DefaultRole)
-                    .Include(d => d.JobRole)
                     .FirstOrDefaultAsync(d => d.Id == desigId, ct);
                 if (desig is not null)
                 {
                     if (desig.DepartmentId is Guid desigDeptId)
                     {
                         entity.DepartmentId = desigDeptId;
-                    }
-
-                    if (desig.JobRole is { IsActive: true, DeletedAtUtc: null })
-                    {
-                        entity.JobRoleId = desig.JobRole.Id;
-                    }
-                    else if (desig.JobRoleId is Guid mappedJobRoleId)
-                    {
-                        entity.JobRoleId = mappedJobRoleId;
                     }
 
                     if (desig.DefaultRole is not null

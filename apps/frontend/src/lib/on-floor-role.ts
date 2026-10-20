@@ -1,8 +1,8 @@
 /**
- * On Floor Role catalog lives in PostgreSQL `master.mst_roles`.
- * Each employee links via `resource.tbl_employees."JobRoleId"` (UUID FK) — not by name.
- * APIs expose `jobRoleId` + `jobRoleName`; RBAC access role stays in `tbl_employees."Role"`.
- * Team Dashboard filter: `GET /api/v1/my-team/on-floor-roles`. Onboarding: `GET /api/v1/employees/meta/roles`.
+ * On Floor Role rows live in PostgreSQL `resource.tbl_onfloorrole`.
+ * Each row stores the designation, department, sub-department, and RBAC role ids.
+ * APIs expose `jobRoleId` + `jobRoleName` from that table. RBAC access stays in `tbl_employees."Role"`.
+ * Directory and Team Dashboard filters: `GET /api/v1/employees/meta/roles` and `GET /api/v1/my-team/on-floor-roles`.
  */
 /** Canonical on-floor role names from docs/rbac.xlsx. */
 export const ON_FLOOR_LEADER = "Leader";

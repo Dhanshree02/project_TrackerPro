@@ -12,14 +12,12 @@ namespace PMS.API.Modules.MyTeam.Controllers;
 public class MyTeamController(IMyTeamService myTeam) : ControllerBase
 {
     [HttpGet("on-floor-roles")]
-    [RequirePermission(Permissions.MyTeamDashboardView)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<string>>>> OnFloorRoles(CancellationToken ct = default)
     {
         return Ok(ApiResponse<IReadOnlyList<string>>.Ok(await myTeam.GetOnFloorRoleNamesAsync(ct)));
     }
 
     [HttpGet("calendar")]
-    [RequirePermission(Permissions.MyTeamDashboardView)]
     public async Task<ActionResult<ApiResponse<TeamCalendarDto>>> Calendar(
         [FromQuery] DateOnly from,
         [FromQuery] DateOnly to,
@@ -30,7 +28,6 @@ public class MyTeamController(IMyTeamService myTeam) : ControllerBase
     }
 
     [HttpPut("days")]
-    [RequirePermission(Permissions.MyTeamDashboardView)]
     public async Task<ActionResult<ApiResponse<bool>>> UpsertDays(
         [FromBody] UpsertTeamDaysRequest request,
         CancellationToken ct)
@@ -40,7 +37,6 @@ public class MyTeamController(IMyTeamService myTeam) : ControllerBase
     }
 
     [HttpPut("members/{employeeId:guid}/schedule")]
-    [RequirePermission(Permissions.MyTeamDashboardView)]
     public async Task<ActionResult<ApiResponse<bool>>> SaveSchedule(
         Guid employeeId,
         [FromBody] SaveTeamScheduleRequest request,

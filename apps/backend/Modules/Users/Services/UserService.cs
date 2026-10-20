@@ -106,15 +106,12 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
                 throw new ForbiddenException("You cannot change your own role.");
         }
 
-        // Last-admin guard: never let the users:manage capability drop to zero
-        // (deactivating or demoting the only active user who holds it would lock
-        // the whole company out with no recovery path).
-        var managesUsers = user.Role != null && user.Role.Permissions.Contains(Permissions.UsersManage);
-        var losesCapability =
-            (request.IsActive == false && managesUsers) ||
-            (targetRole is not null && managesUsers && !targetRole.Permissions.Contains(Permissions.UsersManage));
-        if (losesCapability && await IsLastUserManagerAsync(user.Id, ct))
-            throw new ForbiddenException("Cannot remove the last user who can manage users.");
+        var isAdmin = user.Role != null && string.Equals(user.Role.Name, "Admin", StringComparison.OrdinalIgnoreCase);
+        var losesAdmin =
+            (request.IsActive == false && isAdmin) ||
+            (targetRole is not null && isAdmin && !string.Equals(targetRole.Name, "Admin", StringComparison.OrdinalIgnoreCase));
+        if (losesAdmin && await IsLastAdminAsync(user.Id, ct))
+            throw new ForbiddenException("Cannot remove the last Admin.");
 
         if (request.Name is not null) user.Name = request.Name.Trim();
         if (request.Avatar is not null) user.Avatar = request.Avatar;
@@ -164,7 +161,6 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
                 r.Id,
                 r.Name,
                 r.DisplayName,
-                r.Permissions,
                 r.Description,
                 r.IsSystemRole,
                 r.IsActive,
@@ -183,12 +179,12 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
         if (await db.Roles.AnyAsync(r => r.Name == key, ct))
             throw new ConflictException($"A role with key '{key}' already exists.");
 
-        var permissions = new List<string>();
         if (request.CloneFromRoleId is { } sourceId)
         {
             var source = await db.Roles.FirstOrDefaultAsync(r => r.Id == sourceId, ct)
                 ?? throw new NotFoundException("Source role not found.");
-            permissions = [.. source.Permissions];
+            if (string.IsNullOrWhiteSpace(request.Description))
+                request = request with { Description = source.Description };
         }
 
         var role = new Role
@@ -196,7 +192,6 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
             Name = key,
             DisplayName = request.DisplayName?.Trim() ?? key,
             Description = request.Description,
-            Permissions = permissions,
             IsSystemRole = false,
             IsActive = true,
         };
@@ -238,7 +233,6 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
             Name = key,
             DisplayName = request.DisplayName?.Trim() ?? $"{source.DisplayName} (Copy)",
             Description = request.Description ?? $"Cloned from {source.DisplayName}",
-            Permissions = [.. source.Permissions],
             IsSystemRole = false,
             IsActive = true,
         };
@@ -248,195 +242,14 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
         return MapToRoleDto(role, 0);
     }
 
-    public async Task<RoleDto?> UpdateRolePermissionsAsync(
-        Guid id,
-        UpdateRolePermissionsRequest request,
-        CancellationToken ct = default)
-    {
-        var role = await db.Roles.FirstOrDefaultAsync(r => r.Id == id, ct);
-        if (role is null) return null;
-
-        var previous = role.Permissions;
-        var next = (request.Permissions ?? []).Distinct().OrderBy(p => p).ToList();
-
-        // Last-manager guard — never let the users:manage capability drop to zero
-        // while active users still depend on this role; that would lock the
-        // company out of user administration with no recovery path.
-        var hadManage = previous.Contains(Permissions.UsersManage);
-        var willHaveManage = next.Contains(Permissions.UsersManage);
-        if (hadManage && !willHaveManage &&
-            await db.Users.AnyAsync(u => u.RoleId == role.Id && u.IsActive, ct))
-        {
-            // Materialize first — Permissions is a JSONB column whose array search
-            // does not translate to SQL; filter in memory (the table is small).
-            var others = await db.Roles.Where(r => r.Id != role.Id).ToListAsync(ct);
-            if (!others.Any(r => r.Permissions.Contains(Permissions.UsersManage)))
-                throw new ForbiddenException("Cannot remove users:manage — this is the last role that can manage users.");
-        }
-
-        role.Permissions = next;
-        await db.SaveChangesAsync(ct);
-
-        // Audit every grant/revoke of a catalogue permission.
-        var granted = next.Except(previous).ToHashSet();
-        var revoked = previous.Except(next).ToHashSet();
-        await RecordPermissionAuditsAsync(role, granted, revoked, ct);
-
-        return new RoleDto(
-            role.Id,
-            role.Name,
-            role.DisplayName,
-            role.Permissions,
-            role.Description,
-            role.IsSystemRole,
-            role.IsActive,
-            await db.Users.CountAsync(u => u.RoleId == role.Id, ct));
-    }
-
-    public async Task<RoleDto?> ResetRolePermissionsAsync(Guid id, CancellationToken ct = default)
-    {
-        var role = await db.Roles.FirstOrDefaultAsync(r => r.Id == id, ct);
-        if (role is null) return null;
-
-        if (!RoleBaselines.HasBaseline(role.Name))
-            throw new ForbiddenException("This role has no baseline to reset to.");
-
-        var previous = role.Permissions;
-        List<string> next = [.. RoleBaselines.For(role.Name)];
-        role.Permissions = next;
-        await db.SaveChangesAsync(ct);
-
-        var granted = next.Except(previous).ToHashSet();
-        var revoked = previous.Except(next).ToHashSet();
-        await RecordPermissionAuditsAsync(role, granted, revoked, ct);
-
-        return new RoleDto(
-            role.Id,
-            role.Name,
-            role.DisplayName,
-            role.Permissions,
-            role.Description,
-            role.IsSystemRole,
-            role.IsActive,
-            await db.Users.CountAsync(u => u.RoleId == role.Id, ct));
-    }
-
-    // ---------- Audit log ----------
-
-    public async Task<PagedResult<PermissionAuditDto>> GetPermissionAuditsAsync(
-        int page,
-        int perPage,
-        Guid? roleId = null,
-        CancellationToken ct = default)
-    {
-        var query = db.RolePermissionAudits.AsQueryable();
-        if (roleId is { } id)
-            query = query.Where(a => a.RoleId == id);
-
-        var total = await query.CountAsync(ct);
-        var items = await query
-            .OrderByDescending(a => a.CreatedAtUtc)
-            .Skip((page - 1) * perPage)
-            .Take(perPage)
-            .ToListAsync(ct);
-
-        return new PagedResult<PermissionAuditDto>(
-            items.Select(a => new PermissionAuditDto(
-                a.Id,
-                a.RoleId,
-                a.RoleName,
-                a.ModuleLabel,
-                a.SubmoduleLabel,
-                a.PermissionKey,
-                a.ActionLabel,
-                a.ChangeType,
-                a.PreviousValue,
-                a.NewValue,
-                a.ChangedByName,
-                a.CreatedAtUtc)).ToList(),
-            page,
-            perPage,
-            total);
-    }
-
     // ---------- internals ----------
 
-    private async Task RecordPermissionAuditsAsync(
-        Role role,
-        HashSet<string> granted,
-        HashSet<string> revoked,
-        CancellationToken ct)
+    /// <summary>True when this user is the only active user on the Admin role.</summary>
+    private async Task<bool> IsLastAdminAsync(Guid id, CancellationToken ct)
     {
-        var actorName = currentUser.Name;
-        var actorId = currentUser.UserId;
-        var now = DateTime.UtcNow;
-
-        foreach (var key in granted)
-        {
-            var desc = PermissionCatalog.DescribeKey(key);
-            if (desc is null) continue; // unknown/custom keys are preserved but not audited with labels
-
-            db.RolePermissionAudits.Add(new RolePermissionAudit
-            {
-                RoleId = role.Id,
-                RoleName = role.DisplayName,
-                ModuleKey = PermissionModuleKey(key),
-                ModuleLabel = desc.Value.Module,
-                SubmoduleKey = key.Split('.').Length >= 3 ? key.Split('.')[1] : null,
-                SubmoduleLabel = desc.Value.Submodule,
-                PermissionKey = key,
-                ActionLabel = desc.Value.Action,
-                ChangeType = "granted",
-                PreviousValue = "Denied",
-                NewValue = "Allowed",
-                ChangedById = actorId,
-                ChangedByName = actorName,
-                CreatedAtUtc = now,
-            });
-        }
-
-        foreach (var key in revoked)
-        {
-            var desc = PermissionCatalog.DescribeKey(key);
-            if (desc is null) continue;
-
-            db.RolePermissionAudits.Add(new RolePermissionAudit
-            {
-                RoleId = role.Id,
-                RoleName = role.DisplayName,
-                ModuleKey = PermissionModuleKey(key),
-                ModuleLabel = desc.Value.Module,
-                SubmoduleKey = key.Split('.').Length >= 3 ? key.Split('.')[1] : null,
-                SubmoduleLabel = desc.Value.Submodule,
-                PermissionKey = key,
-                ActionLabel = desc.Value.Action,
-                ChangeType = "revoked",
-                PreviousValue = "Allowed",
-                NewValue = "Denied",
-                ChangedById = actorId,
-                ChangedByName = actorName,
-                CreatedAtUtc = now,
-            });
-        }
-
-        if (granted.Count + revoked.Count > 0)
-            await db.SaveChangesAsync(ct);
-    }
-
-    private static string PermissionModuleKey(string key) => key.Split(':')[0].Split('.')[0];
-
-    /// <summary>True when this user is the only active user whose role holds the users:manage permission.</summary>
-    private async Task<bool> IsLastUserManagerAsync(Guid id, CancellationToken ct)
-    {
-        // Materialize first — Permissions is a JSONB column whose array search does
-        // not translate to SQL; filter in memory (the table is small).
-        var others = await db.Users
-            .Include(u => u.Role)
-            .Where(u => u.Id != id && u.IsActive)
-            .ToListAsync(ct);
-
-        return !others.Any(u =>
-            u.Role != null && u.Role.Permissions.Contains(Permissions.UsersManage));
+        return !await db.Users.AnyAsync(
+            u => u.Id != id && u.IsActive && u.Role != null && u.Role.Name == "Admin",
+            ct);
     }
 
     private async Task<Role> GetRoleByKeyAsync(string roleKey, CancellationToken ct)
@@ -460,7 +273,6 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
         role.Id,
         role.Name,
         role.DisplayName,
-        role.Permissions,
         role.Description,
         role.IsSystemRole,
         role.IsActive,

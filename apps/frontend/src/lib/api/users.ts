@@ -20,7 +20,6 @@ export interface ApiRole {
   id: string;
   name: string;
   displayName: string;
-  permissions: string[];
   description?: string | null;
   isSystemRole: boolean;
   isActive: boolean;
@@ -100,14 +99,6 @@ export async function fetchRoles(): Promise<ApiRole[]> {
   return apiFetch<ApiRole[]>("/api/v1/roles");
 }
 
-/** Replaces a role's permission set (module access). */
-export async function updateRolePermissions(id: string, permissions: string[]): Promise<ApiRole> {
-  return apiFetch<ApiRole>(`/api/v1/roles/${id}/permissions`, {
-    method: "PUT",
-    body: JSON.stringify({ permissions }),
-  });
-}
-
 export async function fetchRole(id: string): Promise<ApiRole> {
   return apiFetch<ApiRole>(`/api/v1/roles/${id}`);
 }
@@ -142,35 +133,6 @@ export async function cloneRole(
     method: "POST",
     body: JSON.stringify(input),
   });
-}
-
-/** Restores a system role to its baseline permission matrix. */
-export async function resetRolePermissions(id: string): Promise<ApiRole> {
-  return apiFetch<ApiRole>(`/api/v1/roles/${id}/reset-baseline`, {
-    method: "POST",
-  });
-}
-export const resetRoleToBaseline = resetRolePermissions;
-
-/** The module → submodule → action permission tree (Settings UI). */
-export async function fetchPermissionCatalog(): Promise<ApiPermissionModule[]> {
-  return apiFetch<ApiPermissionModule[]>("/api/v1/permissions/catalog");
-}
-
-export async function fetchPermissionAudits(
-  params: {
-    page?: number;
-    perPage?: number;
-    roleId?: string;
-  } = {},
-): Promise<PagedEnvelope<ApiPermissionAudit>> {
-  const query = new URLSearchParams();
-  if (params.page) query.set("page", String(params.page));
-  if (params.perPage) query.set("perPage", String(params.perPage));
-  if (params.roleId) query.set("roleId", params.roleId);
-  return apiFetch<PagedEnvelope<ApiPermissionAudit>>(
-    `/api/v1/audit/permissions?${query.toString()}`,
-  );
 }
 
 export async function createUser(input: CreateUserInput): Promise<ApiUser> {

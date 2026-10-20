@@ -26,7 +26,6 @@ public class Employee : BaseEntity
     public Guid? DepartmentId { get; set; }
     public Guid? DesignationId { get; set; }
     public string? Role { get; set; }
-    public Guid? JobRoleId { get; set; }
     public Guid? ReportingManagerId { get; set; }
 
     /// <summary>This person's Engagement Manager. Not the customer EM on clients.</summary>
@@ -69,6 +68,8 @@ public class Employee : BaseEntity
     public string? PriorRelevantExp { get; set; }
     public string? PmoDepartment { get; set; }
     public string? SubDepartment { get; set; }
+    public Guid? SubDepartmentId { get; set; }
+    public MstSubDepartment? SubDepartmentRef { get; set; }
     public string? BillableStatus { get; set; }
     public string? ClientLocation { get; set; }
     public string? ProjectType { get; set; }
@@ -102,7 +103,6 @@ public class Employee : BaseEntity
     public MstDepartment? Department { get; set; }
     public MstDesignation? Designation { get; set; }
     public MstNationality? NationalityRef { get; set; }
-    public MstRole? JobRole { get; set; }
     public MstSalaryBand? SalaryBandRef { get; set; }
     public MstEmployeeStatus? EmployeeStatus { get; set; }
     public Employee? ReportingManager { get; set; }

@@ -37,13 +37,6 @@ public sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.Property(r => r.Name).HasMaxLength(50).IsRequired();
         builder.Property(r => r.DisplayName).HasMaxLength(100).IsRequired();
         builder.Property(r => r.Description).HasMaxLength(500);
-
-        // Permissions stored as JSONB array of strings.
-        builder.Property(r => r.Permissions)
-            .HasColumnType("jsonb")
-            .HasConversion(
-                v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                v => System.Text.Json.JsonSerializer.Deserialize<List<string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>());
     }
 }
 

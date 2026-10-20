@@ -3,9 +3,9 @@ using PMS.API.Shared.Common.Models;
 namespace PMS.API.Modules.Resources.Models;
 
 /// <summary>
-/// Canonical On-Floor Role catalog (10 roles from <c>docs/rbac.xlsx</c>; not the RBAC <c>tbl_roles</c> table).
+/// Org sub-department catalog. Other tables store <see cref="Id"/>, not the name.
 /// </summary>
-public class MstRole : BaseEntity
+public class MstSubDepartment : BaseEntity
 {
     public string Code { get; set; } = string.Empty;
 
@@ -13,7 +13,7 @@ public class MstRole : BaseEntity
 
     public bool IsActive { get; set; } = true;
 
-    public Guid? DesignationId { get; set; }
+    public Guid? DepartmentId { get; set; }
 
-    public MstDesignation? Designation { get; set; }
+    public MstDepartment? Department { get; set; }
 }

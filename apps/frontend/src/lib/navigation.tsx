@@ -66,11 +66,6 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Settings,
     permission: "settings.view",
     subItems: [
-      {
-        to: "/settings-security-roles",
-        label: "Roles & Permissions",
-        permission: "settings.view",
-      },
       { to: "/settings-masters", label: "Masters", permission: "settings.view" },
     ],
   },
@@ -113,7 +108,6 @@ export const DH_NAV_ITEMS: NavItem[] = [
     icon: Settings,
     permission: "settings.view",
     subItems: [
-      { to: "/settings-security-roles", label: "Roles & Permissions" },
       { to: "/settings-masters", label: "Masters" },
     ],
   },
@@ -225,7 +219,6 @@ export function filterNavItems(
 // ─── Route guard map ─────────────────────────────────────────────────────────
 export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] | null }[] = [
   { prefix: "/settings-masters", permission: "settings.view" },
-  { prefix: "/settings-security-roles", permission: ["settings.manage_roles", "roles:manage", "settings.view"] },
   { prefix: "/settings", permission: "settings.view" },
   { prefix: "/action-centre", permission: "action-center.view" },
   { prefix: "/projects/new", permission: "projects.create" },

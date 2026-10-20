@@ -33,23 +33,6 @@ public interface IUserService
     /// <summary>Edits display name / description / active state. System roles cannot be deactivated.</summary>
     Task<RoleDto?> UpdateRoleAsync(Guid id, UpdateRoleRequest request, CancellationToken ct = default);
 
-    /// <summary>Creates a new role with a copy of the source role's permission set.</summary>
+    /// <summary>Creates a new role copied from an existing role.</summary>
     Task<RoleDto> CloneRoleAsync(Guid id, CloneRoleRequest request, CancellationToken ct = default);
-
-    /// <summary>
-    /// Replaces a role's permission set. Guards against dropping the last
-    /// users:manage capability and records every grant/revoke in the audit log.
-    /// </summary>
-    Task<RoleDto?> UpdateRolePermissionsAsync(Guid id, UpdateRolePermissionsRequest request, CancellationToken ct = default);
-
-    /// <summary>Restores a system role to its baseline permission matrix.</summary>
-    Task<RoleDto?> ResetRolePermissionsAsync(Guid id, CancellationToken ct = default);
-
-    // ---- Audit log ----
-
-    Task<PagedResult<PermissionAuditDto>> GetPermissionAuditsAsync(
-        int page,
-        int perPage,
-        Guid? roleId = null,
-        CancellationToken ct = default);
 }

@@ -9,16 +9,14 @@ import {
 import { fetchClients, mapApiClient } from "@/modules/customers/api/clients";
 import { fetchProjects, mapApiProjectToProject } from "@/modules/projects/api/projects";
 import { useAuth } from "@/lib/auth-context";
-import { usePermissions } from "@/lib/permissions";
-import { RBAC_STORAGE_KEY, permissionsForRole, type PermissionKey } from "@/lib/rbac";
 
 interface RoleContextValue {
   role: Role;
   setRole: (r: Role) => void;
   user: ReturnType<typeof getPerson>;
   can: (permission: string) => boolean;
-  getPermissionsFor: (role: Role) => PermissionKey[];
-  setRolePermissions: (role: Role, perms: PermissionKey[]) => void;
+  getPermissionsFor: (role: Role) => string[];
+  setRolePermissions: (role: Role, perms: string[]) => void;
   resetRolePermissions: (role: Role) => void;
   isAdmin: boolean;
   isItAdmin: boolean;
@@ -409,64 +407,10 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const assignedIssues = issues.filter((i) => projectIds.has(i.projectId));
   const pendingTimesheets: Timesheet[] = [];
 
-  const { hasPermission } = usePermissions();
-  const [roleOverrides, setRoleOverrides] = useState<Partial<Record<Role, PermissionKey[]>>>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const raw = localStorage.getItem(RBAC_STORAGE_KEY);
-        if (raw) return JSON.parse(raw);
-      } catch {
-        /* ignore */
-      }
-    }
-    return {};
-  });
-
-  const getPermissionsFor = useCallback(
-    (targetRole: Role): PermissionKey[] => {
-      return permissionsForRole(targetRole, roleOverrides);
-    },
-    [roleOverrides],
-  );
-
-  const setRolePermissions = useCallback((targetRole: Role, perms: PermissionKey[]) => {
-    setRoleOverrides((prev) => {
-      const next = { ...prev, [targetRole]: perms };
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          /* ignore */
-        }
-      }
-      return next;
-    });
-  }, []);
-
-  const resetRolePermissions = useCallback((targetRole: Role) => {
-    setRoleOverrides((prev) => {
-      const next = { ...prev };
-      delete next[targetRole];
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(RBAC_STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          /* ignore */
-        }
-      }
-      return next;
-    });
-  }, []);
-
-  const can = useCallback(
-    (perm: string): boolean => {
-      if (isAdmin || isDhanshree) return true;
-      if (hasPermission(perm)) return true;
-      const currentRolePerms = getPermissionsFor(role);
-      return currentRolePerms.includes(perm as PermissionKey);
-    },
-    [isAdmin, isDhanshree, hasPermission, getPermissionsFor, role],
-  );
+  const getPermissionsFor = useCallback((_targetRole: Role): string[] => [], []);
+  const setRolePermissions = useCallback((_targetRole: Role, _perms: string[]) => {}, []);
+  const resetRolePermissions = useCallback((_targetRole: Role) => {}, []);
+  const can = useCallback((_perm: string): boolean => true, []);
 
   return (
     <RoleContext.Provider

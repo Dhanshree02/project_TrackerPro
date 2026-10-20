@@ -52,7 +52,6 @@ import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import { formatSubDepartmentDisplay, normalizeSubDepartmentKey } from "@/lib/sub-department";
 import { formatOnFloorRoleDisplay, normalizeOnFloorRole, uniqueOnFloorRoleLabels } from "@/lib/on-floor-role";
-import { ON_FLOOR_ROLES } from "@/lib/org-role-matrix";
 import {
   createEmployee,
   fetchAllEmployees,
@@ -833,6 +832,7 @@ export function EmployeeDirectoryPage() {
   const [status, setStatus] = useState("");
   const [deptCatalog, setDeptCatalog] = useState<ApiMetaOption[]>([]);
   const [desigCatalog, setDesigCatalog] = useState<ApiMetaOption[]>([]);
+  const [onFloorRoleOptions, setOnFloorRoleOptions] = useState<string[]>([]);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -883,6 +883,9 @@ export function EmployeeDirectoryPage() {
     void fetchDesignationOptions()
       .then(setDesigCatalog)
       .catch(() => toast.error("Could not load designations"));
+    void fetchJobRoleOptions()
+      .then((rows) => setOnFloorRoleOptions(uniqueOnFloorRoleLabels(rows.map((row) => row.name))))
+      .catch(() => setOnFloorRoleOptions([]));
   }, [authStatus]);
 
   const departmentFilterOptions = useMemo(
@@ -923,10 +926,7 @@ export function EmployeeDirectoryPage() {
     return [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
   }, [desigCatalog, deptCatalog, dbEmployees, dept, desig]);
 
-  const onFloorRoleFilterOptions = useMemo(
-    () => uniqueOnFloorRoleLabels([...ON_FLOOR_ROLES, ...dbEmployees.map((e) => e.jobRoleName)]),
-    [dbEmployees],
-  );
+  const onFloorRoleFilterOptions = onFloorRoleOptions;
 
   // -- Deep Comprehensive Employee Search --------------
   const matchesEmployeeSearch = (e: Employee, query: string): boolean => {

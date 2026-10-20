@@ -12,7 +12,6 @@ namespace PMS.API.Modules.Projects.Controllers;
 public class ProjectDraftsController(IProjectDraftService draftService) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<PagedResult<ProjectDraftListDto>>>> GetDrafts(
         [FromQuery] ProjectDraftQueryParameters queryParams,
         CancellationToken ct)
@@ -22,7 +21,6 @@ public class ProjectDraftsController(IProjectDraftService draftService) : Contro
     }
 
     [HttpGet("{id:guid}")]
-    [RequirePermission(Permissions.ProjectsRead)]
     public async Task<ActionResult<ApiResponse<ProjectDraftDto>>> GetDraftById(
         Guid id,
         CancellationToken ct)
@@ -37,7 +35,6 @@ public class ProjectDraftsController(IProjectDraftService draftService) : Contro
     }
 
     [HttpPost]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDraftDto>>> CreateDraft(
         [FromBody] CreateProjectDraftRequest request,
         CancellationToken ct)
@@ -47,7 +44,6 @@ public class ProjectDraftsController(IProjectDraftService draftService) : Contro
     }
 
     [HttpPut("{id:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<ProjectDraftDto>>> UpdateDraft(
         Guid id,
         [FromBody] UpdateProjectDraftRequest request,
@@ -58,7 +54,6 @@ public class ProjectDraftsController(IProjectDraftService draftService) : Contro
     }
 
     [HttpDelete("{id:guid}")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<object>>> DeleteDraft(
         Guid id,
         CancellationToken ct)
@@ -68,7 +63,6 @@ public class ProjectDraftsController(IProjectDraftService draftService) : Contro
     }
 
     [HttpPatch("{id:guid}/convert")]
-    [RequirePermission(Permissions.ProjectsWrite)]
     public async Task<ActionResult<ApiResponse<object>>> MarkDraftConverted(
         Guid id,
         CancellationToken ct)

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import type { ApiEmployeeListItem } from "@/modules/employees/api/employees";
-import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import {
   employeeListItemToPersona,
   isItAdminProfile,
@@ -95,9 +94,7 @@ describe("Super Admin vs IT Admin", () => {
     const itPersona = employeeListItemToPersona(itStaff);
     expect(adminPersona.roleKey).toBe("Admin");
     expect(itPersona.roleKey).toBe("IT Admin");
-    expect(adminPersona.permissions.length).toBeGreaterThan(50);
-    expect(itPersona.permissions.length).toBeLessThan(25);
-    expect(DEFAULT_ROLE_PERMISSIONS.Admin).toContain("customers.view");
-    expect(DEFAULT_ROLE_PERMISSIONS["IT Admin"]).not.toContain("customers.view");
+    expect(adminPersona.permissions).toEqual([]);
+    expect(itPersona.permissions).toEqual([]);
   });
 });

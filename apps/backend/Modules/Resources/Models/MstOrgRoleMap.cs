@@ -19,10 +19,6 @@ public class MstOrgRoleMap : BaseEntity
 
     public string? SubDepartment { get; set; }
 
-    public Guid? OnFloorRoleId { get; set; }
-
-    public MstRole? OnFloorRole { get; set; }
-
     public Guid? RbacRoleId { get; set; }
 
     public Role? RbacRole { get; set; }

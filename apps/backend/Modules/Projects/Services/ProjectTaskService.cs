@@ -432,7 +432,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
     {
         var rows = await db.ProjectTeamMembers
             .AsNoTracking()
-            .Include(m => m.Employee)!.ThenInclude(e => e.JobRole)
+            .Include(m => m.Employee)
             .Where(m => m.ProjectId == projectId && m.Employee != null &&
                         (m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam))
             .ToListAsync(ct);
@@ -447,7 +447,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
                     pick.EmployeeId,
                     $"{emp.FirstName} {emp.LastName}".Trim(),
                     emp.EmployeeCode,
-                    emp.JobRole?.Name ?? emp.Role,
+                    emp.Role,
                     pick.IsShadowTeam);
             })
             .OrderBy(p => p.IsShadow)

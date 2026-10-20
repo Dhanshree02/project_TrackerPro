@@ -186,7 +186,6 @@ export function ResourceMastersSection({ onCountChange }: ResourceMastersSection
       rows={snapshot.hierarchy.rows}
       departments={snapshot.hierarchy.departments}
       designations={snapshot.hierarchy.designations}
-      onFloorRoles={snapshot.hierarchy.onFloorRoles}
       rbacRoles={snapshot.hierarchy.rbacRoles}
       isExpanded={activeCategory === "hierarchy"}
       onCreate={(input) =>
@@ -553,7 +552,6 @@ function HierarchyFields({
   department,
   designation,
   subDepartment,
-  onFloorRole,
   rbacRoleId,
   onDepartment,
   onDesignation,
@@ -563,14 +561,12 @@ function HierarchyFields({
   departmentSuggestions,
   designationSuggestions,
   subDepartmentSuggestions,
-  onFloorSuggestions,
   rbacRoles,
   subDepartmentForDesignation,
 }: {
   department: string;
   designation: string;
   subDepartment: string;
-  onFloorRole: string;
   rbacRoleId: string;
   onDepartment: (value: string) => void;
   onDesignation: (value: string) => void;
@@ -580,7 +576,6 @@ function HierarchyFields({
   departmentSuggestions: string[];
   designationSuggestions: string[];
   subDepartmentSuggestions: string[];
-  onFloorSuggestions: string[];
   rbacRoles: RbacRoleOption[];
   subDepartmentForDesignation: (designationName: string) => string;
 }) {
@@ -611,11 +606,6 @@ function HierarchyFields({
       onFloor("");
       onRbac("");
     }
-  };
-
-  const changeOnFloor = (value: string) => {
-    onFloor(value);
-    if (!same(value, onFloorRole)) onRbac("");
   };
 
   return (
@@ -658,25 +648,12 @@ function HierarchyFields({
         placeholder="Select a sub-department"
       />
       <SearchableSelect
-        label="On Floor Role"
-        required
-        clearable={false}
-        showSearch
-        disabled={!subDepartment.trim()}
-        disabledHint="Select sub-department"
-        options={onFloorSuggestions}
-        value={onFloorRole}
-        onChange={changeOnFloor}
-        onCreate={rememberTypedName}
-        placeholder="Select an on floor role"
-      />
-      <SearchableSelect
         label="Assigned RBAC Role"
         required
         clearable={false}
         showSearch
-        disabled={!onFloorRole.trim()}
-        disabledHint="Select an on floor role first"
+        disabled={!subDepartment.trim()}
+        disabledHint="Select a sub-department first"
         options={rbacRoles.map((role) => ({ value: role.id, label: rbacLabel(role) }))}
         value={rbacRoleId}
         onChange={onRbac}
@@ -690,7 +667,6 @@ function HierarchyCard({
   rows,
   departments,
   designations,
-  onFloorRoles,
   rbacRoles,
   isExpanded,
   onCreate,
@@ -700,7 +676,6 @@ function HierarchyCard({
   rows: DepartmentHierarchyRow[];
   departments: NamedMaster[];
   designations: HierarchyDesignationOption[];
-  onFloorRoles: NamedMaster[];
   rbacRoles: RbacRoleOption[];
   isExpanded?: boolean;
   onCreate: (input: {
@@ -744,10 +719,6 @@ function HierarchyCard({
     () => uniqueSorted([...departments.map((item) => item.name), ...rows.map((row) => row.department)]),
     [departments, rows],
   );
-  const onFloorSuggestions = useMemo(
-    () => uniqueSorted([...onFloorRoles.map((item) => item.name), ...rows.map((row) => row.onFloorRole)]),
-    [onFloorRoles, rows],
-  );
   const addDesignations = useMemo(
     () => designationNamesFor(department, designations),
     [department, designations],
@@ -779,8 +750,8 @@ function HierarchyCard({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!department.trim() || !designation.trim() || !subDepartment.trim() || !onFloorRole.trim() || !rbacRoleId) {
-      setErrorMsg("Department, Designation, Sub-Department, On Floor Role, and Assigned RBAC Role are required.");
+    if (!department.trim() || !designation.trim() || !subDepartment.trim() || !rbacRoleId) {
+      setErrorMsg("Department, Designation, Sub-Department, and Assigned RBAC Role are required.");
       return;
     }
     if (duplicate) {
@@ -820,8 +791,8 @@ function HierarchyCard({
 
   const saveEdit = async () => {
     if (!editing) return;
-    if (!editDepartment.trim() || !editDesignation.trim() || !editSubDepartment.trim() || !editOnFloor.trim() || !editRbac) {
-      setEditError("Department, Designation, Sub-Department, On Floor Role, and Assigned RBAC Role are required.");
+    if (!editDepartment.trim() || !editDesignation.trim() || !editSubDepartment.trim() || !editRbac) {
+      setEditError("Department, Designation, Sub-Department, and Assigned RBAC Role are required.");
       return;
     }
     if (findHierarchyDuplicate(rows, editDepartment, editDesignation, editing.id)) {
@@ -851,7 +822,7 @@ function HierarchyCard({
           <div>
             <h3 className="text-sm font-semibold text-foreground">Department Hierarchy Configuration</h3>
             <p className="text-[11px] text-muted-foreground">
-              Designation sits under Department. Sub-Department sits under Designation. On Floor Role sits under Sub-Department. Assigned RBAC Role sits under that On Floor Role.
+              Designation sits under Department. Sub-Department sits under Designation. Assigned RBAC Role sits under Sub-Department.
             </p>
           </div>
         </div>
@@ -869,7 +840,6 @@ function HierarchyCard({
           department={department}
           designation={designation}
           subDepartment={subDepartment}
-          onFloorRole={onFloorRole}
           rbacRoleId={rbacRoleId}
           onDepartment={setDepartment}
           onDesignation={setDesignation}
@@ -879,7 +849,6 @@ function HierarchyCard({
           departmentSuggestions={departmentSuggestions}
           designationSuggestions={addDesignations}
           subDepartmentSuggestions={addSubDepartments}
-          onFloorSuggestions={onFloorSuggestions}
           rbacRoles={rbacRoles}
           subDepartmentForDesignation={(name) => storedSubDepartment(department, name, rows)}
         />
@@ -913,10 +882,6 @@ function HierarchyCard({
               <span className="text-muted-foreground">/</span>
               <span className="text-foreground">{row.subDepartment || "—"}</span>
               <span className="text-muted-foreground">/</span>
-              <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
-                {row.onFloorRole || "No on floor role"}
-              </Badge>
-              <span className="text-muted-foreground">/</span>
               <Badge variant="secondary" className="px-1.5 py-0 text-[10px] font-normal">
                 {row.rbacRoleDisplayName || row.rbacRoleName || "No RBAC role"}
               </Badge>
@@ -931,7 +896,7 @@ function HierarchyCard({
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">Edit department hierarchy</DialogTitle>
             <DialogDescription className="text-xs">
-              Update the department, designation, sub-department, on floor role, and assigned RBAC role.
+              Update the department, designation, sub-department, and assigned RBAC role.
             </DialogDescription>
           </DialogHeader>
           {editError && <InlineError message={editError} />}
@@ -939,7 +904,6 @@ function HierarchyCard({
             department={editDepartment}
             designation={editDesignation}
             subDepartment={editSubDepartment}
-            onFloorRole={editOnFloor}
             rbacRoleId={editRbac}
             onDepartment={setEditDepartment}
             onDesignation={setEditDesignation}
@@ -949,7 +913,6 @@ function HierarchyCard({
             departmentSuggestions={departmentSuggestions}
             designationSuggestions={editDesignations}
             subDepartmentSuggestions={editSubDepartments}
-            onFloorSuggestions={onFloorSuggestions}
             rbacRoles={rbacRoles}
             subDepartmentForDesignation={(name) => storedSubDepartment(editDepartment, name, rows)}
           />

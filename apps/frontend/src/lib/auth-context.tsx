@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
-import { apiFetch, type AuthUser } from "@/lib/api-client";
+import type { AuthUser } from "@/lib/api-client";
 import {
   getDemoPersona,
   getStoredDemoRole,
@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [status] = useState<AuthStatus>("authed");
   const [demoRole, setDemoRole] = useState<DemoRoleKey>(() => initialRole);
   const [user, setUser] = useState<AuthUser | null>(() => mockAuthUser(initialRole));
-  const [permissionsReady, setPermissionsReady] = useState(false);
+  const [permissionsReady] = useState(true);
 
   const switchDemoRole = async (role: DemoRoleKey) => {
     setStoredDemoRole(role);
@@ -55,28 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    setPermissionsReady(false);
-    apiFetch<{ role?: string; permissions?: string[] }>("/api/v1/rbac/effective")
-      .then((access) => {
-        const permissions = access?.permissions ?? [];
-        if (cancelled || permissions.length === 0) return;
-        setUser((current) =>
-          current
-            ? { ...current, role: access.role || current.role, permissions }
-            : current,
-        );
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setPermissionsReady(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [demoRole]);
 
   return (
     <AuthContext.Provider value={{ status, user, demoRole, permissionsReady, switchDemoRole }}>

@@ -15,7 +15,6 @@ namespace PMS.API.Modules.Customers.Controllers;
 public class ClientsController(IClientService clients, ICatalogService catalogs, IFileStorageService storage) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission(Permissions.ClientsRead)]
     public async Task<ActionResult<ApiResponse<PagedResult<ClientDto>>>> List(
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 20,
@@ -36,7 +35,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpGet("next-code")]
-    [RequirePermission(Permissions.ClientsRead)]
     public async Task<ActionResult<ApiResponse<string>>> GetNextCode(CancellationToken ct)
     {
         var code = await clients.GetNextClientCodeAsync(ct);
@@ -44,7 +42,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpGet("{id:guid}")]
-    [RequirePermission(Permissions.ClientsRead)]
     public async Task<ActionResult<ApiResponse<ClientDto>>> Get(Guid id, CancellationToken ct)
     {
         var client = await clients.GetClientAsync(id, ct);
@@ -53,7 +50,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpPost]
-    [RequirePermission(Permissions.ClientsWrite)]
     public async Task<ActionResult<ApiResponse<ClientDto>>> Create(CreateClientRequest request, CancellationToken ct)
     {
         var client = await clients.CreateClientAsync(request, ct);
@@ -61,7 +57,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpPut("{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
     public async Task<ActionResult<ApiResponse<ClientDto>>> Update(Guid id, UpdateClientRequest request, CancellationToken ct)
     {
         var client = await clients.UpdateClientAsync(id, request, ct);
@@ -70,7 +65,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpDelete("{id:guid}")]
-    [RequirePermission(Permissions.ClientsWrite)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var deleted = await clients.SoftDeleteClientAsync(id, ct);
@@ -79,7 +73,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
 
     /// <summary>Uploads the client's KYC document into the Documents/KYC folder and stores its reference.</summary>
     [HttpPost("{id:guid}/kyc")]
-    [RequirePermission(Permissions.ClientsWrite)]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<ClientDto>>> UploadKyc(Guid id, IFormFile file, CancellationToken ct)
     {
@@ -103,7 +96,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
 
     /// <summary>Streams the stored KYC document (inline preview, or download=true for attachment).</summary>
     [HttpGet("{id:guid}/kyc")]
-    [RequirePermission(Permissions.ClientsRead)]
     public async Task<IActionResult> GetKyc(Guid id, [FromQuery] bool download = false, CancellationToken ct = default)
     {
         var kycRef = await clients.GetClientKycRefAsync(id, ct);
@@ -141,7 +133,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
 
     /// <summary>Uploads a sub-venture's KYC document into Documents/KYC and stores its reference.</summary>
     [HttpPost("{clientId:guid}/subventures/{subVentureId:guid}/kyc")]
-    [RequirePermission(Permissions.ClientsWrite)]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<ClientDto>>> UploadSubVentureKyc(Guid clientId, Guid subVentureId, IFormFile file, CancellationToken ct)
     {
@@ -166,7 +157,6 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
 
     /// <summary>Streams a sub-venture's stored KYC document (inline preview, or download=true for attachment).</summary>
     [HttpGet("{clientId:guid}/subventures/{subVentureId:guid}/kyc")]
-    [RequirePermission(Permissions.ClientsRead)]
     public async Task<IActionResult> GetSubVentureKyc(Guid clientId, Guid subVentureId, [FromQuery] bool download = false, CancellationToken ct = default)
     {
         var kycRef = await clients.GetSubVentureKycRefAsync(clientId, subVentureId, ct);
@@ -203,21 +193,18 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpGet("meta/industries")]
-    [RequirePermission(Permissions.ClientsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<string>>>> Industries(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<string>>.Ok(await clients.GetIndustriesAsync(ct)));
     }
 
     [HttpGet("meta/countries")]
-    [RequirePermission(Permissions.ClientsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<CatalogOptionDto>>>> Countries(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<CatalogOptionDto>>.Ok(await catalogs.GetCountriesAsync(ct)));
     }
 
     [HttpGet("meta/cities")]
-    [RequirePermission(Permissions.ClientsRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<CityCatalogOptionDto>>>> Cities(
         [FromQuery] Guid? countryId,
         CancellationToken ct)

@@ -516,9 +516,8 @@ public sealed class DashboardService(AppDbContext db) : IDashboardService
                    e."BondStatus",
                    e."ExitType",
                    e."Role",
-                   r."Name" AS "JobRoleName"
+                   NULL::text AS "JobRoleName"
             FROM resource.tbl_employees AS e
-            LEFT JOIN master.mst_roles AS r ON r."Id" = e."JobRoleId"
             WHERE e."JoiningDate" IS NOT NULL
             """).ToListAsync(ct);
 

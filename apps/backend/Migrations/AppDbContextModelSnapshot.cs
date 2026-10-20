@@ -566,7 +566,7 @@ namespace PMS.API.Migrations
 
                     b.HasIndex("GroupId");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("GroupId", "Name")
                         .IsUnique();
 
                     b.ToTable("mst_service_departments", "master");
@@ -1898,9 +1898,6 @@ namespace PMS.API.Migrations
                     b.Property<string>("GradYear")
                         .HasColumnType("text");
 
-                    b.Property<Guid?>("JobRoleId")
-                        .HasColumnType("uuid");
-
                     b.Property<DateOnly?>("JoiningDate")
                         .HasColumnType("date");
 
@@ -2028,6 +2025,9 @@ namespace PMS.API.Migrations
                     b.Property<string>("SubDepartment")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("SubDepartmentId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("TaxRegime")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
@@ -2067,8 +2067,6 @@ namespace PMS.API.Migrations
 
                     b.HasIndex("EngagementManagerEmployeeId");
 
-                    b.HasIndex("JobRoleId");
-
                     b.HasIndex("NationalityId");
 
                     b.HasIndex("ProjectManagerId");
@@ -2076,6 +2074,8 @@ namespace PMS.API.Migrations
                     b.HasIndex("ReportingManagerId");
 
                     b.HasIndex("SalaryBandId");
+
+                    b.HasIndex("SubDepartmentId");
 
                     b.HasIndex("UserId");
 
@@ -2686,6 +2686,28 @@ namespace PMS.API.Migrations
                     b.ToTable("mst_designations", "master");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDesignationSubDepartment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DesignationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SubDepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubDepartmentId");
+
+                    b.HasIndex("DesignationId", "SubDepartmentId")
+                        .IsUnique();
+
+                    b.ToTable("mst_designation_sub_departments", "master");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstEmailDomain", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2966,6 +2988,74 @@ namespace PMS.API.Migrations
                     b.ToTable("mst_offices", "master");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstOrgRoleMap", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DesignationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RbacRoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SubDepartment")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DesignationId")
+                        .IsUnique();
+
+                    b.HasIndex("RbacRoleId");
+
+                    b.ToTable("mst_org_role_map", "master");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstOrgRoleSubDepartment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrgRoleMapId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SubDepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubDepartmentId");
+
+                    b.HasIndex("OrgRoleMapId", "SubDepartmentId")
+                        .IsUnique();
+
+                    b.ToTable("mst_org_role_sub_departments", "master");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstPostGraduationDegree", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3066,54 +3156,6 @@ namespace PMS.API.Migrations
                     b.ToTable("mst_reporting_managers", "master");
                 });
 
-            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstRole", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeletedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DesignationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.Property<DateTime?>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("UpdatedBy")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("DesignationId", "Name")
-                        .IsUnique();
-
-                    b.ToTable("mst_roles", "master");
-                });
-
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstSalaryBand", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3159,6 +3201,56 @@ namespace PMS.API.Migrations
                     b.ToTable("mst_salary_bands", "master");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstSubDepartment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("mst_sub_departments", "master");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstWorkLocation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3202,6 +3294,81 @@ namespace PMS.API.Migrations
                         .IsUnique();
 
                     b.ToTable("mst_work_locations", "master");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.OnFloorRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DesignationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid?>("RbacRoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SubDepartment")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("DesignationId")
+                        .IsUnique();
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("RbacRoleId");
+
+                    b.ToTable("tbl_onfloorrole", "resource");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.OnFloorRoleSubDepartment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OnFloorRoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SubDepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubDepartmentId");
+
+                    b.HasIndex("OnFloorRoleId", "SubDepartmentId")
+                        .IsUnique();
+
+                    b.ToTable("tbl_onfloorrole_subdepartment", "resource");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Timesheets.Models.TimesheetEntry", b =>
@@ -3441,10 +3608,6 @@ namespace PMS.API.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<string>("Permissions")
-                        .IsRequired()
-                        .HasColumnType("jsonb");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -4012,11 +4175,6 @@ namespace PMS.API.Migrations
                         .HasForeignKey("EngagementManagerEmployeeId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("PMS.API.Modules.Resources.Models.MstRole", "JobRole")
-                        .WithMany()
-                        .HasForeignKey("JobRoleId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("PMS.API.Modules.Resources.Models.MstNationality", "NationalityRef")
                         .WithMany()
                         .HasForeignKey("NationalityId")
@@ -4037,6 +4195,11 @@ namespace PMS.API.Migrations
                         .HasForeignKey("SalaryBandId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstSubDepartment", "SubDepartmentRef")
+                        .WithMany()
+                        .HasForeignKey("SubDepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("PMS.API.Modules.Users.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -4050,8 +4213,6 @@ namespace PMS.API.Migrations
 
                     b.Navigation("EngagementManagerEmployee");
 
-                    b.Navigation("JobRole");
-
                     b.Navigation("NationalityRef");
 
                     b.Navigation("ProjectManager");
@@ -4059,6 +4220,8 @@ namespace PMS.API.Migrations
                     b.Navigation("ReportingManager");
 
                     b.Navigation("SalaryBandRef");
+
+                    b.Navigation("SubDepartmentRef");
 
                     b.Navigation("User");
                 });
@@ -4102,6 +4265,25 @@ namespace PMS.API.Migrations
                     b.Navigation("Department");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDesignationSubDepartment", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDesignation", "Designation")
+                        .WithMany()
+                        .HasForeignKey("DesignationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstSubDepartment", "SubDepartment")
+                        .WithMany()
+                        .HasForeignKey("SubDepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Designation");
+
+                    b.Navigation("SubDepartment");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstOffice", b =>
                 {
                     b.HasOne("PMS.API.Modules.Resources.Models.MstWorkLocation", "WorkLocation")
@@ -4110,6 +4292,50 @@ namespace PMS.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("WorkLocation");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstOrgRoleMap", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDesignation", "Designation")
+                        .WithMany()
+                        .HasForeignKey("DesignationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Users.Models.Role", "RbacRole")
+                        .WithMany()
+                        .HasForeignKey("RbacRoleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Designation");
+
+                    b.Navigation("RbacRole");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstOrgRoleSubDepartment", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstOrgRoleMap", "OrgRoleMap")
+                        .WithMany()
+                        .HasForeignKey("OrgRoleMapId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstSubDepartment", "SubDepartment")
+                        .WithMany()
+                        .HasForeignKey("SubDepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OrgRoleMap");
+
+                    b.Navigation("SubDepartment");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstReportingManager", b =>
@@ -4122,15 +4348,58 @@ namespace PMS.API.Migrations
                     b.Navigation("Employee");
                 });
 
-            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstRole", b =>
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstSubDepartment", b =>
                 {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.OnFloorRole", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("PMS.API.Modules.Resources.Models.MstDesignation", "Designation")
-                        .WithMany("Roles")
+                        .WithMany()
                         .HasForeignKey("DesignationId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("PMS.API.Modules.Users.Models.Role", "RbacRole")
+                        .WithMany()
+                        .HasForeignKey("RbacRoleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Department");
+
                     b.Navigation("Designation");
+
+                    b.Navigation("RbacRole");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Resources.Models.OnFloorRoleSubDepartment", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.OnFloorRole", "OnFloorRole")
+                        .WithMany()
+                        .HasForeignKey("OnFloorRoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstSubDepartment", "SubDepartment")
+                        .WithMany()
+                        .HasForeignKey("SubDepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OnFloorRole");
+
+                    b.Navigation("SubDepartment");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Timesheets.Models.TimesheetEntry", b =>
@@ -4240,11 +4509,6 @@ namespace PMS.API.Migrations
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDepartment", b =>
                 {
                     b.Navigation("Designations");
-                });
-
-            modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstDesignation", b =>
-                {
-                    b.Navigation("Roles");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstWorkLocation", b =>

@@ -20,7 +20,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options)
     /// NOTE: <paramref name="user"/> must be loaded with <c>.Include(u => u.Role)</c> or the
     /// role claim will be empty.
     /// </summary>
-    public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(User user, IReadOnlyList<string> permissions)
+    public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(User user)
     {
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(_options.AccessTokenExpiryMinutes);
 
@@ -32,10 +32,6 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options)
             new(ClaimTypes.Name, user.Name),
             new(ClaimTypes.Role, user.Role?.Name ?? string.Empty),
         };
-
-        // Permissions as individual claims for policy checks.
-        foreach (var permission in permissions)
-            claims.Add(new Claim(AuthClaimTypes.Permission, permission));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);

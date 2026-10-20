@@ -41,7 +41,6 @@ public sealed class DbInitializerHostedService(
             var graduationDegrees = db.TableName<MstGraduationDegree>();
             var postGraduationDegrees = db.TableName<MstPostGraduationDegree>();
             var designations = db.TableName<MstDesignation>();
-            var jobRoles = db.TableName<MstRole>();
             var employeeActivityLogs = db.TableName<EmployeeActivityLog>();
             var resourceSchema = DbSchemas.Resource;
 
@@ -241,30 +240,6 @@ public sealed class DbInitializerHostedService(
                 cancellationToken);
             await db.Database.ExecuteSqlRawAsync(
                 $"""
-                UPDATE {jobRoles}
-                SET "Name" = 'Leader', "UpdatedAtUtc" = NOW()
-                WHERE "Name" IN ('Leader (L)', 'Leader(L)');
-
-                UPDATE {jobRoles}
-                SET "Name" = 'Team Leader', "UpdatedAtUtc" = NOW()
-                WHERE "Name" = 'Team Leader (TL)';
-
-                UPDATE {jobRoles}
-                SET "Name" = 'Team Member', "UpdatedAtUtc" = NOW()
-                WHERE "Name" = 'Team Member (TM)';
-
-                UPDATE {jobRoles}
-                SET "Name" = 'Manager', "UpdatedAtUtc" = NOW()
-                WHERE "Name" = 'Manager (Mng.)';
-
-                UPDATE {jobRoles}
-                SET "Name" = 'Sr. Manager', "UpdatedAtUtc" = NOW()
-                WHERE "Name" = 'Sr. Manager (Sr.Mng.)';
-
-                UPDATE {jobRoles}
-                SET "Name" = 'Head Of Department', "UpdatedAtUtc" = NOW()
-                WHERE "Name" = 'Head Of Department (HOD)';
-
                 UPDATE {employees}
                 SET "Role" = CASE "Role"
                     WHEN 'Leader (L)' THEN 'Leader'
@@ -281,39 +256,6 @@ public sealed class DbInitializerHostedService(
                     'Leader (L)', 'Leader(L)', 'Team Leader (TL)', 'Team Member (TM)',
                     'Manager (Mng.)', 'Sr. Manager (Sr.Mng.)', 'Head Of Department (HOD)'
                 );
-
-                UPDATE {employees} AS e
-                SET "JobRoleId" = pick.role_id,
-                    "UpdatedAtUtc" = NOW()
-                FROM (
-                    SELECT
-                        emp."Id" AS employee_id,
-                        (
-                            SELECT r."Id"
-                            FROM {jobRoles} AS r
-                            WHERE r."DesignationId" = emp."DesignationId"
-                              AND r."IsActive" = TRUE
-                              AND r."DeletedAtUtc" IS NULL
-                            ORDER BY r."CreatedAtUtc", r."Name"
-                            LIMIT 1
-                        ) AS role_id
-                    FROM {employees} AS emp
-                    WHERE emp."DeletedAtUtc" IS NULL
-                      AND emp."DesignationId" IS NOT NULL
-                ) AS pick
-                WHERE e."Id" = pick.employee_id
-                  AND pick.role_id IS NOT NULL
-                  AND (
-                      e."JobRoleId" IS NULL
-                      OR NOT EXISTS (
-                          SELECT 1
-                          FROM {jobRoles} AS r
-                          WHERE r."Id" = e."JobRoleId"
-                            AND r."DesignationId" = e."DesignationId"
-                            AND r."IsActive" = TRUE
-                            AND r."DeletedAtUtc" IS NULL
-                      )
-                  );
                 """,
                 cancellationToken);
             await DbSeeder.EnsureEmployeeStatusesAsync(db, cancellationToken);

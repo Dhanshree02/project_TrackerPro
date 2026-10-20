@@ -1,7 +1,5 @@
 import type { ApiEmployeeListItem } from "@/modules/employees/api/employees";
 import { fetchAllEmployees } from "@/modules/employees/api/employees";
-import { apiFetch } from "@/lib/api-client";
-import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import { formatOnFloorRoleDisplay } from "@/lib/on-floor-role";
 import { findOrgRoleRow } from "@/lib/org-role-matrix";
 import { formatSubDepartmentDisplay } from "@/lib/sub-department";
@@ -13,8 +11,8 @@ import type { DemoPersona } from "@/lib/user-personas";
  * Department     → master.mst_departments (employee.DepartmentId)
  * Designation    → master.mst_designations (employee.DesignationId); may define default sub-dept
  * Sub-Department → resource.tbl_employees."SubDepartment" (comma-split in UI filters)
- * On Floor Role  → master.mst_roles via employee."JobRoleId" (API: jobRoleName)
- * RBAC Access    → auth.tbl_users."RoleId" → auth.tbl_roles."Name" (Settings → User Role Access)
+ * On Floor Role  → no longer stored. jobRoleName stays empty until roles are rebuilt.
+ * RBAC Access    → auth.tbl_users."RoleId" → auth.tbl_roles."Name"
  *                  + profile copy on resource.tbl_employees."Role" (Assigned RBAC Role at onboard)
  *
  * Switch user uses RBAC access for permissions; list shows designation + on-floor + access separately.
@@ -26,13 +24,6 @@ let loadPromise: Promise<DemoPersona[]> | null = null;
 /** Super Admin login (full RBAC), not the same as IT Admin profile staff. */
 export const SUPER_ADMIN_EMPLOYEE_CODE = "TK-0004";
 export const SUPER_ADMIN_EMAIL = "admin@talakunchi.com";
-
-interface UserAccessApiRow {
-  employeeCode: string;
-  email: string;
-  accessRole: string;
-  profileRole?: string;
-}
 
 const initialsOf = (name: string) =>
   name
@@ -127,8 +118,8 @@ export function mapEmployeeAccessRoleKey(item: ApiEmployeeListItem, accessRoleFr
   return "Testing-Team Member";
 }
 
-function permissionsForRoleKey(roleKey: string): string[] {
-  return DEFAULT_ROLE_PERMISSIONS[roleKey as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [];
+function permissionsForRoleKey(_roleKey: string): string[] {
+  return [];
 }
 
 export function employeeListItemToPersona(
@@ -195,46 +186,14 @@ export function isEmployeePersonaKey(value: string | null | undefined): boolean 
   return false;
 }
 
-function resolveAccessRoleFromMaps(
-  item: ApiEmployeeListItem,
-  byCode: Map<string, string>,
-  byEmail: Map<string, string>,
-): string | undefined {
-  const code = item.employeeCode.trim();
-  const email = item.workEmail.trim().toLowerCase();
-  return byCode.get(code) ?? (email ? byEmail.get(email) : undefined);
-}
-
-async function loadAccessRoleMaps(): Promise<{
-  byCode: Map<string, string>;
-  byEmail: Map<string, string>;
-}> {
-  try {
-    const rows = await apiFetch<UserAccessApiRow[]>("/api/v1/rbac/user-access");
-    const byCode = new Map<string, string>();
-    const byEmail = new Map<string, string>();
-    for (const row of rows ?? []) {
-      const role = row.accessRole?.trim();
-      if (!role) continue;
-      if (row.employeeCode) byCode.set(row.employeeCode.trim(), role);
-      if (row.email) byEmail.set(row.email.trim().toLowerCase(), role);
-    }
-    return { byCode, byEmail };
-  } catch {
-    return { byCode: new Map(), byEmail: new Map() };
-  }
-}
-
 export async function loadEmployeePersonas(force = false): Promise<DemoPersona[]> {
   if (!force && cachedPersonas) return cachedPersonas;
   if (!force && loadPromise) return loadPromise;
 
-  loadPromise = Promise.all([fetchAllEmployees(), loadAccessRoleMaps()])
-    .then(([items, { byCode, byEmail }]) => {
+  loadPromise = fetchAllEmployees()
+    .then((items) => {
       const personas = items
-        .map((item) =>
-          employeeListItemToPersona(item, resolveAccessRoleFromMaps(item, byCode, byEmail)),
-        )
+        .map((item) => employeeListItemToPersona(item))
         .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
       cachedPersonas = personas;
       return personas;

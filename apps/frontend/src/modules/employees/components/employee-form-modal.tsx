@@ -1434,15 +1434,15 @@ export function EmployeeFormModal({
                 }
                 error={errors.role}
               />
-              <FormSelect
+              <FormField
                 id="form-jobRoleId"
                 label="On Floor Role"
-                options={roleOptions.map((o) => ({ value: o.id, label: o.name }))}
-                value={form.jobRoleId}
-                disabled
-                disabledHint={form.designationId ? "Mapped from designation" : "Select a designation first"}
-                placeholder="Mapped from designation"
-                onChange={() => undefined}
+                readOnly
+                value={
+                  desigOptions.find((d) => d.id === form.designationId)?.jobRoleName
+                  || roleOptions.find((r) => r.id === form.jobRoleId)?.name
+                  || (form.designationId ? "No on-floor role is mapped to this designation" : "Select a designation first")
+                }
               />
               <div className="md:col-span-2 lg:col-span-2">
                 <FormSelect

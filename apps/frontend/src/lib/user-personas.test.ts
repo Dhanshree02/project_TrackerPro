@@ -5,8 +5,6 @@ import {
   isDemoRoleKey,
   mockAuthUser,
 } from "./user-personas";
-import { DEFAULT_ROLE_PERMISSIONS } from "./rbac";
-
 describe("DEMO_PERSONAS catalog", () => {
   it("includes all directory employees plus IT Admin", () => {
     expect(DEMO_PERSONAS.length).toBeGreaterThanOrEqual(59);
@@ -25,22 +23,8 @@ describe("DEMO_PERSONAS catalog", () => {
     expect(itAdminPersona.roleKey).toBe("IT Admin");
     expect(adminPersona.code).toBe("TK-0004");
     expect(itAdminPersona.code).toBe("TK-0004-IT");
-
-    // Admin has super-admin full access (> 50 permissions)
-    const adminPerms = DEFAULT_ROLE_PERMISSIONS["Admin"] ?? [];
-    expect(adminPerms.length).toBeGreaterThan(50);
-    expect(adminPerms).toContain("projects.view");
-    expect(adminPerms).toContain("customers.view");
-    expect(adminPerms).toContain("reports.sales");
-
-    // IT Admin has restricted access (< 25 permissions)
-    const itAdminPerms = DEFAULT_ROLE_PERMISSIONS["IT Admin"] ?? [];
-    expect(itAdminPerms.length).toBeLessThan(25);
-    expect(itAdminPerms).toContain("resources.view");
-    expect(itAdminPerms).toContain("settings.view");
-    expect(itAdminPerms).not.toContain("projects.view");
-    expect(itAdminPerms).not.toContain("customers.view");
-    expect(itAdminPerms).not.toContain("reports.view");
+    expect(adminPersona.permissions).toEqual([]);
+    expect(itAdminPersona.permissions).toEqual([]);
   });
 
   it("assigns unique keys, codes, and emails to every persona", () => {
@@ -114,11 +98,11 @@ describe("DEMO_PERSONAS catalog", () => {
     const adminUser = mockAuthUser("Admin");
     expect(adminUser.name).toBe("Admin User");
     expect(adminUser.role).toBe("Admin");
-    expect(adminUser.permissions.length).toBeGreaterThan(50);
+    expect(adminUser.permissions).toEqual([]);
 
     const itAdminUser = mockAuthUser("IT Admin");
     expect(itAdminUser.name).toBe("IT Admin User");
     expect(itAdminUser.role).toBe("IT Admin");
-    expect(itAdminUser.permissions.length).toBeLessThan(25);
+    expect(itAdminUser.permissions).toEqual([]);
   });
 });

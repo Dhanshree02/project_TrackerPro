@@ -64,7 +64,6 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             .AsNoTracking()
             .Include(e => e.Department)
             .Include(e => e.Designation)
-            .Include(e => e.JobRole)
             // Include Active / Active - Probation / Active - Notice Period
             .Where(e => e.Status == null || e.Status.StartsWith("Active"))
             .Where(e => !assignedEmployeeIds.Contains(e.Id));
@@ -76,8 +75,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
                 EF.Functions.ILike(e.EmployeeCode, "TKI-%") ||
                 (e.Role != null && e.Role.ToLower().Contains("intern")) ||
                 (e.Category != null && e.Category.ToLower().Contains("intern")) ||
-                (e.Designation != null && e.Designation.Name != null && e.Designation.Name.ToLower().Contains("intern")) ||
-                (e.JobRole != null && e.JobRole.Name != null && e.JobRole.Name.ToLower().Contains("intern")));
+                (e.Designation != null && e.Designation.Name != null && e.Designation.Name.ToLower().Contains("intern")));
         }
         else
         {
@@ -86,8 +84,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
                 !EF.Functions.ILike(e.EmployeeCode, "TKI-%") &&
                 (e.Role == null || !e.Role.ToLower().Contains("intern")) &&
                 (e.Category == null || !e.Category.ToLower().Contains("intern")) &&
-                (e.Designation == null || e.Designation.Name == null || !e.Designation.Name.ToLower().Contains("intern")) &&
-                (e.JobRole == null || e.JobRole.Name == null || !e.JobRole.Name.ToLower().Contains("intern")));
+                (e.Designation == null || e.Designation.Name == null || !e.Designation.Name.ToLower().Contains("intern")));
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -110,7 +107,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             e.EmployeeCode,
             FullName(e),
             e.WorkEmail,
-            e.JobRole?.Name ?? e.Role,
+            e.Role,
             e.Designation?.Name,
             e.DepartmentId,
             e.Department?.Name ?? e.PmoDepartment,
@@ -158,7 +155,6 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
         var employee = await db.Employees
             .Include(e => e.Department)
             .Include(e => e.Designation)
-            .Include(e => e.JobRole)
             .FirstOrDefaultAsync(e => e.Id == request.EmployeeId, ct)
             ?? throw new NotFoundException($"Employee '{request.EmployeeId}' was not found.");
 
@@ -502,7 +498,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
         if (ContainsIntern(e.Role) || ContainsIntern(e.Category) || ContainsIntern(e.ContractType))
             return true;
 
-        if (ContainsIntern(e.Designation?.Name) || ContainsIntern(e.JobRole?.Name))
+        if (ContainsIntern(e.Designation?.Name) || ContainsIntern(e.Role))
             return true;
 
         return false;
@@ -581,7 +577,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db) : IProjectTeamMemb
             emp is null ? string.Empty : FullName(emp),
             emp?.EmployeeCode ?? string.Empty,
             emp?.WorkEmail,
-            emp?.JobRole?.Name ?? emp?.Role,
+            emp?.Role,
             m.DepartmentId,
             m.Department?.Name ?? emp?.Department?.Name ?? emp?.PmoDepartment,
             m.SubDepartment ?? emp?.SubDepartment,

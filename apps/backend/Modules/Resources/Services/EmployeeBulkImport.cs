@@ -811,11 +811,8 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             var departments = await db.Departments.ToListAsync(ct);
             var designations = await db.Designations
                 .Include(d => d.DefaultRole)
-                .Include(d => d.JobRole)
-                .Include(d => d.Roles)
                 .ToListAsync(ct);
             var orgRoleMaps = await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
-            var roles = await db.JobRoles.ToListAsync(ct);
             var employeeStatuses = await db.EmployeeStatuses.ToListAsync(ct);
             var managers = await db.Employees
                 .Select(e => new { e.Id, e.EmployeeCode, Name = e.FirstName + " " + e.LastName })
@@ -924,47 +921,20 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     else designationId = matchedDesig.Id;
                 }
 
-                Guid? jobRoleId = null;
                 var roleName = GetValue(values, "role");
                 if (matchedDesig is not null)
                 {
                     if (orgRoleMaps.TryGetValue(matchedDesig.Id, out var map))
                     {
-                        if (map.OnFloorRoleId is Guid mappedJobRoleId)
-                        {
-                            jobRoleId = mappedJobRoleId;
-                        }
                         if (map.RbacRole is not null)
                         {
                             roleName = map.RbacRole.Name;
                         }
                     }
-                    else if (matchedDesig.JobRoleId is Guid mappedJobRoleId)
+                    else if (matchedDesig.DefaultRole is not null)
                     {
-                        jobRoleId = mappedJobRoleId;
-                        if (matchedDesig.DefaultRole is not null)
-                        {
-                            roleName = matchedDesig.DefaultRole.Name;
-                        }
+                        roleName = matchedDesig.DefaultRole.Name;
                     }
-                    else
-                    {
-                        var activeJobRole = matchedDesig.JobRole ?? matchedDesig.Roles.FirstOrDefault(r => r.IsActive);
-                        if (activeJobRole is not null)
-                        {
-                            jobRoleId = activeJobRole.Id;
-                        }
-                        if (matchedDesig.DefaultRole is not null)
-                        {
-                            roleName = matchedDesig.DefaultRole.Name;
-                        }
-                    }
-                }
-                else if (!string.IsNullOrWhiteSpace(roleName))
-                {
-                    var matches = roles.Where(r => r.Name.Equals(roleName, StringComparison.OrdinalIgnoreCase));
-                    var role = matches.FirstOrDefault();
-                    if (role is not null) jobRoleId = role.Id;
                 }
 
                 var subDepartmentVal = GetValue(values, "subdepartment");
@@ -1134,7 +1104,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     DepartmentId: departmentId,
                     DesignationId: designationId,
                     Role: NullIfEmpty(roleName),
-                    JobRoleId: jobRoleId,
+                    JobRoleId: null,
                     ReportingManagerId: reportingManagerId,
                     BusinessUnit: NullIfEmpty(GetValue(values, "businessunit")),
                     WorkLocation: NullIfEmpty(GetValue(values, "worklocation")),

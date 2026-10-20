@@ -1,5 +1,4 @@
 import type { AuthUser } from "@/lib/api-client";
-import { DEFAULT_ROLE_PERMISSIONS } from "@/lib/rbac";
 import { findEmployeePersona, isEmployeePersonaKey } from "@/lib/employee-personas";
 
 /**
@@ -75,7 +74,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Core",
     designation: "Director and Chief Executive Officer",
     roleKey: "CEO",
-    permissions: DEFAULT_ROLE_PERMISSIONS["CEO" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0002",
@@ -89,7 +88,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Core",
     designation: "Director and Chief Operating Officer",
     roleKey: "COO",
-    permissions: DEFAULT_ROLE_PERMISSIONS["COO" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0003",
@@ -103,7 +102,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Core",
     designation: "Director and Chief Technology Officer",
     roleKey: "CTO",
-    permissions: DEFAULT_ROLE_PERMISSIONS["CTO" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0004",
@@ -117,7 +116,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Core",
     designation: "System Administrator",
     roleKey: "Admin",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Admin"] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0004-IT",
@@ -131,7 +130,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - IT Administration",
     designation: "IT Administrator",
     roleKey: "IT Admin",
-    permissions: DEFAULT_ROLE_PERMISSIONS["IT Admin"] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0005",
@@ -145,7 +144,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Accounts",
     designation: "Senior Accountant - I",
     roleKey: "Accounts",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Accounts" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0006",
@@ -159,7 +158,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - HR",
     designation: "HR Head",
     roleKey: "HR",
-    permissions: DEFAULT_ROLE_PERMISSIONS["HR" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0007",
@@ -173,7 +172,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Sales",
     designation: "Sales Manager",
     roleKey: "Sales Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Sales Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0008",
@@ -187,7 +186,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Sales",
     designation: "Sales Associate",
     roleKey: "Sales team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Sales team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0009",
@@ -201,7 +200,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Sales",
     designation: "Sales Associate",
     roleKey: "Sales team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Sales team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0010",
@@ -215,7 +214,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Sales",
     designation: "Associate Customer Success Representative - I",
     roleKey: "Sales team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Sales team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0011",
@@ -229,7 +228,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Sales",
     designation: "Associate Customer Success Representative - II",
     roleKey: "Sales team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Sales team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0012",
@@ -243,7 +242,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Project Management",
     designation: "Senior PMO - I",
     roleKey: "PMO",
-    permissions: DEFAULT_ROLE_PERMISSIONS["PMO" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0013",
@@ -257,7 +256,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Project Management",
     designation: "Engagement Manager",
     roleKey: "EngagementManager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["EngagementManager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0014",
@@ -271,7 +270,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Project Management",
     designation: "Engagement Manager",
     roleKey: "EngagementManager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["EngagementManager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0015",
@@ -285,7 +284,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "R&D (Research & Development)",
     designation: "Python Developer - II",
     roleKey: "R&D - Team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["R&D - Team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0016",
@@ -299,7 +298,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC HOD",
     roleKey: "SOC-HOD",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-HOD" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0017",
@@ -313,7 +312,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Senior Manager",
     roleKey: "SOC-Senior Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Senior Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0018",
@@ -327,7 +326,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Manager",
     roleKey: "SOC-Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0019",
@@ -341,7 +340,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Lead - I",
     roleKey: "SOC-Team Leader",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Team Leader" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0020",
@@ -355,7 +354,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Lead - II",
     roleKey: "SOC-Team Leader",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Team Leader" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0021",
@@ -369,7 +368,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Shift Lead - I",
     roleKey: "SOC-Team Leader",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Team Leader" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0022",
@@ -383,7 +382,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Analyst - I",
     roleKey: "SOC-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0023",
@@ -397,7 +396,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Analyst - II",
     roleKey: "SOC-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0024",
@@ -411,7 +410,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SIEM Admin - II",
     roleKey: "SOC-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0025",
@@ -425,7 +424,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Consultant - I",
     roleKey: "SOC-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0026",
@@ -439,7 +438,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "SOC Analyst - III",
     roleKey: "SOC-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0027",
@@ -453,7 +452,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "Senior Vice President - Principal Consultant",
     roleKey: "Consulting-HOD",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-HOD" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0028",
@@ -467,7 +466,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "Principal Manager - I",
     roleKey: "SOC-Senior Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["SOC-Senior Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0029",
@@ -481,7 +480,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "Associate Manager - III",
     roleKey: "Consulting-Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0030",
@@ -495,7 +494,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "Senior GRC Auditor - I",
     roleKey: "Consulting-Team Leader",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-Team Leader" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0031",
@@ -509,7 +508,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "Senior GRC Auditor - II",
     roleKey: "Consulting-Team Leader",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-Team Leader" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0032",
@@ -523,7 +522,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "GRC Auditor - I",
     roleKey: "Consulting-Team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-Team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0033",
@@ -537,7 +536,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "GRC Auditor - II",
     roleKey: "Consulting-Team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-Team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0034",
@@ -551,7 +550,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "GRC Auditor - III",
     roleKey: "Consulting-Team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-Team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0035",
@@ -565,7 +564,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "GRC Auditor - IV",
     roleKey: "Consulting-Team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-Team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0036",
@@ -579,7 +578,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "GRC Auditor - I",
     roleKey: "Consulting-Team member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Consulting-Team member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0037",
@@ -593,7 +592,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Testing HOD",
     roleKey: "Testing HOD",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing HOD" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0038",
@@ -607,7 +606,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Manager - I",
     roleKey: "Testing Senior Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing Senior Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0039",
@@ -621,7 +620,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Associate Manager - III",
     roleKey: "Testing-Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0040",
@@ -635,7 +634,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Associate Project Manager",
     roleKey: "Testing-Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0041",
@@ -649,7 +648,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "DevSecOps Specialist - II",
     roleKey: "Testing-Manager",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Manager" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0042",
@@ -663,7 +662,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "DevSecOps Associate",
     roleKey: "Testing-Team Leader",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Team Leader" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0043",
@@ -677,7 +676,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Associate Manager - I",
     roleKey: "Testing-Team Leader",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Team Leader" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0044",
@@ -691,7 +690,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Associate Manager - II",
     roleKey: "Testing-Team Leader",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Team Leader" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0045",
@@ -705,7 +704,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "PenTester - I",
     roleKey: "Testing-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0046",
@@ -719,7 +718,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "PenTester - II",
     roleKey: "Testing-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0047",
@@ -733,7 +732,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "DevSecOps Practitioner - I",
     roleKey: "Testing-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0048",
@@ -747,7 +746,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Red Team Practitioner - II",
     roleKey: "Testing-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TK-0049",
@@ -761,7 +760,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Senior Pentester - I",
     roleKey: "Testing-Team Member",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Testing-Team Member" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0001",
@@ -775,7 +774,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0002",
@@ -789,7 +788,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0003",
@@ -803,7 +802,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Testing",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0004",
@@ -817,7 +816,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0005",
@@ -831,7 +830,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Operations",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0006",
@@ -845,7 +844,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0007",
@@ -859,7 +858,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Services - Consulting",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0008",
@@ -873,7 +872,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "R&D (Research & Development)",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0009",
@@ -887,7 +886,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - Sales",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
   {
     key: "TKI-0010",
@@ -901,7 +900,7 @@ export const DEMO_PERSONAS: DemoPersona[] = [
     department: "Functional - IT Administration",
     designation: "Intern",
     roleKey: "Intern",
-    permissions: DEFAULT_ROLE_PERMISSIONS["Intern" as keyof typeof DEFAULT_ROLE_PERMISSIONS] ?? [],
+    permissions: [],
   },
 ];
 

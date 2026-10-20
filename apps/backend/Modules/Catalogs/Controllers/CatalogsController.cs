@@ -73,7 +73,6 @@ public class CatalogsController(
     }
 
     [HttpPost("address-cities")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<AddressCityDto>>> CreateAddressCity(
         UpsertAddressCityRequest request,
         CancellationToken ct)
@@ -83,7 +82,6 @@ public class CatalogsController(
     }
 
     [HttpPut("address-cities/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<AddressCityDto>>> UpdateAddressCity(
         Guid id,
         UpsertAddressCityRequest request,
@@ -94,7 +92,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("address-cities/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteAddressCity(Guid id, CancellationToken ct)
     {
         await resourceMasters.DeleteAddressCityAsync(id, ct);
@@ -109,7 +106,6 @@ public class CatalogsController(
     }
 
     [HttpPost("resource-masters/hierarchy")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<DepartmentHierarchyRowDto>>> CreateHierarchy(
         UpsertDepartmentHierarchyRequest request,
         CancellationToken ct)
@@ -119,7 +115,6 @@ public class CatalogsController(
     }
 
     [HttpPut("resource-masters/hierarchy/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<DepartmentHierarchyRowDto>>> UpdateHierarchy(
         Guid id,
         UpsertDepartmentHierarchyRequest request,
@@ -130,7 +125,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("resource-masters/hierarchy/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteHierarchy(Guid id, CancellationToken ct)
     {
         await resourceMasters.DeleteHierarchyAsync(id, ct);
@@ -138,7 +132,6 @@ public class CatalogsController(
     }
 
     [HttpPost("resource-masters/email-domains")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateEmailDomain(
         UpsertNamedMasterRequest request,
         CancellationToken ct)
@@ -148,7 +141,6 @@ public class CatalogsController(
     }
 
     [HttpPut("resource-masters/email-domains/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateEmailDomain(
         Guid id,
         UpsertNamedMasterRequest request,
@@ -159,7 +151,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("resource-masters/email-domains/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteEmailDomain(Guid id, CancellationToken ct)
     {
         await resourceMasters.DeleteEmailDomainAsync(id, ct);
@@ -167,7 +158,6 @@ public class CatalogsController(
     }
 
     [HttpPost("resource-masters/business-units")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateBusinessUnit(
         UpsertNamedMasterRequest request,
         CancellationToken ct)
@@ -177,7 +167,6 @@ public class CatalogsController(
     }
 
     [HttpPut("resource-masters/business-units/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateBusinessUnit(
         Guid id,
         UpsertNamedMasterRequest request,
@@ -188,7 +177,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("resource-masters/business-units/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteBusinessUnit(Guid id, CancellationToken ct)
     {
         await resourceMasters.DeleteBusinessUnitAsync(id, ct);
@@ -196,7 +184,6 @@ public class CatalogsController(
     }
 
     [HttpPost("resource-masters/work-locations")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateWorkLocation(
         UpsertNamedMasterRequest request,
         CancellationToken ct)
@@ -206,7 +193,6 @@ public class CatalogsController(
     }
 
     [HttpPut("resource-masters/work-locations/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateWorkLocation(
         Guid id,
         UpsertNamedMasterRequest request,
@@ -217,7 +203,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("resource-masters/work-locations/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteWorkLocation(Guid id, CancellationToken ct)
     {
         await resourceMasters.DeleteWorkLocationAsync(id, ct);
@@ -225,7 +210,6 @@ public class CatalogsController(
     }
 
     [HttpPost("resource-masters/graduation-degrees")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateGraduationDegree(
         UpsertNamedMasterRequest request,
         CancellationToken ct)
@@ -235,7 +219,6 @@ public class CatalogsController(
     }
 
     [HttpPut("resource-masters/graduation-degrees/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateGraduationDegree(
         Guid id,
         UpsertNamedMasterRequest request,
@@ -246,7 +229,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("resource-masters/graduation-degrees/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteGraduationDegree(Guid id, CancellationToken ct)
     {
         await resourceMasters.DeleteGraduationDegreeAsync(id, ct);
@@ -254,7 +236,6 @@ public class CatalogsController(
     }
 
     [HttpPost("resource-masters/post-graduation-degrees")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreatePostGraduationDegree(
         UpsertNamedMasterRequest request,
         CancellationToken ct)
@@ -264,7 +245,6 @@ public class CatalogsController(
     }
 
     [HttpPut("resource-masters/post-graduation-degrees/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdatePostGraduationDegree(
         Guid id,
         UpsertNamedMasterRequest request,
@@ -275,7 +255,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("resource-masters/post-graduation-degrees/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeletePostGraduationDegree(Guid id, CancellationToken ct)
     {
         await resourceMasters.DeletePostGraduationDegreeAsync(id, ct);
@@ -283,7 +262,6 @@ public class CatalogsController(
     }
 
     [HttpPost("resource-masters/certifications")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> CreateCertification(
         UpsertNamedMasterRequest request,
         CancellationToken ct)
@@ -293,7 +271,6 @@ public class CatalogsController(
     }
 
     [HttpPut("resource-masters/certifications/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<NamedMasterDto>>> UpdateCertification(
         Guid id,
         UpsertNamedMasterRequest request,
@@ -304,7 +281,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("resource-masters/certifications/{id:guid}")]
-    [RequireAnyPermission("settings.masters.manage", "settings.roles.manage", "settings.permissions.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteCertification(Guid id, CancellationToken ct)
     {
         await resourceMasters.DeleteCertificationAsync(id, ct);
@@ -363,7 +339,6 @@ public class CatalogsController(
     }
 
     [HttpPost("project-masters")]
-    [RequirePermission("settings.masters.manage")]
     public async Task<ActionResult<ApiResponse<ProjectMasterRowDto>>> CreateProjectMaster(
         CreateProjectMasterRequest request,
         CancellationToken ct)
@@ -373,7 +348,6 @@ public class CatalogsController(
     }
 
     [HttpPut("project-masters/{id:guid}")]
-    [RequirePermission("settings.masters.manage")]
     public async Task<ActionResult<ApiResponse<ProjectMasterRowDto>>> UpdateProjectMaster(
         Guid id,
         UpdateProjectMasterRequest request,
@@ -384,7 +358,6 @@ public class CatalogsController(
     }
 
     [HttpDelete("project-masters/{id:guid}")]
-    [RequirePermission("settings.masters.manage")]
     public async Task<ActionResult<ApiResponse<Guid>>> DeleteProjectMaster(Guid id, CancellationToken ct)
     {
         await projectMasters.DeleteAsync(id, ct);
@@ -392,7 +365,6 @@ public class CatalogsController(
     }
 
     [HttpPost("service-groups")]
-    [RequirePermission("settings.masters.manage")]
     public async Task<ActionResult<ApiResponse<ServiceGroupDto>>> CreateServiceGroup(
         CreateServiceGroupRequest request,
         CancellationToken ct)
@@ -402,7 +374,6 @@ public class CatalogsController(
     }
 
     [HttpPost("service-departments")]
-    [RequirePermission("settings.masters.manage")]
     public async Task<ActionResult<ApiResponse<ServiceDepartmentDto>>> CreateServiceDepartment(
         CreateServiceDepartmentRequest request,
         CancellationToken ct)
@@ -412,7 +383,6 @@ public class CatalogsController(
     }
 
     [HttpPost("project-masters/service-only")]
-    [RequirePermission("settings.masters.manage")]
     public async Task<ActionResult<ApiResponse<ProjectMasterRowDto>>> CreateServiceOnly(
         CreateServiceOnlyRequest request,
         CancellationToken ct)

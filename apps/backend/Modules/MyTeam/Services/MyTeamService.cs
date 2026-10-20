@@ -31,7 +31,6 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .Include(e => e.ReportingManager)
-            .Include(e => e.JobRole)
             .OrderBy(e => e.FirstName)
             .ThenBy(e => e.LastName)
             .ToListAsync(ct);
@@ -81,6 +80,18 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .GroupBy(e => e.EmployeeId)
             .ToDictionary(g => g.Key, g => g.First().Attendance);
 
+        var designationIds = members
+            .Where(m => m.DesignationId != null)
+            .Select(m => m.DesignationId!.Value)
+            .Distinct()
+            .ToList();
+        var floors = await db.OnFloorRoles.AsNoTracking()
+            .Where(r => designationIds.Contains(r.DesignationId))
+            .ToListAsync(ct);
+        var floorByDesignation = floors
+            .GroupBy(r => r.DesignationId)
+            .ToDictionary(g => g.Key, g => g.First());
+
         var scheduleByEmployee = schedules.ToDictionary(s => s.EmployeeId);
         var holidaysByEmployee = holidays.GroupBy(h => h.EmployeeId)
             .ToDictionary(g => g.Key, g => g.ToList());
@@ -91,12 +102,19 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .ToList();
 
         return new TeamCalendarDto(
-            members.Select(m => MapMember(
-                m,
-                m.ReportingManagerId == caller.Id,
-                today,
-                todayAttendanceByEmp.GetValueOrDefault(m.Id),
-                allocationsByEmployee.GetValueOrDefault(m.Id))).ToList(),
+            members.Select(m =>
+            {
+                OnFloorRole? floor = null;
+                if (m.DesignationId is Guid designationId)
+                    floorByDesignation.TryGetValue(designationId, out floor);
+                return MapMember(
+                    m,
+                    m.ReportingManagerId == caller.Id,
+                    today,
+                    todayAttendanceByEmp.GetValueOrDefault(m.Id),
+                    allocationsByEmployee.GetValueOrDefault(m.Id),
+                    floor);
+            }).ToList(),
             rangeEntries,
             members.Select(m => MapSchedule(
                 m.Id,
@@ -172,26 +190,11 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<IReadOnlyList<string>> GetOnFloorRoleNamesAsync(CancellationToken ct = default)
     {
-        var names = await db.JobRoles
-            .AsNoTracking()
-            .Where(r => r.IsActive && r.DeletedAtUtc == null && r.DesignationId == null)
+        return await db.OnFloorRoles.AsNoTracking()
             .Select(r => r.Name)
+            .Distinct()
+            .OrderBy(r => r)
             .ToListAsync(ct);
-        if (names.Count == 0)
-        {
-            names = await db.JobRoles
-                .AsNoTracking()
-                .Where(r => r.IsActive && r.DeletedAtUtc == null)
-                .Select(r => r.Name)
-                .ToListAsync(ct);
-        }
-
-        return names
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .Select(n => n.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
-            .ToList();
     }
 
     public async Task SaveScheduleAsync(Guid employeeId, SaveTeamScheduleRequest request, CancellationToken ct = default)
@@ -334,7 +337,8 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
         bool directReport,
         DateOnly today,
         string? todayAttendance,
-        List<PMS.API.Modules.Projects.Models.ProjectTeamMember>? allocations)
+        List<PMS.API.Modules.Projects.Models.ProjectTeamMember>? allocations,
+        OnFloorRole? floor = null)
     {
         var name = $"{employee.FirstName} {employee.LastName}".Trim();
         var managerName = employee.ReportingManager is null
@@ -376,8 +380,8 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             Initials(employee.FirstName, employee.LastName),
             employee.Designation?.Name ?? "",
             employee.Department?.Name ?? "",
-            employee.JobRole?.Name,
-            employee.JobRoleId,
+            floor?.Name,
+            floor?.Id,
             directReport,
             employee.EmployeeCode,
             managerName,

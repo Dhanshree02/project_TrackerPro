@@ -12,7 +12,6 @@ namespace PMS.API.Modules.Resources.Controllers;
 public class EmployeesController(IEmployeeService employees) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<PagedResult<EmployeeListItemDto>>>> List(
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 20,
@@ -37,7 +36,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("exited")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<PagedResult<ExitedEmployeeDto>>>> Exited(
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 20,
@@ -57,7 +55,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("lookup")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<EmployeeLookupDto>>>> Lookup(
         [FromQuery] Guid[] ids,
         CancellationToken ct)
@@ -67,14 +64,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/departments")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> Departments(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetDepartmentsAsync(ct)));
     }
 
     [HttpPost("meta/departments")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateDepartment(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -84,7 +79,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/designations")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> Designations(
         [FromQuery] Guid? departmentId,
         CancellationToken ct)
@@ -94,7 +88,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPost("meta/designations")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateDesignation(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -106,14 +99,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/nationalities")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> Nationalities(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetNationalitiesAsync(ct)));
     }
 
     [HttpGet("meta/roles")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> Roles(
         [FromQuery] Guid? designationId,
         CancellationToken ct)
@@ -123,7 +114,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPost("meta/roles")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateRole(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -135,14 +125,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/salary-bands")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> SalaryBands(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetSalaryBandsAsync(ct)));
     }
 
     [HttpGet("meta/next-code")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<string>>> NextCode(
         [FromQuery] bool isIntern = false,
         CancellationToken ct = default)
@@ -151,14 +139,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/certifications")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> Certifications(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetCertificationsAsync(ct)));
     }
 
     [HttpPost("meta/certifications")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateCertification(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -168,14 +154,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/graduation-degrees")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> GraduationDegrees(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetGraduationDegreesAsync(ct)));
     }
 
     [HttpPost("meta/graduation-degrees")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateGraduationDegree(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -185,14 +169,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/post-graduation-degrees")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> PostGraduationDegrees(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetPostGraduationDegreesAsync(ct)));
     }
 
     [HttpPost("meta/post-graduation-degrees")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreatePostGraduationDegree(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -202,21 +184,18 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/email-domains")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmailDomains(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetEmailDomainsAsync(ct)));
     }
 
     [HttpGet("meta/reporting-managers")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> ReportingManagers(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetReportingManagersAsync(ct)));
     }
 
     [HttpPost("meta/reporting-managers")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateReportingManager(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -226,14 +205,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/business-units")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> BusinessUnits(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetBusinessUnitsAsync(ct)));
     }
 
     [HttpPost("meta/business-units")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateBusinessUnit(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -243,14 +220,12 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/work-locations")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> WorkLocations(CancellationToken ct)
     {
         return Ok(ApiResponse<IReadOnlyList<MetaOptionDto>>.Ok(await employees.GetWorkLocationsAsync(ct)));
     }
 
     [HttpPost("meta/work-locations")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateWorkLocation(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -260,7 +235,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/offices")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> Offices(
         [FromQuery] Guid? workLocationId,
         CancellationToken ct)
@@ -269,7 +243,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPost("meta/offices")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<MetaOptionDto>>> CreateOffice(
         CreateCatalogItemRequest request,
         CancellationToken ct)
@@ -279,7 +252,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("meta/employee-statuses")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MetaOptionDto>>>> EmployeeStatuses(
         [FromQuery] bool onboardingOnly = false,
         [FromQuery] bool offboardOnly = false,
@@ -290,7 +262,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("bulk/sample")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<IActionResult> BulkSample(CancellationToken ct)
     {
         var bytes = await employees.GetBulkSampleExcelAsync(ct);
@@ -301,7 +272,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPost("bulk")]
-    [RequirePermission(Permissions.ResourcesManage)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<ActionResult<ApiResponse<EmployeeBulkUploadResult>>> BulkUpload(
@@ -328,7 +298,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPost]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Create(CreateEmployeeRequest request, CancellationToken ct)
     {
         var employee = await employees.CreateEmployeeAsync(request, ct);
@@ -336,7 +305,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("{idOrCode}")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Get(string idOrCode, CancellationToken ct)
     {
         var employee = await employees.GetEmployeeAsync(idOrCode, ct);
@@ -346,7 +314,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPut("{idOrCode}")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Update(string idOrCode, UpdateEmployeeRequest request, CancellationToken ct)
     {
         var employee = await employees.UpdateEmployeeAsync(idOrCode, request, ct);
@@ -356,7 +323,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPost("{idOrCode}/offboard")]
-    [RequirePermission(Permissions.ResourcesManage)]
     public async Task<ActionResult<ApiResponse<ExitedEmployeeDto>>> Offboard(string idOrCode, OffboardEmployeeRequest request, CancellationToken ct)
     {
         var exited = await employees.OffboardEmployeeAsync(idOrCode, request, ct);
@@ -366,7 +332,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("{idOrCode}/summary")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<EmployeeLookupDto>>> Summary(string idOrCode, CancellationToken ct)
     {
         var summary = await employees.GetEmployeeSummaryAsync(idOrCode, ct);
@@ -376,7 +341,6 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("{idOrCode}/logs")]
-    [RequirePermission(Permissions.ResourcesRead)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<EmployeeActivityLogDto>>>> Logs(string idOrCode, CancellationToken ct)
     {
         var logs = await employees.GetEmployeeLogsAsync(idOrCode, ct);

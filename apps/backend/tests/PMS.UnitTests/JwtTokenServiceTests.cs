@@ -27,7 +27,7 @@ public class JwtTokenServiceTests
             Role = new Role { Name = nameof(UserRole.Pmo) },
         };
 
-        var (token, expiresAt) = CreateService().GenerateAccessToken(user, ["projects:read"]);
+        var (token, expiresAt) = CreateService().GenerateAccessToken(user);
 
         Assert.False(string.IsNullOrWhiteSpace(token));
         Assert.Contains('.', token); // JWT header.payload.signature

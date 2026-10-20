@@ -12,14 +12,11 @@ using PMS.API.Infrastructure.Authentication;
 namespace PMS.API.Infrastructure.Persistence.Seeding;
 
 /// <summary>
-/// Seeds the RBAC roles (baseline permissions from the role matrix in
-/// <c>RoleBaselines.cs</c>), demo users for every role and the 10 mock clients
+/// Seeds access roles, demo users for every role, and the mock clients
 /// with deterministic ids. Demo password for every seeded user: <c>Password@123</c>.
 ///
 /// The seeder is idempotent and Development-only (see DbInitializerHostedService).
-/// Custom roles created through the Settings UI are never touched. System roles
-/// that still carry the pre-RBAC legacy permission set (no dot-notation keys)
-/// are upgraded to their baseline once so existing databases pick up the matrix.
+/// Custom roles created through the Settings UI are never touched.
 /// </summary>
 public static class DbSeeder
 {
@@ -115,12 +112,6 @@ public static class DbSeeder
         {
             if (existing.TryGetValue(def.Key, out var found))
             {
-                var hasDotKeys = found.Permissions.Any(p => p.Contains('.'));
-                if (found.Permissions.Count == 0 || !hasDotKeys)
-                {
-                    found.Permissions = [.. RoleBaselines.For(def.Key)];
-                }
-
                 found.DisplayName = def.DisplayName;
                 found.Description = def.Description;
                 found.IsSystemRole = true;
@@ -136,7 +127,6 @@ public static class DbSeeder
                 Description = def.Description,
                 IsSystemRole = true,
                 IsActive = true,
-                Permissions = [.. RoleBaselines.For(def.Key)],
             };
             db.Roles.Add(entity);
             roles[def.Key] = entity;
@@ -334,7 +324,6 @@ public static class DbSeeder
         await SeedContactTypesAsync(db, ct);
         await SeedNationalitiesAsync(db, ct);
         await SeedSalaryBandsAsync(db, ct);
-        await OrgRoleMatrixSync.EnsureOnFloorCatalogAsync(db, ct);
         await SeedGeoCatalogsAsync(db, ct);
         await SeedEmailDomainsAsync(db, ct);
         await SeedBusinessUnitsAsync(db, ct);
@@ -840,8 +829,6 @@ public static class DbSeeder
             .GroupBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         var indian = await db.Nationalities.FirstOrDefaultAsync(n => n.Code == "indian", ct);
-        var jobRoles = await db.JobRoles.ToListAsync(ct);
-
         var seed = new (string Code, string FirstName, string LastName, string Department, string Designation, string Role, string Gender)[]
         {
             ("TK-0001", "Dhanshree", "Pansare", "Core", "Director & Delivery Head", "Leader", "Female"),
@@ -932,8 +919,6 @@ public static class DbSeeder
                 DepartmentId = dept?.Id,
                 DesignationId = desig?.Id,
                 Role = row.Role,
-                JobRoleId = jobRoles.FirstOrDefault(r =>
-                    string.Equals(r.Name, row.Role, StringComparison.OrdinalIgnoreCase))?.Id,
                 BusinessUnit = "Talakunchi Networks Private Limited",
                 WorkLocation = location,
                 OfficeBranch = null,

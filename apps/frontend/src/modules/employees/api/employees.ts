@@ -51,10 +51,10 @@ export interface ApiEmployeeListItem {
   projectType?: string | null;
   projectAllocated?: string | null;
   clientEngManagerMapping?: string | null;
-  /** On Floor Role: mst_roles.Name */
+  /** On Floor Role name from resource.tbl_onfloorrole. */
   jobRoleName?: string | null;
   jobRole?: string | null;
-  /** FK to master.mst_roles.Id */
+  /** FK to resource.tbl_onfloorrole.Id */
   jobRoleId?: string | null;
   todayAttendance?: string | null;
   allocationStatus?: string | null;
@@ -174,7 +174,7 @@ export interface ApiMetaOption {
   /** RBAC role mapped to a designation (mst_designations.DefaultRoleId → roles.Name). */
   defaultRoleName?: string | null;
   defaultRoleDisplayName?: string | null;
-  /** On-floor role mapped from docs/rbac.xlsx via mst_designations.JobRoleId. */
+  /** On-floor role row in resource.tbl_onfloorrole for this designation. */
   jobRoleId?: string | null;
   jobRoleName?: string | null;
 }
@@ -194,7 +194,7 @@ export async function fetchEmployees(params: {
   departmentId?: string;
   designationId?: string;
   status?: string;
-  /** Exact On Floor Role name from mst_roles.Name */
+  /** Exact On Floor Role name from resource.tbl_onfloorrole.Name */
   onFloorRole?: string;
   role?: string;
 } = {}): Promise<PagedEnvelope<ApiEmployeeListItem>> {
@@ -232,27 +232,7 @@ export function loadEmployeesWithOnFloorRole(): Promise<ApiEmployeeListItem[]> {
 
 async function loadEmployeesWithOnFloorRoleOnce(): Promise<ApiEmployeeListItem[]> {
   const items = (await fetchAllEmployees()).filter(isActiveEmployee);
-  if (items.some((emp) => emp.jobRoleName)) return items;
-  const roles: string[] = [];
-  const batchSize = 8;
-  for (let start = 0; start < items.length; start += batchSize) {
-    const batch = items.slice(start, start + batchSize);
-    const resolved = await Promise.all(
-      batch.map(async (emp) => {
-        try {
-          const detail = await fetchEmployee(emp.id);
-          return detail.role || "";
-        } catch {
-          return "";
-        }
-      }),
-    );
-    roles.push(...resolved);
-  }
-  return items.map((emp, index) => ({
-    ...emp,
-    jobRoleName: roles[index] || null,
-  }));
+  return items;
 }
 
 export function matchesOnFloorRole(emp: { jobRoleName?: string | null }, roleName: string): boolean {

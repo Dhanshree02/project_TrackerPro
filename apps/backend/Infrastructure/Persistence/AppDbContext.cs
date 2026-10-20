@@ -49,9 +49,17 @@ public class AppDbContext(
 
     public DbSet<MstNationality> Nationalities => Set<MstNationality>();
 
-    public DbSet<MstRole> JobRoles => Set<MstRole>();
-
     public DbSet<MstOrgRoleMap> OrgRoleMaps => Set<MstOrgRoleMap>();
+
+    public DbSet<OnFloorRole> OnFloorRoles => Set<OnFloorRole>();
+
+    public DbSet<MstSubDepartment> SubDepartments => Set<MstSubDepartment>();
+
+    public DbSet<MstDesignationSubDepartment> DesignationSubDepartments => Set<MstDesignationSubDepartment>();
+
+    public DbSet<MstOrgRoleSubDepartment> OrgRoleSubDepartments => Set<MstOrgRoleSubDepartment>();
+
+    public DbSet<OnFloorRoleSubDepartment> OnFloorRoleSubDepartments => Set<OnFloorRoleSubDepartment>();
 
     public DbSet<MstSalaryBand> SalaryBands => Set<MstSalaryBand>();
 

@@ -4,7 +4,7 @@ Pulse PMO **Settings** is implemented as a **frontend feature module** only. Rou
 
 - `/settings` — hub
 - `/settings-masters` — project / customer / resource master UIs
-- `/settings-security-roles` — roles matrix & user access (uses existing `/api/v1/rbac/*` until Settings API is defined)
+- Roles & Permissions was removed and will be rebuilt. Settings currently opens Masters.
 
 ## Current behavior
 

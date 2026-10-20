@@ -17,13 +17,7 @@ public class MstDesignation : BaseEntity
 
     public string? SubDepartment { get; set; }
 
-    public Guid? JobRoleId { get; set; }
-
-    public MstRole? JobRole { get; set; }
-
     public Guid? DefaultRoleId { get; set; }
 
     public Role? DefaultRole { get; set; }
-
-    public ICollection<MstRole> Roles { get; set; } = [];
 }

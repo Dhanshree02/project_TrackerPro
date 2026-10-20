@@ -27,7 +27,7 @@ public sealed class UpsertDepartmentHierarchyRequestValidator : AbstractValidato
         RuleFor(x => x.Department).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Designation).NotEmpty().MaximumLength(150);
         RuleFor(x => x.SubDepartment).NotEmpty().MaximumLength(250);
-        RuleFor(x => x.OnFloorRole).NotEmpty().MaximumLength(150);
+        RuleFor(x => x.OnFloorRole).MaximumLength(150);
         RuleFor(x => x.RbacRoleId).NotEmpty();
     }
 }

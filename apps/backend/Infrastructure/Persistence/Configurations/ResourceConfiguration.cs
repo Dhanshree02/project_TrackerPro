@@ -34,11 +34,6 @@ public sealed class MstDesignationConfiguration : IEntityTypeConfiguration<MstDe
             .HasForeignKey(x => x.DepartmentId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        builder.HasOne(x => x.JobRole)
-            .WithMany()
-            .HasForeignKey(x => x.JobRoleId)
-            .OnDelete(DeleteBehavior.SetNull);
-
         builder.HasOne(x => x.DefaultRole)
             .WithMany()
             .HasForeignKey(x => x.DefaultRoleId)
@@ -65,15 +60,121 @@ public sealed class MstOrgRoleMapConfiguration : IEntityTypeConfiguration<MstOrg
             .HasForeignKey(x => x.DesignationId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(x => x.OnFloorRole)
+        builder.HasOne(x => x.RbacRole)
             .WithMany()
-            .HasForeignKey(x => x.OnFloorRoleId)
+            .HasForeignKey(x => x.RbacRoleId)
             .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public sealed class OnFloorRoleConfiguration : IEntityTypeConfiguration<OnFloorRole>
+{
+    public void Configure(EntityTypeBuilder<OnFloorRole> builder)
+    {
+        builder.ToTable("tbl_onfloorrole", DbSchemas.Resource);
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.SubDepartment).HasMaxLength(250);
+        builder.HasIndex(x => x.DesignationId).IsUnique();
+        builder.HasIndex(x => x.DepartmentId);
+        builder.HasIndex(x => x.RbacRoleId);
+        builder.HasIndex(x => x.Name);
+
+        builder.HasOne(x => x.Department)
+            .WithMany()
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.Designation)
+            .WithMany()
+            .HasForeignKey(x => x.DesignationId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(x => x.RbacRole)
             .WithMany()
             .HasForeignKey(x => x.RbacRoleId)
             .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public sealed class MstSubDepartmentConfiguration : IEntityTypeConfiguration<MstSubDepartment>
+{
+    public void Configure(EntityTypeBuilder<MstSubDepartment> builder)
+    {
+        builder.ToTable("mst_sub_departments", DbSchemas.Master);
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.Code).IsUnique();
+        builder.HasIndex(x => x.Name).IsUnique();
+        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Name).HasMaxLength(250).IsRequired();
+
+        builder.HasOne(x => x.Department)
+            .WithMany()
+            .HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public sealed class MstDesignationSubDepartmentConfiguration : IEntityTypeConfiguration<MstDesignationSubDepartment>
+{
+    public void Configure(EntityTypeBuilder<MstDesignationSubDepartment> builder)
+    {
+        builder.ToTable("mst_designation_sub_departments", DbSchemas.Master);
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.DesignationId, x.SubDepartmentId }).IsUnique();
+        builder.HasIndex(x => x.SubDepartmentId);
+
+        builder.HasOne(x => x.Designation)
+            .WithMany()
+            .HasForeignKey(x => x.DesignationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.SubDepartment)
+            .WithMany()
+            .HasForeignKey(x => x.SubDepartmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class MstOrgRoleSubDepartmentConfiguration : IEntityTypeConfiguration<MstOrgRoleSubDepartment>
+{
+    public void Configure(EntityTypeBuilder<MstOrgRoleSubDepartment> builder)
+    {
+        builder.ToTable("mst_org_role_sub_departments", DbSchemas.Master);
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.OrgRoleMapId, x.SubDepartmentId }).IsUnique();
+        builder.HasIndex(x => x.SubDepartmentId);
+
+        builder.HasOne(x => x.OrgRoleMap)
+            .WithMany()
+            .HasForeignKey(x => x.OrgRoleMapId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.SubDepartment)
+            .WithMany()
+            .HasForeignKey(x => x.SubDepartmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class OnFloorRoleSubDepartmentConfiguration : IEntityTypeConfiguration<OnFloorRoleSubDepartment>
+{
+    public void Configure(EntityTypeBuilder<OnFloorRoleSubDepartment> builder)
+    {
+        builder.ToTable("tbl_onfloorrole_subdepartment", DbSchemas.Resource);
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.OnFloorRoleId, x.SubDepartmentId }).IsUnique();
+        builder.HasIndex(x => x.SubDepartmentId);
+
+        builder.HasOne(x => x.OnFloorRole)
+            .WithMany()
+            .HasForeignKey(x => x.OnFloorRoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.SubDepartment)
+            .WithMany()
+            .HasForeignKey(x => x.SubDepartmentId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -189,25 +290,6 @@ public sealed class MstSalaryBandConfiguration : IEntityTypeConfiguration<MstSal
     }
 }
 
-public sealed class MstRoleConfiguration : IEntityTypeConfiguration<MstRole>
-{
-    public void Configure(EntityTypeBuilder<MstRole> builder)
-    {
-        builder.ToTable("mst_roles", DbSchemas.Master);
-        builder.HasKey(x => x.Id);
-        builder.HasIndex(x => x.Code).IsUnique();
-        builder.HasIndex(x => x.Name).IsUnique();
-        builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
-        builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
-
-        builder.HasOne(x => x.Designation)
-            .WithMany(d => d.Roles)
-            .HasForeignKey(x => x.DesignationId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.SetNull);
-    }
-}
-
 public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
 {
     public void Configure(EntityTypeBuilder<Employee> builder)
@@ -269,14 +351,14 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
             .HasForeignKey(x => x.DesignationId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        builder.HasOne(x => x.SubDepartmentRef)
+            .WithMany()
+            .HasForeignKey(x => x.SubDepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.HasOne(x => x.NationalityRef)
             .WithMany()
             .HasForeignKey(x => x.NationalityId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(x => x.JobRole)
-            .WithMany()
-            .HasForeignKey(x => x.JobRoleId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(x => x.SalaryBandRef)

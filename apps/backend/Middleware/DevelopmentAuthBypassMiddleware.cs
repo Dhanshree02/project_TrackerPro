@@ -1,12 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
-using PMS.API.Modules.Rbac;
 using PMS.API.Modules.Users.Models;
-using PMS.API.Shared.Constants;
 
 namespace PMS.API.Middleware;
 
@@ -52,14 +49,6 @@ public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
                 new(ClaimTypes.Name, email.Split('@')[0]),
                 new(ClaimTypes.Role, role),
             };
-
-            var rbac = context.RequestServices.GetRequiredService<IRbacAccessService>();
-            var permissions = await rbac.GetClaimsAsync(role);
-            if (permissions.Count == 0)
-                permissions = RoleBaselines.For(nameof(UserRole.Admin));
-
-            foreach (var permission in permissions)
-                claims.Add(new Claim(AuthClaimTypes.Permission, permission));
 
             context.User = new ClaimsPrincipal(new ClaimsIdentity(claims, Scheme));
         }
