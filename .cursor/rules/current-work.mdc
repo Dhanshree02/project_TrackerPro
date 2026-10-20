@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-19
+**Last updated:** 2026-10-20
+
+- **Timesheet Approval Week Range shows Mon–Sun.** The approval list and Review modal use `formatWeekRange(weekStart)` (same as Timesheet History), not a single start date. If `:39107` is bind-mounted from `project_TrackerPro_UAT`, copy `timesheets-page.tsx` there.
 
 - **Interview Scheduling is stored in `project.tbl_project_interviews`.** Health → Customer Engagement → Interview Scheduling lists interviews from `GET/POST/PUT /api/v1/projects/{id}/interviews`. Resource names come from that project’s Project Team and Shadow Team (Project Manager and Senior Project Manager are left out). Date and time, result (Pending, Selected, Rejected, Postponed), and comments save on the table. A postponed interview needs a comment and can be rescheduled, which sets the result back to Pending. Rebuild `pms-backend:uat-clean` is done and migration `20261019124500_AddProjectInterviews` is applied on `pms_uat_clean`. The running `:39107` frontend is bind-mounted from `project_TrackerPro_UAT`, so `project-detail-page.tsx` and `project-interviews.ts` were copied there.
 

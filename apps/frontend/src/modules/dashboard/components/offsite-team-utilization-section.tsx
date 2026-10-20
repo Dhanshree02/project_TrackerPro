@@ -180,7 +180,6 @@ function OffsiteCharts({
           months={months}
           metric="Team strength"
           formatValue={(value) => value.toLocaleString("en-IN")}
-          note="Each colored piece is that month's offsite headcount. The pieces sit side by side, so the full bar is not a combined team size."
           xLabel="Team strength"
           resetSignal={strengthReset}
           onPeerClear={() => setUtilReset((n) => n + 1)}
@@ -193,7 +192,7 @@ function OffsiteCharts({
           months={months}
           metric="Team utilization"
           formatValue={(value) => `${value}%`}
-          note="Each colored piece is that month's utilization percentage. The pieces sit side by side, so the full bar is not one combined utilization percentage."
+
           xLabel="Utilization %"
           resetSignal={utilReset}
           onPeerClear={() => setStrengthReset((n) => n + 1)}

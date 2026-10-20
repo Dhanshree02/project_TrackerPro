@@ -1133,7 +1133,7 @@ function TimesheetApprovalView() {
               <ApprovalSortTh label="Employee Name" column="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-56" />
               <ApprovalSortTh label="TK ID" column="tk" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-28" />
               <ApprovalSortTh label="Project Name" column="project" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-64" />
-              <ApprovalSortTh label="Week Range" column="week" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-36" />
+              <ApprovalSortTh label="Week Range" column="week" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-48" />
               <ApprovalSortTh label="Submitted Date" column="submitted" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-40" />
               <ApprovalSortTh label="Total Hours" column="hours" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-32" />
               <ApprovalSortTh label="Current Status" column="status" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} className="w-36" />
@@ -1162,7 +1162,7 @@ function TimesheetApprovalView() {
                   {projectName}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground tabular-nums">
-                  {formatDateDMY(t.weekStart)}
+                  {formatWeekRange(t.weekStart)}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">
                   {submittedLabel}
@@ -1263,7 +1263,7 @@ function TimesheetApprovalView() {
               </div>
               <div>
                 <span className="text-muted-foreground">Week Range</span>
-                <p className="font-medium">{selectedTs.weekStart}</p>
+                <p className="font-medium tabular-nums">{formatWeekRange(selectedTs.weekStart)}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">Total Hours Logged</span>

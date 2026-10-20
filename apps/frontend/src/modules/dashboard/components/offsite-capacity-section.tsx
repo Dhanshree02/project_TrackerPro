@@ -186,8 +186,8 @@ function CapacityChart({
           formatValue={(value) => value.toLocaleString("en-IN")}
           note={
             metric === "IP capacity"
-              ? "Each colored piece is that month's IP capacity. The pieces sit side by side, so the full bar is not one month's capacity."
-              : "Each colored piece is that month's application capacity. The pieces sit side by side, so the full bar is not one month's capacity."
+              ? ""
+              : ""
           }
           xLabel={metric === "IP capacity" ? "IP capacity" : "Application capacity"}
           resetSignal={resetSignal}
