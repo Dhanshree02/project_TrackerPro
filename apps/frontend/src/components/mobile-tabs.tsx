@@ -3,7 +3,7 @@ import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { NAV_ITEMS, DH_NAV_ITEMS, filterNavItems, type NavItem } from "@/lib/navigation";
+import { filterNavItems, NAV_ITEMS, type NavItem, type NavSubItem } from "@/lib/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +21,7 @@ export function MobileTabs() {
   const { hasPermission, hasAny } = usePermissions();
 
   const items: NavItem[] = filterNavItems(
-    isAdmin || isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
+    NAV_ITEMS,
     hasPermission,
     hasAny,
     { isAdmin, isItAdmin, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
@@ -29,8 +29,8 @@ export function MobileTabs() {
   const primary = items.slice(0, MAX_TABS);
   const overflow = items.slice(MAX_TABS);
 
-  const isSubActive = (subTo: string, subSearch?: Record<string, any>) => {
-    if (!pathname.startsWith(subTo)) return false;
+  const isSubActive = (subTo?: string, subSearch?: Record<string, any>) => {
+    if (!subTo || !pathname.startsWith(subTo)) return false;
     if (subTo === "/employee-directory") {
       const activeTab = search.tab || "directory";
       const expectedTab = subSearch?.tab || "directory";
@@ -39,9 +39,41 @@ export function MobileTabs() {
     return true;
   };
 
+  const branchActive = (subs?: NavSubItem[]): boolean =>
+    !!subs?.some((sub) => isSubActive(sub.to, sub.search) || branchActive(sub.subItems));
+
+  const renderMobileSubs = (subs: NavSubItem[]) =>
+    subs.map((sub) => {
+      const key = sub.code ?? sub.to ?? sub.label;
+      if (sub.subItems?.length) {
+        return (
+          <div key={key} className="px-3 py-1">
+            <div className="text-xs font-medium text-foreground">{sub.label}</div>
+            <div className="mt-0.5 space-y-0.5 pl-2">{renderMobileSubs(sub.subItems)}</div>
+          </div>
+        );
+      }
+      if (!sub.to) return null;
+      const subActive = isSubActive(sub.to, sub.search);
+      return (
+        <DropdownMenuItem key={key} asChild>
+          <Link
+            to={sub.to}
+            search={sub.search as any}
+            className={cn(
+              "w-full cursor-pointer justify-start text-xs py-2 px-3",
+              subActive && "bg-accent text-accent-foreground font-semibold",
+            )}
+          >
+            {sub.label}
+          </Link>
+        </DropdownMenuItem>
+      );
+    });
+
   const renderTab = (it: NavItem) => {
     if (it.subItems) {
-      const isParentActive = it.subItems.some((sub) => isSubActive(sub.to, sub.search));
+      const isParentActive = branchActive(it.subItems);
       return (
         <DropdownMenu key={it.label}>
           <DropdownMenuTrigger asChild>
@@ -63,23 +95,7 @@ export function MobileTabs() {
             align="end"
             className="w-56 bg-popover text-popover-foreground shadow-md border border-border"
           >
-            {it.subItems.map((sub) => {
-              const subActive = isSubActive(sub.to, sub.search);
-              return (
-                <DropdownMenuItem key={sub.to + (sub.search?.tab || "")} asChild>
-                  <Link
-                    to={sub.to}
-                    search={sub.search as any}
-                    className={cn(
-                      "w-full cursor-pointer justify-start text-xs py-2 px-3",
-                      subActive && "bg-accent text-accent-foreground font-semibold",
-                    )}
-                  >
-                    {sub.label}
-                  </Link>
-                </DropdownMenuItem>
-              );
-            })}
+            {renderMobileSubs(it.subItems)}
           </DropdownMenuContent>
         </DropdownMenu>
       );
@@ -154,16 +170,36 @@ export function MobileTabs() {
                       {it.label}
                     </div>
                     <div className="space-y-0.5">
-                      {it.subItems.map((sub) => (
-                        <Link
-                          key={sub.to + (sub.search?.tab || "")}
-                          to={sub.to}
-                          search={sub.search as any}
-                          className="flex w-full items-center rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-                        >
-                          {sub.label}
-                        </Link>
-                      ))}
+                      {it.subItems.map((sub) =>
+                        sub.subItems?.length ? (
+                          <div key={sub.code ?? sub.label} className="px-2 py-1">
+                            <div className="text-xs font-medium text-foreground">{sub.label}</div>
+                            <div className="pl-2">
+                              {sub.subItems.map((child) =>
+                                child.to ? (
+                                  <Link
+                                    key={child.code ?? child.to}
+                                    to={child.to}
+                                    search={child.search as any}
+                                    className="flex w-full items-center rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                                  >
+                                    {child.label}
+                                  </Link>
+                                ) : null,
+                              )}
+                            </div>
+                          </div>
+                        ) : sub.to ? (
+                          <Link
+                            key={sub.code ?? sub.to}
+                            to={sub.to}
+                            search={sub.search as any}
+                            className="flex w-full items-center rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                          >
+                            {sub.label}
+                          </Link>
+                        ) : null,
+                      )}
                     </div>
                   </div>
                 ) : (

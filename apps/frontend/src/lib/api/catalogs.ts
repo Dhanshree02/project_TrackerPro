@@ -13,6 +13,53 @@ export interface CityCatalogOption extends CatalogOption {
   countryId: string;
 }
 
+export interface SidebarSubModule {
+  id: string;
+  code: string;
+  name: string;
+  route: string | null;
+  sortOrder: number;
+  parentId: string | null;
+  children: SidebarSubModule[];
+  tabs: SidebarTab[];
+}
+
+export interface SidebarWidget {
+  id: string;
+  code: string;
+  name: string;
+  sortOrder: number;
+  parentId: string;
+}
+
+export interface SidebarTab {
+  id: string;
+  code: string;
+  name: string;
+  sortOrder: number;
+  moduleId: string | null;
+  subModuleId: string | null;
+  tabId: string | null;
+  children: SidebarTab[];
+}
+
+export interface SidebarModule {
+  id: string;
+  code: string;
+  name: string;
+  route: string | null;
+  sortOrder: number;
+  iconKey: string;
+  subModules: SidebarSubModule[];
+  widgets: SidebarWidget[];
+  tabs: SidebarTab[];
+}
+
+/** GET /api/v1/catalogs/modules — sidebar rows from master.mst_modules. */
+export async function fetchSidebarModules(): Promise<SidebarModule[]> {
+  return (await apiFetch<SidebarModule[]>("/api/v1/catalogs/modules")) ?? [];
+}
+
 /** GET /api/v1/catalogs/countries — reusable country dropdown source. */
 export async function fetchCountries(): Promise<CatalogOption[]> {
   return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/countries")) ?? [];

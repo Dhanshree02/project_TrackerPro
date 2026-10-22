@@ -9,7 +9,7 @@ namespace PMS.API.Infrastructure.Persistence.Seeding;
 
 /// <summary>
 /// Aligns catalogs with <c>docs/rbac.xlsx</c> and stores the link in
-/// <c>master.mst_org_role_map</c> (DepartmentId + DesignationId → SubDepartment,
+/// <c>master.mst_org_role_map</c> (DepartmentId + DesignationId → SubDepartmentId,
 /// RbacRoleId).
 /// </summary>
 public static class OrgRoleMatrixSync
@@ -18,6 +18,7 @@ public static class OrgRoleMatrixSync
     {
         await EnsureSchemaAsync(db, ct);
         await AlignRbacDisplayNamesAsync(db, ct);
+        await EnsureSheetRolesAsync(db, ct);
         await UpsertMapsAsync(db, ct);
         await UpsertOnFloorRolesAsync(db, ct);
         await ApplyEmployeeMappingAsync(db, ct);
@@ -51,7 +52,7 @@ public static class OrgRoleMatrixSync
                 "Id" uuid NOT NULL,
                 "DepartmentId" uuid,
                 "DesignationId" uuid NOT NULL,
-                "SubDepartment" character varying(250),
+                "SubDepartmentId" uuid,
                 "RbacRoleId" uuid,
                 "CreatedAtUtc" timestamp with time zone NOT NULL,
                 "UpdatedAtUtc" timestamp with time zone,
@@ -90,6 +91,23 @@ public static class OrgRoleMatrixSync
             END $$;
             """,
             ct);
+    }
+
+    private static async Task EnsureSheetRolesAsync(AppDbContext db, CancellationToken ct)
+    {
+        const string pmTeamMember = "PM - Team Member";
+        var exists = await db.Roles.AnyAsync(r => r.Name.ToLower() == pmTeamMember.ToLower(), ct);
+        if (exists) return;
+
+        db.Roles.Add(new Role
+        {
+            Name = pmTeamMember,
+            DisplayName = pmTeamMember,
+            Description = "Project management team member.",
+            IsSystemRole = true,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync(ct);
     }
 
     private static async Task AlignRbacDisplayNamesAsync(AppDbContext db, CancellationToken ct)
@@ -134,11 +152,8 @@ public static class OrgRoleMatrixSync
 
             if (byDesignation.TryGetValue(desig.Id, out var map))
             {
-                // Settings → Resource Masters owns an existing row. Fill blanks only.
                 map.DepartmentId = desig.DepartmentId;
-                if (string.IsNullOrWhiteSpace(map.SubDepartment))
-                    map.SubDepartment = row.SubDepartment;
-                if (map.RbacRoleId is null)
+                if (rbacId.HasValue)
                     map.RbacRoleId = rbacId;
                 map.DeletedAtUtc = null;
             }
@@ -148,16 +163,14 @@ public static class OrgRoleMatrixSync
                 {
                     DepartmentId = desig.DepartmentId,
                     DesignationId = desig.Id,
-                    SubDepartment = row.SubDepartment,
                     RbacRoleId = rbacId,
                 };
                 db.OrgRoleMaps.Add(map);
                 byDesignation[desig.Id] = map;
             }
 
-            if (string.IsNullOrWhiteSpace(desig.SubDepartment))
-                desig.SubDepartment = row.SubDepartment;
-            if (desig.DefaultRoleId is null && rbacId.HasValue) desig.DefaultRoleId = rbacId;
+            desig.SubDepartment = row.SubDepartment;
+            if (rbacId.HasValue) desig.DefaultRoleId = rbacId;
         }
     }
 
@@ -188,9 +201,7 @@ public static class OrgRoleMatrixSync
             if (rbacId is null && rbacByName.TryGetValue(OrgRoleMatrix.RbacKey(row.RbacRole), out var rbac))
                 rbacId = rbac.Id;
 
-            var subDepartment = map?.SubDepartment;
-            if (string.IsNullOrWhiteSpace(subDepartment))
-                subDepartment = string.IsNullOrWhiteSpace(desig.SubDepartment) ? row.SubDepartment : desig.SubDepartment;
+            var subDepartment = string.IsNullOrWhiteSpace(desig.SubDepartment) ? row.SubDepartment : desig.SubDepartment;
 
             if (byDesignation.TryGetValue(desig.Id, out var floor))
             {
@@ -228,6 +239,9 @@ public static class OrgRoleMatrixSync
         var byDesignation = maps
             .GroupBy(m => m.DesignationId)
             .ToDictionary(g => g.Key, g => g.First());
+        var designationNames = await db.Designations
+            .IgnoreQueryFilters()
+            .ToDictionaryAsync(d => d.Id, d => d.SubDepartment, ct);
 
         foreach (var employee in employees)
         {
@@ -235,9 +249,16 @@ public static class OrgRoleMatrixSync
             if (employee.DesignationId is not Guid desigId) continue;
             if (!byDesignation.TryGetValue(desigId, out var map)) continue;
 
-            if (!string.IsNullOrWhiteSpace(map.SubDepartment))
+            if (designationNames.TryGetValue(desigId, out var subDepartment)
+                && !string.IsNullOrWhiteSpace(subDepartment))
             {
-                employee.SubDepartment ??= map.SubDepartment;
+                var parts = SplitSubDepartmentNames(subDepartment);
+                var placeholder = string.Equals(
+                    employee.SubDepartment?.Trim(),
+                    "Across all Sub Departments",
+                    StringComparison.OrdinalIgnoreCase);
+                if (string.IsNullOrWhiteSpace(employee.SubDepartment) || placeholder)
+                    employee.SubDepartment = parts.Count == 1 ? parts[0] : null;
             }
 
             if (OrgRoleMatrix.IsSuperAdmin(employee.EmployeeCode, employee.WorkEmail))
@@ -278,8 +299,6 @@ public static class OrgRoleMatrixSync
 
         foreach (var desig in designations.Where(d => d.DeletedAtUtc is null))
             Note(desig.SubDepartment, desig.DepartmentId);
-        foreach (var map in maps.Where(m => m.DeletedAtUtc is null))
-            Note(map.SubDepartment, map.DepartmentId);
         foreach (var floor in floors.Where(f => f.DeletedAtUtc is null))
             Note(floor.SubDepartment, floor.DepartmentId);
         foreach (var employee in employees.Where(e => e.DeletedAtUtc is null))
@@ -319,7 +338,7 @@ public static class OrgRoleMatrixSync
         await db.SaveChangesAsync(ct);
 
         await ReplaceDesignationLinksAsync(db, designations, byName, ct);
-        await ReplaceOrgRoleLinksAsync(db, maps, byName, ct);
+        await ReplaceOrgRoleLinksAsync(db, maps, designations, byName, ct);
         await ReplaceOnFloorLinksAsync(db, floors, byName, ct);
 
         foreach (var employee in employees.Where(e => e.DeletedAtUtc is null))
@@ -428,18 +447,26 @@ public static class OrgRoleMatrixSync
     private static async Task ReplaceOrgRoleLinksAsync(
         AppDbContext db,
         List<MstOrgRoleMap> maps,
+        List<MstDesignation> designations,
         Dictionary<string, MstSubDepartment> byName,
         CancellationToken ct)
     {
         var existing = await db.OrgRoleSubDepartments.ToListAsync(ct);
         if (existing.Count > 0) db.OrgRoleSubDepartments.RemoveRange(existing);
+        var designationById = designations.ToDictionary(d => d.Id);
 
         foreach (var map in maps.Where(m => m.DeletedAtUtc is null))
         {
-            var names = SplitSubDepartmentNames(map.SubDepartment);
+            designationById.TryGetValue(map.DesignationId, out var designation);
+            var names = SplitSubDepartmentNames(designation?.SubDepartment);
             var linked = names.Where(byName.ContainsKey).Select(name => byName[name]).ToList();
-            if (linked.Count == 0) continue;
-            map.SubDepartment = string.Join(", ", linked.Select(row => row.Name));
+            if (linked.Count == 0)
+            {
+                map.SubDepartmentId = null;
+                continue;
+            }
+
+            map.SubDepartmentId = linked.Count == 1 ? linked[0].Id : null;
             foreach (var row in linked)
             {
                 db.OrgRoleSubDepartments.Add(new MstOrgRoleSubDepartment

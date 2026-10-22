@@ -13,6 +13,8 @@ public class ProjectsController(
     IProjectAppService projectService,
     IProjectTeamMemberService teamMemberService,
     IProjectInterviewService interviewService,
+    IProjectExtensionRequestService extensionRequestService,
+    IProjectServiceEscalationService serviceEscalationService,
     IProjectTaskService taskService) : ControllerBase
 {
     [HttpGet]
@@ -559,6 +561,61 @@ public class ProjectsController(
     {
         var items = await teamMemberService.ListOtherAllocationsAsync(projectId, employeeId, ct);
         return Ok(ApiResponse<IReadOnlyList<EmployeeAllocationBookingDto>>.Ok(items));
+    }
+
+    [HttpGet("service-escalation-stakeholders")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ServiceEscalationStakeholderDto>>>> GetServiceEscalationStakeholders(
+        CancellationToken ct)
+    {
+        var items = await serviceEscalationService.ListStakeholdersAsync(ct);
+        return Ok(ApiResponse<IReadOnlyList<ServiceEscalationStakeholderDto>>.Ok(items));
+    }
+
+    [HttpGet("{projectId:guid}/service-escalations")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectServiceEscalationDto>>>> GetServiceEscalations(
+        Guid projectId,
+        CancellationToken ct)
+    {
+        var items = await serviceEscalationService.ListAsync(projectId, ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectServiceEscalationDto>>.Ok(items));
+    }
+
+    [HttpPost("{projectId:guid}/service-escalations")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<ProjectServiceEscalationDto>>> CreateServiceEscalation(
+        Guid projectId,
+        [FromForm] CreateProjectServiceEscalationForm request,
+        CancellationToken ct)
+    {
+        var created = await serviceEscalationService.CreateAsync(projectId, request, ct);
+        return Ok(ApiResponse<ProjectServiceEscalationDto>.Ok(created));
+    }
+
+    [HttpGet("extension-approvers")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ExtensionApproverDto>>>> GetExtensionApprovers(
+        CancellationToken ct)
+    {
+        var items = await extensionRequestService.ListApproversAsync(ct);
+        return Ok(ApiResponse<IReadOnlyList<ExtensionApproverDto>>.Ok(items));
+    }
+
+    [HttpGet("{projectId:guid}/extension-requests")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectExtensionRequestDto>>>> GetExtensionRequests(
+        Guid projectId,
+        CancellationToken ct)
+    {
+        var items = await extensionRequestService.ListAsync(projectId, ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectExtensionRequestDto>>.Ok(items));
+    }
+
+    [HttpPost("{projectId:guid}/extension-requests")]
+    public async Task<ActionResult<ApiResponse<ProjectExtensionRequestDto>>> CreateExtensionRequest(
+        Guid projectId,
+        [FromBody] CreateProjectExtensionRequest request,
+        CancellationToken ct)
+    {
+        var created = await extensionRequestService.CreateAsync(projectId, request, ct);
+        return Ok(ApiResponse<ProjectExtensionRequestDto>.Ok(created));
     }
 
     [HttpGet("{projectId:guid}/interviews")]

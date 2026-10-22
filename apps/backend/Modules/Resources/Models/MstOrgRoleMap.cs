@@ -17,7 +17,9 @@ public class MstOrgRoleMap : BaseEntity
 
     public MstDesignation? Designation { get; set; }
 
-    public string? SubDepartment { get; set; }
+    public Guid? SubDepartmentId { get; set; }
+
+    public MstSubDepartment? SubDepartmentRef { get; set; }
 
     public Guid? RbacRoleId { get; set; }
 

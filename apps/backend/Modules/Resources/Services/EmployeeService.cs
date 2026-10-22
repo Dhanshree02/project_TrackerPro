@@ -1137,7 +1137,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             return r with
             {
                 DefaultRoleId = map?.RbacRoleId ?? r.DefaultRoleId,
-                SubDepartment = map?.SubDepartment ?? r.SubDepartment,
+                SubDepartment = r.SubDepartment,
                 DefaultRoleName = map?.RbacRole?.Name ?? r.DefaultRoleName,
                 DefaultRoleDisplayName = map?.RbacRole?.DisplayName ?? r.DefaultRoleDisplayName,
                 JobRoleId = floor?.Id,
@@ -1659,11 +1659,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 {
                     entity.Role = map.RbacRole.Name;
                 }
-
-                if (!string.IsNullOrWhiteSpace(map.SubDepartment))
-                {
-                    entity.SubDepartment ??= map.SubDepartment;
-                }
             }
             else
             {
@@ -1683,6 +1678,17 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                         entity.Role = desig.DefaultRole.Name;
                     }
                 }
+            }
+
+            if (string.IsNullOrWhiteSpace(entity.SubDepartment))
+            {
+                var subDepartment = await db.Designations
+                    .AsNoTracking()
+                    .Where(d => d.Id == desigId)
+                    .Select(d => d.SubDepartment)
+                    .FirstOrDefaultAsync(ct);
+                if (!string.IsNullOrWhiteSpace(subDepartment))
+                    entity.SubDepartment = subDepartment;
             }
         }
 

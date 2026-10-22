@@ -36,11 +36,17 @@ describe("org-role-matrix", () => {
     });
   });
 
-  it("maps any Intern designation to Team Member / Intern", () => {
-    expect(findOrgRoleRow("Core", "Intern")).toMatchObject({
+  it("maps Intern from the department row in the spreadsheet", () => {
+    expect(findOrgRoleRow("Functional - Accounts", "Intern")).toMatchObject({
       onFloorRole: "Team Member",
-      rbacRole: "Intern",
+      rbacRole: "Accounts",
+      subDepartment: "Functional - Accounts",
     });
+    expect(findOrgRoleRow("Functional - Project Management", "Intern")).toMatchObject({
+      onFloorRole: "Team Member",
+      rbacRole: "PM - Team Member",
+    });
+    expect(findOrgRoleRow("Core", "Intern")).toBeUndefined();
   });
 
   it("normalizes Excel RBAC labels to existing auth.tbl_roles names", () => {

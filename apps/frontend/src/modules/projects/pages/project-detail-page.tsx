@@ -71,6 +71,20 @@ import {
   type InterviewResult,
   type ProjectInterview,
 } from "@/modules/projects/api/project-interviews";
+import {
+  fetchExtensionApprovers,
+  fetchProjectExtensionRequests,
+  createProjectExtensionRequest,
+  type ExtensionApprover,
+  type ProjectExtensionRequest,
+} from "@/modules/projects/api/project-extension-requests";
+import {
+  fetchServiceEscalationStakeholders,
+  fetchProjectServiceEscalations,
+  createProjectServiceEscalation,
+  type ProjectServiceEscalation,
+  type ServiceEscalationStakeholder,
+} from "@/modules/projects/api/project-service-escalations";
 import { resolveCustomerRouteId } from "@/lib/client-route-id";
 import { fetchSubVentureSpocs } from "@/lib/sub-venture-spoc";
 import { findProjectByWbsId, isRenewedProject } from "@/lib/project-renewal";
@@ -2925,38 +2939,6 @@ function OverviewTab({
             ) : null}
           </div>
         )}
-
-        {showLeadership && (
-          <div className="grid gap-3 sm:grid-cols-3 items-stretch">
-            <LeadershipBlock
-              title="Senior Project Managers"
-              role="Senior Project Manager"
-              people={spms}
-              unassigned={spms.length === 0}
-              project={project}
-              viewOnly={!isDhanshree}
-              onLeadershipSaved={onLeadershipSaved}
-            />
-            <LeadershipBlock
-              title="Project Managers"
-              role="Project Manager"
-              people={pms}
-              unassigned={pms.length === 0}
-              project={project}
-              viewOnly={!isDhanshree && !isSeniorPm}
-              onLeadershipSaved={onLeadershipSaved}
-            />
-            <LeadershipBlock
-              title="Team Leads"
-              role="Team Lead"
-              people={tls}
-              unassigned={tls.length === 0}
-              project={project}
-              viewOnly={!isDhanshree && !isSeniorPm && !isProjectManager}
-              onLeadershipSaved={onLeadershipSaved}
-            />
-          </div>
-        )}
       </div>
       {showLeadership && (
         <aside className="space-y-3">
@@ -2999,162 +2981,288 @@ function OverviewTab({
               </div>
             </div>
           </div>
-          {isDhanshree && (
-            <div className="rounded-lg border border-border bg-accent/30 p-4">
-              <ExtensionRequestCard project={project} />
-            </div>
-          )}
+          <LeadershipBlock
+            title="Senior Project Managers"
+            role="Senior Project Manager"
+            people={spms}
+            unassigned={spms.length === 0}
+            project={project}
+            viewOnly={!isDhanshree}
+            onLeadershipSaved={onLeadershipSaved}
+          />
+          <LeadershipBlock
+            title="Project Managers"
+            role="Project Manager"
+            people={pms}
+            unassigned={pms.length === 0}
+            project={project}
+            viewOnly={!isDhanshree && !isSeniorPm}
+            onLeadershipSaved={onLeadershipSaved}
+          />
+          <LeadershipBlock
+            title="Team Leads"
+            role="Team Lead"
+            people={tls}
+            unassigned={tls.length === 0}
+            project={project}
+            viewOnly={!isDhanshree && !isSeniorPm && !isProjectManager}
+            onLeadershipSaved={onLeadershipSaved}
+          />
         </aside>
       )}
     </div>
   );
 }
 
-function ExtensionRequestCard({ project }: { project: Project }) {
-  const { user } = useRoleContext();
-  const [newEndDate, setNewEndDate] = useState(project.endDate);
+function ExtensionRequestPanel({ project }: { project: Project }) {
+  const [open, setOpen] = useState(false);
+  const [requests, setRequests] = useState<ProjectExtensionRequest[]>([]);
+  const [approvers, setApprovers] = useState<ExtensionApprover[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [newEndDate, setNewEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [taggedIds, setTaggedIds] = useState<string[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState("");
+  const [formError, setFormError] = useState("");
 
-  const approversPool = useMemo(() => {
-    return people.filter(p => ["Senior PM", "Engagement Manager", "PM", "PMO", "HOD"].includes(p.role));
-  }, []);
+  const currentEnd = (project.endDate || "").slice(0, 10);
+
+  const load = useCallback(async () => {
+    if (!isApiGuid(project.id)) {
+      setRequests([]);
+      setApprovers([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [rows, people] = await Promise.all([
+        fetchProjectExtensionRequests(project.id),
+        fetchExtensionApprovers(),
+      ]);
+      setRequests(rows);
+      setApprovers(people);
+    } catch (err) {
+      toast.error("Could not load extension requests", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [project.id]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const extDays = useMemo(() => {
-    if (!newEndDate) return 0;
-    const d1 = new Date(project.endDate);
-    const d2 = new Date(newEndDate);
+    if (!currentEnd || !newEndDate) return 0;
+    const d1 = new Date(`${currentEnd}T00:00:00`);
+    const d2 = new Date(`${newEndDate}T00:00:00`);
     const diff = d2.getTime() - d1.getTime();
-    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-  }, [newEndDate, project.endDate]);
+    return Math.max(0, Math.round(diff / (1000 * 60 * 60 * 24)));
+  }, [currentEnd, newEndDate]);
 
   const visibleApprovers = useMemo(() => {
-    return approversPool.filter(p => !query.trim() || p.name.toLowerCase().includes(query.toLowerCase()));
-  }, [approversPool, query]);
+    const needle = query.trim().toLowerCase();
+    return approvers.filter((person) => !needle || person.name.toLowerCase().includes(needle) || (person.employeeCode || "").toLowerCase().includes(needle));
+  }, [approvers, query]);
 
   const toggle = (id: string) => {
-    setTaggedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    setTaggedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
-  const handleSubmit = () => {
+  const openForm = () => {
+    setNewEndDate(currentEnd);
+    setReason("");
+    setTaggedIds([]);
+    setQuery("");
+    setShowSearch(false);
+    setFormError("");
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
     if (!reason.trim()) {
-      toast.error("Reason For Extension is mandatory");
+      setFormError("Reason For Extension is mandatory");
       return;
     }
     if (taggedIds.length === 0) {
-      toast.error("Please tag at least one approver");
+      setFormError("Please tag at least one approver");
       return;
     }
-    dhStore.submitExtensionRequest(project.id, newEndDate, extDays, reason, taggedIds, user.name, user.id);
-    toast.success("Timeline Extension Approval request submitted successfully!");
-    setReason("");
-    setTaggedIds([]);
+    if (!newEndDate || extDays < 1) {
+      setFormError("Requested new end date must be after the current end date");
+      return;
+    }
+    setFormError("");
+    setSaving(true);
+    try {
+      const created = await createProjectExtensionRequest(project.id, {
+        requestedEndDate: newEndDate,
+        reason: reason.trim(),
+        approverEmployeeIds: taggedIds,
+      });
+      setRequests((rows) => [created, ...rows.filter((row) => row.id !== created.id)]);
+      toast.success("Extension request saved");
+      setOpen(false);
+    } catch (err) {
+      toast.error("Could not save the extension request", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-3 space-y-3 mt-4 text-xs text-left">
-      <div className="flex items-center gap-1.5 border-b border-border pb-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
-        <Clock className="h-4 w-4" />
-        <span>Extension Request</span>
-      </div>
-
-      <div className="space-y-2">
-        <div>
-          <span className="text-muted-foreground block mb-0.5 font-medium">Current End Date</span>
-          <p className="font-semibold text-gray-800">{formatDate(new Date(project.endDate))}</p>
+    <div className="space-y-3">
+      {loading ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">Loading extension requests…</div>
+      ) : requests.length === 0 ? (
+        <div className="rounded-lg border-2 border-dashed border-border bg-muted/20 py-12 text-center">
+          <p className="text-sm text-muted-foreground mb-4">No extension requests yet</p>
+          <button
+            type="button"
+            onClick={openForm}
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Clock className="h-4 w-4" /> Extension Request
+          </button>
         </div>
-
-        <div>
-          <label className="text-muted-foreground block mb-1 font-medium">Requested New End Date</label>
-          <input
-            type="date"
-            value={newEndDate}
-            onChange={(e) => setNewEndDate(e.target.value)}
-            className="w-full h-8 rounded-md border border-border bg-card px-2 text-xs font-medium focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
-
-        <div>
-          <span className="text-muted-foreground block mb-0.5 font-medium">Extension Duration</span>
-          <p className="font-semibold text-primary">{extDays} Days</p>
-        </div>
-
-        <div>
-          <label className="text-muted-foreground block mb-1 font-medium">
-            Reason For Extension <span className="text-destructive font-bold">*</span>
-          </label>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Provide a valid corporate reason..."
-            rows={2}
-            className="w-full rounded-md border border-border bg-card p-1.5 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
-
-        <div>
-          <label className="text-muted-foreground block mb-1 font-medium">Tag Stakeholder Approvers</label>
-          <div className="relative">
+      ) : (
+        <>
+          <div className="flex justify-end">
             <button
-              onClick={() => setShowSearch(!showSearch)}
-              className="w-full h-8 rounded-md border border-border bg-card px-2 text-left text-xs text-muted-foreground flex justify-between items-center"
+              type="button"
+              onClick={openForm}
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
-              <span>{taggedIds.length > 0 ? `${taggedIds.length} approvers tagged` : "Select Approvers"}</span>
-              <span className="text-[10px]">▼</span>
+              <Clock className="h-3.5 w-3.5" /> Extension Request
             </button>
+          </div>
+          <div className="space-y-2">
+            {requests.map((row) => (
+              <div key={row.id} className="rounded-lg border border-border bg-card p-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-medium">{formatDate(row.requestedEndDate)}</h4>
+                  <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{row.status}</span>
+                  <span className="text-xs text-muted-foreground">{row.extensionDays} days</span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">{row.reason}</p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Current end date {formatDate(row.currentEndDate)} · {row.requestedByName}
+                  {row.approvers.length > 0 ? ` · ${row.approvers.map((person) => person.name).join(", ")}` : ""}
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
-            {showSearch && (
-              <div className="absolute top-9 left-0 right-0 z-50 rounded-md border border-border bg-card shadow-lg p-2 space-y-2">
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search name..."
-                  className="w-full h-7 rounded-md border border-border bg-card px-2 text-xs"
-                />
-                <ul className="max-h-28 overflow-y-auto divide-y divide-border text-[10px] space-y-1">
-                  {visibleApprovers.map((p) => {
-                    const isSel = taggedIds.includes(p.id);
+      {open && (
+        <Modal title="Extension Request" onClose={() => setOpen(false)} draggable>
+          <div className="space-y-3 text-xs">
+            <div>
+              <span className="text-muted-foreground block mb-0.5 font-medium">Current End Date</span>
+              <p className="font-semibold text-foreground">{formatDate(currentEnd)}</p>
+            </div>
+            <div>
+              <label className="text-muted-foreground block mb-1 font-medium">Requested New End Date</label>
+              <input
+                type="date"
+                value={newEndDate}
+                min={currentEnd || undefined}
+                onChange={(e) => setNewEndDate(e.target.value)}
+                className="w-full h-8 rounded-md border border-border bg-card px-2 text-xs font-medium focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <div>
+              <span className="text-muted-foreground block mb-0.5 font-medium">Extension Duration</span>
+              <p className="font-semibold text-primary">{extDays} Days</p>
+            </div>
+            <div>
+              <label className="text-muted-foreground block mb-1 font-medium">
+                Reason For Extension <span className="text-destructive font-bold">*</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Provide a valid corporate reason..."
+                rows={3}
+                className="w-full rounded-md border border-border bg-card p-1.5 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              />
+            </div>
+            <div>
+              <label className="text-muted-foreground block mb-1 font-medium">Tag Stakeholder Approvers</label>
+              <button
+                type="button"
+                onClick={() => setShowSearch((openList) => !openList)}
+                className="w-full h-8 rounded-md border border-border bg-card px-2 text-left text-xs text-muted-foreground flex justify-between items-center"
+              >
+                <span>{taggedIds.length > 0 ? `${taggedIds.length} approvers tagged` : "Select Approvers"}</span>
+                <span className="text-[10px]">▼</span>
+              </button>
+              {showSearch && (
+                <div className="mt-2 rounded-md border border-border bg-card p-2 space-y-2">
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search name..."
+                    className="w-full h-7 rounded-md border border-border bg-card px-2 text-xs"
+                  />
+                  <ul className="max-h-36 overflow-y-auto divide-y divide-border text-[11px]">
+                    {visibleApprovers.length === 0 ? (
+                      <li className="py-1 text-muted-foreground">No PMO employees match this search.</li>
+                    ) : visibleApprovers.map((person) => {
+                      const isSel = taggedIds.includes(person.employeeId);
+                      return (
+                        <li key={person.employeeId} className="py-1">
+                          <button
+                            type="button"
+                            onClick={() => toggle(person.employeeId)}
+                            className="flex items-center justify-between w-full text-left"
+                          >
+                            <span>{person.name}</span>
+                            {isSel && <Check className="h-3 w-3 text-primary" />}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+              {taggedIds.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {taggedIds.map((id) => {
+                    const person = approvers.find((row) => row.employeeId === id);
                     return (
-                      <li key={p.id} className="py-1">
-                        <button
-                          onClick={() => toggle(p.id)}
-                          className="flex items-center justify-between w-full text-left"
-                        >
-                          <span>{p.name} ({p.role})</span>
-                          {isSel && <Check className="h-3 w-3 text-primary" />}
-                        </button>
-                      </li>
+                      <span key={id} className="inline-flex items-center gap-1 rounded bg-muted border border-border px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                        {person?.name || "Approver"}
+                        <button type="button" onClick={() => toggle(id)} className="text-muted-foreground hover:text-foreground">×</button>
+                      </span>
                     );
                   })}
-                </ul>
-              </div>
-            )}
-          </div>
-          {taggedIds.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {taggedIds.map((id) => {
-                const p = getPerson(id);
-                return (
-                  <span key={id} className="inline-flex items-center gap-1 rounded bg-muted border border-border px-1 py-0.5 text-[9px] font-medium text-gray-700">
-                    {p.name.split(" ")[0]}
-                    <button onClick={() => toggle(id)} className="text-muted-foreground hover:text-foreground">×</button>
-                  </span>
-                );
-              })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={!reason.trim() || taggedIds.length === 0}
-          className="w-full h-8 bg-primary text-primary-foreground font-semibold rounded-md hover:bg-primary/90 text-xs transition-colors disabled:opacity-50 mt-1"
-        >
-          Submit Request
-        </button>
-      </div>
+            {formError && <p className="text-[11px] text-destructive">{formError}</p>}
+            <div className="flex justify-end gap-2 border-t border-border pt-3">
+              <button type="button" onClick={() => setOpen(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button
+                type="button"
+                onClick={() => void handleSubmit()}
+                disabled={saving || !reason.trim() || taggedIds.length === 0}
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                Submit Request
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -6507,7 +6615,7 @@ function HealthTab({ project }: { project: Project }) {
   const tabsList = isEmployee
     ? (["Issues", "Alerts", "Appreciation"] as const)
     : isDhanshree || isEngagementManager
-      ? (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Engagement"] as const)
+      ? (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Engagement", "Extension Request"] as const)
       : isPmFamily || isSales || isPmoFamily
         ? (["Issues", "Alerts", "Escalations", "Appreciation"] as const)
         : (["Issues", "Alerts", "Escalations", "Appreciation", "Customer Communication"] as const);
@@ -6533,6 +6641,10 @@ function HealthTab({ project }: { project: Project }) {
 
       {(isDhanshree || isEngagementManager) && healthTab === "Customer Engagement" && (
         <DhClientEngagementTab project={project} clientName={client.name} />
+      )}
+
+      {(isDhanshree || isEngagementManager) && healthTab === "Extension Request" && (
+        <ExtensionRequestPanel project={project} />
       )}
 
       {!isDhanshree && healthTab === "Customer Communication" && canAccessClientComm && (
@@ -8102,11 +8214,10 @@ function getClientInfo(clientId: string, clientProp?: Client | null, subVentureN
   };
 }
 
-function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onLeadershipSaved }: { project: Project; client?: Client; onNavigateToHealthAlerts?: () => void; onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void }) {
+function WbsPrerequisiteSection({ project, client, onLeadershipSaved }: { project: Project; client?: Client; onNavigateToHealthAlerts?: () => void; onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void }) {
   const allPrereqs = useDhStore((s) => s.prereqs);
   const prereqData = allPrereqs[project.id];
   const knownPeople = useDhStore((s) => s.knownPeople);
-  const alerts = useDhStore((s) => s.alerts);
   const { user, isSales, isViewOnly } = useRoleContext();
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
 
@@ -8136,6 +8247,36 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
   const [escTo, setEscTo] = useState<string[]>([]);
   const [escResolutionDate, setEscResolutionDate] = useState("");
   const [escAttachmentName, setEscAttachmentName] = useState("");
+  const [escAttachmentFile, setEscAttachmentFile] = useState<File | null>(null);
+  const [escSaving, setEscSaving] = useState(false);
+  const [serviceEscalations, setServiceEscalations] = useState<ProjectServiceEscalation[]>([]);
+  const [escalationStakeholders, setEscalationStakeholders] = useState<ServiceEscalationStakeholder[]>([]);
+
+  useEffect(() => {
+    if (!isApiGuid(project.id)) {
+      setServiceEscalations([]);
+      setEscalationStakeholders([]);
+      return;
+    }
+    let active = true;
+    Promise.all([
+      fetchProjectServiceEscalations(project.id),
+      fetchServiceEscalationStakeholders(),
+    ])
+      .then(([rows, people]) => {
+        if (!active) return;
+        setServiceEscalations(rows);
+        setEscalationStakeholders(people);
+      })
+      .catch(() => {
+        if (!active) return;
+        setServiceEscalations([]);
+        setEscalationStakeholders([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
 
   const defaultPmIds = useMemo(() => {
     if (prereqData?.assignedPmIds?.length) return prereqData.assignedPmIds;
@@ -8278,47 +8419,6 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
   // Determine Ready to Start conditions
   const canShowAssignment = true;
   const canProjectStart = allCollected && allValidated && prereq.assignedPmIds.length > 0 && prereq.assignedSpmIds.length > 0;
-
-  // Get team pool
-  const stakeholders = useMemo(() => {
-    const list: Person[] = [];
-
-    // Add PM
-    if (project.pmId) {
-      const pmObj = getPerson(project.pmId);
-      if (pmObj) list.push(pmObj);
-    }
-    // Add TL
-    if (project.tlId) {
-      const tlObj = getPerson(project.tlId);
-      if (tlObj) list.push(tlObj);
-    }
-    // Add EM
-    const clientRecord = client || allClients().find((c) => c.id === project.clientId);
-    const emName = project.engagementManager || clientRecord?.engagementManager;
-    if (emName) {
-      const emObj = getPerson(emName);
-      if (emObj && emObj.id !== "unknown" && !list.some((p) => p.id === emObj.id)) list.push(emObj);
-    }
-
-    // Add any assigned SPMs
-    if (prereq.assignedSpmIds) {
-      prereq.assignedSpmIds.forEach(id => {
-        const pObj = getPerson(id);
-        if (pObj && !list.some(p => p.id === pObj.id)) list.push(pObj);
-      });
-    }
-
-    // Add other team members assigned to project
-    project.teamIds.forEach(id => {
-      const pObj = getPerson(id);
-      if (pObj && !list.some(p => p.id === pObj.id) && ["PM", "Senior PM", "TL", "EM", "HOD", "PMO", "Business Owner"].includes(pObj.role)) {
-        list.push(pObj);
-      }
-    });
-
-    return list;
-  }, [project, clientInfo, prereq.assignedSpmIds, client]);
 
   const statusColor = (status: string) => {
     if (status === "Completed" || status === "Validated" || status === "Collected" || status === "Ready To Start") return "border-success/30 bg-success/10 text-success";
@@ -8527,8 +8627,10 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                     const canStart = isCollected && isValidated && isBillingOk;
                     const isReady = svc.isReady ?? false;
 
-                    const svcEscalations = alerts.filter((a) => a.projectId === project.id && a.kind === "Escalation" && a.serviceName === svc.serviceName);
-                    const activeEsc = svcEscalations.find((e) => e.status !== "Resolved" && e.status !== "Closed");
+                    const activeEsc = serviceEscalations.find((row) =>
+                      row.status !== "Resolved" && row.status !== "Closed"
+                      && (row.projectServiceId === svc.serviceId || row.serviceName === svc.serviceName),
+                    );
 
                     return (
                       <tr key={svc.serviceId} className="hover:bg-accent/20">
@@ -8633,11 +8735,8 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                         <td className="px-3 py-2.5 text-center align-middle">
                           {activeEsc ? (
                             <button
-                              onClick={() => {
-                                onNavigateToHealthAlerts?.();
-                                window.location.hash = "#health-alerts";
-                                toast.info("Active escalation details are available in Health → Alerts");
-                              }}
+                              type="button"
+                              onClick={() => toast.info("This escalation is saved. Action Centre will receive it when that screen is ready.")}
                               className={cn(
                                 "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
                                 activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
@@ -8673,7 +8772,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
 
       {/* Raise Escalation Modal */}
       {escalationModalOpen && escalationModalSvc && (
-        <Modal title="Raise WBS Escalation" onClose={() => setEscalationModalOpen(false)} draggable>
+        <Modal title="Raise WBS Escalation" onClose={() => setEscalationModalOpen(false)} draggable wide>
           <div className="space-y-4 text-xs">
             {/* Read-Only Project Info */}
             <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
@@ -8766,9 +8865,9 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                     type="file"
                     className="hidden"
                     onChange={(e) => {
-                      if (e.target.files?.[0]) {
-                        setEscAttachmentName(e.target.files[0].name);
-                      }
+                      const file = e.target.files?.[0] ?? null;
+                      setEscAttachmentFile(file);
+                      setEscAttachmentName(file?.name ?? "");
                     }}
                   />
                 </label>
@@ -8776,7 +8875,7 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                   {escAttachmentName || "No file selected (email logs, screenshot, docs...)"}
                 </span>
                 {escAttachmentName && (
-                  <button onClick={() => setEscAttachmentName("")} className="text-destructive text-[10px] hover:underline">Remove</button>
+                  <button type="button" onClick={() => { setEscAttachmentName(""); setEscAttachmentFile(null); }} className="text-destructive text-[10px] hover:underline">Remove</button>
                 )}
               </div>
             </div>
@@ -8784,29 +8883,28 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
             {/* Escalate To (Multi-Select Stakeholders) */}
             <div className="flex flex-col gap-1">
               <label className="font-bold text-gray-700">Escalate To (Select Stakeholders) <span className="text-destructive">*</span></label>
-              <div className="border border-border rounded-md p-2 bg-card max-h-32 overflow-y-auto space-y-1">
-                {stakeholders.map((p) => {
-                  const isSelected = escTo.includes(p.name);
+              <div className="border border-border rounded-md p-2 bg-card max-h-40 overflow-y-auto space-y-1">
+                {escalationStakeholders.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground p-1">No PMO or Engagement Manager employees are available.</p>
+                ) : escalationStakeholders.map((person) => {
+                  const isSelected = escTo.includes(person.employeeId);
+                  const group = person.subDepartment.includes("PMO") ? "PMO" : "EM";
                   return (
-                    <label key={p.id} className="flex items-center gap-2 cursor-pointer hover:bg-accent/40 p-1 rounded-sm text-xs select-none">
+                    <label key={person.employeeId} className="flex items-center gap-2 cursor-pointer hover:bg-accent/40 p-1 rounded-sm text-xs select-none">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => {
-                          if (isSelected) {
-                            setEscTo(prev => prev.filter(name => name !== p.name));
-                          } else {
-                            setEscTo(prev => [...prev, p.name]);
-                          }
+                          setEscTo((prev) => isSelected ? prev.filter((id) => id !== person.employeeId) : [...prev, person.employeeId]);
                         }}
                         className="h-3.5 w-3.5 accent-primary cursor-pointer animate-none"
                       />
-                      <span>{p.name} ({p.role})</span>
+                      <span>{person.name} ({group})</span>
                     </label>
                   );
                 })}
               </div>
-              <p className="text-[10px] text-muted-foreground">Only stakeholders associated with this project are listed.</p>
+              <p className="text-[10px] text-muted-foreground">PMO (Project Management Office) and EM (Engagement Manager).</p>
             </div>
 
             {/* Expected Resolution Date */}
@@ -8832,33 +8930,52 @@ function WbsPrerequisiteSection({ project, client, onNavigateToHealthAlerts, onL
                 Cancel
               </button>
               <button
+                type="button"
+                disabled={escSaving}
                 onClick={() => {
                   if (!escSubject.trim() || !escDescription.trim() || escTo.length === 0) {
                     toast.error("Please fill all mandatory fields (Subject, Description, and select at least one recipient)");
                     return;
                   }
-                  dhStore.addEscalationAlert({
-                    projectId: project.id,
-                    title: escSubject,
-                    description: escDescription,
-                    priority: escPriority,
-                    raisedByName: user.name,
-                    serviceName: escalationModalSvc.serviceName,
-                    escalationType: escType,
-                    escalatedTo: escTo,
-                    expectedResolutionDate: escResolutionDate || undefined,
-                    attachments: escAttachmentName ? [escAttachmentName] : []
-                  });
-                  toast.success("Escalation raised successfully!", { description: `Notification sent to: ${escTo.join(", ")}` });
-                  setEscalationModalOpen(false);
-                  setEscalationModalSvc(null);
-                  setEscSubject("");
-                  setEscDescription("");
-                  setEscTo([]);
-                  setEscResolutionDate("");
-                  setEscAttachmentName("");
+                  if (!isApiGuid(project.id)) {
+                    toast.error("This project is not saved yet");
+                    return;
+                  }
+                  const form = new FormData();
+                  if (isApiGuid(escalationModalSvc.serviceId)) form.append("projectServiceId", escalationModalSvc.serviceId);
+                  form.append("serviceName", escalationModalSvc.serviceName);
+                  form.append("projectCode", project.projectSeqId || "");
+                  form.append("projectName", project.name);
+                  form.append("customerName", clientInfo?.name || "");
+                  form.append("escalationType", escType);
+                  form.append("priority", escPriority);
+                  form.append("subject", escSubject.trim());
+                  form.append("description", escDescription.trim());
+                  if (escResolutionDate) form.append("expectedResolutionDate", escResolutionDate);
+                  escTo.forEach((id) => form.append("stakeholderIds", id));
+                  if (escAttachmentFile) form.append("file", escAttachmentFile);
+                  setEscSaving(true);
+                  void createProjectServiceEscalation(project.id, form)
+                    .then((created) => {
+                      setServiceEscalations((rows) => [created, ...rows.filter((row) => row.id !== created.id)]);
+                      toast.success("Escalation saved");
+                      setEscalationModalOpen(false);
+                      setEscalationModalSvc(null);
+                      setEscSubject("");
+                      setEscDescription("");
+                      setEscTo([]);
+                      setEscResolutionDate("");
+                      setEscAttachmentName("");
+                      setEscAttachmentFile(null);
+                    })
+                    .catch((err) => {
+                      toast.error("Could not save the escalation", {
+                        description: err instanceof Error ? err.message : "API error",
+                      });
+                    })
+                    .finally(() => setEscSaving(false));
                 }}
-                className="rounded-md bg-destructive text-white hover:bg-destructive/90 px-4 py-2 text-xs font-semibold"
+                className="rounded-md bg-destructive text-white hover:bg-destructive/90 px-4 py-2 text-xs font-semibold disabled:opacity-60"
               >
                 Send Escalation
               </button>

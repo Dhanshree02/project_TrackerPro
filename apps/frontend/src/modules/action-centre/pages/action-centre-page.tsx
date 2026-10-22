@@ -55,26 +55,30 @@ import { toast } from "sonner";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Field } from "@/components/form-row";
 
-// Employees only get their Bucket List (assigned tasks) + Notifications.
-const tabs = ["Bucket List", "Approvals", "Alerts", "Notifications"] as const;
-type Tab = (typeof tabs)[number];
+const actionTabs = [
+  { code: "bucket-list", name: "Bucket List" },
+  { code: "approvals", name: "Approvals" },
+  { code: "alerts", name: "Alerts" },
+  { code: "notifications", name: "Notifications" },
+] as const;
+
+const employeeTabCodes = ["bucket-list", "notifications"];
+const salesTabCodes = ["alerts", "notifications"];
+const pmoTabCodes = ["approvals", "alerts", "notifications"];
 
 export function ActionCentrePage() {
   const { isDhanshree, user, isEmployee, isPmoFamily, isSales } = useRoleContext();
   const { hasPermission } = usePermissions();
   const store = useDhStore((s) => s);
   const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
+  const [tabCode, setTabCode] = useState("");
 
-  const visibleTabs: Tab[] = isEmployee
-    ? ["Bucket List", "Notifications"]
-    : isSales
-      ? ["Alerts", "Notifications"]
-      : isPmoFamily
-        ? ["Approvals", "Alerts", "Notifications"]
-        : ["Bucket List", "Approvals", "Alerts", "Notifications"];
+  const visibleTabs = useMemo(() => {
+    const allowed = isEmployee ? employeeTabCodes : isSales ? salesTabCodes : isPmoFamily ? pmoTabCodes : null;
+    return actionTabs.filter((tab) => allowed === null || allowed.includes(tab.code));
+  }, [isEmployee, isPmoFamily, isSales]);
 
-  const [tab, setTab] = useState<Tab>(visibleTabs[0]);
-  const activeTab = visibleTabs.includes(tab) ? tab : visibleTabs[0];
+  const activeTab = visibleTabs.find((tab) => tab.code === tabCode) ?? visibleTabs[0];
 
   if (!isDhanshree && !hasPermission("action-center.view")) return <Navigate to="/" />;
 
@@ -83,21 +87,21 @@ export function ActionCentrePage() {
       title="Action Centre"
       subtitle="Bucket list, timesheets, approvals and alerts in one place"
     >
-      <div className="mb-4 flex gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
-        {visibleTabs.map((t) => {
-          const isNotif = t === "Notifications";
+      <div className="mb-4 inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
+        {visibleTabs.map((tab) => {
+          const isNotif = tab.code === "notifications";
           return (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tab.code}
+              onClick={() => setTabCode(tab.code)}
               className={cn(
                 "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
-                activeTab === t
+                activeTab?.code === tab.code
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              <span>{t}</span>
+              <span>{tab.name}</span>
               {isNotif && pendingCount > 0 && (
                 <span className="rounded-full bg-destructive text-destructive-foreground px-2 py-0.5 text-xs font-semibold leading-none">
                   {pendingCount}
@@ -108,10 +112,10 @@ export function ActionCentrePage() {
         })}
       </div>
 
-      {activeTab === "Bucket List" && <BucketList />}
-      {activeTab === "Approvals" && <ApprovalsTab />}
-      {activeTab === "Alerts" && <AlertsTab />}
-      {activeTab === "Notifications" && <NotificationsTab />}
+      {activeTab?.code === "bucket-list" && <BucketList />}
+      {activeTab?.code === "approvals" && <ApprovalsTab />}
+      {activeTab?.code === "alerts" && <AlertsTab />}
+      {activeTab?.code === "notifications" && <NotificationsTab />}
     </AppShell>
   );
 }

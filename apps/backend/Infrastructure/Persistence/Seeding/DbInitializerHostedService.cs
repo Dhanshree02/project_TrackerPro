@@ -259,6 +259,7 @@ public sealed class DbInitializerHostedService(
                 """,
                 cancellationToken);
             await DbSeeder.EnsureEmployeeStatusesAsync(db, cancellationToken);
+            await ModuleCatalogSync.EnsureAsync(db, cancellationToken);
             await OrgRoleMatrixSync.ApplyAsync(db, cancellationToken);
         }
         catch (Exception ex)

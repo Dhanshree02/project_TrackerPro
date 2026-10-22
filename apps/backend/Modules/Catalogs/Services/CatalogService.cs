@@ -1,11 +1,113 @@
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.Catalogs.DTOs;
+using PMS.API.Modules.Catalogs.Models;
 
 namespace PMS.API.Modules.Catalogs.Services;
 
 public sealed class CatalogService(AppDbContext db) : ICatalogService
 {
+    public async Task<IReadOnlyList<SidebarModuleDto>> GetModulesAsync(CancellationToken ct = default)
+    {
+        var modules = await db.Modules
+            .Where(m => m.IsActive)
+            .OrderBy(m => m.SortOrder)
+            .ThenBy(m => m.Name)
+            .ToListAsync(ct);
+        var subModules = await db.SubModules
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.SortOrder)
+            .ThenBy(s => s.Name)
+            .ToListAsync(ct);
+        var widgets = await db.Widgets
+            .Where(w => w.IsActive)
+            .OrderBy(w => w.SortOrder)
+            .ThenBy(w => w.Name)
+            .ToListAsync(ct);
+        var tabs = await db.Tabs
+            .Where(t => t.IsActive)
+            .OrderBy(t => t.SortOrder)
+            .ThenBy(t => t.Name)
+            .ToListAsync(ct);
+
+        return modules
+            .Select(m => new SidebarModuleDto(
+                m.Id,
+                m.Code,
+                m.Name,
+                m.Route,
+                m.SortOrder,
+                m.IconKey,
+                ChildrenOf(subModules, tabs, m.Id, null),
+                widgets
+                    .Where(w => w.ParentId == m.Id)
+                    .Select(w => new SidebarWidgetDto(w.Id, w.Code, w.Name, w.SortOrder, w.ParentId))
+                    .ToList(),
+                DirectTabs(tabs, moduleId: m.Id, subModuleId: null)))
+            .ToList();
+    }
+
+    private static IReadOnlyList<SidebarTabDto> DirectTabs(
+        IReadOnlyList<MstTab> rows,
+        Guid? moduleId,
+        Guid? subModuleId)
+    {
+        var matches = moduleId is not null
+            ? rows.Where(t => t.ModuleId == moduleId && t.SubModuleId is null && t.TabId is null)
+            : rows.Where(t => t.SubModuleId == subModuleId && t.ModuleId is null && t.TabId is null);
+
+        return matches
+            .Select(t => new SidebarTabDto(
+                t.Id,
+                t.Code,
+                t.Name,
+                t.SortOrder,
+                t.ModuleId,
+                t.SubModuleId,
+                t.TabId,
+                NestedTabs(rows, t.Id)))
+            .ToList();
+    }
+
+    private static IReadOnlyList<SidebarTabDto> NestedTabs(IReadOnlyList<MstTab> rows, Guid tabId)
+    {
+        return rows
+            .Where(t => t.TabId == tabId)
+            .Select(t => new SidebarTabDto(
+                t.Id,
+                t.Code,
+                t.Name,
+                t.SortOrder,
+                t.ModuleId,
+                t.SubModuleId,
+                t.TabId,
+                NestedTabs(rows, t.Id)))
+            .ToList();
+    }
+
+    private static IReadOnlyList<SidebarSubModuleDto> ChildrenOf(
+        IReadOnlyList<MstSubModule> rows,
+        IReadOnlyList<MstTab> tabs,
+        Guid? moduleId,
+        Guid? parentId)
+    {
+        var matches = parentId is null
+            ? rows.Where(s => s.ModuleId == moduleId && s.ParentId is null)
+            : rows.Where(s => s.ParentId == parentId);
+
+        return matches
+            .Select(s => new SidebarSubModuleDto(
+                s.Id,
+                s.Code,
+                s.Name,
+                s.Route,
+                s.SortOrder,
+                s.ParentId,
+                ChildrenOf(rows, tabs, null, s.Id),
+                DirectTabs(tabs, moduleId: null, subModuleId: s.Id)))
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<CatalogOptionDto>> GetCountriesAsync(CancellationToken ct = default)
     {
         return await db.Countries

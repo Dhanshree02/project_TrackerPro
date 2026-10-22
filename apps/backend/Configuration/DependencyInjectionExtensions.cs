@@ -59,6 +59,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectDraftService, ProjectDraftService>();
         services.AddScoped<IProjectTeamMemberService, ProjectTeamMemberService>();
         services.AddScoped<IProjectInterviewService, ProjectInterviewService>();
+        services.AddScoped<IProjectExtensionRequestService, ProjectExtensionRequestService>();
+        services.AddScoped<IProjectServiceEscalationService, ProjectServiceEscalationService>();
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
         services.AddHostedService<OrgRoleMatrixHostedService>();
         services.AddScoped<IDashboardService, DashboardService>();

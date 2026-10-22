@@ -63,6 +63,11 @@ public interface IFileStorageService
         IFormFile file,
         CancellationToken ct = default);
 
+    Task<StoredRepositoryFileInfo> SaveEscalationDocumentAsync(
+        string projectCode,
+        IFormFile file,
+        CancellationToken ct = default);
+
     (Stream Stream, string ContentType, string DownloadFileName)? GetKycFileStream(string relativePathOrFileName);
 
     (Stream Stream, string ContentType, string DownloadFileName)? GetProjectFileStream(string relativePathOrFileName);

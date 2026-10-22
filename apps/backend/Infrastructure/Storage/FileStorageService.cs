@@ -11,6 +11,7 @@ public sealed partial class FileStorageService : IFileStorageService
     // Human-readable document folders under the repo-root Documents/ tree.
     public const string KycFolder = "KYC";
     public const string PoFolder = "PO";
+    public const string EscalationFolder = "Escalation";
     public const string TechFolder = "Tech. SOPs";
     public const string PmsFolder = "PMS. SOPs";
     public const string ImpFolder = "IMP Templates";
@@ -57,6 +58,7 @@ public sealed partial class FileStorageService : IFileStorageService
         Directory.CreateDirectory(_documentsRoot);
         Directory.CreateDirectory(Path.Combine(_documentsRoot, KycFolder));
         Directory.CreateDirectory(Path.Combine(_documentsRoot, PoFolder));
+        Directory.CreateDirectory(Path.Combine(_documentsRoot, EscalationFolder));
         Directory.CreateDirectory(Path.Combine(_documentsRoot, TechFolder));
         Directory.CreateDirectory(Path.Combine(_documentsRoot, PmsFolder));
         Directory.CreateDirectory(Path.Combine(_documentsRoot, ImpFolder));
@@ -301,6 +303,51 @@ public sealed partial class FileStorageService : IFileStorageService
             Category: KycFolder,
             UploadedAtUtc: DateTime.UtcNow
         );
+    }
+
+    public async Task<StoredRepositoryFileInfo> SaveEscalationDocumentAsync(
+        string projectCode,
+        IFormFile file,
+        CancellationToken ct = default)
+    {
+        var rawOriginalName = Path.GetFileName(file.FileName);
+        var ext = Path.GetExtension(rawOriginalName).ToLowerInvariant();
+        if (!IsAllowedRepositoryExtension(ext) && ext is not ".gif" and not ".webp" and not ".eml" and not ".msg")
+        {
+            throw new InvalidOperationException("This file type cannot be attached.");
+        }
+
+        var targetDir = Path.Combine(_documentsRoot, EscalationFolder);
+        Directory.CreateDirectory(targetDir);
+
+        var projectPart = SafeFileNameRegex().Replace(projectCode ?? "", "_").Trim('_');
+        if (string.IsNullOrWhiteSpace(projectPart)) projectPart = "project";
+        if (projectPart.Length > 40) projectPart = projectPart[..40];
+
+        var baseName = Path.GetFileNameWithoutExtension(rawOriginalName);
+        var cleanBaseName = SafeFileNameRegex().Replace(baseName, "_").Trim('_');
+        if (string.IsNullOrWhiteSpace(cleanBaseName)) cleanBaseName = "escalation";
+        if (cleanBaseName.Length > 60) cleanBaseName = cleanBaseName[..60];
+
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss_fff");
+        var savedFileName = $"{timestamp}_{projectPart}_{cleanBaseName}{ext}";
+        var fullPath = Path.Combine(targetDir, savedFileName);
+
+        await using (var stream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await file.CopyToAsync(stream, ct);
+        }
+
+        var relativePath = Path.Combine(EscalationFolder, savedFileName).Replace('\\', '/');
+        return new StoredRepositoryFileInfo(
+            FileName: rawOriginalName,
+            OriginalFileName: rawOriginalName,
+            ContentType: file.ContentType ?? GetContentType(ext),
+            SizeBytes: file.Length,
+            RelativePath: relativePath,
+            CompleteFilePath: fullPath.Replace('\\', '/'),
+            Category: EscalationFolder,
+            UploadedAtUtc: DateTime.UtcNow);
     }
 
     public (Stream Stream, string ContentType, string DownloadFileName)? GetKycFileStream(string relativePathOrFileName)

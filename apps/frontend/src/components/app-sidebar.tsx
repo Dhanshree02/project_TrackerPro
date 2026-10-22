@@ -1,10 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { NAV_ITEMS, DH_NAV_ITEMS, filterNavItems, type NavItem } from "@/lib/navigation";
+import { filterNavItems, NAV_ITEMS, type NavItem, type NavSubItem } from "@/lib/navigation";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -46,7 +46,7 @@ export function AppSidebar() {
   // Navigation is permission-driven: only modules the signed-in user may access
   // are rendered. Admin and Dhanshree get full super-admin workspace navigation.
   const items: NavItem[] = filterNavItems(
-    isAdmin || isDhanshree ? DH_NAV_ITEMS : NAV_ITEMS,
+    NAV_ITEMS,
     hasPermission,
     hasAny,
     { isAdmin, isItAdmin, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
@@ -75,26 +75,91 @@ export function AppSidebar() {
   };
 
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  const autoOpenedPath = useRef<string | null>(null);
+
+  const branchActive = (subs?: NavSubItem[]): boolean =>
+    !!subs?.some(
+      (sub) => (sub.to ? isActive(sub.to, false, sub.search) : false) || branchActive(sub.subItems),
+    );
 
   useEffect(() => {
-    // Auto-open Resources if we are in any of the resource sub-routes
-    const resourceRoutes = ["/employee-directory", "/exit-summary"];
-    if (resourceRoutes.some((route) => pathname.startsWith(route))) {
-      setOpenDropdowns((prev) => ({ ...prev, Resources: true }));
-    }
-    // Auto-open My Team if we are in any of its sub-routes
-    if (pathname.startsWith("/my-team")) {
-      setOpenDropdowns((prev) => ({ ...prev, "My Team": true }));
-    }
-    // Auto-open Settings if we are in any of its sub-routes
-    if (pathname.startsWith("/settings")) {
-      setOpenDropdowns((prev) => ({ ...prev, Settings: true }));
-    }
-  }, [pathname]);
+    if (autoOpenedPath.current === pathname) return;
+    if (!items.some((item) => (item.subItems?.length ?? 0) > 0)) return;
+    autoOpenedPath.current = pathname;
+    setOpenDropdowns((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      const visit = (code: string | undefined, subs?: NavSubItem[]): boolean => {
+        if (!subs?.length) return false;
+        const hit = subs.some(
+          (sub) => (sub.to ? isActive(sub.to, false, sub.search) : false) || visit(sub.code, sub.subItems),
+        );
+        if (code && hit && !next[code]) {
+          next[code] = true;
+          changed = true;
+        }
+        return hit;
+      };
+      for (const item of items) visit(item.code ?? item.label, item.subItems);
+      return changed ? next : prev;
+    });
+  }, [pathname, items]);
 
-  const toggleDropdown = (label: string) => {
-    setOpenDropdowns((prev) => ({ ...prev, [label]: !prev[label] }));
+  const toggleDropdown = (key: string) => {
+    setOpenDropdowns((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  const renderSubItems = (subs: NavSubItem[], flyout = false) =>
+    subs.map((sub) => {
+      const key = sub.code ?? sub.to ?? sub.label;
+      if (sub.subItems?.length) {
+        const open = openDropdowns[key] ?? false;
+        return (
+          <div key={key} className="flex flex-col gap-0.5">
+            <button
+              type="button"
+              onClick={() => toggleDropdown(key)}
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs",
+                flyout
+                  ? "text-foreground/80 hover:bg-accent hover:text-accent-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground",
+              )}
+            >
+              <span className="flex-1 truncate">{sub.label}</span>
+              <ChevronDown className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-180")} />
+            </button>
+            {open && (
+              <div className="ml-3 flex flex-col gap-0.5 border-l border-border/60 pl-2">
+                {renderSubItems(sub.subItems, flyout)}
+              </div>
+            )}
+          </div>
+        );
+      }
+      if (!sub.to) return null;
+      const subActive = isActive(sub.to, true, sub.search);
+      return (
+        <Link
+          key={key}
+          to={sub.to}
+          search={sub.search as any}
+          className={cn(
+            "flex items-center justify-between rounded-md px-3 py-1.5 text-xs transition-colors",
+            flyout
+              ? subActive
+                ? "bg-primary/10 text-primary font-semibold"
+                : "text-foreground/80 hover:bg-accent hover:text-accent-foreground"
+              : subActive
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground",
+          )}
+        >
+          <span>{sub.label}</span>
+          {flyout && subActive && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
+        </Link>
+      );
+    });
 
   return (
     <aside
@@ -136,15 +201,16 @@ export function AppSidebar() {
       >
         {items.map((it) => {
           if (it.subItems) {
-            const isExpanded = openDropdowns[it.label] ?? false;
-            const isParentActive = it.subItems.some((sub) => isActive(sub.to, true, sub.search));
+            const menuKey = it.code ?? it.label;
+            const isExpanded = openDropdowns[menuKey] ?? false;
+            const isParentActive = branchActive(it.subItems);
 
             return (
               <div key={it.label} className="relative group/sidebar-item flex flex-col gap-1">
                 <button
                   onClick={() => {
                     if (!isCollapsed) {
-                      toggleDropdown(it.label);
+                      toggleDropdown(menuKey);
                     }
                   }}
                   className={cn(
@@ -174,51 +240,14 @@ export function AppSidebar() {
                       <it.icon className="h-4 w-4 text-primary" />
                       <span>{it.label}</span>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      {it.subItems.map((sub) => {
-                        const subActive = isActive(sub.to, true, sub.search);
-                        return (
-                          <Link
-                            key={sub.to + (sub.search?.tab || "")}
-                            to={sub.to}
-                            search={sub.search as any}
-                            className={cn(
-                              "flex items-center justify-between rounded-md px-3 py-2 text-xs transition-colors",
-                              subActive
-                                ? "bg-primary/10 text-primary font-semibold"
-                                : "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
-                            )}
-                          >
-                            <span>{sub.label}</span>
-                            {subActive && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                          </Link>
-                        );
-                      })}
-                    </div>
+                    <div className="flex flex-col gap-0.5">{renderSubItems(it.subItems, true)}</div>
                   </div>
                 )}
 
                 {/* Expanded SubItems */}
                 {!isCollapsed && isExpanded && (
                   <div className="ml-7 flex flex-col gap-1 border-l border-sidebar-border/60 pl-3">
-                    {it.subItems.map((sub) => {
-                      const subActive = isActive(sub.to, true, sub.search);
-                      return (
-                        <Link
-                          key={sub.to + (sub.search?.tab || "")}
-                          to={sub.to}
-                          search={sub.search as any}
-                          className={cn(
-                            "rounded-md px-3 py-1.5 text-xs transition-colors",
-                            subActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground",
-                          )}
-                        >
-                          {sub.label}
-                        </Link>
-                      );
-                    })}
+                    {renderSubItems(it.subItems)}
                   </div>
                 )}
               </div>

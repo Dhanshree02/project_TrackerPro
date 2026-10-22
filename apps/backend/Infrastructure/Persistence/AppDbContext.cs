@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Shared.Common.Models;
+using PMS.API.Modules.Catalogs.Models;
 using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.MyTeam.Models;
 using PMS.API.Modules.Timesheets.Models;
@@ -30,6 +31,14 @@ public class AppDbContext(
     public DbSet<ClientAssignment> ClientAssignments => Set<ClientAssignment>();
 
     public DbSet<ClientContactEntity> ClientContacts => Set<ClientContactEntity>();
+
+    public DbSet<MstModule> Modules => Set<MstModule>();
+
+    public DbSet<MstSubModule> SubModules => Set<MstSubModule>();
+
+    public DbSet<MstWidget> Widgets => Set<MstWidget>();
+
+    public DbSet<MstTab> Tabs => Set<MstTab>();
 
     public DbSet<MstDepartment> Departments => Set<MstDepartment>();
 
@@ -132,6 +141,14 @@ public class AppDbContext(
     public DbSet<ProjectTeamMember> ProjectTeamMembers => Set<ProjectTeamMember>();
 
     public DbSet<ProjectInterview> ProjectInterviews => Set<ProjectInterview>();
+
+    public DbSet<ProjectExtensionRequest> ProjectExtensionRequests => Set<ProjectExtensionRequest>();
+
+    public DbSet<ProjectExtensionApprover> ProjectExtensionApprovers => Set<ProjectExtensionApprover>();
+
+    public DbSet<ProjectServiceEscalation> ProjectServiceEscalations => Set<ProjectServiceEscalation>();
+
+    public DbSet<ProjectServiceEscalationStakeholder> ProjectServiceEscalationStakeholders => Set<ProjectServiceEscalationStakeholder>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsSecurityRolesRouteImport } from './routes/settings-security-roles'
 import { Route as SettingsMastersRouteImport } from './routes/settings-masters'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RepositoryRouteImport } from './routes/repository'
@@ -33,6 +34,11 @@ import { Route as MyTeamTimesheetsRouteImport } from './routes/my-team.timesheet
 import { Route as EmployeeDirectoryIdRouteImport } from './routes/employee-directory.$id'
 import { Route as CustomersClientIdRouteImport } from './routes/customers.$clientId'
 
+const SettingsSecurityRolesRoute = SettingsSecurityRolesRouteImport.update({
+  id: '/settings-security-roles',
+  path: '/settings-security-roles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsMastersRoute = SettingsMastersRouteImport.update({
   id: '/settings-masters',
   path: '/settings-masters',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/settings-masters': typeof SettingsMastersRoute
+  '/settings-security-roles': typeof SettingsSecurityRolesRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
   '/employee-directory/$id': typeof EmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/settings-masters': typeof SettingsMastersRoute
+  '/settings-security-roles': typeof SettingsSecurityRolesRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
   '/employee-directory/$id': typeof EmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/settings-masters': typeof SettingsMastersRoute
+  '/settings-security-roles': typeof SettingsSecurityRolesRoute
   '/customers/$clientId': typeof CustomersClientIdRoute
   '/employee-directory/$id': typeof EmployeeDirectoryIdRoute
   '/my-team/timesheets': typeof MyTeamTimesheetsRoute
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/repository'
     | '/settings'
     | '/settings-masters'
+    | '/settings-security-roles'
     | '/customers/$clientId'
     | '/employee-directory/$id'
     | '/my-team/timesheets'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/repository'
     | '/settings'
     | '/settings-masters'
+    | '/settings-security-roles'
     | '/customers/$clientId'
     | '/employee-directory/$id'
     | '/my-team/timesheets'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/repository'
     | '/settings'
     | '/settings-masters'
+    | '/settings-security-roles'
     | '/customers/$clientId'
     | '/employee-directory/$id'
     | '/my-team/timesheets'
@@ -312,6 +324,7 @@ export interface RootRouteChildren {
   RepositoryRoute: typeof RepositoryRoute
   SettingsRoute: typeof SettingsRoute
   SettingsMastersRoute: typeof SettingsMastersRoute
+  SettingsSecurityRolesRoute: typeof SettingsSecurityRolesRoute
   ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
   ResourcesEmployeeIdRoute: typeof ResourcesEmployeeIdRoute
@@ -321,6 +334,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings-security-roles': {
+      id: '/settings-security-roles'
+      path: '/settings-security-roles'
+      fullPath: '/settings-security-roles'
+      preLoaderRoute: typeof SettingsSecurityRolesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings-masters': {
       id: '/settings-masters'
       path: '/settings-masters'
@@ -538,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   RepositoryRoute: RepositoryRoute,
   SettingsRoute: SettingsRoute,
   SettingsMastersRoute: SettingsMastersRoute,
+  SettingsSecurityRolesRoute: SettingsSecurityRolesRoute,
   ProjectsProjectIdRoute: ProjectsProjectIdRoute,
   ProjectsNewRoute: ProjectsNewRoute,
   ResourcesEmployeeIdRoute: ResourcesEmployeeIdRoute,

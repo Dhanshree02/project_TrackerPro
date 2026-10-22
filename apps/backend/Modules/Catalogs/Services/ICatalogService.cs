@@ -7,6 +7,8 @@ namespace PMS.API.Modules.Catalogs.Services;
 /// </summary>
 public interface ICatalogService
 {
+    Task<IReadOnlyList<SidebarModuleDto>> GetModulesAsync(CancellationToken ct = default);
+
     Task<IReadOnlyList<CatalogOptionDto>> GetCountriesAsync(CancellationToken ct = default);
 
     Task<IReadOnlyList<CatalogOptionDto>> GetNationalitiesAsync(CancellationToken ct = default);

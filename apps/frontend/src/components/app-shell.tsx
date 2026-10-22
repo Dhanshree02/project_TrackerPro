@@ -6,7 +6,7 @@ import { MobileTabs } from "./mobile-tabs";
 import { useAuth } from "@/lib/auth-context";
 import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
-import { NAV_ITEMS, filterNavItems, resolveRoutePermission } from "@/lib/navigation";
+import { filterNavItems, firstNavRoute, NAV_ITEMS, resolveRoutePermission } from "@/lib/navigation";
 
 export function AppShell({
   title,
@@ -29,6 +29,7 @@ export function AppShell({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasPermission, hasAny } = usePermissions();
   const { permissionsReady } = useAuth();
+  const landingItems = NAV_ITEMS;
 
   // Wait for /rbac/effective + user switch before bouncing. A new origin
   // (LAN IP vs localhost) has its own localStorage; racing here 403s the home page.
@@ -48,7 +49,7 @@ export function AppShell({
   // Users without dashboard access (e.g. HR) land on their first permitted
   // module after login instead of hitting the 403 page on the root route.
   if (pathname === "/" && !hasPermission("dashboard.view")) {
-    const items = filterNavItems(NAV_ITEMS, hasPermission, hasAny, {
+    const items = filterNavItems(landingItems, hasPermission, hasAny, {
       isHr,
       isEmployee,
       isPmFamily,
@@ -56,9 +57,7 @@ export function AppShell({
       isAccounts,
       isSales,
     });
-    const landing = items
-      .map((i) => i.to ?? i.subItems?.[0]?.to)
-      .find((to): to is string => Boolean(to));
+    const landing = firstNavRoute(items);
     if (landing) return <Navigate to={landing} replace />;
   }
 

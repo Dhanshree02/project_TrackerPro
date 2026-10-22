@@ -2,6 +2,44 @@ namespace PMS.API.Modules.Catalogs.DTOs;
 
 public sealed record CatalogOptionDto(Guid Id, string Code, string Name, string? PhoneCode = null, int? PhoneDigits = null);
 
+public sealed record SidebarSubModuleDto(
+    Guid Id,
+    string Code,
+    string Name,
+    string? Route,
+    int SortOrder,
+    Guid? ParentId,
+    IReadOnlyList<SidebarSubModuleDto> Children,
+    IReadOnlyList<SidebarTabDto> Tabs);
+
+public sealed record SidebarWidgetDto(
+    Guid Id,
+    string Code,
+    string Name,
+    int SortOrder,
+    Guid ParentId);
+
+public sealed record SidebarTabDto(
+    Guid Id,
+    string Code,
+    string Name,
+    int SortOrder,
+    Guid? ModuleId,
+    Guid? SubModuleId,
+    Guid? TabId,
+    IReadOnlyList<SidebarTabDto> Children);
+
+public sealed record SidebarModuleDto(
+    Guid Id,
+    string Code,
+    string Name,
+    string? Route,
+    int SortOrder,
+    string IconKey,
+    IReadOnlyList<SidebarSubModuleDto> SubModules,
+    IReadOnlyList<SidebarWidgetDto> Widgets,
+    IReadOnlyList<SidebarTabDto> Tabs);
+
 public sealed record AddressCityDto(Guid Id, string Code, string Name, string? Line, int SortOrder);
 
 public sealed record CityCatalogOptionDto(Guid Id, string Code, string Name, Guid CountryId);

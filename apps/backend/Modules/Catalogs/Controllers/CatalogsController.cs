@@ -18,6 +18,12 @@ public class CatalogsController(
     IProjectMastersService projectMasters,
     IResourceMastersService resourceMasters) : ControllerBase
 {
+    [HttpGet("modules")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SidebarModuleDto>>>> Modules(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<SidebarModuleDto>>.Ok(await catalogs.GetModulesAsync(ct)));
+    }
+
     [HttpGet("countries")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<CatalogOptionDto>>>> Countries(
         CancellationToken ct)

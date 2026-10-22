@@ -64,6 +64,11 @@ import { ShiftCoverageCard } from "./components/ShiftCoverageCard";
 
 type Roster = "reportees" | "all";
 
+const rosterTabs = [
+  { code: "my-reportees", name: "My Reportees", scope: "reportees" },
+  { code: "all-employees", name: "All Employees", scope: "all" },
+] as const satisfies ReadonlyArray<{ code: string; name: string; scope: Roster }>;
+
 function rosterCacheKey(month: Date, scope: Roster) {
   return `${month.getFullYear()}-${month.getMonth()}:${scope}`;
 }
@@ -1172,32 +1177,25 @@ export function MyTeamPage() {
     >
       <div className="space-y-4">
         <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner w-fit">
-          <button
-            type="button"
-            onClick={() => selectRoster("reportees")}
-            aria-label="My reportees"
-            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 ${
-              roster === "reportees"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Users className="h-3.5 w-3.5" />
-            My Reportees
-          </button>
-          <button
-            type="button"
-            onClick={() => selectRoster("all")}
-            aria-label="All employees"
-            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 ${
-              roster === "all"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <UsersRound className="h-3.5 w-3.5" />
-            All Employees
-          </button>
+          {rosterTabs.map((tab) => {
+            const Icon = tab.scope === "all" ? UsersRound : Users;
+            return (
+              <button
+                key={tab.code}
+                type="button"
+                onClick={() => selectRoster(tab.scope)}
+                aria-label={tab.name}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 ${
+                  roster === tab.scope
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {tab.name}
+              </button>
+            );
+          })}
         </div>
         {loading && teamMembers.length === 0 && (
           <p className="text-sm text-muted-foreground">Loading team calendar…</p>

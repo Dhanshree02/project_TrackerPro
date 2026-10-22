@@ -21,7 +21,8 @@ public sealed class OrgRoleMatrixHostedService(
             {
                 using var scope = scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                logger.LogInformation("Applying docs/rbac.xlsx on-floor and RBAC mapping…");
+                logger.LogInformation("Applying sidebar modules and docs/rbac.xlsx mapping…");
+                await ModuleCatalogSync.EnsureAsync(db, cancellationToken);
                 await OrgRoleMatrixSync.ApplyAsync(db, cancellationToken);
                 logger.LogInformation("On-floor and RBAC mapping is in place.");
                 return;

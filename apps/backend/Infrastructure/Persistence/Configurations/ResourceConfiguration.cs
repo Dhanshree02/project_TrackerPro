@@ -48,7 +48,7 @@ public sealed class MstOrgRoleMapConfiguration : IEntityTypeConfiguration<MstOrg
         builder.ToTable("mst_org_role_map", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => x.DesignationId).IsUnique();
-        builder.Property(x => x.SubDepartment).HasMaxLength(250);
+        builder.HasIndex(x => x.SubDepartmentId);
 
         builder.HasOne(x => x.Department)
             .WithMany()
@@ -59,6 +59,11 @@ public sealed class MstOrgRoleMapConfiguration : IEntityTypeConfiguration<MstOrg
             .WithMany()
             .HasForeignKey(x => x.DesignationId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.SubDepartmentRef)
+            .WithMany()
+            .HasForeignKey(x => x.SubDepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         builder.HasOne(x => x.RbacRole)
             .WithMany()
@@ -161,7 +166,7 @@ public sealed class OnFloorRoleSubDepartmentConfiguration : IEntityTypeConfigura
 {
     public void Configure(EntityTypeBuilder<OnFloorRoleSubDepartment> builder)
     {
-        builder.ToTable("tbl_onfloorrole_subdepartment", DbSchemas.Resource);
+        builder.ToTable("mst_onfloorrole_sub_departments", DbSchemas.Master);
         builder.HasKey(x => x.Id);
         builder.HasIndex(x => new { x.OnFloorRoleId, x.SubDepartmentId }).IsUnique();
         builder.HasIndex(x => x.SubDepartmentId);

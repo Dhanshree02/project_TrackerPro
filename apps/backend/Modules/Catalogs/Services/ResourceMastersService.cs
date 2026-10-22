@@ -313,10 +313,20 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
         var maps = await db.OrgRoleMaps
             .AsNoTracking()
             .Include(m => m.RbacRole)
+            .Include(m => m.SubDepartmentRef)
             .ToListAsync(ct);
         var mapByDesignation = maps
             .GroupBy(m => m.DesignationId)
             .ToDictionary(g => g.Key, g => g.First());
+        var linkNames = await db.OrgRoleSubDepartments
+            .AsNoTracking()
+            .Select(l => new { l.OrgRoleMapId, l.SubDepartment!.Name })
+            .ToListAsync(ct);
+        var namesByMap = linkNames
+            .GroupBy(l => l.OrgRoleMapId)
+            .ToDictionary(
+                g => g.Key,
+                g => string.Join(", ", g.Select(l => l.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase)));
 
         var rows = designations
             .Select(d =>
@@ -325,9 +335,9 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
                 var rbac = map?.RbacRole is { IsActive: true, DeletedAtUtc: null }
                     ? map.RbacRole
                     : d.DefaultRole is { IsActive: true, DeletedAtUtc: null } ? d.DefaultRole : null;
-                var subDepartment = !string.IsNullOrWhiteSpace(map?.SubDepartment)
-                    ? map!.SubDepartment
-                    : d.SubDepartment;
+                var subDepartment = map is not null && namesByMap.TryGetValue(map.Id, out var linkedNames)
+                    ? linkedNames
+                    : map?.SubDepartmentRef?.Name ?? d.SubDepartment;
                 return new DepartmentHierarchyRowDto(
                     d.Id,
                     d.DepartmentId,
@@ -376,7 +386,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
                 DepartmentId = department.Id,
                 DesignationId = designation.Id,
                 RbacRoleId = rbac.Id,
-                SubDepartment = subDepartment,
             };
             db.OrgRoleMaps.Add(map);
         }
@@ -385,7 +394,6 @@ public sealed class ResourceMastersService(AppDbContext db) : IResourceMastersSe
             map.DeletedAtUtc = null;
             map.DepartmentId = department.Id;
             map.RbacRoleId = rbac.Id;
-            map.SubDepartment = subDepartment;
         }
 
         await OrgRoleMatrixSync.SyncSubDepartmentLinksAsync(db, ct);

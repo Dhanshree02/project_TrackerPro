@@ -41,26 +41,11 @@ public static class OrgRoleMatrix
     public static bool TryFind(string? department, string? designation, out Row row)
     {
         row = default!;
-        if (string.IsNullOrWhiteSpace(designation)) return false;
-        if (Normalize(designation) == "intern")
-        {
-            row = InternRow(department);
-            return true;
-        }
-
-        if (string.IsNullOrWhiteSpace(department)) return false;
+        if (string.IsNullOrWhiteSpace(department) || string.IsNullOrWhiteSpace(designation)) return false;
         return Map.TryGetValue((Normalize(department), Normalize(designation)), out row!);
     }
 
     public static IReadOnlyList<Row> All => Rows;
-
-    private static Row InternRow(string? department) =>
-        new(
-            string.IsNullOrWhiteSpace(department) ? "Internship Program" : department.Trim(),
-            "Intern",
-            "Across all Sub Departments",
-            "Team Member",
-            "Intern");
 
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -71,6 +56,7 @@ public static class OrgRoleMatrix
         ["accounts"] = "Accounts",
         ["hr"] = "HR",
         ["sales manager"] = "Sales Manager",
+        ["sales - manager"] = "Sales Manager",
         ["sales team member"] = "Sales team member",
         ["pmo"] = "PMO",
         ["pmo (project management office)"] = "PMO",
@@ -81,25 +67,38 @@ public static class OrgRoleMatrix
         ["r&d - team member"] = "R&D - Team member",
         ["soc- team member"] = "SOC-Team Member",
         ["soc-team member"] = "SOC-Team Member",
+        ["soc - team member"] = "SOC-Team Member",
         ["soc- team leader"] = "SOC-Team Leader",
         ["soc-team leader"] = "SOC-Team Leader",
+        ["soc - team leader"] = "SOC-Team Leader",
         ["soc- manager"] = "SOC-Manager",
         ["soc-manager"] = "SOC-Manager",
+        ["soc - manager"] = "SOC-Manager",
         ["soc- senior manager"] = "SOC-Senior Manager",
         ["soc-senior manager"] = "SOC-Senior Manager",
+        ["soc - senior manager"] = "SOC-Senior Manager",
         ["soc- hod"] = "SOC-HOD",
         ["soc-hod"] = "SOC-HOD",
+        ["soc - hod"] = "SOC-HOD",
         ["consulting -team member"] = "Consulting-Team member",
         ["consulting-team member"] = "Consulting-Team member",
+        ["consulting - team member"] = "Consulting-Team member",
         ["consulting -team leader"] = "Consulting-Team Leader",
         ["consulting-team leader"] = "Consulting-Team Leader",
+        ["consulting - team leader"] = "Consulting-Team Leader",
         ["consulting-manager"] = "Consulting-Manager",
+        ["consulting - manager"] = "Consulting-Manager",
         ["consulting-hod"] = "Consulting-HOD",
+        ["consulting - hod"] = "Consulting-HOD",
         ["testing-team member"] = "Testing-Team Member",
+        ["testing - team member"] = "Testing-Team Member",
         ["testing-team leader"] = "Testing-Team Leader",
+        ["testing - team leader"] = "Testing-Team Leader",
         ["testing-manager"] = "Testing-Manager",
+        ["testing - manager"] = "Testing-Manager",
         ["testing- senior manager"] = "Testing Senior Manager",
         ["testing senior manager"] = "Testing Senior Manager",
+        ["testing - senior manager"] = "Testing Senior Manager",
         ["intern"] = "Intern",
         ["admin"] = "Admin",
     };
@@ -112,24 +111,27 @@ public static class OrgRoleMatrix
         ["IT Admin"] = "IT Admin",
         ["Accounts"] = "Accounts",
         ["HR"] = "HR",
-        ["Sales Manager"] = "Sales Manager",
-        ["Sales team member"] = "Sales Team Member",
+        ["Sales Manager"] = "Sales - Manager",
+        ["Sales team member"] = "Sales - Team Member",
         ["PMO"] = "PMO (Project Management Office)",
         ["EngagementManager"] = "EM (Engagement Manager)",
-        ["R&D - Team member"] = "R&D -Team member",
-        ["SOC-Team Member"] = "SOC- Team Member",
-        ["SOC-Team Leader"] = "SOC- Team Leader",
-        ["SOC-Manager"] = "SOC- Manager",
-        ["SOC-Senior Manager"] = "SOC- Senior Manager",
-        ["SOC-HOD"] = "SOC- HOD",
-        ["Consulting-Team member"] = "Consulting -Team member",
-        ["Consulting-Team Leader"] = "Consulting -Team Leader",
-        ["Consulting-Manager"] = "Consulting-Manager",
-        ["Consulting-HOD"] = "Consulting-HOD",
-        ["Testing-Team Member"] = "Testing-Team Member",
-        ["Testing-Team Leader"] = "Testing-Team Leader",
-        ["Testing-Manager"] = "Testing-Manager",
-        ["Testing Senior Manager"] = "Testing- Senior Manager",
+        ["PM - Team Member"] = "PM - Team Member",
+        ["R&D - Team member"] = "R&D - Team member",
+        ["SOC-Team Member"] = "SOC - Team Member",
+        ["SOC-Team Leader"] = "SOC - Team Leader",
+        ["SOC-Manager"] = "SOC - Manager",
+        ["SOC-Senior Manager"] = "SOC - Senior Manager",
+        ["SOC-HOD"] = "SOC - HOD",
+        ["Consulting-Team member"] = "Consulting - Team member",
+        ["Consulting-Team Leader"] = "Consulting - Team Leader",
+        ["Consulting-Manager"] = "Consulting - Manager",
+        ["Consulting-Senior Manager"] = "Consulting - Senior Manager",
+        ["Consulting-HOD"] = "Consulting - HOD",
+        ["Testing-Team Member"] = "Testing - Team Member",
+        ["Testing-Team Leader"] = "Testing - Team Leader",
+        ["Testing-Manager"] = "Testing - Manager",
+        ["Testing Senior Manager"] = "Testing - Senior Manager",
+        ["Testing HOD"] = "Testing - HOD",
         ["Intern"] = "Intern",
         ["Admin"] = "Admin",
     };
@@ -142,23 +144,27 @@ public static class OrgRoleMatrix
         new("Functional - IT Administration", "IT Admin", "Functional - IT Administration", "IT Admin", "IT Admin"),
         new("Functional - IT Administration", "Desktop Support Engineer - I", "Functional - IT Administration", "IT Admin", "IT Admin"),
         new("Functional - IT Administration", "Desktop Support Engineer - II", "Functional - IT Administration", "IT Admin", "IT Admin"),
+        new("Functional - IT Administration", "Intern", "Functional - IT Administration", "Team Member", "IT Admin"),
         new("Functional - Accounts", "Accountant - I", "Functional - Accounts", "Accounts", "Accounts"),
         new("Functional - Accounts", "Accountant - II", "Functional - Accounts", "Accounts", "Accounts"),
         new("Functional - Accounts", "Accountant - III", "Functional - Accounts", "Accounts", "Accounts"),
         new("Functional - Accounts", "Senior Accountant - I", "Functional - Accounts", "Accounts", "Accounts"),
         new("Functional - Accounts", "Senior Accountant - II", "Functional - Accounts", "Accounts", "Accounts"),
         new("Functional - Accounts", "Senior Accountant - III", "Functional - Accounts", "Accounts", "Accounts"),
+        new("Functional - Accounts", "Intern", "Functional - Accounts", "Team Member", "Accounts"),
         new("Functional - HR", "HR Head", "Functional - HR", "HR", "HR"),
         new("Functional - HR", "Recruitment Coordinator - I", "Functional - HR", "HR", "HR"),
         new("Functional - HR", "Recruitment Coordinator - II", "Functional - HR", "HR", "HR"),
         new("Functional - HR", "Senior HR Executive - I", "Functional - HR", "HR", "HR"),
         new("Functional - HR", "Senior HR Executive - II", "Functional - HR", "HR", "HR"),
-        new("Functional - Sales", "Business Development Associate - I", "Functional - Sales", "Manager", "Sales Manager"),
-        new("Functional - Sales", "Customer Success Representative - II", "Functional - Sales", "Manager", "Sales Manager"),
+        new("Functional - HR", "Intern", "Functional - HR", "Team Member", "HR"),
+        new("Functional - Sales", "Business Development Associate - I", "Functional - Sales", "Manager", "Sales - Manager"),
+        new("Functional - Sales", "Customer Success Representative - II", "Functional - Sales", "Manager", "Sales - Manager"),
         new("Functional - Sales", "Director - Product Sales", "Functional - Sales", "Team Member", "Sales Team Member"),
         new("Functional - Sales", "Sales Associate", "Functional - Sales", "Team Member", "Sales Team Member"),
         new("Functional - Sales", "Associate Customer Success Representative - I", "Functional - Sales", "Team Member", "Sales Team Member"),
         new("Functional - Sales", "Associate Customer Success Representative - II", "Functional - Sales", "Team Member", "Sales Team Member"),
+        new("Functional - Sales", "Intern", "Functional - Sales", "Team Member", "Sales Team Member"),
         new("Functional - Project Management", "Associate PMO - I", "PMO (Project Management Office)", "Team Member", "PMO (Project Management Office)"),
         new("Functional - Project Management", "Associate PMO - II", "PMO (Project Management Office)", "Team Member", "PMO (Project Management Office)"),
         new("Functional - Project Management", "Senior PMO - I", "PMO (Project Management Office)", "Team Leader", "PMO (Project Management Office)"),
@@ -167,9 +173,11 @@ public static class OrgRoleMatrix
         new("Functional - Project Management", "Delivery Account Manager - II", "EM (Engagement Manager)", "Team Member", "EM (Engagement Manager)"),
         new("Functional - Project Management", "Senior Delivery Account Manager - I", "EM (Engagement Manager)", "Team Leader", "EM (Engagement Manager)"),
         new("Functional - Project Management", "Senior Delivery Account Manager - II", "EM (Engagement Manager)", "Manager", "EM (Engagement Manager)"),
-        new("R&D (Research & Development)", "Python Developer - I", "R&D (Research & Development)", "Team Member", "R&D -Team member"),
-        new("R&D (Research & Development)", "Python Developer - II", "R&D (Research & Development)", "Team Member", "R&D -Team member"),
-        new("R&D (Research & Development)", "Python Developer - III", "R&D (Research & Development)", "Team Member", "R&D -Team member"),
+        new("Functional - Project Management", "Intern", "Functional - Project Management", "Team Member", "PM - Team Member"),
+        new("R&D (Research & Development)", "Python Developer - I", "R&D (Research & Development)", "Team Member", "R&D - Team member"),
+        new("R&D (Research & Development)", "Python Developer - II", "R&D (Research & Development)", "Team Member", "R&D - Team member"),
+        new("R&D (Research & Development)", "Python Developer - III", "R&D (Research & Development)", "Team Member", "R&D - Team member"),
+        new("R&D (Research & Development)", "Intern", "R&D (Research & Development)", "Team Member", "R&D - Team member"),
         new("Services - Operations", "SOC Analyst - I", "Services - Operations", "Team Member", "SOC- Team Member"),
         new("Services - Operations", "SOC Analyst - II", "Services - Operations", "Team Member", "SOC- Team Member"),
         new("Services - Operations", "SOC Analyst - III", "Services - Operations", "Team Member", "SOC- Team Member"),
@@ -184,7 +192,8 @@ public static class OrgRoleMatrix
         new("Services - Operations", "SOC Shift Lead - II", "Services - Operations", "Team Leader", "SOC- Team Leader"),
         new("Services - Operations", "SOC Lead - I", "Services - Operations", "Project Manager", "SOC- Manager"),
         new("Services - Operations", "SOC Lead - II", "Services - Operations", "Sr. Manager", "SOC- Senior Manager"),
-        new("Services - Operations", "Principal Manager - I", "Services - Operations", "Head Of Department", "SOC- HOD"),
+        new("Services - Operations", "Principal Manager - I", "Services - Operations", "Head Of Department", "SOC - HOD"),
+        new("Services - Operations", "Intern", "Services - Operations", "Team Member", "SOC - Team Member"),
         new("Services - Consulting", "GRC Auditor - I", "Services - Consulting", "Team Member", "Consulting -Team member"),
         new("Services - Consulting", "GRC Auditor - II", "Services - Consulting", "Team Member", "Consulting -Team member"),
         new("Services - Consulting", "GRC Auditor - III", "Services - Consulting", "Team Member", "Consulting -Team member"),
@@ -192,7 +201,8 @@ public static class OrgRoleMatrix
         new("Services - Consulting", "Senior GRC Auditor - I", "Services - Consulting", "Team Leader", "Consulting -Team Leader"),
         new("Services - Consulting", "Senior GRC Auditor - II", "Services - Consulting", "Team Leader", "Consulting -Team Leader"),
         new("Services - Consulting", "Associate Manager - III", "Services - Consulting", "Manager", "Consulting-Manager"),
-        new("Services - Consulting", "Senior Vice President - Principal Consultant", "Services - Consulting", "Head Of Department", "Consulting-HOD"),
+        new("Services - Consulting", "Senior Vice President - Principal Consultant", "Services - Consulting", "Head Of Department", "Consulting - HOD"),
+        new("Services - Consulting", "Intern", "Services - Consulting", "Team Member", "Consulting - Team member"),
         new("Services - Testing", "PenTester - I", TestingCore, "Team Member", "Testing-Team Member"),
         new("Services - Testing", "PenTester - II", TestingCore, "Team Member", "Testing-Team Member"),
         new("Services - Testing", "PenTester - III", TestingCore, "Team Member", "Testing-Team Member"),
@@ -213,12 +223,15 @@ public static class OrgRoleMatrix
         new("Services - Testing", "Red Team Practitioner - III", "Services - Testing - Red Team", "Team Member", "Testing-Team Member"),
         new("Services - Testing", "Red Team Specialist - II", "Services - Testing - Red Team", "Manager", "Testing-Manager"),
         new("Services - Testing", "Senior Cloud Security Consultant - I", "Services - Testing - Cloud & AI", "Manager", "Testing-Manager"),
-        new("Services - Testing", "Associate AI Engineer - Contractual", "Services - Testing - Cloud & AI", "Team Member", "Testing-Team Member"),
-        new("Internship Program", "Intern", "Across all Sub Departments", "Team Member", "Intern"),
+        new("Services - Testing", "Associate AI Engineer - Contractual", "Services - Testing - Cloud & AI", "Team Member", "Testing - Team Member"),
+        new("Services - Testing", "Intern", TestingIntern, "Team Member", "Testing - Team Member"),
     ];
 
     private const string TestingCore =
         "Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra";
+
+    private const string TestingIntern =
+        "Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra, Services - Testing - DevSecOps, Services - Testing - Red Team, Services - Testing - Cloud & AI";
 
     private static readonly Dictionary<(string Department, string Designation), Row> Map =
         Rows.ToDictionary(r => (Normalize(r.Department), Normalize(r.Designation)), r => r);
