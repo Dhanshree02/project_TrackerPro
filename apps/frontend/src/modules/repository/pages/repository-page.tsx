@@ -61,9 +61,8 @@ import {
 } from "@/modules/repository/api/repository";
 
 export function RepositoryRoute() {
-  const { isDhanshree } = useRoleContext();
-  const { hasPermission } = usePermissions();
-  if (!isDhanshree && !hasPermission("repository.view")) return <Navigate to="/" />;
+  const { canView } = usePermissions();
+  if (!canView("repository")) return <Navigate to="/" />;
   return <MyOrgPage />;
 }
 
@@ -1156,8 +1155,9 @@ function UploadAssignmentModal({
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
 function MyOrgPage() {
-  const { isEmployee, isHr, isDhanshree, user } = useRoleContext();
-  const isReadOnlyViewer = isEmployee || isHr;
+  const { user } = useRoleContext();
+  const { canManage } = usePermissions();
+  const canManageRepository = canManage("repository");
 
   const [categories, setCategories] = useState<CategoryMeta[]>(DEFAULT_CATEGORIES);
   const [documents, setDocuments] = useState<RepositoryItem[]>([]);
@@ -1251,6 +1251,10 @@ function MyOrgPage() {
   const docRange = paginationRange(page, pageSize, totalCount);
 
   const handleUploadClick = () => {
+    if (!canManageRepository) {
+      toast.error("You do not have permission to upload documents.");
+      return;
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
       fileInputRef.current.click();
@@ -1302,6 +1306,10 @@ function MyOrgPage() {
   };
 
   const handleConfirmDelete = async () => {
+    if (!canManageRepository) {
+      toast.error("You do not have permission to delete documents.");
+      return;
+    }
     if (!pendingDeleteDoc) return;
     setIsDeleting(true);
     try {
@@ -1361,8 +1369,7 @@ function MyOrgPage() {
     });
   };
 
-  const canDeleteDoc = (doc: RepositoryItem) =>
-    isDhanshree || doc.uploadedBy === user?.name || doc.uploadedBy === user?.email;
+  const canDeleteDoc = (_doc: RepositoryItem) => canManageRepository;
 
   const totalRepoDocuments = categories.reduce((sum, c) => sum + c.count, 0);
 
@@ -1383,7 +1390,7 @@ function MyOrgPage() {
           Manage organizational documents, SOPs, and policy resources.
         </p>
         <div className="flex items-center gap-2">
-          {!isReadOnlyViewer && (
+          {canManageRepository && (
             <button
               type="button"
               onClick={handleUploadClick}

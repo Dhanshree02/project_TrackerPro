@@ -83,8 +83,8 @@ export function mapEmployeeAccessRoleKey(item: ApiEmployeeListItem, accessRoleFr
   const fromLogin = accessRoleFromDb?.trim();
   if (fromLogin) return fromLogin;
 
-  const fromProfile = profileAssignedAccessRole(item);
-  if (fromProfile) return fromProfile;
+  const rawRole = (item.role || "").trim();
+  if (rawRole) return rawRole;
 
   if (isSuperAdminEmployee(item)) return "Admin";
 

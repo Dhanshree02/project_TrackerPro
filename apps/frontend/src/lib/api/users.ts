@@ -164,3 +164,23 @@ export async function resetUserPassword(id: string, newPassword: string): Promis
     body: JSON.stringify({ newPassword }),
   });
 }
+
+export interface ApiRolePermission {
+  itemId: string;
+  itemType: string;
+  canView: number;
+  canManage: number;
+}
+
+export async function fetchRolePermissions(roleId: string): Promise<ApiRolePermission[]> {
+  return (await apiFetch<ApiRolePermission[]>(`/api/v1/roles/${roleId}/permissions`)) ?? [];
+}
+
+export async function saveRolePermissions(roleId: string, permissions: ApiRolePermission[]): Promise<boolean> {
+  const result = await apiFetch<boolean>(`/api/v1/roles/${roleId}/permissions`, {
+    method: "PUT",
+    body: JSON.stringify({ permissions }),
+  });
+  return !!result;
+}
+

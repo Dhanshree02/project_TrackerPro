@@ -199,17 +199,11 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
                   {activePersona.avatar}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="truncate text-xs font-bold text-foreground">
-                      {activePersona.name}
-                    </span>
-                    <span className="rounded bg-primary/15 px-1 py-0.2 text-[9px] font-mono font-semibold text-primary">
-                      {activePersona.code}
-                    </span>
-                  </div>
-                  <p className="truncate text-[10px] text-muted-foreground">{personaOrgSubtitle(activePersona)}</p>
-                  <p className="truncate text-[9px] font-medium text-primary/90">
-                    Access: {activePersona.accessRole ?? activePersona.roleKey}
+                  <span className="truncate text-xs font-bold text-foreground block">
+                    {activePersona.name}
+                  </span>
+                  <p className="truncate text-[10px] font-medium text-primary/90">
+                    {backendRoleLabels[activePersona.accessRole ?? activePersona.roleKey] ?? (activePersona.accessRole ?? activePersona.roleKey)}
                   </p>
                 </div>
                 <span className="rounded-full bg-primary/15 text-[9px] font-bold text-primary px-2 py-0.5 uppercase tracking-wide">
@@ -325,19 +319,11 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
                               {persona.avatar}
                             </div>
                             <div className="flex flex-col min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5">
-                                <span className="truncate font-semibold text-foreground text-xs">
-                                  {persona.name}
-                                </span>
-                                <span className="rounded bg-muted/80 px-1 py-0.2 text-[9px] font-mono text-muted-foreground border border-border/50">
-                                  {persona.code}
-                                </span>
-                              </div>
-                              <p className="truncate text-[10px] text-muted-foreground">
-                                {personaOrgSubtitle(persona)}
-                              </p>
-                              <p className="truncate text-[9px] font-medium text-primary/85">
-                                Access: {persona.accessRole ?? persona.roleKey}
+                              <span className="truncate font-semibold text-foreground text-xs">
+                                {persona.name}
+                              </span>
+                              <p className="truncate text-[10px] font-medium text-primary/85">
+                                {backendRoleLabels[persona.accessRole ?? persona.roleKey] ?? (persona.accessRole ?? persona.roleKey)}
                               </p>
                             </div>
                           </div>

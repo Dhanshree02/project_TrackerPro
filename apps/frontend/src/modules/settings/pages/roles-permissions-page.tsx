@@ -1,9 +1,15 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RotateCcw, Save, Check, Loader2 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { fetchSidebarModules, type SidebarModule, type SidebarSubModule, type SidebarTab, type SidebarWidget } from "@/lib/api/catalogs";
-import { fetchRoles, type ApiRole } from "@/lib/api/users";
+import {
+  fetchRoles,
+  fetchRolePermissions,
+  saveRolePermissions,
+  type ApiRole,
+  type ApiRolePermission,
+} from "@/lib/api/users";
 import { cn } from "@/lib/utils";
 
 type ModuleAccess = "view" | "view-manage";
@@ -101,8 +107,12 @@ export function RolesPermissionsPage() {
   const [modules, setModules] = useState<SidebarModule[]>([]);
   const [roleId, setRoleId] = useState("");
   const [accessByRole, setAccessByRole] = useState<Record<string, Record<string, ModuleAccess>>>({});
+  const [savedAccessByRole, setSavedAccessByRole] = useState<Record<string, Record<string, ModuleAccess>>>({});
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -135,7 +145,50 @@ export function RolesPermissionsPage() {
     [roles],
   );
 
+  // Load role permissions from backend whenever a role is chosen
+  useEffect(() => {
+    if (!roleId) return;
+    let cancelled = false;
+    setPermissionsLoading(true);
+    setSaveSuccess(false);
+
+    fetchRolePermissions(roleId)
+      .then((perms) => {
+        if (cancelled) return;
+        const map: Record<string, ModuleAccess> = {};
+        for (const p of perms) {
+          if (p.canManage === 1) map[p.itemId] = "view-manage";
+          else if (p.canView === 1) map[p.itemId] = "view";
+        }
+        setAccessByRole((prev) => ({ ...prev, [roleId]: map }));
+        setSavedAccessByRole((prev) => ({ ...prev, [roleId]: map }));
+      })
+      .catch(() => {
+        if (!cancelled) setError("Failed to load permissions for selected role.");
+      })
+      .finally(() => {
+        if (!cancelled) setPermissionsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roleId]);
+
   const selectedAccess = accessByRole[roleId] ?? {};
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!roleId) return false;
+    const current = accessByRole[roleId] ?? {};
+    const saved = savedAccessByRole[roleId] ?? {};
+    const currentKeys = Object.keys(current);
+    const savedKeys = Object.keys(saved);
+    if (currentKeys.length !== savedKeys.length) return true;
+    for (const key of currentKeys) {
+      if (current[key] !== saved[key]) return true;
+    }
+    return false;
+  }, [roleId, accessByRole, savedAccessByRole]);
 
   const toggleOpen = (id: string) => {
     setOpenIds((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -168,20 +221,85 @@ export function RolesPermissionsPage() {
     });
   };
 
+  const handleReset = () => {
+    if (!roleId) return;
+    const saved = savedAccessByRole[roleId] ?? {};
+    setAccessByRole((prev) => ({ ...prev, [roleId]: { ...saved } }));
+    setSaveSuccess(false);
+  };
+
+  const handleSave = async () => {
+    if (!roleId || saving) return;
+    setSaving(true);
+    setSaveSuccess(false);
+    setError("");
+
+    try {
+      const current = accessByRole[roleId] ?? {};
+      const payload: ApiRolePermission[] = Object.entries(current).map(([itemId, access]) => {
+        const located = locateRow(rows, itemId);
+        return {
+          itemId,
+          itemType: located?.row.kind ?? "module",
+          canView: access === "view" || access === "view-manage" ? 1 : 0,
+          canManage: access === "view-manage" ? 1 : 0,
+        };
+      });
+
+      await saveRolePermissions(roleId, payload);
+      setSavedAccessByRole((prev) => ({ ...prev, [roleId]: { ...current } }));
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch {
+      setError("Failed to save role permissions.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <AppShell title="Roles & Permissions" subtitle="Settings">
       <div className="mx-auto max-w-4xl space-y-6">
-        <div className="max-w-sm">
-          <SearchableSelect
-            id="rbac-role"
-            label="RBAC Role"
-            options={roleOptions}
-            value={roleId}
-            onChange={setRoleId}
-            placeholder={loading ? "Loading roles…" : "Select an RBAC role"}
-            disabled={loading || roleOptions.length === 0}
-            clearable
-          />
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="w-full max-w-sm">
+            <SearchableSelect
+              id="rbac-role"
+              label="RBAC Role"
+              options={roleOptions}
+              value={roleId}
+              onChange={setRoleId}
+              placeholder={loading ? "Loading roles…" : "Select an RBAC role"}
+              disabled={loading || roleOptions.length === 0}
+              clearable
+            />
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {saveSuccess && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded-md px-2.5 py-1.5">
+                <Check className="size-3.5" />
+                Saved
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={!roleId || !hasUnsavedChanges || saving || permissionsLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 transition-colors shadow-2xs"
+            >
+              <RotateCcw className="size-3.5" />
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!roleId || !hasUnsavedChanges || saving || permissionsLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40 transition-colors shadow-2xs"
+            >
+              {saving ? <Loader2 className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </div>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -197,31 +315,37 @@ export function RolesPermissionsPage() {
               </tr>
             </thead>
             <tbody>
-              {loading && (
+              {(loading || permissionsLoading) && (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
-                    Loading modules…
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin text-primary" />
+                      {loading ? "Loading modules…" : "Loading permissions…"}
+                    </span>
                   </td>
                 </tr>
               )}
-              {!loading && modules.length === 0 && (
+              {!loading && !permissionsLoading && modules.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                     No modules are in the catalog.
                   </td>
                 </tr>
               )}
-              <AccessRows
-                rows={rows}
-                depth={0}
-                roleId={roleId}
-                parentAccess={null}
-                parentName=""
-                openIds={openIds}
-                selectedAccess={selectedAccess}
-                onToggle={toggleOpen}
-                onSetAccess={setAccess}
-              />
+              {!permissionsLoading && (
+                <AccessRows
+                  rows={rows}
+                  depth={0}
+                  roleId={roleId}
+                  parentAccess={null}
+                  parentName=""
+                  openIds={openIds}
+                  selectedAccess={selectedAccess}
+                  saving={saving}
+                  onToggle={toggleOpen}
+                  onSetAccess={setAccess}
+                />
+              )}
             </tbody>
           </table>
         </div>
@@ -238,6 +362,7 @@ function AccessRows({
   parentName,
   openIds,
   selectedAccess,
+  saving,
   onToggle,
   onSetAccess,
 }: {
@@ -248,16 +373,31 @@ function AccessRows({
   parentName: string;
   openIds: Record<string, boolean>;
   selectedAccess: Record<string, ModuleAccess>;
+  saving?: boolean;
   onToggle: (id: string) => void;
   onSetAccess: (id: string, access: ModuleAccess | null) => void;
 }) {
   return rows.map((row) => {
     const access = selectedAccess[row.id];
     const isChild = depth > 0;
-    const viewDisabled = !roleId || (isChild && !parentAccess);
-    const manageDisabled = !roleId || (isChild && parentAccess !== "view-manage");
+    const isDashboardModule = row.kind === "module" && row.name.toLowerCase() === "dashboard";
+    const isWidget = row.kind === "widget";
     const hasChildren = row.children.length > 0;
     const open = hasChildren && !!openIds[row.id];
+
+    // Core rule: Dashboard and widgets do not support View + Manage
+    const viewManageSupported = !isDashboardModule && !isWidget;
+
+    // View radio button disabled rules
+    const viewDisabled = !roleId || !!saving || (isChild && !parentAccess);
+
+    // Manage radio button disabled rules
+    const manageDisabled =
+      !roleId ||
+      !!saving ||
+      !viewManageSupported ||
+      (isChild && parentAccess !== "view-manage");
+
     return (
       <Fragment key={row.id}>
         <tr className="border-b border-border last:border-b-0">
@@ -304,21 +444,25 @@ function AccessRows({
             />
           </td>
           <td className="px-4 py-3 text-center">
-            <AccessRadio
-              name={`access-${roleId || "none"}-${row.id}`}
-              checked={access === "view-manage"}
-              disabled={manageDisabled}
-              label={`View and manage for ${row.name}`}
-              title={
-                manageDisabled && parentName
-                  ? parentAccess
-                    ? `View + Manage on ${parentName} is required`
-                    : `Give ${parentName} access first`
-                  : undefined
-              }
-              onChange={() => onSetAccess(row.id, "view-manage")}
-              onClear={() => onSetAccess(row.id, null)}
-            />
+            {viewManageSupported ? (
+              <AccessRadio
+                name={`access-${roleId || "none"}-${row.id}`}
+                checked={access === "view-manage"}
+                disabled={manageDisabled}
+                label={`View and manage for ${row.name}`}
+                title={
+                  manageDisabled && parentName
+                    ? parentAccess
+                      ? `View + Manage on ${parentName} is required`
+                      : `Give ${parentName} access first`
+                    : undefined
+                }
+                onChange={() => onSetAccess(row.id, "view-manage")}
+                onClear={() => onSetAccess(row.id, null)}
+              />
+            ) : (
+              <span className="text-xs text-muted-foreground/60 select-none">—</span>
+            )}
           </td>
         </tr>
         {open && (
@@ -330,6 +474,7 @@ function AccessRows({
             parentName={row.name}
             openIds={openIds}
             selectedAccess={selectedAccess}
+            saving={saving}
             onToggle={onToggle}
             onSetAccess={onSetAccess}
           />
@@ -356,9 +501,22 @@ function AccessRadio({
   onChange: () => void;
   onClear: () => void;
 }) {
+  const handleClick = (e: React.MouseEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    if (checked) {
+      e.preventDefault();
+      onClear();
+    } else {
+      onChange();
+    }
+  };
+
   return (
     <label
-      className={cn("inline-flex items-center justify-center", disabled && "cursor-not-allowed opacity-50")}
+      className={cn(
+        "inline-flex items-center justify-center p-1",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+      )}
       title={title}
     >
       <input
@@ -368,11 +526,9 @@ function AccessRadio({
         disabled={disabled}
         aria-label={label}
         title={title}
-        onClick={() => {
-          if (checked) onClear();
-        }}
-        onChange={onChange}
-        className="size-4 accent-primary"
+        onClick={handleClick}
+        onChange={() => {}}
+        className="size-4 accent-primary cursor-pointer disabled:cursor-not-allowed"
       />
     </label>
   );

@@ -84,8 +84,11 @@ export function CustomerDetailPage() {
   const { clientId } = customerDetailRoute.useParams();
   const searchParams = customerDetailRoute.useSearch();
   const { isDhanshree, isSales, isAdmin } = useRoleContext();
-  const { hasPermission } = usePermissions();
+  const { canView, canManage, loading: permissionsLoading } = usePermissions();
   const navigate = useNavigate();
+
+  const canViewCustomerDetail = canView("customer-detail");
+  const canManageCustomerDetail = canManage("customer-detail");
 
   const [filter, setFilter] = useState<FilterTab>(searchParams.status || "all");
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("all");
@@ -191,13 +194,14 @@ export function CustomerDetailPage() {
   }, [emPool, emSearch]);
 
   const openEmPicker = () => {
+    if (!canManageCustomerDetail) return;
     setEmSearch("");
     setShowEMPicker(true);
     void loadEngagementManagers();
   };
 
   const changeEngagementManager = async (employee: ApiEmployeeListItem) => {
-    if (!client || emSaving) return;
+    if (!client || emSaving || !canManageCustomerDetail) return;
     setEmSaving(true);
     try {
       const updated = await updateClient(client.id, {
@@ -283,13 +287,14 @@ export function CustomerDetailPage() {
   }, [smPool, smSearch]);
 
   const openSmPicker = () => {
+    if (!canManageCustomerDetail) return;
     setSmSearch("");
     setShowSMPicker(true);
     void loadSalesManagers();
   };
 
   const changeSalesManager = async (employee: ApiEmployeeListItem) => {
-    if (!client || smSaving) return;
+    if (!client || smSaving || !canManageCustomerDetail) return;
     setSmSaving(true);
     try {
       const updated = await updateClient(client.id, {
@@ -309,7 +314,9 @@ export function CustomerDetailPage() {
 
   const allProj = clientProjects;
 
-  if (!isAdmin && !isDhanshree && !hasPermission("customers.view")) return <Navigate to="/customers" />;
+  if (!permissionsLoading && !canViewCustomerDetail) {
+    return <Navigate to="/access-denied" replace />;
+  }
 
   // Loading / not-found states (after all hooks).
   if (clientLoading) {
@@ -523,7 +530,7 @@ export function CustomerDetailPage() {
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   <span>ENGAGEMENT MANAGER</span>
-                  {(isAdmin || isDhanshree || hasPermission("customers.edit") || hasPermission("customers.change_em")) && !isSales && (
+                  {canManageCustomerDetail && (
                     <button
                       type="button"
                       onClick={openEmPicker}
@@ -557,7 +564,7 @@ export function CustomerDetailPage() {
               <div className="space-y-0.5 min-w-0">
                 <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   <span>SALES MANAGER</span>
-                  {(isAdmin || isDhanshree || hasPermission("customers.edit") || hasPermission("customers.change_sm")) && (
+                  {canManageCustomerDetail && (
                     <button
                       type="button"
                       onClick={openSmPicker}
@@ -977,11 +984,11 @@ export function CustomerDetailPage() {
               <h2 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 <Building2 className="h-3.5 w-3.5" /> Customer Information
               </h2>
-              {hasPermission("clients:write") && (
+              {canManageCustomerDetail && (
                 <button
                   type="button"
                   onClick={() => setEditOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent"
+                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent cursor-pointer"
                 >
                   <Pencil className="h-3 w-3" /> Edit
                 </button>
@@ -1271,7 +1278,7 @@ export function CustomerDetailPage() {
         </div>
       )}
 
-      {client && editOpen && (
+      {client && editOpen && canManageCustomerDetail && (
         <NewClientModal
           apiClients={[client]}
           editing={{ client, subVentureId: activeSubVenture?.id ?? null }}

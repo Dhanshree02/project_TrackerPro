@@ -101,4 +101,20 @@ public class RolesController(IUserService users) : ControllerBase
         var role = await users.CloneRoleAsync(id, request, ct);
         return CreatedAtAction(nameof(Get), new { id = role.Id }, ApiResponse<RoleDto>.Ok(role));
     }
+
+    [HttpGet("{id:guid}/permissions")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RolePermissionDto>>>> GetPermissions(Guid id, CancellationToken ct)
+    {
+        var permissions = await users.GetRolePermissionsAsync(id, ct);
+        return Ok(ApiResponse<IReadOnlyList<RolePermissionDto>>.Ok(permissions));
+    }
+
+    [HttpPut("{id:guid}/permissions")]
+    public async Task<ActionResult<ApiResponse<bool>>> UpdatePermissions(Guid id, UpdateRolePermissionsPayload payload, CancellationToken ct)
+    {
+        var updated = await users.UpdateRolePermissionsAsync(id, payload.Permissions, ct);
+        return updated
+            ? Ok(ApiResponse<bool>.Ok(true))
+            : NotFound(ApiResponse<bool>.Fail("NOT_FOUND", "Role not found."));
+    }
 }

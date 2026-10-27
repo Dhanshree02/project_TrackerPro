@@ -49,6 +49,15 @@ public sealed record ResetPasswordRequest(string NewPassword);
 
 public sealed record UpdateRolePermissionsRequest(IReadOnlyList<string> Permissions);
 
+public sealed record RolePermissionDto(
+    Guid ItemId,
+    string ItemType,
+    short CanView,
+    short CanManage);
+
+public sealed record UpdateRolePermissionsPayload(
+    IReadOnlyList<RolePermissionDto> Permissions);
+
 // ---- Role management (Settings → Role & Access Management) ----
 
 public sealed record CreateRoleRequest(

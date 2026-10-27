@@ -4,6 +4,7 @@ import {
   ChartContainer,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { usePermissions } from "@/lib/permissions";
 import {
   dashboardPeriodLabel,
   fetchTeamSummary,
@@ -70,6 +71,7 @@ const boardingChartConfig = {
 } satisfies ChartConfig;
 
 export function TeamMisSection() {
+  const { canView } = usePermissions();
   const [period, setPeriod] = useState<DashboardPeriod>("rolling");
   const [view, setView] = useState<MisDashboardView>("graph");
   const [summary, setSummary] = useState<TeamSummary | null>(null);
@@ -77,6 +79,25 @@ export function TeamMisSection() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const scrollLock = useRef<number | null>(null);
+
+  const showTotalTeam = canView("total-team-size");
+  const showBoarding = canView("resource-boarding-details");
+  const showOnsiteUtil = canView("team-utilization-onsite");
+  const showOffsiteUtil = canView("team-utilization-offsite");
+  const showOnsiteProject = canView("team-utilization-onsite-projects");
+  const showRoleAlloc = canView("team-allocation-onsite-offsite");
+  const showResignation = canView("team-resignation-count");
+  const showOffsiteCap = canView("team-capacity-offsite");
+
+  const hasAnyWidget =
+    showTotalTeam ||
+    showBoarding ||
+    showOnsiteUtil ||
+    showOffsiteUtil ||
+    showOnsiteProject ||
+    showRoleAlloc ||
+    showResignation ||
+    showOffsiteCap;
 
   const changePeriod = (next: DashboardPeriod) => {
     if (next === period) return;
@@ -202,116 +223,128 @@ export function TeamMisSection() {
               </button>
             </div>
           )}
-        <div className={`grid gap-6 lg:grid-cols-2 ${loading || error ? "invisible" : ""}`}>
-          <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold">Total Team Size</h3>
-                <p className="text-xs text-muted-foreground">Onsite and offsite at each month end</p>
-              </div>
-              {view !== "list" && <GraphZoom title="Total Team Size" render={() => <TotalTeamChart months={months} />} />}
-            </div>
-            {view !== "graph" && (
-            <div className={`mt-4 ${misTableScroll}`}>
-              <table className={`${misTable} min-w-[280px]`}>
-                <thead>
-                  <tr className={misHeadRow}>
-                    <th className={misThLabel}>Teams</th>
-                    {months.map((month) => (
-                      <th key={month.month} className={misThNumber}>
-                        {month.month}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className={misRow}>
-                    <td className={misTdLabel}>Total Team Size</td>
-                    {months.map((month) => (
-                      <td key={month.month} className={misTdNumber}>
-                        {month.totalTeamSize}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className={misRow}>
-                    <td className={misTdLabel}>Onsite Team</td>
-                    {months.map((month) => (
-                      <td key={month.month} className={misTdNumber}>
-                        <div>{month.onsiteTeam}</div>
-                        <div className={misTdNote}>{month.onsitePercentage}%</div>
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className={misRow}>
-                    <td className={misTdLabel}>Offsite Team</td>
-                    {months.map((month) => (
-                      <td key={month.month} className={misTdNumber}>
-                        <div>{month.offsiteTeam}</div>
-                        <div className={misTdNote}>{month.offsitePercentage}%</div>
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        {(showTotalTeam || showBoarding) && (
+          <div className={`grid gap-6 ${showTotalTeam && showBoarding ? "lg:grid-cols-2" : "grid-cols-1"} ${loading || error ? "invisible" : ""}`}>
+            {showTotalTeam && (
+              <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Total Team Size</h3>
+                    <p className="text-xs text-muted-foreground">Onsite and offsite at each month end</p>
+                  </div>
+                  {view !== "list" && <GraphZoom title="Total Team Size" render={() => <TotalTeamChart months={months} />} />}
+                </div>
+                {view !== "graph" && (
+                <div className={`mt-4 ${misTableScroll}`}>
+                  <table className={`${misTable} min-w-[280px]`}>
+                    <thead>
+                      <tr className={misHeadRow}>
+                        <th className={misThLabel}>Teams</th>
+                        {months.map((month) => (
+                          <th key={month.month} className={misThNumber}>
+                            {month.month}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className={misRow}>
+                        <td className={misTdLabel}>Total Team Size</td>
+                        {months.map((month) => (
+                          <td key={month.month} className={misTdNumber}>
+                            {month.totalTeamSize}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className={misRow}>
+                        <td className={misTdLabel}>Onsite Team</td>
+                        {months.map((month) => (
+                          <td key={month.month} className={misTdNumber}>
+                            <div>{month.onsiteTeam}</div>
+                            <div className={misTdNote}>{month.onsitePercentage}%</div>
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className={misRow}>
+                        <td className={misTdLabel}>Offsite Team</td>
+                        {months.map((month) => (
+                          <td key={month.month} className={misTdNumber}>
+                            <div>{month.offsiteTeam}</div>
+                            <div className={misTdNote}>{month.offsitePercentage}%</div>
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                )}
+                {view !== "list" && <TotalTeamChart months={months} />}
+              </article>
             )}
-            {view !== "list" && <TotalTeamChart months={months} />}
-          </article>
 
-          <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold">Resource Boarding Details</h3>
-                <p className="text-xs text-muted-foreground">Joins and last working days in each month</p>
-              </div>
-              {view !== "list" && <GraphZoom title="Resource Boarding Details" render={() => <BoardingChart months={months} />} />}
-            </div>
-            {view !== "graph" && (
-            <div className={`mt-4 ${misTableScroll}`}>
-              <table className={`${misTable} min-w-[280px]`}>
-                <thead>
-                  <tr className={misHeadRow}>
-                    <th className={misThLabel}>Resource Boarding Details</th>
-                    {months.map((month) => (
-                      <th key={month.month} className={misThNumber}>
-                        {month.month}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className={misRow}>
-                    <td className={misTdLabel}>On-boarding</td>
-                    {months.map((month) => (
-                      <td key={month.month} className={misTdNumber}>
-                        {month.onboarding}
-                      </td>
-                    ))}
-                  </tr>
-                  <tr className={misRow}>
-                    <td className={misTdLabel}>Off-boarding</td>
-                    {months.map((month) => (
-                      <td key={month.month} className={misTdNumber}>
-                        {month.offboarding}
-                      </td>
-                    ))}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            {showBoarding && (
+              <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Resource Boarding Details</h3>
+                    <p className="text-xs text-muted-foreground">Joins and last working days in each month</p>
+                  </div>
+                  {view !== "list" && <GraphZoom title="Resource Boarding Details" render={() => <BoardingChart months={months} />} />}
+                </div>
+                {view !== "graph" && (
+                <div className={`mt-4 ${misTableScroll}`}>
+                  <table className={`${misTable} min-w-[280px]`}>
+                    <thead>
+                      <tr className={misHeadRow}>
+                        <th className={misThLabel}>Resource Boarding Details</th>
+                        {months.map((month) => (
+                          <th key={month.month} className={misThNumber}>
+                            {month.month}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className={misRow}>
+                        <td className={misTdLabel}>On-boarding</td>
+                        {months.map((month) => (
+                          <td key={month.month} className={misTdNumber}>
+                            {month.onboarding}
+                          </td>
+                        ))}
+                      </tr>
+                      <tr className={misRow}>
+                        <td className={misTdLabel}>Off-boarding</td>
+                        {months.map((month) => (
+                          <td key={month.month} className={misTdNumber}>
+                            {month.offboarding}
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                )}
+                {view !== "list" && <BoardingChart months={months} />}
+              </article>
             )}
-            {view !== "list" && <BoardingChart months={months} />}
-          </article>
-        </div>
+          </div>
+        )}
         </div>
       )}
 
-      <OnsiteUtilizationSection period={period} view={view} />
-      <OffsiteTeamUtilizationSection period={period} view={view} />
-      <OnsiteProjectCountSection period={period} view={view} />
-      <RoleAllocationSection period={period} view={view} />
-      <ResignationCountSection period={period} view={view} />
-      <OffsiteCapacitySection period={period} view={view} />
+      {showOnsiteUtil && <OnsiteUtilizationSection period={period} view={view} />}
+      {showOffsiteUtil && <OffsiteTeamUtilizationSection period={period} view={view} />}
+      {showOnsiteProject && <OnsiteProjectCountSection period={period} view={view} />}
+      {showRoleAlloc && <RoleAllocationSection period={period} view={view} />}
+      {showResignation && <ResignationCountSection period={period} view={view} />}
+      {showOffsiteCap && <OffsiteCapacitySection period={period} view={view} />}
+
+      {!hasAnyWidget && !loading && (
+        <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground shadow-sm">
+          <p className="text-sm font-medium">No dashboard widgets are permitted for your role.</p>
+        </div>
+      )}
     </section>
   );
 }

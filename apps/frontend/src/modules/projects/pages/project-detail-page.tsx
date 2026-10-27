@@ -652,7 +652,10 @@ export function ProjectDetailPage() {
     assignedProjects,
     hideBudget,
   } = useRoleContext();
-  const { hasPermission } = usePermissions();
+  const { canView, canManage, loading: permissionsLoading } = usePermissions();
+
+  const canViewProjectDetail = canView("project-detail");
+  const canManageProjectDetail = canManage("project-detail");
 
   // Subscribe to store so runtime-created projects stay live/reactive
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
@@ -1473,8 +1476,8 @@ export function ProjectDetailPage() {
   }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
 
   // Scope project detail to the role's assigned portfolio / permissions.
-  if (!isDhanshree && !hasPermission("projects.view")) {
-    return <Navigate to="/access-denied" />;
+  if (!permissionsLoading && !canViewProjectDetail) {
+    return <Navigate to="/access-denied" replace />;
   }
 
   return (

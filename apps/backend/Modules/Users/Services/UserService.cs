@@ -242,6 +242,46 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
         return MapToRoleDto(role, 0);
     }
 
+    public async Task<IReadOnlyList<RolePermissionDto>> GetRolePermissionsAsync(Guid roleId, CancellationToken ct = default)
+    {
+        return await db.RolePermissions
+            .AsNoTracking()
+            .Where(p => p.RoleId == roleId && (p.CanView == 1 || p.CanManage == 1))
+            .Select(p => new RolePermissionDto(p.ItemId, p.ItemType, p.CanView, p.CanManage))
+            .ToListAsync(ct);
+    }
+
+    public async Task<bool> UpdateRolePermissionsAsync(Guid roleId, IReadOnlyList<RolePermissionDto> permissions, CancellationToken ct = default)
+    {
+        var roleExists = await db.Roles.AnyAsync(r => r.Id == roleId, ct);
+        if (!roleExists) return false;
+
+        // Hard-delete existing permissions for this role so revoked items are completely removed
+        await db.RolePermissions
+            .IgnoreQueryFilters()
+            .Where(p => p.RoleId == roleId)
+            .ExecuteDeleteAsync(ct);
+
+        foreach (var p in permissions)
+        {
+            if (p.CanView == 1 || p.CanManage == 1)
+            {
+                db.RolePermissions.Add(new RolePermission
+                {
+                    RoleId = roleId,
+                    ItemId = p.ItemId,
+                    ItemType = p.ItemType,
+                    CanView = p.CanView,
+                    CanManage = p.CanManage,
+                    CreatedAtUtc = DateTime.UtcNow,
+                });
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
     // ---------- internals ----------
 
     /// <summary>True when this user is the only active user on the Admin role.</summary>

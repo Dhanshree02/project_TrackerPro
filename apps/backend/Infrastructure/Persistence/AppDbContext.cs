@@ -22,6 +22,8 @@ public class AppDbContext(
 
     public DbSet<RolePermissionAudit> RolePermissionAudits => Set<RolePermissionAudit>();
 
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<Client> Clients => Set<Client>();

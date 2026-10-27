@@ -85,3 +85,26 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public sealed class RolePermissionConfiguration : IEntityTypeConfiguration<RolePermission>
+{
+    public void Configure(EntityTypeBuilder<RolePermission> builder)
+    {
+        builder.ToTable("tbl_role_permissions", DbSchemas.Auth);
+
+        builder.HasKey(p => p.Id);
+        builder.HasIndex(p => new { p.RoleId, p.ItemId }).IsUnique();
+        builder.HasIndex(p => p.RoleId);
+        builder.HasIndex(p => p.ItemId);
+
+        builder.Property(p => p.ItemType).HasMaxLength(20).IsRequired();
+        builder.Property(p => p.CanView).HasDefaultValue((short)0);
+        builder.Property(p => p.CanManage).HasDefaultValue((short)0);
+
+        builder.HasOne(p => p.Role)
+            .WithMany()
+            .HasForeignKey(p => p.RoleId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+

@@ -35,4 +35,8 @@ public interface IUserService
 
     /// <summary>Creates a new role copied from an existing role.</summary>
     Task<RoleDto> CloneRoleAsync(Guid id, CloneRoleRequest request, CancellationToken ct = default);
+
+    Task<IReadOnlyList<RolePermissionDto>> GetRolePermissionsAsync(Guid roleId, CancellationToken ct = default);
+
+    Task<bool> UpdateRolePermissionsAsync(Guid roleId, IReadOnlyList<RolePermissionDto> permissions, CancellationToken ct = default);
 }
