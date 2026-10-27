@@ -577,3 +577,69 @@ Whenever a new feature, bug fix, or refactor is performed by AI, append an entry
 
 
 
+
+
+---
+
+### [2026-10-27] Safe Merge of `sahil-action-backend` into `uat_clean2` with Remote UAT Database Connection
+
+- **Branch**: `uat_clean2` (created from `origin/uat_clean` at commit `541a17d`)
+- **Source Merged**: `sahil-action-backend` (commit `34b18f8`)
+- **Purpose**: Consolidate WBS service change management, consecutive modifications, task branches deactivation, invoice scheduling, and subtotal rollups from `sahil-action-backend` with Omkar's RBAC dynamic role permissions, submodules, and tab hierarchy from `origin/uat_clean` into dedicated branch `uat_clean2`. Switched active database connection to remote UAT host `10.50.30.152:41763/pms_uat_clean`.
+
+#### 📁 Files Affected
+- **Merged from `sahil-action-backend`**:
+  - `apps/frontend/src/modules/projects/components/edit-services-modal.tsx` (created)
+  - `CHANGELOG_AI.md` (created)
+  - `Documents/` KYC and PO test sheets (tracked)
+  - `apps/backend/Infrastructure/Persistence/Configurations/ProjectInvoiceConfiguration.cs`
+  - `apps/backend/Infrastructure/Persistence/Configurations/ProjectServiceConfiguration.cs`
+  - `apps/backend/Middleware/ExceptionHandlingMiddleware.cs`
+  - `apps/backend/Modules/Projects/Controllers/ProjectsController.cs`
+  - `apps/backend/Modules/Projects/DTOs/ProjectInvoiceDtos.cs`
+  - `apps/backend/Modules/Projects/DTOs/ProjectServiceDtos.cs`
+  - `apps/backend/Modules/Projects/DTOs/ProjectTaskDtos.cs`
+  - `apps/backend/Modules/Projects/Models/ProjectInvoice.cs`
+  - `apps/backend/Modules/Projects/Models/ProjectServiceEntity.cs`
+  - `apps/backend/Modules/Projects/Services/IProjectAppService.cs`
+  - `apps/backend/Modules/Projects/Services/IProjectTaskService.cs`
+  - `apps/backend/Modules/Projects/Services/ProjectAppService.cs`
+  - `apps/backend/Modules/Projects/Services/ProjectTaskService.cs`
+  - `apps/backend/Shared/Exceptions/BusinessExceptions.cs`
+  - `apps/frontend/src/lib/domain-models.ts`
+  - `apps/frontend/src/modules/projects/api/projects.ts`
+  - `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
+  - `apps/frontend/src/modules/projects/pages/project-onboarding-page.tsx`
+- **Preserved from `origin/uat_clean` (`541a17d`)**:
+  - `apps/backend/Infrastructure/Persistence/AppDbContext.cs` (`tbl_role_permissions`)
+  - `apps/backend/Infrastructure/Persistence/Configurations/UserConfiguration.cs`
+  - `apps/backend/Modules/Users/Controllers/UsersController.cs`
+  - `apps/backend/Modules/Users/DTOs/UserDtos.cs`
+  - `apps/backend/Modules/Users/Models/RolePermission.cs`
+  - `apps/backend/Modules/Users/Services/IUserService.cs` & `UserService.cs`
+  - `apps/frontend/src/components/app-topbar.tsx`
+  - `apps/frontend/src/lib/api/users.ts`
+  - `apps/frontend/src/lib/employee-personas.ts`
+  - `apps/frontend/src/lib/permissions.tsx`
+  - `apps/frontend/src/lib/role-context.tsx`
+  - `apps/frontend/src/modules/customers/pages/customer-detail-page.tsx`
+  - `apps/frontend/src/modules/dashboard/components/team-mis-section.tsx`
+  - `apps/frontend/src/modules/dashboard/pages/mis-dashboard-page.tsx`
+  - `apps/frontend/src/modules/repository/pages/repository-page.tsx`
+  - `apps/frontend/src/modules/settings/pages/roles-permissions-page.tsx`
+  - `omkar_rbac.md`
+- **Resolved Conflict**:
+  - `apps/backend/appsettings.Development.json`: Kept `Host=10.50.30.152;Port=41763;Database=pms_uat_clean`.
+
+#### 🗄️ Database & Schema Changes
+- **Target Database**: `pms_uat_clean` on `10.50.30.152:41763` (PostgreSQL 16)
+- **Applied Non-Destructive Additions**:
+  - `project.tbl_project_services`: Added columns `"ChangeStatus"`, `"OriginalQty"`, `"PendingQty"`, `"PendingResourceLevel"`, `"PendingUnitPrice"`, `"ModCollectionStatus"`, `"ModValidationStatus"`, `"ModBillingStatus"`, `"ModIsReady"`.
+  - `project.tbl_project_invoices`: Added column `"ProjectServiceId" uuid NULL`, created index `"IX_tbl_project_invoices_ProjectServiceId"`, and foreign key constraint `"FK_tbl_project_invoices_tbl_project_services_ProjectServiceId"`.
+
+#### 🔌 APIs & Business Logic Changed
+- Integrated RBAC permissions checks with WBS Service Change Management, Invoice Scheduling, and dynamic subtotal rollups.
+
+#### ⚠️ Critical Dependencies & Invariants to Preserve
+- `uat_clean` remains untouched on `origin/uat_clean` (`541a17d`).
+- Remote connection string configured for `Host=10.50.30.152;Port=41763;Database=pms_uat_clean`.
