@@ -51,4 +51,9 @@ public class ProjectInvoice : BaseEntity
 
     /// <summary>Payment capture: "Not Received" or "Received".</summary>
     public string? PaymentStatus { get; set; }
+
+    /// <summary>Optional link to specific project service entity.</summary>
+    public Guid? ProjectServiceId { get; set; }
+
+    public ProjectServiceEntity? ProjectService { get; set; }
 }

@@ -9,7 +9,7 @@ using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.Projects.Services;
 
-public sealed partial class ProjectAppService(AppDbContext db, IFileStorageService fileStorage) : IProjectAppService
+public sealed partial class ProjectAppService(AppDbContext db, IFileStorageService fileStorage, IProjectTaskService taskService) : IProjectAppService
 {
 
     public async Task<PagedResult<ProjectDto>> GetProjectsAsync(ProjectQueryParameters queryParams, CancellationToken ct = default)
@@ -300,13 +300,19 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
     // ── Project Services Methods ──
 
-    public async Task<IReadOnlyList<ProjectServiceDto>> GetProjectServicesAsync(Guid projectId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ProjectServiceDto>> GetProjectServicesAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
     {
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
         if (!exists)
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
-        var services = await db.ProjectServices
+        var query = db.ProjectServices.AsQueryable();
+        if (includeDeleted)
+        {
+            query = query.IgnoreQueryFilters();
+        }
+
+        var services = await query
             .Where(s => s.ProjectId == projectId)
             .OrderBy(s => s.SortOrder)
             .ThenBy(s => s.CreatedAtUtc)
@@ -364,6 +370,9 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var totalDays = qty * durationDays;
         var totalHours = qty * durationHours;
         var total = qty * unitPrice;
+        var isResourceDept = string.Equals(request.ServiceModel, "Resource", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(request.ServiceModel, "NA", StringComparison.OrdinalIgnoreCase)
+            || (!string.IsNullOrEmpty(project.ContractType) && project.ContractType.IndexOf("Resource", StringComparison.OrdinalIgnoreCase) >= 0);
 
         var service = new ProjectServiceEntity
         {
@@ -392,11 +401,88 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             TotalHours = totalHours,
             UnitPrice = unitPrice,
             Total = total,
-            SortOrder = request.SortOrder
+            SortOrder = request.SortOrder,
+            ChangeStatus = request.ChangeStatus ?? "Newly Added",
+            IsReady = false,
+            CollectionStatus = isResourceDept ? "NA" : "Pending To Collect",
+            ValidationStatus = isResourceDept ? "NA" : "Pending To Validate",
+            BillingStatus = "Advance Pending"
         };
 
         db.ProjectServices.Add(service);
         await db.SaveChangesAsync(ct);
+
+        // Generate invoice schedule rows if requested
+        if (request.GenerateInvoices)
+        {
+            var freq = (service.Frequency ?? "Once").Trim();
+            int periods = 1;
+            if (freq.Contains("half", StringComparison.OrdinalIgnoreCase))
+            {
+                periods = 6;
+            }
+            else if (freq.Contains("year", StringComparison.OrdinalIgnoreCase) || freq.Contains("annual", StringComparison.OrdinalIgnoreCase))
+            {
+                periods = 12;
+            }
+            else
+            {
+                periods = 1;
+            }
+
+            var serviceTotal = service.Total.HasValue && service.Total.Value > 0
+                ? service.Total.Value
+                : ((service.UnitPrice ?? 0m) * service.Qty);
+
+            var taxPercent = project.TaxPercent;
+            var baseAmount = periods > 0 ? Math.Round(serviceTotal / periods, 2) : serviceTotal;
+            var startDate = service.StartDate ?? project.StartDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+            var maxSort = await db.ProjectInvoices
+                .IgnoreQueryFilters()
+                .Where(i => i.ProjectId == projectId)
+                .MaxAsync(i => (int?)i.SortOrder, ct) ?? 0;
+
+            var newInvoices = new List<ProjectInvoice>();
+            for (int m = 1; m <= periods; m++)
+            {
+                var amount = (m == periods)
+                    ? (serviceTotal - (baseAmount * (periods - 1)))
+                    : baseAmount;
+                var taxAmount = Math.Round(amount * (taxPercent / 100m), 2);
+                var totalAmount = amount + taxAmount;
+                var dueDate = startDate.AddMonths(m - 1);
+                var pct = periods > 0 ? Math.Round(100m / periods, 2) : 100m;
+
+                newInvoices.Add(new ProjectInvoice
+                {
+                    ProjectId = projectId,
+                    ProjectServiceId = service.Id,
+                    ServiceName = service.ServiceName,
+                    MilestoneName = $"Month {m}",
+                    Percentage = pct,
+                    Amount = amount,
+                    TaxAmount = taxAmount,
+                    TotalAmount = totalAmount,
+                    Status = "Pending",
+                    PaymentStatus = "Not Received",
+                    DueDate = dueDate,
+                    InvoiceDate = dueDate,
+                    Qty = service.Qty,
+                    UnitPrice = service.UnitPrice,
+                    Currency = project.Currency ?? "INR",
+                    ResourceLevel = service.ResourceLevel,
+                    SortOrder = maxSort + m
+                });
+            }
+
+            if (newInvoices.Count > 0)
+            {
+                db.ProjectInvoices.AddRange(newInvoices);
+                await db.SaveChangesAsync(ct);
+                await RecalculateProjectInvoiceRollupAsync(projectId, ct);
+            }
+        }
 
         // Recalculate project totals
         await RecalculateProjectRollupsAsync(projectId, ct);
@@ -410,33 +496,91 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
             ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
 
-        if (request.Department != null) service.Department = request.Department;
-        if (request.SubDepartment != null) service.SubDepartment = request.SubDepartment;
-        if (request.ServiceName != null) service.ServiceName = request.ServiceName;
-        if (request.Qty.HasValue) service.Qty = Math.Max(1, request.Qty.Value);
-        if (request.Description != null) service.Description = request.Description;
-        if (request.Frequency != null) service.Frequency = request.Frequency;
-        if (request.Location != null) service.Location = request.Location;
-        if (request.LocationText != null) service.LocationText = request.LocationText;
-        if (request.ServiceModel != null) service.ServiceModel = request.ServiceModel;
-        if (request.DeliveryModel != null) service.DeliveryModel = request.DeliveryModel;
-        if (request.FinalDeliveryFormat != null) service.FinalDeliveryFormat = request.FinalDeliveryFormat;
-        if (request.BillingModel != null) service.BillingModel = request.BillingModel;
-        if (request.Tools != null) service.Tools = request.Tools;
-        if (request.StartDate.HasValue) service.StartDate = request.StartDate;
-        if (request.EndDate.HasValue) service.EndDate = request.EndDate;
-        if (request.DurationDays.HasValue) service.DurationDays = request.DurationDays;
-        if (request.UnitPrice.HasValue) service.UnitPrice = request.UnitPrice;
-        if (request.SortOrder.HasValue) service.SortOrder = request.SortOrder.Value;
+        if (request.AsPendingModification && service.IsReady && (service.ChangeStatus == "Active" || service.ChangeStatus == "Modified" || service.ChangeStatus == "Newly Added" || service.ChangeStatus == "Modification Pending"))
+        {
+            service.ChangeStatus = "Modification Pending";
+            service.OriginalQty = service.Qty;
+            service.PendingQty = request.Qty.HasValue ? Math.Max(1, request.Qty.Value) : service.Qty;
+            service.PendingResourceLevel = request.ResourceLevel ?? service.ResourceLevel;
+            service.PendingUnitPrice = request.UnitPrice ?? service.UnitPrice;
 
-        // Recompute derived totals
-        var dDays = service.DurationDays ?? 5;
-        service.DurationHours = dDays * 8;
-        service.TotalDays = service.Qty * dDays;
-        service.TotalHours = service.Qty * (service.DurationHours ?? 40);
-        service.Total = service.Qty * (service.UnitPrice ?? 0m);
+            var isResourceDept = string.Equals(service.ServiceModel, "Resource", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(service.ServiceModel, "NA", StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrEmpty(service.Project?.ContractType) && service.Project.ContractType.IndexOf("Resource", StringComparison.OrdinalIgnoreCase) >= 0);
+            service.ModCollectionStatus = isResourceDept ? "NA" : "Pending To Collect";
+            service.ModValidationStatus = isResourceDept ? "NA" : "Pending To Validate";
+            service.ModBillingStatus = "Advance Pending";
+            service.ModIsReady = false;
 
-        if (request.ResourceLevel != null) service.ResourceLevel = request.ResourceLevel;
+            if (request.Description != null) service.Description = request.Description;
+            if (request.LocationText != null) service.LocationText = request.LocationText;
+            if (request.Tools != null) service.Tools = request.Tools;
+            if (request.FinalDeliveryFormat != null) service.FinalDeliveryFormat = request.FinalDeliveryFormat;
+        }
+        else
+        {
+            if (request.Department != null) service.Department = request.Department;
+            if (request.SubDepartment != null) service.SubDepartment = request.SubDepartment;
+            if (request.ServiceName != null) service.ServiceName = request.ServiceName;
+            if (request.Qty.HasValue) service.Qty = Math.Max(1, request.Qty.Value);
+            if (request.Description != null) service.Description = request.Description;
+            if (request.Frequency != null) service.Frequency = request.Frequency;
+            if (request.Location != null) service.Location = request.Location;
+            if (request.LocationText != null) service.LocationText = request.LocationText;
+            if (request.ServiceModel != null) service.ServiceModel = request.ServiceModel;
+            if (request.DeliveryModel != null) service.DeliveryModel = request.DeliveryModel;
+            if (request.FinalDeliveryFormat != null) service.FinalDeliveryFormat = request.FinalDeliveryFormat;
+            if (request.BillingModel != null) service.BillingModel = request.BillingModel;
+            if (request.Tools != null) service.Tools = request.Tools;
+            if (request.StartDate.HasValue) service.StartDate = request.StartDate;
+            if (request.EndDate.HasValue) service.EndDate = request.EndDate;
+            if (request.DurationDays.HasValue) service.DurationDays = request.DurationDays;
+            if (request.UnitPrice.HasValue) service.UnitPrice = request.UnitPrice;
+            if (request.SortOrder.HasValue) service.SortOrder = request.SortOrder.Value;
+            if (request.ResourceLevel != null) service.ResourceLevel = request.ResourceLevel;
+
+            // Recompute derived totals
+            var dDays = service.DurationDays ?? 5;
+            service.DurationHours = dDays * 8;
+            service.TotalDays = service.Qty * dDays;
+            service.TotalHours = service.Qty * (service.DurationHours ?? 40);
+            service.Total = service.Qty * (service.UnitPrice ?? 0m);
+
+            // Update linked invoices if present
+            var directInvoices = await db.ProjectInvoices
+                .Where(i => i.ProjectId == projectId && (i.ProjectServiceId == serviceId || (i.ProjectServiceId == null && i.ServiceName == service.ServiceName)) && i.DeletedAtUtc == null)
+                .OrderBy(i => i.SortOrder)
+                .ToListAsync(ct);
+
+            if (directInvoices.Count > 0)
+            {
+                var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+                var taxPercent = project?.TaxPercent ?? 18m;
+                var periods = directInvoices.Count;
+                var serviceTotal = service.Total ?? (service.Qty * (service.UnitPrice ?? 0m));
+                var baseAmount = periods > 0 ? Math.Round(serviceTotal / periods, 2) : serviceTotal;
+
+                for (int m = 0; m < periods; m++)
+                {
+                    var inv = directInvoices[m];
+                    var amount = (m == periods - 1)
+                        ? (serviceTotal - (baseAmount * (periods - 1)))
+                        : baseAmount;
+                    var taxAmount = Math.Round(amount * (taxPercent / 100m), 2);
+                    inv.Qty = service.Qty;
+                    inv.UnitPrice = service.UnitPrice;
+                    if (!string.IsNullOrWhiteSpace(service.ResourceLevel))
+                    {
+                        inv.ResourceLevel = service.ResourceLevel;
+                    }
+                    inv.Amount = amount;
+                    inv.TaxAmount = taxAmount;
+                    inv.TotalAmount = amount + taxAmount;
+                }
+                await db.SaveChangesAsync(ct);
+                await RecalculateProjectInvoiceRollupAsync(projectId, ct);
+            }
+        }
 
         await db.SaveChangesAsync(ct);
 
@@ -459,10 +603,144 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         if (request.CollectionStatus != null) service.CollectionStatus = request.CollectionStatus;
         if (request.ValidationStatus != null) service.ValidationStatus = request.ValidationStatus;
         if (request.BillingStatus != null) service.BillingStatus = request.BillingStatus;
-        if (request.IsReady.HasValue) service.IsReady = request.IsReady.Value;
+
+        var becameReady = false;
+        if (request.IsReady.HasValue)
+        {
+            if (request.IsReady.Value && !service.IsReady)
+            {
+                service.IsReady = true;
+                if (string.IsNullOrWhiteSpace(service.ChangeStatus) || service.ChangeStatus == "Active")
+                {
+                    service.ChangeStatus = "Active";
+                }
+                becameReady = true;
+            }
+            else
+            {
+                service.IsReady = request.IsReady.Value;
+            }
+        }
+
+        if (request.ModCollectionStatus != null) service.ModCollectionStatus = request.ModCollectionStatus;
+        if (request.ModValidationStatus != null) service.ModValidationStatus = request.ModValidationStatus;
+        if (request.ModBillingStatus != null) service.ModBillingStatus = request.ModBillingStatus;
+
+        var modBecameReady = false;
+        if (request.ModIsReady.HasValue && request.ModIsReady.Value)
+        {
+            modBecameReady = true;
+        }
 
         await db.SaveChangesAsync(ct);
+
+        if (becameReady)
+        {
+            await taskService.GenerateMissingTasksAsync(projectId, ct);
+        }
+
+        if (modBecameReady)
+        {
+            return await ApplyServiceModificationAsync(projectId, serviceId, ct);
+        }
+
         return MapToServiceDto(service);
+    }
+
+    public async Task<ProjectServiceDto> ApplyServiceModificationAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
+    {
+        var service = await db.ProjectServices
+            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
+            ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
+
+        if ((service.ChangeStatus != "Modification Pending" && service.ChangeStatus != "Modified") || !service.PendingQty.HasValue)
+        {
+            throw new BadRequestException("Service does not have an active pending modification.");
+        }
+
+        var oldQty = service.OriginalQty.HasValue && service.OriginalQty.Value > 0 ? service.OriginalQty.Value : service.Qty;
+        var newQty = service.PendingQty.Value;
+
+        service.Qty = newQty;
+        if (!string.IsNullOrWhiteSpace(service.PendingResourceLevel))
+        {
+            service.ResourceLevel = service.PendingResourceLevel;
+        }
+        if (service.PendingUnitPrice.HasValue)
+        {
+            service.UnitPrice = service.PendingUnitPrice.Value;
+        }
+
+        // Recompute derived totals
+        var dDays = service.DurationDays ?? 5;
+        service.DurationHours = dDays * 8;
+        service.TotalDays = service.Qty * dDays;
+        service.TotalHours = service.Qty * (service.DurationHours ?? 40);
+        service.Total = service.Qty * (service.UnitPrice ?? 0m);
+
+        // Keep modification fields intact with ChangeStatus = "Modified" and ModIsReady = true
+        service.ChangeStatus = "Modified";
+        service.OriginalQty = oldQty;
+        service.PendingQty = newQty;
+        service.ModIsReady = true;
+
+        // Update linked invoices for this service
+        var invoices = await db.ProjectInvoices
+            .Where(i => i.ProjectId == projectId && (i.ProjectServiceId == serviceId || (i.ProjectServiceId == null && i.ServiceName == service.ServiceName)) && i.DeletedAtUtc == null)
+            .OrderBy(i => i.SortOrder)
+            .ToListAsync(ct);
+
+        if (invoices.Count > 0)
+        {
+            var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+            var taxPercent = project?.TaxPercent ?? 18m;
+            var periods = invoices.Count;
+            var serviceTotal = service.Total ?? (service.Qty * (service.UnitPrice ?? 0m));
+            var baseAmount = periods > 0 ? Math.Round(serviceTotal / periods, 2) : serviceTotal;
+
+            for (int m = 0; m < periods; m++)
+            {
+                var inv = invoices[m];
+                var amount = (m == periods - 1)
+                    ? (serviceTotal - (baseAmount * (periods - 1)))
+                    : baseAmount;
+                var taxAmount = Math.Round(amount * (taxPercent / 100m), 2);
+                inv.Qty = service.Qty;
+                inv.UnitPrice = service.UnitPrice;
+                if (!string.IsNullOrWhiteSpace(service.ResourceLevel))
+                {
+                    inv.ResourceLevel = service.ResourceLevel;
+                }
+                inv.Amount = amount;
+                inv.TaxAmount = taxAmount;
+                inv.TotalAmount = amount + taxAmount;
+            }
+            await RecalculateProjectInvoiceRollupAsync(projectId, ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        if (newQty > oldQty)
+        {
+            await taskService.GenerateMissingTasksAsync(projectId, ct);
+        }
+        else if (newQty < oldQty)
+        {
+            await taskService.DeactivateExcessTaskBranchesAsync(projectId, serviceId, newQty, ct);
+        }
+
+        await RecalculateProjectRollupsAsync(projectId, ct);
+
+        return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
+    }
+
+    public async Task<ServiceModificationImpactDto> GetServiceModificationImpactAsync(
+        Guid projectId,
+        Guid serviceId,
+        int targetQty,
+        CancellationToken ct = default)
+    {
+        return await taskService.GetModificationImpactAsync(projectId, serviceId, targetQty, ct);
     }
 
     public async Task<bool> DeleteProjectServiceAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
@@ -470,11 +748,30 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var service = await db.ProjectServices.FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct);
         if (service == null) return false;
 
+        // Soft-delete related tasks
+        var tasks = await db.ProjectTasks
+            .Where(t => t.ProjectId == projectId && t.ProjectServiceId == serviceId)
+            .ToListAsync(ct);
+        if (tasks.Count > 0)
+        {
+            db.ProjectTasks.RemoveRange(tasks);
+        }
+
+        // Soft-delete related invoices
+        var invoices = await db.ProjectInvoices
+            .Where(i => i.ProjectId == projectId && (i.ProjectServiceId == serviceId || (i.ProjectServiceId == null && i.ServiceName == service.ServiceName)))
+            .ToListAsync(ct);
+        if (invoices.Count > 0)
+        {
+            db.ProjectInvoices.RemoveRange(invoices);
+        }
+
         db.ProjectServices.Remove(service);
         await db.SaveChangesAsync(ct);
 
         // Recalculate project totals
         await RecalculateProjectRollupsAsync(projectId, ct);
+        await RecalculateProjectInvoiceRollupAsync(projectId, ct);
 
         return true;
     }
@@ -633,13 +930,19 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
     // ── Project Tasks Methods ──
 
-    public async Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
     {
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
         if (!exists)
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
-        var tasks = await db.ProjectTasks
+        var query = db.ProjectTasks.AsQueryable();
+        if (includeDeleted)
+        {
+            query = query.IgnoreQueryFilters();
+        }
+
+        var tasks = await query
             .Include(t => t.ProjectService)
             .Include(t => t.Project)
             .Where(t => t.ProjectId == projectId)
@@ -798,7 +1101,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
     }
 
     public Task<AutoGeneratedTasksSummaryDto> AutoGenerateTasksFromServicesAsync(Guid projectId, CancellationToken ct = default)
-        => new ProjectTaskService(db).GenerateMissingTasksAsync(projectId, ct);
+        => taskService.GenerateMissingTasksAsync(projectId, ct);
 
     // ── Task Assignments & Timer Methods ──
 
@@ -981,19 +1284,35 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
     // ── Project Invoices Methods ──
 
-    public async Task<IReadOnlyList<ProjectInvoiceDto>> GetProjectInvoicesAsync(Guid projectId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ProjectInvoiceDto>> GetProjectInvoicesAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
     {
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
         if (!exists)
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
-        var invoices = await db.ProjectInvoices
+        var query = db.ProjectInvoices.AsQueryable();
+        if (includeDeleted)
+        {
+            query = query.IgnoreQueryFilters();
+        }
+
+        var invoices = await query
             .Where(i => i.ProjectId == projectId)
             .OrderBy(i => i.SortOrder)
             .ThenBy(i => i.CreatedAtUtc)
             .ToListAsync(ct);
 
-        return invoices.Select(MapToInvoiceDto).ToList();
+        string? fallbackServiceName = null;
+        if (invoices.Any(i => string.IsNullOrWhiteSpace(i.ServiceName)))
+        {
+            var services = await db.ProjectServices
+                .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+                .Select(s => s.ServiceName)
+                .ToListAsync(ct);
+            fallbackServiceName = services.Count == 1 ? services[0] : (services.Count > 1 ? string.Join(", ", services) : null);
+        }
+
+        return invoices.Select(i => MapToInvoiceDto(i, fallbackServiceName)).ToList();
     }
 
     public async Task<ProjectInvoiceDto?> GetProjectInvoiceByIdAsync(Guid projectId, Guid invoiceId, CancellationToken ct = default)
@@ -1001,7 +1320,19 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var invoice = await db.ProjectInvoices
             .FirstOrDefaultAsync(i => i.ProjectId == projectId && i.Id == invoiceId, ct);
 
-        return invoice == null ? null : MapToInvoiceDto(invoice);
+        if (invoice == null) return null;
+
+        string? fallbackServiceName = null;
+        if (string.IsNullOrWhiteSpace(invoice.ServiceName))
+        {
+            var services = await db.ProjectServices
+                .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+                .Select(s => s.ServiceName)
+                .ToListAsync(ct);
+            fallbackServiceName = services.Count == 1 ? services[0] : (services.Count > 1 ? string.Join(", ", services) : null);
+        }
+
+        return MapToInvoiceDto(invoice, fallbackServiceName);
     }
 
     public async Task<ProjectInvoiceDto> CreateProjectInvoiceAsync(Guid projectId, CreateProjectInvoiceRequest request, CancellationToken ct = default)
@@ -1039,7 +1370,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             UnitPrice = request.UnitPrice,
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? null : request.Currency.Trim(),
             ResourceLevel = string.IsNullOrWhiteSpace(request.ResourceLevel) ? null : request.ResourceLevel.Trim(),
-            PaymentStatus = ResolvePaymentStatus(request.Status, request.PaymentStatus)
+            PaymentStatus = ResolvePaymentStatus(request.Status, request.PaymentStatus),
+            ProjectServiceId = request.ProjectServiceId
         };
 
         db.ProjectInvoices.Add(invoice);
@@ -1094,6 +1426,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         if (request.UnitPrice.HasValue) invoice.UnitPrice = request.UnitPrice;
         if (request.Currency != null) invoice.Currency = string.IsNullOrWhiteSpace(request.Currency) ? null : request.Currency.Trim();
         if (request.ResourceLevel != null) invoice.ResourceLevel = string.IsNullOrWhiteSpace(request.ResourceLevel) ? null : request.ResourceLevel.Trim();
+        if (request.ProjectServiceId.HasValue) invoice.ProjectServiceId = request.ProjectServiceId.Value;
         if (request.PaymentStatus != null || request.Status != null)
         {
             invoice.PaymentStatus = ResolvePaymentStatus(request.Status ?? invoice.Status, request.PaymentStatus ?? invoice.PaymentStatus);
@@ -1130,6 +1463,15 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var taxPercent = project.TaxPercent;
         var billingModel = (project.BillingModel ?? "50-50").Trim();
 
+        var projectServices = await db.ProjectServices
+            .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+            .ToListAsync(ct);
+        var defaultServiceName = projectServices.Count == 1 
+            ? projectServices[0].ServiceName 
+            : projectServices.Count > 1 
+                ? string.Join(", ", projectServices.Select(s => s.ServiceName)) 
+                : null;
+
         var newInvoices = new List<ProjectInvoice>();
 
         if (billingModel.Contains("100", StringComparison.OrdinalIgnoreCase) || billingModel.Contains("Upfront", StringComparison.OrdinalIgnoreCase))
@@ -1146,7 +1488,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                 TotalAmount = amount + tax,
                 Status = "Pending",
                 DueDate = project.StartDate,
-                SortOrder = 1
+                SortOrder = 1,
+                ServiceName = defaultServiceName
             });
         }
         else if (billingModel.Contains("Quarter", StringComparison.OrdinalIgnoreCase))
@@ -1164,7 +1507,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                     TaxAmount = qTax,
                     TotalAmount = qAmount + qTax,
                     Status = "Pending",
-                    SortOrder = q
+                    SortOrder = q,
+                    ServiceName = defaultServiceName
                 });
             }
         }
@@ -1184,7 +1528,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                     TaxAmount = mTax,
                     TotalAmount = mAmount + mTax,
                     Status = "Pending",
-                    SortOrder = m
+                    SortOrder = m,
+                    ServiceName = defaultServiceName
                 });
             }
         }
@@ -1204,7 +1549,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                 TotalAmount = halfAmount + halfTax,
                 Status = "Pending",
                 DueDate = project.StartDate,
-                SortOrder = 1
+                SortOrder = 1,
+                ServiceName = defaultServiceName
             });
 
             newInvoices.Add(new ProjectInvoice
@@ -1217,7 +1563,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                 TotalAmount = halfAmount + halfTax,
                 Status = "Pending",
                 DueDate = project.EndDate,
-                SortOrder = 2
+                SortOrder = 2,
+                ServiceName = defaultServiceName
             });
         }
 
@@ -1228,7 +1575,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             await RecalculateProjectInvoiceRollupAsync(projectId, ct);
         }
 
-        var mapped = newInvoices.Select(MapToInvoiceDto).ToList();
+        var mapped = newInvoices.Select(i => MapToInvoiceDto(i, defaultServiceName)).ToList();
         var totalVal = mapped.Sum(i => i.TotalAmount);
 
         return new AutoGenerateInvoicesSummaryDto(projectId, newInvoices.Count, totalVal, mapped);
@@ -1328,13 +1675,10 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         var totalInvoiced = await db.ProjectInvoices
             .Where(i => i.ProjectId == projectId)
-            .SumAsync(i => i.TotalAmount, ct);
+            .SumAsync(i => (decimal?)i.TotalAmount, ct) ?? 0m;
 
-        if (totalInvoiced > 0)
-        {
-            project.InvoiceValue = totalInvoiced;
-            await db.SaveChangesAsync(ct);
-        }
+        project.InvoiceValue = totalInvoiced;
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task<ProjectDto> RenewProjectAsync(Guid id, RenewProjectRequest request, CancellationToken ct = default)
@@ -1782,7 +2126,18 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             s.CollectionStatus,
             s.ValidationStatus,
             s.BillingStatus,
-            s.IsReady);
+            s.IsReady,
+            s.ChangeStatus ?? "Active",
+            s.OriginalQty,
+            s.PendingQty,
+            s.PendingResourceLevel,
+            s.PendingUnitPrice,
+            s.ModCollectionStatus,
+            s.ModValidationStatus,
+            s.ModBillingStatus,
+            s.ModIsReady,
+            s.DeletedAtUtc,
+            s.DeletedAtUtc != null);
     }
 
     private async Task<HashSet<Guid>> LoadProjectTeamIdsAsync(Guid projectId, CancellationToken ct)
@@ -1835,7 +2190,9 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             t.SortOrder,
             t.CreatedAtUtc,
             t.UpdatedAtUtc,
-            mapped);
+            mapped,
+            t.DeletedAtUtc,
+            t.DeletedAtUtc != null);
     }
 
     private static ProjectTaskAssignmentDto MapToAssignmentDto(ProjectTaskAssignment a)
@@ -1869,7 +2226,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             a.UpdatedAtUtc);
     }
 
-    private static ProjectInvoiceDto MapToInvoiceDto(ProjectInvoice i)
+    private static ProjectInvoiceDto MapToInvoiceDto(ProjectInvoice i, string? fallbackServiceName = null)
     {
         return new ProjectInvoiceDto(
             i.Id,
@@ -1888,12 +2245,15 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             i.SortOrder,
             i.CreatedAtUtc,
             i.UpdatedAtUtc,
-            i.ServiceName,
+            !string.IsNullOrWhiteSpace(i.ServiceName) ? i.ServiceName : fallbackServiceName,
             i.Qty,
             i.UnitPrice,
             i.Currency,
             i.ResourceLevel,
-            i.PaymentStatus);
+            i.PaymentStatus,
+            i.ProjectServiceId,
+            i.DeletedAtUtc,
+            i.DeletedAtUtc != null);
     }
 
     private static string ResolvePaymentStatus(string? status, string? paymentStatus)

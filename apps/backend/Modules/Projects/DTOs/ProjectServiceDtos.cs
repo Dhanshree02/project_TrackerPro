@@ -33,13 +33,28 @@ public sealed record ProjectServiceDto(
     string CollectionStatus,
     string ValidationStatus,
     string BillingStatus,
-    bool IsReady);
+    bool IsReady,
+    string ChangeStatus = "Active",
+    int? OriginalQty = null,
+    int? PendingQty = null,
+    string? PendingResourceLevel = null,
+    decimal? PendingUnitPrice = null,
+    string? ModCollectionStatus = null,
+    string? ModValidationStatus = null,
+    string? ModBillingStatus = null,
+    bool? ModIsReady = null,
+    DateTime? DeletedAtUtc = null,
+    bool IsDeleted = false);
 
 public sealed record UpdateServicePrerequisiteRequest(
     string? CollectionStatus = null,
     string? ValidationStatus = null,
     string? BillingStatus = null,
-    bool? IsReady = null);
+    bool? IsReady = null,
+    string? ModCollectionStatus = null,
+    string? ModValidationStatus = null,
+    string? ModBillingStatus = null,
+    bool? ModIsReady = null);
 
 public sealed record CreateProjectServiceRequest(
     Guid? ServiceCatalogId = null,
@@ -62,7 +77,9 @@ public sealed record CreateProjectServiceRequest(
     DateOnly? EndDate = null,
     int? DurationDays = null,
     decimal? UnitPrice = null,
-    int SortOrder = 0);
+    int SortOrder = 0,
+    string? ChangeStatus = null,
+    bool GenerateInvoices = true);
 
 public sealed record UpdateProjectServiceRequest(
     string? Department = null,
@@ -83,4 +100,16 @@ public sealed record UpdateProjectServiceRequest(
     DateOnly? EndDate = null,
     int? DurationDays = null,
     decimal? UnitPrice = null,
-    int? SortOrder = null);
+    int? SortOrder = null,
+    bool AsPendingModification = true);
+
+public sealed record ServiceModificationImpactDto(
+    Guid ServiceId,
+    string ServiceName,
+    int CurrentQty,
+    int TargetQty,
+    int RemovedBranchesCount,
+    IReadOnlyList<string> RemovedBranchPhases,
+    int AssignedTasksAffected,
+    decimal HoursUtilizedInAffectedBranches,
+    bool HasCompletedWork);

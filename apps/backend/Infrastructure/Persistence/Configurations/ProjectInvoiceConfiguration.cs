@@ -23,14 +23,21 @@ public sealed class ProjectInvoiceConfiguration : IEntityTypeConfiguration<Proje
         builder.Property(x => x.Currency).HasMaxLength(10);
         builder.Property(x => x.ResourceLevel).HasMaxLength(500);
         builder.Property(x => x.PaymentStatus).HasMaxLength(40);
+        builder.Property(x => x.ProjectServiceId);
 
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.InvoiceNumber);
+        builder.HasIndex(x => x.ProjectServiceId);
 
         builder.HasOne(x => x.Project)
             .WithMany()
             .HasForeignKey(x => x.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.ProjectService)
+            .WithMany()
+            .HasForeignKey(x => x.ProjectServiceId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

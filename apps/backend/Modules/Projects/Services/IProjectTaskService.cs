@@ -21,4 +21,16 @@ public interface IProjectTaskService
         Guid projectId,
         Guid taskId,
         CancellationToken ct = default);
+
+    Task<ServiceModificationImpactDto> GetModificationImpactAsync(
+        Guid projectId,
+        Guid serviceId,
+        int targetQty,
+        CancellationToken ct = default);
+
+    Task<int> DeactivateExcessTaskBranchesAsync(
+        Guid projectId,
+        Guid serviceId,
+        int keepQty,
+        CancellationToken ct = default);
 }

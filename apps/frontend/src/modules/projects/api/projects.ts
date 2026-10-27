@@ -202,6 +202,17 @@ export interface ApiProjectService {
   validationStatus?: string | null;
   billingStatus?: string | null;
   isReady?: boolean | null;
+  changeStatus?: string | null;
+  originalQty?: number | null;
+  pendingQty?: number | null;
+  pendingResourceLevel?: string | null;
+  pendingUnitPrice?: number | null;
+  modCollectionStatus?: string | null;
+  modValidationStatus?: string | null;
+  modBillingStatus?: string | null;
+  modIsReady?: boolean | null;
+  deletedAtUtc?: string | null;
+  isDeleted?: boolean;
 }
 
 export interface UpdateServicePrerequisitePayload {
@@ -209,6 +220,10 @@ export interface UpdateServicePrerequisitePayload {
   validationStatus?: string | null;
   billingStatus?: string | null;
   isReady?: boolean | null;
+  modCollectionStatus?: string | null;
+  modValidationStatus?: string | null;
+  modBillingStatus?: string | null;
+  modIsReady?: boolean | null;
 }
 
 export interface CreateProjectServicePayload {
@@ -233,6 +248,24 @@ export interface CreateProjectServicePayload {
   durationDays?: number | null;
   unitPrice?: number | null;
   sortOrder?: number;
+  changeStatus?: string | null;
+  generateInvoices?: boolean;
+}
+
+export interface UpdateProjectServicePayload extends Partial<CreateProjectServicePayload> {
+  asPendingModification?: boolean;
+}
+
+export interface ServiceModificationImpactDto {
+  serviceId: string;
+  serviceName: string;
+  currentQty: number;
+  targetQty: number;
+  removedBranchesCount: number;
+  removedBranchPhases: string[];
+  assignedTasksAffected: number;
+  hoursUtilizedInAffectedBranches: number;
+  hasCompletedWork: boolean;
 }
 
 // ── Project Tasks & Assignments ──
@@ -257,6 +290,8 @@ export interface ApiProjectTask {
   progress: number;
   sortOrder: number;
   assignments: ApiProjectTaskAssignment[];
+  deletedAtUtc?: string | null;
+  isDeleted?: boolean;
 }
 
 export interface CreateProjectTaskPayload {
@@ -346,6 +381,9 @@ export interface ApiProjectInvoice {
   currency?: string | null;
   resourceLevel?: string | null;
   paymentStatus?: string | null;
+  projectServiceId?: string | null;
+  deletedAtUtc?: string | null;
+  isDeleted?: boolean;
 }
 
 export interface CreateProjectInvoicePayload {
@@ -367,6 +405,7 @@ export interface CreateProjectInvoicePayload {
   currency?: string | null;
   resourceLevel?: string | null;
   paymentStatus?: string | null;
+  projectServiceId?: string | null;
 }
 
 export type UpdateProjectInvoicePayload = Partial<CreateProjectInvoicePayload>;
@@ -482,6 +521,17 @@ export function mapApiProjectToProject(
     validationStatus: s.validationStatus || "Pending To Validate",
     billingStatus: s.billingStatus || "Advance Pending",
     isReady: Boolean(s.isReady),
+    changeStatus: s.changeStatus || (s.isDeleted ? "Deleted" : "Active"),
+    originalQty: s.originalQty,
+    pendingQty: s.pendingQty,
+    pendingResourceLevel: s.pendingResourceLevel,
+    pendingUnitPrice: s.pendingUnitPrice,
+    modCollectionStatus: s.modCollectionStatus,
+    modValidationStatus: s.modValidationStatus,
+    modBillingStatus: s.modBillingStatus,
+    modIsReady: s.modIsReady,
+    isDeleted: Boolean(s.isDeleted),
+    deletedAtUtc: s.deletedAtUtc,
   }));
 
   const rawInvoices: any[] = (apiInvoices ?? (ap as any).invoices ?? (ap as any).projectInvoices ?? []);
@@ -616,8 +666,9 @@ export async function updateWbsStatus(id: string, wbsStatus: string, wbsSubStatu
 // ── Project Services Methods ──
 
 /** GET /api/v1/projects/{projectId}/services */
-export async function fetchProjectServices(projectId: string): Promise<ApiProjectService[]> {
-  return (await apiFetch<ApiProjectService[]>(`/api/v1/projects/${projectId}/services`)) ?? [];
+export async function fetchProjectServices(projectId: string, includeDeleted = false): Promise<ApiProjectService[]> {
+  const query = includeDeleted ? "?includeDeleted=true" : "";
+  return (await apiFetch<ApiProjectService[]>(`/api/v1/projects/${projectId}/services${query}`)) ?? [];
 }
 
 /** POST /api/v1/projects/{projectId}/services */
@@ -632,7 +683,7 @@ export async function addProjectService(projectId: string, payload: CreateProjec
 export async function updateProjectService(
   projectId: string,
   serviceId: string,
-  payload: CreateProjectServicePayload
+  payload: UpdateProjectServicePayload
 ): Promise<ApiProjectService> {
   return apiFetch<ApiProjectService>(`/api/v1/projects/${projectId}/services/${serviceId}`, {
     method: "PUT",
@@ -650,6 +701,53 @@ export async function updateServicePrerequisite(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+/** DELETE /api/v1/projects/{projectId}/services/{serviceId} */
+export async function deleteProjectService(
+  projectId: string,
+  serviceId: string,
+): Promise<boolean> {
+  const res = await apiFetch<boolean>(`/api/v1/projects/${projectId}/services/${serviceId}`, {
+    method: "DELETE",
+  });
+  return res ?? true;
+}
+
+/** GET /api/v1/projects/{projectId}/services/{serviceId}/modification-impact */
+export async function fetchServiceModificationImpact(
+  projectId: string,
+  serviceId: string,
+  targetQty: number
+): Promise<ServiceModificationImpactDto> {
+  return (
+    (await apiFetch<ServiceModificationImpactDto>(
+      `/api/v1/projects/${projectId}/services/${serviceId}/modification-impact?targetQty=${targetQty}`
+    )) ?? {
+      serviceId,
+      serviceName: "",
+      currentQty: 0,
+      targetQty,
+      removedBranchesCount: 0,
+      removedBranchPhases: [],
+      assignedTasksAffected: 0,
+      hoursUtilizedInAffectedBranches: 0,
+      hasCompletedWork: false,
+    }
+  );
+}
+
+/** POST /api/v1/projects/{projectId}/services/{serviceId}/apply-modification */
+export async function applyServiceModification(
+  projectId: string,
+  serviceId: string
+): Promise<ApiProjectService> {
+  return apiFetch<ApiProjectService>(
+    `/api/v1/projects/${projectId}/services/${serviceId}/apply-modification`,
+    {
+      method: "POST",
+    }
+  );
 }
 
 const PREREQ_IMPORT_KEY = "trackerpro_prereq_db_import_v1";
@@ -731,19 +829,21 @@ export async function copyStoredServicePrereqsOnce(
   return { services: next, applied: !failed };
 }
 
-/** DELETE /api/v1/projects/{projectId}/services/{serviceId} */
-export async function deleteProjectService(projectId: string, serviceId: string): Promise<boolean> {
-  return apiFetch<boolean>(`/api/v1/projects/${projectId}/services/${serviceId}`, { method: "DELETE" });
-}
-
 // ── Project Tasks Methods ──
 
 /** GET /api/v1/projects/{projectId}/tasks */
-export async function fetchProjectTasks(projectId: string, period?: string, phase?: string, stage?: string): Promise<ApiProjectTask[]> {
+export async function fetchProjectTasks(
+  projectId: string,
+  period?: string,
+  phase?: string,
+  stage?: string,
+  includeDeleted = false
+): Promise<ApiProjectTask[]> {
   const query = new URLSearchParams();
   if (period) query.set("period", period);
   if (phase) query.set("phase", phase);
   if (stage) query.set("stage", stage);
+  if (includeDeleted) query.set("includeDeleted", "true");
   const qs = query.toString();
 
   return (await apiFetch<ApiProjectTask[]>(`/api/v1/projects/${projectId}/tasks${qs ? `?${qs}` : ""}`)) ?? [];
@@ -862,8 +962,9 @@ export async function stopTaskTimer(
 // ── Project Invoices Methods ──
 
 /** GET /api/v1/projects/{projectId}/invoices */
-export async function fetchProjectInvoices(projectId: string): Promise<ApiProjectInvoice[]> {
-  return (await apiFetch<ApiProjectInvoice[]>(`/api/v1/projects/${projectId}/invoices`)) ?? [];
+export async function fetchProjectInvoices(projectId: string, includeDeleted = false): Promise<ApiProjectInvoice[]> {
+  const query = includeDeleted ? "?includeDeleted=true" : "";
+  return (await apiFetch<ApiProjectInvoice[]>(`/api/v1/projects/${projectId}/invoices${query}`)) ?? [];
 }
 
 /** POST /api/v1/projects/{projectId}/invoices */
@@ -981,6 +1082,9 @@ export function mapApiInvoiceToScheduleRow(inv: any, idx: number, projectCurrenc
     paymentReceivedDate: paymentDate,
     remarks: invoiceNumber,
     resourceLevel: inv.resourceLevel ?? "",
+    projectServiceId: inv.projectServiceId ?? inv.serviceId ?? null,
+    deletedAtUtc: inv.deletedAtUtc ?? null,
+    isDeleted: Boolean(inv.isDeleted || inv.deletedAtUtc),
   };
 }
 
@@ -1003,6 +1107,8 @@ export function toCreateInvoicePayload(
     paymentDate?: string;
     paymentReceivedDate?: string;
     remarks?: string;
+    projectServiceId?: string;
+    serviceId?: string;
   },
   sortOrder = 0,
   taxPercent = 18,
@@ -1022,6 +1128,7 @@ export function toCreateInvoicePayload(
     currency: inv.currency || null,
     serviceName: inv.serviceName || null,
     resourceLevel: inv.resourceLevel || null,
+    projectServiceId: inv.projectServiceId || inv.serviceId || null,
     taxAmount,
     totalAmount: Math.round((amount + taxAmount) * 100) / 100,
     status: paymentReceived ? "Paid" : raised ? "Raised" : "Pending",

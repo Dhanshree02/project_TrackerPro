@@ -2145,6 +2145,7 @@ export function ProjectOnboardingPage() {
                   durationDays: r.durationDays || null,
                   unitPrice: r.unitPrice || null,
                   sortOrder: i,
+                  generateInvoices: false,
                 });
               } catch (svcErr) {
                 console.warn("Project service save to database failed:", svcErr);
