@@ -120,6 +120,17 @@ export interface WbsService {
   validationStatus?: string;
   billingStatus?: string;
   isReady?: boolean;
+  changeStatus?: string;
+  originalQty?: number | null;
+  pendingQty?: number | null;
+  pendingResourceLevel?: string | null;
+  pendingUnitPrice?: number | null;
+  modCollectionStatus?: string | null;
+  modValidationStatus?: string | null;
+  modBillingStatus?: string | null;
+  modIsReady?: boolean | null;
+  deletedAtUtc?: string | null;
+  isDeleted?: boolean;
 }
 
 export interface WbsInvoice {

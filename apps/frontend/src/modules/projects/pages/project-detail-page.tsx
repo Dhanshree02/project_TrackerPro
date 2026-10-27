@@ -1,8 +1,10 @@
 import { getRouteApi, Link, Navigate, notFound } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown } from "lucide-react";
+import { ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { StageTracker, type SubStageItem } from "@/components/stage-tracker";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
@@ -31,6 +33,7 @@ import {
   fetchProjectTasks,
   fetchProjectServices,
   updateServicePrerequisite,
+  applyServiceModification,
   copyStoredServicePrereqsOnce,
   fetchProjectInvoices,
   createProjectInvoice,
@@ -48,6 +51,7 @@ import {
   type ApiProjectTask,
   type ApiTaskAssignmentHistoryEntry,
 } from "@/modules/projects/api/projects";
+import { EditServicesModal, isResourceContract } from "../components/edit-services-modal";
 import { apiDownload } from "@/lib/api-client";
 import {
   fetchProjectTeamMembers,
@@ -988,7 +992,7 @@ export function ProjectDetailPage() {
   const snapshotInvoices = useDhStore((s) => s.invoices);
   const scheduleInvoices = (project.wbsDetails?.accounts?.invoices ?? []) as any[];
   const raisedInvoices = scheduleInvoices.filter(
-    (i) => i.invoiceStatus === "Raised" || i.paymentStatus === "Received",
+    (i) => !i.isDeleted && !i.deletedAtUtc && (i.invoiceStatus === "Raised" || i.paymentStatus === "Received" || i.status === "Raised" || i.status === "Paid"),
   );
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
@@ -1194,6 +1198,16 @@ export function ProjectDetailPage() {
       paymentStatus: "Not Received",
       paymentDate: null,
     });
+
+  const refreshProjectInvoices = useCallback(async () => {
+    if (!isApiGuid(project?.id)) return;
+    try {
+      const rows = await fetchProjectInvoices(project.id, true);
+      setDbInvoices(rows);
+    } catch (err) {
+      console.warn("Could not reload project invoices", err);
+    }
+  }, [project?.id]);
 
   const handleDownloadPO = async () => {
     if (savedPo) {
@@ -1612,6 +1626,7 @@ export function ProjectDetailPage() {
               project={project}
               client={client}
               onLeadershipSaved={applyLeadershipRows}
+              onInvoicesRefreshed={refreshProjectInvoices}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
                 const existing = scheduleInvoices.find((i) => i.id === invoiceId);
@@ -1681,6 +1696,7 @@ export function ProjectDetailPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                       <tr>
+                        <th className="px-3 py-2 font-medium">Service Name</th>
                         <th className="px-3 py-2 font-medium">Milestone</th>
                         <th className="px-3 py-2 font-medium">Resource Level</th>
                         <th className="px-3 py-2 font-medium">Invoice Target Date</th>
@@ -1693,6 +1709,7 @@ export function ProjectDetailPage() {
                     <tbody className="divide-y divide-border">
                       {raisedInvoices.map((inv) => (
                         <tr key={inv.id} className="hover:bg-accent/30">
+                          <td className="px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">{inv.serviceName || "—"}</td>
                           <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
                           <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
                           <td className="px-3 py-2.5">
@@ -1739,7 +1756,7 @@ export function ProjectDetailPage() {
                         </tr>
                       ))}
                       {raisedInvoices.length === 0 && (
-                        <tr><td colSpan={7} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
+                        <tr><td colSpan={8} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -1749,6 +1766,7 @@ export function ProjectDetailPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                       <tr>
+                        <th className="px-3 py-2 font-medium">Service Name</th>
                         <th className="px-3 py-2 font-medium">Milestone / Period</th>
                         <th className="px-3 py-2 font-medium">Resource Level</th>
                         <th className="px-3 py-2 font-medium">Invoice Target Date</th>
@@ -1769,6 +1787,7 @@ export function ProjectDetailPage() {
 
                         return (
                           <tr key={inv.id} className="hover:bg-accent/30">
+                            <td className="px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">{inv.serviceName || "—"}</td>
                             <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
                             <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
                             <td className="px-3 py-2.5">
@@ -1845,7 +1864,7 @@ export function ProjectDetailPage() {
                         );
                       })}
                       {raisedInvoices.length === 0 && (
-                        <tr><td colSpan={11} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
+                        <tr><td colSpan={12} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -2036,6 +2055,7 @@ function WbsTab({
   onNavigateToHealthAlerts,
   poDocumentPanel,
   onLeadershipSaved,
+  onInvoicesRefreshed,
 }: {
   project: Project;
   client?: Client;
@@ -2045,45 +2065,67 @@ function WbsTab({
   onNavigateToHealthAlerts?: () => void;
   poDocumentPanel?: React.ReactNode;
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
+  onInvoicesRefreshed?: () => void;
 }) {
   const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
   const hideAmounts = isPmFamily || hideBudget;
   const hidePrereq = isPmFamily || isAccounts;
   const canRaise = isDhanshree || isAccounts;
   const [apiWbsServices, setApiWbsServices] = useState<WbsService[] | null>(null);
+  const [rawServices, setRawServices] = useState<ApiProjectService[]>([]);
+  const [apiWbsInvoices, setApiWbsInvoices] = useState<any[] | null>(null);
+  const [isEditServicesOpen, setIsEditServicesOpen] = useState(false);
+  const [showDeletedServices, setShowDeletedServices] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
   const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!isApiGuid(project.id)) return;
+  const loadServices = useCallback(() => {
+    if (!isApiGuid(project.id)) return () => {};
     let active = true;
-    fetchProjectServices(project.id)
+    fetchProjectServices(project.id, showDeletedServices)
       .then((rows) => {
         if (!active) return;
-        setApiWbsServices(rows.map((s) => ({
-          id: s.id,
-          taskId: s.taskId || "",
-          department: s.department || "",
-          subDepartment: s.subDepartment || "",
-          serviceName: s.serviceName,
-          qty: s.qty || 1,
-          description: s.description || "",
-          resourceLevel: s.resourceLevel || "",
-          frequency: s.frequency || "Once",
-          location: s.location || "",
-          locationText: s.locationText || "",
-          serviceModel: s.serviceModel || "",
-          deliveryModel: s.deliveryModel || "",
-          finalDeliveryFormat: s.finalDeliveryFormat || "",
-          billingModel: s.billingModel || "",
-          tools: s.tools || "",
-          startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
-          endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
-          duration: s.durationDays || 0,
-          totalDays: s.totalDays || s.durationDays || 0,
-          totalHrs: s.totalHours || ((s.totalDays || s.durationDays || 0) * 8),
-          unitPrice: s.unitPrice || 0,
-          total: s.total || 0,
-        })));
+        setRawServices(rows);
+        setApiWbsServices(
+          rows.map((s) => ({
+            id: s.id,
+            taskId: s.taskId || "",
+            department: s.department || "",
+            subDepartment: s.subDepartment || "",
+            serviceName: s.serviceName,
+            qty: s.qty || 1,
+            description: s.description || "",
+            resourceLevel: s.resourceLevel || "",
+            frequency: s.frequency || "Once",
+            location: s.location || "",
+            locationText: s.locationText || "",
+            serviceModel: s.serviceModel || "",
+            deliveryModel: s.deliveryModel || "",
+            finalDeliveryFormat: s.finalDeliveryFormat || "",
+            billingModel: s.billingModel || "",
+            tools: s.tools || "",
+            startDate: s.startDate ? String(s.startDate).slice(0, 10) : "",
+            endDate: s.endDate ? String(s.endDate).slice(0, 10) : "",
+            duration: s.durationDays || 0,
+            durationDays: s.durationDays || 0,
+            durationHours: s.durationHours || ((s.durationDays || 0) * 8),
+            totalDays: s.totalDays || s.durationDays || 0,
+            totalHrs: s.totalHours || ((s.totalDays || s.durationDays || 0) * 8),
+            unitPrice: s.unitPrice || 0,
+            total: s.total || 0,
+            changeStatus: s.changeStatus || (s.isDeleted ? "Deleted" : "Active"),
+            originalQty: s.originalQty,
+            pendingQty: s.pendingQty,
+            pendingResourceLevel: s.pendingResourceLevel,
+            pendingUnitPrice: s.pendingUnitPrice,
+            modCollectionStatus: s.modCollectionStatus,
+            modValidationStatus: s.modValidationStatus,
+            modBillingStatus: s.modBillingStatus,
+            modIsReady: s.modIsReady,
+            isDeleted: Boolean(s.isDeleted),
+            isReady: Boolean(s.isReady),
+          }))
+        );
       })
       .catch(() => {
         if (active) setApiWbsServices(null);
@@ -2091,13 +2133,52 @@ function WbsTab({
     return () => {
       active = false;
     };
-  }, [project.id]);
+  }, [project.id, showDeletedServices]);
+
+  const loadInvoices = useCallback(() => {
+    if (!isApiGuid(project.id)) return () => {};
+    let active = true;
+    fetchProjectInvoices(project.id, showDeletedServices)
+      .then((rows) => {
+        if (!active) return;
+        setApiWbsInvoices(
+          rows.map((inv, idx) => mapApiInvoiceToScheduleRow(inv, idx, project.currency || "INR"))
+        );
+      })
+      .catch(() => {
+        if (active) setApiWbsInvoices(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [project.id, showDeletedServices, project.currency]);
+
+  useEffect(() => {
+    return loadServices();
+  }, [loadServices, refreshCount]);
+
+  useEffect(() => {
+    return loadInvoices();
+  }, [loadInvoices, refreshCount]);
 
   if (project.wbsDetails) {
     const wbsDetails = project.wbsDetails;
     const deliverableServices = apiWbsServices && apiWbsServices.length > 0 ? apiWbsServices : wbsDetails.services;
-    const totalServices = deliverableServices.reduce((acc: number, curr: any) => acc + (curr.total || 0), 0);
-    const tax = totalServices * 0.18;
+    const activeServices = deliverableServices.filter((s: any) => !s.isDeleted && s.changeStatus !== "Deleted");
+    const totalServices = activeServices.reduce((acc: number, curr: any) => {
+      const effectiveQty = (curr.changeStatus === "Modification Pending" && curr.pendingQty != null)
+        ? Number(curr.pendingQty)
+        : (Number(curr.qty) || 1);
+      const effectiveUnitPrice = (curr.changeStatus === "Modification Pending" && curr.pendingUnitPrice != null)
+        ? Number(curr.pendingUnitPrice)
+        : (Number(curr.unitPrice) || 0);
+      const lineTotal = (curr.changeStatus === "Modification Pending" && curr.pendingQty != null)
+        ? (effectiveQty * effectiveUnitPrice)
+        : (Number(curr.total) > 0 ? Number(curr.total) : effectiveQty * effectiveUnitPrice);
+      return acc + (Number.isFinite(lineTotal) ? lineTotal : 0);
+    }, 0);
+    const taxPercent = Number((project as any).taxPercent ?? (project as any).wbsDetails?.accounts?.taxPercent ?? 18);
+    const tax = Math.round(totalServices * (taxPercent / 100) * 100) / 100;
     const grandTotal = totalServices + tax;
     const currency = wbsDetails.currency || project.currency || "INR";
 
@@ -2131,11 +2212,41 @@ function WbsTab({
         </div>
 
         {!hidePrereq && (
-          <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} onLeadershipSaved={onLeadershipSaved} />
+          <WbsPrerequisiteSection
+            project={project}
+            client={client}
+            onNavigateToHealthAlerts={onNavigateToHealthAlerts}
+            onLeadershipSaved={onLeadershipSaved}
+            onServicesRefreshed={() => setRefreshCount((c) => c + 1)}
+            liveServices={rawServices}
+          />
         )}
 
         <div>
-          <h3 className="mb-3 text-sm font-semibold">Services & Deliverables from WBS</h3>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Services & Deliverables from WBS</h3>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showDeletedServices}
+                  onChange={(e) => setShowDeletedServices(e.target.checked)}
+                  className="rounded border-input text-primary focus:ring-0 h-3.5 w-3.5"
+                />
+                <span>Show Inactive/Deleted</span>
+              </label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5 shadow-xs"
+                onClick={() => setIsEditServicesOpen(true)}
+              >
+                <Edit2 className="h-3.5 w-3.5 text-primary" />
+                Edit Services
+              </Button>
+            </div>
+          </div>
           <div className="overflow-x-auto rounded-lg border border-border shadow-xs bg-card">
             <table className="min-w-[1950px] w-full text-xs text-left divide-y divide-border">
               <thead className="bg-muted/60 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
@@ -2159,34 +2270,140 @@ function WbsTab({
                   <th className="px-4 py-3 min-w-[100px] text-center whitespace-nowrap">Duration Hours</th>
                   <th className="px-4 py-3 min-w-[90px] text-center whitespace-nowrap">Total Days</th>
                   <th className="px-4 py-3 min-w-[90px] text-center whitespace-nowrap">Total Hours</th>
+                  {!hideAmounts && (
+                    <>
+                      <th className="px-4 py-3 min-w-[100px] text-right whitespace-nowrap">Unit Price</th>
+                      <th className="px-4 py-3 min-w-[110px] text-right whitespace-nowrap">Total</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {deliverableServices.map((svc: any, serviceIndex: number) => (
-                  <tr key={svc.id} className="hover:bg-accent/25 transition-colors">
-                    <td className="px-4 py-2.5 font-medium whitespace-nowrap">{svc.department}</td>
-                    <td className="px-4 py-2.5 font-mono text-muted-foreground whitespace-nowrap">{displayServiceId(svc, serviceIndex)}</td>
-                    <td className="px-4 py-2.5 font-semibold text-foreground whitespace-nowrap">{svc.serviceName}</td>
-                    <td className="px-4 py-2.5 max-w-[320px] truncate cursor-default text-muted-foreground" title={svc.description}>{svc.description || "—"}</td>
-                    <td className="px-4 py-2.5 text-center font-medium whitespace-nowrap">{svc.resourceLevel || "—"}</td>
-                    <td className="px-4 py-2.5 text-center font-semibold whitespace-nowrap">{svc.qty}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.frequency ?? "—"}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.serviceModel ?? "—"}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.deliveryModel || svc.location || "—"}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.locationText || "—"}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{(svc as any).finalDelivery ?? (svc as any).deliveryFormat ?? svc.finalDeliveryFormat ?? "—"}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{svc.tools ?? "—"}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">{svc.billingModel || wbsDetails.accounts.billingModel || "—"}</td>
-                    <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.startDate || "—"}</td>
-                    <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.endDate || "—"}</td>
-                    <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{(svc as any).durationDays ?? svc.duration ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{(svc as any).durationHours ?? (svc.duration ? svc.duration * 8 : "—")}</td>
-                    <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalDays ?? "—"}</td>
-                    <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")}</td>
-                  </tr>
-                ))}
+                {deliverableServices.map((svc: any, serviceIndex: number) => {
+                  const isDeleted = svc.isDeleted || svc.changeStatus === "Deleted";
+                  const isModPending = svc.changeStatus === "Modification Pending";
+                  const isModified = svc.changeStatus === "Modified";
+                  const isNewlyAdded = svc.changeStatus === "Newly Added";
+
+                  return (
+                    <tr
+                      key={svc.id}
+                      className={cn(
+                        "hover:bg-accent/25 transition-colors",
+                        isDeleted && "opacity-60 bg-muted/30 line-through"
+                      )}
+                    >
+                      <td className="px-4 py-2.5 font-medium whitespace-nowrap">{svc.department}</td>
+                      <td className="px-4 py-2.5 font-mono text-muted-foreground whitespace-nowrap">{displayServiceId(svc, serviceIndex)}</td>
+                      <td className="px-4 py-2.5 font-semibold text-foreground whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span>{svc.serviceName}</span>
+                          {isNewlyAdded && (
+                            <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-semibold bg-blue-50 text-blue-700 border-blue-200">
+                              Newly Added
+                            </Badge>
+                          )}
+                          {isModPending && (
+                            <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-semibold bg-amber-50 text-amber-700 border-amber-300">
+                              Mod Pending ({svc.qty}➔{svc.pendingQty})
+                            </Badge>
+                          )}
+                          {isModified && (
+                            <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-semibold bg-emerald-50 text-emerald-800 border-emerald-300">
+                              Modified ({svc.originalQty ?? svc.qty}➔{svc.qty})
+                            </Badge>
+                          )}
+                          {isDeleted && (
+                            <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-semibold bg-muted text-muted-foreground border-border">
+                              Deleted
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 max-w-[320px] truncate cursor-default text-muted-foreground" title={svc.description}>{svc.description || "—"}</td>
+                      <td className="px-4 py-2.5 text-center font-medium whitespace-nowrap">
+                        {isModPending && svc.pendingResourceLevel ? (
+                          <span className="text-amber-700 font-semibold" title={`Pending level: ${svc.pendingResourceLevel}`}>
+                            {svc.pendingResourceLevel}
+                          </span>
+                        ) : isModified && svc.pendingResourceLevel ? (
+                          <span className="text-emerald-800 font-semibold" title={`Modified level: ${svc.pendingResourceLevel}`}>
+                            {svc.pendingResourceLevel}
+                          </span>
+                        ) : (
+                          svc.resourceLevel || "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-center font-semibold whitespace-nowrap">
+                        {isModPending && svc.pendingQty ? (
+                          <span className="text-amber-700 font-bold" title={`Pending update: ${svc.qty} ➔ ${svc.pendingQty}`}>
+                            {svc.qty} ➔ {svc.pendingQty}
+                          </span>
+                        ) : isModified && svc.originalQty && svc.originalQty !== svc.qty ? (
+                          <span className="text-emerald-800 font-bold" title={`Modified: was ${svc.originalQty}, now ${svc.qty}`}>
+                            {svc.originalQty} ➔ {svc.qty}
+                          </span>
+                        ) : (
+                          svc.qty
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">{svc.frequency ?? "—"}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">{svc.serviceModel ?? "—"}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">{svc.deliveryModel || svc.location || "—"}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">{svc.locationText || "—"}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">{(svc as any).finalDelivery ?? (svc as any).deliveryFormat ?? svc.finalDeliveryFormat ?? "—"}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">{svc.tools ?? "—"}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">{svc.billingModel || wbsDetails.accounts.billingModel || "—"}</td>
+                      <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.startDate || "—"}</td>
+                      <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.endDate || "—"}</td>
+                      <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{(svc as any).durationDays ?? svc.duration ?? "—"}</td>
+                      <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{(svc as any).durationHours ?? (svc.duration ? svc.duration * 8 : "—")}</td>
+                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">
+                        {isModPending && svc.pendingQty ? (
+                          <span className="text-amber-700 font-bold">
+                            {Number(svc.pendingQty) * Number((svc as any).durationDays ?? svc.duration ?? 5)}
+                          </span>
+                        ) : (
+                          svc.totalDays ?? "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">
+                        {isModPending && svc.pendingQty ? (
+                          <span className="text-amber-700 font-bold">
+                            {Number(svc.pendingQty) * Number((svc as any).durationHours ?? ((svc as any).durationDays ?? svc.duration ?? 5) * 8)}
+                          </span>
+                        ) : (
+                          svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")
+                        )}
+                      </td>
+                      {!hideAmounts && (
+                        <>
+                          <td className="px-4 py-2.5 text-right font-mono tabular-nums whitespace-nowrap">
+                            {(isModPending && svc.pendingUnitPrice != null ? svc.pendingUnitPrice : svc.unitPrice) != null
+                              ? `${currency} ${Number(isModPending && svc.pendingUnitPrice != null ? svc.pendingUnitPrice : svc.unitPrice).toLocaleString()}`
+                              : "—"}
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums whitespace-nowrap">
+                            {(() => {
+                              const effQty = (isModPending && svc.pendingQty != null) ? Number(svc.pendingQty) : (Number(svc.qty) || 1);
+                              const effPrice = (isModPending && svc.pendingUnitPrice != null) ? Number(svc.pendingUnitPrice) : (Number(svc.unitPrice) || 0);
+                              const lineTot = (isModPending && svc.pendingQty != null)
+                                ? (effQty * effPrice)
+                                : (Number(svc.total) > 0 ? Number(svc.total) : effQty * effPrice);
+                              return isModPending ? (
+                                <span className="text-amber-700 font-bold">{currency} {lineTot.toLocaleString()}</span>
+                              ) : (
+                                `${currency} ${lineTot.toLocaleString()}`
+                              );
+                            })()}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
                 {deliverableServices.length === 0 && (
-                  <tr><td colSpan={19} className="px-4 py-8 text-center text-sm text-muted-foreground">No services defined.</td></tr>
+                  <tr><td colSpan={hideAmounts ? 19 : 21} className="px-4 py-8 text-center text-sm text-muted-foreground">No services defined.</td></tr>
                 )}
               </tbody>
             </table>
@@ -2197,15 +2414,15 @@ function WbsTab({
           <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1">Services Subtotal</div>
-              <div className="text-lg font-semibold">{wbsDetails.currency} {totalServices.toLocaleString()}</div>
+              <div className="text-lg font-semibold">{currency} {totalServices.toLocaleString()}</div>
             </div>
             <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1">Tax (18%)</div>
-              <div className="text-lg font-semibold">{wbsDetails.currency} {tax.toLocaleString()}</div>
+              <div className="text-xs font-medium text-muted-foreground mb-1">Tax ({taxPercent}%)</div>
+              <div className="text-lg font-semibold">{currency} {tax.toLocaleString()}</div>
             </div>
             <div>
               <div className="text-xs font-medium text-muted-foreground mb-1">Grand Total</div>
-              <div className="text-lg font-semibold">{wbsDetails.currency} {grandTotal.toLocaleString()}</div>
+              <div className="text-lg font-semibold text-primary">{currency} {grandTotal.toLocaleString()}</div>
             </div>
           </div>
         )}
@@ -2217,6 +2434,7 @@ function WbsTab({
               <table className="w-full text-sm">
                 <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
+                    <th className="px-3 py-2 font-medium">Service Name</th>
                     <th className="px-3 py-2 font-medium">Milestone/Period</th>
                     <th className="px-3 py-2 font-medium">Invoice Date</th>
                     <th className="px-3 py-2 font-medium">Remarks</th>
@@ -2225,69 +2443,118 @@ function WbsTab({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {wbsDetails.accounts.invoices.map((inv: any) => {
-                    const isPaid = inv.paymentStatus === "Received";
-                    const isRaised = inv.invoiceStatus === "Raised" || isPaid;
-                    const displayInvoiceNo = inv.invoiceNumber || inv.remarks || "-";
-                    const displayDate = inv.invoiceTargetDate || inv.targetDate || inv.invoiceDate || "";
+                  {(() => {
+                    const liveInvoicesSource =
+                      apiWbsInvoices && apiWbsInvoices.length > 0
+                        ? apiWbsInvoices
+                        : (wbsDetails.accounts?.invoices ?? []);
+                    const scheduleInvoices = liveInvoicesSource.filter(
+                      (inv: any) => showDeletedServices || (!inv.isDeleted && !inv.deletedAtUtc)
+                    );
 
                     return (
-                      <tr key={inv.id} className="hover:bg-accent/30">
-                        <td className="px-3 py-2 font-medium">{inv.milestone}</td>
-                        <td className="px-3 py-2">
-                          {canRaise ? (
-                            <input
-                              type="date"
-                              value={toDateInputValue(displayDate)}
-                              onChange={(e) => onInvoiceDateChange(inv.id, e.target.value)}
-                              className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            />
-                          ) : (
-                            <span className="text-xs text-muted-foreground">{displayDate || "—"}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 font-mono text-xs">{displayInvoiceNo}</td>
-                        <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-right">
-                          {isPaid ? (
-                            <span className="inline-flex rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-[11px] font-medium text-success">
-                              Paid
-                            </span>
-                          ) : isRaised ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <span className="inline-flex rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-[11px] font-medium text-blue-800">
-                                Raised
-                              </span>
-                              {canRaise && (
-                                <button
-                                  onClick={() => setConfirmPaidId(inv.id)}
-                                  className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
-                                >
-                                  Mark Paid
-                                </button>
+                      <>
+                        {scheduleInvoices.map((inv: any) => {
+                          const isDeleted = Boolean(inv.isDeleted || inv.deletedAtUtc);
+                          const isPaid = inv.paymentStatus === "Received";
+                          const isRaised = inv.invoiceStatus === "Raised" || isPaid;
+                          const displayInvoiceNo = inv.invoiceNumber || inv.remarks || "-";
+                          const displayDate = inv.invoiceTargetDate || inv.targetDate || inv.invoiceDate || "";
+                          const displayServiceName =
+                            inv.serviceName ||
+                            wbsDetails.services?.find((s: any) => s.id === inv.serviceId || s.taskId === inv.serviceId)?.serviceName ||
+                            (wbsDetails.services?.length === 1 ? wbsDetails.services[0].serviceName : "") ||
+                            "—";
+
+                          return (
+                            <tr
+                              key={inv.id}
+                              className={cn(
+                                "hover:bg-accent/30 transition-colors",
+                                isDeleted && "opacity-60 bg-muted/30 line-through"
                               )}
-                            </div>
-                          ) : (
-                            canRaise ? (
-                              <button
-                                onClick={() => onRaiseInvoice(inv.id)}
-                                className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                              >
-                                Raise Invoice
-                              </button>
-                            ) : (
-                              <span className="inline-flex rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                                Not Raised
-                              </span>
-                            )
-                          )}
-                        </td>
-                      </tr>
+                            >
+                              <td className="px-3 py-2 font-semibold text-foreground whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  <span>{displayServiceName}</span>
+                                  {isDeleted && (
+                                    <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-semibold bg-muted text-muted-foreground border-border">
+                                      Deleted
+                                    </Badge>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 font-medium">{inv.milestone}</td>
+                              <td className="px-3 py-2">
+                                {canRaise && !isDeleted ? (
+                                  <input
+                                    type="date"
+                                    value={toDateInputValue(displayDate)}
+                                    onChange={(e) => {
+                                      onInvoiceDateChange(inv.id, e.target.value);
+                                      setApiWbsInvoices((prev) =>
+                                        prev
+                                          ? prev.map((item) =>
+                                              item.id === inv.id
+                                                ? { ...item, invoiceDate: e.target.value, targetDate: e.target.value, invoiceTargetDate: e.target.value }
+                                                : item
+                                            )
+                                          : null
+                                      );
+                                    }}
+                                    className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                  />
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">{displayDate || "—"}</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 font-mono text-xs">{displayInvoiceNo}</td>
+                              <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
+                              <td className="px-3 py-2 text-right">
+                                {isDeleted ? (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                ) : isPaid ? (
+                                  <span className="inline-flex rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-[11px] font-medium text-success">
+                                    Paid
+                                  </span>
+                                ) : isRaised ? (
+                                  <div className="flex items-center justify-end gap-2">
+                                    <span className="inline-flex rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-[11px] font-medium text-blue-800">
+                                      Raised
+                                    </span>
+                                    {canRaise && (
+                                      <button
+                                        onClick={() => setConfirmPaidId(inv.id)}
+                                        className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
+                                      >
+                                        Mark Paid
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  canRaise ? (
+                                    <button
+                                      onClick={() => onRaiseInvoice(inv.id)}
+                                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                                    >
+                                      Raise Invoice
+                                    </button>
+                                  ) : (
+                                    <span className="inline-flex rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                                      Not Raised
+                                    </span>
+                                  )
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {scheduleInvoices.length === 0 && (
+                          <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-muted-foreground">No invoices scheduled.</td></tr>
+                        )}
+                      </>
                     );
-                  })}
-                  {wbsDetails.accounts.invoices.length === 0 && (
-                    <tr><td colSpan={5} className="px-3 py-6 text-center text-sm text-muted-foreground">No invoices scheduled.</td></tr>
-                  )}
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -2325,6 +2592,22 @@ function WbsTab({
           </Modal>
         )}
 
+        <EditServicesModal
+          isOpen={isEditServicesOpen}
+          onClose={() => setIsEditServicesOpen(false)}
+          projectId={project.id}
+          projectName={project.name}
+          existingServices={rawServices}
+          currency={currency}
+          contractType={project.contractType || (project as any).wbsDetails?.contractType}
+          projectType={project.projectType || (project as any).wbsDetails?.projectType}
+          projectStartDate={project.startDate}
+          projectEndDate={project.endDate}
+          onServicesUpdated={() => {
+            setRefreshCount((c) => c + 1);
+            onInvoicesRefreshed?.();
+          }}
+        />
       </div>
     );
   }
@@ -2362,7 +2645,14 @@ function WbsTab({
 
       {/* PMO Intake & Prerequisite Workflow — hidden for PM family and Accounts */}
       {!hidePrereq && (
-        <WbsPrerequisiteSection project={project} client={client} onNavigateToHealthAlerts={onNavigateToHealthAlerts} onLeadershipSaved={onLeadershipSaved} />
+        <WbsPrerequisiteSection
+          project={project}
+          client={client}
+          onNavigateToHealthAlerts={onNavigateToHealthAlerts}
+          onLeadershipSaved={onLeadershipSaved}
+          onServicesRefreshed={() => setRefreshCount((c) => c + 1)}
+          liveServices={rawServices}
+        />
       )}
 
       {/* Services Table */}
@@ -2451,6 +2741,7 @@ function WbsTab({
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">#</th>
+                  <th className="px-3 py-2 font-medium">Service Name</th>
                   <th className="px-3 py-2 font-medium">Milestone/Period</th>
                   <th className="px-3 py-2 font-medium">Invoice Target Date</th>
                   <th className="px-3 py-2 font-medium">Duration/Days</th>
@@ -2461,6 +2752,7 @@ function WbsTab({
               <tbody className="divide-y divide-border">
                 <tr className="hover:bg-accent/30">
                   <td className="px-3 py-2">1</td>
+                  <td className="px-3 py-2 font-semibold text-foreground">Cybersecurity Assessment</td>
                   <td className="px-3 py-2 font-medium">Advance 70%</td>
                   <td className="px-3 py-2">02 Feb 2026</td>
                   <td className="px-3 py-2">20 days</td>
@@ -2473,6 +2765,7 @@ function WbsTab({
                 </tr>
                 <tr className="hover:bg-accent/30">
                   <td className="px-3 py-2">2</td>
+                  <td className="px-3 py-2 font-semibold text-foreground">Cybersecurity Assessment</td>
                   <td className="px-3 py-2 font-medium">Final Delivery 30%</td>
                   <td className="px-3 py-2">01 Sep 2026</td>
                   <td className="px-3 py-2">15 days</td>
@@ -2824,17 +3117,26 @@ function OverviewTab({
   const effectiveEndDate = validEnds.length > 0 ? validEnds[validEnds.length - 1] : project.endDate;
 
   const totalServices = services.reduce((sum, s) => {
-    const line = Number(s.total);
+    const effectiveQty = (s.changeStatus === "Modification Pending" && s.pendingQty != null)
+      ? Number(s.pendingQty)
+      : (Number(s.qty) || 1);
+    const effectiveUnitPrice = (s.changeStatus === "Modification Pending" && s.pendingUnitPrice != null)
+      ? Number(s.pendingUnitPrice)
+      : (Number(s.unitPrice) || 0);
+    const line = (s.changeStatus === "Modification Pending" && s.pendingQty != null)
+      ? (effectiveQty * effectiveUnitPrice)
+      : (Number(s.total) > 0 ? Number(s.total) : effectiveQty * effectiveUnitPrice);
     if (Number.isFinite(line) && line > 0) return sum + line;
-    return sum + (Number(s.unitPrice) || 0) * (Number(s.qty) || 1);
+    return sum;
   }, 0);
   const serviceDays = services.reduce((sum, s) => sum + (Number(s.totalDays) || 0), 0);
   const serviceHours = services.reduce((sum, s) => sum + (Number(s.totalHrs ?? s.totalHours) || 0), 0);
   const displayDays = Number(project.totalDays) || serviceDays;
   const displayHours = Number(project.totalHours) || serviceHours;
   const currency = wbs?.currency ?? project.currency ?? "INR";
-  const taxPct = project.taxPercent ?? 18;
-  const grandTotal = totalServices + totalServices * (taxPct / 100);
+  const taxPct = Number((project as any).taxPercent ?? (project as any).wbsDetails?.accounts?.taxPercent ?? 18);
+  const taxAmount = Math.round(totalServices * (taxPct / 100) * 100) / 100;
+  const grandTotal = totalServices + taxAmount;
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -2913,7 +3215,7 @@ function OverviewTab({
                 </div>
                 <div>
                   <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Tax ({taxPct}%)</div>
-                  <div className="text-sm font-semibold">{currency} {(totalServices * taxPct / 100).toLocaleString()}</div>
+                  <div className="text-sm font-semibold">{currency} {taxAmount.toLocaleString()}</div>
                 </div>
                 <div>
                   <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Grand Total</div>
@@ -4093,9 +4395,12 @@ interface ServiceFolder {
   aps: APFolder[] | null;
 }
 
-function buildServiceTree(project: Project, store: any): ServiceFolder[] {
-  const services = project.wbsDetails?.services ?? [];
-  if (services.length === 0) return [];
+function buildServiceTree(project: Project, store: any, liveServices?: ApiProjectService[] | null): ServiceFolder[] {
+  const rawList: any[] = (liveServices && liveServices.length > 0)
+    ? liveServices
+    : (project.wbsDetails?.services ?? []);
+  if (rawList.length === 0) return [];
+  const services = rawList.filter((s: any) => !(s.isDeleted || s.changeStatus === "Deleted"));
   const usingDummy = false;
 
   return services.map((svc, serviceIndex) => {
@@ -4317,10 +4622,10 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   }, [project.id, useApiTasks]);
 
   const tree = useMemo(() => {
-    const built = buildServiceTree(project, dhStore);
+    const built = buildServiceTree(project, dhStore, apiServices);
     if (!useApiTasks || dbTasks.length === 0) return built;
     return applyPersistedTasks(built, dbTasks, serviceIdsByKey);
-  }, [project, snapshot.treeTaskStates, useApiTasks, dbTasks, serviceIdsByKey]);
+  }, [project, snapshot.treeTaskStates, useApiTasks, dbTasks, serviceIdsByKey, apiServices]);
 
   const visibleTree = useMemo(() => {
     if (useApiTasks) {
@@ -8214,7 +8519,20 @@ function getClientInfo(clientId: string, clientProp?: Client | null, subVentureN
   };
 }
 
-function WbsPrerequisiteSection({ project, client, onLeadershipSaved }: { project: Project; client?: Client; onNavigateToHealthAlerts?: () => void; onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void }) {
+function WbsPrerequisiteSection({
+  project,
+  client,
+  onLeadershipSaved,
+  onServicesRefreshed,
+  liveServices,
+}: {
+  project: Project;
+  client?: Client;
+  onNavigateToHealthAlerts?: () => void;
+  onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
+  onServicesRefreshed?: () => void;
+  liveServices?: ApiProjectService[];
+}) {
   const allPrereqs = useDhStore((s) => s.prereqs);
   const prereqData = allPrereqs[project.id];
   const knownPeople = useDhStore((s) => s.knownPeople);
@@ -8338,45 +8656,52 @@ function WbsPrerequisiteSection({ project, client, onLeadershipSaved }: { projec
       .filter((person) => person.name?.trim());
   }, [project.id, project.seniorProjectManagers, prereq.assignedSpmIds, knownPeople]);
 
+  const effectiveServices: any[] = useMemo(() => {
+    if (liveServices && liveServices.length > 0) return liveServices;
+    return project.wbsDetails?.services ?? [];
+  }, [liveServices, project.wbsDetails?.services]);
+
   const servicesList: DhServicePrereq[] = useMemo(() => {
-    const rawServices: any[] = project.wbsDetails?.services ?? [];
-
     const storeServices = prereq.services || [];
+    const isResourceContractType = isResourceContract(project.contractType || (project as any).wbsDetails?.contractType);
 
-    return rawServices.map((svc: any, i: number) => {
+    return effectiveServices.map((svc: any, i: number) => {
       const svcId = svc.id ?? `svc-${i}`;
       const existing = storeServices.find(
         (s) => s.serviceId === svcId || s.serviceName === (svc.serviceName ?? svc.department)
       );
-      if (existing) {
-        return {
-          ...existing,
-          serviceId: svcId,
-          serviceName: svc.serviceName ?? svc.department ?? existing.serviceName,
-        };
-      }
-      const isResourceDept = DEPT_GROUPS[svc.department] === "Resource";
+      const isResourceDept = DEPT_GROUPS[svc.department] === "Resource" || svc.serviceModel === "NA" || isResourceContractType;
       return {
         serviceId: svcId,
-        serviceName: svc.serviceName ?? svc.department ?? `Service ${i + 1}`,
-        collectionStatus: (isResourceDept ? "NA" : "Pending To Collect") as any,
-        validationStatus: (isResourceDept ? "NA" : "Pending To Validate") as any,
-        billingStatus: "Advance Pending" as const,
-        isReady: false,
+        serviceName: svc.serviceName ?? svc.department ?? existing?.serviceName ?? `Service ${i + 1}`,
+        collectionStatus: (svc.collectionStatus ?? existing?.collectionStatus ?? (isResourceDept ? "NA" : "Pending To Collect")) as any,
+        validationStatus: (svc.validationStatus ?? existing?.validationStatus ?? (isResourceDept ? "NA" : "Pending To Validate")) as any,
+        billingStatus: (svc.billingStatus ?? existing?.billingStatus ?? "Advance Pending") as any,
+        isReady: Boolean(svc.isReady ?? existing?.isReady ?? false),
       };
     });
-  }, [project.wbsDetails?.services, project.startDate, project.endDate, project.name, prereq.services]);
+  }, [effectiveServices, project.contractType, (project as any).wbsDetails?.contractType, prereq.services]);
+
+  // Active services list excluding soft-deleted services
+  const activeServicesList = useMemo(() => {
+    return servicesList.filter((s) => {
+      const wbsSvc = effectiveServices.find((x: any) => x.id === s.serviceId);
+      return !(wbsSvc?.isDeleted || wbsSvc?.changeStatus === "Deleted");
+    });
+  }, [servicesList, effectiveServices]);
 
   // Auto-calculated Project Level statuses
-  const allCollected = servicesList.length > 0 && servicesList.every(s => {
-    const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
-    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+  const allCollected = activeServicesList.length > 0 && activeServicesList.every(s => {
+    const wbsSvc = effectiveServices.find((x: any) => x.id === s.serviceId);
+    const isResourceContractType = isResourceContract(project.contractType || (project as any).wbsDetails?.contractType);
+    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource" || wbsSvc.serviceModel === "NA" || isResourceContractType) : isResourceContractType;
     return isResourceDept || s.collectionStatus === "Collected";
   });
 
-  const allValidated = servicesList.length > 0 && servicesList.every(s => {
-    const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === s.serviceId);
-    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+  const allValidated = activeServicesList.length > 0 && activeServicesList.every(s => {
+    const wbsSvc = effectiveServices.find((x: any) => x.id === s.serviceId);
+    const isResourceContractType = isResourceContract(project.contractType || (project as any).wbsDetails?.contractType);
+    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource" || wbsSvc.serviceModel === "NA" || isResourceContractType) : isResourceContractType;
     return isResourceDept || s.validationStatus === "Validated";
   });
 
@@ -8618,13 +8943,19 @@ function WbsPrerequisiteSection({ project, client, onLeadershipSaved }: { projec
                 </thead>
                 <tbody className="divide-y divide-border">
                   {servicesList.map((svc) => {
-                    const wbsSvc = project.wbsDetails?.services?.find((x: any) => x.id === svc.serviceId);
-                    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource") : false;
+                    const wbsSvc = effectiveServices.find((x: any) => x.id === svc.serviceId);
+                    const isResourceContractType = isResourceContract(project.contractType || (project as any).wbsDetails?.contractType);
+                    const isResourceDept = wbsSvc ? (DEPT_GROUPS[wbsSvc.department] === "Resource" || wbsSvc.serviceModel === "NA" || isResourceContractType) : isResourceContractType;
+                    const isDeleted = wbsSvc?.isDeleted || wbsSvc?.changeStatus === "Deleted";
+                    const isNewlyAdded = wbsSvc?.changeStatus === "Newly Added";
+                    const isModPending = wbsSvc?.changeStatus === "Modification Pending";
+                    const isModified = wbsSvc?.changeStatus === "Modified";
+                    const hasModification = (isModPending || isModified) && Boolean(wbsSvc?.pendingQty || wbsSvc?.originalQty);
 
                     const isCollected = isResourceDept ? true : svc.collectionStatus === "Collected";
                     const isValidated = isResourceDept ? true : svc.validationStatus === "Validated";
                     const isBillingOk = svc.billingStatus === "Advance Received" || svc.billingStatus === "Advance Not Required";
-                    const canStart = isCollected && isValidated && isBillingOk;
+                    const canStart = !isDeleted && isCollected && isValidated && isBillingOk;
                     const isReady = svc.isReady ?? false;
 
                     const activeEsc = serviceEscalations.find((row) =>
@@ -8633,132 +8964,330 @@ function WbsPrerequisiteSection({ project, client, onLeadershipSaved }: { projec
                     );
 
                     return (
-                      <tr key={svc.serviceId} className="hover:bg-accent/20">
-                        <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">{svc.serviceName}</td>
-                        <td className="px-3 py-2.5 text-center align-middle">
-                          <select
-                            value={isResourceDept ? "NA" : svc.collectionStatus}
-                            disabled={isResourceDept}
-                            onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
-                            className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                              isResourceDept
-                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                : svc.collectionStatus === "Collected"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                            )}
-                          >
-                            {isResourceDept ? (
-                              <option value="NA">NA</option>
-                            ) : (
-                              <>
-                                <option value="Pending To Collect">Pending To Collect</option>
-                                <option value="Collected">Collected</option>
-                              </>
-                            )}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2.5 text-center align-middle">
-                          <select
-                            value={isResourceDept ? "NA" : svc.validationStatus}
-                            disabled={isResourceDept || !isCollected}
-                            onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
-                            className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                              (isResourceDept || !isCollected)
-                                ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                : svc.validationStatus === "Validated"
-                                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                            )}
-                          >
-                            {isResourceDept ? (
-                              <option value="NA">NA</option>
-                            ) : (
-                              <>
-                                <option value="Pending To Validate">Pending To Validate</option>
-                                <option value="Validated">Validated</option>
-                              </>
-                            )}
-                          </select>
-                        </td>
-                        <td className="px-3 py-2.5 text-center align-middle">
-                          <select
-                            value={svc.billingStatus ?? "Advance Pending"}
-                            onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
-                            className={cn(
-                              "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                              svc.billingStatus === "Advance Received"
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                : svc.billingStatus === "Advance Not Required"
-                                  ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                                  : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-                            )}
-                          >
-                            <option value="Advance Pending">Advance Pending</option>
-                            <option value="Advance Received">Advance Received</option>
-                            <option value="Advance Not Required">Advance Not Required</option>
-                          </select>
-                        </td>
-                        <td className="px-3 py-2.5 text-center align-middle">
-                          <div className="flex items-center justify-center">
-                            {isReady ? (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
-                                ✓ Started
-                              </span>
+                      <React.Fragment key={svc.serviceId}>
+                        <tr
+                          className={cn(
+                            "hover:bg-accent/20 transition-colors",
+                            isDeleted && "opacity-50 line-through bg-muted/20"
+                          )}
+                        >
+                          <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <span>{svc.serviceName}</span>
+                              {isNewlyAdded && (
+                                <Badge variant="outline" className="px-1 py-0 text-[9px] bg-blue-50 text-blue-700 border-blue-200">
+                                  Newly Added
+                                </Badge>
+                              )}
+                              {isDeleted && (
+                                <Badge variant="outline" className="px-1 py-0 text-[9px] bg-muted text-muted-foreground border-border">
+                                  Deleted
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center align-middle">
+                            <select
+                              value={isResourceDept ? "NA" : svc.collectionStatus}
+                              disabled={isResourceDept || isDeleted}
+                              onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
+                              className={cn(
+                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                                isResourceDept || isDeleted
+                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                  : svc.collectionStatus === "Collected"
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                              )}
+                            >
+                              {isResourceDept ? (
+                                <option value="NA">NA</option>
+                              ) : (
+                                <>
+                                  <option value="Pending To Collect">Pending To Collect</option>
+                                  <option value="Collected">Collected</option>
+                                </>
+                              )}
+                            </select>
+                          </td>
+                          <td className="px-3 py-2.5 text-center align-middle">
+                            <select
+                              value={isResourceDept ? "NA" : svc.validationStatus}
+                              disabled={isResourceDept || !isCollected || isDeleted}
+                              onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
+                              className={cn(
+                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                                (isResourceDept || !isCollected || isDeleted)
+                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                  : svc.validationStatus === "Validated"
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                              )}
+                            >
+                              {isResourceDept ? (
+                                <option value="NA">NA</option>
+                              ) : (
+                                <>
+                                  <option value="Pending To Validate">Pending To Validate</option>
+                                  <option value="Validated">Validated</option>
+                                </>
+                              )}
+                            </select>
+                          </td>
+                          <td className="px-3 py-2.5 text-center align-middle">
+                            <select
+                              value={svc.billingStatus ?? "Advance Pending"}
+                              disabled={isDeleted}
+                              onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
+                              className={cn(
+                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
+                                isDeleted
+                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                  : svc.billingStatus === "Advance Received"
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                    : svc.billingStatus === "Advance Not Required"
+                                      ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                      : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                              )}
+                            >
+                              <option value="Advance Pending">Advance Pending</option>
+                              <option value="Advance Received">Advance Received</option>
+                              <option value="Advance Not Required">Advance Not Required</option>
+                            </select>
+                          </td>
+                          <td className="px-3 py-2.5 text-center align-middle">
+                            <div className="flex items-center justify-center">
+                              {isDeleted ? (
+                                <span className="text-[10px] text-muted-foreground italic">Deleted</span>
+                              ) : isReady ? (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
+                                  ✓ Started
+                                </span>
+                              ) : (
+                                <button
+                                  disabled={!canStart}
+                                  onClick={() => {
+                                    dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
+                                    toast.success("Service started!", { description: svc.serviceName });
+                                    if (isApiGuid(project.id) && isApiGuid(svc.serviceId)) {
+                                      void updateServicePrerequisite(project.id, svc.serviceId, { isReady: true })
+                                        .then(() => {
+                                          onServicesRefreshed?.();
+                                        })
+                                        .catch(() => {
+                                          toast.error("Could not start this service");
+                                        });
+                                    }
+                                  }}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors cursor-pointer",
+                                    canStart
+                                      ? "bg-success text-white hover:bg-success/90 shadow-sm"
+                                      : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
+                                  )}
+                                  title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Start this service and generate tasks"}
+                                >
+                                  Start
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center align-middle">
+                            {activeEsc ? (
+                              <button
+                                type="button"
+                                onClick={() => toast.info("This escalation is saved. Action Centre will receive it when that screen is ready.")}
+                                className={cn(
+                                  "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
+                                  activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
+                                    activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
+                                )}
+                                title="Click to view details in Health tab"
+                              >
+                                ⚠️ {activeEsc.status} ({activeEsc.priority})
+                              </button>
                             ) : (
                               <button
-                                disabled={!canStart}
                                 onClick={() => {
-                                  dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
-                                  toast.success("Service marked as Ready to Start", { description: svc.serviceName });
-                                  if (isApiGuid(project.id) && isApiGuid(svc.serviceId)) {
-                                    void updateServicePrerequisite(project.id, svc.serviceId, { isReady: true }).catch(() => {
-                                      toast.error("Could not save Ready for this service");
-                                    });
-                                  }
+                                  setEscalationModalSvc(svc);
+                                  setEscalationModalOpen(true);
                                 }}
-                                className={cn(
-                                  "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors",
-                                  canStart
-                                    ? "bg-success text-white hover:bg-success/90 shadow-sm cursor-pointer"
-                                    : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
-                                )}
-                                title={!canStart ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Mark this service as Ready to Start"}
+                                disabled={isDeleted}
+                                className="inline-flex items-center gap-1 rounded-md bg-destructive text-white hover:bg-destructive/90 px-2 py-0.5 text-[9px] font-bold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                               >
-                                Ready
+                                Raise Escalation
                               </button>
                             )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2.5 text-center align-middle">
-                          {activeEsc ? (
-                            <button
-                              type="button"
-                              onClick={() => toast.info("This escalation is saved. Action Centre will receive it when that screen is ready.")}
-                              className={cn(
-                                "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
-                                activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
-                                  activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
+                          </td>
+                        </tr>
+
+                        {/* LINKED MODIFICATION PREREQUISITE SUB-ROW */}
+                        {hasModification && wbsSvc && (
+                          <tr className={cn(
+                            "transition-colors border-y",
+                            isModified && wbsSvc.modIsReady
+                              ? "bg-emerald-500/10 hover:bg-emerald-500/15 border-emerald-300"
+                              : "bg-amber-500/10 hover:bg-amber-500/15 border-amber-300"
+                          )}>
+                            <td className="px-3 py-2.5 text-center align-middle font-medium">
+                              <div className="flex flex-col items-center justify-center gap-1">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <span className="font-semibold text-gray-800">{svc.serviceName}</span>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "px-1.5 py-0 text-[9px] font-semibold",
+                                      isModified && wbsSvc.modIsReady
+                                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                        : "bg-amber-100 text-amber-800 border-amber-300"
+                                    )}
+                                  >
+                                    Modified
+                                  </Badge>
+                                </div>
+                                <div className={cn(
+                                  "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded border",
+                                  isModified && wbsSvc.modIsReady
+                                    ? "text-emerald-800 bg-emerald-100/70 border-emerald-200"
+                                    : "text-amber-700 bg-amber-100/70 border-amber-200"
+                                )}>
+                                  <span>
+                                    Qty {wbsSvc.originalQty ?? wbsSvc.qty} ➔ {wbsSvc.pendingQty ?? wbsSvc.qty}
+                                  </span>
+                                  {wbsSvc.pendingResourceLevel && (
+                                    <span className="text-[10px] text-muted-foreground font-normal">({wbsSvc.pendingResourceLevel})</span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-center align-middle">
+                              <select
+                                value={isResourceDept ? "NA" : (wbsSvc.modCollectionStatus || "Pending To Collect")}
+                                disabled={isResourceDept || Boolean(isModified && wbsSvc.modIsReady)}
+                                onChange={(e) => {
+                                  void updateServicePrerequisite(project.id, svc.serviceId, { modCollectionStatus: e.target.value }).then(() => {
+                                    toast.success("Modification collection status updated");
+                                    onServicesRefreshed?.();
+                                  });
+                                }}
+                                className={cn(
+                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                                  (isResourceDept || (isModified && wbsSvc.modIsReady))
+                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
+                                    : (wbsSvc.modCollectionStatus === "Collected"
+                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer")
+                                )}
+                              >
+                                {isResourceDept ? <option value="NA">NA</option> : (
+                                  <>
+                                    <option value="Pending To Collect">Pending To Collect</option>
+                                    <option value="Collected">Collected</option>
+                                  </>
+                                )}
+                              </select>
+                            </td>
+                            <td className="px-3 py-2.5 text-center align-middle">
+                              <select
+                                value={isResourceDept ? "NA" : (wbsSvc.modValidationStatus || "Pending To Validate")}
+                                disabled={isResourceDept || Boolean(isModified && wbsSvc.modIsReady) || (!isResourceDept && wbsSvc.modCollectionStatus !== "Collected")}
+                                onChange={(e) => {
+                                  void updateServicePrerequisite(project.id, svc.serviceId, { modValidationStatus: e.target.value }).then(() => {
+                                    toast.success("Modification validation status updated");
+                                    onServicesRefreshed?.();
+                                  });
+                                }}
+                                className={cn(
+                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                                  (isResourceDept || (isModified && wbsSvc.modIsReady) || (!isResourceDept && wbsSvc.modCollectionStatus !== "Collected"))
+                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
+                                    : (wbsSvc.modValidationStatus === "Validated"
+                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer")
+                                )}
+                              >
+                                {isResourceDept ? <option value="NA">NA</option> : (
+                                  <>
+                                    <option value="Pending To Validate">Pending To Validate</option>
+                                    <option value="Validated">Validated</option>
+                                  </>
+                                )}
+                              </select>
+                            </td>
+                            <td className="px-3 py-2.5 text-center align-middle">
+                              <select
+                                value={wbsSvc.modBillingStatus || "Advance Pending"}
+                                disabled={Boolean(isModified && wbsSvc.modIsReady)}
+                                onChange={(e) => {
+                                  void updateServicePrerequisite(project.id, svc.serviceId, { modBillingStatus: e.target.value }).then(() => {
+                                    toast.success("Modification billing status updated");
+                                    onServicesRefreshed?.();
+                                  });
+                                }}
+                                className={cn(
+                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                                  (isModified && wbsSvc.modIsReady)
+                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
+                                    : wbsSvc.modBillingStatus === "Advance Received"
+                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                                      : wbsSvc.modBillingStatus === "Advance Not Required"
+                                        ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
+                                        : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer"
+                                )}
+                              >
+                                <option value="Advance Pending">Advance Pending</option>
+                                <option value="Advance Received">Advance Received</option>
+                                <option value="Advance Not Required">Advance Not Required</option>
+                              </select>
+                            </td>
+                            <td className="px-3 py-2.5 text-center align-middle">
+                              {isModified && wbsSvc.modIsReady ? (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-[10px] font-bold text-success">
+                                  ✓ Started
+                                </span>
+                              ) : (() => {
+                                const modCollected = isResourceDept || wbsSvc.modCollectionStatus === "Collected";
+                                const modValidated = isResourceDept || wbsSvc.modValidationStatus === "Validated";
+                                const modBillingOk = wbsSvc.modBillingStatus === "Advance Received" || wbsSvc.modBillingStatus === "Advance Not Required";
+                                const canStartMod = modCollected && modValidated && modBillingOk;
+
+                                return (
+                                  <button
+                                    type="button"
+                                    disabled={!canStartMod}
+                                    onClick={() => {
+                                      void updateServicePrerequisite(project.id, svc.serviceId, { modIsReady: true })
+                                        .then(() => {
+                                          toast.success("Service modification started and applied to tasks!", { description: `${svc.serviceName} (Qty: ${wbsSvc.pendingQty})` });
+                                          onServicesRefreshed?.();
+                                        })
+                                        .catch((err: any) => {
+                                          toast.error("Could not start modification: " + (err?.message || "Unknown error"));
+                                        });
+                                    }}
+                                    className={cn(
+                                      "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[10px] font-bold transition-colors shadow-xs cursor-pointer",
+                                      canStartMod
+                                        ? "bg-amber-600 text-white hover:bg-amber-700 shadow-sm"
+                                        : "bg-muted text-muted-foreground border border-border cursor-not-allowed opacity-60"
+                                    )}
+                                    title={!canStartMod ? (isResourceDept ? "Set Billing to Received/Not Required first" : "Set Collection to Collected, Validation to Validated, and Billing to Received/Not Required first") : "Start and apply this service modification to the Tasks hierarchy"}
+                                  >
+                                    Start
+                                  </button>
+                                );
+                              })()}
+                            </td>
+                            <td className="px-3 py-2.5 text-center align-middle">
+                              {isModified && wbsSvc.modIsReady ? (
+                                <span className="text-[10px] text-emerald-700 font-semibold">Applied</span>
+                              ) : (
+                                <span className="text-[10px] text-amber-700 font-medium italic">Pending Start</span>
                               )}
-                              title="Click to view details in Health tab"
-                            >
-                              ⚠️ {activeEsc.status} ({activeEsc.priority})
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setEscalationModalSvc(svc);
-                                setEscalationModalOpen(true);
-                              }}
-                              className="inline-flex items-center gap-1 rounded-md bg-destructive text-white hover:bg-destructive/90 px-2 py-0.5 text-[9px] font-bold transition-colors cursor-pointer"
-                            >
-                              Raise Escalation
-                            </button>
-                          )}
-                        </td>
-                      </tr>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

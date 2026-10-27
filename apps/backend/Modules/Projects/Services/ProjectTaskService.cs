@@ -15,7 +15,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
             ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
         var services = await db.ProjectServices
-            .Where(s => s.ProjectId == projectId)
+            .Where(s => s.ProjectId == projectId && s.IsReady && s.DeletedAtUtc == null)
             .OrderBy(s => s.SortOrder)
             .ThenBy(s => s.CreatedAtUtc)
             .ToListAsync(ct);
@@ -508,6 +508,95 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
             a.TimerStartedAtUtc.HasValue,
             a.CreatedAtUtc,
             a.UpdatedAtUtc);
+    }
+
+    public async Task<ServiceModificationImpactDto> GetModificationImpactAsync(
+        Guid projectId,
+        Guid serviceId,
+        int targetQty,
+        CancellationToken ct = default)
+    {
+        var service = await db.ProjectServices.FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
+            ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
+
+        var tasks = await db.ProjectTasks
+            .Where(t => t.ProjectId == projectId && t.ProjectServiceId == serviceId)
+            .ToListAsync(ct);
+
+        var excessTasks = tasks.Where(t =>
+        {
+            var apNum = ParseApNumber(t.Phase);
+            return apNum.HasValue && apNum.Value > targetQty;
+        }).ToList();
+
+        var affectedPhases = excessTasks
+            .Select(t => t.Phase ?? "")
+            .Where(p => !string.IsNullOrEmpty(p))
+            .Distinct()
+            .OrderBy(p => p)
+            .ToList();
+
+        var excessTaskIds = excessTasks.Select(t => t.Id).ToList();
+
+        var assignedCount = 0;
+        if (excessTaskIds.Count > 0)
+        {
+            assignedCount = await db.ProjectTaskAssignments
+                .Where(a => excessTaskIds.Contains(a.TaskId) && a.IsActive)
+                .Select(a => a.TaskId)
+                .Distinct()
+                .CountAsync(ct);
+        }
+
+        var hoursUtilized = excessTasks.Sum(t => t.UtilizedHours);
+        var hasCompleted = excessTasks.Any(t => t.Stage == "Completed" || t.Progress > 0 || t.UtilizedHours > 0);
+
+        return new ServiceModificationImpactDto(
+            serviceId,
+            service.ServiceName,
+            service.Qty,
+            targetQty,
+            affectedPhases.Count,
+            affectedPhases,
+            assignedCount,
+            hoursUtilized,
+            hasCompleted);
+    }
+
+    public async Task<int> DeactivateExcessTaskBranchesAsync(
+        Guid projectId,
+        Guid serviceId,
+        int keepQty,
+        CancellationToken ct = default)
+    {
+        var tasks = await db.ProjectTasks
+            .Where(t => t.ProjectId == projectId && t.ProjectServiceId == serviceId)
+            .ToListAsync(ct);
+
+        var excessTasks = tasks.Where(t =>
+        {
+            var apNum = ParseApNumber(t.Phase);
+            return apNum.HasValue && apNum.Value > keepQty;
+        }).ToList();
+
+        if (excessTasks.Count > 0)
+        {
+            db.ProjectTasks.RemoveRange(excessTasks);
+            await db.SaveChangesAsync(ct);
+        }
+
+        return excessTasks.Count;
+    }
+
+    private static int? ParseApNumber(string? phase)
+    {
+        if (string.IsNullOrWhiteSpace(phase)) return null;
+        var trimmed = phase.Trim();
+        if (trimmed.StartsWith("AP", StringComparison.OrdinalIgnoreCase) && int.TryParse(trimmed[2..], out var num))
+        {
+            return num;
+        }
+        return null;
     }
 
     private sealed record TeamPerson(Guid EmployeeId, string Name, string Code, string? Role, bool IsShadow);

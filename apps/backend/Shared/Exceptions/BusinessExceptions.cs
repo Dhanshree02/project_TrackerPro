@@ -11,3 +11,6 @@ public sealed class ForbiddenException(string message) : Exception(message);
 
 /// <summary>Maps to 401 Unauthorized.</summary>
 public sealed class UnauthorizedException(string message) : Exception(message);
+
+/// <summary>Maps to 400 Bad Request.</summary>
+public sealed class BadRequestException(string message) : Exception(message);

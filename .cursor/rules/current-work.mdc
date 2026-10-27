@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-22
+**Last updated:** 2026-10-23
+
+- **Working branch is `sahil-action-backend`, fast-forwarded to `origin/uat_clean` at `7e831e3`.** Local PostgreSQL 18 on `localhost:5432` database `trackerpro` was reloaded from `database/trackerpro-uat.sql`. The API connection is that local database. `Database__AutoMigrate` and `Database__Seed` stay false.
 
 - **Raise Escalation on a WBS service is stored in the database.** Service wise Prerequisite Tracking saves the window into `project.tbl_project_service_escalations` and the selected people into `project.tbl_project_service_escalation_stakeholders`. Escalate To lists active employees in `PMO (Project Management Office)` and `EM (Engagement Manager)`. An attachment is written under `Documents/Escalation` and the path is stored on the row. Send Escalation does not notify Action Centre yet, and the project end date is not changed. The window is wider. Migration `20261022153000_AddProjectServiceEscalations` is applied on `pms_uat_clean`. Rebuild `pms-backend:uat-clean` is done. The running `:39107` frontend is bind-mounted from `project_TrackerPro_UAT`, so `project-detail-page.tsx` and `project-service-escalations.ts` were copied there.
 

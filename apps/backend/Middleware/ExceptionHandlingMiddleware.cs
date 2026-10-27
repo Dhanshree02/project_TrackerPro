@@ -43,6 +43,11 @@ public sealed class ExceptionHandlingMiddleware(
             await WriteAsync(context, HttpStatusCode.Conflict, "CONFLICT",
                 [new ApiError("CONFLICT", null, ex.Message)]);
         }
+        catch (BadRequestException ex)
+        {
+            await WriteAsync(context, HttpStatusCode.BadRequest, "BAD_REQUEST",
+                [new ApiError("BAD_REQUEST", null, ex.Message)]);
+        }
         catch (ValidationException ex)
         {
             await WriteAsync(context, HttpStatusCode.BadRequest, "VALIDATION_ERROR",

@@ -106,9 +106,10 @@ public class ProjectsController(
     [HttpGet("{projectId:guid}/services")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectServiceDto>>>> GetProjectServices(
         Guid projectId,
-        CancellationToken ct)
+        [FromQuery] bool includeDeleted = false,
+        CancellationToken ct = default)
     {
-        var services = await projectService.GetProjectServicesAsync(projectId, ct);
+        var services = await projectService.GetProjectServicesAsync(projectId, includeDeleted, ct);
         return Ok(ApiResponse<IReadOnlyList<ProjectServiceDto>>.Ok(services));
     }
 
@@ -123,6 +124,27 @@ public class ProjectsController(
         {
             return NotFound(ApiResponse<ProjectServiceDto>.Fail("NOT_FOUND", "Project service not found"));
         }
+        return Ok(ApiResponse<ProjectServiceDto>.Ok(service));
+    }
+
+    [HttpGet("{projectId:guid}/services/{serviceId:guid}/modification-impact")]
+    public async Task<ActionResult<ApiResponse<ServiceModificationImpactDto>>> GetServiceModificationImpact(
+        Guid projectId,
+        Guid serviceId,
+        [FromQuery] int targetQty,
+        CancellationToken ct = default)
+    {
+        var impact = await projectService.GetServiceModificationImpactAsync(projectId, serviceId, targetQty, ct);
+        return Ok(ApiResponse<ServiceModificationImpactDto>.Ok(impact));
+    }
+
+    [HttpPost("{projectId:guid}/services/{serviceId:guid}/apply-modification")]
+    public async Task<ActionResult<ApiResponse<ProjectServiceDto>>> ApplyServiceModification(
+        Guid projectId,
+        Guid serviceId,
+        CancellationToken ct = default)
+    {
+        var service = await projectService.ApplyServiceModificationAsync(projectId, serviceId, ct);
         return Ok(ApiResponse<ProjectServiceDto>.Ok(service));
     }
 
@@ -177,9 +199,10 @@ public class ProjectsController(
     [HttpGet("{projectId:guid}/tasks")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTaskDto>>>> GetProjectTasks(
         Guid projectId,
-        CancellationToken ct)
+        [FromQuery] bool includeDeleted = false,
+        CancellationToken ct = default)
     {
-        var tasks = await projectService.GetProjectTasksAsync(projectId, ct);
+        var tasks = await projectService.GetProjectTasksAsync(projectId, includeDeleted, ct);
         return Ok(ApiResponse<IReadOnlyList<ProjectTaskDto>>.Ok(tasks));
     }
 
@@ -360,9 +383,10 @@ public class ProjectsController(
     [HttpGet("{projectId:guid}/invoices")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectInvoiceDto>>>> GetProjectInvoices(
         Guid projectId,
-        CancellationToken ct)
+        [FromQuery] bool includeDeleted = false,
+        CancellationToken ct = default)
     {
-        var invoices = await projectService.GetProjectInvoicesAsync(projectId, ct);
+        var invoices = await projectService.GetProjectInvoicesAsync(projectId, includeDeleted, ct);
         return Ok(ApiResponse<IReadOnlyList<ProjectInvoiceDto>>.Ok(invoices));
     }
 

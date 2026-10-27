@@ -28,6 +28,12 @@ public sealed class ProjectServiceConfiguration : IEntityTypeConfiguration<Proje
         builder.Property(x => x.ValidationStatus).HasMaxLength(40).IsRequired().HasDefaultValue("Pending To Validate");
         builder.Property(x => x.BillingStatus).HasMaxLength(40).IsRequired().HasDefaultValue("Advance Pending");
         builder.Property(x => x.IsReady).IsRequired().HasDefaultValue(false);
+        builder.Property(x => x.ChangeStatus).HasMaxLength(40).IsRequired().HasDefaultValue("Active");
+        builder.Property(x => x.PendingResourceLevel).HasMaxLength(80);
+        builder.Property(x => x.PendingUnitPrice).HasPrecision(18, 2);
+        builder.Property(x => x.ModCollectionStatus).HasMaxLength(40);
+        builder.Property(x => x.ModValidationStatus).HasMaxLength(40);
+        builder.Property(x => x.ModBillingStatus).HasMaxLength(40);
         builder.Property(x => x.UnitPrice).HasPrecision(18, 2);
         builder.Property(x => x.Total).HasPrecision(18, 2);
 

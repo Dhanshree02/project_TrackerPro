@@ -22,7 +22,10 @@ public sealed record ProjectInvoiceDto(
     decimal? UnitPrice = null,
     string? Currency = null,
     string? ResourceLevel = null,
-    string? PaymentStatus = null);
+    string? PaymentStatus = null,
+    Guid? ProjectServiceId = null,
+    DateTime? DeletedAtUtc = null,
+    bool IsDeleted = false);
 
 public sealed record CreateProjectInvoiceRequest(
     string MilestoneName,
@@ -43,7 +46,8 @@ public sealed record CreateProjectInvoiceRequest(
     decimal? UnitPrice = null,
     string? Currency = null,
     string? ResourceLevel = null,
-    string? PaymentStatus = null);
+    string? PaymentStatus = null,
+    Guid? ProjectServiceId = null);
 
 public sealed record UpdateProjectInvoiceRequest(
     string? MilestoneName = null,
@@ -64,7 +68,8 @@ public sealed record UpdateProjectInvoiceRequest(
     decimal? UnitPrice = null,
     string? Currency = null,
     string? ResourceLevel = null,
-    string? PaymentStatus = null);
+    string? PaymentStatus = null,
+    Guid? ProjectServiceId = null);
 
 public sealed record AutoGenerateInvoicesSummaryDto(
     Guid ProjectId,

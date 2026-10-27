@@ -21,7 +21,9 @@ public sealed record ProjectTaskDto(
     int SortOrder,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
-    IReadOnlyList<ProjectTaskAssignmentDto>? Assignments = null);
+    IReadOnlyList<ProjectTaskAssignmentDto>? Assignments = null,
+    DateTime? DeletedAtUtc = null,
+    bool IsDeleted = false);
 
 public sealed record CreateProjectTaskRequest(
     string Title,

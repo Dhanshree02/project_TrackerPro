@@ -21,7 +21,7 @@ public interface IProjectAppService
 
     Task<NextProjectCodeDto> GetNextProjectCodeAsync(Guid clientId, Guid? subVentureId = null, CancellationToken ct = default);
 
-    Task<IReadOnlyList<ProjectServiceDto>> GetProjectServicesAsync(Guid projectId, CancellationToken ct = default);
+    Task<IReadOnlyList<ProjectServiceDto>> GetProjectServicesAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default);
 
     Task<ProjectServiceDto?> GetProjectServiceByIdAsync(Guid projectId, Guid serviceId, CancellationToken ct = default);
 
@@ -31,9 +31,13 @@ public interface IProjectAppService
 
     Task<ProjectServiceDto> UpdateServicePrerequisiteAsync(Guid projectId, Guid serviceId, UpdateServicePrerequisiteRequest request, CancellationToken ct = default);
 
+    Task<ProjectServiceDto> ApplyServiceModificationAsync(Guid projectId, Guid serviceId, CancellationToken ct = default);
+
+    Task<ServiceModificationImpactDto> GetServiceModificationImpactAsync(Guid projectId, Guid serviceId, int targetQty, CancellationToken ct = default);
+
     Task<bool> DeleteProjectServiceAsync(Guid projectId, Guid serviceId, CancellationToken ct = default);
 
-    Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, CancellationToken ct = default);
+    Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default);
 
     Task<ProjectTaskDto?> GetProjectTaskByIdAsync(Guid projectId, Guid taskId, CancellationToken ct = default);
 
@@ -59,7 +63,7 @@ public interface IProjectAppService
 
     Task<TimerStatusDto> StopTaskTimerAsync(Guid projectId, Guid taskId, Guid assignmentId, CancellationToken ct = default);
 
-    Task<IReadOnlyList<ProjectInvoiceDto>> GetProjectInvoicesAsync(Guid projectId, CancellationToken ct = default);
+    Task<IReadOnlyList<ProjectInvoiceDto>> GetProjectInvoicesAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default);
 
     Task<ProjectInvoiceDto?> GetProjectInvoiceByIdAsync(Guid projectId, Guid invoiceId, CancellationToken ct = default);
 
@@ -87,9 +91,3 @@ public interface IProjectAppService
 
     Task<WbsPublishResultDto> PublishWbsAsync(Guid id, PublishWbsRequest? request = null, CancellationToken ct = default);
 }
-
-
-
-
-
-

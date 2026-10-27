@@ -91,4 +91,31 @@ public class ProjectServiceEntity : BaseEntity
 
     /// <summary>True after the service is marked Ready and its task folder is shown.</summary>
     public bool IsReady { get; set; }
+
+    /// <summary>Service Change Management status: "Active", "Newly Added", "Modification Pending".</summary>
+    public string ChangeStatus { get; set; } = "Active";
+
+    /// <summary>Original quantity before a pending modification was requested.</summary>
+    public int? OriginalQty { get; set; }
+
+    /// <summary>New quantity requested in a pending modification.</summary>
+    public int? PendingQty { get; set; }
+
+    /// <summary>New resource level distribution requested in a pending modification.</summary>
+    public string? PendingResourceLevel { get; set; }
+
+    /// <summary>New unit price requested in a pending modification.</summary>
+    public decimal? PendingUnitPrice { get; set; }
+
+    /// <summary>Prerequisite collection status for a pending modification.</summary>
+    public string? ModCollectionStatus { get; set; }
+
+    /// <summary>Prerequisite validation status for a pending modification.</summary>
+    public string? ModValidationStatus { get; set; }
+
+    /// <summary>Prerequisite billing status for a pending modification.</summary>
+    public string? ModBillingStatus { get; set; }
+
+    /// <summary>True after the pending modification is marked Ready to apply.</summary>
+    public bool? ModIsReady { get; set; }
 }
