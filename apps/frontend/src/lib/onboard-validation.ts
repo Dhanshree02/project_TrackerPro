@@ -835,6 +835,22 @@ export function employeeStatusDisplayLabel(employee: {
 }): string {
   const stored = (employee.status || "").trim();
   const catalog = (employee.confirmationStatus || "").trim();
+
+  // If the employee is in an offboarding/exit lifecycle status in either field, it always takes precedence
+  const isCatalogExit =
+    catalog === "Resigned" ||
+    catalog === "Terminated" ||
+    catalog === "Absconded" ||
+    catalog === "Notice Period";
+  if (isCatalogExit) return catalog;
+
+  const isStoredExit =
+    stored === "Resigned" ||
+    stored === "Terminated" ||
+    stored === "Absconded" ||
+    stored === "Notice Period";
+  if (isStoredExit) return stored;
+
   const catalogIsListPlaceholder =
     catalog === "Active" && stored.length > 0 && stored !== "Active" && stored !== "Probation";
   if (catalog && !catalogIsListPlaceholder) return catalog;

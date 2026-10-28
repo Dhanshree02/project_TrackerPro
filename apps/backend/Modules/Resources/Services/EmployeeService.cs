@@ -969,13 +969,34 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             {
                 employee.EmployeeStatusId = selectedStatus.Id;
                 employee.Status = selectedStatus.Name;
+                employee.ConfirmationStatus = selectedStatus.Name;
                 selectedStatusName = selectedStatus.Name;
             }
         }
+        if (selectedStatusName is null && !string.IsNullOrWhiteSpace(request.ExitType))
+        {
+            var exitTypeName = request.ExitType.Trim();
+            var targetName = exitTypeName.Equals("resign", StringComparison.OrdinalIgnoreCase) ? "Resigned" : exitTypeName;
+            var matchingStatus = await db.EmployeeStatuses
+                .FirstOrDefaultAsync(s => s.Name.ToLower() == targetName.ToLower() && s.IsActive, ct);
+            if (matchingStatus is not null)
+            {
+                employee.EmployeeStatusId = matchingStatus.Id;
+                employee.Status = matchingStatus.Name;
+                employee.ConfirmationStatus = matchingStatus.Name;
+                selectedStatusName = matchingStatus.Name;
+            }
+        }
         if (selectedStatusName is null)
+        {
             employee.Status = "Notice Period";
+            employee.ConfirmationStatus = "Notice Period";
+        }
         var statusAtExit = employee.Status;
-        employee.ExitType = request.ExitType ?? employee.ExitType;
+        var normalizedExitType = string.Equals(request.ExitType, "resign", StringComparison.OrdinalIgnoreCase)
+            ? "Resigned"
+            : request.ExitType;
+        employee.ExitType = normalizedExitType ?? employee.ExitType;
         employee.ExitReason = request.ExitReason ?? employee.ExitReason;
         if (!string.IsNullOrWhiteSpace(request.NoticePeriodServed))
             employee.NoticePeriod = request.NoticePeriodServed;

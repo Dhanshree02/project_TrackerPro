@@ -11,6 +11,7 @@ import {
   AlertCircle,
   FolderPlus,
   Building,
+  Layers,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import type { ProjectMasterItem } from "@/modules/settings/masters/types";
-import { useProjectCatalogStore } from "@/modules/settings/masters/project-catalog-store";
+import { useProjectCatalogStore, type CatalogServiceItem } from "@/modules/settings/masters/project-catalog-store";
 
 interface ProjectMastersSectionProps {
   items: ProjectMasterItem[];
@@ -51,6 +52,8 @@ interface ProjectMastersSectionProps {
   groups?: string[];
   departments?: string[];
   services?: string[];
+  subDepartmentsForDepartment?: (contractType: string, department: string) => string[];
+  getServicesForSubDepartment?: (contractType: string, department: string, subDepartment: string) => CatalogServiceItem[];
   onAdd: (item: Omit<ProjectMasterItem, "id" | "createdAt">) => Promise<{ success: boolean; error?: string }>;
   onUpdate: (id: string, item: Omit<ProjectMasterItem, "id" | "createdAt">) => Promise<{ success: boolean; error?: string }>;
   onDelete: (id: string) => void | Promise<void>;
@@ -59,10 +62,15 @@ interface ProjectMastersSectionProps {
     name: string,
     contractTypeOrGroup?: string | "Resource" | "Scope",
   ) => Promise<{ success: boolean; error?: string }>;
+  onAddSubDepartment?: (
+    contractType: string,
+    department: string,
+    name: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   onAddService?: (
     contractType: string,
     dept: string,
-    service: { name: string; tool?: string; unitPrice?: number; days?: number },
+    service: { name: string; tool?: string; unitPrice?: number; days?: number; subDepartment?: string },
   ) => Promise<{ success: boolean; error?: string }>;
   departmentsForContractType?: (contractType: string) => string[];
 }
@@ -73,11 +81,14 @@ export function ProjectMastersSection({
   groups: propsGroups,
   departments: propsDepartments,
   services: propsServices,
+  subDepartmentsForDepartment: propsSubDepartmentsForDepartment,
+  getServicesForSubDepartment: propsGetServicesForSubDepartment,
   onAdd,
   onUpdate,
   onDelete,
   onAddContractType,
   onAddDepartment,
+  onAddSubDepartment,
   onAddService,
   departmentsForContractType: propsDepartmentsForContractType,
 }: ProjectMastersSectionProps) {
@@ -86,15 +97,22 @@ export function ProjectMastersSection({
     contractTypes: storeContractTypes,
     departments: storeDepartments,
     departmentsForContractType: storeDepartmentsForContractType,
+    subDepartmentsForDepartment: storeSubDepartmentsForDepartment,
     allServices: storeAllServices,
     addContractType: storeAddContractType,
     addDepartment: storeAddDepartment,
+    addSubDepartment: storeAddSubDepartment,
     addService: storeAddService,
     getServicesForDepartment,
+    getServicesForSubDepartment: storeGetServicesForSubDepartment,
   } = useProjectCatalogStore();
 
   const resolveDepartmentsForContractType =
     propsDepartmentsForContractType ?? storeDepartmentsForContractType;
+  const resolveSubDepartmentsForDepartment =
+    propsSubDepartmentsForDepartment ?? storeSubDepartmentsForDepartment;
+  const resolveServicesForSubDepartment =
+    propsGetServicesForSubDepartment ?? storeGetServicesForSubDepartment;
 
   const availableContractTypes = propsContractTypes || storeContractTypes || propsGroups || [];
   const availableServices = propsServices || storeAllServices || [];
@@ -102,6 +120,7 @@ export function ProjectMastersSection({
   // Form State for new entry
   const [selectedContractType, setSelectedContractType] = useState<string>("");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [selectedSubDepartment, setSelectedSubDepartment] = useState<string>("");
   const [selectedService, setSelectedService] = useState<string>("");
   const [tools, setTools] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
@@ -116,6 +135,7 @@ export function ProjectMastersSection({
   const [editingItem, setEditingItem] = useState<ProjectMasterItem | null>(null);
   const [editContractType, setEditContractType] = useState<string>("");
   const [editDepartment, setEditDepartment] = useState<string>("");
+  const [editSubDepartment, setEditSubDepartment] = useState<string>("");
   const [editService, setEditService] = useState<string>("");
   const [editTools, setEditTools] = useState<string>("");
   const [editDuration, setEditDuration] = useState<string>("");
@@ -137,45 +157,109 @@ export function ProjectMastersSection({
   const [newDeptGroup, setNewDeptGroup] = useState<"Scope" | "Resource">("Scope");
   const [addDepartmentError, setAddDepartmentError] = useState<string | null>(null);
 
-  // 3. Service Modal
+  // 3. Sub-department Modal
+  const [showAddSubDepartmentModal, setShowAddSubDepartmentModal] = useState(false);
+  const [newSubDeptContractType, setNewSubDeptContractType] = useState("");
+  const [newSubDeptDepartment, setNewSubDeptDepartment] = useState("");
+  const [newSubDeptName, setNewSubDeptName] = useState("");
+  const [addSubDepartmentError, setAddSubDepartmentError] = useState<string | null>(null);
+
+  // 4. Service Modal
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [newServiceDept, setNewServiceDept] = useState("");
+  const [newServiceSubDept, setNewServiceSubDept] = useState("");
   const [newServiceName, setNewServiceName] = useState("");
   const [newServiceTools, setNewServiceTools] = useState("");
   const [newServiceDays, setNewServiceDays] = useState("");
   const [newServicePrice, setNewServicePrice] = useState("");
   const [addServiceError, setAddServiceError] = useState<string | null>(null);
 
+  // Cascading Available Departments: Only enabled/populated when Contract Type is selected
   const availableDepartments = useMemo(() => {
     if (selectedContractType) {
       return resolveDepartmentsForContractType(selectedContractType);
     }
-    return propsDepartments || storeDepartments || [];
-  }, [
-    selectedContractType,
-    resolveDepartmentsForContractType,
-    propsDepartments,
-    storeDepartments,
-  ]);
+    return [];
+  }, [selectedContractType, resolveDepartmentsForContractType]);
 
-  // Filtered Services for currently selected department
+  // Cascading Available Sub-departments: Only enabled/populated when Department is selected
+  const availableSubDepartments = useMemo(() => {
+    if (selectedContractType && selectedDepartment) {
+      return resolveSubDepartmentsForDepartment(selectedContractType, selectedDepartment);
+    }
+    return [];
+  }, [selectedContractType, selectedDepartment, resolveSubDepartmentsForDepartment]);
+
+  // Cascading Available Services: Populated when Sub-department is selected
   const filteredServicesForDept = useMemo(() => {
-    if (!selectedDepartment || !selectedContractType) return availableServices;
+    if (!selectedContractType || !selectedDepartment) return [];
+    if (selectedSubDepartment) {
+      const subItems = resolveServicesForSubDepartment(selectedContractType, selectedDepartment, selectedSubDepartment);
+      if (subItems.length > 0) {
+        return subItems.map((s) => s.name);
+      }
+    }
     const deptItems = getServicesForDepartment(selectedContractType, selectedDepartment);
     if (deptItems.length > 0) {
       return deptItems.map((s) => s.name);
     }
     return availableServices;
-  }, [selectedContractType, selectedDepartment, getServicesForDepartment, availableServices]);
+  }, [
+    selectedContractType,
+    selectedDepartment,
+    selectedSubDepartment,
+    resolveServicesForSubDepartment,
+    getServicesForDepartment,
+    availableServices,
+  ]);
+
+  // Edit Modal Cascading Lists
+  const editAvailableDepartments = useMemo(() => {
+    if (editContractType) {
+      return resolveDepartmentsForContractType(editContractType);
+    }
+    return [];
+  }, [editContractType, resolveDepartmentsForContractType]);
+
+  const editAvailableSubDepartments = useMemo(() => {
+    if (editContractType && editDepartment) {
+      return resolveSubDepartmentsForDepartment(editContractType, editDepartment);
+    }
+    return [];
+  }, [editContractType, editDepartment, resolveSubDepartmentsForDepartment]);
+
+  const editFilteredServices = useMemo(() => {
+    if (!editContractType || !editDepartment) return [];
+    if (editSubDepartment) {
+      const subItems = resolveServicesForSubDepartment(editContractType, editDepartment, editSubDepartment);
+      if (subItems.length > 0) {
+        return subItems.map((s) => s.name);
+      }
+    }
+    const deptItems = getServicesForDepartment(editContractType, editDepartment);
+    if (deptItems.length > 0) {
+      return deptItems.map((s) => s.name);
+    }
+    return availableServices;
+  }, [
+    editContractType,
+    editDepartment,
+    editSubDepartment,
+    resolveServicesForSubDepartment,
+    getServicesForDepartment,
+    availableServices,
+  ]);
 
   // Filtered Items for Table
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       const itemContractType = item.contractType || item.group || "";
+      const itemSubDept = item.subDepartment || "";
       const matchesSearch =
         searchQuery === "" ||
         itemContractType.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        itemSubDept.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.tools.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.duration.toLowerCase().includes(searchQuery.toLowerCase());
@@ -186,29 +270,47 @@ export function ProjectMastersSection({
     });
   }, [items, searchQuery, filterContractType]);
 
-  // Handle department change in Add Form -> auto-populate tools/unitPrice if matching service exists
+  // ── Cascading Change Handlers for Add Form ────────────────────────────────
+  const handleContractTypeChange = (ct: string) => {
+    setSelectedContractType(ct);
+    setSelectedDepartment("");
+    setSelectedSubDepartment("");
+    setSelectedService("");
+    setTools("");
+    setDuration("");
+    setUnitPrice("");
+  };
+
   const handleDepartmentChange = (dept: string) => {
     setSelectedDepartment(dept);
-    // If selected service does not belong to new dept, reset it
-    const deptSvcs = selectedContractType ? getServicesForDepartment(selectedContractType, dept) : [];
-    if (deptSvcs.length > 0) {
-      const matched = deptSvcs.find((s) => s.name === selectedService);
-      if (matched) {
-        if (!tools) setTools(matched.tool);
-        if (!unitPrice) setUnitPrice(String(matched.unitPrice));
-        if (!duration) setDuration(`${matched.days} Days`);
-      }
-    }
+    setSelectedSubDepartment("");
+    setSelectedService("");
+    setTools("");
+    setDuration("");
+    setUnitPrice("");
+  };
+
+  const handleSubDepartmentChange = (subDept: string) => {
+    setSelectedSubDepartment(subDept);
+    setSelectedService("");
+    setTools("");
+    setDuration("");
+    setUnitPrice("");
   };
 
   const handleServiceChange = (serviceName: string) => {
     setSelectedService(serviceName);
     // Auto-fill tools and unitPrice from catalog if available
-    if (selectedDepartment) {
-      const deptSvcs = selectedContractType
-        ? getServicesForDepartment(selectedContractType, selectedDepartment)
-        : [];
-      const matched = deptSvcs.find((s) => s.name === serviceName);
+    if (selectedContractType && selectedDepartment) {
+      let matched: CatalogServiceItem | undefined;
+      if (selectedSubDepartment) {
+        const subSvcs = resolveServicesForSubDepartment(selectedContractType, selectedDepartment, selectedSubDepartment);
+        matched = subSvcs.find((s) => s.name === serviceName);
+      }
+      if (!matched) {
+        const deptSvcs = getServicesForDepartment(selectedContractType, selectedDepartment);
+        matched = deptSvcs.find((s) => s.name === serviceName);
+      }
       if (matched) {
         setTools(matched.tool);
         setUnitPrice(String(matched.unitPrice));
@@ -216,6 +318,7 @@ export function ProjectMastersSection({
       }
     }
   };
+
 
   // ── Save New Contract Type ────────────────────────────────────────────────
   const handleSaveNewContractType = async () => {
@@ -240,11 +343,46 @@ export function ProjectMastersSection({
     if (res.success) {
       if (selectedContractType.trim()) {
         setSelectedDepartment(newDepartmentName.trim());
+        setSelectedSubDepartment("");
+        setSelectedService("");
       }
       setShowAddDepartmentModal(false);
       setNewDepartmentName("");
     } else {
       setAddDepartmentError(res.error || "Failed to add Department.");
+    }
+  };
+
+  // ── Save New Sub-department ──────────────────────────────────────────────
+  const handleSaveNewSubDepartment = async () => {
+    setAddSubDepartmentError(null);
+    const ct = newSubDeptContractType || selectedContractType;
+    const dept = newSubDeptDepartment || selectedDepartment;
+    if (!ct) {
+      setAddSubDepartmentError("Please select a Contract Type first.");
+      return;
+    }
+    if (!dept) {
+      setAddSubDepartmentError("Please select a Department first.");
+      return;
+    }
+    const trimmed = newSubDeptName.trim();
+    if (!trimmed) {
+      setAddSubDepartmentError("Sub-department name is required.");
+      return;
+    }
+
+    const adder = onAddSubDepartment || storeAddSubDepartment;
+    const res = await adder(ct, dept, trimmed);
+    if (res.success) {
+      setSelectedContractType(ct);
+      setSelectedDepartment(dept);
+      setSelectedSubDepartment(trimmed);
+      setSelectedService("");
+      setShowAddSubDepartmentModal(false);
+      setNewSubDeptName("");
+    } else {
+      setAddSubDepartmentError(res.error || "Failed to add Sub-department.");
     }
   };
 
@@ -260,12 +398,14 @@ export function ProjectMastersSection({
       setAddServiceError("Please select a Department first.");
       return;
     }
+    const targetSubDept = newServiceSubDept || selectedSubDepartment;
     const adder = onAddService || storeAddService;
     const priceNum = Number(newServicePrice);
     const daysNum = Number(newServiceDays);
 
     const res = await adder(selectedContractType, targetDept, {
       name: newServiceName,
+      subDepartment: targetSubDept || undefined,
       tool: newServiceTools,
       unitPrice: !Number.isNaN(priceNum) && priceNum > 0 ? priceNum : 50000,
       days: !Number.isNaN(daysNum) && daysNum > 0 ? daysNum : 5,
@@ -273,6 +413,7 @@ export function ProjectMastersSection({
 
     if (res.success) {
       setSelectedDepartment(targetDept);
+      if (targetSubDept) setSelectedSubDepartment(targetSubDept);
       setSelectedService(newServiceName.trim());
       if (newServiceTools.trim()) setTools(newServiceTools.trim());
       if (newServiceDays.trim()) setDuration(`${newServiceDays.trim()} Days`);
@@ -302,6 +443,10 @@ export function ProjectMastersSection({
       setFormError("Please select a Department.");
       return;
     }
+    if (!selectedSubDepartment) {
+      setFormError("Please select a Sub-department.");
+      return;
+    }
     if (!selectedService) {
       setFormError("Please select a Service.");
       return;
@@ -323,6 +468,7 @@ export function ProjectMastersSection({
       contractType: selectedContractType,
       group: selectedContractType,
       department: selectedDepartment,
+      subDepartment: selectedSubDepartment,
       service: selectedService,
       tools: tools.trim(),
       duration: duration.trim(),
@@ -345,11 +491,60 @@ export function ProjectMastersSection({
     setEditingItem(item);
     setEditContractType(item.contractType || item.group || "");
     setEditDepartment(item.department);
+    setEditSubDepartment(item.subDepartment || "");
     setEditService(item.service);
     setEditTools(item.tools);
     setEditDuration(item.duration);
     setEditUnitPrice(String(item.unitPrice));
     setEditError(null);
+  };
+
+  // Cascading Change Handlers for Edit Modal
+  const handleEditContractTypeChange = (ct: string) => {
+    setEditContractType(ct);
+    setEditDepartment("");
+    setEditSubDepartment("");
+    setEditService("");
+    setEditTools("");
+    setEditDuration("");
+    setEditUnitPrice("");
+  };
+
+  const handleEditDepartmentChange = (dept: string) => {
+    setEditDepartment(dept);
+    setEditSubDepartment("");
+    setEditService("");
+    setEditTools("");
+    setEditDuration("");
+    setEditUnitPrice("");
+  };
+
+  const handleEditSubDepartmentChange = (subDept: string) => {
+    setEditSubDepartment(subDept);
+    setEditService("");
+    setEditTools("");
+    setEditDuration("");
+    setEditUnitPrice("");
+  };
+
+  const handleEditServiceChange = (serviceName: string) => {
+    setEditService(serviceName);
+    if (editContractType && editDepartment) {
+      let matched: CatalogServiceItem | undefined;
+      if (editSubDepartment) {
+        const subSvcs = resolveServicesForSubDepartment(editContractType, editDepartment, editSubDepartment);
+        matched = subSvcs.find((s) => s.name === serviceName);
+      }
+      if (!matched) {
+        const deptSvcs = getServicesForDepartment(editContractType, editDepartment);
+        matched = deptSvcs.find((s) => s.name === serviceName);
+      }
+      if (matched) {
+        setEditTools(matched.tool);
+        setEditUnitPrice(String(matched.unitPrice));
+        setEditDuration(`${matched.days} Days`);
+      }
+    }
   };
 
   // Handle Edit Submit
@@ -364,6 +559,10 @@ export function ProjectMastersSection({
     }
     if (!editDepartment) {
       setEditError("Please select a Department.");
+      return;
+    }
+    if (!editSubDepartment) {
+      setEditError("Please select a Sub-department.");
       return;
     }
     if (!editService) {
@@ -387,6 +586,7 @@ export function ProjectMastersSection({
       contractType: editContractType,
       group: editContractType,
       department: editDepartment,
+      subDepartment: editSubDepartment,
       service: editService,
       tools: editTools.trim(),
       duration: editDuration.trim(),
@@ -429,9 +629,9 @@ export function ProjectMastersSection({
             </div>
           )}
 
-          {/* Row 1: Dropdowns with [+] buttons - Contract Type, Department, Service */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {/* Contract Type [+] */}
+          {/* Row 1: Dropdowns with [+] buttons - Contract Type, Department, Sub-department, Service */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* 1. Contract Type [+] */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="master-contract-type" className="text-xs font-medium text-foreground">
@@ -439,7 +639,7 @@ export function ProjectMastersSection({
                 </Label>
               </div>
               <div className="flex items-center gap-1.5">
-                <Select value={selectedContractType} onValueChange={setSelectedContractType}>
+                <Select value={selectedContractType} onValueChange={handleContractTypeChange}>
                   <SelectTrigger id="master-contract-type" className="h-9 text-xs flex-1">
                     <SelectValue placeholder="Select Contract Type" />
                   </SelectTrigger>
@@ -468,7 +668,7 @@ export function ProjectMastersSection({
               </div>
             </div>
 
-            {/* Department [+] */}
+            {/* 2. Department [+] */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="master-department" className="text-xs font-medium text-foreground">
@@ -476,9 +676,15 @@ export function ProjectMastersSection({
                 </Label>
               </div>
               <div className="flex items-center gap-1.5">
-                <Select value={selectedDepartment} onValueChange={handleDepartmentChange}>
+                <Select
+                  value={selectedDepartment}
+                  onValueChange={handleDepartmentChange}
+                  disabled={!selectedContractType}
+                >
                   <SelectTrigger id="master-department" className="h-9 text-xs flex-1">
-                    <SelectValue placeholder="Select Department" />
+                    <SelectValue
+                      placeholder={!selectedContractType ? "Select Contract Type first" : "Select Department"}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {availableDepartments.map((dept) => (
@@ -492,8 +698,9 @@ export function ProjectMastersSection({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all"
-                  title="Add new Department"
+                  disabled={!selectedContractType}
+                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40"
+                  title={!selectedContractType ? "Select Contract Type first to add department" : "Add new Department"}
                   onClick={() => {
                     setNewDepartmentName("");
                     setNewDeptGroup("Scope");
@@ -506,7 +713,53 @@ export function ProjectMastersSection({
               </div>
             </div>
 
-            {/* Service [+] */}
+            {/* 3. Sub-department [+] */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="master-sub-department" className="text-xs font-medium text-foreground">
+                  Sub-department <span className="text-destructive">*</span>
+                </Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Select
+                  value={selectedSubDepartment}
+                  onValueChange={handleSubDepartmentChange}
+                  disabled={!selectedDepartment}
+                >
+                  <SelectTrigger id="master-sub-department" className="h-9 text-xs flex-1">
+                    <SelectValue
+                      placeholder={!selectedDepartment ? "Select Department first" : "Select Sub-department"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSubDepartments.map((subDept) => (
+                      <SelectItem key={subDept} value={subDept} className="text-xs">
+                        {subDept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  disabled={!selectedDepartment}
+                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40"
+                  title={!selectedDepartment ? "Select Department first to add sub-department" : "Add new Sub-department"}
+                  onClick={() => {
+                    setNewSubDeptContractType(selectedContractType);
+                    setNewSubDeptDepartment(selectedDepartment);
+                    setNewSubDeptName("");
+                    setAddSubDepartmentError(null);
+                    setShowAddSubDepartmentModal(true);
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* 4. Service [+] */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="master-service" className="text-xs font-medium text-foreground">
@@ -514,9 +767,15 @@ export function ProjectMastersSection({
                 </Label>
               </div>
               <div className="flex items-center gap-1.5">
-                <Select value={selectedService} onValueChange={handleServiceChange}>
+                <Select
+                  value={selectedService}
+                  onValueChange={handleServiceChange}
+                  disabled={!selectedSubDepartment}
+                >
                   <SelectTrigger id="master-service" className="h-9 text-xs flex-1">
-                    <SelectValue placeholder={selectedDepartment ? "Select Service" : "Select Dept first or pick Service"} />
+                    <SelectValue
+                      placeholder={!selectedSubDepartment ? "Select Sub-department first" : "Select Service"}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {filteredServicesForDept.map((srv) => (
@@ -530,10 +789,12 @@ export function ProjectMastersSection({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all"
-                  title="Add new Service"
+                  disabled={!selectedSubDepartment}
+                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40"
+                  title={!selectedSubDepartment ? "Select Sub-department first to add service" : "Add new Service"}
                   onClick={() => {
                     setNewServiceDept(selectedDepartment || availableDepartments[0] || "");
+                    setNewServiceSubDept(selectedSubDepartment || "");
                     setNewServiceName("");
                     setNewServiceTools("");
                     setNewServiceDays("");
@@ -606,6 +867,7 @@ export function ProjectMastersSection({
               onClick={() => {
                 setSelectedContractType("");
                 setSelectedDepartment("");
+                setSelectedSubDepartment("");
                 setSelectedService("");
                 setTools("");
                 setDuration("");
@@ -705,7 +967,15 @@ export function ProjectMastersSection({
                     </td>
                     <td className="py-3 px-3 align-top">
                       <div className="font-medium text-foreground">{item.service}</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">{item.department}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center flex-wrap gap-1">
+                        <span>{item.department}</span>
+                        {item.subDepartment && (
+                          <>
+                            <span className="text-primary/70 font-semibold">›</span>
+                            <span className="text-foreground/85 font-medium">{item.subDepartment}</span>
+                          </>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-3 align-top max-w-xs">
                       <p className="text-muted-foreground line-clamp-2 leading-relaxed">{item.tools}</p>
@@ -885,6 +1155,117 @@ export function ProjectMastersSection({
         </DialogContent>
       </Dialog>
 
+      {/* ── Add New Sub-department Dialog ─────────────────────────────────── */}
+      <Dialog open={showAddSubDepartmentModal} onOpenChange={setShowAddSubDepartmentModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              Add New Sub-department
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Configure a new sub-department under a department for Project Masters and the Project Onboarding Form.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {addSubDepartmentError && (
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{addSubDepartmentError}</span>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                Contract Type <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={newSubDeptContractType || selectedContractType}
+                onValueChange={(val) => {
+                  setNewSubDeptContractType(val);
+                  setNewSubDeptDepartment("");
+                }}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select Contract Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableContractTypes.map((ct) => (
+                    <SelectItem key={ct} value={ct} className="text-xs">
+                      {ct}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                Target Department <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={newSubDeptDepartment || selectedDepartment}
+                onValueChange={setNewSubDeptDepartment}
+                disabled={!(newSubDeptContractType || selectedContractType)}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue
+                    placeholder={
+                      !(newSubDeptContractType || selectedContractType)
+                        ? "Select Contract Type first"
+                        : "Select Department"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {resolveDepartmentsForContractType(newSubDeptContractType || selectedContractType).map((dept) => (
+                    <SelectItem key={dept} value={dept} className="text-xs">
+                      {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="new-subdepartment-name" className="text-xs font-medium">
+                Sub-department Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="new-subdepartment-name"
+                placeholder="e.g. Cloud Pen Testing, Threat Modeling, DevSecOps Pipeline"
+                value={newSubDeptName}
+                onChange={(e) => setNewSubDeptName(e.target.value)}
+                className="h-9 text-xs"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSaveNewSubDepartment();
+                  }
+                }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs h-8"
+              onClick={() => setShowAddSubDepartmentModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" size="sm" className="text-xs h-8 gap-1.5" onClick={handleSaveNewSubDepartment}>
+              <Plus className="h-3.5 w-3.5" />
+              Add Sub-department
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* ── Add New Service Dialog ───────────────────────────────────────── */}
       <Dialog open={showAddServiceModal} onOpenChange={setShowAddServiceModal}>
         <DialogContent className="sm:max-w-lg">
@@ -909,7 +1290,10 @@ export function ProjectMastersSection({
               <Label className="text-xs font-medium">
                 Target Department <span className="text-destructive">*</span>
               </Label>
-              <Select value={newServiceDept} onValueChange={setNewServiceDept}>
+              <Select value={newServiceDept} onValueChange={(d) => {
+                setNewServiceDept(d);
+                setNewServiceSubDept("");
+              }}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>
@@ -917,6 +1301,27 @@ export function ProjectMastersSection({
                   {availableDepartments.map((dept) => (
                     <SelectItem key={dept} value={dept} className="text-xs">
                       {dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                Sub-department (Optional)
+              </Label>
+              <Select value={newServiceSubDept} onValueChange={setNewServiceSubDept}>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Select Sub-department (Optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(newServiceDept
+                    ? resolveSubDepartmentsForDepartment(selectedContractType, newServiceDept)
+                    : availableSubDepartments
+                  ).map((sub) => (
+                    <SelectItem key={sub} value={sub} className="text-xs">
+                      {sub}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1006,7 +1411,7 @@ export function ProjectMastersSection({
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold">Edit Project Master</DialogTitle>
             <DialogDescription className="text-xs">
-              Update contract type, department, service configuration, tools, duration, or unit price.
+              Update contract type, department, sub-department, service configuration, tools, duration, or unit price.
             </DialogDescription>
           </DialogHeader>
 
@@ -1020,8 +1425,10 @@ export function ProjectMastersSection({
           <div className="space-y-3.5 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Contract Type</Label>
-                <Select value={editContractType} onValueChange={setEditContractType}>
+                <Label className="text-xs font-medium">
+                  Contract Type <span className="text-destructive">*</span>
+                </Label>
+                <Select value={editContractType} onValueChange={handleEditContractTypeChange}>
                   <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="Select Contract Type" />
                   </SelectTrigger>
@@ -1036,13 +1443,19 @@ export function ProjectMastersSection({
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs">Department</Label>
-                <Select value={editDepartment} onValueChange={setEditDepartment}>
+                <Label className="text-xs font-medium">
+                  Department <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={editDepartment}
+                  onValueChange={handleEditDepartmentChange}
+                  disabled={!editContractType}
+                >
                   <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
+                    <SelectValue placeholder={!editContractType ? "Select Contract Type first" : "Select Department"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableDepartments.map((d) => (
+                    {editAvailableDepartments.map((d) => (
                       <SelectItem key={d} value={d} className="text-xs">
                         {d}
                       </SelectItem>
@@ -1052,20 +1465,50 @@ export function ProjectMastersSection({
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs">Service</Label>
-              <Select value={editService} onValueChange={setEditService}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableServices.map((s) => (
-                    <SelectItem key={s} value={s} className="text-xs">
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">
+                  Sub-department <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={editSubDepartment}
+                  onValueChange={handleEditSubDepartmentChange}
+                  disabled={!editDepartment}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder={!editDepartment ? "Select Department first" : "Select Sub-department"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {editAvailableSubDepartments.map((sd) => (
+                      <SelectItem key={sd} value={sd} className="text-xs">
+                        {sd}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">
+                  Service <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={editService}
+                  onValueChange={handleEditServiceChange}
+                  disabled={!editSubDepartment}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder={!editSubDepartment ? "Select Sub-department first" : "Select Service"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {editFilteredServices.map((s) => (
+                      <SelectItem key={s} value={s} className="text-xs">
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-1">

@@ -48,16 +48,20 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
           }
         };
 
+        const registerSubModule = (sub: SidebarSubModule, parentId?: string, parentCode?: string) => {
+          registerItem(sub.code, sub.id, parentId, parentCode);
+          for (const subChild of sub.children ?? []) {
+            registerSubModule(subChild, sub.id, sub.code);
+          }
+          for (const tab of sub.tabs ?? []) {
+            registerTab(tab, sub.id, sub.code);
+          }
+        };
+
         for (const mod of modules) {
           registerItem(mod.code, mod.id);
           for (const sub of mod.subModules ?? []) {
-            registerItem(sub.code, sub.id, mod.id, mod.code);
-            for (const subChild of sub.children ?? []) {
-              registerItem(subChild.code, subChild.id, sub.id, sub.code);
-            }
-            for (const tab of sub.tabs ?? []) {
-              registerTab(tab, sub.id, sub.code);
-            }
+            registerSubModule(sub, mod.id, mod.code);
           }
           for (const w of mod.widgets ?? []) {
             registerItem(w.code, w.id, mod.id, mod.code);

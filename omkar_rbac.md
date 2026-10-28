@@ -169,7 +169,13 @@ We will use a single, unified permission table: **`auth.tbl_role_permissions`**
   3. `Team` (`Code = 'project-team'`, `Id = c1a11111-0001-4000-8000-000000000003`)
   4. `Tasks` (`Code = 'project-tasks'`, `Id = c1a11111-0001-4000-8000-000000000004`)
   5. `Health` (`Code = 'project-health'`, `Id = c1a11111-0001-4000-8000-000000000005`)
-  6. `Invoices` (`Code = 'project-invoices'`, `Id = c1a11111-0001-4000-8000-000000000006`)
+  6. `Invoices` (`Code = 'project-invoices'`, `Id = c1a11111-0001-4000-8000-000000000006`, *Hidden / Inactive*)
+
+- **Sub-Tabs under Overview (`master.mst_tabs` where `TabId = c1a11111-0001-4000-8000-000000000001`):**
+  1. `Senior Project Managers` (`Code = 'overview-senior-project-managers'`, `Id = c1a11111-0003-4000-8000-000000000002`)
+  2. `Project Managers` (`Code = 'overview-project-managers'`, `Id = c1a11111-0003-4000-8000-000000000003`)
+  3. `Team Leads` (`Code = 'overview-team-leads'`, `Id = c1a11111-0003-4000-8000-000000000004`)
+  *(Note: `Budget` [Code = 'overview-budget'] is excluded / inactive as budget is not included)*
 
 - **Sub-Tabs under Health (`master.mst_tabs` where `TabId = c1a11111-0001-4000-8000-000000000005`):**
   1. `Issues` (`Code = 'health-issues'`, `Id = c1a11111-0002-4000-8000-000000000001`)
@@ -183,6 +189,7 @@ We will use a single, unified permission table: **`auth.tbl_role_permissions`**
    - Submodule `Project Detail` requires parent `Projects` view access to be viewable.
    - Submodule `Project Detail` can only receive `View + Manage` if the parent `Projects` module has `View + Manage`.
    - Direct tabs under `Project Detail` require `Project Detail` view access to be viewable.
+   - Sub-tabs under `Overview` require parent `Overview` tab view access to be viewable.
    - Sub-tabs under `Health` require parent `Health` tab view access to be viewable.
    - Any child tab can only receive `View + Manage` if its parent has `View + Manage`.
 
@@ -195,6 +202,36 @@ We will use a single, unified permission table: **`auth.tbl_role_permissions`**
 
 4. **When "View + Manage" is ON (`CanView = 1, CanManage = 1`):**
    - User has full access to view and manage project details, stages, PO documents, and assignments.
+
+### E. Resources Module & Employee Detail Submodule Rules
+
+- **Parent Module:** `master.mst_modules` (`Code = 'resources'`, `Name = 'Resources'`, `Id = 715f79ce-51ea-46d3-b95d-8318840f90a6`)
+- **Parent Submodule:** `master.mst_submodules` (`Code = 'employee-directory'`, `Name = 'Employee Directory'`, `Id = 39dbd425-643b-47e9-9936-6bbae9ef5ef5`, `Parent = Resources`)
+- **Child Submodule:** `master.mst_submodules` (`Code = 'employee-detail'`, `Name = 'Employee Detail'`, `Id = e8f7c125-0e5b-4e3d-98e3-542638fa0b23`, `Parent = Employee Directory`)
+
+- **Tabs under Employee Detail (`master.mst_tabs` where `SubModuleId = e8f7c125-0e5b-4e3d-98e3-542638fa0b23`):**
+  1. `Personal Information` (`Code = 'employee-personal-info'`, `Id = e1a11111-0001-4000-8000-000000000001`)
+  2. `Organization Details` (`Code = 'employee-organization-details'`, `Id = e1a11111-0001-4000-8000-000000000002`)
+  3. `Employment & Bond` (`Code = 'employee-employment-bond'`, `Id = e1a11111-0001-4000-8000-000000000003`)
+  4. `Education & Experience` (`Code = 'employee-education-experience'`, `Id = e1a11111-0001-4000-8000-000000000004`)
+  5. `PMO & EM Information` (`Code = 'employee-pmo-em-information'`, `Id = e1a11111-0001-4000-8000-000000000005`)
+  6. `Activity Logs` (`Code = 'employee-activity-logs'`, `Id = e1a11111-0001-4000-8000-000000000006`)
+
+1. **Hierarchy Rules:**
+   - Submodule `Employee Detail` requires parent `Employee Directory` view access to be viewable.
+   - Submodule `Employee Detail` can only receive `View + Manage` if `Employee Directory` has `View + Manage`.
+   - Tabs under `Employee Detail` require `Employee Detail` view access to be viewable.
+   - Any tab under `Employee Detail` can only receive `View + Manage` if `Employee Detail` has `View + Manage`.
+
+2. **When View is OFF (`CanView = 0` / cleared / no record):**
+   - Access to employee detail screens (`/employee-directory/$id`) is blocked and redirects to `/access-denied`.
+
+3. **When "Only view" is ON (`CanView = 1, CanManage = 0`):**
+   - User can access and view the Employee Profile screen (`/employee-directory/$id`) with allowed tabs.
+   - `Edit Profile` and `Offboard Employee` action buttons are hidden.
+
+4. **When "View + Manage" is ON (`CanView = 1, CanManage = 1`):**
+   - User has full access to view employee profile, edit profile, and manage offboarding.
 
 ---
 

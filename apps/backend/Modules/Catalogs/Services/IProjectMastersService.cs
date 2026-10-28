@@ -16,5 +16,7 @@ public interface IProjectMastersService
 
     Task<ServiceDepartmentDto> CreateDepartmentAsync(CreateServiceDepartmentRequest request, CancellationToken ct = default);
 
+    Task<ServiceSubDepartmentDto> CreateSubDepartmentAsync(CreateServiceSubDepartmentRequest request, CancellationToken ct = default);
+
     Task<ProjectMasterRowDto> CreateServiceOnlyAsync(CreateServiceOnlyRequest request, CancellationToken ct = default);
 }

@@ -588,7 +588,7 @@ function DateRangePicker({
 
 const projectDetailRoute = getRouteApi("/projects/$projectId");
 
-const tabs = ["Overview", "WBS", "Team", "Tasks", "Health", "Invoices"] as const;
+const tabs = ["Overview", "WBS", "Team", "Tasks", "Health"] as const;
 type Tab = (typeof tabs)[number];
 
 function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
@@ -1001,15 +1001,13 @@ export function ProjectDetailPage() {
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
   const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
   // Employees only get Team / Tasks / Health — every other submodule is hidden.
-  // PM family get everything except Invoices.
-  // Accounts: Overview, WBS, Invoices only.
+  // Accounts: Overview, WBS only.
+  // Invoice tab is hidden across the application.
   const visibleTabs: Tab[] = isEmployee
     ? ["Team", "Tasks", "Health"]
-    : isPmFamily
-      ? tabs.filter((t) => t !== "Invoices")
-      : isAccounts
-        ? ["Overview", "WBS", "Invoices"]
-        : [...tabs];
+    : isAccounts
+      ? ["Overview", "WBS"]
+      : [...tabs];
   const useDhWorkspace = isDhanshree || isPmFamily || isPmoFamily || isSales;
   const invoiceEditable = isDhanshree || isAccounts;
   const invoicePmoColumns = isPmoFamily;
@@ -1644,19 +1642,7 @@ export function ProjectDetailPage() {
                   toast.success("Payment marked as Received");
                 }
               }}
-              poDocumentPanel={
-                showPoDocumentPanel ? (
-                  <PoDocumentPanel
-                    fileName={poFileName}
-                    poStatus={poStatus}
-                    canAttach={canAttachPo}
-                    canView={canViewPo}
-                    onView={() => { void openPoPreview(); }}
-                    onDownload={() => { void handleDownloadPO(); }}
-                    onAttach={handleAttachPo}
-                  />
-                ) : null
-              }
+              poDocumentPanel={null}
             />
           )}
 
@@ -1679,227 +1665,6 @@ export function ProjectDetailPage() {
             ) : (
               <DefaultTeamTab project={project} pm={pm} tl={tl} team={team} />
             ))}
-
-          {tab === "Invoices" && (
-            <div className="space-y-4">
-              {showPoDocumentPanel && poFileName && (
-                <PoDocumentPanel
-                  fileName={poFileName}
-                  poStatus={poStatus}
-                  canAttach={false}
-                  canView={canViewPo}
-                  onView={() => { void openPoPreview(); }}
-                  onDownload={() => { void handleDownloadPO(); }}
-                  onAttach={handleAttachPo}
-                />
-              )}
-
-              {invoicePmoColumns ? (
-                <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 font-medium">Service Name</th>
-                        <th className="px-3 py-2 font-medium">Milestone</th>
-                        <th className="px-3 py-2 font-medium">Resource Level</th>
-                        <th className="px-3 py-2 font-medium">Invoice Target Date</th>
-                        <th className="px-3 py-2 font-medium">Qty</th>
-                        <th className="px-3 py-2 font-medium">Invoice Status</th>
-                        <th className="px-3 py-2 font-medium">Invoice Number</th>
-                        <th className="px-3 py-2 font-medium">Date of Payment</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border">
-                      {raisedInvoices.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-accent/30">
-                          <td className="px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">{inv.serviceName || "—"}</td>
-                          <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
-                          <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
-                          <td className="px-3 py-2.5">
-                            {invoiceEditable ? (
-                              <input
-                                type="date"
-                                value={toDateInputValue(inv.invoiceTargetDate)}
-                                onChange={(e) => {
-                                  void saveInvoiceDate(inv.id, e.target.value);
-                                }}
-                                className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">{inv.invoiceTargetDate || "—"}</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
-                          <td className="px-3 py-2.5">
-                            <span className={cn(
-                              "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
-                              inv.invoiceStatus === "Raised" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800",
-                            )}>
-                              {inv.invoiceStatus}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 font-mono text-xs">{inv.invoiceNumber || "-"}</td>
-                          <td className="px-3 py-2.5">
-                            {invoiceEditable ? (
-                              <input
-                                type="date"
-                                value={toDateInputValue(inv.paymentReceivedDate)}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  void (val ? saveInvoicePaid(inv.id, val) : saveInvoiceUnpaid(inv.id)).then((ok) => {
-                                    if (ok) dhStore.updatePaymentReceivedDate(project.id, inv.id, val);
-                                  });
-                                }}
-                                className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              />
-                            ) : (
-                              <span className="text-xs text-muted-foreground">{inv.paymentReceivedDate || "-"}</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {raisedInvoices.length === 0 && (
-                        <tr><td colSpan={8} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-lg border border-border">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <tr>
-                        <th className="px-3 py-2 font-medium">Service Name</th>
-                        <th className="px-3 py-2 font-medium">Milestone / Period</th>
-                        <th className="px-3 py-2 font-medium">Resource Level</th>
-                        <th className="px-3 py-2 font-medium">Invoice Target Date</th>
-                        <th className="px-3 py-2 font-medium">Unit Price</th>
-                        <th className="px-3 py-2 font-medium">Qty</th>
-                        <th className="px-3 py-2 font-medium">Currency</th>
-                        <th className="px-3 py-2 font-medium">Invoice Amount</th>
-                        <th className="px-3 py-2 font-medium">Invoice Status</th>
-                        <th className="px-3 py-2 font-medium">Invoice Number</th>
-                        <th className="px-3 py-2 font-medium">Payment Status</th>
-                        <th className="px-3 py-2 font-medium">Date Of Payment Received</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y border-border">
-                      {raisedInvoices.map((inv) => {
-                        const statusTone = inv.invoiceStatus === "Raised" ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-800";
-                        const paymentTone = inv.paymentStatus === "Received" ? "bg-success/10 text-success border-success/30" : "bg-warning/15 text-warning-foreground border-warning/30";
-
-                        return (
-                          <tr key={inv.id} className="hover:bg-accent/30">
-                            <td className="px-3 py-2.5 font-semibold text-foreground whitespace-nowrap">{inv.serviceName || "—"}</td>
-                            <td className="px-3 py-2.5 font-medium">{inv.milestone}</td>
-                            <td className="px-3 py-2.5 text-center font-medium">{inv.resourceLevel || "—"}</td>
-                            <td className="px-3 py-2.5">
-                              {invoiceEditable ? (
-                                <input
-                                  type="date"
-                                  value={toDateInputValue(inv.invoiceTargetDate)}
-                                  onChange={(e) => {
-                                    void saveInvoiceDate(inv.id, e.target.value);
-                                  }}
-                                  className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                />
-                              ) : (
-                                <span className="text-xs text-muted-foreground">{inv.invoiceTargetDate || "—"}</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.unitPrice.toLocaleString()}</td>
-                            <td className="px-3 py-2.5 text-center font-medium">{inv.qty}</td>
-                            <td className="px-3 py-2.5 font-medium">{inv.currency}</td>
-                            <td className="px-3 py-2.5 font-semibold tabular-nums">${inv.invoiceAmount.toLocaleString()}</td>
-                            <td className="px-3 py-2.5">
-                              <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium", statusTone)}>
-                                {inv.invoiceStatus}
-                              </span>
-                            </td>
-                            <td className="px-3 py-2.5 font-mono text-xs">
-                              {inv.invoiceNumber || "-"}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {invoiceEditable && inv.paymentStatus !== "Received" ? (
-                                <select
-                                  value={inv.paymentStatus}
-                                  onChange={(e) => {
-                                    const val = e.target.value as "Not Received" | "Received";
-                                    void (val === "Received" ? saveInvoicePaid(inv.id, inv.paymentReceivedDate) : saveInvoiceUnpaid(inv.id))
-                                      .then((ok) => {
-                                        if (!ok) return;
-                                        dhStore.updatePaymentStatus(project.id, inv.id, val, user.id, user.name);
-                                        toast.success(`Payment Status updated to ${val}`);
-                                      });
-                                  }}
-                                  className={cn(
-                                    "h-7 rounded-full border px-2 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring bg-white cursor-pointer",
-                                    paymentTone
-                                  )}
-                                >
-                                  <option value="Not Received" className="bg-white text-gray-800">Not Received</option>
-                                  <option value="Received" className="bg-white text-gray-800">Received</option>
-                                </select>
-                              ) : (
-                                <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium", paymentTone)}>
-                                  {inv.paymentStatus}
-                                </span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2.5">
-                              {invoiceEditable ? (
-                                <input
-                                  type="date"
-                                  value={toDateInputValue(inv.paymentReceivedDate)}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    void (val ? saveInvoicePaid(inv.id, val) : saveInvoiceUnpaid(inv.id)).then((ok) => {
-                                      if (ok) dhStore.updatePaymentReceivedDate(project.id, inv.id, val);
-                                    });
-                                  }}
-                                  className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                />
-                              ) : (
-                                <span className="text-xs text-muted-foreground">{inv.paymentReceivedDate || "-"}</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {raisedInvoices.length === 0 && (
-                        <tr><td colSpan={12} className="px-3 py-8 text-center text-sm text-muted-foreground">No invoices raised yet</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Project Closure Section */}
-              {(isDhanshree || isAccounts) && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm mt-4">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0" />
-                  <span>Project closure requires all 4 project stages to be completed and all invoice payments to be received.</span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleProjectClosure}
-                  disabled={project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-md px-4 py-2 text-xs font-semibold shadow-sm transition-all",
-                    project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived"
-                      ? "bg-muted text-muted-foreground cursor-not-allowed border border-border"
-                      : "bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer"
-                  )}
-                >
-                  <Archive className="h-4 w-4" />
-                  {project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived" ? "Project Archived" : "Project Closure"}
-                </button>
-              </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
@@ -2076,11 +1841,9 @@ function WbsTab({
   const canRaise = isDhanshree || isAccounts;
   const [apiWbsServices, setApiWbsServices] = useState<WbsService[] | null>(null);
   const [rawServices, setRawServices] = useState<ApiProjectService[]>([]);
-  const [apiWbsInvoices, setApiWbsInvoices] = useState<any[] | null>(null);
   const [isEditServicesOpen, setIsEditServicesOpen] = useState(false);
   const [showDeletedServices, setShowDeletedServices] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
-  const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null);
 
   const loadServices = useCallback(() => {
     if (!isApiGuid(project.id)) return () => {};
@@ -2138,31 +1901,9 @@ function WbsTab({
     };
   }, [project.id, showDeletedServices]);
 
-  const loadInvoices = useCallback(() => {
-    if (!isApiGuid(project.id)) return () => {};
-    let active = true;
-    fetchProjectInvoices(project.id, showDeletedServices)
-      .then((rows) => {
-        if (!active) return;
-        setApiWbsInvoices(
-          rows.map((inv, idx) => mapApiInvoiceToScheduleRow(inv, idx, project.currency || "INR"))
-        );
-      })
-      .catch(() => {
-        if (active) setApiWbsInvoices(null);
-      });
-    return () => {
-      active = false;
-    };
-  }, [project.id, showDeletedServices, project.currency]);
-
   useEffect(() => {
     return loadServices();
   }, [loadServices, refreshCount]);
-
-  useEffect(() => {
-    return loadInvoices();
-  }, [loadInvoices, refreshCount]);
 
   if (project.wbsDetails) {
     const wbsDetails = project.wbsDetails;
@@ -2187,30 +1928,17 @@ function WbsTab({
 
     return (
       <div className="space-y-5">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
-            <div className="space-y-2">
-              <InfoRow label="WBS ID" value={project.wbsId || "—"} />
-              <InfoRow label="Contract Type" value={project.contractType || wbsDetails.contractType || "—"} />
-              <InfoRow label="Project Type" value={project.projectType || wbsDetails.projectType || "—"} />
-              <InfoRow
-                label="Engagement Manager"
-                value={project.engagementManager || wbsDetails.engagementManager || "—"}
-              />
-              <InfoRow label="Sales Person" value={project.salesPerson || wbsDetails.salesPerson || "—"} />
-            </div>
-          </div>
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
-            <div className="space-y-2">
-              <InfoRow label="Billing Model" value={wbsDetails.accounts?.billingModel || (project as any).billingModel || "—"} />
-              <InfoRow label="Payment Terms" value={wbsDetails.accounts?.paymentTerms || (project as any).paymentTerms || "—"} />
-              {!hideAmounts && (
-                <InfoRow label="Total Services Value" value={`${currency} ${(totalServices || project.budget || 0).toLocaleString()}`} />
-              )}
-              <InfoRow label="Currency" value={currency} />
-            </div>
+        <div className="rounded-lg border border-border bg-card p-4 max-w-xl">
+          <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
+          <div className="space-y-2">
+            <InfoRow label="WBS ID" value={project.wbsId || "—"} />
+            <InfoRow label="Contract Type" value={project.contractType || wbsDetails.contractType || "—"} />
+            <InfoRow label="Project Type" value={project.projectType || wbsDetails.projectType || "—"} />
+            <InfoRow
+              label="Engagement Manager"
+              value={project.engagementManager || wbsDetails.engagementManager || "—"}
+            />
+            <InfoRow label="Sales Person" value={project.salesPerson || wbsDetails.salesPerson || "—"} />
           </div>
         </div>
 
@@ -2273,12 +2001,7 @@ function WbsTab({
                   <th className="px-4 py-3 min-w-[100px] text-center whitespace-nowrap">Duration Hours</th>
                   <th className="px-4 py-3 min-w-[90px] text-center whitespace-nowrap">Total Days</th>
                   <th className="px-4 py-3 min-w-[90px] text-center whitespace-nowrap">Total Hours</th>
-                  {!hideAmounts && (
-                    <>
-                      <th className="px-4 py-3 min-w-[100px] text-right whitespace-nowrap">Unit Price</th>
-                      <th className="px-4 py-3 min-w-[110px] text-right whitespace-nowrap">Total</th>
-                    </>
-                  )}
+
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -2379,221 +2102,17 @@ function WbsTab({
                           svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")
                         )}
                       </td>
-                      {!hideAmounts && (
-                        <>
-                          <td className="px-4 py-2.5 text-right font-mono tabular-nums whitespace-nowrap">
-                            {(isModPending && svc.pendingUnitPrice != null ? svc.pendingUnitPrice : svc.unitPrice) != null
-                              ? `${currency} ${Number(isModPending && svc.pendingUnitPrice != null ? svc.pendingUnitPrice : svc.unitPrice).toLocaleString()}`
-                              : "—"}
-                          </td>
-                          <td className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums whitespace-nowrap">
-                            {(() => {
-                              const effQty = (isModPending && svc.pendingQty != null) ? Number(svc.pendingQty) : (Number(svc.qty) || 1);
-                              const effPrice = (isModPending && svc.pendingUnitPrice != null) ? Number(svc.pendingUnitPrice) : (Number(svc.unitPrice) || 0);
-                              const lineTot = (isModPending && svc.pendingQty != null)
-                                ? (effQty * effPrice)
-                                : (Number(svc.total) > 0 ? Number(svc.total) : effQty * effPrice);
-                              return isModPending ? (
-                                <span className="text-amber-700 font-bold">{currency} {lineTot.toLocaleString()}</span>
-                              ) : (
-                                `${currency} ${lineTot.toLocaleString()}`
-                              );
-                            })()}
-                          </td>
-                        </>
-                      )}
                     </tr>
                   );
                 })}
                 {deliverableServices.length === 0 && (
-                  <tr><td colSpan={hideAmounts ? 19 : 21} className="px-4 py-8 text-center text-sm text-muted-foreground">No services defined.</td></tr>
+                  <tr><td colSpan={19} className="px-4 py-8 text-center text-sm text-muted-foreground">No services defined.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
 
-        {!hideAmounts && (
-          <div className="grid gap-4 md:grid-cols-3 rounded-lg border border-border bg-muted/20 p-4">
-            <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1">Services Subtotal</div>
-              <div className="text-lg font-semibold">{currency} {totalServices.toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1">Tax ({taxPercent}%)</div>
-              <div className="text-lg font-semibold">{currency} {tax.toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="text-xs font-medium text-muted-foreground mb-1">Grand Total</div>
-              <div className="text-lg font-semibold text-primary">{currency} {grandTotal.toLocaleString()}</div>
-            </div>
-          </div>
-        )}
-
-        {!hideAmounts && (
-          <div>
-            <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
-            <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Service Name</th>
-                    <th className="px-3 py-2 font-medium">Milestone/Period</th>
-                    <th className="px-3 py-2 font-medium">Invoice Date</th>
-                    <th className="px-3 py-2 font-medium">Remarks</th>
-                    <th className="px-3 py-2 font-medium">Amount</th>
-                    <th className="px-3 py-2 font-medium text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {(() => {
-                    const liveInvoicesSource =
-                      apiWbsInvoices && apiWbsInvoices.length > 0
-                        ? apiWbsInvoices
-                        : (wbsDetails.accounts?.invoices ?? []);
-                    const scheduleInvoices = liveInvoicesSource.filter(
-                      (inv: any) => showDeletedServices || (!inv.isDeleted && !inv.deletedAtUtc)
-                    );
-
-                    return (
-                      <>
-                        {scheduleInvoices.map((inv: any) => {
-                          const isDeleted = Boolean(inv.isDeleted || inv.deletedAtUtc);
-                          const isPaid = inv.paymentStatus === "Received";
-                          const isRaised = inv.invoiceStatus === "Raised" || isPaid;
-                          const displayInvoiceNo = inv.invoiceNumber || inv.remarks || "-";
-                          const displayDate = inv.invoiceTargetDate || inv.targetDate || inv.invoiceDate || "";
-                          const displayServiceName =
-                            inv.serviceName ||
-                            wbsDetails.services?.find((s: any) => s.id === inv.serviceId || s.taskId === inv.serviceId)?.serviceName ||
-                            (wbsDetails.services?.length === 1 ? wbsDetails.services[0].serviceName : "") ||
-                            "—";
-
-                          return (
-                            <tr
-                              key={inv.id}
-                              className={cn(
-                                "hover:bg-accent/30 transition-colors",
-                                isDeleted && "opacity-60 bg-muted/30 line-through"
-                              )}
-                            >
-                              <td className="px-3 py-2 font-semibold text-foreground whitespace-nowrap">
-                                <div className="flex items-center gap-2">
-                                  <span>{displayServiceName}</span>
-                                  {isDeleted && (
-                                    <Badge variant="outline" className="px-1.5 py-0 text-[10px] font-semibold bg-muted text-muted-foreground border-border">
-                                      Deleted
-                                    </Badge>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 font-medium">{inv.milestone}</td>
-                              <td className="px-3 py-2">
-                                {canRaise && !isDeleted ? (
-                                  <input
-                                    type="date"
-                                    value={toDateInputValue(displayDate)}
-                                    onChange={(e) => {
-                                      onInvoiceDateChange(inv.id, e.target.value);
-                                      setApiWbsInvoices((prev) =>
-                                        prev
-                                          ? prev.map((item) =>
-                                              item.id === inv.id
-                                                ? { ...item, invoiceDate: e.target.value, targetDate: e.target.value, invoiceTargetDate: e.target.value }
-                                                : item
-                                            )
-                                          : null
-                                      );
-                                    }}
-                                    className="h-7 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                  />
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">{displayDate || "—"}</span>
-                                )}
-                              </td>
-                              <td className="px-3 py-2 font-mono text-xs">{displayInvoiceNo}</td>
-                              <td className="px-3 py-2 font-medium">{wbsDetails.currency} {inv.amount.toLocaleString()}</td>
-                              <td className="px-3 py-2 text-right">
-                                {isDeleted ? (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                ) : isPaid ? (
-                                  <span className="inline-flex rounded-full bg-success/10 border border-success/30 px-2 py-0.5 text-[11px] font-medium text-success">
-                                    Paid
-                                  </span>
-                                ) : isRaised ? (
-                                  <div className="flex items-center justify-end gap-2">
-                                    <span className="inline-flex rounded-full bg-blue-100 border border-blue-200 px-2 py-0.5 text-[11px] font-medium text-blue-800">
-                                      Raised
-                                    </span>
-                                    {canRaise && (
-                                      <button
-                                        onClick={() => setConfirmPaidId(inv.id)}
-                                        className="inline-flex items-center gap-1 rounded bg-success px-2 py-0.5 text-[10px] font-semibold text-success-foreground hover:bg-success/90 cursor-pointer"
-                                      >
-                                        Mark Paid
-                                      </button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  canRaise ? (
-                                    <button
-                                      onClick={() => onRaiseInvoice(inv.id)}
-                                      className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                                    >
-                                      Raise Invoice
-                                    </button>
-                                  ) : (
-                                    <span className="inline-flex rounded-full bg-gray-100 border border-gray-200 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-                                      Not Raised
-                                    </span>
-                                  )
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {scheduleInvoices.length === 0 && (
-                          <tr><td colSpan={6} className="px-3 py-6 text-center text-sm text-muted-foreground">No invoices scheduled.</td></tr>
-                        )}
-                      </>
-                    );
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {poDocumentPanel}
-
-        {confirmPaidId && (
-          <Modal title="Mark as Paid" onClose={() => setConfirmPaidId(null)}>
-            <div className="space-y-4">
-              <p className="text-sm text-foreground">Do you really want to mark this invoice as paid?</p>
-              <div className="flex justify-end gap-2 border-t border-border pt-4">
-                <button
-                  type="button"
-                  onClick={() => setConfirmPaidId(null)}
-                  className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!confirmPaidId) return;
-                    const invoiceId = confirmPaidId;
-                    setConfirmPaidId(null);
-                    onMarkPaid(invoiceId);
-                  }}
-                  className="rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 cursor-pointer"
-                >
-                  OK
-                </button>
-              </div>
-            </div>
-          </Modal>
-        )}
 
         <EditServicesModal
           isOpen={isEditServicesOpen}
@@ -2625,24 +2144,13 @@ function WbsTab({
   return (
     <div className="space-y-5">
       {/* WBS Info Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
-          <div className="space-y-2">
-            <InfoRow label="WBS ID" value={project.wbsId || "—"} />
-            <InfoRow label="Contract Type" value={project.contractType || "—"} />
-            <InfoRow label="Engagement Manager" value={project.engagementManager || "—"} />
-            <InfoRow label="Sales Person" value={project.salesPerson || "—"} />
-          </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <h3 className="mb-3 text-sm font-semibold">Billing Information</h3>
-          <div className="space-y-2">
-            <InfoRow label="Project Type" value={project.projectType || "—"} />
-            <InfoRow label="Billing Model" value={(project as any).billingModel || "—"} />
-            {!hideAmounts && <InfoRow label="Total Amount" value={`${project.currency || "INR"} ${(project.budget || 0).toLocaleString()}`} />}
-            <InfoRow label="Currency" value={project.currency || "INR"} />
-          </div>
+      <div className="rounded-lg border border-border bg-card p-4 max-w-xl">
+        <h3 className="mb-3 text-sm font-semibold">WBS Details</h3>
+        <div className="space-y-2">
+          <InfoRow label="WBS ID" value={project.wbsId || "—"} />
+          <InfoRow label="Contract Type" value={project.contractType || "—"} />
+          <InfoRow label="Engagement Manager" value={project.engagementManager || "—"} />
+          <InfoRow label="Sales Person" value={project.salesPerson || "—"} />
         </div>
       </div>
 
@@ -2716,74 +2224,10 @@ function WbsTab({
       </div>
 
       {/* Totals */}
-      <div className="grid gap-4 md:grid-cols-4 rounded-lg border border-border bg-muted/20 p-4">
-        <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1">Subtotal</div>
-          <div className="text-lg font-semibold text-muted-foreground">---------</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1">Tax (18%)</div>
-          <div className="text-lg font-semibold text-muted-foreground">---------</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1">Total Days</div>
-          <div className="text-lg font-semibold">35 days</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium text-muted-foreground mb-1">Grand Total</div>
-          <div className="text-lg font-semibold text-muted-foreground">---------</div>
-        </div>
+      <div className="rounded-lg border border-border bg-muted/20 p-4 max-w-xs">
+        <div className="text-xs font-medium text-muted-foreground mb-1">Total Days</div>
+        <div className="text-lg font-semibold">35 days</div>
       </div>
-
-      {/* Invoice Schedule — hidden when budget is not visible */}
-      {!hideAmounts && (
-        <div>
-          <h3 className="mb-3 text-sm font-semibold">Invoice Schedule</h3>
-          <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">#</th>
-                  <th className="px-3 py-2 font-medium">Service Name</th>
-                  <th className="px-3 py-2 font-medium">Milestone/Period</th>
-                  <th className="px-3 py-2 font-medium">Invoice Target Date</th>
-                  <th className="px-3 py-2 font-medium">Duration/Days</th>
-                  <th className="px-3 py-2 font-medium">Billing Model</th>
-                  <th className="px-3 py-2 font-medium">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                <tr className="hover:bg-accent/30">
-                  <td className="px-3 py-2">1</td>
-                  <td className="px-3 py-2 font-semibold text-foreground">Cybersecurity Assessment</td>
-                  <td className="px-3 py-2 font-medium">Advance 70%</td>
-                  <td className="px-3 py-2">02 Feb 2026</td>
-                  <td className="px-3 py-2">20 days</td>
-                  <td className="px-3 py-2">70% Advance</td>
-                  <td className="px-3 py-2">
-                    <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                      Invoice should be raised
-                    </button>
-                  </td>
-                </tr>
-                <tr className="hover:bg-accent/30">
-                  <td className="px-3 py-2">2</td>
-                  <td className="px-3 py-2 font-semibold text-foreground">Cybersecurity Assessment</td>
-                  <td className="px-3 py-2 font-medium">Final Delivery 30%</td>
-                  <td className="px-3 py-2">01 Sep 2026</td>
-                  <td className="px-3 py-2">15 days</td>
-                  <td className="px-3 py-2">30% on Delivery</td>
-                  <td className="px-3 py-2">
-                    <button className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                      Invoice should be raised
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
     </div>
   );
@@ -3166,20 +2610,10 @@ function OverviewTab({
             )}
           </p>
         ) : null}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Info icon={Calendar} label="Start" value={formatDate(effectiveStartDate)} />
           <Info icon={Calendar} label="End" value={formatDate(effectiveEndDate)} />
-          {!hideAmounts && (
-            <Info icon={Wallet} label="Budget" value={`${currency} ${(project.budget / 1000).toFixed(0)}k`} sub={`Spent ${currency} ${(project.spent / 1000).toFixed(0)}k`} />
-          )}
         </div>
-        {!hideAmounts && project.budget > 0 && (
-          <div>
-            <h3 className="mb-2 text-sm font-semibold">Budget burn</h3>
-            <ProgressBar value={(project.spent / project.budget) * 100} />
-            <p className="mt-1 text-xs text-muted-foreground">{((project.spent / project.budget) * 100).toFixed(0)}% utilized</p>
-          </div>
-        )}
 
         {/* WBS Project Info — shown for projects created via the WBS form */}
         {hasWbsData && (
@@ -3210,22 +2644,6 @@ function OverviewTab({
                   <DetailField key={f.label} label={f.label} value={f.value} />
                 ))}
             </div>
-            {totalServices > 0 && (
-              <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border">
-                <div>
-                  <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Services Subtotal</div>
-                  <div className="text-sm font-semibold">{currency} {totalServices.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Tax ({taxPct}%)</div>
-                  <div className="text-sm font-semibold">{currency} {taxAmount.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Grand Total</div>
-                  <div className="text-sm font-semibold text-primary">{currency} {grandTotal.toLocaleString()}</div>
-                </div>
-              </div>
-            )}
             {(displayDays || displayHours) ? (
               <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
                 {displayDays ? (

@@ -48,10 +48,19 @@ This work implements clean-slate Role-Based Access Control (RBAC) following [`om
    - Added submodule `Project Detail` (`project-detail`, ID `b8f7c125-0e5b-4e3d-98e3-542638fa0b21`) in `master.mst_submodules` under parent `Projects` (`projects`).
    - Appears in `/settings-security-roles` as an expandable child submodule under Projects with View and View+Manage assignment options.
    - Guarded `/projects/$projectId` with `canView("project-detail")`.
-8. **Project Detail Tabs & Health Sub-Tabs in Database (`master.mst_tabs`)**:
-   - Added 6 tabs under `Project Detail` (`SubModuleId = b8f7c125-0e5b-4e3d-98e3-542638fa0b21`): `Overview`, `WBS`, `Team`, `Tasks`, `Health`, `Invoices`.
+8. **Project Detail Tabs & Health / Overview Sub-Tabs in Database (`master.mst_tabs`)**:
+   - Registered direct tabs under `Project Detail` (`SubModuleId = b8f7c125-0e5b-4e3d-98e3-542638fa0b21`): `Overview`, `WBS`, `Team`, `Tasks`, `Health` (with `Invoices` set to inactive/hidden).
+   - Registered sub-tabs under `Overview` (`TabId = c1a11111-0001-4000-8000-000000000001`): `Senior Project Managers`, `Project Managers`, `Team Leads` (`Budget` excluded/inactive as budget is not included).
    - Added 6 sub-tabs under `Health` (`TabId = c1a11111-0001-4000-8000-000000000005`): `Issues`, `Alerts`, `Escalations`, `Appreciation`, `Customer Engagement`, `Extension Request`.
    - Updated `permissions.tsx` to recursively register nested tab hierarchies and enforce parent access.
+   - Removed Budget amounts, budget burn progress bar, billing amount totals, and Invoices tab from Project Detail UI.
+9. **Employee Detail Submodule & Tabs (`master.mst_submodules` & `master.mst_tabs`)**:
+   - Added child submodule `Employee Detail` (`employee-detail`, ID `e8f7c125-0e5b-4e3d-98e3-542638fa0b23`) under parent submodule `Employee Directory` in `master.mst_submodules`.
+   - Added 6 tabs under `Employee Detail` (`SubModuleId = e8f7c125-0e5b-4e3d-98e3-542638fa0b23`): `Personal Information`, `Organization Details`, `Employment & Bond`, `Education & Experience`, `PMO & EM Information`, `Activity Logs`.
+   - Enhanced `permissions.tsx` with recursive submodule registration to seamlessly propagate parent-child permissions for submodules at any hierarchy level.
+   - Guarded `/employee-directory/$id` with `canView("employee-detail")` (redirects to `/access-denied` if view is revoked).
+   - Dynamically filtered employee detail profile tabs based on role permissions for each tab code.
+   - Action buttons `Edit Profile` and `Offboard Employee` guarded by `canManage("employee-detail")`.
 
 ## Files Modified
 - [`omkar_rbac.md`](file:///Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/PMS_uat_clean/omkar_rbac.md)

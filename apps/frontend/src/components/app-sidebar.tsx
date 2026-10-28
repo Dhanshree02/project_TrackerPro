@@ -213,6 +213,7 @@ export function AppSidebar() {
                       toggleDropdown(menuKey);
                     }
                   }}
+                  title={isCollapsed ? `${it.label} (${it.subItems.length} submodules)` : undefined}
                   className={cn(
                     "group flex w-full items-center rounded-md transition-colors text-left outline-none",
                     isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-2 text-sm",
@@ -221,7 +222,20 @@ export function AppSidebar() {
                       : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
                   )}
                 >
-                  <it.icon className="h-4 w-4 shrink-0" />
+                  <div className="relative flex items-center justify-center">
+                    <it.icon className="h-4 w-4 shrink-0" />
+                    {isCollapsed && (
+                      <ChevronRight
+                        className={cn(
+                          "absolute -right-3 top-1/2 -translate-y-1/2 h-2.5 w-2.5 shrink-0 transition-all duration-200 group-hover/sidebar-item:translate-x-0.5",
+                          isParentActive
+                            ? "text-primary font-bold"
+                            : "text-muted-foreground/70 group-hover/sidebar-item:text-foreground",
+                        )}
+                        strokeWidth={2.5}
+                      />
+                    )}
+                  </div>
                   {!isCollapsed && <span className="flex-1 truncate">{it.label}</span>}
                   {!isCollapsed && (
                     <ChevronDown

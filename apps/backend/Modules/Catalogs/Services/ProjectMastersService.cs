@@ -190,6 +190,27 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
             department.SortOrder);
     }
 
+    public async Task<ServiceSubDepartmentDto> CreateSubDepartmentAsync(
+        CreateServiceSubDepartmentRequest request,
+        CancellationToken ct = default)
+    {
+        var subName = request.Name.Trim();
+        if (string.IsNullOrWhiteSpace(subName))
+            throw new ConflictException("Sub-department name is required.");
+
+        var group = await ResolveOrCreateGroupAsync(request.ContractType, ct);
+        var department = await ResolveOrCreateDepartmentAsync(group.Id, request.Department.Trim(), ct);
+        var subDepartment = await ResolveOrCreateSubDepartmentAsync(department.Id, subName, ct);
+
+        return new ServiceSubDepartmentDto(
+            subDepartment.Id,
+            subDepartment.Code,
+            subDepartment.Name,
+            department.Id,
+            department.Name,
+            subDepartment.SortOrder);
+    }
+
     public async Task<ProjectMasterRowDto> CreateServiceOnlyAsync(
         CreateServiceOnlyRequest request,
         CancellationToken ct = default)

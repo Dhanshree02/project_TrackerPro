@@ -388,6 +388,15 @@ public class CatalogsController(
         return Ok(ApiResponse<ServiceDepartmentDto>.Ok(created));
     }
 
+    [HttpPost("service-sub-departments")]
+    public async Task<ActionResult<ApiResponse<ServiceSubDepartmentDto>>> CreateServiceSubDepartment(
+        CreateServiceSubDepartmentRequest request,
+        CancellationToken ct)
+    {
+        var created = await projectMasters.CreateSubDepartmentAsync(request, ct);
+        return Ok(ApiResponse<ServiceSubDepartmentDto>.Ok(created));
+    }
+
     [HttpPost("project-masters/service-only")]
     public async Task<ActionResult<ApiResponse<ProjectMasterRowDto>>> CreateServiceOnly(
         CreateServiceOnlyRequest request,

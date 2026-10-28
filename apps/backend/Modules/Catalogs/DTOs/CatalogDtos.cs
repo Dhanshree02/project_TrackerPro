@@ -134,6 +134,11 @@ public sealed record CreateServiceDepartmentRequest(
     string ContractType,
     string Name);
 
+public sealed record CreateServiceSubDepartmentRequest(
+    string ContractType,
+    string Department,
+    string Name);
+
 public sealed record CreateServiceOnlyRequest(
     string ContractType,
     string Department,

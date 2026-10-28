@@ -1,10 +1,11 @@
 import { getRouteApi, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, AlertTriangle, Clock, History, Mail, RefreshCw, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
@@ -199,16 +200,19 @@ function OffboardConfirmDialog({
         setStatusOptions(list);
         if (list.length > 0) {
           const empStatus = (employee.confirmationStatus || employee.status || "").trim();
-          const matchedCurrent = list.find(
-            (s) => s.name.toLowerCase() === empStatus.toLowerCase(),
-          );
+          const isUnderReview = empStatus.toLowerCase().includes("resignation under review");
+          // If employee is already Resigned or Terminated, keep that; but if under review or active,
+          // offboarding them defaults directly to "Resigned"
+          const matchedCurrentExit = !isUnderReview
+            ? list.find((s) => s.name.toLowerCase() === empStatus.toLowerCase())
+            : null;
           const resigned = list.find((s) => s.name.toLowerCase() === "resigned");
           const terminated = list.find((s) => s.name.toLowerCase() === "terminated");
           const resignationReview = list.find((s) =>
             s.name.toLowerCase().includes("resignation under review"),
           );
           const selected =
-            matchedCurrent?.id ??
+            matchedCurrentExit?.id ??
             resigned?.id ??
             terminated?.id ??
             resignationReview?.id ??
@@ -259,7 +263,7 @@ function OffboardConfirmDialog({
       reasonForLeaving: reasonForLeaving.trim(),
       noticePeriodServed: `${noticeDays} days`,
       employeeStatusId,
-      exitType: chosenStatus?.name ?? "Resign",
+      exitType: chosenStatus?.name ?? "Resigned",
     });
   };
 
@@ -439,12 +443,12 @@ function OffboardConfirmDialog({
 // ── Profile Tabs Config ────────────────────────────
 
 const tabs = [
-  { id: "personal", label: "Personal Information" },
-  { id: "org", label: "Organization Details" },
-  { id: "employment", label: "Employment & Bond" },
-  { id: "education", label: "Education & Experience" },
-  { id: "pmo", label: "PMO Information" },
-  { id: "logs", label: "Activity Logs" },
+  { id: "personal", code: "employee-personal-info", label: "Personal Information" },
+  { id: "org", code: "employee-organization-details", label: "Organization Details" },
+  { id: "employment", code: "employee-employment-bond", label: "Employment & Bond" },
+  { id: "education", code: "employee-education-experience", label: "Education & Experience" },
+  { id: "pmo", code: "employee-pmo-em-information", label: "PMO & EM Information" },
+  { id: "logs", code: "employee-activity-logs", label: "Activity Logs" },
 ] as const;
 
 // ── Main Page ──────────────────────────────────────
@@ -455,6 +459,10 @@ export function EmployeeProfilePage() {
   const navigate = useNavigate();
   const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
     useRoleContext();
+  const { canView, canManage, loading: permissionsLoading } = usePermissions();
+
+  const canViewEmployeeDetail = canView("employee-detail");
+  const canManageEmployeeDetail = canManage("employee-detail");
 
   const [emp, setEmp] = useState<Employee | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -505,9 +513,27 @@ export function EmployeeProfilePage() {
     };
   }, [authStatus, employeeId]);
 
+  const visibleTabs = useMemo(() => {
+    const rbacTabs = tabs.filter((t) => canView(t.code));
+    if (rbacTabs.length > 0) return rbacTabs;
+    const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
+    return basicOnly ? tabs.filter((t) => t.id === "personal") : [...tabs];
+  }, [canView, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales]);
+
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, tab]);
+
+  const canEditProfile = canManageEmployeeDetail || (!isEmployee && (isDhanshree || isHr));
 
   const basicDirectory = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
   if (!isDhanshree && !isHr && !basicDirectory) return <Navigate to="/" />;
+
+  if (!permissionsLoading && !canViewEmployeeDetail) {
+    return <Navigate to="/access-denied" />;
+  }
 
   if (loadError) {
     return (
@@ -546,6 +572,23 @@ export function EmployeeProfilePage() {
   }) => {
     if (!emp || isOffboarding) return;
     setIsOffboarding(true);
+    const exitStatus = details.exitType || "Resigned";
+
+    // Optimistically update employee state immediately so the bubble updates instantly
+    setEmp((prev) =>
+      prev
+        ? {
+            ...prev,
+            status: exitStatus as any,
+            confirmationStatus: exitStatus as any,
+            noticePeriod: details.noticePeriodServed,
+            exitType: exitStatus,
+            exitReason: details.reasonForLeaving,
+          }
+        : null,
+    );
+    setOffboardConfirmOpen(false);
+
     try {
       await offboardEmployee(emp.id, {
         resignationDate: details.resignationDate,
@@ -556,20 +599,34 @@ export function EmployeeProfilePage() {
         exitReason: details.reasonForLeaving,
         employeeStatusId: details.employeeStatusId,
       });
-      setOffboardConfirmOpen(false);
+
+      // Refetch fresh employee details and activity logs from server
+      try {
+        const detail = await fetchEmployee(emp.id);
+        setEmp(toUiEmployee(detail));
+      } catch {}
+      await loadLogs(emp.id);
+
       toast.success(
-        `${emp.firstName} ${emp.lastName} added to Exit Summary. They stay in the directory until the day after last working day.`,
+        `${emp.firstName} ${emp.lastName} marked as ${exitStatus}. Added to Exit Summary.`,
+        {
+          action: {
+            label: "View Exit Summary",
+            onClick: () => void navigate({ to: "/exit-summary" }),
+          },
+        },
       );
-      await navigate({ to: "/exit-summary" });
     } catch (error: any) {
       toast.error(error?.message ?? "Failed to offboard employee");
+      try {
+        const detail = await fetchEmployee(emp.id);
+        setEmp(toUiEmployee(detail));
+      } catch {}
     } finally {
       setIsOffboarding(false);
     }
   };
 
-  const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  const visibleTabs = basicOnly ? tabs.filter((t) => t.id === "personal") : tabs;
   const statusLabel = employeeStatusDisplayLabel(emp);
   const onNoticePeriod = emp.status === "Notice Period";
   const isAbsconded =
@@ -609,7 +666,7 @@ export function EmployeeProfilePage() {
               </div>
             </div>
           </div>
-          {!basicOnly && (
+          {canEditProfile && (
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
@@ -951,7 +1008,7 @@ export function EmployeeProfilePage() {
             try {
               const detail = await fetchEmployee(emp.id);
               setEmp(toUiEmployee(detail));
-            } catch {}
+            } catch { }
           }
           await loadLogs(targetId);
         }}

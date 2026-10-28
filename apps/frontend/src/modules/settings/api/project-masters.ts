@@ -125,6 +125,7 @@ export async function createServiceOnly(payload: {
   tools?: string;
   durationDays?: number;
   unitPrice?: number;
+  subDepartment?: string;
 }): Promise<ProjectMasterRow> {
   return apiFetch<ProjectMasterRow>("/api/v1/catalogs/project-masters/service-only", {
     method: "POST",
@@ -139,6 +140,7 @@ export function rowToProjectMasterItem(row: ProjectMasterRow) {
     contractType: row.contractType,
     group: row.contractType,
     department: row.department,
+    subDepartment: row.subDepartment,
     service: row.service,
     tools: row.tools ?? "",
     duration: days > 0 ? `${days} Days` : "",

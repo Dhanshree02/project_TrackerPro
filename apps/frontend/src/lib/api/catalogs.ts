@@ -223,3 +223,15 @@ export async function fetchServiceHierarchy(): Promise<ServiceHierarchyGroup[]> 
   return (await apiFetch<ServiceHierarchyGroup[]>("/api/v1/catalogs/service-hierarchy")) ?? [];
 }
 
+/** POST /api/v1/catalogs/service-sub-departments */
+export async function createServiceSubDepartment(
+  contractType: string,
+  department: string,
+  name: string,
+): Promise<ServiceSubDepartmentOption> {
+  return apiFetch<ServiceSubDepartmentOption>("/api/v1/catalogs/service-sub-departments", {
+    method: "POST",
+    body: JSON.stringify({ contractType, department, name }),
+  });
+}
+
