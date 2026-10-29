@@ -235,6 +235,32 @@ We will use a single, unified permission table: **`auth.tbl_role_permissions`**
 
 ---
 
+### F. My Team Module & Timesheets Submodule Rules
+
+- **Parent Module:** `master.mst_modules` (`Code = 'my-team'`, `Name = 'My Team'`, `Id = 6055ce3c-b466-4354-ba9a-b4c309111e9d`)
+- **Parent Submodule:** `master.mst_submodules` (`Code = 'timesheets'`, `Name = 'Timesheets'`, `Id = d67426d3-05df-4608-b8cf-c0ecfe698dc3`, `Parent = My Team`)
+
+- **Tabs under Timesheets (`master.mst_tabs` where `SubModuleId = d67426d3-05df-4608-b8cf-c0ecfe698dc3`):**
+  1. `My Timesheet` (`Code = 'my-timesheet'`, `Id = d67426d3-0001-4000-8000-000000000001`, `SortOrder = 10`)
+  2. `Timesheet History` (`Code = 'timesheet-history'`, `Id = d67426d3-0001-4000-8000-000000000002`, `SortOrder = 20`)
+  3. `Timesheet Approval` (`Code = 'timesheet-approval'`, `Id = d67426d3-0001-4000-8000-000000000003`, `SortOrder = 30`)
+
+1. **Hierarchy Rules:**
+   - Submodule `Timesheets` requires parent `My Team` view access to be viewable in navigation.
+   - Tabs (`My Timesheet`, `Timesheet History`, `Timesheet Approval`) require parent `Timesheets` view access to be viewable.
+   - Any tab under `Timesheets` can only receive `View + Manage` if parent `Timesheets` has `View + Manage`.
+
+2. **When View is OFF (`CanView = 0` / cleared / no record):**
+   - Access to timesheets screens (`/my-team/timesheets`) is blocked and redirects to `/access-denied`.
+
+3. **When "Only view" is ON (`CanView = 1, CanManage = 0`):**
+   - User can view timesheet data, history, and approval logs in read-only mode.
+
+4. **When "View + Manage" is ON (`CanView = 1, CanManage = 1`):**
+   - User has full access to log hours, submit timesheet drafts, approve/reject subordinate timesheets.
+
+---
+
 ## 5. Persistence Workflow & Radio Button Behavior (Save & Reset)
 
 - **Endpoints:**
