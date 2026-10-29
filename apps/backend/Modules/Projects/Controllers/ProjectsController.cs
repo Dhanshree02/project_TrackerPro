@@ -15,7 +15,8 @@ public class ProjectsController(
     IProjectInterviewService interviewService,
     IProjectExtensionRequestService extensionRequestService,
     IProjectServiceEscalationService serviceEscalationService,
-    IProjectTaskService taskService) : ControllerBase
+    IProjectTaskService taskService,
+    IProjectIssueService issueService) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PagedResult<ProjectDto>>>> GetProjects(
@@ -722,6 +723,66 @@ public class ProjectsController(
             return NotFound(ApiResponse<bool>.Fail("NOT_FOUND", "Project team member not found"));
         }
         return Ok(ApiResponse<bool>.Ok(true));
+    }
+
+    [HttpGet("my-assigned-projects")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AssignedProjectSummaryDto>>>> GetMyAssignedProjects(
+        CancellationToken ct)
+    {
+        var list = await issueService.GetEmployeeAssignedProjectsAsync(ct);
+        return Ok(ApiResponse<IReadOnlyList<AssignedProjectSummaryDto>>.Ok(list));
+    }
+
+    [HttpGet("{projectId:guid}/issues")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectIssueDto>>>> GetProjectIssues(
+        Guid projectId,
+        CancellationToken ct)
+    {
+        var issues = await issueService.GetProjectIssuesAsync(projectId, ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectIssueDto>>.Ok(issues));
+    }
+
+    [HttpPost("{projectId:guid}/issues")]
+    public async Task<ActionResult<ApiResponse<ProjectIssueDto>>> CreateProjectIssue(
+        Guid projectId,
+        [FromBody] CreateProjectIssueRequest request,
+        CancellationToken ct)
+    {
+        var issue = await issueService.CreateIssueAsync(projectId, request, ct);
+        return Ok(ApiResponse<ProjectIssueDto>.Ok(issue));
+    }
+
+    [HttpPost("issues")]
+    public async Task<ActionResult<ApiResponse<ProjectIssueDto>>> CreateProjectIssueDirect(
+        [FromBody] CreateProjectIssueRequest request,
+        CancellationToken ct)
+    {
+        if (request.ProjectId is not Guid pId || pId == Guid.Empty)
+        {
+            return BadRequest(ApiResponse<ProjectIssueDto>.Fail("VALIDATION_ERROR", "Project is required."));
+        }
+        var issue = await issueService.CreateIssueAsync(pId, request, ct);
+        return Ok(ApiResponse<ProjectIssueDto>.Ok(issue));
+    }
+
+    [HttpGet("{projectId:guid}/alerts")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectAlertDto>>>> GetProjectAlerts(
+        Guid projectId,
+        CancellationToken ct)
+    {
+        var alerts = await issueService.GetProjectAlertsAsync(projectId, ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectAlertDto>>.Ok(alerts));
+    }
+
+    [HttpPut("{projectId:guid}/alerts/{alertId:guid}/status")]
+    public async Task<ActionResult<ApiResponse<ProjectAlertDto>>> UpdateAlertStatus(
+        Guid projectId,
+        Guid alertId,
+        [FromBody] UpdateAlertStatusRequest request,
+        CancellationToken ct)
+    {
+        var alert = await issueService.UpdateAlertStatusAsync(projectId, alertId, request.Status, ct);
+        return Ok(ApiResponse<ProjectAlertDto>.Ok(alert));
     }
 }
 

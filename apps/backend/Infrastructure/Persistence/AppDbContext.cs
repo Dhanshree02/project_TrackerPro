@@ -153,7 +153,13 @@ public class AppDbContext(
 
     public DbSet<ProjectServiceEscalationStakeholder> ProjectServiceEscalationStakeholders => Set<ProjectServiceEscalationStakeholder>();
 
+    public DbSet<ProjectIssue> ProjectIssues => Set<ProjectIssue>();
+
+    public DbSet<ProjectAlert> ProjectAlerts => Set<ProjectAlert>();
+
     public DbSet<BucketTask> BucketTasks => Set<BucketTask>();
+
+    public DbSet<ActionNotification> ActionNotifications => Set<ActionNotification>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

@@ -3170,6 +3170,7 @@ export const dhStore = {
     if (patch.resolutionDetails !== undefined) al.resolutionDetails = patch.resolutionDetails;
 
     if (commentText && commentText.trim() && actorId && actorName) {
+      if (!al.comments) al.comments = [];
       al.comments.push({
         id: uid("cm"),
         authorId: actorId,
@@ -3536,6 +3537,23 @@ export const dhStore = {
       stg.accounts.isCompleted = true;
       stg.accounts.currentStatus = "Payment Received";
     }
+    emit();
+  },
+
+  setNotifications(notifications: DhNotification[]) {
+    state.notifications = Array.isArray(notifications) ? notifications : [];
+    emit();
+  },
+
+  setAlerts(alerts: DhAlert[]) {
+    state.alerts = Array.isArray(alerts)
+      ? alerts.map((a) => ({
+          ...a,
+          comments: Array.isArray(a.comments) ? a.comments : [],
+          attachments: Array.isArray(a.attachments) ? a.attachments : [],
+          history: Array.isArray(a.history) ? a.history : [],
+        }))
+      : [];
     emit();
   },
 

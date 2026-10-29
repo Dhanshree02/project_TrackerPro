@@ -28,6 +28,7 @@ interface RoleContextValue {
   isHr: boolean;
   isProjectManager: boolean;
   isSeniorPm: boolean;
+  isTeamLead: boolean;
   isEngagementManager: boolean;
   isAccounts: boolean;
   isSales: boolean;
@@ -423,6 +424,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         isHr,
         isProjectManager,
         isSeniorPm,
+        isTeamLead,
         isEngagementManager,
         isAccounts,
         isSales,

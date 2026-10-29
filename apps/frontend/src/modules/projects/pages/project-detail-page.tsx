@@ -1,6 +1,6 @@
 import { getRouteApi, Link, Navigate, notFound } from "@tanstack/react-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2 } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,14 @@ import {
   type ApiTaskAssignmentHistoryEntry,
 } from "@/modules/projects/api/projects";
 import { EditServicesModal, isResourceContract } from "../components/edit-services-modal";
+import {
+  fetchProjectIssues,
+  fetchProjectAlerts,
+  updateAlertStatus,
+  createProjectIssue,
+  type ProjectIssue,
+  type ProjectAlert,
+} from "../api/project-issues";
 import { apiDownload } from "@/lib/api-client";
 import {
   fetchProjectTeamMembers,
@@ -6598,7 +6606,7 @@ function HealthTab({ project }: { project: Project }) {
       </div>
 
       {healthTab === "Issues" && <HealthIssuesPanel issues={projectIssues} project={project} canRaise={canRaiseIssue} />}
-      {healthTab === "Alerts" && <HealthAlertsPanel alerts={projectAlerts} />}
+      {healthTab === "Alerts" && <HealthAlertsPanel alerts={projectAlerts} project={project} />}
       {healthTab === "Escalations" && <HealthEscalationsPanel escalations={projectEscalations} project={project} canRaise={canRaiseIssue} />}
       {healthTab === "Appreciation" && <HealthAppreciationPanel appreciations={projectAppreciations} project={project} />}
 
@@ -6623,9 +6631,7 @@ function HealthTab({ project }: { project: Project }) {
   );
 }
 
-function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; project: Project; canRaise: boolean }) {
-  const store = useDhStore((s) => s);
-  const { user } = useRoleContext();
+function HealthIssuesPanel({ issues: _initialLegacyIssues, project, canRaise }: { issues: DhIssue[]; project: Project; canRaise: boolean }) {
   const [showRaiseModal, setShowRaiseModal] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -6633,28 +6639,47 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
     category: "Technical Related Issues" as IssueCategory,
     priority: "Medium" as DhPriority,
   });
+  const [dbIssues, setDbIssues] = useState<ProjectIssue[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const loadIssues = useCallback(async () => {
+    try {
+      const data = await fetchProjectIssues(project.id);
+      setDbIssues(data);
+    } catch {
+      // fallback
+    }
+  }, [project.id]);
+
+  useEffect(() => {
+    loadIssues();
+  }, [loadIssues]);
+
+  const handleSubmit = async () => {
     if (!formData.title.trim() || !formData.description.trim()) {
       toast.error("Fill all fields");
       return;
     }
-    dhStore.raiseIssue({
-      title: formData.title,
-      description: formData.description,
-      projectId: project.id,
-      raisedById: user.id,
-      raisedByName: user.name,
-      raisedByRole: user.role,
-      category: formData.category,
-      priority: formData.priority,
-    });
-    toast.success("Issue raised", { description: "PMs and SPMs notified" });
-    setShowRaiseModal(false);
-    setFormData({ title: "", description: "", category: "Technical Related Issues", priority: "Medium" });
+    setSubmitting(true);
+    try {
+      const created = await createProjectIssue(project.id, {
+        subject: formData.title.trim(),
+        description: formData.description.trim(),
+        issueType: formData.category,
+        priority: formData.priority,
+      });
+      setDbIssues((prev) => [created, ...prev]);
+      toast.success("Issue raised", { description: "PMs and SPMs notified" });
+      setShowRaiseModal(false);
+      setFormData({ title: "", description: "", category: "Technical Related Issues", priority: "Medium" });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to raise issue");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const hasNoIssues = issues.length === 0;
+  const hasNoIssues = dbIssues.length === 0;
 
   return (
     <div className="space-y-3">
@@ -6702,35 +6727,36 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
             </Field>
             <div className="flex justify-end gap-2 border-t border-border pt-3">
               <button onClick={() => setShowRaiseModal(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-              <button onClick={handleSubmit} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Raise Issue</button>
+              <button onClick={handleSubmit} disabled={submitting} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+                {submitting ? "Raising..." : "Raise Issue"}
+              </button>
             </div>
           </div>
         </Modal>
       )}
 
-      {issues.length === 0 ? (
+      {dbIssues.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 text-center">
           <p className="text-sm text-muted-foreground">No issues raised yet</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {issues.map((issue: DhIssue) => {
+          {dbIssues.map((issue) => {
             const priorityColors: Record<DhPriority, string> = { Low: "border-info/30 bg-info/10 text-info", Medium: "border-warning/30 bg-warning/15 text-warning-foreground", High: "border-destructive/30 bg-destructive/10 text-destructive", Critical: "border-destructive/30 bg-destructive/10 text-destructive" };
             return (
               <div key={issue.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm font-medium">{issue.title}</h4>
-                      <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", priorityColors[issue.priority])}>{issue.priority}</span>
+                      <h4 className="text-sm font-medium">{issue.subject}</h4>
+                      <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", priorityColors[issue.priority] || priorityColors.Medium)}>{issue.priority}</span>
                       <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{issue.status}</span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{issue.description}</p>
                     <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{issue.raisedByName} · {issue.raisedByRole}</span>
                       <span>·</span>
-                      <span>{new Date(issue.createdAt).toLocaleDateString()}</span>
-                      {issue.comments.length > 0 && <><span>·</span><span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /> {issue.comments.length}</span></>}
+                      <span>{new Date(issue.createdAtUtc).toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
@@ -6743,28 +6769,62 @@ function HealthIssuesPanel({ issues, project, canRaise }: { issues: DhIssue[]; p
   );
 }
 
-function HealthAlertsPanel({ alerts }: { alerts: DhAlert[] }) {
-  if (alerts.length === 0) {
+function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAlert[]; project?: Project }) {
+  const [dbAlerts, setDbAlerts] = useState<ProjectAlert[]>([]);
+
+  const loadAlerts = useCallback(async () => {
+    if (!project?.id) return;
+    try {
+      const data = await fetchProjectAlerts(project.id);
+      setDbAlerts(data);
+    } catch {
+      // fallback
+    }
+  }, [project?.id]);
+
+  useEffect(() => {
+    loadAlerts();
+  }, [loadAlerts]);
+
+  const handleStatusChange = async (alertId: string, newStatus: string) => {
+    if (!project?.id) return;
+    try {
+      const updated = await updateAlertStatus(project.id, alertId, newStatus);
+      setDbAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, status: updated.status } : a)));
+      toast.success(`Alert status updated to ${newStatus}`);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update alert status");
+    }
+  };
+
+  if (dbAlerts.length === 0) {
     return <div className="rounded-lg border border-border bg-card p-8 text-center"><p className="text-sm text-muted-foreground">No active alerts</p></div>;
   }
   return (
     <div className="space-y-2">
-      {alerts.map((alert) => (
+      {dbAlerts.map((alert) => (
         <div key={alert.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
           <div className="flex items-start justify-between">
             <div>
               <h4 className="text-sm font-medium">{alert.title}</h4>
-              <p className="mt-1 text-xs text-muted-foreground">Raised by {alert.raisedByName} · {new Date(alert.createdAt).toLocaleDateString()}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Raised by {alert.raisedByName} · {new Date(alert.createdAtUtc).toLocaleDateString()}</p>
             </div>
-            <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{alert.status}</span>
+            <select
+              value={alert.status}
+              onChange={(e) => handleStatusChange(alert.id, e.target.value)}
+              className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info cursor-pointer outline-none bg-transparent"
+            >
+              <option value="Open">Open</option>
+              <option value="Acknowledged">Acknowledged</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Closed">Closed</option>
+            </select>
           </div>
         </div>
       ))}
     </div>
   );
 }
-
-type EscalationType = "Behavioral Issue" | "Technical Issue" | "Process Issue";
 
 function HealthEscalationsPanel({ escalations, project, canRaise }: { escalations: any[]; project: Project; canRaise?: boolean }) {
   const store = useDhStore((s) => s);

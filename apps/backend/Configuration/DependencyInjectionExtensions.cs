@@ -62,10 +62,12 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectInterviewService, ProjectInterviewService>();
         services.AddScoped<IProjectExtensionRequestService, ProjectExtensionRequestService>();
         services.AddScoped<IProjectServiceEscalationService, ProjectServiceEscalationService>();
+        services.AddScoped<IProjectIssueService, ProjectIssueService>();
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
         services.AddHostedService<OrgRoleMatrixHostedService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IBucketTaskService, BucketTaskService>();
+        services.AddScoped<IActionNotificationService, ActionNotificationService>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);

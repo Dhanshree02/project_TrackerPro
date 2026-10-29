@@ -36,6 +36,7 @@ import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { startTaskTimer, stopTaskTimer } from "@/modules/projects/api/projects";
 import {
+  people,
   getPerson,
   type TaskStatus,
   type CellCommentData,
@@ -54,10 +55,16 @@ import {
   type IssueCategory,
   type DhPriority,
 } from "@/lib/workspace-store";
+import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Field } from "@/components/form-row";
+import {
+  createProjectIssue,
+  fetchMyAssignedProjects,
+  type AssignedProjectSummary,
+} from "@/modules/projects/api/project-issues";
 
 const actionTabs = [
   { code: "bucket-list", name: "Bucket List" },
@@ -517,6 +524,7 @@ function BucketList() {
     "all" | "Low" | "Medium" | "High" | "Critical"
   >("all");
   const [showRaiseModal, setShowRaiseModal] = useState(false);
+  const [dbAssignedProjects, setDbAssignedProjects] = useState<AssignedProjectSummary[]>([]);
   const [formData, setFormData] = useState({
     projectId: "",
     title: "",
@@ -524,6 +532,59 @@ function BucketList() {
     category: "Technical Related Issues" as IssueCategory,
     priority: "Medium" as DhPriority,
   });
+  const [submittingIssue, setSubmittingIssue] = useState(false);
+
+  useEffect(() => {
+    fetchMyAssignedProjects()
+      .then((projs) => {
+        if (projs && projs.length > 0) setDbAssignedProjects(projs);
+      })
+      .catch(() => {});
+  }, []);
+
+  const userProjects = useMemo(() => {
+    if (dbAssignedProjects.length > 0) return dbAssignedProjects;
+    return assignedProjects;
+  }, [dbAssignedProjects, assignedProjects]);
+
+  const handleSubmitIssue = async () => {
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast.error("Fill all fields");
+      return;
+    }
+    const targetProjectId = formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || "";
+    if (!targetProjectId) {
+      toast.error("Please select a project");
+      return;
+    }
+
+    setSubmittingIssue(true);
+    try {
+      await createProjectIssue(targetProjectId, {
+        subject: formData.title.trim(),
+        description: formData.description.trim(),
+        issueType: formData.category,
+        priority: formData.priority,
+      });
+
+      toast.success("Issue raised successfully", {
+        description: "Mirrored to project health and alerts",
+      });
+
+      setShowRaiseModal(false);
+      setFormData({
+        projectId: userProjects[0]?.id || assignedProjects[0]?.id || "",
+        title: "",
+        description: "",
+        category: "Technical Related Issues",
+        priority: "Medium",
+      });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to raise issue");
+    } finally {
+      setSubmittingIssue(false);
+    }
+  };
 
   const [apiTasks, setApiTasks] = useState<ApiBucketTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -558,47 +619,7 @@ function BucketList() {
     loadData(true);
   }, [loadData]);
 
-  const userProjects = useMemo(() => {
-    const taskProjectIds = Array.from(
-      new Set(apiTasks.map((bt) => bt.projectId).filter(Boolean)),
-    );
-    const projs = assignedProjects.filter((p) => taskProjectIds.includes(p.id));
-    return projs.length > 0 ? projs : assignedProjects;
-  }, [apiTasks, assignedProjects]);
 
-  const handleSubmitIssue = () => {
-    if (!formData.title.trim() || !formData.description.trim()) {
-      toast.error("Fill all fields");
-      return;
-    }
-    const targetProjectId = formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || "";
-    const proj = assignedProjects.find((p) => p.id === targetProjectId);
-    const dottedLineMgr = proj ? getPerson(proj.pmId || proj.tlId || "") : getPerson("");
-
-    dhStore.raiseIssue({
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      projectId: targetProjectId,
-      raisedById: user.id,
-      raisedByName: user.name,
-      raisedByRole: user.role,
-      category: formData.category,
-      priority: formData.priority,
-      audienceUserIds: [dottedLineMgr.id].filter((id) => id && id !== "unknown"),
-    });
-
-    toast.success("Issue raised successfully", {
-      description: `Routed to Dotted Line Reporting Manager (${dottedLineMgr.name} · ${dottedLineMgr.role})`,
-    });
-    setShowRaiseModal(false);
-    setFormData({
-      projectId: userProjects[0]?.id || assignedProjects[0]?.id || "",
-      title: "",
-      description: "",
-      category: "Technical Related Issues",
-      priority: "Medium",
-    });
-  };
 
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm">
@@ -661,16 +682,7 @@ function BucketList() {
 
         {/* Raise Issue Button */}
         <button
-          onClick={() => {
-            setFormData({
-              projectId: userProjects[0]?.id || assignedProjects[0]?.id || "",
-              title: "",
-              description: "",
-              category: "Technical Related Issues",
-              priority: "Medium",
-            });
-            setShowRaiseModal(true);
-          }}
+          onClick={() => setShowRaiseModal(true)}
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer whitespace-nowrap"
         >
           <Plus className="h-3.5 w-3.5" /> Raise Issue
@@ -792,9 +804,10 @@ function BucketList() {
               </button>
               <button
                 onClick={handleSubmitIssue}
-                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                disabled={submittingIssue}
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
-                Raise Issue
+                {submittingIssue ? "Raising..." : "Raise Issue"}
               </button>
             </div>
           </div>
@@ -1178,6 +1191,50 @@ function AlertsTab() {
 
   const allAlerts = store.alerts;
 
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+
+
+
+  const loadAlerts = useCallback(async () => {
+
+    setLoadingAlerts(true);
+
+    try {
+
+      const data = await apiFetch<DhAlert[]>("/api/v1/action-centre/alerts");
+
+      if (Array.isArray(data)) {
+
+        const normalized = data.map((a: any) => ({
+          ...a,
+          comments: Array.isArray(a.comments) ? a.comments : [],
+          attachments: Array.isArray(a.attachments) ? a.attachments : [],
+          history: Array.isArray(a.history) ? a.history : [],
+        }));
+        dhStore.setAlerts(normalized);
+
+      }
+
+    } catch (e) {
+
+      console.error("Failed to load action centre alerts:", e);
+
+    } finally {
+
+      setLoadingAlerts(false);
+
+    }
+
+  }, []);
+
+
+
+  useEffect(() => {
+
+    loadAlerts();
+
+  }, [loadAlerts, user?.id]);
+
   const filtered = useMemo(() => {
     return allAlerts.filter((a) => {
       const proj = projectsList.find((p) => p.id === a.projectId);
@@ -1221,24 +1278,41 @@ function AlertsTab() {
     }
   };
 
-  const handleUpdateAlert = () => {
+  const handleUpdateAlert = async () => {
     if (!selectedAlertId) return;
-    dhStore.updateGovernanceAlert(
-      selectedAlertId,
-      {
-        status: selectedStatus,
-        owner: selectedOwner,
-        resolutionOwner: selectedResOwner,
-        escalationOwner: selectedEscOwner,
-        resolutionDetails: resDetails,
-      },
-      newChatMsg,
-      user.id,
-      user.name,
-    );
-    toast.success("Alert Governance updated persistently!");
-    setNewChatMsg("");
-    setSelectedAlertId(null);
+    try {
+      await apiFetch(`/api/v1/action-centre/alerts/${selectedAlertId}/governance`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: selectedStatus,
+          owner: selectedOwner,
+          resolutionOwner: selectedResOwner,
+          escalationOwner: selectedEscOwner,
+          resolutionDetails: resDetails,
+          comment: newChatMsg.trim() || undefined,
+        }),
+      });
+      dhStore.updateGovernanceAlert(
+        selectedAlertId,
+        {
+          status: selectedStatus,
+          owner: selectedOwner,
+          resolutionOwner: selectedResOwner,
+          escalationOwner: selectedEscOwner,
+          resolutionDetails: resDetails,
+        },
+        newChatMsg,
+        user.id,
+        user.name,
+      );
+      toast.success("Alert Governance updated persistently!");
+      setNewChatMsg("");
+      setSelectedAlertId(null);
+      loadAlerts();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update alert");
+    }
   };
 
   const alertTypes = [
@@ -1301,7 +1375,7 @@ function AlertsTab() {
                 className="form-input rounded-md border border-border p-1.5 bg-card"
               >
                 <option value="all">All Projects</option>
-                {projectsList.map((p) => (
+                {(projectsList || []).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
@@ -1318,7 +1392,7 @@ function AlertsTab() {
                 className="form-input rounded-md border border-border p-1.5 bg-card"
               >
                 <option value="all">All Customers</option>
-                {clientsList.map((c) => (
+                {(clientsList || []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
@@ -1555,7 +1629,7 @@ function AlertsTab() {
                       className="form-input rounded-md border border-border p-1 bg-card"
                     >
                       <option value="">Unassigned</option>
-                      {people.map((p) => (
+                      {(people || []).map((p) => (
                         <option key={p.id} value={p.name}>
                           {p.name}
                         </option>
@@ -1572,7 +1646,7 @@ function AlertsTab() {
                       className="form-input rounded-md border border-border p-1 bg-card"
                     >
                       <option value="">Unassigned</option>
-                      {people.map((p) => (
+                      {(people || []).map((p) => (
                         <option key={p.id} value={p.name}>
                           {p.name}
                         </option>
@@ -1589,7 +1663,7 @@ function AlertsTab() {
                       className="form-input rounded-md border border-border p-1 bg-card"
                     >
                       <option value="">Unassigned</option>
-                      {people.map((p) => (
+                      {(people || []).map((p) => (
                         <option key={p.id} value={p.name}>
                           {p.name}
                         </option>
@@ -1620,23 +1694,20 @@ function AlertsTab() {
                     Status Transitions Timeline
                   </span>
                   <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
-                    {selectedAlert.history.map((h, idx) => (
-                      <div key={idx} className="flex gap-2 text-[10px]">
-                        <span className="text-muted-foreground tabular-nums">
-                          {new Date(h.at).toLocaleDateString()}{" "}
-                          {new Date(h.at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          :
-                        </span>
-                        <span>
-                          Status transitioned to{" "}
-                          <strong className="text-gray-800">{h.status}</strong> by {h.updatedBy}{" "}
-                          {h.details ? `— "${h.details}"` : ""}
-                        </span>
-                      </div>
-                    ))}
+                    {(selectedAlert.history || []).map((h: any, idx) => {
+                      const dateStr = h.at ? new Date(h.at).toLocaleDateString() : (h.date || "");
+                      const timeStr = h.at ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : (h.time || "");
+                      const text = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
+                      return (
+                        <div key={idx} className="flex gap-2 text-[10px]">
+                          <span className="text-muted-foreground tabular-nums">
+                            {dateStr} {timeStr}:
+                          </span>
+                          <span>{text}</span>
+                        </div>
+                      );
+                    })}
+
                   </div>
                 </div>
               )}
@@ -1673,7 +1744,7 @@ function AlertsTab() {
                   </span>
                   {selectedAlert.attachments && selectedAlert.attachments.length > 0 ? (
                     <div className="space-y-1">
-                      {selectedAlert.attachments.map((file, idx) => (
+                      {(selectedAlert.attachments || []).map((file, idx) => (
                         <div
                           key={idx}
                           className="flex items-center gap-1.5 text-[10px] text-primary hover:underline cursor-pointer"
@@ -1772,7 +1843,7 @@ function AlertsTab() {
                     Discussion Chat Thread
                   </span>
                   <div className="space-y-2 max-h-36 overflow-y-auto pl-1 pr-0.5 text-[10px] leading-relaxed">
-                    {selectedAlert.comments.map((cm) => (
+                    {(selectedAlert.comments || []).map((cm) => (
                       <div
                         key={cm.id}
                         className="bg-muted/30 border border-border p-2 rounded-md space-y-0.5"
@@ -1780,13 +1851,13 @@ function AlertsTab() {
                         <div className="flex justify-between font-semibold text-gray-800 text-[9px]">
                           <span>{cm.authorName}</span>
                           <span className="text-muted-foreground">
-                            {new Date(cm.at).toLocaleDateString()}
+                            {cm.at ? new Date(cm.at).toLocaleDateString() : ""}
                           </span>
                         </div>
                         <p className="text-gray-700">{cm.text}</p>
                       </div>
                     ))}
-                    {selectedAlert.comments.length === 0 && (
+                    {(!selectedAlert.comments || selectedAlert.comments.length === 0) && (
                       <span className="text-muted-foreground italic text-[10px]">
                         No chat messages yet.
                       </span>
@@ -1887,6 +1958,27 @@ function NotificationsTab() {
   const [showCommentError, setShowCommentError] = useState(false);
 
   const notifications = store.notifications || [];
+
+  const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchNotifications = useCallback(async () => {
+    setIsLoadingNotifs(true);
+    try {
+      const data = await apiFetch<DhNotification[]>("/api/v1/action-centre/notifications");
+      if (Array.isArray(data)) {
+        dhStore.setNotifications(data);
+      }
+    } catch (e) {
+      console.error("Failed to load notifications:", e);
+    } finally {
+      setIsLoadingNotifs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications, user?.id]);
 
   // Metrics
   const totalCount = notifications.length;
@@ -2009,23 +2101,37 @@ function NotificationsTab() {
   }, [notifications, selectedNotifId]);
 
   const handleOpenDetails = (id: string) => {
+    apiFetch(`/api/v1/action-centre/notifications/${id}/read`, { method: "PUT" }).catch(() => {});
     dhStore.markNotificationAsRead(id);
     setSelectedNotifId(id);
     setCommentText("");
     setShowCommentError(false);
   };
 
-  const handleConfirmAcknowledge = () => {
+  const handleConfirmAcknowledge = async () => {
     if (!selectedNotification) return;
     if (!commentText.trim()) {
       setShowCommentError(true);
       return;
     }
-    dhStore.acknowledgeNotification(selectedNotification.id, user.name, commentText);
-    toast.success("Notification Acknowledged Persistently!");
-    setSelectedNotifId(null);
-    setCommentText("");
-    setShowCommentError(false);
+    setIsSubmitting(true);
+    try {
+      await apiFetch(`/api/v1/action-centre/notifications/${selectedNotification.id}/acknowledge`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment: commentText.trim() }),
+      });
+      dhStore.acknowledgeNotification(selectedNotification.id, user.name, commentText);
+      toast.success("Notification Acknowledged Persistently!");
+      setSelectedNotifId(null);
+      setCommentText("");
+      setShowCommentError(false);
+      fetchNotifications();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to acknowledge notification");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const totalSubtabCount = subTab === "Current" ? pendingCount : archivedCount;

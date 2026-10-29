@@ -10,10 +10,14 @@ namespace PMS.API.Modules.ActionCentre.Controllers;
 public class ActionCentreController : ControllerBase
 {
     private readonly IBucketTaskService _bucketTaskService;
+    private readonly IActionNotificationService _notificationService;
 
-    public ActionCentreController(IBucketTaskService bucketTaskService)
+    public ActionCentreController(
+        IBucketTaskService bucketTaskService,
+        IActionNotificationService notificationService)
     {
         _bucketTaskService = bucketTaskService;
+        _notificationService = notificationService;
     }
 
     /// <summary>
@@ -124,5 +128,71 @@ public class ActionCentreController : ControllerBase
     {
         await _bucketTaskService.SyncBucketTasksFromAssignmentsAsync(projectId, taskId, ct);
         return Ok(ApiResponse<bool>.Ok(true));
+    }
+
+    // ── Notifications ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Gets Action Centre notifications for the current authenticated employee / manager.
+    /// </summary>
+    [HttpGet("notifications")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ActionNotificationDto>>>> GetNotifications(
+        [FromQuery] NotificationQueryParameters query,
+        CancellationToken ct = default)
+    {
+        var items = await _notificationService.GetNotificationsAsync(query, ct);
+        return Ok(ApiResponse<IReadOnlyList<ActionNotificationDto>>.Ok(items));
+    }
+
+    /// <summary>
+    /// Acknowledges an Action Centre notification with a required comment.
+    /// </summary>
+    [HttpPut("notifications/{id:guid}/acknowledge")]
+    public async Task<ActionResult<ApiResponse<ActionNotificationDto>>> AcknowledgeNotification(
+        Guid id,
+        [FromBody] AcknowledgeNotificationRequest request,
+        CancellationToken ct = default)
+    {
+        var updated = await _notificationService.AcknowledgeNotificationAsync(id, request.Comment, ct);
+        return Ok(ApiResponse<ActionNotificationDto>.Ok(updated));
+    }
+
+    /// <summary>
+    /// Marks an Action Centre notification as read.
+    /// </summary>
+    [HttpPut("notifications/{id:guid}/read")]
+    public async Task<ActionResult<ApiResponse<ActionNotificationDto>>> MarkNotificationAsRead(
+        Guid id,
+        CancellationToken ct = default)
+    {
+        var updated = await _notificationService.MarkNotificationAsReadAsync(id, ct);
+        return Ok(ApiResponse<ActionNotificationDto>.Ok(updated));
+    }
+
+    // ── Alerts ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Gets Action Centre governance and health alerts for the current authenticated employee / manager.
+    /// </summary>
+    [HttpGet("alerts")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ActionAlertDto>>>> GetAlerts(
+        [FromQuery] NotificationQueryParameters query,
+        CancellationToken ct = default)
+    {
+        var items = await _notificationService.GetAlertsAsync(query, ct);
+        return Ok(ApiResponse<IReadOnlyList<ActionAlertDto>>.Ok(items));
+    }
+
+    /// <summary>
+    /// Updates governance details and status for an Action Centre alert.
+    /// </summary>
+    [HttpPut("alerts/{id:guid}/governance")]
+    public async Task<ActionResult<ApiResponse<ActionAlertDto>>> UpdateAlertGovernance(
+        Guid id,
+        [FromBody] UpdateAlertGovernanceRequest request,
+        CancellationToken ct = default)
+    {
+        var updated = await _notificationService.UpdateAlertGovernanceAsync(id, request, ct);
+        return Ok(ApiResponse<ActionAlertDto>.Ok(updated));
     }
 }
