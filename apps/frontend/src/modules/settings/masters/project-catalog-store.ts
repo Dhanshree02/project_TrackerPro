@@ -13,6 +13,7 @@ export interface CatalogServiceItem {
   tool: string;
   unitPrice: number;
   days: number;
+  abbreviation?: string;
 }
 
 export const DEFAULT_CONTRACT_TYPES: string[] = [];
@@ -50,6 +51,7 @@ export function useProjectCatalogStore() {
   /** Key: contractType::department::subDepartment -> services */
   const [subDeptServices, setSubDeptServices] = useState<Record<string, CatalogServiceItem[]>>({});
   const [deptGroups, setDeptGroups] = useState<Record<string, "Resource" | "Scope">>({});
+  const [contractTypeDepts, setContractTypeDepts] = useState<Record<string, string[]>>({});
 
   const loadFromDb = useCallback(async () => {
     try {
@@ -59,8 +61,11 @@ export function useProjectCatalogStore() {
       const nextDeptSubDepartments: Record<string, string[]> = {};
       const nextSubDeptServices: Record<string, CatalogServiceItem[]> = {};
       const nextGroups: Record<string, "Resource" | "Scope"> = {};
+      const nextContractTypeDepts: Record<string, string[]> = {};
 
       for (const group of groups) {
+        const cKey = group.name.trim().toLowerCase();
+        nextContractTypeDepts[cKey] = group.departments.map((d) => d.name);
         const isRes =
           group.code.toUpperCase() === "RESOURCE" ||
           group.name.toLowerCase().includes("resource");
@@ -82,6 +87,7 @@ export function useProjectCatalogStore() {
                 tool: svc.defaultTools ?? "",
                 unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 0,
                 days: svc.defaultDurationDays ?? 0,
+                abbreviation: svc.abbreviation ?? undefined,
               };
               subItems.push(item);
               deptAllItems.push(item);
@@ -98,6 +104,7 @@ export function useProjectCatalogStore() {
       setDeptSubDepartments(nextDeptSubDepartments);
       setSubDeptServices(nextSubDeptServices);
       setDeptGroups(nextGroups);
+      setContractTypeDepts(nextContractTypeDepts);
     } catch {
       toast.error("Could not load project service catalog from database");
     }
@@ -110,14 +117,20 @@ export function useProjectCatalogStore() {
   const departments = useCallback(
     (contractType?: string) => {
       if (!contractType) {
-        return Object.keys(deptServices).map((k) => k.split("::")[1] ?? k);
+        return Object.values(contractTypeDepts)
+          .flat()
+          .filter((v, idx, arr) => arr.indexOf(v) === idx);
       }
-      const prefix = `${contractType.trim().toLowerCase()}::`;
+      const cKey = contractType.trim().toLowerCase();
+      if (contractTypeDepts[cKey]?.length) {
+        return contractTypeDepts[cKey];
+      }
+      const prefix = `${cKey}::`;
       return Object.keys(deptServices)
         .filter((k) => k.startsWith(prefix))
         .map((k) => k.slice(prefix.length));
     },
-    [deptServices],
+    [contractTypeDepts, deptServices],
   );
 
   const subDepartmentsForDepartment = useCallback(
@@ -246,7 +259,7 @@ export function useProjectCatalogStore() {
     async (
       contractType: string,
       dept: string,
-      service: { name: string; tool?: string; unitPrice?: number; days?: number; subDepartment?: string },
+      service: { name: string; tool?: string; unitPrice?: number; days?: number; subDepartment?: string; abbreviation?: string },
     ): Promise<{ success: boolean; error?: string }> => {
       const trimmedCt = contractType.trim();
       const trimmedDept = dept.trim();
@@ -272,6 +285,7 @@ export function useProjectCatalogStore() {
           tools: service.tool?.trim(),
           durationDays: service.days,
           unitPrice: service.unitPrice,
+          abbreviation: service.abbreviation?.trim() || undefined,
         });
         await loadFromDb();
         toast.success(`Service "${trimmedName}" added to ${trimmedDept}`);
@@ -290,7 +304,9 @@ export function useProjectCatalogStore() {
     void loadFromDb();
   }, [loadFromDb]);
 
-  const flatDepartments = Object.keys(deptServices).map((k) => k.split("::")[1] ?? k);
+  const flatDepartments = Object.values(contractTypeDepts).flat().length
+    ? Object.values(contractTypeDepts).flat().filter((v, idx, arr) => arr.indexOf(v) === idx)
+    : Object.keys(deptServices).map((k) => k.split("::")[1] ?? k);
 
   return {
     contractTypes,

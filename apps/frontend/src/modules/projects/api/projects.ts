@@ -213,6 +213,7 @@ export interface ApiProjectService {
   modIsReady?: boolean | null;
   deletedAtUtc?: string | null;
   isDeleted?: boolean;
+  serviceAbbreviation?: string | null;
 }
 
 export interface UpdateServicePrerequisitePayload {
@@ -228,6 +229,7 @@ export interface UpdateServicePrerequisitePayload {
 
 export interface CreateProjectServicePayload {
   serviceCatalogId?: string | null;
+  serviceAbbreviation?: string | null;
   taskId?: string | null;
   department: string;
   subDepartment?: string | null;
@@ -292,6 +294,7 @@ export interface ApiProjectTask {
   assignments: ApiProjectTaskAssignment[];
   deletedAtUtc?: string | null;
   isDeleted?: boolean;
+  serviceAbbreviation?: string | null;
 }
 
 export interface CreateProjectTaskPayload {
@@ -384,6 +387,7 @@ export interface ApiProjectInvoice {
   projectServiceId?: string | null;
   deletedAtUtc?: string | null;
   isDeleted?: boolean;
+  serviceAbbreviation?: string | null;
 }
 
 export interface CreateProjectInvoicePayload {
@@ -494,6 +498,9 @@ export function mapApiProjectToProject(
   const services = rawServices.map((s: any, idx: number) => ({
     id: s.id ?? s.taskId ?? `s-${idx}`,
     taskId: s.taskId || "",
+    serviceCatalogId: s.serviceCatalogId || undefined,
+    serviceAbbreviation: s.serviceAbbreviation || s.abbreviation || undefined,
+    abbreviation: s.serviceAbbreviation || s.abbreviation || undefined,
     department: s.department || "Engineering",
     subDepartment: s.subDepartment || "",
     serviceName: s.serviceName || `Service ${idx + 1}`,

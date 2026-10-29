@@ -25,6 +25,8 @@ public class ProjectServiceEntity : BaseEntity
 
     public string ServiceName { get; set; } = string.Empty;
 
+    public string? ServiceAbbreviation { get; set; }
+
     public int Qty { get; set; } = 1;
 
     public string? Description { get; set; }

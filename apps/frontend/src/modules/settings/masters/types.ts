@@ -9,6 +9,7 @@ export interface ProjectMasterItem {
   duration: string;
   unitPrice: number;
   createdAt: string;
+  abbreviation?: string;
 }
 
 export type CustomerMasterCategory =

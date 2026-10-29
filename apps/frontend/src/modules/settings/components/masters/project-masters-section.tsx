@@ -125,6 +125,7 @@ export function ProjectMastersSection({
   const [tools, setTools] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
   const [unitPrice, setUnitPrice] = useState<string>("");
+  const [abbreviation, setAbbreviation] = useState<string>("");
   const [formError, setFormError] = useState<string | null>(null);
 
   // Search & Filter State
@@ -140,6 +141,7 @@ export function ProjectMastersSection({
   const [editTools, setEditTools] = useState<string>("");
   const [editDuration, setEditDuration] = useState<string>("");
   const [editUnitPrice, setEditUnitPrice] = useState<string>("");
+  const [editAbbreviation, setEditAbbreviation] = useState<string>("");
   const [editError, setEditError] = useState<string | null>(null);
 
   // Delete Dialog State
@@ -169,6 +171,7 @@ export function ProjectMastersSection({
   const [newServiceDept, setNewServiceDept] = useState("");
   const [newServiceSubDept, setNewServiceSubDept] = useState("");
   const [newServiceName, setNewServiceName] = useState("");
+  const [newServiceAbbreviation, setNewServiceAbbreviation] = useState("");
   const [newServiceTools, setNewServiceTools] = useState("");
   const [newServiceDays, setNewServiceDays] = useState("");
   const [newServicePrice, setNewServicePrice] = useState("");
@@ -276,6 +279,7 @@ export function ProjectMastersSection({
     setSelectedDepartment("");
     setSelectedSubDepartment("");
     setSelectedService("");
+    setAbbreviation("");
     setTools("");
     setDuration("");
     setUnitPrice("");
@@ -285,6 +289,7 @@ export function ProjectMastersSection({
     setSelectedDepartment(dept);
     setSelectedSubDepartment("");
     setSelectedService("");
+    setAbbreviation("");
     setTools("");
     setDuration("");
     setUnitPrice("");
@@ -293,6 +298,7 @@ export function ProjectMastersSection({
   const handleSubDepartmentChange = (subDept: string) => {
     setSelectedSubDepartment(subDept);
     setSelectedService("");
+    setAbbreviation("");
     setTools("");
     setDuration("");
     setUnitPrice("");
@@ -314,7 +320,10 @@ export function ProjectMastersSection({
       if (matched) {
         setTools(matched.tool);
         setUnitPrice(String(matched.unitPrice));
-        setDuration(`${matched.days} Days`);
+        setDuration(matched.days ? String(matched.days) : "");
+        setAbbreviation(matched.abbreviation ?? "");
+      } else {
+        setAbbreviation("");
       }
     }
   };
@@ -409,18 +418,21 @@ export function ProjectMastersSection({
       tool: newServiceTools,
       unitPrice: !Number.isNaN(priceNum) && priceNum > 0 ? priceNum : 50000,
       days: !Number.isNaN(daysNum) && daysNum > 0 ? daysNum : 5,
+      abbreviation: newServiceAbbreviation.trim() || undefined,
     });
 
     if (res.success) {
       setSelectedDepartment(targetDept);
       if (targetSubDept) setSelectedSubDepartment(targetSubDept);
       setSelectedService(newServiceName.trim());
+      if (newServiceAbbreviation.trim()) setAbbreviation(newServiceAbbreviation.trim());
       if (newServiceTools.trim()) setTools(newServiceTools.trim());
-      if (newServiceDays.trim()) setDuration(`${newServiceDays.trim()} Days`);
+      if (newServiceDays.trim()) setDuration(newServiceDays.trim().replace(/\D/g, ""));
       if (newServicePrice.trim()) setUnitPrice(newServicePrice.trim());
 
       setShowAddServiceModal(false);
       setNewServiceName("");
+      setNewServiceAbbreviation("");
       setNewServiceTools("");
       setNewServiceDays("");
       setNewServicePrice("");
@@ -455,14 +467,17 @@ export function ProjectMastersSection({
       setFormError("Please specify the Tools/Technologies.");
       return;
     }
-    if (!duration.trim()) {
-      setFormError("Please enter standard Duration.");
+    const durationDays = Number(duration);
+    if (!duration.trim() || Number.isNaN(durationDays) || durationDays <= 0) {
+      setFormError("Please enter a valid numeric Duration in days.");
       return;
     }
     if (!unitPrice.trim() || Number.isNaN(priceNum) || priceNum <= 0) {
       setFormError("Please enter a valid numeric Unit Price (greater than 0).");
       return;
     }
+
+    const trimmedAbbr = abbreviation.trim();
 
     const res = await onAdd({
       contractType: selectedContractType,
@@ -471,12 +486,14 @@ export function ProjectMastersSection({
       subDepartment: selectedSubDepartment,
       service: selectedService,
       tools: tools.trim(),
-      duration: duration.trim(),
+      duration: `${durationDays} Days`,
       unitPrice: priceNum,
+      abbreviation: trimmedAbbr || undefined,
     });
 
     if (res.success) {
       // Clear inputs
+      setAbbreviation("");
       setTools("");
       setDuration("");
       setUnitPrice("");
@@ -489,12 +506,32 @@ export function ProjectMastersSection({
   // Open Edit Modal
   const openEditModal = (item: ProjectMasterItem) => {
     setEditingItem(item);
-    setEditContractType(item.contractType || item.group || "");
-    setEditDepartment(item.department);
-    setEditSubDepartment(item.subDepartment || "");
-    setEditService(item.service);
+    const ct = item.contractType || item.group || "";
+    setEditContractType(ct);
+
+    // Case-insensitively match available departments for this contract type
+    const availableDepts = resolveDepartmentsForContractType(ct);
+    const matchedDept =
+      availableDepts.find((d) => d.toLowerCase() === (item.department || "").trim().toLowerCase()) ||
+      item.department ||
+      "";
+    setEditDepartment(matchedDept);
+
+    const subDepts = resolveSubDepartmentsForDepartment(ct, matchedDept);
+    const matchedSubDept =
+      subDepts.find((sd) => sd.toLowerCase() === (item.subDepartment || "").trim().toLowerCase()) ||
+      item.subDepartment ||
+      "";
+    setEditSubDepartment(matchedSubDept);
+
+    const svcs = resolveServicesForSubDepartment(ct, matchedDept, matchedSubDept);
+    const matchedSvc = svcs.find((s) => s.name.toLowerCase() === (item.service || "").trim().toLowerCase());
+    setEditService(matchedSvc ? matchedSvc.name : item.service);
+
+    setEditAbbreviation(item.abbreviation ?? "");
     setEditTools(item.tools);
-    setEditDuration(item.duration);
+    const parsedDays = parseDurationDays(item.duration);
+    setEditDuration(parsedDays > 0 ? String(parsedDays) : item.duration.replace(/\D/g, ""));
     setEditUnitPrice(String(item.unitPrice));
     setEditError(null);
   };
@@ -542,7 +579,8 @@ export function ProjectMastersSection({
       if (matched) {
         setEditTools(matched.tool);
         setEditUnitPrice(String(matched.unitPrice));
-        setEditDuration(`${matched.days} Days`);
+        setEditDuration(matched.days ? String(matched.days) : "");
+        setEditAbbreviation(matched.abbreviation ?? "");
       }
     }
   };
@@ -573,8 +611,9 @@ export function ProjectMastersSection({
       setEditError("Please specify Tools.");
       return;
     }
-    if (!editDuration.trim()) {
-      setEditError("Please specify Duration.");
+    const editDurationDays = Number(editDuration);
+    if (!editDuration.trim() || Number.isNaN(editDurationDays) || editDurationDays <= 0) {
+      setEditError("Please enter a valid numeric Duration in days.");
       return;
     }
     if (!editUnitPrice.trim() || Number.isNaN(priceNum) || priceNum <= 0) {
@@ -589,8 +628,9 @@ export function ProjectMastersSection({
       subDepartment: editSubDepartment,
       service: editService,
       tools: editTools.trim(),
-      duration: editDuration.trim(),
+      duration: `${editDurationDays} Days`,
       unitPrice: priceNum,
+      abbreviation: editAbbreviation.trim() || undefined,
     });
 
     if (res.success) {
@@ -629,18 +669,18 @@ export function ProjectMastersSection({
             </div>
           )}
 
-          {/* Row 1: Dropdowns with [+] buttons - Contract Type, Department, Sub-department, Service */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Row 1: Dropdowns with [+] buttons - Contract Type, Department, Sub-department, Service, Service Abbreviation */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {/* 1. Contract Type [+] */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <div className="flex items-center justify-between">
-                <Label htmlFor="master-contract-type" className="text-xs font-medium text-foreground">
+                <Label htmlFor="master-contract-type" className="text-xs font-medium text-foreground truncate">
                   Contract Type <span className="text-destructive">*</span>
                 </Label>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0 w-full">
                 <Select value={selectedContractType} onValueChange={handleContractTypeChange}>
-                  <SelectTrigger id="master-contract-type" className="h-9 text-xs flex-1">
+                  <SelectTrigger id="master-contract-type" className="h-9 text-xs flex-1 min-w-0 w-0 overflow-hidden [&>span]:truncate [&>span]:block text-left">
                     <SelectValue placeholder="Select Contract Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -655,7 +695,7 @@ export function ProjectMastersSection({
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all"
+                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all flex items-center justify-center"
                   title="Add new Contract Type"
                   onClick={() => {
                     setNewContractTypeName("");
@@ -669,19 +709,19 @@ export function ProjectMastersSection({
             </div>
 
             {/* 2. Department [+] */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <div className="flex items-center justify-between">
-                <Label htmlFor="master-department" className="text-xs font-medium text-foreground">
+                <Label htmlFor="master-department" className="text-xs font-medium text-foreground truncate">
                   Department <span className="text-destructive">*</span>
                 </Label>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0 w-full">
                 <Select
                   value={selectedDepartment}
                   onValueChange={handleDepartmentChange}
                   disabled={!selectedContractType}
                 >
-                  <SelectTrigger id="master-department" className="h-9 text-xs flex-1">
+                  <SelectTrigger id="master-department" className="h-9 text-xs flex-1 min-w-0 w-0 overflow-hidden [&>span]:truncate [&>span]:block text-left">
                     <SelectValue
                       placeholder={!selectedContractType ? "Select Contract Type first" : "Select Department"}
                     />
@@ -699,7 +739,7 @@ export function ProjectMastersSection({
                   variant="outline"
                   size="icon"
                   disabled={!selectedContractType}
-                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40"
+                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40 flex items-center justify-center"
                   title={!selectedContractType ? "Select Contract Type first to add department" : "Add new Department"}
                   onClick={() => {
                     setNewDepartmentName("");
@@ -714,19 +754,19 @@ export function ProjectMastersSection({
             </div>
 
             {/* 3. Sub-department [+] */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <div className="flex items-center justify-between">
-                <Label htmlFor="master-sub-department" className="text-xs font-medium text-foreground">
+                <Label htmlFor="master-sub-department" className="text-xs font-medium text-foreground truncate">
                   Sub-department <span className="text-destructive">*</span>
                 </Label>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0 w-full">
                 <Select
                   value={selectedSubDepartment}
                   onValueChange={handleSubDepartmentChange}
                   disabled={!selectedDepartment}
                 >
-                  <SelectTrigger id="master-sub-department" className="h-9 text-xs flex-1">
+                  <SelectTrigger id="master-sub-department" className="h-9 text-xs flex-1 min-w-0 w-0 overflow-hidden [&>span]:truncate [&>span]:block text-left">
                     <SelectValue
                       placeholder={!selectedDepartment ? "Select Department first" : "Select Sub-department"}
                     />
@@ -744,7 +784,7 @@ export function ProjectMastersSection({
                   variant="outline"
                   size="icon"
                   disabled={!selectedDepartment}
-                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40"
+                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40 flex items-center justify-center"
                   title={!selectedDepartment ? "Select Department first to add sub-department" : "Add new Sub-department"}
                   onClick={() => {
                     setNewSubDeptContractType(selectedContractType);
@@ -760,19 +800,19 @@ export function ProjectMastersSection({
             </div>
 
             {/* 4. Service [+] */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 min-w-0">
               <div className="flex items-center justify-between">
-                <Label htmlFor="master-service" className="text-xs font-medium text-foreground">
+                <Label htmlFor="master-service" className="text-xs font-medium text-foreground truncate">
                   Service <span className="text-destructive">*</span>
                 </Label>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0 w-full">
                 <Select
                   value={selectedService}
                   onValueChange={handleServiceChange}
                   disabled={!selectedSubDepartment}
                 >
-                  <SelectTrigger id="master-service" className="h-9 text-xs flex-1">
+                  <SelectTrigger id="master-service" className="h-9 text-xs flex-1 min-w-0 w-0 overflow-hidden [&>span]:truncate [&>span]:block text-left">
                     <SelectValue
                       placeholder={!selectedSubDepartment ? "Select Sub-department first" : "Select Service"}
                     />
@@ -790,12 +830,13 @@ export function ProjectMastersSection({
                   variant="outline"
                   size="icon"
                   disabled={!selectedSubDepartment}
-                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40"
+                  className="h-9 w-9 shrink-0 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary transition-all disabled:opacity-40 flex items-center justify-center"
                   title={!selectedSubDepartment ? "Select Sub-department first to add service" : "Add new Service"}
                   onClick={() => {
                     setNewServiceDept(selectedDepartment || availableDepartments[0] || "");
                     setNewServiceSubDept(selectedSubDepartment || "");
                     setNewServiceName("");
+                    setNewServiceAbbreviation("");
                     setNewServiceTools("");
                     setNewServiceDays("");
                     setNewServicePrice("");
@@ -806,6 +847,23 @@ export function ProjectMastersSection({
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+
+            {/* 5. Service Abbreviation */}
+            <div className="space-y-1.5 min-w-0">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="master-abbreviation" className="text-xs font-medium text-foreground truncate">
+                  Service Abbreviation
+                </Label>
+              </div>
+              <Input
+                id="master-abbreviation"
+                placeholder={!selectedService ? "Select Service first" : "e.g. AWS"}
+                value={abbreviation}
+                onChange={(e) => setAbbreviation(e.target.value)}
+                disabled={!selectedService}
+                className="h-9 text-xs w-full"
+              />
             </div>
           </div>
 
@@ -824,25 +882,28 @@ export function ProjectMastersSection({
               />
             </div>
 
-            <div className="space-y-1.5 sm:col-span-3">
+            <div className="space-y-1.5 sm:col-span-3 min-w-0">
               <Label htmlFor="master-duration" className="text-xs font-medium text-foreground">
-                Duration <span className="text-destructive">*</span>
+                Duration (Days) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="master-duration"
-                placeholder="e.g. 5 Days / 40 Hours"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="e.g. 5"
                 value={duration}
-                onChange={(e) => setDuration(e.target.value)}
+                onChange={(e) => setDuration(e.target.value.replace(/\D/g, ""))}
                 className="h-9 text-xs"
               />
             </div>
 
-            <div className="space-y-1.5 sm:col-span-3">
+            <div className="space-y-1.5 sm:col-span-3 min-w-0">
               <Label htmlFor="master-price" className="text-xs font-medium text-foreground">
-                Unit Price ($) <span className="text-destructive">*</span>
+                Unit Price (₹) <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
                 <Input
                   id="master-price"
                   type="number"
@@ -953,7 +1014,7 @@ export function ProjectMastersSection({
                   <th className="py-2.5 px-3">Department & Service</th>
                   <th className="py-2.5 px-3">Tools & Tech</th>
                   <th className="py-2.5 px-3">Duration</th>
-                  <th className="py-2.5 px-3">Unit Price</th>
+                  <th className="py-2.5 px-3">Unit Price (₹)</th>
                   <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -966,7 +1027,14 @@ export function ProjectMastersSection({
                       </Badge>
                     </td>
                     <td className="py-3 px-3 align-top">
-                      <div className="font-medium text-foreground">{item.service}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-medium text-foreground">{item.service}</span>
+                        {item.abbreviation && (
+                          <Badge variant="secondary" className="text-[10px] uppercase font-mono px-1.5 py-0">
+                            {item.abbreviation}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center flex-wrap gap-1">
                         <span>{item.department}</span>
                         {item.subDepartment && (
@@ -987,7 +1055,7 @@ export function ProjectMastersSection({
                       </span>
                     </td>
                     <td className="py-3 px-3 align-top whitespace-nowrap font-medium text-foreground">
-                      ${item.unitPrice.toLocaleString()}
+                      ₹{item.unitPrice.toLocaleString()}
                     </td>
                     <td className="py-3 px-3 align-top text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1">
@@ -1342,6 +1410,19 @@ export function ProjectMastersSection({
             </div>
 
             <div className="space-y-1.5">
+              <Label htmlFor="new-service-abbr" className="text-xs font-medium">
+                Service Abbreviation (Optional)
+              </Label>
+              <Input
+                id="new-service-abbr"
+                placeholder="e.g. K8S, AWS, FSRE"
+                value={newServiceAbbreviation}
+                onChange={(e) => setNewServiceAbbreviation(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="new-service-tools" className="text-xs font-medium">
                 Default Tools & Technologies (Optional)
               </Label>
@@ -1371,7 +1452,7 @@ export function ProjectMastersSection({
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="new-service-price" className="text-xs font-medium">
-                  Default Unit Price ($)
+                  Default Unit Price (₹)
                 </Label>
                 <Input
                   id="new-service-price"
@@ -1455,7 +1536,7 @@ export function ProjectMastersSection({
                     <SelectValue placeholder={!editContractType ? "Select Contract Type first" : "Select Department"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {editAvailableDepartments.map((d) => (
+                    {Array.from(new Set([editDepartment, ...editAvailableDepartments].filter(Boolean))).map((d) => (
                       <SelectItem key={d} value={d} className="text-xs">
                         {d}
                       </SelectItem>
@@ -1479,7 +1560,7 @@ export function ProjectMastersSection({
                     <SelectValue placeholder={!editDepartment ? "Select Department first" : "Select Sub-department"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {editAvailableSubDepartments.map((sd) => (
+                    {Array.from(new Set([editSubDepartment, ...editAvailableSubDepartments].filter(Boolean))).map((sd) => (
                       <SelectItem key={sd} value={sd} className="text-xs">
                         {sd}
                       </SelectItem>
@@ -1501,13 +1582,26 @@ export function ProjectMastersSection({
                     <SelectValue placeholder={!editSubDepartment ? "Select Sub-department first" : "Select Service"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {editFilteredServices.map((s) => (
+                    {Array.from(new Set([editService, ...editFilteredServices].filter(Boolean))).map((s) => (
                       <SelectItem key={s} value={s} className="text-xs">
                         {s}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-medium">
+                  Service Abbreviation
+                </Label>
+                <Input
+                  value={editAbbreviation}
+                  onChange={(e) => setEditAbbreviation(e.target.value)}
+                  disabled={!editService}
+                  placeholder={!editService ? "Select Service first" : "e.g. AWS"}
+                  className="h-8 text-xs"
+                />
               </div>
             </div>
 
@@ -1522,15 +1616,19 @@ export function ProjectMastersSection({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Duration</Label>
+                <Label className="text-xs">Duration (Days)</Label>
                 <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="e.g. 5"
                   value={editDuration}
-                  onChange={(e) => setEditDuration(e.target.value)}
+                  onChange={(e) => setEditDuration(e.target.value.replace(/\D/g, ""))}
                   className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Unit Price ($)</Label>
+                <Label className="text-xs">Unit Price (₹)</Label>
                 <Input
                   type="number"
                   min="0"

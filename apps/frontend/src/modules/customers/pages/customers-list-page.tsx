@@ -1345,8 +1345,8 @@ export function NewClientModal({
       ...p,
       clientName: c.name,
       customerId: formatCustomerId(c.id),
-      engagementManager: p.engagementManager.trim() || c.engagementManager || "",
-      salesManager: p.salesManager.trim() || c.salesManager || "",
+      engagementManager: c.engagementManager || "",
+      salesManager: c.salesManager || "",
       phoneNumber: c.groupSpocContact || c.contactPhone || p.phoneNumber,
       groupSpocName: p.groupSpocName.trim() || c.groupSpocName || c.contactName || "",
       billingMedium: p.billingMedium.trim() || c.billingMedium || "",
@@ -2052,30 +2052,53 @@ export function NewClientModal({
             </Field>
           )}
 
-          {/* Stakeholders — always editable (new TK customer or existing + sub-venture) */}
+          {/* Stakeholders — read-only when adding sub-venture to existing customer */}
           <div className="grid gap-3 sm:grid-cols-2">
-            <SearchableSelect
-              label="Engagement Manager"
-              required
-              placeholder={emLoading ? "Loading engagement managers…" : "Select engagement manager…"}
-              searchPlaceholder="Search by name, email, or code…"
-              disabled={emLoading}
-              disabledHint="Loading engagement managers…"
-              options={emOptions}
-              value={s.engagementManager}
-              onChange={(name) => u("engagementManager", name)}
-            />
-            <SearchableSelect
-              label="Sales Manager"
-              required
-              placeholder={smLoading ? "Loading sales managers…" : "Select sales manager…"}
-              searchPlaceholder="Search by name, email, or code…"
-              disabled={smLoading}
-              disabledHint="Loading sales managers…"
-              options={smOptions}
-              value={s.salesManager}
-              onChange={(name) => u("salesManager", name)}
-            />
+            {selectedExisting ? (
+              <>
+                <Field label="Engagement Manager" required>
+                  <input
+                    className={readOnlyCls}
+                    value={s.engagementManager || selectedExisting.engagementManager || "—"}
+                    readOnly
+                    title="Engagement Manager from customer profile"
+                  />
+                </Field>
+                <Field label="Sales Manager" required>
+                  <input
+                    className={readOnlyCls}
+                    value={s.salesManager || selectedExisting.salesManager || "—"}
+                    readOnly
+                    title="Sales Manager from customer profile"
+                  />
+                </Field>
+              </>
+            ) : (
+              <>
+                <SearchableSelect
+                  label="Engagement Manager"
+                  required
+                  placeholder={emLoading ? "Loading engagement managers…" : "Select engagement manager…"}
+                  searchPlaceholder="Search by name, email, or code…"
+                  disabled={emLoading}
+                  disabledHint="Loading engagement managers…"
+                  options={emOptions}
+                  value={s.engagementManager}
+                  onChange={(name) => u("engagementManager", name)}
+                />
+                <SearchableSelect
+                  label="Sales Manager"
+                  required
+                  placeholder={smLoading ? "Loading sales managers…" : "Select sales manager…"}
+                  searchPlaceholder="Search by name, email, or code…"
+                  disabled={smLoading}
+                  disabledHint="Loading sales managers…"
+                  options={smOptions}
+                  value={s.salesManager}
+                  onChange={(name) => u("salesManager", name)}
+                />
+              </>
+            )}
           </div>
 
           {/* ── New TK customer fields — only shown when not selecting existing ── */}

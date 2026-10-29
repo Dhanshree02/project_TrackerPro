@@ -16,6 +16,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
             ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
         var services = await db.ProjectServices
+            .Include(s => s.ServiceCatalog)
             .Where(s => s.ProjectId == projectId && s.IsReady && s.DeletedAtUtc == null)
             .OrderBy(s => s.SortOrder)
             .ThenBy(s => s.CreatedAtUtc)
@@ -23,12 +24,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
         var existing = await db.ProjectTasks
             .Where(t => t.ProjectId == projectId)
-            .Select(t => new { t.ProjectServiceId, t.Period, t.Phase, t.Title })
             .ToListAsync(ct);
-
-        var known = existing
-            .Select(t => LeafKey(t.ProjectServiceId, t.Period, t.Phase, t.Title))
-            .ToHashSet(StringComparer.Ordinal);
 
         var created = new List<ProjectTask>();
         var order = existing.Count;
@@ -46,17 +42,54 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
                 var serviceHours = ServiceHours(service);
                 var hoursEach = totalLeaves > 0 ? Math.Round(serviceHours / totalLeaves, 2) : 0m;
 
+                var abbr = !string.IsNullOrWhiteSpace(service.ServiceCatalog?.Abbreviation)
+                    ? service.ServiceCatalog.Abbreviation.Trim()
+                    : (!string.IsNullOrWhiteSpace(service.ServiceAbbreviation) ? service.ServiceAbbreviation.Trim() : "");
+
+                if (string.IsNullOrWhiteSpace(abbr))
+                {
+                    var cat = (service.ServiceCatalogId.HasValue ? await db.ServiceCatalogs.FirstOrDefaultAsync(c => c.Id == service.ServiceCatalogId.Value, ct) : null)
+                        ?? await db.ServiceCatalogs.FirstOrDefaultAsync(c => c.Name.ToLower() == (service.ServiceName ?? "").ToLower(), ct);
+                    abbr = !string.IsNullOrWhiteSpace(cat?.Abbreviation) ? cat.Abbreviation.Trim() : "AP";
+                    if (!string.IsNullOrWhiteSpace(cat?.Abbreviation) && string.IsNullOrWhiteSpace(service.ServiceAbbreviation))
+                    {
+                        service.ServiceAbbreviation = cat.Abbreviation.Trim();
+                        service.ServiceCatalogId ??= cat.Id;
+                    }
+                }
+
+                // If service has a customized abbreviation (e.g. NVA, AWS, ISO), migrate existing tasks for this service from AP1/AP2 to abbreviation
+                if (!string.Equals(abbr, "AP", StringComparison.OrdinalIgnoreCase))
+                {
+                    var serviceTasks = existing.Where(t => t.ProjectServiceId == service.Id).ToList();
+                    foreach (var t in serviceTasks)
+                    {
+                        if (!string.IsNullOrWhiteSpace(t.Phase) && System.Text.RegularExpressions.Regex.IsMatch(t.Phase, @"^AP\d+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                        {
+                            var apNum = t.Phase[2..];
+                            t.Phase = $"{abbr}{apNum}";
+                            t.UpdatedAtUtc = DateTime.UtcNow;
+                        }
+                    }
+                }
+
+                var known = existing
+                    .Select(t => LeafKey(t.ProjectServiceId, t.Period, t.Phase, t.Title))
+                    .ToHashSet(StringComparer.Ordinal);
+
                 for (var q = quarters == 0 ? 0 : 1; q <= (quarters == 0 ? 0 : quarters); q++)
                 {
                     var period = quarters == 0 ? "" : $"Quarter {q}";
                     for (var ap = 1; ap <= qty; ap++)
                     {
-                        var phase = $"AP{ap}";
+                        var phase = $"{abbr}{ap}";
                         foreach (var spec in specs)
                         {
                             var title = $"Task {spec.Suffix}";
                             var key = LeafKey(service.Id, period, phase, title);
-                            if (!known.Add(key)) continue;
+                            var fallbackKey = LeafKey(service.Id, period, $"AP{ap}", title);
+                            if (known.Contains(key) || known.Contains(fallbackKey)) continue;
+                            known.Add(key);
 
                             order++;
                             var task = new ProjectTask
@@ -85,8 +118,8 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
             if (created.Count > 0)
             {
                 db.ProjectTasks.AddRange(created);
-                await db.SaveChangesAsync(ct);
             }
+            await db.SaveChangesAsync(ct);
 
             await tx.CommitAsync(ct);
         }
@@ -603,7 +636,8 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
     {
         if (string.IsNullOrWhiteSpace(phase)) return null;
         var trimmed = phase.Trim();
-        if (trimmed.StartsWith("AP", StringComparison.OrdinalIgnoreCase) && int.TryParse(trimmed[2..], out var num))
+        var match = System.Text.RegularExpressions.Regex.Match(trimmed, @"(\d+)$");
+        if (match.Success && int.TryParse(match.Groups[1].Value, out var num))
         {
             return num;
         }

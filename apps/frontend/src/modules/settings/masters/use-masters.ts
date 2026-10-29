@@ -116,6 +116,7 @@ export function useMastersStore() {
           tools: item.tools.trim(),
           durationDays,
           unitPrice: Number(item.unitPrice),
+          abbreviation: item.abbreviation?.trim() || null,
         });
         await loadMastersFromDb();
         toast.success("Project Master added successfully");
@@ -164,6 +165,7 @@ export function useMastersStore() {
           tools: item.tools.trim(),
           durationDays,
           unitPrice: Number(item.unitPrice),
+          abbreviation: item.abbreviation?.trim() || null,
         });
         await loadMastersFromDb();
         toast.success("Project Master updated successfully");

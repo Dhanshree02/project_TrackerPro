@@ -167,6 +167,7 @@ export interface ServiceHierarchyItem {
   defaultDurationDays?: number | null;
   description?: string | null;
   sortOrder: number;
+  abbreviation?: string | null;
 }
 
 export interface ServiceHierarchySubDept {

@@ -15,6 +15,7 @@ public sealed class ProjectServiceConfiguration : IEntityTypeConfiguration<Proje
         builder.Property(x => x.Department).HasMaxLength(150).IsRequired();
         builder.Property(x => x.SubDepartment).HasMaxLength(200);
         builder.Property(x => x.ServiceName).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.ServiceAbbreviation).HasMaxLength(50);
         builder.Property(x => x.ResourceLevel).HasMaxLength(80);
         builder.Property(x => x.Frequency).HasMaxLength(40);
         builder.Property(x => x.Location).HasMaxLength(40);

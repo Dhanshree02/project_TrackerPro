@@ -112,6 +112,7 @@ import {
   isOnFloorProjectManager,
   ON_FLOOR_SENIOR_MANAGER,
 } from "@/lib/on-floor-role";
+import { fetchServiceHierarchy } from "@/lib/api/catalogs";
 
 // Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
 function formatDate(dateInput: Date | string | undefined | null): string {
@@ -697,6 +698,13 @@ export function ProjectDetailPage() {
   const [liveServiceDates, setLiveServiceDates] = useState<Array<{ startDate?: string | null; endDate?: string | null }> | null>(null);
   const [dbServices, setDbServices] = useState<ApiProjectService[] | null>(null);
   const [dbInvoices, setDbInvoices] = useState<ApiProjectInvoice[] | null>(null);
+  const [projectRefreshKey, setProjectRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (projectRefreshKey > 0 && isApiGuid(rawId)) {
+      fetchProjectServices(rawId).then(setDbServices).catch(() => {});
+    }
+  }, [projectRefreshKey, rawId]);
   const [savedPo, setSavedPo] = useState<{ id: string; fileName: string } | null>(null);
   const [poLoaded, setPoLoaded] = useState(false);
   const [poPreviewUrl, setPoPreviewUrl] = useState<string | null>(null);
@@ -1637,6 +1645,7 @@ export function ProjectDetailPage() {
               client={client}
               onLeadershipSaved={applyLeadershipRows}
               onInvoicesRefreshed={refreshProjectInvoices}
+              onServicesRefreshed={() => setProjectRefreshKey((k) => k + 1)}
               onRaiseInvoice={(invoiceId) => {
                 setRaiseInvoiceId(invoiceId);
                 const existing = scheduleInvoices.find((i) => i.id === invoiceId);
@@ -1659,7 +1668,7 @@ export function ProjectDetailPage() {
 
           {tab === "Tasks" &&
             (useDhWorkspace ? (
-              <DhTasksTab project={project} readOnly={isViewOnly || isSales} />
+              <DhTasksTab project={project} refreshKey={projectRefreshKey} readOnly={isViewOnly || isSales} />
             ) : (
               <DefaultTasksTab project={project} />
             ))}
@@ -1843,6 +1852,7 @@ function WbsTab({
   poDocumentPanel?: React.ReactNode;
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
   onInvoicesRefreshed?: () => void;
+  onServicesRefreshed?: () => void;
 }) {
   const { user, isDhanshree, isPmFamily, isAccounts, hideBudget } = useRoleContext();
   const hideAmounts = isPmFamily || hideBudget;
@@ -1865,6 +1875,9 @@ function WbsTab({
           rows.map((s) => ({
             id: s.id,
             taskId: s.taskId || "",
+            serviceCatalogId: s.serviceCatalogId || undefined,
+            serviceAbbreviation: s.serviceAbbreviation || undefined,
+            abbreviation: s.serviceAbbreviation || undefined,
             department: s.department || "",
             subDepartment: s.subDepartment || "",
             serviceName: s.serviceName,
@@ -1957,7 +1970,7 @@ function WbsTab({
             client={client}
             onNavigateToHealthAlerts={onNavigateToHealthAlerts}
             onLeadershipSaved={onLeadershipSaved}
-            onServicesRefreshed={() => setRefreshCount((c) => c + 1)}
+            onServicesRefreshed={() => { setRefreshCount((c) => c + 1); onServicesRefreshed?.(); }}
             liveServices={rawServices}
           />
         )}
@@ -2137,6 +2150,7 @@ function WbsTab({
           onServicesUpdated={() => {
             setRefreshCount((c) => c + 1);
             onInvoicesRefreshed?.();
+            onServicesRefreshed?.();
           }}
         />
       </div>
@@ -2170,7 +2184,7 @@ function WbsTab({
           client={client}
           onNavigateToHealthAlerts={onNavigateToHealthAlerts}
           onLeadershipSaved={onLeadershipSaved}
-          onServicesRefreshed={() => setRefreshCount((c) => c + 1)}
+          onServicesRefreshed={() => { setRefreshCount((c) => c + 1); onServicesRefreshed?.(); }}
           liveServices={rawServices}
         />
       )}
@@ -3897,7 +3911,15 @@ interface ServiceFolder {
   aps: APFolder[] | null;
 }
 
-function buildServiceTree(project: Project, store: any, liveServices?: ApiProjectService[] | null): ServiceFolder[] {
+let serviceCatalogAbbrCache: Record<string, string> = {};
+
+function buildServiceTree(
+  project: Project,
+  store: any,
+  liveServices?: ApiProjectService[] | null,
+  catalogAbbrs?: Record<string, string>,
+  dbTasks?: ApiProjectTask[],
+): ServiceFolder[] {
   const rawList: any[] = (liveServices && liveServices.length > 0)
     ? liveServices
     : (project.wbsDetails?.services ?? []);
@@ -3913,9 +3935,54 @@ function buildServiceTree(project: Project, store: any, liveServices?: ApiProjec
 
     const taskSpecs = getTasksFromServiceModel(serviceModel);
 
+    const svcName = (svc.serviceName || svc.name || "").trim();
+    const svcNameKey = svcName.toLowerCase();
+    const svcId = svc.id || "";
+
+    // Multi-source abbreviation lookup:
+    let rawAbbr = (svc.serviceAbbreviation || svc.abbreviation || "").trim();
+
+    // Look in liveServices
+    if (!rawAbbr && liveServices?.length) {
+      const match = liveServices.find(
+        (s) => (s.id && s.id === svcId) || (s.serviceName && s.serviceName.trim().toLowerCase() === svcNameKey)
+      );
+      if (match?.serviceAbbreviation) rawAbbr = match.serviceAbbreviation.trim();
+    }
+
+    // Look in project.wbsDetails.services
+    if (!rawAbbr && project.wbsDetails?.services?.length) {
+      const match = project.wbsDetails.services.find(
+        (s: any) => (s.id && s.id === svcId) || ((s.serviceName || s.name || "").trim().toLowerCase() === svcNameKey)
+      );
+      if (match?.serviceAbbreviation || match?.abbreviation) {
+        rawAbbr = (match.serviceAbbreviation || match.abbreviation).trim();
+      }
+    }
+
+    // Look in catalogAbbrs state or module cache
+    if (!rawAbbr) {
+      const cached = catalogAbbrs?.[svcNameKey] || serviceCatalogAbbrCache[svcNameKey];
+      if (cached) rawAbbr = cached.trim();
+    }
+
+    // Look in existing dbTasks for this service (e.g. Phase = AWS1 -> AWS)
+    if (!rawAbbr && dbTasks?.length) {
+      const tMatch = dbTasks.find(
+        (t) => (t.projectServiceId && t.projectServiceId === svcId) || (t.serviceName && t.serviceName.trim().toLowerCase() === svcNameKey)
+      );
+      if (tMatch?.phase) {
+        const m = tMatch.phase.match(/^([A-Za-z]+)\d+$/);
+        if (m && m[1] && m[1].toUpperCase() !== "AP") {
+          rawAbbr = m[1].trim();
+        }
+      }
+    }
+
+    const abbr = rawAbbr || "AP";
     const apList: string[] = [];
     for (let i = 1; i <= qty; i++) {
-      apList.push(`AP${i}`);
+      apList.push(`${abbr}${i}`);
     }
 
     let numQuarters = 0;
@@ -4023,21 +4090,48 @@ function applyPersistedTasks(
   serviceIdsByKey: Map<string, string> = new Map(),
 ): ServiceFolder[] {
   const map = new Map<string, ApiProjectTask>();
+  const dominantAbbrByService = new Map<string, string>();
+
   for (const t of tasks) {
     const period = t.period || "";
     const phase = t.phase || "";
     const title = t.title || "";
     if (t.projectServiceId) map.set(taskLeafKey(t.projectServiceId, period, phase, title), t);
     if (t.serviceName) map.set(taskLeafKey(t.serviceName, period, phase, title), t);
+
+    if (phase) {
+      const m = phase.match(/^([A-Za-z]+)\d+$/);
+      if (m && m[1] && m[1].toUpperCase() !== "AP") {
+        const foundAbbr = m[1].trim().toUpperCase();
+        if (t.projectServiceId) dominantAbbrByService.set(t.projectServiceId, foundAbbr);
+        if (t.serviceName) dominantAbbrByService.set(t.serviceName.trim().toLowerCase(), foundAbbr);
+      }
+    }
   }
+
   const mapTask = (task: TreeTask, serviceId: string, serviceName: string, serviceCode: string, period: string, phase: string): TreeTask => {
     const dbServiceId =
       serviceIdsByKey.get(`code:${serviceCode.trim().toLowerCase()}`) ||
       serviceIdsByKey.get(`name:${serviceName.trim().toLowerCase()}`) ||
       serviceId;
+    const apNumMatch = phase.match(/(\d+)$/);
+    const apNum = apNumMatch ? apNumMatch[1] : "";
+    const fallbackPhase = apNum ? `AP${apNum}` : phase;
+    const svcAbbr = dominantAbbrByService.get(dbServiceId) || dominantAbbrByService.get(serviceName.trim().toLowerCase());
+    const abbrPhase = (svcAbbr && apNum) ? `${svcAbbr}${apNum}` : undefined;
+
     const hit =
       map.get(taskLeafKey(dbServiceId, period, phase, task.taskId)) ||
-      map.get(taskLeafKey(serviceName, period, phase, task.taskId));
+      map.get(taskLeafKey(serviceName, period, phase, task.taskId)) ||
+      (fallbackPhase !== phase
+        ? map.get(taskLeafKey(dbServiceId, period, fallbackPhase, task.taskId)) ||
+          map.get(taskLeafKey(serviceName, period, fallbackPhase, task.taskId))
+        : undefined) ||
+      (abbrPhase && abbrPhase !== phase
+        ? map.get(taskLeafKey(dbServiceId, period, abbrPhase, task.taskId)) ||
+          map.get(taskLeafKey(serviceName, period, abbrPhase, task.taskId))
+        : undefined);
+
     if (!hit) return task;
     const shares = (hit.assignments ?? [])
       .filter((a) => a.isActive !== false && Number(a.allocatedHours) > 0)
@@ -4056,27 +4150,57 @@ function applyPersistedTasks(
       assignments: hit.assignments,
     };
   };
-  return folders.map((svc) => ({
-    ...svc,
-    quarters: svc.quarters
-      ? svc.quarters.map((q) => ({
-          ...q,
-          aps: q.aps.map((ap) => ({
-            ...ap,
-            tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, ap.label)),
-          })),
-        }))
-      : null,
-    aps: svc.aps
-      ? svc.aps.map((ap) => ({
-          ...ap,
-          tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", ap.label)),
-        }))
-      : null,
-  }));
+
+  return folders.map((svc) => {
+    const svcNameKey = svc.serviceName.trim().toLowerCase();
+    const dominantAbbr = dominantAbbrByService.get(svc.serviceId) || dominantAbbrByService.get(svcNameKey);
+
+    const resolveFolderLabel = (currLabel: string): string => {
+      if (dominantAbbr && currLabel.toUpperCase().startsWith("AP")) {
+        const num = currLabel.replace(/^AP/i, "");
+        if (/^\d+$/.test(num)) return `${dominantAbbr}${num}`;
+      }
+      return currLabel;
+    };
+
+    return {
+      ...svc,
+      quarters: svc.quarters
+        ? svc.quarters.map((q) => ({
+            ...q,
+            aps: q.aps.map((ap) => {
+              const label = resolveFolderLabel(ap.label);
+              return {
+                ...ap,
+                label,
+                tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, label)),
+              };
+            }),
+          }))
+        : null,
+      aps: svc.aps
+        ? svc.aps.map((ap) => {
+            const label = resolveFolderLabel(ap.label);
+            return {
+              ...ap,
+              label,
+              tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", label)),
+            };
+          })
+        : null,
+    };
+  });
 }
 
-function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?: boolean }) {
+function DhTasksTab({
+  project,
+  readOnly = false,
+  refreshKey = 0,
+}: {
+  project: Project;
+  readOnly?: boolean;
+  refreshKey?: number;
+}) {
   const snapshot = useDhStore((s) => s);
   const prereq = snapshot.prereqs[project.id];
   const shadowTeamIds = snapshot.shadowTeams[project.id] ?? [];
@@ -4084,6 +4208,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
   const [apiServices, setApiServices] = useState<ApiProjectService[] | null>(useApiTasks ? null : []);
   const [serviceIdsByKey, setServiceIdsByKey] = useState<Map<string, string>>(new Map());
+  const [catalogAbbrMap, setCatalogAbbrMap] = useState<Record<string, string>>({});
   const [apiPool, setApiPool] = useState<{ person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[] | null>(null);
   const [taskToComplete, setTaskToComplete] = useState<{
     taskId: string;
@@ -4092,6 +4217,32 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
     estHours?: number;
   } | null>(null);
   const [isCompletingTask, setIsCompletingTask] = useState(false);
+
+  // Load catalog hierarchy into React state to guarantee re-render when abbreviations arrive
+  useEffect(() => {
+    let active = true;
+    fetchServiceHierarchy().then((groups) => {
+      if (!active) return;
+      const map: Record<string, string> = {};
+      for (const g of groups ?? []) {
+        for (const d of g?.departments ?? []) {
+          for (const sd of d?.subDepartments ?? []) {
+            for (const s of sd?.services ?? []) {
+              if (s?.name && s?.abbreviation) {
+                const k = s.name.toLowerCase().trim();
+                map[k] = s.abbreviation.trim();
+                serviceCatalogAbbrCache[k] = s.abbreviation.trim();
+              }
+            }
+          }
+        }
+      }
+      setCatalogAbbrMap(map);
+    }).catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!useApiTasks) return;
@@ -4130,13 +4281,13 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
     return () => {
       active = false;
     };
-  }, [project.id, useApiTasks]);
+  }, [project.id, useApiTasks, refreshKey]);
 
   const tree = useMemo(() => {
-    const built = buildServiceTree(project, dhStore, apiServices);
+    const built = buildServiceTree(project, dhStore, apiServices, catalogAbbrMap, dbTasks);
     if (!useApiTasks || dbTasks.length === 0) return built;
     return applyPersistedTasks(built, dbTasks, serviceIdsByKey);
-  }, [project, snapshot.treeTaskStates, useApiTasks, dbTasks, serviceIdsByKey, apiServices]);
+  }, [project, snapshot.treeTaskStates, useApiTasks, dbTasks, serviceIdsByKey, apiServices, catalogAbbrMap]);
 
   const visibleTree = useMemo(() => {
     if (useApiTasks) {
@@ -8256,6 +8407,21 @@ function WbsPrerequisiteSection({
   const knownPeople = useDhStore((s) => s.knownPeople);
   const { user, isSales, isViewOnly } = useRoleContext();
   const [assignModalMode, setAssignModalMode] = useState<null | "pm" | "spm">(null);
+  const [localServiceStatus, setLocalServiceStatus] = useState<
+    Record<
+      string,
+      {
+        collectionStatus?: string;
+        validationStatus?: string;
+        billingStatus?: string;
+        isReady?: boolean;
+        modCollectionStatus?: string;
+        modValidationStatus?: string;
+        modBillingStatus?: string;
+        modIsReady?: boolean;
+      }
+    >
+  >({});
 
   const [dbProjects, setDbProjects] = useState<any[]>([]);
 
@@ -8385,6 +8551,7 @@ function WbsPrerequisiteSection({
 
     return effectiveServices.map((svc: any, i: number) => {
       const svcId = svc.id ?? `svc-${i}`;
+      const local = localServiceStatus[svcId];
       const existing = storeServices.find(
         (s) => s.serviceId === svcId || s.serviceName === (svc.serviceName ?? svc.department)
       );
@@ -8392,13 +8559,13 @@ function WbsPrerequisiteSection({
       return {
         serviceId: svcId,
         serviceName: svc.serviceName ?? svc.department ?? existing?.serviceName ?? `Service ${i + 1}`,
-        collectionStatus: (svc.collectionStatus ?? existing?.collectionStatus ?? (isResourceDept ? "NA" : "Pending To Collect")) as any,
-        validationStatus: (svc.validationStatus ?? existing?.validationStatus ?? (isResourceDept ? "NA" : "Pending To Validate")) as any,
-        billingStatus: (svc.billingStatus ?? existing?.billingStatus ?? "Advance Pending") as any,
-        isReady: Boolean(svc.isReady ?? existing?.isReady ?? false),
+        collectionStatus: (local?.collectionStatus ?? existing?.collectionStatus ?? svc.collectionStatus ?? (isResourceDept ? "NA" : "Pending To Collect")) as any,
+        validationStatus: (local?.validationStatus ?? existing?.validationStatus ?? svc.validationStatus ?? (isResourceDept ? "NA" : "Pending To Validate")) as any,
+        billingStatus: (local?.billingStatus ?? existing?.billingStatus ?? svc.billingStatus ?? "Advance Pending") as any,
+        isReady: Boolean(local?.isReady ?? svc.isReady ?? existing?.isReady ?? false),
       };
     });
-  }, [effectiveServices, project.contractType, (project as any).wbsDetails?.contractType, prereq.services]);
+  }, [effectiveServices, project.contractType, (project as any).wbsDetails?.contractType, prereq.services, localServiceStatus]);
 
   // Active services list excluding soft-deleted services
   const activeServicesList = useMemo(() => {
@@ -8471,6 +8638,14 @@ function WbsPrerequisiteSection({
 
   const handleServiceChange = (serviceId: string, field: "collectionStatus" | "validationStatus" | "billingStatus", value: string) => {
     if (isViewOnly) return;
+    setLocalServiceStatus((prev) => {
+      const current = prev[serviceId] || {};
+      const updated = { ...current, [field]: value };
+      if (field === "collectionStatus" && value === "Pending To Collect") {
+        updated.validationStatus = "Pending To Validate";
+      }
+      return { ...prev, [serviceId]: updated };
+    });
     dhStore.setServicePrereqStatus(project.id, serviceId, field, value, user.id, user.name);
     toast.success("Service status updated successfully");
     if (isApiGuid(project.id) && isApiGuid(serviceId)) {
@@ -8478,9 +8653,13 @@ function WbsPrerequisiteSection({
       if (field === "collectionStatus" && value === "Pending To Collect") {
         payload.validationStatus = "Pending To Validate";
       }
-      void updateServicePrerequisite(project.id, serviceId, payload).catch(() => {
-        toast.error("Could not save the service status");
-      });
+      void updateServicePrerequisite(project.id, serviceId, payload)
+        .then(() => {
+          onServicesRefreshed?.();
+        })
+        .catch(() => {
+          toast.error("Could not save the service status");
+        });
     }
   };
 
@@ -8785,6 +8964,13 @@ function WbsPrerequisiteSection({
                                 <button
                                   disabled={!canStart}
                                   onClick={() => {
+                                    setLocalServiceStatus((prev) => ({
+                                      ...prev,
+                                      [svc.serviceId]: {
+                                        ...(prev[svc.serviceId] || {}),
+                                        isReady: true,
+                                      },
+                                    }));
                                     dhStore.setServicePrereqReady(project.id, svc.serviceId, true);
                                     toast.success("Service started!", { description: svc.serviceName });
                                     if (isApiGuid(project.id) && isApiGuid(svc.serviceId)) {
@@ -8880,10 +9066,15 @@ function WbsPrerequisiteSection({
                             </td>
                             <td className="px-3 py-2.5 text-center align-middle">
                               <select
-                                value={isResourceDept ? "NA" : (wbsSvc.modCollectionStatus || "Pending To Collect")}
+                                value={isResourceDept ? "NA" : (localServiceStatus[svc.serviceId]?.modCollectionStatus ?? wbsSvc.modCollectionStatus ?? "Pending To Collect")}
                                 disabled={isResourceDept || Boolean(isModified && wbsSvc.modIsReady)}
                                 onChange={(e) => {
-                                  void updateServicePrerequisite(project.id, svc.serviceId, { modCollectionStatus: e.target.value }).then(() => {
+                                  const val = e.target.value;
+                                  setLocalServiceStatus((prev) => ({
+                                    ...prev,
+                                    [svc.serviceId]: { ...(prev[svc.serviceId] || {}), modCollectionStatus: val },
+                                  }));
+                                  void updateServicePrerequisite(project.id, svc.serviceId, { modCollectionStatus: val }).then(() => {
                                     toast.success("Modification collection status updated");
                                     onServicesRefreshed?.();
                                   });
@@ -8907,10 +9098,15 @@ function WbsPrerequisiteSection({
                             </td>
                             <td className="px-3 py-2.5 text-center align-middle">
                               <select
-                                value={isResourceDept ? "NA" : (wbsSvc.modValidationStatus || "Pending To Validate")}
-                                disabled={isResourceDept || Boolean(isModified && wbsSvc.modIsReady) || (!isResourceDept && wbsSvc.modCollectionStatus !== "Collected")}
+                                value={isResourceDept ? "NA" : (localServiceStatus[svc.serviceId]?.modValidationStatus ?? wbsSvc.modValidationStatus ?? "Pending To Validate")}
+                                disabled={isResourceDept || Boolean(isModified && wbsSvc.modIsReady) || (!isResourceDept && (localServiceStatus[svc.serviceId]?.modCollectionStatus ?? wbsSvc.modCollectionStatus) !== "Collected")}
                                 onChange={(e) => {
-                                  void updateServicePrerequisite(project.id, svc.serviceId, { modValidationStatus: e.target.value }).then(() => {
+                                  const val = e.target.value;
+                                  setLocalServiceStatus((prev) => ({
+                                    ...prev,
+                                    [svc.serviceId]: { ...(prev[svc.serviceId] || {}), modValidationStatus: val },
+                                  }));
+                                  void updateServicePrerequisite(project.id, svc.serviceId, { modValidationStatus: val }).then(() => {
                                     toast.success("Modification validation status updated");
                                     onServicesRefreshed?.();
                                   });
@@ -8934,10 +9130,15 @@ function WbsPrerequisiteSection({
                             </td>
                             <td className="px-3 py-2.5 text-center align-middle">
                               <select
-                                value={wbsSvc.modBillingStatus || "Advance Pending"}
+                                value={localServiceStatus[svc.serviceId]?.modBillingStatus ?? wbsSvc.modBillingStatus ?? "Advance Pending"}
                                 disabled={Boolean(isModified && wbsSvc.modIsReady)}
                                 onChange={(e) => {
-                                  void updateServicePrerequisite(project.id, svc.serviceId, { modBillingStatus: e.target.value }).then(() => {
+                                  const val = e.target.value;
+                                  setLocalServiceStatus((prev) => ({
+                                    ...prev,
+                                    [svc.serviceId]: { ...(prev[svc.serviceId] || {}), modBillingStatus: val },
+                                  }));
+                                  void updateServicePrerequisite(project.id, svc.serviceId, { modBillingStatus: val }).then(() => {
                                     toast.success("Modification billing status updated");
                                     onServicesRefreshed?.();
                                   });
@@ -8974,6 +9175,13 @@ function WbsPrerequisiteSection({
                                     type="button"
                                     disabled={!canStartMod}
                                     onClick={() => {
+                                      setLocalServiceStatus((prev) => ({
+                                        ...prev,
+                                        [svc.serviceId]: {
+                                          ...(prev[svc.serviceId] || {}),
+                                          modIsReady: true,
+                                        },
+                                      }));
                                       void updateServicePrerequisite(project.id, svc.serviceId, { modIsReady: true })
                                         .then(() => {
                                           toast.success("Service modification started and applied to tasks!", { description: `${svc.serviceName} (Qty: ${wbsSvc.pendingQty})` });

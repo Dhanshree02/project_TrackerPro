@@ -15,6 +15,7 @@ export interface ProjectMasterRow {
   durationDays?: number | null;
   unitPrice?: number | null;
   createdAtUtc: string;
+  abbreviation?: string | null;
 }
 
 export interface CreateProjectMasterPayload {
@@ -25,6 +26,7 @@ export interface CreateProjectMasterPayload {
   durationDays: number;
   unitPrice: number;
   subDepartment?: string | null;
+  abbreviation?: string | null;
 }
 
 export type UpdateProjectMasterPayload = CreateProjectMasterPayload;
@@ -52,6 +54,7 @@ export function flattenServiceHierarchyToProjectMasterRows(
             durationDays: svc.defaultDurationDays ?? null,
             unitPrice: svc.defaultUnitPrice ?? null,
             createdAtUtc: new Date(0).toISOString(),
+            abbreviation: svc.abbreviation ?? null,
           });
         }
       }
@@ -126,6 +129,7 @@ export async function createServiceOnly(payload: {
   durationDays?: number;
   unitPrice?: number;
   subDepartment?: string;
+  abbreviation?: string;
 }): Promise<ProjectMasterRow> {
   return apiFetch<ProjectMasterRow>("/api/v1/catalogs/project-masters/service-only", {
     method: "POST",
@@ -146,6 +150,7 @@ export function rowToProjectMasterItem(row: ProjectMasterRow) {
     duration: days > 0 ? `${days} Days` : "",
     unitPrice: Number(row.unitPrice ?? 0),
     createdAt: row.createdAtUtc,
+    abbreviation: row.abbreviation ?? undefined,
   };
 }
 

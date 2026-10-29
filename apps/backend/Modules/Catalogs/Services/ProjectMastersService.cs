@@ -53,6 +53,8 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
             throw new ConflictException(
                 $"Service \"{serviceName}\" already exists for {group.Name} → {department.Name}.");
 
+        var abbr = string.IsNullOrWhiteSpace(request.Abbreviation) ? null : request.Abbreviation.Trim();
+
         MstServiceCatalog entity;
         if (existing is not null)
         {
@@ -61,6 +63,7 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
             existing.DefaultTools = request.Tools.Trim();
             existing.DefaultDurationDays = request.DurationDays;
             existing.DefaultUnitPrice = request.UnitPrice;
+            existing.Abbreviation = abbr;
             existing.UpdatedAtUtc = DateTime.UtcNow;
             entity = existing;
         }
@@ -74,6 +77,7 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
                 DefaultTools = request.Tools.Trim(),
                 DefaultDurationDays = request.DurationDays,
                 DefaultUnitPrice = request.UnitPrice,
+                Abbreviation = abbr,
                 IsActive = true,
                 SortOrder = await NextCatalogSortAsync(subDepartment.Id, ct),
             };
@@ -114,11 +118,14 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
         if (duplicate)
             throw new ConflictException($"Another service named \"{serviceName}\" already exists in this department.");
 
+        var abbr = string.IsNullOrWhiteSpace(request.Abbreviation) ? null : request.Abbreviation.Trim();
+
         catalog.SubDepartmentId = subDepartment.Id;
         catalog.Name = serviceName;
         catalog.DefaultTools = request.Tools.Trim();
         catalog.DefaultDurationDays = request.DurationDays;
         catalog.DefaultUnitPrice = request.UnitPrice;
+        catalog.Abbreviation = abbr;
         catalog.UpdatedAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
@@ -219,6 +226,8 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
         var days = request.DurationDays is > 0 ? request.DurationDays.Value : 5;
         var price = request.UnitPrice is > 0 ? request.UnitPrice.Value : 0m;
 
+        var abbr = string.IsNullOrWhiteSpace(request.Abbreviation) ? null : request.Abbreviation.Trim();
+
         return await CreateAsync(
             new CreateProjectMasterRequest(
                 request.ContractType,
@@ -227,7 +236,8 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
                 string.IsNullOrEmpty(tools) ? "TBD" : tools,
                 days,
                 price > 0 ? price : 1m,
-                request.SubDepartment),
+                request.SubDepartment,
+                abbr),
             ct);
     }
 
@@ -270,7 +280,8 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
             c.DefaultTools,
             c.DefaultDurationDays,
             c.DefaultUnitPrice,
-            c.CreatedAtUtc);
+            c.CreatedAtUtc,
+            c.Abbreviation);
     }
 
     private async Task<ProjectMasterRowDto> LoadRowAsync(Guid id, CancellationToken ct)

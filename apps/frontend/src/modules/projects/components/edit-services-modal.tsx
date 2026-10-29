@@ -695,9 +695,13 @@ export function EditServicesModal({
     }
     const generatedTaskId = `WBS-${String(nextNum).padStart(2, "0")}`;
 
+    const matchedCatalogSvc = availableServicesList.find((s) => s.name.trim().toLowerCase() === serviceName.trim().toLowerCase());
     const newServicePayload = {
       department: selectedDept,
       subDepartment: selectedSubDept,
+      serviceCatalogId: matchedCatalogSvc?.id || null,
+      serviceAbbreviation: (matchedCatalogSvc?.abbreviation || "").trim() || null,
+      abbreviation: (matchedCatalogSvc?.abbreviation || "").trim() || null,
       taskId: generatedTaskId,
       serviceName: serviceName.trim(),
       description: serviceDescription.trim(),

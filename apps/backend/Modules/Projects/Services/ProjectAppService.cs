@@ -307,7 +307,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         if (!exists)
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
-        var query = db.ProjectServices.AsQueryable();
+        var query = db.ProjectServices.Include(s => s.ServiceCatalog).AsQueryable();
         if (includeDeleted)
         {
             query = query.IgnoreQueryFilters();
@@ -319,13 +319,52 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .ThenBy(s => s.CreatedAtUtc)
             .ToListAsync(ct);
 
+        var unlinked = services.Where(s => s.ServiceCatalogId == null || string.IsNullOrWhiteSpace(s.ServiceAbbreviation)).ToList();
+        if (unlinked.Count > 0)
+        {
+            var catalogList = await db.ServiceCatalogs.Where(c => c.IsActive).ToListAsync(ct);
+            bool hasUpdates = false;
+            foreach (var s in unlinked)
+            {
+                var match = (s.ServiceCatalogId.HasValue ? catalogList.FirstOrDefault(c => c.Id == s.ServiceCatalogId.Value) : null)
+                    ?? catalogList.FirstOrDefault(c => string.Equals(c.Name.Trim(), s.ServiceName?.Trim(), StringComparison.OrdinalIgnoreCase))
+                    ?? catalogList.FirstOrDefault(c => string.Equals(c.Code.Trim(), s.TaskId?.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    if (s.ServiceCatalogId == null) s.ServiceCatalogId = match.Id;
+                    if (string.IsNullOrWhiteSpace(s.ServiceAbbreviation)) s.ServiceAbbreviation = match.Abbreviation;
+                    s.ServiceCatalog ??= match;
+                    hasUpdates = true;
+                }
+            }
+            if (hasUpdates)
+            {
+                try { await db.SaveChangesAsync(ct); } catch { /* best-effort backfill */ }
+            }
+        }
+
         return services.Select(MapToServiceDto).ToList();
     }
 
     public async Task<ProjectServiceDto?> GetProjectServiceByIdAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
     {
         var service = await db.ProjectServices
+            .Include(s => s.ServiceCatalog)
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct);
+
+        if (service != null && (service.ServiceCatalogId == null || string.IsNullOrWhiteSpace(service.ServiceAbbreviation)))
+        {
+            var match = (service.ServiceCatalogId.HasValue ? await db.ServiceCatalogs.FirstOrDefaultAsync(c => c.Id == service.ServiceCatalogId.Value && c.IsActive, ct) : null)
+                ?? await db.ServiceCatalogs
+                .FirstOrDefaultAsync(c => c.IsActive && (c.Name.ToLower() == (service.ServiceName ?? "").ToLower() || c.Code.ToLower() == (service.TaskId ?? "").ToLower()), ct);
+            if (match != null)
+            {
+                if (service.ServiceCatalogId == null) service.ServiceCatalogId = match.Id;
+                if (string.IsNullOrWhiteSpace(service.ServiceAbbreviation)) service.ServiceAbbreviation = match.Abbreviation;
+                service.ServiceCatalog ??= match;
+                try { await db.SaveChangesAsync(ct); } catch { /* best-effort backfill */ }
+            }
+        }
 
         return service == null ? null : MapToServiceDto(service);
     }
@@ -342,6 +381,22 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                 .Include(c => c.SubDepartment)
                     .ThenInclude(s => s!.Department)
                 .FirstOrDefaultAsync(c => c.Id == request.ServiceCatalogId.Value, ct);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.ServiceName))
+        {
+            var sName = request.ServiceName.Trim().ToLower();
+            catalog = await db.ServiceCatalogs
+                .Include(c => c.SubDepartment)
+                    .ThenInclude(s => s!.Department)
+                .FirstOrDefaultAsync(c => c.Name.ToLower() == sName && c.IsActive, ct);
+        }
+        else if (!string.IsNullOrWhiteSpace(request.TaskId))
+        {
+            var tCode = request.TaskId.Trim().ToLower();
+            catalog = await db.ServiceCatalogs
+                .Include(c => c.SubDepartment)
+                    .ThenInclude(s => s!.Department)
+                .FirstOrDefaultAsync(c => c.Code.ToLower() == tCode && c.IsActive, ct);
         }
 
         var department = !string.IsNullOrWhiteSpace(request.Department)
@@ -378,7 +433,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         var service = new ProjectServiceEntity
         {
             ProjectId = projectId,
-            ServiceCatalogId = request.ServiceCatalogId,
+            ServiceCatalogId = request.ServiceCatalogId ?? catalog?.Id,
             TaskId = taskId,
             Department = department,
             SubDepartment = subDept,
@@ -407,7 +462,10 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             IsReady = false,
             CollectionStatus = isResourceDept ? "NA" : "Pending To Collect",
             ValidationStatus = isResourceDept ? "NA" : "Pending To Validate",
-            BillingStatus = "Advance Pending"
+            BillingStatus = "Advance Pending",
+            ServiceAbbreviation = !string.IsNullOrWhiteSpace(request.ServiceAbbreviation)
+                ? request.ServiceAbbreviation
+                : catalog?.Abbreviation
         };
 
         db.ProjectServices.Add(service);
@@ -523,6 +581,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             if (request.Department != null) service.Department = request.Department;
             if (request.SubDepartment != null) service.SubDepartment = request.SubDepartment;
             if (request.ServiceName != null) service.ServiceName = request.ServiceName;
+            if (request.ServiceAbbreviation != null) service.ServiceAbbreviation = request.ServiceAbbreviation;
             if (request.Qty.HasValue) service.Qty = Math.Max(1, request.Qty.Value);
             if (request.Description != null) service.Description = request.Description;
             if (request.Frequency != null) service.Frequency = request.Frequency;
@@ -1948,7 +2007,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                     TotalHours = os.TotalHours,
                     UnitPrice = os.UnitPrice,
                     Total = os.Total,
-                    SortOrder = os.SortOrder
+                    SortOrder = os.SortOrder,
+                    ServiceAbbreviation = os.ServiceAbbreviation
                 };
 
                 db.ProjectServices.Add(newService);
@@ -2293,7 +2353,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             s.ModBillingStatus,
             s.ModIsReady,
             s.DeletedAtUtc,
-            s.DeletedAtUtc != null);
+            s.DeletedAtUtc != null,
+            s.ServiceAbbreviation ?? s.ServiceCatalog?.Abbreviation);
     }
 
     private async Task<HashSet<Guid>> LoadProjectTeamIdsAsync(Guid projectId, CancellationToken ct)

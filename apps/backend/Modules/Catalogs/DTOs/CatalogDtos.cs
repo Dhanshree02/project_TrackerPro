@@ -60,7 +60,8 @@ public sealed record ServiceCatalogOptionDto(
     decimal? DefaultUnitPrice,
     int? DefaultDurationDays,
     string? Description,
-    int SortOrder);
+    int SortOrder,
+    string? Abbreviation = null);
 
 public sealed record ServiceHierarchyItemDto(
     Guid Id,
@@ -70,7 +71,8 @@ public sealed record ServiceHierarchyItemDto(
     decimal? DefaultUnitPrice,
     int? DefaultDurationDays,
     string? Description,
-    int SortOrder);
+    int SortOrder,
+    string? Abbreviation = null);
 
 public sealed record ServiceHierarchySubDeptDto(
     Guid Id,
@@ -108,7 +110,8 @@ public sealed record ProjectMasterRowDto(
     string? Tools,
     int? DurationDays,
     decimal? UnitPrice,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    string? Abbreviation = null);
 
 public sealed record CreateProjectMasterRequest(
     string ContractType,
@@ -117,7 +120,8 @@ public sealed record CreateProjectMasterRequest(
     string Tools,
     int DurationDays,
     decimal UnitPrice,
-    string? SubDepartment = null);
+    string? SubDepartment = null,
+    string? Abbreviation = null);
 
 public sealed record UpdateProjectMasterRequest(
     string ContractType,
@@ -126,7 +130,8 @@ public sealed record UpdateProjectMasterRequest(
     string Tools,
     int DurationDays,
     decimal UnitPrice,
-    string? SubDepartment = null);
+    string? SubDepartment = null,
+    string? Abbreviation = null);
 
 public sealed record CreateServiceGroupRequest(string Name);
 
@@ -146,4 +151,5 @@ public sealed record CreateServiceOnlyRequest(
     string? Tools = null,
     int? DurationDays = null,
     decimal? UnitPrice = null,
-    string? SubDepartment = null);
+    string? SubDepartment = null,
+    string? Abbreviation = null);

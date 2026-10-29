@@ -64,6 +64,8 @@ const projectOnboardingRoute = getRouteApi("/projects/new");
 
 type CatalogService = {
   id: string;
+  catalogId?: string;
+  abbreviation?: string;
   name: string;
   tool: string;
   unitPrice: number;
@@ -236,6 +238,8 @@ function currencyDisplay(code: string): string {
 
 interface ServiceRow {
   rowId: string;
+  catalogId?: string;
+  serviceAbbreviation?: string;
   taskId: string;
   dept: string;
   subDept: string;
@@ -642,6 +646,8 @@ export function ProjectOnboardingPage() {
           for (const svc of subDept.services) {
             deptList.push({
               id: svc.code,
+              catalogId: svc.id,
+              abbreviation: svc.abbreviation || undefined,
               name: svc.name,
               tool: svc.defaultTools ?? "",
               unitPrice: svc.defaultUnitPrice ? Number(svc.defaultUnitPrice) : 50000,
@@ -911,6 +917,15 @@ export function ProjectOnboardingPage() {
               dynamicDeptServices[r.dept]?.find((s) => s.id === r.rowId)?.subDept ||
               findCatalogService(r.rowId, dynamicDeptServices)?.subDept ||
               "";
+          }
+          if (!updated.serviceAbbreviation || !updated.catalogId) {
+            const foundSvc =
+              dynamicDeptServices[r.dept]?.find((s) => s.id === r.rowId) ||
+              findCatalogService(r.rowId, dynamicDeptServices);
+            if (foundSvc) {
+              if (!updated.catalogId) updated.catalogId = foundSvc.catalogId;
+              if (!updated.serviceAbbreviation) updated.serviceAbbreviation = foundSvc.abbreviation;
+            }
           }
           return updated;
         });
@@ -1208,6 +1223,8 @@ export function ProjectOnboardingPage() {
         if (existing) {
           const updatedExisting = {
             ...existing,
+            catalogId: existing.catalogId || svc.catalogId,
+            serviceAbbreviation: existing.serviceAbbreviation || svc.abbreviation,
             subDept: existing.subDept || svc.subDept,
           };
           if (isResourceDept(dept, contractType) && updatedExisting.serviceModel !== "NA") {
@@ -1230,6 +1247,8 @@ export function ProjectOnboardingPage() {
           while (taken.has(`WBS-${String(nextNum).padStart(2, "0")}`)) nextNum++;
           const newRow = {
             rowId: svcId,
+            catalogId: svc.catalogId,
+            serviceAbbreviation: svc.abbreviation,
             taskId: `WBS-${String(nextNum).padStart(2, "0")}`,
             dept,
             subDept: svc.subDept,
@@ -1621,6 +1640,10 @@ export function ProjectOnboardingPage() {
       services: serviceRows.map((r) => ({
         id: r.rowId,
         taskId: r.taskId,
+        serviceCatalogId: r.catalogId || undefined,
+        catalogId: r.catalogId || undefined,
+        serviceAbbreviation: r.serviceAbbreviation || undefined,
+        abbreviation: r.serviceAbbreviation || undefined,
         department: r.dept,
         subDepartment: r.subDept || "",
         serviceName: r.name,
@@ -2125,6 +2148,8 @@ export function ProjectOnboardingPage() {
               const r = serviceRows[i];
               try {
                 await addProjectService(backendProj.id, {
+                  serviceCatalogId: r.catalogId || null,
+                  serviceAbbreviation: r.serviceAbbreviation || null,
                   taskId: r.taskId,
                   department: r.dept,
                   subDepartment: r.subDept || null,
@@ -2857,7 +2882,7 @@ export function ProjectOnboardingPage() {
                               <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                                 <span style={{ fontWeight: 600, color: "#111827" }}>{c.name}</span>
                                 <span style={{ fontSize: 11, color: "#6b7280" }}>
-                                  {c.industry} · {c.subVentures?.length ?? 0} sub-ventures
+                                  {c.subVentures?.length ?? 0} sub-ventures
                                 </span>
                               </div>
                               {c.id === selectedClientId && (
@@ -3132,10 +3157,9 @@ export function ProjectOnboardingPage() {
               <input
                 type="text"
                 value={engagementManager}
-                onChange={(e) => setEngagementManager(e.target.value)}
-                readOnly={renewalFieldsLocked}
-                placeholder="Enter engagement manager"
-                style={inputStyle(renewalFieldsLocked, !!engagementManager)}
+                readOnly
+                placeholder="Auto-populated from customer"
+                style={inputStyle(true, !!engagementManager)}
               />
             </FormGroup>
           </div>

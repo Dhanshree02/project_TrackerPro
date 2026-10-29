@@ -24,6 +24,8 @@ public class MstServiceCatalog : BaseEntity
 
     public string? Description { get; set; }
 
+    public string? Abbreviation { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public int SortOrder { get; set; }

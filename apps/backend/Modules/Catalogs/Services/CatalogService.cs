@@ -269,7 +269,8 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
                 c.DefaultUnitPrice,
                 c.DefaultDurationDays,
                 c.Description,
-                c.SortOrder))
+                c.SortOrder,
+                c.Abbreviation))
             .ToListAsync(ct);
     }
 
@@ -318,7 +319,8 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
                                     c.DefaultUnitPrice,
                                     c.DefaultDurationDays,
                                     c.Description,
-                                    c.SortOrder))
+                                    c.SortOrder,
+                                    c.Abbreviation))
                                 .ToList()))
                         .ToList()))
                 .ToList()))

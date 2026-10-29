@@ -66,6 +66,7 @@ public sealed class MstServiceCatalogConfiguration : IEntityTypeConfiguration<Ms
         builder.Property(x => x.Name).HasMaxLength(255).IsRequired();
         builder.Property(x => x.DefaultTools).HasMaxLength(500);
         builder.Property(x => x.DefaultUnitPrice).HasPrecision(18, 2);
+        builder.Property(x => x.Abbreviation).HasMaxLength(50);
 
         builder.HasOne(x => x.SubDepartment)
             .WithMany(s => s.Services)

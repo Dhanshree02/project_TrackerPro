@@ -44,7 +44,8 @@ public sealed record ProjectServiceDto(
     string? ModBillingStatus = null,
     bool? ModIsReady = null,
     DateTime? DeletedAtUtc = null,
-    bool IsDeleted = false);
+    bool IsDeleted = false,
+    string? ServiceAbbreviation = null);
 
 public sealed record UpdateServicePrerequisiteRequest(
     string? CollectionStatus = null,
@@ -79,7 +80,8 @@ public sealed record CreateProjectServiceRequest(
     decimal? UnitPrice = null,
     int SortOrder = 0,
     string? ChangeStatus = null,
-    bool GenerateInvoices = true);
+    bool GenerateInvoices = true,
+    string? ServiceAbbreviation = null);
 
 public sealed record UpdateProjectServiceRequest(
     string? Department = null,
@@ -101,7 +103,8 @@ public sealed record UpdateProjectServiceRequest(
     int? DurationDays = null,
     decimal? UnitPrice = null,
     int? SortOrder = null,
-    bool AsPendingModification = true);
+    bool AsPendingModification = true,
+    string? ServiceAbbreviation = null);
 
 public sealed record ServiceModificationImpactDto(
     Guid ServiceId,
