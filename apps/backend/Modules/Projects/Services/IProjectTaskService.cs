@@ -15,6 +15,7 @@ public interface IProjectTaskService
         Guid projectId,
         Guid taskId,
         IReadOnlyList<Guid> employeeIds,
+        string? priority = null,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<ProjectTaskAssignmentHistoryDto>> GetAssignmentHistoryAsync(

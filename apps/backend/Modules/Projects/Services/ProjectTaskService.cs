@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Resources.Models;
@@ -131,9 +132,18 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
         Guid projectId,
         Guid taskId,
         IReadOnlyList<Guid> employeeIds,
+        string? priority = null,
         CancellationToken ct = default)
     {
-        await EnsureTaskAsync(projectId, taskId, ct);
+        var task = await db.ProjectTasks.FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct);
+        if (task == null)
+            throw new NotFoundException($"Project Task with ID '{taskId}' was not found in this project.");
+
+        if (!string.IsNullOrWhiteSpace(priority))
+        {
+            task.Priority = priority.Trim();
+            task.UpdatedAtUtc = DateTime.UtcNow;
+        }
 
         var wanted = employeeIds.Distinct().ToList();
         var team = await LoadTeamAsync(projectId, ct);
@@ -198,6 +208,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
         await AddAssignmentHistoryAsync(taskId, addedIds, "Assign", team, ct);
         await AddAssignmentHistoryAsync(taskId, removedIds, "Unassign", team, ct);
+        await SyncBucketTasksForTaskAsync(projectId, taskId, addedIds, removedIds, ct);
 
         await db.SaveChangesAsync(ct);
         await DistributeProjectTeamHoursAsync(projectId, taskId, ct);
@@ -597,6 +608,132 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
             return num;
         }
         return null;
+    }
+
+    private async Task SyncBucketTasksForTaskAsync(
+        Guid projectId,
+        Guid taskId,
+        IReadOnlyList<Guid> addedIds,
+        IReadOnlyList<Guid> removedIds,
+        CancellationToken ct = default)
+    {
+        var task = await db.ProjectTasks
+            .Include(t => t.ProjectService)
+            .Include(t => t.Project)
+            .FirstOrDefaultAsync(t => t.Id == taskId, ct);
+
+        if (task == null) return;
+
+        var dueDate = task.ProjectService?.EndDate ?? task.PlannedEndDate ?? task.Project?.EndDate;
+
+        string? assignerName = null;
+        Guid? assignerId = null;
+
+        if (task.Project?.ProjectManagerId.HasValue == true)
+        {
+            var pm = await db.Employees.FirstOrDefaultAsync(e => e.Id == task.Project.ProjectManagerId.Value, ct);
+            if (pm != null)
+            {
+                assignerName = $"{pm.FirstName} {pm.LastName}".Trim();
+                assignerId = pm.Id;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(assignerName) && task.Project?.TeamLeadId.HasValue == true)
+        {
+            var tl = await db.Employees.FirstOrDefaultAsync(e => e.Id == task.Project.TeamLeadId.Value, ct);
+            if (tl != null)
+            {
+                assignerName = $"{tl.FirstName} {tl.LastName}".Trim();
+                assignerId = tl.Id;
+            }
+        }
+
+        assignerName ??= task.Project?.EngagementManager ?? "Project Manager";
+
+        if (removedIds.Count > 0)
+        {
+            var toRemove = await db.BucketTasks
+                .Where(b => b.TaskId == taskId && removedIds.Contains(b.EmployeeId) && b.DeletedAtUtc == null)
+                .ToListAsync(ct);
+
+            foreach (var b in toRemove)
+            {
+                b.DeletedAtUtc = DateTime.UtcNow;
+            }
+        }
+
+        if (addedIds.Count > 0)
+        {
+            var assignments = await db.ProjectTaskAssignments
+                .Where(a => a.TaskId == taskId && addedIds.Contains(a.EmployeeId) && a.DeletedAtUtc == null && a.IsActive)
+                .ToListAsync(ct);
+
+            var existingBucketTasks = await db.BucketTasks
+                .IgnoreQueryFilters()
+                .Where(b => b.TaskId == taskId && addedIds.Contains(b.EmployeeId))
+                .ToListAsync(ct);
+
+            var existingMap = existingBucketTasks.ToDictionary(b => b.EmployeeId);
+
+            foreach (var a in assignments)
+            {
+                if (existingMap.TryGetValue(a.EmployeeId, out var existing))
+                {
+                    existing.DeletedAtUtc = null;
+                    existing.AssignmentId = a.Id;
+                    existing.TaskTitle = task.Title;
+                    existing.ProjectName = task.Project?.Name ?? "Project";
+                    existing.Priority = string.IsNullOrWhiteSpace(task.Priority) ? "Medium" : task.Priority;
+                    existing.DueDate = dueDate;
+                    existing.Status = string.IsNullOrWhiteSpace(task.Stage) ? "Not Started" : task.Stage;
+                    existing.ActualStartDate = task.ActualStartDate;
+                    existing.ActualEndDate = task.ActualEndDate;
+                    if (string.IsNullOrWhiteSpace(existing.AssignedByName)) existing.AssignedByName = assignerName;
+                    existing.UpdatedAtUtc = DateTime.UtcNow;
+                }
+                else
+                {
+                    db.BucketTasks.Add(new BucketTask
+                    {
+                        Id = Guid.NewGuid(),
+                        TaskId = taskId,
+                        ProjectId = projectId,
+                        ProjectServiceId = task.ProjectServiceId,
+                        AssignmentId = a.Id,
+                        EmployeeId = a.EmployeeId,
+                        AssignedById = assignerId,
+                        AssignedByName = assignerName,
+                        TaskTitle = task.Title,
+                        ProjectName = task.Project?.Name ?? "Project",
+                        Priority = string.IsNullOrWhiteSpace(task.Priority) ? "Medium" : task.Priority,
+                        DueDate = dueDate,
+                        Status = string.IsNullOrWhiteSpace(task.Stage) ? "Not Started" : task.Stage,
+                        ActualStartDate = task.ActualStartDate,
+                        ActualEndDate = task.ActualEndDate,
+                        TimerRunning = a.TimerStartedAtUtc.HasValue,
+                        TimerStartedAtUtc = a.TimerStartedAtUtc,
+                        TimerAccumulatedSeconds = a.TimerAccumulatedSeconds,
+                        UtilizedHours = a.UtilizedHours,
+                        CreatedAtUtc = DateTime.UtcNow,
+                    });
+                }
+            }
+        }
+
+        // Always synchronize priority on all active bucket tasks for this task
+        var allActiveBucketTasks = await db.BucketTasks
+            .Where(b => b.TaskId == taskId && b.DeletedAtUtc == null)
+            .ToListAsync(ct);
+        var resolvedPrio = string.IsNullOrWhiteSpace(task.Priority) ? "Medium" : task.Priority;
+        foreach (var b in allActiveBucketTasks)
+        {
+            if (b.Priority != resolvedPrio)
+            {
+                b.Priority = resolvedPrio;
+                b.UpdatedAtUtc = DateTime.UtcNow;
+            }
+        }
     }
 
     private sealed record TeamPerson(Guid EmployeeId, string Name, string Code, string? Role, bool IsShadow);

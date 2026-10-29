@@ -21,7 +21,8 @@ public sealed class CurrentUserService(IHttpContextAccessor accessor) : ICurrent
         }
     }
 
-    public string? Email => Principal?.FindFirstValue(JwtRegisteredClaimNames.Email);
+    public string? Email => Principal?.FindFirstValue(JwtRegisteredClaimNames.Email)
+                            ?? Principal?.FindFirstValue(ClaimTypes.Email);
 
     public string? Name => Principal?.FindFirstValue(ClaimTypes.Name);
 

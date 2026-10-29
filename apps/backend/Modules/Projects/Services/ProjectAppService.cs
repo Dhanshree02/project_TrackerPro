@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Storage;
+using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
@@ -298,7 +299,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         return await CalculateNextCodesInternalAsync(clientId, client.Name, subVentureId, ct);
     }
 
-    // ── Project Services Methods ──
+    // â”€â”€ Project Services Methods â”€â”€
 
     public async Task<IReadOnlyList<ProjectServiceDto>> GetProjectServicesAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
     {
@@ -928,7 +929,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         return "Mixed";
     }
 
-    // ── Project Tasks Methods ──
+    // â”€â”€ Project Tasks Methods â”€â”€
 
     public async Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
     {
@@ -1082,17 +1083,85 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct)
             ?? throw new NotFoundException($"Project Task with ID '{taskId}' was not found.");
 
+        // Once a task is completed, it cannot be changed to another stage
+        if (task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase) && !stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException("A completed task cannot be changed to another stage.");
+        }
+
         task.Stage = stage;
         await ReapplyProjectTeamHourSplitAsync(projectId, task, ct);
 
-        if (stage.Equals("Ongoing", StringComparison.OrdinalIgnoreCase) && !task.ActualStartDate.HasValue)
+        var nowUtc = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(nowUtc);
+        var isRunningStage = stage.Equals("Ongoing", StringComparison.OrdinalIgnoreCase) ||
+                             stage.Equals("In Progress", StringComparison.OrdinalIgnoreCase);
+
+        if (isRunningStage && !task.ActualStartDate.HasValue)
         {
-            task.ActualStartDate = DateOnly.FromDateTime(DateTime.UtcNow);
+            task.ActualStartDate = today;
         }
         else if (stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
         {
-            task.ActualEndDate ??= DateOnly.FromDateTime(DateTime.UtcNow);
+            task.ActualEndDate ??= today;
             task.Progress = 100;
+        }
+
+        task.UpdatedAtUtc = nowUtc;
+
+        var bucketTasks = await db.BucketTasks
+            .Where(b => b.TaskId == taskId && b.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        foreach (var bt in bucketTasks)
+        {
+            if (isRunningStage)
+            {
+                if (bt.Status is "On Hold")
+                {
+                    bt.Status = bt.TimerAccumulatedSeconds > 0 ? "Paused" : "Not Started";
+                }
+                else if (bt.TimerRunning)
+                {
+                    bt.Status = "Ongoing";
+                }
+            }
+            else
+            {
+                bt.Status = stage;
+                // Any non-running stage (On Hold, Cancelled, Paused, Stopped, Completed, etc.) pauses active timers
+                if (bt.TimerStartedAtUtc.HasValue)
+                {
+                    var elapsed = (long)(nowUtc - bt.TimerStartedAtUtc.Value).TotalSeconds;
+                    bt.TimerAccumulatedSeconds += Math.Max(0, elapsed);
+                    bt.UtilizedHours = Math.Round((decimal)bt.TimerAccumulatedSeconds / 3600m, 2);
+                }
+                bt.TimerRunning = false;
+                bt.TimerStartedAtUtc = null;
+
+                if (stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+                {
+                    bt.ActualEndDate ??= today;
+                }
+            }
+            bt.UpdatedAtUtc = nowUtc;
+        }
+
+        // Also pause active assignments when moving to a non-running stage (e.g. On Hold, Paused, Completed)
+        if (!isRunningStage)
+        {
+            var activeAssignments = await db.ProjectTaskAssignments
+                .Where(a => a.TaskId == taskId && a.TimerStartedAtUtc.HasValue)
+                .ToListAsync(ct);
+
+            foreach (var a in activeAssignments)
+            {
+                var elapsed = (long)(nowUtc - a.TimerStartedAtUtc!.Value).TotalSeconds;
+                a.TimerAccumulatedSeconds += Math.Max(0, elapsed);
+                a.TimerStartedAtUtc = null;
+                a.UtilizedHours = Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2);
+                a.UpdatedAtUtc = nowUtc;
+            }
         }
 
         await db.SaveChangesAsync(ct);
@@ -1103,7 +1172,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
     public Task<AutoGeneratedTasksSummaryDto> AutoGenerateTasksFromServicesAsync(Guid projectId, CancellationToken ct = default)
         => taskService.GenerateMissingTasksAsync(projectId, ct);
 
-    // ── Task Assignments & Timer Methods ──
+    // â”€â”€ Task Assignments & Timer Methods â”€â”€
 
     public async Task<IReadOnlyList<ProjectTaskAssignmentDto>> GetTaskAssignmentsAsync(Guid projectId, Guid taskId, CancellationToken ct = default)
     {
@@ -1216,15 +1285,79 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .FirstOrDefaultAsync(a => a.TaskId == taskId && a.Id == assignmentId, ct)
             ?? throw new NotFoundException($"Task assignment with ID '{assignmentId}' was not found.");
 
+        if (task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException("A completed task cannot be started or restarted.");
+        }
+
+        if (task.Stage.Equals("On Hold", StringComparison.OrdinalIgnoreCase) || task.Stage.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException($"Cannot start or resume a task while it is {task.Stage}. The task stage must be Ongoing.");
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        var todayDate = DateOnly.FromDateTime(nowUtc);
+
+        // Always record ActualStartDate when resource clicks start
+        task.ActualStartDate ??= todayDate;
+
+        // Single active task timer rule: pause any other running timer for this employee across tasks
+        var otherRunningAssignments = await db.ProjectTaskAssignments
+            .Where(a => a.EmployeeId == assignment.EmployeeId && a.Id != assignment.Id && a.TimerStartedAtUtc.HasValue)
+            .ToListAsync(ct);
+
+        foreach (var other in otherRunningAssignments)
+        {
+            var el = (long)(nowUtc - other.TimerStartedAtUtc!.Value).TotalSeconds;
+            other.TimerAccumulatedSeconds += Math.Max(0, el);
+            other.TimerStartedAtUtc = null;
+            other.UtilizedHours = Math.Round((decimal)other.TimerAccumulatedSeconds / 3600m, 2);
+            other.UpdatedAtUtc = nowUtc;
+        }
+
+        var otherRunningBucketTasks = await db.BucketTasks
+            .Where(b => b.EmployeeId == assignment.EmployeeId && b.TaskId != taskId && b.TimerRunning && b.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        foreach (var otherBt in otherRunningBucketTasks)
+        {
+            if (otherBt.TimerStartedAtUtc.HasValue)
+            {
+                var el = (long)(nowUtc - otherBt.TimerStartedAtUtc.Value).TotalSeconds;
+                otherBt.TimerAccumulatedSeconds += Math.Max(0, el);
+                otherBt.UtilizedHours = Math.Round((decimal)otherBt.TimerAccumulatedSeconds / 3600m, 2);
+            }
+            otherBt.TimerRunning = false;
+            otherBt.TimerStartedAtUtc = null;
+            otherBt.Status = "Paused";
+            otherBt.UpdatedAtUtc = nowUtc;
+        }
+
         if (!assignment.TimerStartedAtUtc.HasValue)
         {
-            assignment.TimerStartedAtUtc = DateTime.UtcNow;
+            assignment.TimerStartedAtUtc = nowUtc;
 
-            // Auto-advance task stage from "Ready to Start" to "Ongoing"
-            if (task.Stage.Equals("Ready to Start", StringComparison.OrdinalIgnoreCase))
+            // Auto-advance task stage from "Ready to Start" / "Not Started" / "To Do" to "Ongoing"
+            if (task.Stage.Equals("Ready to Start", StringComparison.OrdinalIgnoreCase) ||
+                task.Stage.Equals("Not Started", StringComparison.OrdinalIgnoreCase) ||
+                task.Stage.Equals("To Do", StringComparison.OrdinalIgnoreCase))
             {
                 task.Stage = "Ongoing";
-                task.ActualStartDate ??= DateOnly.FromDateTime(DateTime.UtcNow);
+            }
+
+            var bucketTask = await db.BucketTasks
+                .FirstOrDefaultAsync(b => b.TaskId == taskId && b.EmployeeId == assignment.EmployeeId && b.DeletedAtUtc == null, ct);
+
+            if (bucketTask != null)
+            {
+                bucketTask.ActualStartDate ??= todayDate;
+                bucketTask.TimerRunning = true;
+                bucketTask.TimerStartedAtUtc = nowUtc;
+                if (bucketTask.Status is "Not Started" or "Ready to Start" or "To Do")
+                {
+                    bucketTask.Status = "Ongoing";
+                }
+                bucketTask.UpdatedAtUtc = nowUtc;
             }
 
             await db.SaveChangesAsync(ct);
@@ -1255,6 +1388,16 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .FirstOrDefaultAsync(a => a.TaskId == taskId && a.Id == assignmentId, ct)
             ?? throw new NotFoundException($"Task assignment with ID '{assignmentId}' was not found.");
 
+        if (task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException("A completed task cannot be stopped.");
+        }
+
+        if (task.Stage.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException("A cancelled task cannot be stopped.");
+        }
+
         if (assignment.TimerStartedAtUtc.HasValue)
         {
             var elapsed = (long)(DateTime.UtcNow - assignment.TimerStartedAtUtc.Value).TotalSeconds;
@@ -1269,6 +1412,19 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
             task.UtilizedHours = otherAssignmentsTotal + assignment.UtilizedHours;
 
+            var bucketTask = await db.BucketTasks
+                .FirstOrDefaultAsync(b => b.TaskId == taskId && b.EmployeeId == assignment.EmployeeId && b.DeletedAtUtc == null, ct);
+
+            if (bucketTask != null)
+            {
+                bucketTask.TimerRunning = false;
+                bucketTask.TimerStartedAtUtc = null;
+                bucketTask.Status = "Paused";
+                bucketTask.TimerAccumulatedSeconds = assignment.TimerAccumulatedSeconds;
+                bucketTask.UtilizedHours = assignment.UtilizedHours;
+                bucketTask.UpdatedAtUtc = DateTime.UtcNow;
+            }
+
             await db.SaveChangesAsync(ct);
         }
 
@@ -1282,7 +1438,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             Math.Round((decimal)assignment.TimerAccumulatedSeconds / 3600m, 2));
     }
 
-    // ── Project Invoices Methods ──
+    // â”€â”€ Project Invoices Methods â”€â”€
 
     public async Task<IReadOnlyList<ProjectInvoiceDto>> GetProjectInvoicesAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
     {
@@ -1581,7 +1737,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         return new AutoGenerateInvoicesSummaryDto(projectId, newInvoices.Count, totalVal, mapped);
     }
 
-    // ── Project Documents Methods ──
+    // â”€â”€ Project Documents Methods â”€â”€
 
     public async Task<IReadOnlyList<ProjectDocumentDto>> GetProjectDocumentsAsync(Guid projectId, CancellationToken ct = default)
     {

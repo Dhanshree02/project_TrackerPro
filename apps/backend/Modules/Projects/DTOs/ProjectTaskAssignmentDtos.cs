@@ -28,7 +28,7 @@ public sealed record UpdateTaskAssignmentRequest(
     decimal? UtilizedHours = null,
     bool? IsActive = null);
 
-public sealed record SyncTaskAssignmentsRequest(IReadOnlyList<Guid>? EmployeeIds);
+public sealed record SyncTaskAssignmentsRequest(IReadOnlyList<Guid>? EmployeeIds, string? Priority = null);
 
 /// <summary>One line in the Task tab Assignment History Log.</summary>
 public sealed record ProjectTaskAssignmentHistoryDto(

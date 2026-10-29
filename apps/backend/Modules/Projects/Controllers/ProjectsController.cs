@@ -302,7 +302,7 @@ public class ProjectsController(
         [FromBody] SyncTaskAssignmentsRequest request,
         CancellationToken ct)
     {
-        var items = await taskService.SynchronizeAssignmentsAsync(projectId, taskId, request.EmployeeIds ?? [], ct);
+        var items = await taskService.SynchronizeAssignmentsAsync(projectId, taskId, request.EmployeeIds ?? [], request.Priority, ct);
         return Ok(ApiResponse<IReadOnlyList<ProjectTaskAssignmentDto>>.Ok(items));
     }
 

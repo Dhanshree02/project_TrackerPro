@@ -14,4 +14,5 @@ public static class DbSchemas
     public const string Project = "project";
     public const string Timesheet = "timesheet";
     public const string Repository = "repository";
+    public const string Action = "action";
 }

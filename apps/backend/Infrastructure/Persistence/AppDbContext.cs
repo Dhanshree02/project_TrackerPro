@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Shared.Common.Models;
+using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Catalogs.Models;
 using PMS.API.Modules.Customers.Models;
 using PMS.API.Modules.MyTeam.Models;
@@ -151,6 +152,8 @@ public class AppDbContext(
     public DbSet<ProjectServiceEscalation> ProjectServiceEscalations => Set<ProjectServiceEscalation>();
 
     public DbSet<ProjectServiceEscalationStakeholder> ProjectServiceEscalationStakeholders => Set<ProjectServiceEscalationStakeholder>();
+
+    public DbSet<BucketTask> BucketTasks => Set<BucketTask>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
