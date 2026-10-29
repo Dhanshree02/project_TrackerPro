@@ -887,10 +887,10 @@ export async function fetchAssignableTaskResources(projectId: string, taskId: st
   )) ?? [];
 }
 
-export async function syncTaskAssignments(projectId: string, taskId: string, employeeIds: string[]) {
+export async function syncTaskAssignments(projectId: string, taskId: string, employeeIds: string[], priority?: string) {
   return (await apiFetch<ApiProjectTaskAssignment[]>(
     `/api/v1/projects/${projectId}/tasks/${taskId}/assignments`,
-    { method: "PUT", body: JSON.stringify({ employeeIds }) },
+    { method: "PUT", body: JSON.stringify({ employeeIds, priority }) },
   )) ?? [];
 }
 

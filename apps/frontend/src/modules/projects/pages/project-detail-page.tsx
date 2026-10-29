@@ -49,6 +49,7 @@ import {
   type ApiProjectInvoice,
   type ApiProjectService,
   type ApiProjectTask,
+  type ApiProjectTaskAssignment,
   type ApiTaskAssignmentHistoryEntry,
 } from "@/modules/projects/api/projects";
 import { EditServicesModal, isResourceContract } from "../components/edit-services-modal";
@@ -4212,10 +4213,28 @@ interface AvatarStackAssignee {
   started: boolean;
 }
 
+// ── Helper to format task actual dates cleanly (read-only) ───────────────
+function formatDisplayDate(dateStr?: string | null): string {
+  if (!dateStr) return "—";
+  const raw = dateStr.slice(0, 10);
+  const parts = raw.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const d = parseInt(parts[2], 10);
+    const dt = new Date(y, m, d);
+    if (!isNaN(dt.getTime())) {
+      return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    }
+  }
+  return raw;
+}
+
 // ── AvatarStack with hover tooltip ────────────────────────────────────────
 function AvatarStack({ assignees }: { assignees: AvatarStackAssignee[] }) {
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
   const ref = React.useRef<HTMLDivElement>(null);
+  const hideTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const validAssignees = assignees.filter(a => a && a.name);
   const initials = (n: string) => n.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   const colors = ["bg-primary", "bg-info", "bg-success", "bg-warning"];
@@ -4223,35 +4242,77 @@ function AvatarStack({ assignees }: { assignees: AvatarStackAssignee[] }) {
   const extra = validAssignees.length - 1;
 
   const showTooltip = () => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
     if (!ref.current) return;
     const rect = ref.current.getBoundingClientRect();
-    setTooltipPos({ x: rect.left, y: rect.bottom + 6 });
+    const tooltipWidth = 240;
+    const tooltipHeight = Math.min(260, 44 + validAssignees.length * 36);
+
+    // Vertical positioning: flip above if close to bottom of viewport so it's never hidden
+    let y = rect.bottom + 6;
+    if (y + tooltipHeight > window.innerHeight - 10) {
+      y = Math.max(10, rect.top - tooltipHeight - 6);
+    }
+
+    // Clamp horizontal positioning inside viewport bounds
+    let x = rect.left;
+    if (x + tooltipWidth > window.innerWidth - 16) {
+      x = Math.max(16, window.innerWidth - tooltipWidth - 16);
+    }
+
+    setTooltipPos({ x, y });
   };
-  const hideTooltip = () => setTooltipPos(null);
+
+  const hideTooltip = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => {
+      setTooltipPos(null);
+    }, 180);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, []);
 
   if (validAssignees.length === 0) {
     return <span className="text-xs text-muted-foreground">—</span>;
   }
 
+  const anyStarted = validAssignees.some(a => a.started);
+
   return (
     <>
       <div
         ref={ref}
-        className="inline-flex items-center cursor-default"
+        className="relative inline-flex items-center cursor-pointer group"
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
       >
         {/* First circle */}
         <span className={cn(
-          "inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-card text-[10px] font-bold text-white z-10 select-none",
+          "relative inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-card text-[10px] font-bold text-white z-10 select-none",
           colors[0]
         )}>
           {initials(first.name)}
+          {first.started && (
+            <span
+              className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-card ring-1 ring-emerald-400"
+              title={`${first.name}: Started`}
+            />
+          )}
         </span>
         {/* +N badge — only when more than 1 person */}
         {extra >= 1 && (
-          <span className="-ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-card bg-white px-1 text-[10px] font-bold text-foreground shadow-sm z-20 select-none">
+          <span className="relative -ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-card bg-white px-1 text-[10px] font-bold text-foreground shadow-sm z-20 select-none">
             +{extra}
+            {validAssignees.slice(1).some(a => a.started) && (
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 border border-card" />
+            )}
           </span>
         )}
       </div>
@@ -4259,32 +4320,42 @@ function AvatarStack({ assignees }: { assignees: AvatarStackAssignee[] }) {
       {/* Tooltip rendered via portal-like fixed positioning — never clipped by overflow */}
       {tooltipPos && (
         <div
-          className="fixed z-[9999] min-w-[210px] rounded-lg border border-border bg-popover p-2.5 shadow-xl"
+          className="fixed z-[9999] min-w-[220px] rounded-lg border border-border bg-popover p-2.5 shadow-xl animate-in fade-in-50 zoom-in-95 duration-100"
           style={{ top: tooltipPos.y, left: tooltipPos.x }}
           onMouseEnter={showTooltip}
           onMouseLeave={hideTooltip}
         >
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            {validAssignees.length} Assigned
-          </p>
+          <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center justify-between">
+            <span>{validAssignees.length} Assigned</span>
+            {anyStarted && (
+              <span className="text-emerald-600 font-bold lowercase tracking-normal flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                active
+              </span>
+            )}
+          </div>
           <div className="space-y-1.5">
             {validAssignees.map((a, i) => (
               <div key={i} className="flex items-center justify-between gap-3 text-xs font-medium text-foreground">
                 <div className="flex items-center gap-2">
                   <span className={cn(
-                    "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white",
+                    "relative inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white",
                     colors[i % colors.length]
                   )}>
                     {initials(a.name)}
+                    {a.started && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500 border border-card" />
+                    )}
                   </span>
                   <span>{a.name}</span>
                 </div>
                 <span className={cn(
-                  "text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0",
+                  "text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 flex items-center gap-1",
                   a.started
-                    ? "bg-green-500/10 border-green-500/20 text-green-600"
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600"
                     : "bg-muted border-border text-muted-foreground"
                 )}>
+                  {a.started && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                   {a.started ? "Started" : "Not Started"}
                 </span>
               </div>
@@ -4296,10 +4367,10 @@ function AvatarStack({ assignees }: { assignees: AvatarStackAssignee[] }) {
   );
 }
 
-const TREE_TASK_STAGES = ["Not Started", "Assigned", "Ongoing", "Completed", "On Hold", "Cancelled"] as const;
+const TREE_TASK_STAGES = ["Not Started", "Ongoing", "Completed", "On Hold", "Cancelled"] as const;
 type TreeTaskStage = typeof TREE_TASK_STAGES[number];
 
-function treeStageCls(s: TreeTaskStage) {
+function treeStageCls(s: TreeTaskStage | string) {
   return ({
     "Not Started": "border-primary/30 bg-primary/10 text-primary",
     "Assigned": "border-indigo-300 bg-indigo-50 text-indigo-700",
@@ -4307,7 +4378,7 @@ function treeStageCls(s: TreeTaskStage) {
     "Completed": "border-success/30 bg-success/10 text-success",
     "On Hold": "border-warning/40 bg-warning/15 text-warning-foreground",
     "Cancelled": "border-destructive/30 bg-destructive/10 text-destructive",
-  } as Record<TreeTaskStage, string>)[s] ?? "border-border bg-muted text-muted-foreground";
+  } as Record<string, string>)[s] ?? "border-border bg-muted text-muted-foreground";
 }
 
 function getTasksFromServiceModel(serviceModel: string): { suffix: string; label: string }[] {
@@ -4360,12 +4431,14 @@ interface TreeTask {
   actualStartDate: string;
   actualEndDate: string;
   stage: TreeTaskStage;
+  priority?: string;
   assigneeIds: string[];
   estHoursPerTask: number;
   /** One Project Team member's share of this task. The AP row shows this instead of the full task estimate. */
   assignedEstHours?: number;
   utilizedHours?: number;
   dbId?: string;
+  assignments?: ApiProjectTaskAssignment[];
 }
 
 interface APFolder {
@@ -4549,10 +4622,12 @@ function applyPersistedTasks(
       actualStartDate: (hit.actualStartDate || "").slice(0, 10),
       actualEndDate: (hit.actualEndDate || "").slice(0, 10),
       stage: (hit.stage as TreeTaskStage) || task.stage,
+      priority: hit.priority || "Medium",
       assigneeIds: (hit.assignments ?? []).filter((a) => a.isActive !== false).map((a) => a.employeeId),
       estHoursPerTask: hit.estimatedHours ?? task.estHoursPerTask,
       assignedEstHours: shares.length > 0 ? Math.max(...shares) : undefined,
       utilizedHours: hit.utilizedHours ?? 0,
+      assignments: hit.assignments,
     };
   };
   return folders.map((svc) => ({
@@ -4584,6 +4659,13 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
   const [apiServices, setApiServices] = useState<ApiProjectService[] | null>(useApiTasks ? null : []);
   const [serviceIdsByKey, setServiceIdsByKey] = useState<Map<string, string>>(new Map());
   const [apiPool, setApiPool] = useState<{ person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[] | null>(null);
+  const [taskToComplete, setTaskToComplete] = useState<{
+    taskId: string;
+    dbId?: string;
+    title: string;
+    estHours?: number;
+  } | null>(null);
+  const [isCompletingTask, setIsCompletingTask] = useState(false);
 
   useEffect(() => {
     if (!useApiTasks) return;
@@ -5048,14 +5130,17 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                       const p = getPerson(id);
                                       const btId = `${t.id}-${id}`;
                                       const bt = snapshot.bucketTasks?.find((x) => x.id === btId);
-                                      const started = bt ? bt.status !== "Not Started" : false;
+                                      const matchingAssignment = (t.assignments ?? []).find((a) => a.employeeId === id && a.isActive !== false);
+                                      const started = matchingAssignment
+                                        ? (matchingAssignment.isTimerRunning || !!matchingAssignment.timerStartedAtUtc || Number(matchingAssignment.timerAccumulatedSeconds) > 0 || Number(matchingAssignment.utilizedHours) > 0)
+                                        : (bt ? (bt.timerRunning || !!bt.timerStartedAtUtc || Number(bt.timerAccumulatedSeconds) > 0 || Number(bt.utilizedHours) > 0) : false);
                                       return {
                                         id,
-                                        name: p ? p.name : id,
+                                        name: p ? p.name : (matchingAssignment?.employeeName || id),
                                         started,
                                       };
                                     });
-                                    const isStarted = t.stage !== "Not Started" && t.stage !== "Assigned";
+                                    const isTaskStarted = t.stage !== "Not Started" || !!t.actualStartDate;
 
                                     return (
                                       <tr key={t.id} className="hover:bg-accent/10 transition-colors">
@@ -5072,72 +5157,28 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                         </td>
                                         <td className="px-3 py-2 align-middle text-center">
                                           <div className="flex items-center justify-center h-8">
-                                            <input
-                                              type="date"
-                                              value={t.actualStartDate}
-                                              disabled={readOnly}
-                                              onChange={(e) => {
-                                                const newStart = e.target.value;
-                                                const estHrs = t.estHoursPerTask || 0;
-                                                const autoEndDate = newStart && estHrs > 0 ? addWorkingDaysFromDate(newStart, Math.ceil(estHrs / 8)) : "";
-                                                const nextStage = t.stage === "Not Started" && newStart ? "Ongoing" : t.stage;
-                                                if (useApiTasks && t.dbId) {
-                                                  setDbTasks((prev) => prev.map((row) => row.id === t.dbId
-                                                    ? {
-                                                        ...row,
-                                                        actualStartDate: newStart,
-                                                        actualEndDate: autoEndDate || row.actualEndDate,
-                                                        stage: nextStage,
-                                                        utilizedHours: nextStage === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0,
-                                                      }
-                                                    : row));
-                                                  updateProjectTask(project.id, t.dbId, {
-                                                    actualStartDate: newStart || null,
-                                                    actualEndDate: autoEndDate || null,
-                                                    stage: nextStage,
-                                                  }).then((saved) => {
-                                                    setDbTasks((prev) => prev.map((row) => row.id === t.dbId
-                                                      ? {
-                                                          ...row,
-                                                          actualStartDate: (saved.actualStartDate || "").slice(0, 10),
-                                                          actualEndDate: (saved.actualEndDate || "").slice(0, 10),
-                                                          stage: saved.stage,
-                                                          utilizedHours: saved.utilizedHours,
-                                                        }
-                                                      : row));
-                                                  }).catch((err) => toast.error(err instanceof Error ? err.message : "Could not save start date"));
-                                                  return;
-                                                }
-                                                dhStore.updateTreeTaskState(project.id, t.id, {
-                                                  actualStartDate: newStart,
-                                                  actualEndDate: autoEndDate,
-                                                  ...(t.stage === "Not Started" && newStart ? { stage: "Ongoing" } : {})
-                                                });
-                                              }}
-                                              className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] text-center outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                            />
+                                            <span
+                                              className={cn(
+                                                "inline-flex items-center justify-center px-2.5 py-1 rounded text-[11px] font-medium tabular-nums select-none",
+                                                t.actualStartDate ? "bg-muted/40 text-foreground border border-border/50 font-semibold" : "text-muted-foreground"
+                                              )}
+                                              title={t.actualStartDate ? `Actual Start: ${formatDisplayDate(t.actualStartDate)}` : "Not started yet"}
+                                            >
+                                              {formatDisplayDate(t.actualStartDate)}
+                                            </span>
                                           </div>
                                         </td>
                                         <td className="px-3 py-2 align-middle text-center">
                                           <div className="flex items-center justify-center h-8">
-                                            <input
-                                              type="date"
-                                              value={t.actualEndDate}
-                                              disabled={readOnly}
-                                              onChange={(e) => {
-                                                const newEnd = e.target.value;
-                                                if (useApiTasks && t.dbId) {
-                                                  setDbTasks((prev) => prev.map((row) => row.id === t.dbId ? { ...row, actualEndDate: newEnd } : row));
-                                                  updateProjectTask(project.id, t.dbId, { actualEndDate: newEnd || null }).catch((err) =>
-                                                    toast.error(err instanceof Error ? err.message : "Could not save end date"));
-                                                  return;
-                                                }
-                                                dhStore.updateTreeTaskState(project.id, t.id, {
-                                                  actualEndDate: newEnd,
-                                                });
-                                              }}
-                                              className="h-7 w-28 rounded-md border border-input bg-card px-2 text-[11px] text-center outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                                            />
+                                            <span
+                                              className={cn(
+                                                "inline-flex items-center justify-center px-2.5 py-1 rounded text-[11px] font-medium tabular-nums select-none",
+                                                t.actualEndDate ? "bg-muted/40 text-foreground border border-border/50 font-semibold" : "text-muted-foreground"
+                                              )}
+                                              title={t.actualEndDate ? `Actual End: ${formatDisplayDate(t.actualEndDate)}` : "Not completed yet"}
+                                            >
+                                              {formatDisplayDate(t.actualEndDate)}
+                                            </span>
                                           </div>
                                         </td>
                                         <td className="px-3 py-2 align-middle text-center">
@@ -5250,18 +5291,40 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                         </td>
                                         <td className="px-3 py-2 align-middle text-center">
                                           <div className="flex items-center justify-center h-8">
-                                            {!isStarted || readOnly ? (
+                                            {t.stage === "Completed" ? (
+                                              <span
+                                                className={cn(
+                                                  "inline-flex items-center gap-1 justify-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold shadow-sm cursor-not-allowed select-none",
+                                                  treeStageCls("Completed")
+                                                )}
+                                                title="Completed tasks are permanently locked and cannot be changed"
+                                              >
+                                                <Check className="h-3 w-3" />
+                                                Completed
+                                              </span>
+                                            ) : !isTaskStarted || readOnly ? (
                                               <span className={cn("inline-flex items-center justify-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium shadow-sm", treeStageCls(t.stage as any))}>
                                                 {t.stage || "Not Started"}
                                               </span>
                                             ) : (
                                               <select
                                                 value={t.stage}
+                                                disabled={readOnly}
                                                 onChange={(e) => {
                                                   const v = e.target.value as TreeTaskStage;
+                                                  if (v === t.stage) return;
+                                                  if (v === "Completed") {
+                                                    setTaskToComplete({
+                                                      taskId: t.id,
+                                                      dbId: t.dbId,
+                                                      title: t.taskId,
+                                                      estHours: t.estHoursPerTask,
+                                                    });
+                                                    return;
+                                                  }
                                                   if (useApiTasks && t.dbId) {
                                                     setDbTasks((prev) => prev.map((row) => row.id === t.dbId
-                                                      ? { ...row, stage: v, utilizedHours: v === "Completed" ? (row.estimatedHours ?? t.estHoursPerTask) : 0 }
+                                                      ? { ...row, stage: v, utilizedHours: 0 }
                                                       : row));
                                                     updateTaskStage(project.id, t.dbId, v).then((saved) => {
                                                       setDbTasks((prev) => prev.map((row) => row.id === t.dbId
@@ -5282,11 +5345,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                                                   dhStore.updateTreeTaskState(project.id, t.id, { stage: v });
                                                   toast.success("Stage updated", { description: `${t.taskId} → ${v}` });
                                                 }}
-                                                className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring text-center", treeStageCls(t.stage))}
+                                                className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring text-center cursor-pointer", treeStageCls(t.stage))}
                                               >
-                                                {TREE_TASK_STAGES.filter(s => s !== "Not Started").map((s) => (
+                                                {TREE_TASK_STAGES.filter(s => s !== "Not Started" && s !== "Completed" && s !== ("Assigned" as any)).map((s) => (
                                                   <option key={s} value={s}>{s}</option>
                                                 ))}
+                                                <option value="Completed">Completed</option>
                                               </select>
                                             )}
                                           </div>
@@ -5313,13 +5377,13 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
 
       {assignFor && (
         <AssignTaskModal
-          task={{ id: assignFor.id, title: `${assignFor.taskId} - ${assignFor.serviceModel}` }}
+          task={{ id: assignFor.id, title: `${assignFor.taskId} - ${assignFor.serviceModel}`, priority: assignFor.priority }}
           pool={teamPool}
           project={project}
           selected={useApiTasks ? assignFor.assigneeIds : (liveAssignments[assignFor.id]?.assigneeIds ?? dhStore.getTreeTaskAssignees(project.id, assignFor.id))}
           historyEntries={useApiTasks ? assignHistory : undefined}
           onClose={() => { setAssignFor(null); setAssignHistory([]); }}
-          onSave={(ids) => {
+          onSave={(ids, chosenPriority) => {
             if (useApiTasks) {
               if (!assignFor.dbId) {
                 toast.error("Could not save assignments", {
@@ -5327,12 +5391,12 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                 });
                 return;
               }
-              syncTaskAssignments(project.id, assignFor.dbId, ids)
+              syncTaskAssignments(project.id, assignFor.dbId, ids, chosenPriority)
                 .then((saved) => {
                   setDbTasks((prev) => prev.map((row) => {
                     if (row.id !== assignFor.dbId) return row;
                     const utilizedHours = row.stage === "Completed" ? Number(row.estimatedHours || 0) : 0;
-                    return { ...row, assignments: saved, utilizedHours };
+                    return { ...row, assignments: saved, utilizedHours, priority: chosenPriority };
                   }));
                   dhStore.registerPeople(saved.map((a) => ({
                     id: a.employeeId,
@@ -5340,7 +5404,7 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
                     role: a.role || "Team Member",
                     email: a.workEmail || "",
                   })));
-                  toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
+                  toast.success("Assignments updated", { description: `${ids.length} member(s) assigned · Priority: ${chosenPriority}` });
                   setAssignFor(null);
                 })
                 .catch((err) => toast.error(err instanceof Error ? err.message : "Could not save assignments"));
@@ -5358,22 +5422,120 @@ function DhTasksTab({ project, readOnly = false }: { project: Project; readOnly?
             const taskTitle = parentSvc ? `${svcName} - ${assignFor.serviceModel}` : `${assignFor.taskId} - ${assignFor.serviceModel}`;
             const dueDate = parentSvc?.wbsEndDate || "";
 
-            dhStore.assignResourcesToTreeTask(project.id, assignFor.id, ids, taskTitle, dueDate, "medium");
+            dhStore.assignResourcesToTreeTask(project.id, assignFor.id, ids, taskTitle, dueDate, chosenPriority.toLowerCase() as any);
             ids.forEach((resId) => {
               addTaskAssignment(project.id, assignFor.id, { resourceId: resId, role: "Member" }).catch(() => {});
             });
-            toast.success("Assignments updated", { description: `${ids.length} member(s) assigned` });
+            toast.success("Assignments updated", { description: `${ids.length} member(s) assigned · Priority: ${chosenPriority}` });
             setAssignFor(null);
           }}
         />
+      )}
+
+      {taskToComplete && (
+        <Modal
+          title="Confirm Task Completion"
+          onClose={() => {
+            if (!isCompletingTask) setTaskToComplete(null);
+          }}
+        >
+          <div className="space-y-4 pt-1">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-amber-500/10 p-2 text-amber-600 shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Are you sure that task <span className="font-semibold text-primary">{taskToComplete.title}</span> is completed?
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Once marked as completed, this task will be permanently locked and cannot be changed back. Today's date will be recorded as the Actual End date.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-border">
+              <button
+                type="button"
+                disabled={isCompletingTask}
+                onClick={() => setTaskToComplete(null)}
+                className="rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                No, cancel
+              </button>
+              <button
+                type="button"
+                disabled={isCompletingTask}
+                onClick={async () => {
+                  setIsCompletingTask(true);
+                  try {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    if (useApiTasks && taskToComplete.dbId) {
+                      setDbTasks((prev) =>
+                        prev.map((row) =>
+                          row.id === taskToComplete.dbId
+                            ? {
+                                ...row,
+                                stage: "Completed",
+                                actualEndDate: todayStr,
+                                progress: 100,
+                                utilizedHours: row.estimatedHours ?? taskToComplete.estHours ?? 0,
+                              }
+                            : row
+                        )
+                      );
+                      const saved = await updateTaskStage(project.id, taskToComplete.dbId, "Completed");
+                      setDbTasks((prev) =>
+                        prev.map((row) =>
+                          row.id === taskToComplete.dbId
+                            ? {
+                                ...row,
+                                stage: saved.stage,
+                                utilizedHours: saved.utilizedHours,
+                                actualStartDate: (saved.actualStartDate || row.actualStartDate || "").slice(0, 10),
+                                actualEndDate: (saved.actualEndDate || todayStr).slice(0, 10),
+                                progress: saved.progress,
+                              }
+                            : row
+                        )
+                      );
+                    } else {
+                      dhStore.updateTreeTaskState(project.id, taskToComplete.taskId, {
+                        stage: "Completed",
+                        actualEndDate: todayStr,
+                      });
+                    }
+                    toast.success("Task completed", {
+                      description: `${taskToComplete.title} is now marked as Completed.`,
+                    });
+                    setTaskToComplete(null);
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not complete task");
+                  } finally {
+                    setIsCompletingTask(false);
+                  }
+                }}
+                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition-colors flex items-center gap-1.5"
+              >
+                {isCompletingTask ? "Completing..." : "Yes, complete task"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </>
   );
 }
 
-function AssignTaskModal({ project, task, pool, selected, historyEntries, onClose, onSave }: { project: Project; task: Task | { id: string; title: string }; pool: { person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[]; selected: string[]; historyEntries?: ApiTaskAssignmentHistoryEntry[]; onClose: () => void; onSave: (ids: string[]) => void }) {
+function AssignTaskModal({ project, task, pool, selected, historyEntries, onClose, onSave }: { project: Project; task: Task | { id: string; title: string; priority?: string }; pool: { person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[]; selected: string[]; historyEntries?: ApiTaskAssignmentHistoryEntry[]; onClose: () => void; onSave: (ids: string[], priority: string) => void }) {
   const [sel, setSel] = useState<string[]>(selected);
   const [q, setQ] = useState("");
+  const rawPriority = ('priority' in task && task.priority) ? task.priority : "Medium";
+  const initialPriority = ["Low", "Medium", "High", "Critical"].find(
+    (p) => p.toLowerCase() === rawPriority.toLowerCase()
+  ) || "Medium";
+  const [priority, setPriority] = useState<string>(initialPriority);
+  const [unassignTarget, setUnassignTarget] = useState<{ id: string; name: string } | null>(null);
 
   const isTreeTask = !project.tasks.some((t) => t.id === task.id);
   // Load assignment history persistently
@@ -5384,13 +5546,55 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
       : dhStore.getTaskAssignment(project.id, task.id);
   const history = historyEntries ?? assignment?.history ?? [];
 
-  const toggle = (id: string) => setSel((s) => s.includes(id) ? s.filter((x) => x !== id) : [...s, id]);
+  const handleToggle = (id: string) => {
+    if (sel.includes(id)) {
+      const personName = pool.find((item) => item.person.id === id)?.person.name || getPerson(id)?.name || "this resource";
+      setUnassignTarget({ id, name: personName });
+    } else {
+      setSel((s) => [...s, id]);
+    }
+  };
   const visible = pool.filter(({ person: p }) => !q.trim() || p.name.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <Modal title={`Assign — ${task.title}`} onClose={onClose} draggable>
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">Resources from Project Team and Shadow Team can be assigned. Select one or more.</p>
+
+        {/* Priority Selection */}
+        <div className="space-y-1.5 rounded-lg border border-border bg-muted/20 p-2.5">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Task Priority</label>
+            <span className="text-[10px] text-muted-foreground">Reflects in assigned resource Action Center</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {(["Low", "Medium", "High", "Critical"] as const).map((p) => {
+              const isSelected = priority.toLowerCase() === p.toLowerCase();
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPriority(p)}
+                  className={cn(
+                    "flex items-center justify-center rounded-md border py-1.5 text-xs font-semibold transition-all",
+                    isSelected
+                      ? p === "Critical"
+                        ? "border-red-600 bg-red-600 text-white shadow-sm ring-2 ring-red-400/30"
+                        : p === "High"
+                        ? "border-amber-600 bg-amber-500 text-white shadow-sm ring-2 ring-amber-400/30"
+                        : p === "Medium"
+                        ? "border-blue-600 bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/30"
+                        : "border-slate-600 bg-slate-600 text-white shadow-sm ring-2 ring-slate-400/30"
+                      : "border-input bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                >
+                  {p}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {pool.length === 0 ? (
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-6 text-center">
             <p className="text-sm font-semibold text-warning-foreground">No team members are added to assign</p>
@@ -5415,7 +5619,7 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
                 <span key={id} className={cn("inline-flex items-center gap-1.5 rounded-full border py-0.5 pl-1 pr-2 text-xs font-medium shadow-sm",
                   teamInfo?.isShadowTeam ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-blue-50 text-blue-700 border-blue-200")}>
                   <Avatar name={p.name} size={18} /> {p.name} <span className="text-[10px] text-muted-foreground">{teamLabel}</span>
-                  <button onClick={() => toggle(id)} className="ml-1 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
+                  <button onClick={() => handleToggle(id)} className="ml-1 text-muted-foreground hover:text-foreground"><X className="h-3 w-3" /></button>
                 </span>
               );
             })}
@@ -5427,7 +5631,7 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
             const teamLabel = isShadowTeam ? "Shadow Team" : "Project Team";
             return (
               <li key={p.id}>
-                <button onClick={() => toggle(p.id)}
+                <button onClick={() => handleToggle(p.id)}
                   className={cn("flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-accent/40", isSel && "bg-primary/5")}>
                   <Avatar name={p.name} size={26} />
                   <div className="flex-1 min-w-0">
@@ -5475,8 +5679,41 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
 
         <div className="flex justify-end gap-2 border-t border-border pt-3">
           <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-          <button onClick={() => onSave(sel)} disabled={pool.length === 0} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">Save Assignments</button>
+          <button onClick={() => onSave(sel, priority)} disabled={pool.length === 0} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50">Save Assignments</button>
         </div>
+
+        {/* Unassign Confirmation Modal */}
+        {unassignTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in-0">
+            <div className="w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-lg space-y-4">
+              <div className="space-y-1.5">
+                <h4 className="text-sm font-semibold text-foreground">Remove Assigned Resource</h4>
+                <p className="text-xs text-muted-foreground">
+                  Are you sure you want to remove <span className="font-semibold text-foreground">{unassignTarget.name}</span> from the assigned task?
+                </p>
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => setUnassignTarget(null)}
+                  className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSel((s) => s.filter((x) => x !== unassignTarget.id));
+                    setUnassignTarget(null);
+                  }}
+                  className="rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Yes, Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   );

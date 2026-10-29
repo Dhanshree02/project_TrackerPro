@@ -1,5 +1,5 @@
 import { Link, Navigate } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import {
   Search,
   Filter,
@@ -26,6 +26,10 @@ import {
   Bell,
   Archive,
   ChevronDown,
+  Play,
+  Square,
+  Pause,
+  Loader2,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
@@ -121,24 +125,54 @@ export function ActionCentrePage() {
 }
 
 // ---------- Bucket List ----------
-import { type DhBucketTask } from "@/lib/workspace-store";
+import {
+  fetchBucketList,
+  startBucketTaskTimer,
+  pauseBucketTaskTimer,
+  stopBucketTaskTimer,
+  completeBucketTask,
+  type ApiBucketTask,
+} from "../api/action-centre";
 
-function BucketListRow({ r }: { r: DhBucketTask }) {
-  const by = getPerson(r.assignedById);
+function BucketListRow({
+  r,
+  onRefresh,
+  onUpdateRow,
+}: {
+  r: ApiBucketTask;
+  onRefresh: (showLoader?: boolean) => void;
+  onUpdateRow?: (updated: ApiBucketTask) => void;
+}) {
+  const byName = r.assignedByName || (r.assignedById ? getPerson(r.assignedById).name : "") || "Project Manager";
   const [now, setNow] = useState(Date.now());
 
+  // Optimistic local state for immediate smooth button and timer transitions
+  const [localStatus, setLocalStatus] = useState<string>(r.status);
+  const [localTimerRunning, setLocalTimerRunning] = useState<boolean>(r.timerRunning);
+  const [localAccumulatedSeconds, setLocalAccumulatedSeconds] = useState<number>(r.timerAccumulatedSeconds ?? 0);
+  const [localTimerStartedAt, setLocalTimerStartedAt] = useState<string | null>(r.timerStartedAtUtc ?? null);
+
   useEffect(() => {
-    if (!r.timerRunning) return;
+    setLocalStatus(r.status);
+    setLocalTimerRunning(r.timerRunning);
+    setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+    setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+  }, [r.status, r.timerRunning, r.timerAccumulatedSeconds, r.timerStartedAtUtc]);
+
+  useEffect(() => {
+    if (!localTimerRunning) return;
     const interval = setInterval(() => {
       setNow(Date.now());
     }, 1000);
     return () => clearInterval(interval);
-  }, [r.timerRunning]);
+  }, [localTimerRunning]);
 
-  let workingTimeSeconds = r.elapsedTime;
-  if (r.timerRunning && r.lastStartedAt) {
-    const elapsedSinceStart = Math.floor((now - new Date(r.lastStartedAt).getTime()) / 1000);
+  let workingTimeSeconds = localAccumulatedSeconds;
+  if (localTimerRunning && localTimerStartedAt) {
+    const elapsedSinceStart = Math.floor((now - new Date(localTimerStartedAt).getTime()) / 1000);
     workingTimeSeconds += Math.max(0, elapsedSinceStart);
+  } else if (!localTimerRunning && (r.elapsedTimeSeconds ?? 0) > workingTimeSeconds) {
+    workingTimeSeconds = r.elapsedTimeSeconds;
   }
 
   const formatTimer = (totalSecs: number) => {
@@ -148,42 +182,110 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
     return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
   };
 
-  const handleStart = () => {
-    dhStore.startBucketTask(r.id);
-    if (r.projectId && r.taskId) {
-      startTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+  const handleStart = async () => {
+    try {
+      setLocalStatus("Ongoing");
+      setLocalTimerRunning(true);
+      setLocalTimerStartedAt(new Date().toISOString());
+      const updated = await startBucketTaskTimer(r.id);
+      toast.success("Timer started", { description: r.taskTitle });
+      onUpdateRow?.(updated);
+      onRefresh(false);
+    } catch (err: any) {
+      setLocalStatus(r.status);
+      setLocalTimerRunning(r.timerRunning);
+      setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+      setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+      toast.error(err.message || "Failed to start timer");
     }
-    toast.success("Timer started", { description: r.taskTitle });
   };
 
-  const handlePause = () => {
-    dhStore.pauseBucketTask(r.id);
-    if (r.projectId && r.taskId) {
-      stopTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+  const handlePause = async () => {
+    try {
+      const currentSeconds = workingTimeSeconds;
+      setLocalStatus("Paused");
+      setLocalTimerRunning(false);
+      setLocalAccumulatedSeconds(currentSeconds);
+      setLocalTimerStartedAt(null);
+      const updated = await pauseBucketTaskTimer(r.id);
+      toast.info("Timer paused", { description: r.taskTitle });
+      onUpdateRow?.(updated);
+      onRefresh(false);
+    } catch (err: any) {
+      setLocalStatus(r.status);
+      setLocalTimerRunning(r.timerRunning);
+      setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+      setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+      toast.error(err.message || "Failed to pause timer");
     }
-    toast.info("Timer paused", { description: r.taskTitle });
   };
 
-  const handleResume = () => {
-    dhStore.resumeBucketTask(r.id);
-    if (r.projectId && r.taskId) {
-      startTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+  const handleResume = async () => {
+    try {
+      setLocalStatus("Ongoing");
+      setLocalTimerRunning(true);
+      setLocalTimerStartedAt(new Date().toISOString());
+      const updated = await startBucketTaskTimer(r.id);
+      toast.success("Timer resumed", { description: r.taskTitle });
+      onUpdateRow?.(updated);
+      onRefresh(false);
+    } catch (err: any) {
+      setLocalStatus(r.status);
+      setLocalTimerRunning(r.timerRunning);
+      setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+      setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+      toast.error(err.message || "Failed to resume timer");
     }
-    toast.success("Timer resumed", { description: r.taskTitle });
   };
 
-  const handleStop = () => {
-    dhStore.stopBucketTask(r.id);
-    if (r.projectId && r.taskId) {
-      stopTaskTimer(r.projectId, r.taskId, r.id).catch(() => {});
+  const handleStop = async () => {
+    try {
+      const currentSeconds = workingTimeSeconds;
+      setLocalStatus("Stopped");
+      setLocalTimerRunning(false);
+      setLocalAccumulatedSeconds(currentSeconds);
+      setLocalTimerStartedAt(null);
+      const updated = await stopBucketTaskTimer(r.id);
+      toast.warning("Timer stopped", { description: r.taskTitle });
+      onUpdateRow?.(updated);
+      onRefresh(false);
+    } catch (err: any) {
+      setLocalStatus(r.status);
+      setLocalTimerRunning(r.timerRunning);
+      setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+      setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+      toast.error(err.message || "Failed to stop timer");
     }
-    toast.warning("Timer stopped", { description: r.taskTitle });
   };
 
-  const handleComplete = () => {
-    dhStore.completeBucketTask(r.id);
-    toast.success("Task completed!", { description: r.taskTitle });
+  const handleComplete = async () => {
+    try {
+      const updated = await completeBucketTask(r.id);
+      toast.success("Task completed!", { description: r.taskTitle });
+      onUpdateRow?.(updated);
+      onRefresh(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to complete task");
+    }
   };
+
+  // Determine true display status dynamically based on timerRunning and state
+  let displayStatus = localStatus;
+  if (localTimerRunning) {
+    displayStatus = "Ongoing";
+  } else if (localStatus === "Completed") {
+    displayStatus = "Completed";
+  } else if (localStatus === "On Hold") {
+    displayStatus = "On Hold";
+  } else if (localStatus === "Cancelled") {
+    displayStatus = "Cancelled";
+  } else if (localStatus === "Stopped") {
+    displayStatus = "Stopped";
+  } else if (localStatus === "Paused" || workingTimeSeconds > 0) {
+    displayStatus = "Paused";
+  } else {
+    displayStatus = localStatus || "Not Started";
+  }
 
   return (
     <tr className="hover:bg-accent/30 border-b border-border">
@@ -199,51 +301,56 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
       </td>
       <td className="px-3 py-2.5 text-muted-foreground font-medium">{r.projectName}</td>
       <td className="px-3 py-2.5">
-        <PriorityPill priority={r.priority} />
+        <PriorityPill priority={(r.priority?.toLowerCase() as any) || "medium"} />
       </td>
       <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground font-medium">
-        {new Date(r.dueDate).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-        })}
+        {r.dueDate
+          ? new Date(r.dueDate).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+          : "—"}
       </td>
       <td className="px-3 py-2.5">
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold capitalize shadow-2xs",
-            r.status === "Not Started" && "bg-slate-50 text-slate-700 border-slate-200",
-            r.status === "Ongoing" && "bg-blue-50 text-blue-700 border-blue-200 animate-pulse",
-            r.status === "Paused" && "bg-amber-50 text-amber-700 border-amber-200",
-            r.status === "Stopped" && "bg-rose-50 text-rose-700 border-rose-200",
-            r.status === "Completed" && "bg-green-50 text-green-700 border-green-200",
+            displayStatus === "Not Started" && "bg-slate-50 text-slate-700 border-slate-200",
+            displayStatus === "Ongoing" && "bg-blue-50 text-blue-700 border-blue-200 animate-pulse",
+            displayStatus === "Paused" && "bg-amber-50 text-amber-700 border-amber-200",
+            displayStatus === "Stopped" && "bg-rose-50 text-rose-700 border-rose-200",
+            displayStatus === "Completed" && "bg-green-50 text-green-700 border-green-200",
+            displayStatus === "On Hold" && "bg-amber-50 text-amber-800 border-amber-300",
+            displayStatus === "Cancelled" && "bg-rose-50 text-rose-800 border-rose-300",
           )}
         >
-          {r.status === "Ongoing" && <Clock className="h-3 w-3 animate-spin text-blue-600" />}
-          {r.status}
+          {displayStatus === "Ongoing" && <Clock className="h-3 w-3 animate-spin text-blue-600" />}
+          {displayStatus === "Paused" && <Pause className="h-3 w-3 text-amber-700" />}
+          {displayStatus === "Stopped" && <Square className="h-3 w-3 text-rose-700 fill-current" />}
+          {displayStatus === "On Hold" && <Pause className="h-3 w-3 text-amber-700" />}
+          {displayStatus === "Cancelled" && <XCircle className="h-3 w-3 text-rose-700" />}
+          {displayStatus === "Completed" && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+          {displayStatus}
         </span>
       </td>
       <td className="px-3 py-2.5">
         <div className="flex items-center gap-2">
-          <Avatar name={by.name} size={24} />
-          <span className="text-xs font-semibold text-gray-700">{by.name}</span>
+          <Avatar name={byName} size={24} />
+          <span className="text-xs font-semibold text-gray-700">{byName}</span>
         </div>
       </td>
       <td className="px-3 py-2.5">
         <div className="flex flex-col gap-1.5 min-w-[210px] bg-muted/20 p-2 rounded-lg border border-border/80">
-          {(r.status === "Ongoing" ||
-            r.status === "Paused" ||
-            r.status === "Stopped" ||
-            r.status === "Completed") && (
+          {(displayStatus !== "Not Started" || workingTimeSeconds > 0 || !!r.actualStartDate) && (
             <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 font-medium">
-              {r.startedAt && (
+              {r.actualStartDate && (
                 <div>
                   <span className="font-semibold text-gray-500">Started:</span>{" "}
-                  {new Date(r.startedAt).toLocaleString("en-GB", {
+                  {new Date(r.actualStartDate).toLocaleDateString("en-GB", {
                     day: "2-digit",
                     month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
+                    year: "numeric",
                   })}
                 </div>
               )}
@@ -252,92 +359,145 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
                 <span
                   className={cn(
                     "text-xs font-bold",
-                    r.timerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
+                    localTimerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
                   )}
                 >
                   {formatTimer(workingTimeSeconds)}
                 </span>
               </div>
-              {r.status === "Stopped" && (
+              {displayStatus === "On Hold" && (
+                <div className="text-amber-800 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1 text-[10px]">
+                  <Pause className="h-3 w-3 text-amber-600" /> Timer Paused (On Hold)
+                </div>
+              )}
+              {displayStatus === "Cancelled" && (
+                <div className="text-rose-700 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1 text-[10px]">
+                  <XCircle className="h-3 w-3 text-rose-600" /> Task Cancelled
+                </div>
+              )}
+              {displayStatus === "Stopped" && (
                 <div className="text-rose-600 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1">
                   Timer Frozen
                 </div>
               )}
-              {r.status === "Completed" && r.completedAt && (
+              {displayStatus === "Completed" && r.actualEndDate && (
                 <div className="text-success font-semibold border-t border-border/50 mt-1 pt-1">
                   Completed:{" "}
-                  {new Date(r.completedAt).toLocaleString("en-GB", {
+                  {new Date(r.actualEndDate).toLocaleDateString("en-GB", {
                     day: "2-digit",
                     month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
+                    year: "numeric",
                   })}
                 </div>
               )}
             </div>
           )}
 
-          <div className="flex gap-1.5">
-            {r.status === "Not Started" && (
-              <button
-                onClick={handleStart}
-                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm cursor-pointer"
-              >
-                <Clock className="h-3.5 w-3.5" /> Start Task
-              </button>
-            )}
-            {r.status === "Ongoing" && (
-              <>
-                <button
-                  onClick={handlePause}
-                  className="inline-flex items-center justify-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
-                >
-                  Pause
-                </button>
-                <button
-                  onClick={handleStop}
-                  className="inline-flex items-center justify-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
-                >
-                  Stop
-                </button>
-              </>
-            )}
-            {r.status === "Paused" && (
-              <>
-                <button
-                  onClick={handleResume}
-                  className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
-                >
-                  Resume
-                </button>
-                <button
-                  onClick={handleStop}
-                  className="inline-flex items-center justify-center gap-1 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
-                >
-                  Stop
-                </button>
-              </>
-            )}
-            {r.status === "Stopped" && (
-              <>
-                <button
-                  onClick={handleResume}
-                  className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
-                >
-                  Resume
-                </button>
-                <button
-                  disabled
-                  className="inline-flex items-center justify-center gap-1 rounded-md bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground border border-border cursor-not-allowed"
-                >
-                  Stopped
-                </button>
-              </>
-            )}
-            {r.status === "Completed" && (
+          <div className="flex items-center gap-1.5">
+            {/* If task is completed */}
+            {displayStatus === "Completed" && (
               <span className="text-xs font-bold text-success flex items-center gap-1 py-1">
                 <CheckCircle2 className="h-4.5 w-4.5 text-success" /> Task Completed
               </span>
+            )}
+
+            {/* If task is On Hold */}
+            {displayStatus === "On Hold" && (
+              <div className="flex flex-col gap-1 w-full">
+                <button
+                  disabled
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-amber-100/70 px-3 py-1.5 text-xs font-bold text-amber-800 border border-amber-300 cursor-not-allowed opacity-90 shadow-2xs w-full"
+                  title="Task is On Hold. Move stage to Ongoing in the project task tab to resume this task."
+                >
+                  <Pause className="h-3.5 w-3.5" /> On Hold (Paused)
+                </button>
+                <span className="text-[9px] text-muted-foreground italic leading-tight text-center">
+                  Stage must be Ongoing to resume
+                </span>
+              </div>
+            )}
+
+            {/* If task is Cancelled */}
+            {displayStatus === "Cancelled" && (
+              <div className="flex flex-col gap-1 w-full">
+                <button
+                  disabled
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-100/70 px-3 py-1.5 text-xs font-bold text-rose-800 border border-rose-300 cursor-not-allowed opacity-90 shadow-2xs w-full"
+                  title="This task is Cancelled."
+                >
+                  <XCircle className="h-3.5 w-3.5" /> Cancelled
+                </button>
+              </div>
+            )}
+
+            {/* If task is Not Started (zero working time, not running) */}
+            {displayStatus === "Not Started" && !localTimerRunning && workingTimeSeconds === 0 && (
+              <>
+                <button
+                  onClick={handleStart}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm cursor-pointer"
+                  title="Start Task"
+                >
+                  <Play className="h-3.5 w-3.5 fill-current" /> Start
+                </button>
+                <button
+                  disabled
+                  title="Start the task first before pausing"
+                  className="inline-flex items-center justify-center gap-1 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs font-bold text-muted-foreground/60 cursor-not-allowed select-none"
+                >
+                  <Pause className="h-3.5 w-3.5" /> Pause
+                </button>
+              </>
+            )}
+
+            {/* If timer is actively running */}
+            {localTimerRunning && (
+              <>
+                <button
+                  onClick={handlePause}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
+                  title="Pause Timer"
+                >
+                  <Pause className="h-3.5 w-3.5" /> Pause
+                </button>
+                <button
+                  onClick={handleStop}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
+                  title="Stop Timer"
+                >
+                  <Square className="h-3 w-3 fill-current" /> Stop
+                </button>
+              </>
+            )}
+
+            {/* If timer is paused or stopped (not running, but was started or has accumulated time) */}
+            {!localTimerRunning && displayStatus !== "Completed" && displayStatus !== "On Hold" && displayStatus !== "Cancelled" && (displayStatus === "Paused" || displayStatus === "Stopped" || workingTimeSeconds > 0) && (
+              <>
+                <button
+                  onClick={handleResume}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
+                  title="Resume Timer"
+                >
+                  <Play className="h-3.5 w-3.5 fill-current" /> Resume
+                </button>
+                {displayStatus === "Stopped" ? (
+                  <button
+                    disabled
+                    className="inline-flex items-center justify-center gap-1.5 rounded-md bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground border border-border cursor-not-allowed select-none"
+                    title="Timer is stopped"
+                  >
+                    <Square className="h-3 w-3 fill-current" /> Stopped
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStop}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
+                    title="Stop Timer"
+                  >
+                    <Square className="h-3 w-3 fill-current" /> Stop
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -348,20 +508,13 @@ function BucketListRow({ r }: { r: DhBucketTask }) {
 
 function BucketList() {
   const { user, isEmployee, employeePersonId, assignedProjects } = useRoleContext();
-  const store = useDhStore((s) => s);
-  const bucketTasks = store.bucketTasks || [];
-
-  const viewUserId =
-    isEmployee && employeePersonId
-      ? employeePersonId
-      : user.id;
 
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "todo" | "in_progress" | "review" | "done"
+    "all" | "todo" | "in_progress" | "on_hold" | "done"
   >("all");
   const [priorityFilter, setPriorityFilter] = useState<
-    "all" | "low" | "medium" | "high" | "critical"
+    "all" | "Low" | "Medium" | "High" | "Critical"
   >("all");
   const [showRaiseModal, setShowRaiseModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -372,30 +525,46 @@ function BucketList() {
     priority: "Medium" as DhPriority,
   });
 
-  const rows = useMemo(() => {
-    return bucketTasks.filter((bt) => bt.employeeId === viewUserId);
-  }, [bucketTasks, viewUserId]);
+  const [apiTasks, setApiTasks] = useState<ApiBucketTask[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const handleUpdateRow = useCallback((updated: ApiBucketTask) => {
+    setApiTasks((prev) =>
+      prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
+    );
+  }, []);
+
+  const loadData = useCallback(async (showLoader = false) => {
+    try {
+      if (showLoader) {
+        setLoading(true);
+      }
+      const res = await fetchBucketList({
+        search: q.trim() || undefined,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        priority: priorityFilter !== "all" ? priorityFilter : undefined,
+      });
+      setApiTasks(res.items || []);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load bucket tasks");
+    } finally {
+      if (showLoader) {
+        setLoading(false);
+      }
+    }
+  }, [q, statusFilter, priorityFilter, user?.id, employeePersonId]);
+
+  useEffect(() => {
+    loadData(true);
+  }, [loadData]);
 
   const userProjects = useMemo(() => {
     const taskProjectIds = Array.from(
-      new Set(rows.map((bt) => bt.projectId).filter(Boolean)),
+      new Set(apiTasks.map((bt) => bt.projectId).filter(Boolean)),
     );
     const projs = assignedProjects.filter((p) => taskProjectIds.includes(p.id));
     return projs.length > 0 ? projs : assignedProjects;
-  }, [rows, assignedProjects]);
-
-  const filtered = rows.filter((r) => {
-    if (statusFilter !== "all") {
-      if (statusFilter === "todo" && r.status !== "Not Started") return false;
-      if (statusFilter === "in_progress" && r.status !== "Ongoing" && r.status !== "Paused")
-        return false;
-      if (statusFilter === "done" && r.status !== "Completed") return false;
-      if (statusFilter === "review") return false;
-    }
-    if (priorityFilter !== "all" && r.priority !== priorityFilter) return false;
-    if (!q.trim()) return true;
-    return [r.taskTitle, r.projectName].some((v) => v.toLowerCase().includes(q.toLowerCase()));
-  });
+  }, [apiTasks, assignedProjects]);
 
   const handleSubmitIssue = () => {
     if (!formData.title.trim() || !formData.description.trim()) {
@@ -448,7 +617,7 @@ function BucketList() {
         {/* Status Filter Bar */}
         <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
           <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 mx-1" />
-          {(["all", "todo", "in_progress", "done"] as const).map((s) => (
+          {(["all", "todo", "in_progress", "on_hold", "done"] as const).map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -460,24 +629,26 @@ function BucketList() {
               )}
             >
               {s === "all"
-                ? "All status"
+                ? "All"
                 : s === "todo"
-                  ? "To Do"
-                  : s === "in_progress"
-                    ? "In Progress"
-                    : "Done"}
+                ? "To Do"
+                : s === "in_progress"
+                ? "In Progress"
+                : s === "on_hold"
+                ? "On Hold"
+                : "Done"}
             </button>
           ))}
         </div>
 
-        {/* Priority Filter Bar */}
+        {/* Priority Filter */}
         <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
-          {(["all", "low", "medium", "high", "critical"] as const).map((p) => (
+          {(["all", "Low", "Medium", "High", "Critical"] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPriorityFilter(p)}
               className={cn(
-                "h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
+                "h-7 rounded-sm px-2 text-xs font-medium transition-colors cursor-pointer",
                 priorityFilter === p
                   ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/40",
@@ -491,10 +662,13 @@ function BucketList() {
         {/* Raise Issue Button */}
         <button
           onClick={() => {
-            setFormData((prev) => ({
-              ...prev,
-              projectId: prev.projectId || userProjects[0]?.id || assignedProjects[0]?.id || "",
-            }));
+            setFormData({
+              projectId: userProjects[0]?.id || assignedProjects[0]?.id || "",
+              title: "",
+              description: "",
+              category: "Technical Related Issues",
+              priority: "Medium",
+            });
             setShowRaiseModal(true);
           }}
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer whitespace-nowrap"
@@ -503,7 +677,7 @@ function BucketList() {
         </button>
 
         <span className="ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">
-          {filtered.length} {filtered.length === 1 ? "task" : "tasks"}
+          {apiTasks.length} {apiTasks.length === 1 ? "task" : "tasks"}
         </span>
       </header>
 
@@ -521,15 +695,29 @@ function BucketList() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filtered.map((r) => (
-              <BucketListRow key={r.id} r={r} />
-            ))}
-            {filtered.length === 0 && (
+            {loading ? (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
-                  No tasks match your filters
+                <td colSpan={7} className="px-3 py-12 text-center text-xs text-muted-foreground">
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading bucket tasks...
+                  </div>
                 </td>
               </tr>
+            ) : apiTasks.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-3 py-12 text-center text-xs text-muted-foreground">
+                  No tasks assigned in your bucket list matching current filters.
+                </td>
+              </tr>
+            ) : (
+              apiTasks.map((r) => (
+                <BucketListRow
+                  key={r.id}
+                  r={r}
+                  onRefresh={loadData}
+                  onUpdateRow={handleUpdateRow}
+                />
+              ))
             )}
           </tbody>
         </table>

@@ -7,6 +7,7 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Infrastructure.Storage;
+using PMS.API.Modules.ActionCentre.Services;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.Dashboard.Services;
@@ -64,6 +65,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
         services.AddHostedService<OrgRoleMatrixHostedService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IBucketTaskService, BucketTaskService>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);

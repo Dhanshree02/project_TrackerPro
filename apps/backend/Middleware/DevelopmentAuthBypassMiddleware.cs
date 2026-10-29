@@ -46,6 +46,7 @@ public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
             {
                 new(JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new(JwtRegisteredClaimNames.Email, email),
+                new(ClaimTypes.Email, email),
                 new(ClaimTypes.Name, email.Split('@')[0]),
                 new(ClaimTypes.Role, role),
             };
