@@ -32,7 +32,7 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
 
     public async Task<ProjectMasterRowDto> CreateAsync(CreateProjectMasterRequest request, CancellationToken ct = default)
     {
-        ValidateMasterFields(request.ContractType, request.Department, request.Service, request.Tools, request.DurationDays, request.UnitPrice);
+        ValidateMasterFields(request.ContractType, request.Department, request.Service, request.Tools, request.DurationDays, request.UnitPrice, request.Abbreviation);
 
         var group = await ResolveOrCreateGroupAsync(request.ContractType, ct);
         var department = await ResolveOrCreateDepartmentAsync(group.Id, request.Department.Trim(), ct);
@@ -93,7 +93,7 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
         UpdateProjectMasterRequest request,
         CancellationToken ct = default)
     {
-        ValidateMasterFields(request.ContractType, request.Department, request.Service, request.Tools, request.DurationDays, request.UnitPrice);
+        ValidateMasterFields(request.ContractType, request.Department, request.Service, request.Tools, request.DurationDays, request.UnitPrice, request.Abbreviation);
 
         var catalog = await db.ServiceCatalogs
             .Include(c => c.SubDepartment!)
@@ -247,7 +247,8 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
         string service,
         string tools,
         int durationDays,
-        decimal unitPrice)
+        decimal unitPrice,
+        string? abbreviation = null)
     {
         if (string.IsNullOrWhiteSpace(contractType))
             throw new ConflictException("Contract type is required.");
@@ -261,6 +262,8 @@ public sealed class ProjectMastersService(AppDbContext db) : IProjectMastersServ
             throw new ConflictException("Duration must be at least 1 day.");
         if (unitPrice <= 0)
             throw new ConflictException("Unit price must be greater than zero.");
+        if (string.IsNullOrWhiteSpace(abbreviation))
+            throw new ConflictException("Service Abbreviation is required.");
     }
 
     private static ProjectMasterRowDto MapRow(MstServiceCatalog c)

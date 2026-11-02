@@ -138,7 +138,7 @@ export async function createServiceOnly(payload: {
 }
 
 export function rowToProjectMasterItem(row: ProjectMasterRow) {
-  const days = row.durationDays ?? 0;
+  const days = row.durationDays != null ? Number(row.durationDays) : 0;
   return {
     id: row.id,
     contractType: row.contractType,
@@ -147,14 +147,20 @@ export function rowToProjectMasterItem(row: ProjectMasterRow) {
     subDepartment: row.subDepartment,
     service: row.service,
     tools: row.tools ?? "",
-    duration: days > 0 ? `${days} Days` : "",
+    duration: days > 0 ? `${days} Days` : "5 Days",
     unitPrice: Number(row.unitPrice ?? 0),
     createdAt: row.createdAtUtc,
     abbreviation: row.abbreviation ?? undefined,
   };
 }
 
-export function parseDurationDays(duration: string): number {
+export function parseDurationDays(duration: string | number | null | undefined): number {
+  if (typeof duration === "number") {
+    return Number.isFinite(duration) && duration > 0 ? Math.floor(duration) : 0;
+  }
+  if (!duration || typeof duration !== "string") {
+    return 0;
+  }
   const match = duration.match(/\d+/);
   const n = match ? parseInt(match[0], 10) : NaN;
   return Number.isFinite(n) && n > 0 ? n : 0;

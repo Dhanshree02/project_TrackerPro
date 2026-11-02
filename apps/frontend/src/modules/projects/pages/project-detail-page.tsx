@@ -24,6 +24,7 @@ import {
   mapApiProjectToProject,
   updateProjectStatus,
   updateTaskStage,
+  createProjectTask,
   updateProjectTask,
   addTaskAssignment,
   generateProjectTasks,
@@ -1842,6 +1843,7 @@ function WbsTab({
   poDocumentPanel,
   onLeadershipSaved,
   onInvoicesRefreshed,
+  onServicesRefreshed,
 }: {
   project: Project;
   client?: Client;
@@ -3867,6 +3869,8 @@ function computeAggregateStage(stages: TreeTaskStage[]): TreeTaskStage {
 interface TreeTask {
   id: string;
   taskId: string;
+  taskTitle?: string;
+  taskType?: string | null;
   serviceModel: string;
   actualStartDate: string;
   actualEndDate: string;
@@ -3911,7 +3915,47 @@ interface ServiceFolder {
   aps: APFolder[] | null;
 }
 
-let serviceCatalogAbbrCache: Record<string, string> = {};
+const defaultCatalogAbbrs: Record<string, string> = {
+  "external network penetration testing": "ENPT",
+  "internal network penetration testing": "INPT",
+  "web application penetration testing": "WAPT",
+  "mobile application penetration testing": "MAPT",
+  "api penetration testing": "APIPT",
+  "thick client penetration testing": "TKPT",
+  "network vulnerability assessment": "NVA",
+  "web application vulnerability assessment": "WAVA",
+  "cloud infrastructure vulnerability assessment": "CIVA",
+  "full spectrum red team exercise": "FSRE",
+  "targeted red team engagement": "TRTE",
+  "aws security assessment": "AWS",
+  "azure security assessment": "AZURE",
+  "google cloud security assessment": "GCP",
+  "source code security review": "SCSR",
+  "static application security testing (sast)": "SAST",
+  "dynamic application security testing (dast)": "DAST",
+  "iso 27001 security audit": "ISO",
+  "gdpr compliance assessment": "GDPR",
+  "pci-dss compliance assessment": "PCI",
+  "soc 2 type ii audit": "SOC2",
+  "phishing campaign & assessment": "PHISH",
+  "security awareness training program": "SATP",
+  "vishing & pretexting assessment": "VPA",
+  "digital forensics investigation": "DFI",
+  "incident response & containment": "IRC",
+  "malware analysis": "MA",
+  "network architecture security review": "NASR",
+  "firewall & ids/ips configuration audit": "FICA",
+  "network segmentation assessment": "NSA",
+  "threat modeling & risk assessment": "TMRA",
+  "cyber threat intelligence report": "CTIR",
+  "attack surface analysis": "ASA",
+  "soc": "SOC",
+  "fsf": "FSF",
+  "service_1": "SRV1",
+  "custom service": "CS",
+};
+
+let serviceCatalogAbbrCache: Record<string, string> = { ...defaultCatalogAbbrs };
 
 function buildServiceTree(
   project: Project,
@@ -3963,6 +4007,32 @@ function buildServiceTree(
     // Look in catalogAbbrs state or module cache
     if (!rawAbbr) {
       const cached = catalogAbbrs?.[svcNameKey] || serviceCatalogAbbrCache[svcNameKey];
+      if (cached) rawAbbr = cached.trim();
+    }
+
+    // Lookup by catalog ID
+    if (!rawAbbr && svc.serviceCatalogId) {
+      const catIdKey = String(svc.serviceCatalogId).toLowerCase().trim();
+      const byId = catalogAbbrs?.[catIdKey] || serviceCatalogAbbrCache[catIdKey];
+      if (byId) rawAbbr = byId.trim();
+    }
+
+    // Substring / containment match against known catalog entries
+    if (!rawAbbr) {
+      for (const [nameKey, val] of Object.entries(catalogAbbrs ?? {})) {
+        if (nameKey && (svcNameKey.includes(nameKey) || nameKey.includes(svcNameKey))) {
+          rawAbbr = val.trim();
+          break;
+        }
+      }
+      if (!rawAbbr) {
+        for (const [nameKey, val] of Object.entries(serviceCatalogAbbrCache)) {
+          if (nameKey && (svcNameKey.includes(nameKey) || nameKey.includes(svcNameKey))) {
+            rawAbbr = val.trim();
+            break;
+          }
+        }
+      }
       if (cached) rawAbbr = cached.trim();
     }
 
@@ -4139,6 +4209,9 @@ function applyPersistedTasks(
     return {
       ...task,
       dbId: hit.id,
+      taskTitle: hit.title || task.taskId,
+      taskType: hit.taskType || null,
+      serviceModel: hit.taskType || hit.description || task.serviceModel,
       actualStartDate: (hit.actualStartDate || "").slice(0, 10),
       actualEndDate: (hit.actualEndDate || "").slice(0, 10),
       stage: (hit.stage as TreeTaskStage) || task.stage,
@@ -4149,6 +4222,83 @@ function applyPersistedTasks(
       utilizedHours: hit.utilizedHours ?? 0,
       assignments: hit.assignments,
     };
+  };
+
+  const resolveFolderTasks = (
+    templateTasks: TreeTask[],
+    serviceId: string,
+    serviceName: string,
+    serviceCode: string,
+    period: string,
+    phaseLabel: string,
+  ): TreeTask[] => {
+    const dbServiceId =
+      serviceIdsByKey.get(`code:${serviceCode.trim().toLowerCase()}`) ||
+      serviceIdsByKey.get(`name:${serviceName.trim().toLowerCase()}`) ||
+      serviceId;
+
+    const apNumMatch = phaseLabel.match(/(\d+)$/);
+    const apNum = apNumMatch ? apNumMatch[1] : "";
+    const fallbackPhase = apNum ? `AP${apNum}` : phaseLabel;
+    const svcAbbr = dominantAbbrByService.get(dbServiceId) || dominantAbbrByService.get(serviceName.trim().toLowerCase());
+    const abbrPhase = (svcAbbr && apNum) ? `${svcAbbr}${apNum}` : undefined;
+
+    const folderDbTasks = tasks.filter((t) => {
+      if (t.isDeleted) return false;
+      const matchesService =
+        (t.projectServiceId && (t.projectServiceId === serviceId || t.projectServiceId === dbServiceId)) ||
+        (t.serviceName && t.serviceName.trim().toLowerCase() === serviceName.trim().toLowerCase());
+      if (!matchesService) return false;
+
+      const taskPeriod = (t.period || "").trim().toLowerCase();
+      const fPeriod = (period || "").trim().toLowerCase();
+      if (fPeriod) {
+        if (taskPeriod !== fPeriod && taskPeriod !== fPeriod.replace("quarter ", "q")) return false;
+      } else {
+        if (taskPeriod && !taskPeriod.includes("once") && taskPeriod.startsWith("quarter")) return false;
+      }
+
+      const taskPhase = (t.phase || "").trim().toLowerCase();
+      const fPhase = phaseLabel.trim().toLowerCase();
+      const fbPhase = fallbackPhase.trim().toLowerCase();
+      const abPhase = abbrPhase?.trim().toLowerCase();
+
+      return taskPhase === fPhase || taskPhase === fbPhase || (abPhase ? taskPhase === abPhase : false);
+    }).sort((a, b) => a.sortOrder - b.sortOrder || (a.createdAtUtc && b.createdAtUtc ? new Date(a.createdAtUtc).getTime() - new Date(b.createdAtUtc).getTime() : 0));
+
+    if (folderDbTasks.length === 0) {
+      return templateTasks.map((t) => mapTask(t, serviceId, serviceName, serviceCode, period, phaseLabel));
+    }
+
+    return folderDbTasks.map((hit, idx) => {
+      const fallbackTemplate = templateTasks[idx];
+      const taskNumStr = String(idx + 1).padStart(2, "0");
+      const defaultTaskId = `Task ${taskNumStr}`;
+      const shares = (hit.assignments ?? [])
+        .filter((a) => a.isActive !== false && Number(a.allocatedHours) > 0)
+        .map((a) => Number(a.allocatedHours));
+
+      const taskTitle = hit.title || fallbackTemplate?.taskId || defaultTaskId;
+      const taskId = defaultTaskId;
+
+      return {
+        id: hit.id,
+        dbId: hit.id,
+        taskId,
+        taskTitle,
+        taskType: hit.taskType || null,
+        serviceModel: hit.taskType || hit.description || fallbackTemplate?.serviceModel || "Initial Test",
+        actualStartDate: (hit.actualStartDate || "").slice(0, 10),
+        actualEndDate: (hit.actualEndDate || "").slice(0, 10),
+        stage: (hit.stage as TreeTaskStage) || "Not Started",
+        priority: hit.priority || "Medium",
+        assigneeIds: (hit.assignments ?? []).filter((a) => a.isActive !== false).map((a) => a.employeeId),
+        estHoursPerTask: hit.estimatedHours ?? (fallbackTemplate?.estHoursPerTask || 0),
+        assignedEstHours: shares.length > 0 ? Math.max(...shares) : undefined,
+        utilizedHours: hit.utilizedHours ?? 0,
+        assignments: hit.assignments,
+      };
+    });
   };
 
   return folders.map((svc) => {
@@ -4173,7 +4323,7 @@ function applyPersistedTasks(
               return {
                 ...ap,
                 label,
-                tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, label)),
+                tasks: resolveFolderTasks(ap.tasks, svc.serviceId, svc.serviceName, svc.serviceCode, q.label, label),
               };
             }),
           }))
@@ -4184,7 +4334,7 @@ function applyPersistedTasks(
             return {
               ...ap,
               label,
-              tasks: ap.tasks.map((t) => mapTask(t, svc.serviceId, svc.serviceName, svc.serviceCode, "", label)),
+              tasks: resolveFolderTasks(ap.tasks, svc.serviceId, svc.serviceName, svc.serviceCode, "", label),
             };
           })
         : null,
@@ -4208,7 +4358,8 @@ function DhTasksTab({
   const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
   const [apiServices, setApiServices] = useState<ApiProjectService[] | null>(useApiTasks ? null : []);
   const [serviceIdsByKey, setServiceIdsByKey] = useState<Map<string, string>>(new Map());
-  const [catalogAbbrMap, setCatalogAbbrMap] = useState<Record<string, string>>({});
+  const [catalogAbbrMap, setCatalogAbbrMap] = useState<Record<string, string>>(() => ({ ...defaultCatalogAbbrs }));
+  const [apiTasksLoading, setApiTasksLoading] = useState(useApiTasks);
   const [apiPool, setApiPool] = useState<{ person: Person; isProjectTeam: boolean; isShadowTeam: boolean }[] | null>(null);
   const [taskToComplete, setTaskToComplete] = useState<{
     taskId: string;
@@ -4218,12 +4369,108 @@ function DhTasksTab({
   } | null>(null);
   const [isCompletingTask, setIsCompletingTask] = useState(false);
 
+  // Add Task Modal State
+  const [addTaskState, setAddTaskState] = useState<{
+    isOpen: boolean;
+    serviceId: string;
+    serviceName: string;
+    quarter?: string | null;
+    phase: string;
+    insertAfterTaskId?: string | null;
+    insertAfterTaskTitle?: string | null;
+  } | null>(null);
+  const [addModalTaskType, setAddModalTaskType] = useState<"Managerial Task" | "Training/Learning">("Managerial Task");
+  const [addModalTaskTitle, setAddModalTaskTitle] = useState("");
+  const [addModalError, setAddModalError] = useState("");
+  const [isSubmittingAddTask, setIsSubmittingAddTask] = useState(false);
+
+  // Edit Task Modal State
+  const [editTaskState, setEditTaskState] = useState<{
+    isOpen: boolean;
+    dbId?: string;
+    taskId: string;
+    currentTitle: string;
+  } | null>(null);
+  const [editModalTitle, setEditModalTitle] = useState("");
+  const [editModalError, setEditModalError] = useState("");
+  const [isSubmittingEditTask, setIsSubmittingEditTask] = useState(false);
+
+  const handleCreateTask = async () => {
+    if (!addTaskState) return;
+    const title = addModalTaskTitle.trim();
+    if (!title) {
+      setAddModalError("Task title is mandatory.");
+      return;
+    }
+    setIsSubmittingAddTask(true);
+    setAddModalError("");
+    try {
+      const payload: CreateProjectTaskPayload = {
+        projectServiceId: addTaskState.serviceId,
+        title,
+        description: addModalTaskType,
+        period: addTaskState.quarter || "",
+        phase: addTaskState.phase,
+        stage: "Not Started",
+        priority: "medium",
+        taskType: addModalTaskType,
+        insertAfterTaskId: addTaskState.insertAfterTaskId || null,
+      };
+
+      const created = await createProjectTask(project.id, payload);
+      try {
+        const updatedTasks = await fetchProjectTasks(project.id);
+        setDbTasks(updatedTasks);
+      } catch {
+        setDbTasks((prev) => [...prev, created]);
+      }
+      toast.success("Task created successfully", {
+        description: `${title} added under ${addTaskState.serviceName}`,
+      });
+      setAddTaskState(null);
+      setAddModalTaskTitle("");
+      setAddModalTaskType("Managerial Task");
+    } catch (err: any) {
+      setAddModalError(err instanceof Error ? err.message : "Failed to create task");
+    } finally {
+      setIsSubmittingAddTask(false);
+    }
+  };
+
+  const handleUpdateTaskTitle = async () => {
+    if (!editTaskState || !editTaskState.dbId) return;
+    const title = editModalTitle.trim();
+    if (!title) {
+      setEditModalError("Task title cannot be empty.");
+      return;
+    }
+    setIsSubmittingEditTask(true);
+    setEditModalError("");
+    try {
+      const updated = await updateProjectTask(project.id, editTaskState.dbId, {
+        title,
+      });
+      setDbTasks((prev) =>
+        prev.map((t) => (t.id === editTaskState.dbId ? { ...t, title: updated.title } : t)),
+      );
+      toast.success("Task renamed successfully", {
+        description: `${editTaskState.taskId}: ${title}`,
+      });
+      setEditTaskState(null);
+      setEditModalTitle("");
+    } catch (err: any) {
+      setEditModalError(err instanceof Error ? err.message : "Failed to rename task");
+    } finally {
+      setIsSubmittingEditTask(false);
+    }
+  };
+
   // Load catalog hierarchy into React state to guarantee re-render when abbreviations arrive
   useEffect(() => {
     let active = true;
     fetchServiceHierarchy().then((groups) => {
       if (!active) return;
-      const map: Record<string, string> = {};
+      const map: Record<string, string> = { ...defaultCatalogAbbrs };
       for (const g of groups ?? []) {
         for (const d of g?.departments ?? []) {
           for (const sd of d?.subDepartments ?? []) {
@@ -4232,6 +4479,11 @@ function DhTasksTab({
                 const k = s.name.toLowerCase().trim();
                 map[k] = s.abbreviation.trim();
                 serviceCatalogAbbrCache[k] = s.abbreviation.trim();
+                if (s.id) {
+                  const idKey = s.id.toLowerCase().trim();
+                  map[idKey] = s.abbreviation.trim();
+                  serviceCatalogAbbrCache[idKey] = s.abbreviation.trim();
+                }
               }
             }
           }
@@ -4249,6 +4501,7 @@ function DhTasksTab({
     let active = true;
     (async () => {
       try {
+        setApiTasksLoading(true);
         await generateProjectTasks(project.id);
         const [services, tasks] = await Promise.all([
           fetchProjectServices(project.id),
@@ -4276,6 +4529,8 @@ function DhTasksTab({
       } catch (err) {
         console.warn("Failed to load project tasks", err);
         if (active) setApiServices([]);
+      } finally {
+        if (active) setApiTasksLoading(false);
       }
     })();
     return () => {
@@ -4384,7 +4639,7 @@ function DhTasksTab({
   type TreeRow =
     | { type: "service"; id: string; service: ServiceFolder; depth: number }
     | { type: "quarter"; id: string; quarter: QuarterFolder; service: ServiceFolder; depth: number }
-    | { type: "ap"; id: string; ap: APFolder; service: ServiceFolder; depth: number };
+    | { type: "ap"; id: string; ap: APFolder; service: ServiceFolder; quarter?: QuarterFolder | null; depth: number };
 
   const flattenedRows = useMemo(() => {
     const rows: TreeRow[] = [];
@@ -4399,13 +4654,13 @@ function DhTasksTab({
 
             if (expandedNodes.has(q.id)) {
               q.aps.forEach((ap) => {
-                rows.push({ type: "ap", id: ap.id, ap, service: svc, depth: 2 });
+                rows.push({ type: "ap", id: ap.id, ap, service: svc, quarter: q, depth: 2 });
               });
             }
           });
         } else if (svc.aps) {
           svc.aps.forEach((ap) => {
-            rows.push({ type: "ap", id: ap.id, ap, service: svc, depth: 1 });
+            rows.push({ type: "ap", id: ap.id, ap, service: svc, quarter: null, depth: 1 });
           });
         }
       }
@@ -4445,9 +4700,10 @@ function DhTasksTab({
   const apiHasReady = (apiServices ?? []).some((service) => Boolean(service.isReady));
   const hasStartedService = visibleTree.length > 0 || apiHasReady;
 
-  if (useApiTasks && apiServices === null && visibleTree.length === 0) {
+  if (useApiTasks && (apiServices === null || apiTasksLoading)) {
     return (
       <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary mb-2" />
         Loading tasks…
       </div>
     );
@@ -4468,6 +4724,7 @@ function DhTasksTab({
   if (apiHasReady && visibleTree.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary mb-2" />
         Loading tasks…
       </div>
     );
@@ -4695,6 +4952,7 @@ function DhTasksTab({
                                     <th className="px-3 py-2 font-semibold text-center align-middle">Assigned Resources</th>
                                     <th className="px-3 py-2 font-semibold text-center align-middle">Actions</th>
                                     <th className="px-3 py-2 font-semibold text-center align-middle">Stage</th>
+                                    <th className="px-3 py-2 font-semibold text-center align-middle whitespace-nowrap">Edit / Add</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/20">
@@ -4722,9 +4980,11 @@ function DhTasksTab({
                                     return (
                                       <tr key={t.id} className="hover:bg-accent/10 transition-colors">
                                         <td className="px-3 py-2 align-middle text-center font-medium text-xs whitespace-nowrap text-foreground/90">
-                                          <div className="flex items-center justify-center gap-1.5 h-8">
+                                          <div className="flex items-center justify-center gap-1.5 h-8" title={t.taskTitle || t.taskId}>
                                             <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                                            <span>{t.taskId}</span>
+                                            <span className="font-semibold text-foreground/90 truncate max-w-[220px]">
+                                              {t.taskTitle || t.taskId}
+                                            </span>
                                           </div>
                                         </td>
                                         <td className="px-3 py-2 align-middle text-center text-xs text-muted-foreground max-w-[160px] truncate">
@@ -4932,9 +5192,86 @@ function DhTasksTab({
                                             )}
                                           </div>
                                         </td>
+                                        <td className="px-3 py-2 align-middle text-center whitespace-nowrap">
+                                          <div className="flex items-center justify-center gap-1.5 h-8">
+                                            {!readOnly && (
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setEditTaskState({
+                                                      isOpen: true,
+                                                      dbId: t.dbId,
+                                                      taskId: t.taskId,
+                                                      currentTitle: t.taskTitle || t.taskId,
+                                                    });
+                                                    setEditModalTitle(t.taskTitle || t.taskId);
+                                                    setEditModalError("");
+                                                  }}
+                                                  className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
+                                                  title="Edit task title"
+                                                >
+                                                  <Pencil className="h-3 w-3" />
+                                                  Edit
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setAddTaskState({
+                                                      isOpen: true,
+                                                      serviceId: svc.serviceId,
+                                                      serviceName: svc.serviceName,
+                                                      quarter: row.quarter?.label || null,
+                                                      phase: ap.label,
+                                                      insertAfterTaskId: t.dbId || null,
+                                                      insertAfterTaskTitle: t.taskTitle || t.taskId,
+                                                    });
+                                                    setAddModalTaskTitle("");
+                                                    setAddModalTaskType("Managerial Task");
+                                                    setAddModalError("");
+                                                  }}
+                                                  className="inline-flex items-center justify-center gap-1 rounded-md border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 px-2.5 py-1 text-[10px] font-medium transition-colors shadow-xs"
+                                                  title="Add Task under this service"
+                                                >
+                                                  <Plus className="h-3 w-3" />
+                                                  Add Task
+                                                </button>
+                                              </>
+                                            )}
+                                          </div>
+                                        </td>
                                       </tr>
                                     );
                                   })}
+                                  {ap.tasks.length === 0 && (
+                                    <tr>
+                                      <td colSpan={8} className="py-4 text-center text-xs text-muted-foreground">
+                                        No tasks yet under this service.
+                                        {!readOnly && (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setAddTaskState({
+                                                isOpen: true,
+                                                serviceId: svc.serviceId,
+                                                serviceName: svc.serviceName,
+                                                quarter: row.quarter?.label || null,
+                                                phase: ap.label,
+                                                insertAfterTaskId: null,
+                                                insertAfterTaskTitle: null,
+                                              });
+                                              setAddModalTaskTitle("");
+                                              setAddModalTaskType("Managerial Task");
+                                              setAddModalError("");
+                                            }}
+                                            className="ml-2 inline-flex items-center gap-1 text-primary hover:underline font-medium"
+                                          >
+                                            <Plus className="h-3 w-3" /> Add Task
+                                          </button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  )}
                                 </tbody>
                               </table>
                             </div>
@@ -5099,6 +5436,209 @@ function DhTasksTab({
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Add Task Modal */}
+      {addTaskState && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl space-y-5 animate-in fade-in-50 zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Add New Task</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Service: <span className="font-medium text-foreground">{addTaskState.serviceName}</span> ({addTaskState.phase})
+                  {addTaskState.insertAfterTaskTitle && (
+                    <span className="ml-1 text-muted-foreground">
+                      • Below: <span className="font-medium text-foreground">{addTaskState.insertAfterTaskTitle}</span>
+                    </span>
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isSubmittingAddTask) {
+                    setAddTaskState(null);
+                    setAddModalError("");
+                    setAddModalTaskTitle("");
+                  }
+                }}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Task Type Toggle */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-foreground">
+                  Task Type <span className="text-destructive">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-muted/40 rounded-lg border border-border/60">
+                  <button
+                    type="button"
+                    disabled={isSubmittingAddTask}
+                    onClick={() => setAddModalTaskType("Managerial Task")}
+                    className={cn(
+                      "py-2 px-3 text-xs font-medium rounded-md transition-all text-center",
+                      addModalTaskType === "Managerial Task"
+                        ? "bg-background text-foreground shadow-xs font-semibold border border-border/80"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                    )}
+                  >
+                    Managerial Task
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSubmittingAddTask}
+                    onClick={() => setAddModalTaskType("Training/Learning")}
+                    className={cn(
+                      "py-2 px-3 text-xs font-medium rounded-md transition-all text-center",
+                      addModalTaskType === "Training/Learning"
+                        ? "bg-background text-foreground shadow-xs font-semibold border border-border/80"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/40"
+                    )}
+                  >
+                    Training/Learning
+                  </button>
+                </div>
+              </div>
+
+              {/* Task Title Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Task Title <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  disabled={isSubmittingAddTask}
+                  value={addModalTaskTitle}
+                  onChange={(e) => {
+                    setAddModalTaskTitle(e.target.value);
+                    if (addModalError) setAddModalError("");
+                  }}
+                  placeholder="Enter task name..."
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isSubmittingAddTask) {
+                      e.preventDefault();
+                      handleCreateTask();
+                    }
+                  }}
+                />
+                {addModalError && (
+                  <p className="text-xs font-medium text-destructive mt-1">{addModalError}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+              <button
+                type="button"
+                disabled={isSubmittingAddTask}
+                onClick={() => {
+                  setAddTaskState(null);
+                  setAddModalError("");
+                  setAddModalTaskTitle("");
+                }}
+                className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingAddTask || !addModalTaskTitle.trim()}
+                onClick={handleCreateTask}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isSubmittingAddTask && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Add Task
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {editTaskState && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl space-y-5 animate-in fade-in-50 zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border/50 pb-3">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Edit Task</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Modify task name for <span className="font-semibold text-foreground">{editTaskState.currentTitle}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isSubmittingEditTask) {
+                    setEditTaskState(null);
+                    setEditModalError("");
+                  }
+                }}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-foreground">
+                  Task Title <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="text"
+                  disabled={isSubmittingEditTask}
+                  value={editModalTitle}
+                  onChange={(e) => {
+                    setEditModalTitle(e.target.value);
+                    if (editModalError) setEditModalError("");
+                  }}
+                  placeholder="Enter new task title..."
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isSubmittingEditTask) {
+                      e.preventDefault();
+                      handleUpdateTaskTitle();
+                    }
+                  }}
+                />
+                {editModalError && (
+                  <p className="text-xs font-medium text-destructive mt-1">{editModalError}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+              <button
+                type="button"
+                disabled={isSubmittingEditTask}
+                onClick={() => {
+                  setEditTaskState(null);
+                  setEditModalError("");
+                }}
+                className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isSubmittingEditTask || !editModalTitle.trim()}
+                onClick={handleUpdateTaskTitle}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground shadow-xs hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isSubmittingEditTask && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
@@ -8638,6 +9178,8 @@ function WbsPrerequisiteSection({
 
   const handleServiceChange = (serviceId: string, field: "collectionStatus" | "validationStatus" | "billingStatus", value: string) => {
     if (isViewOnly) return;
+    const targetSvc = servicesList.find((s) => s.serviceId === serviceId);
+    if (targetSvc?.isReady) return;
     setLocalServiceStatus((prev) => {
       const current = prev[serviceId] || {};
       const updated = { ...current, [field]: value };
@@ -8886,15 +9428,15 @@ function WbsPrerequisiteSection({
                           <td className="px-3 py-2.5 text-center align-middle">
                             <select
                               value={isResourceDept ? "NA" : svc.collectionStatus}
-                              disabled={isResourceDept || isDeleted}
+                              disabled={isResourceDept || isDeleted || isReady}
                               onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
                               className={cn(
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                                isResourceDept || isDeleted
+                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                                isResourceDept || isDeleted || isReady
                                   ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                                   : svc.collectionStatus === "Collected"
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
                               )}
                             >
                               {isResourceDept ? (
@@ -8910,15 +9452,15 @@ function WbsPrerequisiteSection({
                           <td className="px-3 py-2.5 text-center align-middle">
                             <select
                               value={isResourceDept ? "NA" : svc.validationStatus}
-                              disabled={isResourceDept || !isCollected || isDeleted}
+                              disabled={isResourceDept || !isCollected || isDeleted || isReady}
                               onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
                               className={cn(
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                                (isResourceDept || !isCollected || isDeleted)
+                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                                (isResourceDept || !isCollected || isDeleted || isReady)
                                   ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                                   : svc.validationStatus === "Validated"
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
+                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
                               )}
                             >
                               {isResourceDept ? (
@@ -8934,17 +9476,17 @@ function WbsPrerequisiteSection({
                           <td className="px-3 py-2.5 text-center align-middle">
                             <select
                               value={svc.billingStatus ?? "Advance Pending"}
-                              disabled={isDeleted}
+                              disabled={isDeleted || isReady}
                               onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
                               className={cn(
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors cursor-pointer",
-                                isDeleted
+                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
+                                isDeleted || isReady
                                   ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                                   : svc.billingStatus === "Advance Received"
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
                                     : svc.billingStatus === "Advance Not Required"
-                                      ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                                      : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                                      ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
+                                      : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer"
                               )}
                             >
                               <option value="Advance Pending">Advance Pending</option>

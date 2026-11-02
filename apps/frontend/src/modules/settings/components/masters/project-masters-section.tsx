@@ -45,6 +45,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { ProjectMasterItem } from "@/modules/settings/masters/types";
 import { useProjectCatalogStore, type CatalogServiceItem } from "@/modules/settings/masters/project-catalog-store";
+import { parseDurationDays } from "@/modules/settings/api/project-masters";
 
 interface ProjectMastersSectionProps {
   items: ProjectMasterItem[];
@@ -309,18 +310,19 @@ export function ProjectMastersSection({
     // Auto-fill tools and unitPrice from catalog if available
     if (selectedContractType && selectedDepartment) {
       let matched: CatalogServiceItem | undefined;
+      const lowerSvc = serviceName.trim().toLowerCase();
       if (selectedSubDepartment) {
         const subSvcs = resolveServicesForSubDepartment(selectedContractType, selectedDepartment, selectedSubDepartment);
-        matched = subSvcs.find((s) => s.name === serviceName);
+        matched = subSvcs.find((s) => s.name.trim().toLowerCase() === lowerSvc);
       }
       if (!matched) {
         const deptSvcs = getServicesForDepartment(selectedContractType, selectedDepartment);
-        matched = deptSvcs.find((s) => s.name === serviceName);
+        matched = deptSvcs.find((s) => s.name.trim().toLowerCase() === lowerSvc);
       }
       if (matched) {
-        setTools(matched.tool);
-        setUnitPrice(String(matched.unitPrice));
-        setDuration(matched.days ? String(matched.days) : "");
+        if (matched.tool) setTools(matched.tool);
+        setUnitPrice(matched.unitPrice > 0 ? String(matched.unitPrice) : "50000");
+        setDuration(matched.days > 0 ? String(matched.days) : "5");
         setAbbreviation(matched.abbreviation ?? "");
       } else {
         setAbbreviation("");
@@ -412,13 +414,23 @@ export function ProjectMastersSection({
     const priceNum = Number(newServicePrice);
     const daysNum = Number(newServiceDays);
 
+    if (!newServiceName.trim()) {
+      setAddServiceError("Service name is required.");
+      return;
+    }
+    const trimmedNewAbbr = newServiceAbbreviation.trim();
+    if (!trimmedNewAbbr) {
+      setAddServiceError("Service Abbreviation is required.");
+      return;
+    }
+
     const res = await adder(selectedContractType, targetDept, {
       name: newServiceName,
       subDepartment: targetSubDept || undefined,
       tool: newServiceTools,
       unitPrice: !Number.isNaN(priceNum) && priceNum > 0 ? priceNum : 50000,
       days: !Number.isNaN(daysNum) && daysNum > 0 ? daysNum : 5,
-      abbreviation: newServiceAbbreviation.trim() || undefined,
+      abbreviation: trimmedNewAbbr,
     });
 
     if (res.success) {
@@ -478,6 +490,10 @@ export function ProjectMastersSection({
     }
 
     const trimmedAbbr = abbreviation.trim();
+    if (!trimmedAbbr) {
+      setFormError("Please enter a Service Abbreviation.");
+      return;
+    }
 
     const res = await onAdd({
       contractType: selectedContractType,
@@ -525,62 +541,129 @@ export function ProjectMastersSection({
     setEditSubDepartment(matchedSubDept);
 
     const svcs = resolveServicesForSubDepartment(ct, matchedDept, matchedSubDept);
-    const matchedSvc = svcs.find((s) => s.name.toLowerCase() === (item.service || "").trim().toLowerCase());
+    const matchedSvc =
+      svcs.find((s) => s.name.toLowerCase() === (item.service || "").trim().toLowerCase()) ||
+      getServicesForDepartment(ct, matchedDept).find((s) => s.name.toLowerCase() === (item.service || "").trim().toLowerCase());
     setEditService(matchedSvc ? matchedSvc.name : item.service);
 
-    setEditAbbreviation(item.abbreviation ?? "");
-    setEditTools(item.tools);
-    const parsedDays = parseDurationDays(item.duration);
-    setEditDuration(parsedDays > 0 ? String(parsedDays) : item.duration.replace(/\D/g, ""));
-    setEditUnitPrice(String(item.unitPrice));
+    setEditAbbreviation(item.abbreviation || matchedSvc?.abbreviation || "");
+    setEditTools(item.tools || matchedSvc?.tool || "");
+
+    // Safe duration extraction: from item.duration, item.durationDays, matchedSvc, or fallback
+    let durDays = 0;
+    if (typeof (item as any).durationDays === "number" && (item as any).durationDays > 0) {
+      durDays = (item as any).durationDays;
+    } else if (item.duration) {
+      durDays = parseDurationDays(item.duration);
+    }
+    if (durDays <= 0 && matchedSvc?.days && matchedSvc.days > 0) {
+      durDays = matchedSvc.days;
+    }
+    setEditDuration(durDays > 0 ? String(durDays) : "5");
+
+    // Safe unit price extraction: from item.unitPrice, matchedSvc, or fallback
+    let price = typeof item.unitPrice === "number" ? item.unitPrice : Number(item.unitPrice);
+    if ((Number.isNaN(price) || price <= 0) && matchedSvc?.unitPrice && matchedSvc.unitPrice > 0) {
+      price = matchedSvc.unitPrice;
+    }
+    setEditUnitPrice(price > 0 ? String(price) : "50000");
+
     setEditError(null);
   };
 
   // Cascading Change Handlers for Edit Modal
   const handleEditContractTypeChange = (ct: string) => {
     setEditContractType(ct);
-    setEditDepartment("");
-    setEditSubDepartment("");
-    setEditService("");
-    setEditTools("");
-    setEditDuration("");
-    setEditUnitPrice("");
+    const depts = resolveDepartmentsForContractType(ct);
+    const firstDept = depts.length > 0 ? depts[0] : "";
+    setEditDepartment(firstDept);
+    const subDepts = firstDept ? resolveSubDepartmentsForDepartment(ct, firstDept) : [];
+    const firstSub = subDepts.length > 0 ? subDepts[0] : "";
+    setEditSubDepartment(firstSub);
+    const svcs = firstSub
+      ? resolveServicesForSubDepartment(ct, firstDept, firstSub)
+      : firstDept
+        ? getServicesForDepartment(ct, firstDept)
+        : [];
+    if (svcs.length > 0) {
+      const firstSvc = svcs[0];
+      setEditService(firstSvc.name);
+      if (firstSvc.tool) setEditTools(firstSvc.tool);
+      setEditUnitPrice(firstSvc.unitPrice > 0 ? String(firstSvc.unitPrice) : "50000");
+      setEditDuration(firstSvc.days > 0 ? String(firstSvc.days) : "5");
+      if (firstSvc.abbreviation) setEditAbbreviation(firstSvc.abbreviation);
+    } else {
+      setEditService("");
+      setEditTools("");
+      setEditDuration("5");
+      setEditUnitPrice("50000");
+      setEditAbbreviation("");
+    }
   };
 
   const handleEditDepartmentChange = (dept: string) => {
     setEditDepartment(dept);
-    setEditSubDepartment("");
-    setEditService("");
-    setEditTools("");
-    setEditDuration("");
-    setEditUnitPrice("");
+    const subDepts = resolveSubDepartmentsForDepartment(editContractType, dept);
+    const firstSub = subDepts.length > 0 ? subDepts[0] : "";
+    setEditSubDepartment(firstSub);
+    const svcs = firstSub
+      ? resolveServicesForSubDepartment(editContractType, dept, firstSub)
+      : getServicesForDepartment(editContractType, dept);
+    if (svcs.length > 0) {
+      const firstSvc = svcs[0];
+      setEditService(firstSvc.name);
+      if (firstSvc.tool) setEditTools(firstSvc.tool);
+      setEditUnitPrice(firstSvc.unitPrice > 0 ? String(firstSvc.unitPrice) : "50000");
+      setEditDuration(firstSvc.days > 0 ? String(firstSvc.days) : "5");
+      if (firstSvc.abbreviation) setEditAbbreviation(firstSvc.abbreviation);
+    } else {
+      setEditService("");
+      setEditTools("");
+      setEditDuration("5");
+      setEditUnitPrice("50000");
+      setEditAbbreviation("");
+    }
   };
 
   const handleEditSubDepartmentChange = (subDept: string) => {
     setEditSubDepartment(subDept);
-    setEditService("");
-    setEditTools("");
-    setEditDuration("");
-    setEditUnitPrice("");
+    const svcs = resolveServicesForSubDepartment(editContractType, editDepartment, subDept);
+    const matched = svcs.find((s) => s.name.trim().toLowerCase() === editService.trim().toLowerCase());
+    if (matched) {
+      if (matched.tool) setEditTools(matched.tool);
+      if (matched.unitPrice > 0) setEditUnitPrice(String(matched.unitPrice));
+      if (matched.days > 0) setEditDuration(String(matched.days));
+      if (matched.abbreviation) setEditAbbreviation(matched.abbreviation);
+    } else if (svcs.length > 0) {
+      const first = svcs[0];
+      setEditService(first.name);
+      if (first.tool) setEditTools(first.tool);
+      setEditUnitPrice(first.unitPrice > 0 ? String(first.unitPrice) : "50000");
+      setEditDuration(first.days > 0 ? String(first.days) : "5");
+      if (first.abbreviation) setEditAbbreviation(first.abbreviation);
+    } else {
+      setEditService("");
+    }
   };
 
   const handleEditServiceChange = (serviceName: string) => {
     setEditService(serviceName);
     if (editContractType && editDepartment) {
       let matched: CatalogServiceItem | undefined;
+      const lowerSvc = serviceName.trim().toLowerCase();
       if (editSubDepartment) {
         const subSvcs = resolveServicesForSubDepartment(editContractType, editDepartment, editSubDepartment);
-        matched = subSvcs.find((s) => s.name === serviceName);
+        matched = subSvcs.find((s) => s.name.trim().toLowerCase() === lowerSvc);
       }
       if (!matched) {
         const deptSvcs = getServicesForDepartment(editContractType, editDepartment);
-        matched = deptSvcs.find((s) => s.name === serviceName);
+        matched = deptSvcs.find((s) => s.name.trim().toLowerCase() === lowerSvc);
       }
       if (matched) {
-        setEditTools(matched.tool);
-        setEditUnitPrice(String(matched.unitPrice));
-        setEditDuration(matched.days ? String(matched.days) : "");
-        setEditAbbreviation(matched.abbreviation ?? "");
+        if (matched.tool) setEditTools(matched.tool);
+        if (matched.unitPrice && matched.unitPrice > 0) setEditUnitPrice(String(matched.unitPrice));
+        if (matched.days && matched.days > 0) setEditDuration(String(matched.days));
+        if (matched.abbreviation) setEditAbbreviation(matched.abbreviation);
       }
     }
   };
@@ -621,6 +704,12 @@ export function ProjectMastersSection({
       return;
     }
 
+    const trimmedEditAbbr = editAbbreviation.trim();
+    if (!trimmedEditAbbr) {
+      setEditError("Please enter a Service Abbreviation.");
+      return;
+    }
+
     const res = await onUpdate(editingItem.id, {
       contractType: editContractType,
       group: editContractType,
@@ -630,7 +719,7 @@ export function ProjectMastersSection({
       tools: editTools.trim(),
       duration: `${editDurationDays} Days`,
       unitPrice: priceNum,
-      abbreviation: editAbbreviation.trim() || undefined,
+      abbreviation: trimmedEditAbbr,
     });
 
     if (res.success) {
@@ -853,7 +942,7 @@ export function ProjectMastersSection({
             <div className="space-y-1.5 min-w-0">
               <div className="flex items-center justify-between">
                 <Label htmlFor="master-abbreviation" className="text-xs font-medium text-foreground truncate">
-                  Service Abbreviation
+                  Service Abbreviation <span className="text-destructive">*</span>
                 </Label>
               </div>
               <Input
@@ -1411,7 +1500,7 @@ export function ProjectMastersSection({
 
             <div className="space-y-1.5">
               <Label htmlFor="new-service-abbr" className="text-xs font-medium">
-                Service Abbreviation (Optional)
+                Service Abbreviation <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="new-service-abbr"
@@ -1546,7 +1635,7 @@ export function ProjectMastersSection({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs font-medium">
                   Sub-department <span className="text-destructive">*</span>
@@ -1593,7 +1682,7 @@ export function ProjectMastersSection({
 
               <div className="space-y-1">
                 <Label className="text-xs font-medium">
-                  Service Abbreviation
+                  Service Abbreviation <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   value={editAbbreviation}

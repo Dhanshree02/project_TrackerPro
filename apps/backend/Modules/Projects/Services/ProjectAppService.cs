@@ -1061,20 +1061,97 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
                 throw new NotFoundException($"Project Service with ID '{request.ProjectServiceId}' was not found for this project.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.Title))
+            throw new ConflictException("Task title is required.");
+
+        var trimmedTitle = request.Title.Trim();
+        var taskType = request.TaskType?.Trim();
+        if (!string.IsNullOrWhiteSpace(taskType) &&
+            !string.Equals(taskType, "Managerial Task", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(taskType, "Training/Learning", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ConflictException("Task type must be either 'Managerial Task' or 'Training/Learning'.");
+        }
+
+        var stage = string.IsNullOrWhiteSpace(request.Stage) ? "Not Started" : request.Stage.Trim();
+
+        Guid? serviceId = request.ProjectServiceId;
+        string period = request.Period ?? "";
+        string phase = request.Phase ?? "Execution";
+        int targetSortOrder = request.SortOrder;
+
+        if (request.InsertAfterTaskId.HasValue && request.InsertAfterTaskId.Value != Guid.Empty)
+        {
+            var targetTask = await db.ProjectTasks.FirstOrDefaultAsync(
+                t => t.ProjectId == projectId && t.Id == request.InsertAfterTaskId.Value, ct);
+
+            if (targetTask != null)
+            {
+                serviceId = targetTask.ProjectServiceId ?? serviceId;
+                period = targetTask.Period ?? period;
+                phase = targetTask.Phase ?? phase;
+
+                var siblingTasks = await db.ProjectTasks
+                    .Where(t => t.ProjectId == projectId &&
+                                t.ProjectServiceId == serviceId &&
+                                t.Phase == phase &&
+                                t.Period == period)
+                    .OrderBy(t => t.SortOrder)
+                    .ThenBy(t => t.CreatedAtUtc)
+                    .ToListAsync(ct);
+
+                int targetIndex = siblingTasks.FindIndex(t => t.Id == targetTask.Id);
+                if (targetIndex >= 0)
+                {
+                    int orderCounter = 10;
+                    for (int i = 0; i <= targetIndex; i++)
+                    {
+                        siblingTasks[i].SortOrder = orderCounter;
+                        orderCounter += 10;
+                    }
+
+                    targetSortOrder = orderCounter;
+                    orderCounter += 10;
+
+                    for (int i = targetIndex + 1; i < siblingTasks.Count; i++)
+                    {
+                        siblingTasks[i].SortOrder = orderCounter;
+                        orderCounter += 10;
+                    }
+                }
+                else
+                {
+                    targetSortOrder = targetTask.SortOrder + 10;
+                }
+            }
+        }
+        else
+        {
+            var maxSort = await db.ProjectTasks
+                .Where(t => t.ProjectId == projectId &&
+                            t.ProjectServiceId == serviceId &&
+                            t.Phase == phase &&
+                            t.Period == period)
+                .MaxAsync(t => (int?)t.SortOrder, ct) ?? 0;
+
+            targetSortOrder = maxSort > 0 ? maxSort + 10 : (request.SortOrder > 0 ? request.SortOrder : 10);
+        }
+
         var task = new ProjectTask
         {
             ProjectId = projectId,
-            ProjectServiceId = request.ProjectServiceId,
-            Title = request.Title.Trim(),
-            Description = request.Description,
-            Period = request.Period ?? "Q1",
-            Phase = request.Phase ?? "Execution",
-            Stage = request.Stage ?? "Ready to Start",
+            ProjectServiceId = serviceId,
+            Title = trimmedTitle,
+            Description = request.Description ?? taskType,
+            Period = period,
+            Phase = phase,
+            Stage = stage,
             Priority = request.Priority ?? "medium",
             PlannedStartDate = request.PlannedStartDate ?? project.StartDate,
             PlannedEndDate = request.PlannedEndDate ?? project.EndDate,
             EstimatedHours = request.EstimatedHours,
-            SortOrder = request.SortOrder
+            SortOrder = targetSortOrder,
+            TaskType = taskType
         };
 
         db.ProjectTasks.Add(task);
@@ -1098,7 +1175,12 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             task.ProjectServiceId = request.ProjectServiceId;
         }
 
-        if (request.Title != null) task.Title = request.Title.Trim();
+        if (request.Title != null)
+        {
+            if (string.IsNullOrWhiteSpace(request.Title))
+                throw new ConflictException("Task title cannot be empty.");
+            task.Title = request.Title.Trim();
+        }
         if (request.Description != null) task.Description = request.Description;
         if (request.Period != null) task.Period = request.Period;
         if (request.Phase != null) task.Phase = request.Phase;
@@ -1114,6 +1196,7 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             await ReapplyProjectTeamHourSplitAsync(projectId, task, ct);
         if (request.Progress.HasValue) task.Progress = request.Progress.Value;
         if (request.SortOrder.HasValue) task.SortOrder = request.SortOrder.Value;
+        if (request.TaskType != null) task.TaskType = request.TaskType.Trim();
 
         if (task.ActualStartDate.HasValue && task.ActualEndDate.HasValue && task.ActualEndDate < task.ActualStartDate)
         {
@@ -2409,7 +2492,8 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             t.UpdatedAtUtc,
             mapped,
             t.DeletedAtUtc,
-            t.DeletedAtUtc != null);
+            t.DeletedAtUtc != null,
+            t.TaskType);
     }
 
     private static ProjectTaskAssignmentDto MapToAssignmentDto(ProjectTaskAssignment a)

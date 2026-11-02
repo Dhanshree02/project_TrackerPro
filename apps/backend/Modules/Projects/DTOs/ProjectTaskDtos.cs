@@ -23,7 +23,9 @@ public sealed record ProjectTaskDto(
     DateTime? UpdatedAtUtc,
     IReadOnlyList<ProjectTaskAssignmentDto>? Assignments = null,
     DateTime? DeletedAtUtc = null,
-    bool IsDeleted = false);
+    bool IsDeleted = false,
+    string? TaskType = null,
+    Guid? InsertAfterTaskId = null);
 
 public sealed record CreateProjectTaskRequest(
     string Title,
@@ -31,12 +33,14 @@ public sealed record CreateProjectTaskRequest(
     string? Description = null,
     string? Period = null,
     string? Phase = null,
-    string? Stage = "Ready to Start",
+    string? Stage = "Not Started",
     string? Priority = "medium",
     DateOnly? PlannedStartDate = null,
     DateOnly? PlannedEndDate = null,
     decimal? EstimatedHours = null,
-    int SortOrder = 0);
+    int SortOrder = 0,
+    string? TaskType = null,
+    Guid? InsertAfterTaskId = null);
 
 public sealed record UpdateProjectTaskRequest(
     string? Title = null,
@@ -53,7 +57,8 @@ public sealed record UpdateProjectTaskRequest(
     decimal? EstimatedHours = null,
     decimal? UtilizedHours = null,
     int? Progress = null,
-    int? SortOrder = null);
+    int? SortOrder = null,
+    string? TaskType = null);
 
 public sealed record UpdateTaskStageRequest(
     string Stage);

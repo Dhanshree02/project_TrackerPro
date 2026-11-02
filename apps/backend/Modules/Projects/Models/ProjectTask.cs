@@ -50,4 +50,7 @@ public class ProjectTask : BaseEntity
     public int Progress { get; set; }
 
     public int SortOrder { get; set; }
+
+    /// <summary>Task category: "Managerial Task", "Training/Learning", etc.</summary>
+    public string? TaskType { get; set; }
 }
