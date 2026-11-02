@@ -295,6 +295,7 @@ export interface ApiProjectTask {
   deletedAtUtc?: string | null;
   isDeleted?: boolean;
   serviceAbbreviation?: string | null;
+  taskType?: string | null;
 }
 
 export interface CreateProjectTaskPayload {
@@ -312,6 +313,8 @@ export interface CreateProjectTaskPayload {
   estimatedHours?: number | null;
   progress?: number;
   sortOrder?: number;
+  taskType?: string | null;
+  insertAfterTaskId?: string | null;
 }
 
 export interface UpdateProjectTaskPayload {
@@ -328,6 +331,7 @@ export interface UpdateProjectTaskPayload {
   estimatedHours?: number | null;
   progress?: number;
   sortOrder?: number;
+  taskType?: string | null;
 }
 
 export interface ApiProjectTaskAssignment {
