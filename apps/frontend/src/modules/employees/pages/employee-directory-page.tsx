@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { Avatar, ProgressBar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
@@ -813,6 +814,9 @@ export function EmployeeDirectoryPage() {
   const { status: authStatus } = useAuth();
   const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
     useRoleContext();
+  const { canView, canManage, loading: permissionsLoading } = usePermissions();
+  const canViewDirectory = canView("employee-directory");
+  const canManageDirectory = canManage("employee-directory");
   const { tab: searchTab } = employeeDirectoryRoute.useSearch();
   const basicDirectoryView =
     isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
@@ -1052,11 +1056,10 @@ export function EmployeeDirectoryPage() {
     setPage(1);
   }, [q, dept, desig, subDept, onFloorRole, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
 
-  // Admin and HR both manage the full employee directory (HR uses it for
-  // onboarding); every other role is redirected.
-  if (!isDhanshree && !basicDirectoryView) return <Navigate to="/" />;
+  // Guard with dynamic RBAC: users with view access can view; users without access are redirected
+  if (!permissionsLoading && !canViewDirectory) return <Navigate to="/access-denied" />;
 
-  const title = basicDirectoryView ? "Directory" : "Employee Directory";
+  const title = canManageDirectory ? "Employee Directory" : "Directory";
   const subtitle =
     tab === "directory"
       ? `${activeRows.length} of ${dbEmployees.length} employees`
@@ -1110,8 +1113,8 @@ export function EmployeeDirectoryPage() {
           )}
         </div>
 
-        {/* Right: Bulk upload menu (ðŸ“¥) and [+ Add Employee] button */}
-        {(isDhanshree || isHr) && (
+        {/* Right: Bulk upload menu and [+ Add Employee] button - requires View + Manage access */}
+        {canManageDirectory && (
           <div className="flex items-center gap-2.5 shrink-0">
             <EmployeeBulkUploadMenu
               onImported={() => {

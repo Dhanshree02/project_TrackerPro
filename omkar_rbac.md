@@ -203,11 +203,12 @@ We will use a single, unified permission table: **`auth.tbl_role_permissions`**
 4. **When "View + Manage" is ON (`CanView = 1, CanManage = 1`):**
    - User has full access to view and manage project details, stages, PO documents, and assignments.
 
-### E. Resources Module & Employee Detail Submodule Rules
+### E. Resources Module, Employee Directory, Employee Detail & Exit Summary Submodule Rules
 
 - **Parent Module:** `master.mst_modules` (`Code = 'resources'`, `Name = 'Resources'`, `Id = 715f79ce-51ea-46d3-b95d-8318840f90a6`)
 - **Parent Submodule:** `master.mst_submodules` (`Code = 'employee-directory'`, `Name = 'Employee Directory'`, `Id = 39dbd425-643b-47e9-9936-6bbae9ef5ef5`, `Parent = Resources`)
 - **Child Submodule:** `master.mst_submodules` (`Code = 'employee-detail'`, `Name = 'Employee Detail'`, `Id = e8f7c125-0e5b-4e3d-98e3-542638fa0b23`, `Parent = Employee Directory`)
+- **Exit Summary Submodule:** `master.mst_submodules` (`Code = 'exit-summary'`, `Name = 'Exit Summary'`, `Parent = Resources`)
 
 - **Tabs under Employee Detail (`master.mst_tabs` where `SubModuleId = e8f7c125-0e5b-4e3d-98e3-542638fa0b23`):**
   1. `Personal Information` (`Code = 'employee-personal-info'`, `Id = e1a11111-0001-4000-8000-000000000001`)
@@ -217,21 +218,28 @@ We will use a single, unified permission table: **`auth.tbl_role_permissions`**
   5. `PMO & EM Information` (`Code = 'employee-pmo-em-information'`, `Id = e1a11111-0001-4000-8000-000000000005`)
   6. `Activity Logs` (`Code = 'employee-activity-logs'`, `Id = e1a11111-0001-4000-8000-000000000006`)
 
-1. **Hierarchy Rules:**
+1. **Hierarchy & Permission Rules:**
+   - Submodule `Employee Directory` requires parent `Resources` view access to be viewable.
    - Submodule `Employee Detail` requires parent `Employee Directory` view access to be viewable.
    - Submodule `Employee Detail` can only receive `View + Manage` if `Employee Directory` has `View + Manage`.
    - Tabs under `Employee Detail` require `Employee Detail` view access to be viewable.
-   - Any tab under `Employee Detail` can only receive `View + Manage` if `Employee Detail` has `View + Manage`.
+   - **Tabs under Employee Detail have no View + Manage capability (`—` in matrix)**: either we view or not.
+   - Submodule `Exit Summary` requires parent `Resources` view access to be viewable.
+   - **Exit Summary has no View + Manage capability (`—` in matrix)**: either we view or not.
 
-2. **When View is OFF (`CanView = 0` / cleared / no record):**
-   - Access to employee detail screens (`/employee-directory/$id`) is blocked and redirects to `/access-denied`.
+2. **Employee Directory Actions:**
+   - **When View is OFF (`CanView = 0` / cleared / no record)**: Access to `/employee-directory` is blocked and redirects to `/access-denied`.
+   - **When "Only view" is ON (`CanView = 1, CanManage = 0`)**: User can view the employee directory table; `Bulk Upload` and `Add Employee` buttons are hidden / not accessible.
+   - **When "View + Manage" is ON (`CanView = 1, CanManage = 1`)**: User has full access to browse directory, use `Bulk Upload`, and click `Add Employee` to onboard resources.
 
-3. **When "Only view" is ON (`CanView = 1, CanManage = 0`):**
-   - User can access and view the Employee Profile screen (`/employee-directory/$id`) with allowed tabs.
-   - `Edit Profile` and `Offboard Employee` action buttons are hidden.
+3. **Employee Detail Actions:**
+   - **When View is OFF (`CanView = 0` / cleared / no record)**: Access to employee detail screens (`/employee-directory/$id`) is blocked and redirects to `/access-denied`.
+   - **When "Only view" is ON (`CanView = 1, CanManage = 0`)**: User can view employee profile tabs that are permitted; `Edit Profile` and `Offboard Employee` action buttons are hidden / not accessible.
+   - **When "View + Manage" is ON (`CanView = 1, CanManage = 1`)**: User has full access to view employee profile, click `Edit Profile` (opens modal), and click `Offboard Employee`.
 
-4. **When "View + Manage" is ON (`CanView = 1, CanManage = 1`):**
-   - User has full access to view employee profile, edit profile, and manage offboarding.
+4. **Exit Summary Actions:**
+   - **When View is OFF (`CanView = 0` / cleared / no record)**: Access to `/exit-summary` is blocked and redirects to `/access-denied`.
+   - **When "Only view" is ON (`CanView = 1, CanManage = 0`)**: User can view the exit summary table, quarterly statistics, filters, and records. No manage capability exists.
 
 ---
 

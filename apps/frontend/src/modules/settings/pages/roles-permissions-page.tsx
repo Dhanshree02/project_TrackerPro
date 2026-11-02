@@ -102,6 +102,14 @@ function descendantIds(row: AccessRow): string[] {
   return row.children.flatMap((child) => [child.id, ...descendantIds(child)]);
 }
 
+function isViewOnlyRow(row?: AccessRow | null, parent?: AccessRow | null | string): boolean {
+  if (!row) return false;
+  const pName = typeof parent === "string" ? parent : parent?.name ?? "";
+  const isEmployeeDetailTab = row.kind === "tab" && pName.toLowerCase() === "employee detail";
+  const isExitSummary = row.kind === "submodule" && row.name.toLowerCase() === "exit summary";
+  return isEmployeeDetailTab || isExitSummary;
+}
+
 export function RolesPermissionsPage() {
   const [roles, setRoles] = useState<ApiRole[]>([]);
   const [modules, setModules] = useState<SidebarModule[]>([]);
@@ -157,8 +165,10 @@ export function RolesPermissionsPage() {
         if (cancelled) return;
         const map: Record<string, ModuleAccess> = {};
         for (const p of perms) {
-          if (p.canManage === 1) map[p.itemId] = "view-manage";
-          else if (p.canView === 1) map[p.itemId] = "view";
+          const located = locateRow(rows, p.itemId);
+          const viewOnly = isViewOnlyRow(located?.row, located?.parent);
+          if (p.canManage === 1 && !viewOnly) map[p.itemId] = "view-manage";
+          else if (p.canView === 1 || p.canManage === 1) map[p.itemId] = "view";
         }
         setAccessByRole((prev) => ({ ...prev, [roleId]: map }));
         setSavedAccessByRole((prev) => ({ ...prev, [roleId]: map }));
@@ -199,8 +209,12 @@ export function RolesPermissionsPage() {
     setAccessByRole((prev) => {
       const current = { ...(prev[roleId] ?? {}) };
       const located = locateRow(rows, moduleId);
+      const viewOnly = isViewOnlyRow(located?.row, located?.parent);
+      if (viewOnly && access === "view-manage") {
+        access = "view";
+      }
       const parentAccess = located?.parent ? current[located.parent.id] : undefined;
-      if (located?.parent) {
+      if (access !== null && located?.parent) {
         if (!parentAccess) return prev;
         if (access === "view-manage" && parentAccess !== "view-manage") return prev;
       }
@@ -238,17 +252,22 @@ export function RolesPermissionsPage() {
       const current = accessByRole[roleId] ?? {};
       const payload: ApiRolePermission[] = Object.entries(current).map(([itemId, access]) => {
         const located = locateRow(rows, itemId);
+        const viewOnly = isViewOnlyRow(located?.row, located?.parent);
+        const effectiveAccess = viewOnly && access === "view-manage" ? "view" : access;
         return {
           itemId,
           itemType: located?.row.kind ?? "module",
-          canView: access === "view" || access === "view-manage" ? 1 : 0,
-          canManage: access === "view-manage" ? 1 : 0,
+          canView: effectiveAccess === "view" || effectiveAccess === "view-manage" ? 1 : 0,
+          canManage: effectiveAccess === "view-manage" ? 1 : 0,
         };
       });
 
       await saveRolePermissions(roleId, payload);
       setSavedAccessByRole((prev) => ({ ...prev, [roleId]: { ...current } }));
       setSaveSuccess(true);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("permissions-updated", { detail: { roleId } }));
+      }
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch {
       setError("Failed to save role permissions.");
@@ -378,15 +397,16 @@ function AccessRows({
   onSetAccess: (id: string, access: ModuleAccess | null) => void;
 }) {
   return rows.map((row) => {
-    const access = selectedAccess[row.id];
     const isChild = depth > 0;
     const isDashboardModule = row.kind === "module" && row.name.toLowerCase() === "dashboard";
     const isWidget = row.kind === "widget";
+    const viewOnly = isViewOnlyRow(row, parentName);
+    const access = viewOnly && selectedAccess[row.id] === "view-manage" ? "view" : selectedAccess[row.id];
     const hasChildren = row.children.length > 0;
     const open = hasChildren && !!openIds[row.id];
 
-    // Core rule: Dashboard and widgets do not support View + Manage
-    const viewManageSupported = !isDashboardModule && !isWidget;
+    // Core rule: Dashboard, widgets, Employee Detail tabs, and Exit Summary do not support View + Manage
+    const viewManageSupported = !isDashboardModule && !isWidget && !viewOnly;
 
     // View radio button disabled rules
     const viewDisabled = !roleId || !!saving || (isChild && !parentAccess);
@@ -432,9 +452,18 @@ function AccessRows({
               {kindLabel[row.kind]}
             </span>
           </td>
-          <td className="px-4 py-3 text-center">
+          <td
+            className={cn(
+              "px-4 py-3 text-center",
+              viewDisabled ? "cursor-not-allowed" : "cursor-pointer",
+            )}
+            onClick={() => {
+              if (viewDisabled) return;
+              if (access === "view") onSetAccess(row.id, null);
+              else onSetAccess(row.id, "view");
+            }}
+          >
             <AccessRadio
-              name={`access-${roleId || "none"}-${row.id}`}
               checked={access === "view"}
               disabled={viewDisabled}
               label={`Only view for ${row.name}`}
@@ -443,10 +472,19 @@ function AccessRows({
               onClear={() => onSetAccess(row.id, null)}
             />
           </td>
-          <td className="px-4 py-3 text-center">
+          <td
+            className={cn(
+              "px-4 py-3 text-center",
+              !viewManageSupported || manageDisabled ? "cursor-not-allowed" : "cursor-pointer",
+            )}
+            onClick={() => {
+              if (!viewManageSupported || manageDisabled) return;
+              if (access === "view-manage") onSetAccess(row.id, null);
+              else onSetAccess(row.id, "view-manage");
+            }}
+          >
             {viewManageSupported ? (
               <AccessRadio
-                name={`access-${roleId || "none"}-${row.id}`}
                 checked={access === "view-manage"}
                 disabled={manageDisabled}
                 label={`View and manage for ${row.name}`}
@@ -485,7 +523,6 @@ function AccessRows({
 }
 
 function AccessRadio({
-  name,
   checked,
   disabled,
   label,
@@ -493,7 +530,6 @@ function AccessRadio({
   onChange,
   onClear,
 }: {
-  name: string;
   checked: boolean;
   disabled: boolean;
   label: string;
@@ -501,35 +537,47 @@ function AccessRadio({
   onChange: () => void;
   onClear: () => void;
 }) {
-  const handleClick = (e: React.MouseEvent<HTMLInputElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
     if (disabled) return;
     if (checked) {
-      e.preventDefault();
       onClear();
     } else {
       onChange();
     }
   };
 
+  const resolvedTitle = disabled
+    ? title
+    : checked
+      ? "Click to unselect"
+      : title || label;
+
   return (
-    <label
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      title={resolvedTitle}
+      onClick={handleClick}
       className={cn(
-        "inline-flex items-center justify-center p-1",
-        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+        "inline-flex size-7 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        disabled ? "cursor-not-allowed opacity-40" : "cursor-pointer hover:bg-muted/70",
       )}
-      title={title}
     >
-      <input
-        type="radio"
-        name={name}
-        checked={checked}
-        disabled={disabled}
-        aria-label={label}
-        title={title}
-        onClick={handleClick}
-        onChange={() => {}}
-        className="size-4 accent-primary cursor-pointer disabled:cursor-not-allowed"
-      />
-    </label>
+      <span
+        className={cn(
+          "size-4 rounded-full border transition-all flex items-center justify-center",
+          checked
+            ? "border-primary text-primary"
+            : "border-muted-foreground/40 hover:border-primary/70",
+          disabled && "border-muted-foreground/30 opacity-40",
+        )}
+      >
+        {checked && <span className="size-2 rounded-full bg-primary" />}
+      </span>
+    </button>
   );
 }

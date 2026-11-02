@@ -514,11 +514,8 @@ export function EmployeeProfilePage() {
   }, [authStatus, employeeId]);
 
   const visibleTabs = useMemo(() => {
-    const rbacTabs = tabs.filter((t) => canView(t.code));
-    if (rbacTabs.length > 0) return rbacTabs;
-    const basicOnly = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-    return basicOnly ? tabs.filter((t) => t.id === "personal") : [...tabs];
-  }, [canView, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales]);
+    return tabs.filter((t) => canView(t.code));
+  }, [canView]);
 
   useEffect(() => {
     if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)) {
@@ -526,10 +523,8 @@ export function EmployeeProfilePage() {
     }
   }, [visibleTabs, tab]);
 
-  const canEditProfile = canManageEmployeeDetail || (!isEmployee && (isDhanshree || isHr));
-
-  const basicDirectory = isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (!isDhanshree && !isHr && !basicDirectory) return <Navigate to="/" />;
+  // Only View denies access to edit profile and offboard employee; View + Manage grants access
+  const canEditProfile = canManageEmployeeDetail;
 
   if (!permissionsLoading && !canViewEmployeeDetail) {
     return <Navigate to="/access-denied" />;

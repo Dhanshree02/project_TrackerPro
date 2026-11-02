@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
+import { usePermissions } from "@/lib/permissions";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
@@ -250,6 +251,9 @@ export function ExitSummaryPage() {
   const { status: authStatus } = useAuth();
   const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
     useRoleContext();
+  const { canView, loading: permissionsLoading } = usePermissions();
+
+  const canViewExitSummary = canView("exit-summary");
 
   const [q, setQ] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
@@ -290,8 +294,9 @@ export function ExitSummaryPage() {
       .catch(() => undefined);
   }, [authStatus]);
 
-  const hasAccess = isDhanshree || isHr || isEmployee || isPmFamily || isPmoFamily || isAccounts || isSales;
-  if (!hasAccess) return <Navigate to="/" />;
+  if (!permissionsLoading && !canViewExitSummary) {
+    return <Navigate to="/access-denied" />;
+  }
 
   const departments = useMemo(() => {
     const fromCatalog = deptCatalog.map((d) => d.name).filter(Boolean);

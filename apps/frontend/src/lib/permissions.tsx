@@ -12,6 +12,7 @@ interface PermissionsContextValue {
   hasAny: (...keys: Array<string | undefined | null>) => boolean;
   hasAll: (...keys: Array<string | undefined | null>) => boolean;
   loading: boolean;
+  refreshPermissions: () => Promise<void>;
 }
 
 const PermissionsContext = createContext<PermissionsContextValue | null>(null);
@@ -83,37 +84,40 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     return (persona?.roleKey || persona?.accessRole || demoRole || "").trim().toLowerCase();
   }, [user?.role, demoRole]);
 
-  useEffect(() => {
+  const refreshPermissions = async () => {
     if (!activeRoleName) return;
-    let cancelled = false;
     setLoading(true);
+    try {
+      const roles = await fetchRoles();
+      const matchingRole = roles.find(
+        (r) =>
+          r.name.toLowerCase() === activeRoleName ||
+          r.displayName.toLowerCase() === activeRoleName,
+      );
+      if (!matchingRole) {
+        setRolePermissions([]);
+        return;
+      }
+      const perms = await fetchRolePermissions(matchingRole.id);
+      setRolePermissions(perms);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchRoles()
-      .then(async (roles) => {
-        if (cancelled) return;
-        const matchingRole = roles.find(
-          (r) =>
-            r.name.toLowerCase() === activeRoleName ||
-            r.displayName.toLowerCase() === activeRoleName,
-        );
-        if (!matchingRole) {
-          setRolePermissions([]);
-          setLoading(false);
-          return;
-        }
+  useEffect(() => {
+    void refreshPermissions();
+  }, [activeRoleName]);
 
-        const perms = await fetchRolePermissions(matchingRole.id);
-        if (!cancelled) {
-          setRolePermissions(perms);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-
+  useEffect(() => {
+    const handlePermissionsUpdated = () => {
+      void refreshPermissions();
+    };
+    window.addEventListener("permissions-updated", handlePermissionsUpdated);
     return () => {
-      cancelled = true;
+      window.removeEventListener("permissions-updated", handlePermissionsUpdated);
     };
   }, [activeRoleName]);
 
@@ -126,9 +130,6 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   }, [rolePermissions]);
 
   const canView = (codeOrId: string): boolean => {
-    // Admin always has full access
-    if (activeRoleName === "admin") return true;
-
     const lower = codeOrId.trim().toLowerCase();
     const itemId = (codeToId[lower] ?? lower).toLowerCase();
 
@@ -154,15 +155,24 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    // If permission record exists in auth.tbl_role_permissions, enforce its CanView flag
-    const perm = permissionMap.get(itemId);
-    if (perm !== undefined) {
-      return perm.canView === 1;
+    // 1. If explicit permissions have been saved for this role in auth.tbl_role_permissions:
+    if (permissionMap.size > 0) {
+      const perm = permissionMap.get(itemId);
+      if (perm !== undefined) {
+        return perm.canView === 1;
+      }
+
+      // If item is part of the catalog hierarchy and not in permissionMap, it was revoked / unselected
+      if (codeToId[lower] || parent) {
+        return false;
+      }
     }
 
-    // For modules strictly governed by auth.tbl_role_permissions: if not granted in DB, access is false
-    const strictRbacItems = new Set(["dashboard", "repository", ...dashboardWidgets]);
+    // 2. Default fallback: only when no permissions exist in DB for the role
+    if (activeRoleName === "admin") return true;
 
+    // Strict RBAC items with no records default to false
+    const strictRbacItems = new Set(["dashboard", "repository", ...dashboardWidgets]);
     if (strictRbacItems.has(lower)) {
       return false;
     }
@@ -177,8 +187,6 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   };
 
   const canManage = (codeOrId: string): boolean => {
-    if (activeRoleName === "admin") return true;
-
     const lower = codeOrId.trim().toLowerCase();
     const itemId = (codeToId[lower] ?? lower).toLowerCase();
 
@@ -188,15 +196,21 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       return false;
     }
 
-    const perm = permissionMap.get(itemId);
-    if (perm !== undefined) {
-      return perm.canManage === 1;
+    // 1. If explicit permissions have been saved for this role in auth.tbl_role_permissions:
+    if (permissionMap.size > 0) {
+      const perm = permissionMap.get(itemId);
+      if (perm !== undefined) {
+        return perm.canManage === 1;
+      }
+
+      // If item is part of the catalog hierarchy and not granted manage in permissionMap, deny manage
+      if (codeToId[lower] || parent) {
+        return false;
+      }
     }
 
-    // If item has a parent and no explicit permission was saved, inherit parent's manage
-    if (parent) {
-      return canManage(parent);
-    }
+    // 2. Default fallback: only when no permissions exist in DB for the role
+    if (activeRoleName === "admin") return true;
 
     return false;
   };
@@ -227,8 +241,9 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       hasAny,
       hasAll,
       loading,
+      refreshPermissions,
     }),
-    [rolePermissions, permissionMap, codeToId, parentMap, activeRoleName, loading],
+    [rolePermissions, permissionMap, codeToId, parentMap, activeRoleName, loading, refreshPermissions],
   );
 
   return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;
