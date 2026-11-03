@@ -39,7 +39,10 @@ public sealed record ProjectAlertDto(
     string Status,
     Guid? RaisedByEmployeeId,
     string RaisedByName,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    string? StatusChangedBy = null,
+    DateTime? StatusChangedAtUtc = null,
+    string? ResolutionOwner = null);
 
 public sealed record UpdateAlertStatusRequest(string Status);
 

@@ -5198,6 +5198,7 @@ function DhTasksTab({
                                               <>
                                                 <button
                                                   type="button"
+                                                  disabled={useApiTasks && !t.dbId}
                                                   onClick={() => {
                                                     setEditTaskState({
                                                       isOpen: true,
@@ -5208,7 +5209,7 @@ function DhTasksTab({
                                                     setEditModalTitle(t.taskTitle || t.taskId);
                                                     setEditModalError("");
                                                   }}
-                                                  className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs"
+                                                  className="inline-flex items-center justify-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-[10px] font-medium hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-xs disabled:opacity-50"
                                                   title="Edit task title"
                                                 >
                                                   <Pencil className="h-3 w-3" />
@@ -7477,15 +7478,29 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
     loadAlerts();
   }, [loadAlerts]);
 
-  const handleStatusChange = async (alertId: string, newStatus: string) => {
-    if (!project?.id) return;
-    try {
-      const updated = await updateAlertStatus(project.id, alertId, newStatus);
-      setDbAlerts((prev) => prev.map((a) => (a.id === alertId ? { ...a, status: updated.status } : a)));
-      toast.success(`Alert status updated to ${newStatus}`);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to update alert status");
+  const getAlertStatusBadge = (status: string) => {
+    const s = (status || "").toLowerCase().trim();
+    let colorClasses = "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
+    if (s === "resolved" || s === "solved" || s === "closed") {
+      colorClasses = "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
+    } else if (s === "open") {
+      colorClasses = "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800";
+    } else if (s === "acknowledged") {
+      colorClasses = "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+    } else if (s === "in progress") {
+      colorClasses = "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800";
     }
+
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold tracking-wide select-none cursor-default",
+          colorClasses
+        )}
+      >
+        {status}
+      </span>
+    );
   };
 
   if (dbAlerts.length === 0) {
@@ -7493,26 +7508,45 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
   }
   return (
     <div className="space-y-2">
-      {dbAlerts.map((alert) => (
-        <div key={alert.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
-          <div className="flex items-start justify-between">
-            <div>
-              <h4 className="text-sm font-medium">{alert.title}</h4>
-              <p className="mt-1 text-xs text-muted-foreground">Raised by {alert.raisedByName} · {new Date(alert.createdAtUtc).toLocaleDateString()}</p>
+      {dbAlerts.map((alert) => {
+        const changedBy = alert.statusChangedBy || alert.resolutionOwner;
+        const isNotOpen = alert.status && alert.status.toLowerCase() !== "open";
+        const statusVerb =
+          alert.status?.toLowerCase() === "resolved" ? "resolved" :
+          alert.status?.toLowerCase() === "closed" ? "Closed" :
+          alert.status?.toLowerCase() === "acknowledged" ? "acknowledged" :
+          alert.status;
+
+        return (
+          <div key={alert.id} className="rounded-lg border border-border bg-card p-3 hover:bg-accent/30">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <h4 className="text-sm font-medium">{alert.title}</h4>
+                {alert.description && (
+                  <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{alert.description}</p>
+                )}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Raised by {alert.raisedByName} · {new Date(alert.createdAtUtc).toLocaleDateString()}
+                </p>
+                {changedBy && isNotOpen && (
+                  <p className="mt-0.5 text-xs text-muted-foreground font-medium flex items-center gap-1">
+                    <span>Alert is {statusVerb} by {changedBy}</span>
+                    {alert.statusChangedAtUtc && (
+                      <>
+                        <span>·</span>
+                        <span>{new Date(alert.statusChangedAtUtc).toLocaleDateString()}</span>
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
+              <div className="shrink-0 pt-0.5">
+                {getAlertStatusBadge(alert.status)}
+              </div>
             </div>
-            <select
-              value={alert.status}
-              onChange={(e) => handleStatusChange(alert.id, e.target.value)}
-              className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info cursor-pointer outline-none bg-transparent"
-            >
-              <option value="Open">Open</option>
-              <option value="Acknowledged">Acknowledged</option>
-              <option value="Resolved">Resolved</option>
-              <option value="Closed">Closed</option>
-            </select>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -9397,10 +9431,7 @@ function WbsPrerequisiteSection({
                     const canStart = !isDeleted && isCollected && isValidated && isBillingOk;
                     const isReady = svc.isReady ?? false;
 
-                    const activeEsc = serviceEscalations.find((row) =>
-                      row.status !== "Resolved" && row.status !== "Closed"
-                      && (row.projectServiceId === svc.serviceId || row.serviceName === svc.serviceName),
-                    );
+
 
                     return (
                       <React.Fragment key={svc.serviceId}>
@@ -9539,31 +9570,16 @@ function WbsPrerequisiteSection({
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-center align-middle">
-                            {activeEsc ? (
-                              <button
-                                type="button"
-                                onClick={() => toast.info("This escalation is saved. Action Centre will receive it when that screen is ready.")}
-                                className={cn(
-                                  "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold text-white hover:opacity-90 transition-opacity",
-                                  activeEsc.priority === "Critical" ? "bg-red-600 border-red-700" :
-                                    activeEsc.priority === "High" ? "bg-amber-600 border-amber-700" : "bg-blue-600 border-blue-700"
-                                )}
-                                title="Click to view details in Health tab"
-                              >
-                                ⚠️ {activeEsc.status} ({activeEsc.priority})
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setEscalationModalSvc(svc);
-                                  setEscalationModalOpen(true);
-                                }}
-                                disabled={isDeleted}
-                                className="inline-flex items-center gap-1 rounded-md bg-destructive text-white hover:bg-destructive/90 px-2 py-0.5 text-[9px] font-bold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                              >
-                                Raise Escalation
-                              </button>
-                            )}
+                            <button
+                              onClick={() => {
+                                setEscalationModalSvc(svc);
+                                setEscalationModalOpen(true);
+                              }}
+                              disabled={isDeleted}
+                              className="inline-flex items-center gap-1 rounded-md bg-destructive text-white hover:bg-destructive/90 px-2 py-0.5 text-[9px] font-bold transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              Raise Escalation
+                            </button>
                           </td>
                         </tr>
 

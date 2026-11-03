@@ -195,4 +195,19 @@ public class ActionCentreController : ControllerBase
         var updated = await _notificationService.UpdateAlertGovernanceAsync(id, request, ct);
         return Ok(ApiResponse<ActionAlertDto>.Ok(updated));
     }
+
+    /// <summary>
+    /// Downloads the attachment file for a governance or escalation alert if present.
+    /// </summary>
+    [HttpGet("alerts/{id:guid}/attachment")]
+    public async Task<IActionResult> DownloadAlertAttachment(Guid id, CancellationToken ct = default)
+    {
+        var result = await _notificationService.DownloadAlertAttachmentAsync(id, ct);
+        if (result == null)
+        {
+            return NotFound();
+        }
+
+        return File(result.Value.Stream, result.Value.ContentType, result.Value.FileName);
+    }
 }

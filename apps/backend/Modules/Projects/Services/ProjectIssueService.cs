@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
@@ -334,8 +335,33 @@ public sealed class ProjectIssueService(
         if (!validStatuses.Contains(normalizedStatus, StringComparer.OrdinalIgnoreCase))
             throw new ConflictException("Status must be Open, Acknowledged, Resolved, or Closed.");
 
+        var employee = await FindCurrentEmployeeAsync(ct);
+        var userName = employee is not null
+            ? $"{employee.FirstName} {employee.LastName}".Trim()
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : (currentUser.Email ?? "User"));
+
         alert.Status = normalizedStatus;
+        alert.StatusChangedBy = userName;
+        alert.StatusChangedAtUtc = DateTime.UtcNow;
         alert.UpdatedAtUtc = DateTime.UtcNow;
+
+        if (string.IsNullOrWhiteSpace(alert.ResolutionOwner) && (normalizedStatus.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || normalizedStatus.Equals("Closed", StringComparison.OrdinalIgnoreCase)))
+        {
+            alert.ResolutionOwner = userName;
+        }
+
+        var history = string.IsNullOrWhiteSpace(alert.HistoryJson)
+            ? []
+            : (JsonSerializer.Deserialize<List<NotificationHistoryItemDto>>(alert.HistoryJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? []);
+        var now = DateTime.UtcNow;
+        history.Add(new NotificationHistoryItemDto
+        {
+            Action = $"Status transitioned to {normalizedStatus}",
+            Date = now.ToString("yyyy-MM-dd"),
+            Time = now.ToString("HH:mm:ss"),
+            By = userName
+        });
+        alert.HistoryJson = JsonSerializer.Serialize(history);
 
         // If alert is linked to an issue, and alert is resolved/closed, sync issue status
         if (alert.Issue is not null)
@@ -391,16 +417,50 @@ public sealed class ProjectIssueService(
         row.RaisedByRole,
         row.CreatedAtUtc);
 
-    private static ProjectAlertDto MapAlert(ProjectAlert row) => new(
-        row.Id,
-        row.ProjectId,
-        row.IssueId,
-        row.Title,
-        row.Description,
-        row.AlertType,
-        row.Priority,
-        row.Status,
-        row.RaisedByEmployeeId,
-        row.RaisedByName,
-        row.CreatedAtUtc);
+    private static ProjectAlertDto MapAlert(ProjectAlert row)
+    {
+        var statusChangedBy = row.StatusChangedBy;
+        if (string.IsNullOrWhiteSpace(statusChangedBy) && !string.Equals(row.Status, "Open", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(row.ResolutionOwner))
+            {
+                statusChangedBy = row.ResolutionOwner;
+            }
+            else if (!string.IsNullOrWhiteSpace(row.HistoryJson))
+            {
+                try
+                {
+                    var history = JsonSerializer.Deserialize<List<NotificationHistoryItemDto>>(row.HistoryJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    var lastUpdate = history?
+                        .LastOrDefault(h => !string.IsNullOrWhiteSpace(h.By) &&
+                                            (h.Action?.Contains("Status", StringComparison.OrdinalIgnoreCase) == true ||
+                                             h.Action?.Contains("Governance", StringComparison.OrdinalIgnoreCase) == true ||
+                                             h.Action?.Contains("Acknowledged", StringComparison.OrdinalIgnoreCase) == true ||
+                                             h.Action?.Contains("Resolved", StringComparison.OrdinalIgnoreCase) == true ||
+                                             h.Action?.Contains("Closed", StringComparison.OrdinalIgnoreCase) == true));
+                    if (lastUpdate != null)
+                    {
+                        statusChangedBy = lastUpdate.By;
+                    }
+                }
+                catch { }
+            }
+        }
+
+        return new(
+            row.Id,
+            row.ProjectId,
+            row.IssueId,
+            row.Title,
+            row.Description,
+            row.AlertType,
+            row.Priority,
+            row.Status,
+            row.RaisedByEmployeeId,
+            row.RaisedByName,
+            row.CreatedAtUtc,
+            statusChangedBy,
+            row.StatusChangedAtUtc ?? (row.Status != "Open" ? row.UpdatedAtUtc : null),
+            row.ResolutionOwner);
+    }
 }

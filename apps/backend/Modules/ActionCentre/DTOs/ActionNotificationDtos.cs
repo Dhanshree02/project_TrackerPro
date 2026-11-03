@@ -108,6 +108,24 @@ public class ActionAlertDto
 
     public string? ResolutionDetails { get; set; }
 
+    public string? StatusChangedBy { get; set; }
+
+    public DateTime? StatusChangedAtUtc { get; set; }
+
+    public string? Kind { get; set; }
+
+    public string? ServiceName { get; set; }
+
+    public string? EscalationType { get; set; }
+
+    public string? ExpectedResolutionDate { get; set; }
+
+    public List<string> EscalatedTo { get; set; } = [];
+
+    public List<string> Attachments { get; set; } = [];
+
+    public string? AttachmentUrl { get; set; }
+
     public List<NotificationHistoryItemDto> History { get; set; } = [];
 }
 

@@ -1208,7 +1208,9 @@ function AlertsTab() {
         const normalized = data.map((a: any) => ({
           ...a,
           comments: Array.isArray(a.comments) ? a.comments : [],
-          attachments: Array.isArray(a.attachments) ? a.attachments : [],
+          attachments: Array.isArray(a.attachments) && a.attachments.length > 0
+            ? a.attachments
+            : (a.attachmentFileName ? [a.attachmentFileName] : []),
           history: Array.isArray(a.history) ? a.history : [],
         }));
         dhStore.setAlerts(normalized);
@@ -1272,7 +1274,10 @@ function AlertsTab() {
       setSelectedOwner(alert.owner || "");
       setSelectedResOwner(alert.resolutionOwner || "");
       setSelectedEscOwner(alert.escalationOwner || "");
-      setResDetails(alert.resolutionDetails || "");
+      setResDetails(
+        alert.resolutionDetails ||
+        (alert.expectedResolutionDate ? `Expected Resolution Date: ${alert.expectedResolutionDate}` : "")
+      );
       setSelectedStatus(alert.status);
       setApproved(false);
     }
@@ -1675,9 +1680,16 @@ function AlertsTab() {
 
               {/* Resolution Progress */}
               <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                  Resolution Timeline Details
-                </span>
+                <div className="flex items-center justify-between border-b border-border pb-1">
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase">
+                    Resolution Timeline Details
+                  </span>
+                  {selectedAlert.expectedResolutionDate && (
+                    <span className="text-[10px] text-muted-foreground font-semibold">
+                      Expected: <strong className="text-primary">{selectedAlert.expectedResolutionDate}</strong>
+                    </span>
+                  )}
+                </div>
                 <textarea
                   value={resDetails}
                   onChange={(e) => setResDetails(e.target.value)}
@@ -1747,10 +1759,15 @@ function AlertsTab() {
                       {(selectedAlert.attachments || []).map((file, idx) => (
                         <div
                           key={idx}
+                          onClick={() => {
+                            const downloadUrl = (selectedAlert as any).attachmentUrl || `/api/v1/action-centre/alerts/${selectedAlert.id}/attachment`;
+                            window.open(downloadUrl, "_blank");
+                          }}
                           className="flex items-center gap-1.5 text-[10px] text-primary hover:underline cursor-pointer"
+                          title="Click to view / download file"
                         >
-                          <Paperclip className="h-3 w-3 text-muted-foreground" />
-                          <span>{file}</span>
+                          <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="truncate">{file}</span>
                         </div>
                       ))}
                     </div>
@@ -2694,6 +2711,7 @@ const NOTIFICATION_TYPES = [
   "New Project Assignment",
   "New Task Assignment",
   "WBS Assignment",
+  "WBS Escalation",
   "Project Ready To Start",
   "Team Assignment",
   "Shadow Team Assignment",

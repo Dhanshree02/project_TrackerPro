@@ -32,10 +32,13 @@ export interface ProjectAlert {
   description?: string | null;
   alertType: string;
   priority: "Low" | "Medium" | "High" | "Critical";
-  status: "Open" | "Acknowledged" | "Resolved" | "Closed";
+  status: "Open" | "Acknowledged" | "Resolved" | "Closed" | string;
   raisedByEmployeeId?: string | null;
   raisedByName: string;
   createdAtUtc: string;
+  statusChangedBy?: string | null;
+  statusChangedAtUtc?: string | null;
+  resolutionOwner?: string | null;
 }
 
 export interface AssignedProjectSummary {

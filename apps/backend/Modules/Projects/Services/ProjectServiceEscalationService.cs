@@ -5,6 +5,8 @@ using PMS.API.Infrastructure.Storage;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Resources.Models;
+using System.Text.Json;
+using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.Projects.Services;
@@ -94,24 +96,15 @@ public sealed class ProjectServiceEscalationService(
         if (people.Count != wanted.Count)
             throw new ConflictException("Stakeholders must be employees in PMO (Project Management Office) or EM (Engagement Manager).");
 
-        var alreadyOpen = await db.ProjectServiceEscalations.AnyAsync(x =>
-            x.ProjectId == projectId
-            && x.Status == "Open"
-            && (request.ProjectServiceId != null
-                ? x.ProjectServiceId == request.ProjectServiceId
-                : x.ServiceName == serviceName), ct);
-        if (alreadyOpen)
-            throw new ConflictException("This service already has an open escalation.");
-
         string? attachmentName = null;
         string? attachmentPath = null;
         string? attachmentType = null;
         long? attachmentSize = null;
+        StoredRepositoryFileInfo? stored = null;
         if (request.File is { Length: > 0 })
         {
             if (request.File.Length > 20 * 1024 * 1024)
                 throw new ConflictException("Attachment must be 20 MB or smaller.");
-            StoredRepositoryFileInfo stored;
             try
             {
                 stored = await storage.SaveEscalationDocumentAsync(project.ProjectCode, request.File, ct);
@@ -165,6 +158,95 @@ public sealed class ProjectServiceEscalationService(
         };
 
         db.ProjectServiceEscalations.Add(row);
+
+        if (stored != null)
+        {
+            var projDoc = new ProjectDocument
+            {
+                ProjectId = projectId,
+                DocumentType = "Escalation",
+                FileName = stored.FileName,
+                OriginalFileName = stored.OriginalFileName,
+                FilePath = stored.RelativePath,
+                ContentType = stored.ContentType,
+                SizeBytes = stored.SizeBytes,
+                Description = $"Escalation attachment for {serviceName}: {subject}"
+            };
+            db.ProjectDocuments.Add(projDoc);
+        }
+
+        var now = DateTime.UtcNow;
+        var dateStr = now.ToString("yyyy-MM-dd");
+        var timeStr = now.ToString("HH:mm:ss");
+        var defaultHistoryJson = JsonSerializer.Serialize(new[]
+        {
+            new
+            {
+                action = "Notification created",
+                date = dateStr,
+                time = timeStr,
+                by = row.RaisedByName
+            }
+        });
+
+        var notifTitle = $"WBS Escalation: {serviceName} - {subject}";
+        if (notifTitle.Length > 255) notifTitle = notifTitle[..255];
+        var relatedTask = serviceName.Length > 255 ? serviceName[..255] : serviceName;
+
+        foreach (var stakeholder in people)
+        {
+            db.ActionNotifications.Add(new ActionNotification
+            {
+                RecipientEmployeeId = stakeholder.Id,
+                ProjectId = projectId,
+                ProjectCode = row.ProjectCode,
+                ProjectName = row.ProjectName,
+                Title = notifTitle,
+                Type = "WBS Escalation",
+                Priority = priority,
+                Status = "Pending",
+                Unread = true,
+                RaisedByEmployeeId = raiser?.Id,
+                RaisedByName = row.RaisedByName,
+                RelatedTask = relatedTask,
+                HistoryJson = defaultHistoryJson,
+                CreatedAtUtc = now
+            });
+        }
+
+        var stakeholderIdStrings = people.Select(p => p.Id.ToString()).ToList();
+        var stakeholderNames = people.Select(p => $"{p.FirstName} {p.LastName}".Trim()).ToList();
+        var alertTitle = $"WBS Escalation: {serviceName} - {subject}";
+        if (alertTitle.Length > 255) alertTitle = alertTitle[..255];
+        var expDateStr = request.ExpectedResolutionDate?.ToString("yyyy-MM-dd");
+
+        var alert = new ProjectAlert
+        {
+            ProjectId = projectId,
+            Title = alertTitle,
+            Description = $"{escalationType}: {description}",
+            AlertType = "WBS Escalation",
+            Priority = priority,
+            Status = "Open",
+            Owner = row.RaisedByName,
+            RaisedByEmployeeId = raiser?.Id,
+            RaisedByName = row.RaisedByName,
+            AudienceUserIds = JsonSerializer.Serialize(stakeholderIdStrings),
+            HistoryJson = defaultHistoryJson,
+            CreatedAtUtc = now,
+            ServiceName = serviceName,
+            EscalationType = escalationType,
+            ExpectedResolutionDate = expDateStr,
+            AttachmentFileName = stored?.OriginalFileName,
+            AttachmentPath = stored?.RelativePath,
+            EscalatedTo = JsonSerializer.Serialize(stakeholderNames),
+            ServiceEscalationId = row.Id,
+            ResolutionDetails = !string.IsNullOrWhiteSpace(expDateStr)
+                ? $"Expected Resolution Date: {expDateStr}"
+                : null
+        };
+        db.ProjectAlerts.Add(alert);
+
         await db.SaveChangesAsync(ct);
         return Map(row);
     }

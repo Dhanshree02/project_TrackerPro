@@ -23,7 +23,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
             .ToListAsync(ct);
 
         var existing = await db.ProjectTasks
-            .Where(t => t.ProjectId == projectId)
+            .Where(t => t.ProjectId == projectId && t.DeletedAtUtc == null)
             .ToListAsync(ct);
 
         var created = new List<ProjectTask>();
@@ -83,12 +83,38 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
                     for (var ap = 1; ap <= qty; ap++)
                     {
                         var phase = $"{abbr}{ap}";
-                        foreach (var spec in specs)
+
+                        // Existing tasks for this specific branch
+                        var branchTasks = existing
+                            .Where(t => t.ProjectServiceId == service.Id &&
+                                        string.Equals(t.Period ?? "", period, StringComparison.OrdinalIgnoreCase) &&
+                                        (string.Equals(t.Phase ?? "", phase, StringComparison.OrdinalIgnoreCase) ||
+                                         string.Equals(t.Phase ?? "", $"AP{ap}", StringComparison.OrdinalIgnoreCase)))
+                            .OrderBy(t => t.SortOrder)
+                            .ThenBy(t => t.CreatedAtUtc)
+                            .ToList();
+
+                        // Base tasks generated from specs (TaskType is null/empty for base tasks)
+                        var branchBaseTasks = branchTasks
+                            .Where(t => string.IsNullOrWhiteSpace(t.TaskType))
+                            .ToList();
+
+                        for (var specIdx = 0; specIdx < specs.Count; specIdx++)
                         {
+                            var spec = specs[specIdx];
                             var title = $"Task {spec.Suffix}";
                             var key = LeafKey(service.Id, period, phase, title);
                             var fallbackKey = LeafKey(service.Id, period, $"AP{ap}", title);
+
+                            // 1. Direct title match in known keys
                             if (known.Contains(key) || known.Contains(fallbackKey)) continue;
+
+                            // 2. Base task already exists at this spec slot in this branch (e.g. customized/renamed title)
+                            if (branchBaseTasks.Count > specIdx) continue;
+
+                            // 3. Matching spec label in description (e.g. "Initial Test", "Retest 1")
+                            if (branchTasks.Any(t => string.Equals(t.Description, spec.Label, StringComparison.OrdinalIgnoreCase))) continue;
+
                             known.Add(key);
 
                             order++;
@@ -110,6 +136,8 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
                                 SortOrder = order * 10,
                             };
                             created.Add(task);
+                            existing.Add(task);
+                            branchBaseTasks.Add(task);
                         }
                     }
                 }
@@ -371,7 +399,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
     }
 
     private static bool IsGeneratedLeaf(ProjectTask task) =>
-        !string.IsNullOrEmpty(task.Title) && task.Title.StartsWith("Task ", StringComparison.Ordinal);
+        string.IsNullOrWhiteSpace(task.TaskType);
 
     private static bool HasTimer(ProjectTaskAssignment assignment) =>
         assignment.TimerAccumulatedSeconds > 0 || assignment.TimerStartedAtUtc.HasValue;

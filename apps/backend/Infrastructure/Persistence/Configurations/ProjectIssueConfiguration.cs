@@ -55,6 +55,13 @@ public sealed class ProjectAlertConfiguration : IEntityTypeConfiguration<Project
         builder.Property(x => x.Status).HasMaxLength(30).IsRequired();
         builder.Property(x => x.RaisedByName).HasMaxLength(200).IsRequired();
         builder.Property(x => x.AudienceUserIds).HasColumnType("text");
+        builder.Property(x => x.StatusChangedBy).HasMaxLength(255);
+        builder.Property(x => x.AttachmentFileName).HasMaxLength(255);
+        builder.Property(x => x.AttachmentPath).HasColumnType("text");
+        builder.Property(x => x.ExpectedResolutionDate).HasMaxLength(50);
+        builder.Property(x => x.ServiceName).HasMaxLength(255);
+        builder.Property(x => x.EscalationType).HasMaxLength(100);
+        builder.Property(x => x.EscalatedTo).HasColumnType("text");
 
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.IssueId);

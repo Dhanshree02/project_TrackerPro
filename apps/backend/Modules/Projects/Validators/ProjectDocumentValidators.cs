@@ -12,6 +12,7 @@ public static class DocumentValidationRules
         "Proposal",
         "Signed Contract",
         "NDA",
+        "Escalation",
         "Other"
     ];
 }

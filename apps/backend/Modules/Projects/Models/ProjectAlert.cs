@@ -43,4 +43,22 @@ public class ProjectAlert : BaseEntity
     public string? ResolutionDetails { get; set; }
 
     public string HistoryJson { get; set; } = "[]";
+
+    public string? StatusChangedBy { get; set; }
+
+    public DateTime? StatusChangedAtUtc { get; set; }
+
+    public string? AttachmentFileName { get; set; }
+
+    public string? AttachmentPath { get; set; }
+
+    public string? ExpectedResolutionDate { get; set; }
+
+    public string? ServiceName { get; set; }
+
+    public string? EscalationType { get; set; }
+
+    public string? EscalatedTo { get; set; }
+
+    public Guid? ServiceEscalationId { get; set; }
 }

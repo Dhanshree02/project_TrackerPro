@@ -29,9 +29,18 @@ public sealed partial class FileStorageService : IFileStorageService
         }
         else
         {
-            // Default to ../../storage from apps/backend (i.e. solution root storage)
-            var solutionDir = Directory.GetParent(env.ContentRootPath)?.Parent?.FullName ?? env.ContentRootPath;
-            _storageRoot = Path.Combine(solutionDir, "storage");
+            var dir = new DirectoryInfo(env.ContentRootPath);
+            string rRoot = env.ContentRootPath;
+            while (dir != null)
+            {
+                if (Directory.Exists(Path.Combine(dir.FullName, "Documents")) && Directory.Exists(Path.Combine(dir.FullName, "apps")))
+                {
+                    rRoot = dir.FullName;
+                    break;
+                }
+                dir = dir.Parent;
+            }
+            _storageRoot = Path.Combine(rRoot, "storage");
         }
 
         // Repo-root Documents/ tree (sits alongside apps/backend + apps/frontend).
@@ -45,7 +54,17 @@ public sealed partial class FileStorageService : IFileStorageService
         }
         else
         {
-            var repoRoot = Directory.GetParent(env.ContentRootPath)?.Parent?.FullName ?? env.ContentRootPath;
+            var dir = new DirectoryInfo(env.ContentRootPath);
+            string repoRoot = env.ContentRootPath;
+            while (dir != null)
+            {
+                if (Directory.Exists(Path.Combine(dir.FullName, "Documents")) && Directory.Exists(Path.Combine(dir.FullName, "apps")))
+                {
+                    repoRoot = dir.FullName;
+                    break;
+                }
+                dir = dir.Parent;
+            }
             _documentsRoot = Path.Combine(repoRoot, "Documents");
         }
 

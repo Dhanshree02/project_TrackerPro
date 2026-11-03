@@ -10,4 +10,5 @@ public interface IActionNotificationService
 
     Task<IReadOnlyList<ActionAlertDto>> GetAlertsAsync(NotificationQueryParameters query, CancellationToken ct = default);
     Task<ActionAlertDto> UpdateAlertGovernanceAsync(Guid id, UpdateAlertGovernanceRequest request, CancellationToken ct = default);
+    Task<(Stream Stream, string ContentType, string FileName)?> DownloadAlertAttachmentAsync(Guid id, CancellationToken ct = default);
 }

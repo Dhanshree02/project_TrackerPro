@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Infrastructure.Storage;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Projects.Models;
@@ -11,7 +12,8 @@ namespace PMS.API.Modules.ActionCentre.Services;
 
 public sealed class ActionNotificationService(
     AppDbContext db,
-    ICurrentUserService currentUser) : IActionNotificationService
+    ICurrentUserService currentUser,
+    IFileStorageService storage) : IActionNotificationService
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -119,6 +121,93 @@ public sealed class ActionNotificationService(
         notification.HistoryJson = JsonSerializer.Serialize(history);
         notification.UpdatedAtUtc = now;
 
+        if (notification.Type == "WBS Escalation")
+        {
+            var openEscalations = await db.ProjectServiceEscalations
+                .Include(e => e.Stakeholders)
+                .Where(e => e.ProjectId == notification.ProjectId && e.Status == "Open")
+                .ToListAsync(ct);
+
+            foreach (var esc in openEscalations)
+            {
+                if (!string.IsNullOrWhiteSpace(notification.RelatedTask) &&
+                    !string.Equals(esc.ServiceName, notification.RelatedTask, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var matchStakeholder = esc.Stakeholders
+                    .FirstOrDefault(s => s.EmployeeId == notification.RecipientEmployeeId);
+
+                if (matchStakeholder != null)
+                {
+                    matchStakeholder.Status = "Acknowledged";
+                    matchStakeholder.UpdatedAtUtc = now;
+                }
+
+                if (esc.Stakeholders.Count > 0 && esc.Stakeholders.All(s => s.Status == "Acknowledged"))
+                {
+                    esc.Status = "Acknowledged";
+                    esc.UpdatedAtUtc = now;
+                }
+            }
+
+            var wbsAlerts = await db.ProjectAlerts
+                .Where(a => a.ProjectId == notification.ProjectId &&
+                            a.AlertType == "WBS Escalation" &&
+                            a.Status == "Open" &&
+                            a.DeletedAtUtc == null)
+                .ToListAsync(ct);
+
+            foreach (var wbsAlert in wbsAlerts)
+            {
+                if (!string.IsNullOrWhiteSpace(notification.RelatedTask) &&
+                    !wbsAlert.Title.Contains(notification.RelatedTask, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                wbsAlert.Status = "Acknowledged";
+                wbsAlert.StatusChangedBy = userName;
+                wbsAlert.StatusChangedAtUtc = now;
+                wbsAlert.UpdatedAtUtc = now;
+
+                var alertHist = ParseHistory(wbsAlert.HistoryJson);
+                alertHist.Add(new NotificationHistoryItemDto
+                {
+                    Action = "Status transitioned to Acknowledged via Action Center notification",
+                    Date = dateStr,
+                    Time = timeStr,
+                    By = userName
+                });
+                wbsAlert.HistoryJson = JsonSerializer.Serialize(alertHist);
+            }
+        }
+        else if (notification.IssueId != null)
+        {
+            var linkedAlerts = await db.ProjectAlerts
+                .Where(a => a.IssueId == notification.IssueId && a.Status == "Open" && a.DeletedAtUtc == null)
+                .ToListAsync(ct);
+
+            foreach (var linkedAlert in linkedAlerts)
+            {
+                linkedAlert.Status = "Acknowledged";
+                linkedAlert.StatusChangedBy = userName;
+                linkedAlert.StatusChangedAtUtc = now;
+                linkedAlert.UpdatedAtUtc = now;
+
+                var alertHist = ParseHistory(linkedAlert.HistoryJson);
+                alertHist.Add(new NotificationHistoryItemDto
+                {
+                    Action = "Status transitioned to Acknowledged via Action Center notification",
+                    Date = dateStr,
+                    Time = timeStr,
+                    By = userName
+                });
+                linkedAlert.HistoryJson = JsonSerializer.Serialize(alertHist);
+            }
+        }
+
         await db.SaveChangesAsync(ct);
 
         return MapDto(notification);
@@ -218,7 +307,86 @@ public sealed class ActionNotificationService(
             .OrderByDescending(a => a.CreatedAtUtc)
             .ToListAsync(ct);
 
+        // Backfill any escalation details if not directly present on older project alert records
+        var wbsAlerts = rows.Where(r => r.AlertType == "WBS Escalation" && (r.AttachmentFileName == null || r.ExpectedResolutionDate == null)).ToList();
+        if (wbsAlerts.Count > 0)
+        {
+            var projectIds = wbsAlerts.Select(w => w.ProjectId).Distinct().ToList();
+            var escalations = await db.ProjectServiceEscalations
+                .AsNoTracking()
+                .Include(e => e.Stakeholders)
+                .Where(e => projectIds.Contains(e.ProjectId))
+                .ToListAsync(ct);
+
+            foreach (var alertRow in wbsAlerts)
+            {
+                var matchEsc = escalations.FirstOrDefault(e => e.Id == alertRow.ServiceEscalationId)
+                               ?? escalations.FirstOrDefault(e => e.ProjectId == alertRow.ProjectId && alertRow.Title.Contains(e.ServiceName));
+                if (matchEsc != null)
+                {
+                    if (string.IsNullOrWhiteSpace(alertRow.AttachmentFileName) && !string.IsNullOrWhiteSpace(matchEsc.AttachmentFileName))
+                    {
+                        alertRow.AttachmentFileName = matchEsc.AttachmentFileName;
+                        alertRow.AttachmentPath = matchEsc.AttachmentPath;
+                    }
+                    if (string.IsNullOrWhiteSpace(alertRow.ExpectedResolutionDate) && matchEsc.ExpectedResolutionDate.HasValue)
+                    {
+                        alertRow.ExpectedResolutionDate = matchEsc.ExpectedResolutionDate.Value.ToString("yyyy-MM-dd");
+                    }
+                    if (string.IsNullOrWhiteSpace(alertRow.ServiceName))
+                    {
+                        alertRow.ServiceName = matchEsc.ServiceName;
+                    }
+                    if (string.IsNullOrWhiteSpace(alertRow.EscalationType))
+                    {
+                        alertRow.EscalationType = matchEsc.EscalationType;
+                    }
+                    if (string.IsNullOrWhiteSpace(alertRow.ResolutionDetails) && matchEsc.ExpectedResolutionDate.HasValue)
+                    {
+                        alertRow.ResolutionDetails = $"Expected Resolution Date: {matchEsc.ExpectedResolutionDate.Value:yyyy-MM-dd}";
+                    }
+                    if (string.IsNullOrWhiteSpace(alertRow.EscalatedTo) && matchEsc.Stakeholders.Count > 0)
+                    {
+                        alertRow.EscalatedTo = JsonSerializer.Serialize(matchEsc.Stakeholders.Select(s => s.EmployeeName).ToList());
+                    }
+                }
+            }
+        }
+
         return rows.Select(MapAlertDto).ToList();
+    }
+
+    public async Task<(Stream Stream, string ContentType, string FileName)?> DownloadAlertAttachmentAsync(
+        Guid id,
+        CancellationToken ct = default)
+    {
+        var alert = await db.ProjectAlerts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id && a.DeletedAtUtc == null, ct);
+
+        if (alert == null) return null;
+
+        var path = alert.AttachmentPath;
+        var name = alert.AttachmentFileName;
+
+        if (string.IsNullOrWhiteSpace(path) && alert.AlertType == "WBS Escalation")
+        {
+            var matchEsc = await db.ProjectServiceEscalations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == alert.ServiceEscalationId || (e.ProjectId == alert.ProjectId && alert.Title.Contains(e.ServiceName)), ct);
+            if (matchEsc != null)
+            {
+                path = matchEsc.AttachmentPath;
+                name = matchEsc.AttachmentFileName;
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(path)) return null;
+
+        var fileResult = storage.GetProjectFileStream(path);
+        if (fileResult == null) return null;
+
+        return (fileResult.Value.Stream, fileResult.Value.ContentType, name ?? Path.GetFileName(path));
     }
 
     public async Task<ActionAlertDto> UpdateAlertGovernanceAsync(
@@ -242,11 +410,24 @@ public sealed class ActionNotificationService(
         var dateStr = now.ToString("yyyy-MM-dd");
         var timeStr = now.ToString("HH:mm:ss");
 
-        alert.Status = string.IsNullOrWhiteSpace(request.Status) ? alert.Status : request.Status.Trim();
+        var oldStatus = alert.Status;
+        var newStatus = string.IsNullOrWhiteSpace(request.Status) ? alert.Status : request.Status.Trim();
+        alert.Status = newStatus;
         if (request.Owner != null) alert.Owner = request.Owner.Trim();
         if (request.ResolutionOwner != null) alert.ResolutionOwner = request.ResolutionOwner.Trim();
         if (request.EscalationOwner != null) alert.EscalationOwner = request.EscalationOwner.Trim();
         if (request.ResolutionDetails != null) alert.ResolutionDetails = request.ResolutionDetails.Trim();
+
+        if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(alert.StatusChangedBy))
+        {
+            alert.StatusChangedBy = userName;
+            alert.StatusChangedAtUtc = now;
+        }
+
+        if (string.IsNullOrWhiteSpace(alert.ResolutionOwner) && (alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase)))
+        {
+            alert.ResolutionOwner = userName;
+        }
 
         var history = ParseHistory(alert.HistoryJson);
         if (!string.IsNullOrWhiteSpace(request.Comment))
@@ -402,6 +583,25 @@ public sealed class ActionNotificationService(
             }
         }
 
+        var attachments = new List<string>();
+        if (!string.IsNullOrWhiteSpace(a.AttachmentFileName))
+        {
+            attachments.Add(a.AttachmentFileName);
+        }
+
+        var escalatedTo = new List<string>();
+        if (!string.IsNullOrWhiteSpace(a.EscalatedTo))
+        {
+            try
+            {
+                escalatedTo = JsonSerializer.Deserialize<List<string>>(a.EscalatedTo, JsonOptions) ?? [];
+            }
+            catch
+            {
+                // fallback
+            }
+        }
+
         return new ActionAlertDto
         {
             Id = a.Id.ToString(),
@@ -413,6 +613,7 @@ public sealed class ActionNotificationService(
             CustomerId = a.Project != null ? a.Project.ClientId.ToString() : null,
             CustomerName = a.Project?.Client?.Name ?? "",
             AlertType = a.AlertType ?? "Issue",
+            Kind = a.AlertType == "WBS Escalation" ? "Escalation" : "Alert",
             Priority = a.Priority,
             Status = a.Status,
             RaisedByEmployeeId = a.RaisedByEmployeeId,
@@ -423,7 +624,15 @@ public sealed class ActionNotificationService(
             ResolutionOwner = a.ResolutionOwner,
             EscalationOwner = a.EscalationOwner,
             ResolutionDetails = a.ResolutionDetails,
-            History = ParseHistory(a.HistoryJson)
+            StatusChangedBy = a.StatusChangedBy,
+            StatusChangedAtUtc = a.StatusChangedAtUtc,
+            History = ParseHistory(a.HistoryJson),
+            ServiceName = a.ServiceName,
+            EscalationType = a.EscalationType,
+            ExpectedResolutionDate = a.ExpectedResolutionDate,
+            EscalatedTo = escalatedTo.Count > 0 ? escalatedTo : audience,
+            Attachments = attachments,
+            AttachmentUrl = !string.IsNullOrWhiteSpace(a.AttachmentFileName) ? $"/api/v1/action-centre/alerts/{a.Id}/attachment" : null
         };
     }
 }
