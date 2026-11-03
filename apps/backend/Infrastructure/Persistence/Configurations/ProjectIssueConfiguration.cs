@@ -62,6 +62,7 @@ public sealed class ProjectAlertConfiguration : IEntityTypeConfiguration<Project
         builder.Property(x => x.ServiceName).HasMaxLength(255);
         builder.Property(x => x.EscalationType).HasMaxLength(100);
         builder.Property(x => x.EscalatedTo).HasColumnType("text");
+        builder.Property(x => x.ChatJson).HasColumnType("text");
 
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.IssueId);

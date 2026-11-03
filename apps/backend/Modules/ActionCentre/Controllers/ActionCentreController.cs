@@ -208,6 +208,7 @@ public class ActionCentreController : ControllerBase
             return NotFound();
         }
 
-        return File(result.Value.Stream, result.Value.ContentType, result.Value.FileName);
+        Response.Headers["Content-Disposition"] = $"inline; filename=\"{result.Value.FileName}\"";
+        return File(result.Value.Stream, result.Value.ContentType);
     }
 }

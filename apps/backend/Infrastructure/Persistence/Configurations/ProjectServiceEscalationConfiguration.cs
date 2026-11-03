@@ -24,6 +24,7 @@ public sealed class ProjectServiceEscalationConfiguration : IEntityTypeConfigura
         builder.Property(x => x.AttachmentContentType).HasMaxLength(120);
         builder.Property(x => x.Status).HasMaxLength(20).IsRequired();
         builder.Property(x => x.RaisedByName).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.ChatJson).HasColumnType("text");
 
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.ProjectServiceId);

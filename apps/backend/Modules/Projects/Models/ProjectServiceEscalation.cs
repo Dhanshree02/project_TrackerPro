@@ -48,5 +48,7 @@ public class ProjectServiceEscalation : BaseEntity
 
     public string RaisedByName { get; set; } = string.Empty;
 
+    public string? ChatJson { get; set; }
+
     public ICollection<ProjectServiceEscalationStakeholder> Stakeholders { get; set; } = new List<ProjectServiceEscalationStakeholder>();
 }

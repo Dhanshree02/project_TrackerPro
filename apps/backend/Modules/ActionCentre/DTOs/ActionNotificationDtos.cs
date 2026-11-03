@@ -51,6 +51,8 @@ public class ActionNotificationDto
 
     public List<NotificationHistoryItemDto> History { get; set; } = [];
 
+    public List<AlertCommentDto> Comments { get; set; } = [];
+
     public Guid ProjectId { get; set; }
 
     public Guid? IssueId { get; set; }
@@ -127,6 +129,17 @@ public class ActionAlertDto
     public string? AttachmentUrl { get; set; }
 
     public List<NotificationHistoryItemDto> History { get; set; } = [];
+
+    public List<AlertCommentDto> Comments { get; set; } = [];
+}
+
+public class AlertCommentDto
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string AuthorName { get; set; } = string.Empty;
+    public string? AuthorEmail { get; set; }
+    public string Text { get; set; } = string.Empty;
+    public string At { get; set; } = DateTime.UtcNow.ToString("o");
 }
 
 public class UpdateAlertGovernanceRequest
@@ -142,4 +155,6 @@ public class UpdateAlertGovernanceRequest
     public string? ResolutionDetails { get; set; }
 
     public string? Comment { get; set; }
+
+    public List<string>? Comments { get; set; }
 }

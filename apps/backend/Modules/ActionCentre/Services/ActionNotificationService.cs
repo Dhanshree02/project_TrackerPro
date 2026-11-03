@@ -349,6 +349,10 @@ public sealed class ActionNotificationService(
                     {
                         alertRow.EscalatedTo = JsonSerializer.Serialize(matchEsc.Stakeholders.Select(s => s.EmployeeName).ToList());
                     }
+                    if (string.IsNullOrWhiteSpace(alertRow.ChatJson) && !string.IsNullOrWhiteSpace(matchEsc.ChatJson))
+                    {
+                        alertRow.ChatJson = matchEsc.ChatJson;
+                    }
                 }
             }
         }
@@ -430,15 +434,67 @@ public sealed class ActionNotificationService(
         }
 
         var history = ParseHistory(alert.HistoryJson);
+        var newCommentsToAdd = new List<string>();
         if (!string.IsNullOrWhiteSpace(request.Comment))
         {
-            history.Add(new NotificationHistoryItemDto
+            newCommentsToAdd.Add(request.Comment.Trim());
+        }
+        if (request.Comments != null && request.Comments.Count > 0)
+        {
+            foreach (var c in request.Comments)
             {
-                Action = $"Comment added: \"{request.Comment.Trim()}\"",
-                Date = dateStr,
-                Time = timeStr,
-                By = userName
-            });
+                if (!string.IsNullOrWhiteSpace(c))
+                {
+                    newCommentsToAdd.Add(c.Trim());
+                }
+            }
+        }
+
+        if (newCommentsToAdd.Count > 0)
+        {
+            var commentsList = ParseComments(alert.ChatJson);
+            foreach (var rawComment in newCommentsToAdd)
+            {
+                var commentText = rawComment.Length > 50 ? rawComment[..50] : rawComment;
+                commentsList.Add(new AlertCommentDto
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    AuthorName = userName,
+                    AuthorEmail = currentUser.Email,
+                    Text = commentText,
+                    At = now.ToString("o")
+                });
+
+                history.Add(new NotificationHistoryItemDto
+                {
+                    Action = $"Comment added: \"{commentText}\"",
+                    Date = dateStr,
+                    Time = timeStr,
+                    By = userName
+                });
+            }
+
+            var serializedComments = JsonSerializer.Serialize(commentsList, JsonOptions);
+            alert.ChatJson = serializedComments;
+
+            if (alert.ServiceEscalationId.HasValue)
+            {
+                var esc = await db.ProjectServiceEscalations.FirstOrDefaultAsync(e => e.Id == alert.ServiceEscalationId.Value, ct);
+                if (esc != null)
+                {
+                    esc.ChatJson = serializedComments;
+                    esc.UpdatedAtUtc = now;
+                }
+
+                var siblings = await db.ProjectAlerts
+                    .Where(a => a.ServiceEscalationId == alert.ServiceEscalationId.Value && a.Id != alert.Id && a.DeletedAtUtc == null)
+                    .ToListAsync(ct);
+                foreach (var sib in siblings)
+                {
+                    sib.ChatJson = serializedComments;
+                    sib.UpdatedAtUtc = now;
+                }
+            }
         }
         history.Add(new NotificationHistoryItemDto
         {
@@ -568,6 +624,19 @@ public sealed class ActionNotificationService(
         };
     }
 
+    private static List<AlertCommentDto> ParseComments(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<AlertCommentDto>>(json, JsonOptions) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
     private static ActionAlertDto MapAlertDto(ProjectAlert a)
     {
         var audience = new List<string>();
@@ -627,6 +696,7 @@ public sealed class ActionNotificationService(
             StatusChangedBy = a.StatusChangedBy,
             StatusChangedAtUtc = a.StatusChangedAtUtc,
             History = ParseHistory(a.HistoryJson),
+            Comments = ParseComments(a.ChatJson),
             ServiceName = a.ServiceName,
             EscalationType = a.EscalationType,
             ExpectedResolutionDate = a.ExpectedResolutionDate,

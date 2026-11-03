@@ -38,6 +38,98 @@ Whenever a new feature, database migration, API route, or business logic change 
 
 <!-- New changes will be logged below this line -->
 
+### [2026-11-04] Escalation Review Form Refinements: Remove Resolution Notes, 3-Chat Scroll, Staged Chat Submission, and Inline Attachment Viewer
+
+- **Branch**: `uat_clean5`
+- **Module**: Action Centre / Escalation Review Details Modal
+- **Purpose**:
+  1. Remove the *Resolution Notes* field from the *Resolution Timeline Details* section so it only contains the read-only Expected Resolution Date.
+  2. Make the *Discussion Chat Thread* section scrollable after 3 chats (`max-h-36 overflow-y-auto`), matching the scroll behavior and height proportion of the *Status Transitions Timeline* section.
+  3. Ensure clicking an attachment name opens the document inline in a new browser tab/window instead of forcing a file download.
+  4. Decouple local chat drafting from backend submission: clicking "Send" in the chat thread displays the message immediately in the thread (staged), while clicking the "Save Governance Changes" button actually persists the message(s) to the database for all stakeholders.
+
+#### 📁 Files Affected
+- **Modified**: `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- **Modified**: `apps/backend/Modules/ActionCentre/Controllers/ActionCentreController.cs`
+- **Modified**: `apps/backend/Modules/ActionCentre/DTOs/ActionNotificationDtos.cs`
+- **Modified**: `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+
+#### 🗄️ Database & Schema Changes
+- **Tables / Columns Affected**: None (leveraged `project.tbl_project_service_escalations.ChatJson` and `project.tbl_project_alerts.ChatJson`).
+- **Migrations / Scripts**: None required.
+
+#### 🔌 APIs & Business Logic Changed
+- **Backend**:
+  - `GET /api/v1/action-centre/alerts/{id}/attachment` (`ActionCentreController.DownloadAlertAttachment`):
+    - Added `Response.Headers["Content-Disposition"] = $"inline; filename=\"{result.Value.FileName}\"";` and returned `File(stream, contentType)` so browsers render PDFs and images inline rather than forcing a file download.
+  - `PUT /api/v1/action-centre/alerts/{id}/governance` (`ActionNotificationService.UpdateAlertGovernanceAsync`):
+    - Added `List<string>? Comments` to `UpdateAlertGovernanceRequest` supporting single or batch comment persistence when saving governance changes.
+- **Frontend (`action-centre-page.tsx`)**:
+  - Removed `Resolution Notes` textarea from the *Resolution Timeline Details* card.
+  - Adjusted Discussion Chat Thread container to `max-h-36 overflow-y-auto`, ensuring that 3 chats fit comfortably and any additional messages enable smooth vertical scrolling.
+  - Attachment click handler attaches proper MIME type (e.g. `application/pdf`, `image/jpeg`, `image/png`) to the blob and opens it via `window.open(blobUrl, "_blank", "noopener,noreferrer")`.
+  - Added `pendingChatMsgs` state: clicking "Send" (or pressing Enter) stages the message into `allDisplayComments` so it renders immediately in the conversation thread.
+  - On clicking "Save Governance Changes", `handleUpdateAlert` submits all staged messages (and input text) via the API and persists them to the project escalation and alert tables.
+
+#### ⚠️ Critical Dependencies & Invariants to Preserve
+- WhatsApp-style chat bubble layouts, read-only `day-month-year` dates, and status transitions timeline integrity remain intact.
+- Multi-stakeholder alert and escalation synchronization remains fully operational.
+
+### [2026-11-04] WhatsApp-Style Escalation Chat Persistence, Layout Swapping, Readonly Day-Month-Year Dates, and Attachment Viewer
+
+- **Branch**: `uat_clean5`
+- **Module**: Action Centre / Escalation Review & Governance Alert Details
+- **Purpose**:
+  1. Render dates in `day-month-year` (`DD-MM-YYYY`) format across the Resolution Timeline Details section (readonly Expected Resolution Date) and Status Transitions Timeline.
+  2. Enable authenticated direct opening and viewing of alert attachments by clicking the attachment name via `apiFetchBlob`.
+  3. Swap form layout: remove the *Governance Allocation & Ownership* section, place *Discussion Chat Thread* in the wide left column (`md:col-span-2`), and move *Resolution Timeline Details* under *Set Status* in the right column.
+  4. Implement persistent WhatsApp-style multi-stakeholder chat messaging stored in the project's escalation table (`project.tbl_project_service_escalations.ChatJson`) and alert table (`project.tbl_project_alerts.ChatJson`), with 50-character limit, live remaining characters counter, message bubbles distinguishing sender vs other participants, and smooth scrollable history.
+
+#### 📁 Files Affected
+- **Modified**: `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- **Modified**: `apps/backend/Modules/Projects/Models/ProjectServiceEscalation.cs`
+- **Modified**: `apps/backend/Infrastructure/Persistence/Configurations/ProjectServiceEscalationConfiguration.cs`
+- **Modified**: `apps/backend/Modules/Projects/Models/ProjectAlert.cs`
+- **Modified**: `apps/backend/Infrastructure/Persistence/Configurations/ProjectIssueConfiguration.cs`
+- **Modified**: `apps/backend/Modules/ActionCentre/DTOs/ActionNotificationDtos.cs`
+- **Modified**: `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+
+#### 🗄️ Database & Schema Changes
+- **Tables / Columns Affected**:
+  - `project.tbl_project_service_escalations`: Added `"ChatJson" text`.
+  - `project.tbl_project_alerts`: Added `"ChatJson" text`.
+- **Migrations / Scripts**:
+  - Executed SQL:
+    ```sql
+    ALTER TABLE project.tbl_project_service_escalations ADD COLUMN IF NOT EXISTS "ChatJson" text;
+    ALTER TABLE project.tbl_project_alerts ADD COLUMN IF NOT EXISTS "ChatJson" text;
+    ```
+
+#### 🔌 APIs & Business Logic Changed
+- **Backend**:
+  - `ActionNotificationDtos.cs`: Added `AlertCommentDto` (`Id`, `AuthorName`, `AuthorEmail`, `Text`, `At`) and added `Comments` list to `ActionAlertDto`.
+  - `PUT /api/v1/action-centre/alerts/{id}/governance` (`ActionNotificationService.UpdateAlertGovernanceAsync`):
+    - Truncates incoming comment text to 50 characters max.
+    - Appends comment to `alert.ChatJson`.
+    - If `ServiceEscalationId` is set, updates `project.tbl_project_service_escalations.ChatJson` and synchronizes all sibling `ProjectAlert` records for that escalation.
+  - `GET /api/v1/action-centre/alerts` (`ActionNotificationService.GetAlertsAsync` & `MapAlertDto`):
+    - Backfills `alertRow.ChatJson` from `matchEsc.ChatJson` if empty.
+    - Deserializes `ChatJson` into `Comments` so all stakeholders see the full shared chat thread.
+- **Frontend (`action-centre-page.tsx`)**:
+  - Added helper `formatToDayMonthYear(val)` converting dates into `DD-MM-YYYY`.
+  - Changed `Expected Resolution Date` input in *Resolution Timeline Details* to `readOnly` with `day-month-year` format.
+  - Changed `Status Transitions Timeline` timestamps to display `day-month-year` (`DD-MM-YYYY`).
+  - Updated attachment item click handler to use `apiFetchBlob` with bypass headers and open the blob in a new tab.
+  - Removed `Governance Allocation & Ownership` section completely.
+  - Positioned *Discussion Chat Thread* into the left column (`md:col-span-2`) with WhatsApp-style bubbles (green aligned right for current user, white/gray aligned left for other stakeholders).
+  - Implemented 50-character limit with live `${50 - len} left` indicator and instant "Send" button + Enter key submission.
+  - Moved *Resolution Timeline Details* to the right column directly under *Set Status*.
+
+#### ⚠️ Critical Dependencies & Invariants to Preserve
+- Status transitions, audit history logging, and resolution notes persistence remain intact.
+- WBS escalation stakeholder notification delivery and acknowledgement status synchronization continue functioning without regression.
+- Attachment download endpoint stream security remains verified.
+
 ### [2026-11-04] Unblock WBS Service Raise Escalation, Store Attachments in Documents/Escalation, and Display in Action Center
 
 - **Branch**: `uat_clean5`

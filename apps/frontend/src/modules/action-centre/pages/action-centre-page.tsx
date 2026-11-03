@@ -55,7 +55,7 @@ import {
   type IssueCategory,
   type DhPriority,
 } from "@/lib/workspace-store";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, apiFetchBlob } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
@@ -65,6 +65,22 @@ import {
   fetchMyAssignedProjects,
   type AssignedProjectSummary,
 } from "@/modules/projects/api/project-issues";
+
+function formatToDayMonthYear(val?: string | null): string {
+  if (!val) return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}-${month}-${year}`;
+  }
+  return val;
+}
 
 const actionTabs = [
   { code: "bucket-list", name: "Bucket List" },
@@ -1181,6 +1197,8 @@ function AlertsTab() {
 
   // Modal states
   const [newChatMsg, setNewChatMsg] = useState("");
+  const [pendingChatMsgs, setPendingChatMsgs] = useState<string[]>([]);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
   const [selectedOwner, setSelectedOwner] = useState("");
   const [selectedResOwner, setSelectedResOwner] = useState("");
   const [selectedEscOwner, setSelectedEscOwner] = useState("");
@@ -1267,6 +1285,19 @@ function AlertsTab() {
   // Alerts raised by the Log Requirement flow (add service / scope cancellation)
   const isRequirementAlert = !!selectedAlert?.alertId?.startsWith("REQ-AL-");
 
+  const allDisplayComments = useMemo(() => {
+    const existing = selectedAlert?.comments || [];
+    const pending = pendingChatMsgs.map((text, idx) => ({
+      id: `pending-${idx}`,
+      authorName: user?.name || "You",
+      authorEmail: user?.email || "",
+      text,
+      at: new Date().toISOString(),
+      isPending: true,
+    }));
+    return [...existing, ...pending];
+  }, [selectedAlert?.comments, pendingChatMsgs, user?.name, user?.email]);
+
   const openDetails = (id: string) => {
     const alert = allAlerts.find((a) => a.id === id);
     if (alert) {
@@ -1274,28 +1305,43 @@ function AlertsTab() {
       setSelectedOwner(alert.owner || "");
       setSelectedResOwner(alert.resolutionOwner || "");
       setSelectedEscOwner(alert.escalationOwner || "");
+      const formattedExpDate = formatToDayMonthYear(alert.expectedResolutionDate);
       setResDetails(
         alert.resolutionDetails ||
-        (alert.expectedResolutionDate ? `Expected Resolution Date: ${alert.expectedResolutionDate}` : "")
+        (formattedExpDate ? `Expected Resolution Date: ${formattedExpDate}` : "")
       );
       setSelectedStatus(alert.status);
       setApproved(false);
+      setNewChatMsg("");
+      setPendingChatMsgs([]);
     }
+  };
+
+  const handleStageChatMessage = () => {
+    if (!newChatMsg.trim()) return;
+    const msg = newChatMsg.trim().slice(0, 50);
+    setPendingChatMsgs((prev) => [...prev, msg]);
+    setNewChatMsg("");
   };
 
   const handleUpdateAlert = async () => {
     if (!selectedAlertId) return;
     try {
+      const allCommentsToSend = [...pendingChatMsgs];
+      if (newChatMsg.trim()) {
+        allCommentsToSend.push(newChatMsg.trim().slice(0, 50));
+      }
       await apiFetch(`/api/v1/action-centre/alerts/${selectedAlertId}/governance`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           status: selectedStatus,
-          owner: selectedOwner,
-          resolutionOwner: selectedResOwner,
-          escalationOwner: selectedEscOwner,
+          owner: selectedOwner || undefined,
+          resolutionOwner: selectedResOwner || undefined,
+          escalationOwner: selectedEscOwner || undefined,
           resolutionDetails: resDetails,
-          comment: newChatMsg.trim() || undefined,
+          comment: allCommentsToSend.length === 1 ? allCommentsToSend[0] : undefined,
+          comments: allCommentsToSend.length > 1 ? allCommentsToSend : undefined,
         }),
       });
       dhStore.updateGovernanceAlert(
@@ -1307,14 +1353,15 @@ function AlertsTab() {
           escalationOwner: selectedEscOwner,
           resolutionDetails: resDetails,
         },
-        newChatMsg,
+        allCommentsToSend.join("\n"),
         user.id,
         user.name,
       );
-      toast.success("Alert Governance updated persistently!");
+      toast.success("Governance changes saved successfully!");
+      setPendingChatMsgs([]);
       setNewChatMsg("");
       setSelectedAlertId(null);
-      loadAlerts();
+      await loadAlerts();
     } catch (e: any) {
       toast.error(e?.message || "Failed to update alert");
     }
@@ -1564,7 +1611,7 @@ function AlertsTab() {
           draggable
         >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-            {/* Left side details */}
+            {/* Left side details (md:col-span-2) */}
             <div className="md:col-span-2 space-y-4">
               <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
                 <span className="font-semibold text-[10px] text-muted-foreground uppercase">
@@ -1605,7 +1652,7 @@ function AlertsTab() {
                         Expected Resolution Date
                       </span>
                       <span className="font-semibold text-gray-800">
-                        {selectedAlert.expectedResolutionDate}
+                        {formatToDayMonthYear(selectedAlert.expectedResolutionDate)}
                       </span>
                     </div>
                   )}
@@ -1621,85 +1668,100 @@ function AlertsTab() {
                 </p>
               </div>
 
-              <div className="rounded-lg border border-border p-3 bg-card space-y-3">
-                <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                  Governance Allocation & Ownership
-                </span>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">Alert Owner</span>
-                    <select
-                      value={selectedOwner}
-                      onChange={(e) => setSelectedOwner(e.target.value)}
-                      className="form-input rounded-md border border-border p-1 bg-card"
-                    >
-                      <option value="">Unassigned</option>
-                      {(people || []).map((p) => (
-                        <option key={p.id} value={p.name}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      Resolution Owner
-                    </span>
-                    <select
-                      value={selectedResOwner}
-                      onChange={(e) => setSelectedResOwner(e.target.value)}
-                      className="form-input rounded-md border border-border p-1 bg-card"
-                    >
-                      <option value="">Unassigned</option>
-                      {(people || []).map((p) => (
-                        <option key={p.id} value={p.name}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold text-muted-foreground">
-                      Escalation Owner
-                    </span>
-                    <select
-                      value={selectedEscOwner}
-                      onChange={(e) => setSelectedEscOwner(e.target.value)}
-                      className="form-input rounded-md border border-border p-1 bg-card"
-                    >
-                      <option value="">Unassigned</option>
-                      {(people || []).map((p) => (
-                        <option key={p.id} value={p.name}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Resolution Progress */}
-              <div className="rounded-lg border border-border p-3 bg-card space-y-2">
-                <div className="flex items-center justify-between border-b border-border pb-1">
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase">
-                    Resolution Timeline Details
+              {/* Discussion Chat Thread (Swapped to left side with wide view) */}
+              <div className="rounded-lg border border-border p-3 bg-card space-y-2.5">
+                <div className="flex items-center justify-between border-b border-border pb-1.5">
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5 text-primary" /> Discussion Chat Thread
                   </span>
-                  {selectedAlert.expectedResolutionDate && (
-                    <span className="text-[10px] text-muted-foreground font-semibold">
-                      Expected: <strong className="text-primary">{selectedAlert.expectedResolutionDate}</strong>
-                    </span>
-                  )}
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {allDisplayComments.length} {allDisplayComments.length === 1 ? "message" : "messages"}
+                  </span>
                 </div>
-                <textarea
-                  value={resDetails}
-                  onChange={(e) => setResDetails(e.target.value)}
-                  placeholder="Document resolution steps, technical outcomes, or internal timeline here..."
-                  rows={2}
-                  className="w-full rounded-md border border-border bg-card p-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
+
+                {/* WhatsApp-Style Chat Area with scroll after 3 chats (Like Status Transitions Timeline) */}
+                <div className="flex flex-col space-y-2 max-h-36 overflow-y-auto p-2.5 rounded-md bg-[#efeae2]/30 border border-border">
+                  {allDisplayComments.map((cm: any, idx: number) => {
+                    const isMe = (cm.authorEmail && user.email && cm.authorEmail.toLowerCase() === user.email.toLowerCase()) ||
+                                 (cm.authorName && user.name && cm.authorName.toLowerCase() === user.name.toLowerCase());
+                    const timeStr = cm.at
+                      ? new Date(cm.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "";
+                    const dateStr = formatToDayMonthYear(cm.at);
+
+                    return (
+                      <div
+                        key={cm.id || idx}
+                        className={cn(
+                          "flex flex-col max-w-[80%] rounded-lg px-3 py-1.5 text-xs shadow-xs",
+                          isMe
+                            ? "self-end ml-auto bg-emerald-100 text-emerald-950 border border-emerald-300 rounded-tr-none"
+                            : "self-start mr-auto bg-white text-gray-900 border border-border rounded-tl-none"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-3 text-[10px] pb-1 border-b border-black/5 font-semibold">
+                          <span className={cn(isMe ? "text-emerald-800" : "text-primary")}>
+                            {isMe ? "You" : cm.authorName || "Stakeholder"}
+                            {cm.isPending && (
+                              <span className="ml-1 text-[9px] font-normal text-muted-foreground italic">(staged)</span>
+                            )}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground font-normal tabular-nums">
+                            {dateStr} {timeStr}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs break-words whitespace-pre-wrap leading-relaxed">
+                          {cm.text}
+                        </p>
+                      </div>
+                    );
+                  })}
+                  {allDisplayComments.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-4 text-center text-muted-foreground">
+                      <MessageSquare className="h-5 w-5 stroke-[1.5] mb-1 opacity-40" />
+                      <span className="text-xs italic">No chat messages yet.</span>
+                      <span className="text-[10px]">Type below and click Send (up to 50 characters).</span>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* 50-Character Chat Input with live remaining counter and Send button */}
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      maxLength={50}
+                      value={newChatMsg}
+                      onChange={(e) => setNewChatMsg(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleStageChatMessage();
+                        }
+                      }}
+                      placeholder="Type a message (max 50 chars)..."
+                      className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring pr-20"
+                    />
+                    <span className={cn(
+                      "absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold select-none",
+                      50 - (newChatMsg || "").length <= 10 ? "text-red-500 font-bold" : "text-muted-foreground"
+                    )}>
+                      {50 - (newChatMsg || "").length} left
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleStageChatMessage}
+                    disabled={!newChatMsg.trim()}
+                    className="inline-flex items-center gap-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer shrink-0"
+                  >
+                    <Send className="h-3 w-3" /> Send
+                  </button>
+                </div>
               </div>
 
-              {/* History Timeline Logs */}
+              {/* Status Transitions Timeline (Format: day-month-year) */}
               {selectedAlert.history && selectedAlert.history.length > 0 && (
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
@@ -1707,9 +1769,9 @@ function AlertsTab() {
                   </span>
                   <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
                     {(selectedAlert.history || []).map((h: any, idx) => {
-                      const dateStr = h.at ? new Date(h.at).toLocaleDateString() : (h.date || "");
+                      const dateStr = formatToDayMonthYear(h.at || h.date);
                       const timeStr = h.at ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : (h.time || "");
-                      const text = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
+                      const text = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — \"${h.details}\"` : ""}`;
                       return (
                         <div key={idx} className="flex gap-2 text-[10px]">
                           <span className="text-muted-foreground tabular-nums">
@@ -1719,13 +1781,12 @@ function AlertsTab() {
                         </div>
                       );
                     })}
-
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Right side communications thread */}
+            {/* Right side controls (md:col-span-1) */}
             <div className="space-y-4 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
@@ -1759,9 +1820,24 @@ function AlertsTab() {
                       {(selectedAlert.attachments || []).map((file, idx) => (
                         <div
                           key={idx}
-                          onClick={() => {
-                            const downloadUrl = (selectedAlert as any).attachmentUrl || `/api/v1/action-centre/alerts/${selectedAlert.id}/attachment`;
-                            window.open(downloadUrl, "_blank");
+                          onClick={async () => {
+                            try {
+                              const downloadUrl = (selectedAlert as any).attachmentUrl || `/api/v1/action-centre/alerts/${selectedAlert.id}/attachment`;
+                              const blob = await apiFetchBlob(downloadUrl);
+                              const ext = file.split(".").pop()?.toLowerCase() || "";
+                              let mime = blob.type;
+                              if (!mime || mime === "application/octet-stream") {
+                                if (ext === "pdf") mime = "application/pdf";
+                                else if (ext === "png") mime = "image/png";
+                                else if (ext === "jpg" || ext === "jpeg") mime = "image/jpeg";
+                                else if (ext === "txt") mime = "text/plain";
+                              }
+                              const typedBlob = new Blob([blob], { type: mime });
+                              const blobUrl = URL.createObjectURL(typedBlob);
+                              window.open(blobUrl, "_blank", "noopener,noreferrer");
+                            } catch (err: any) {
+                              toast.error(err?.message || "Failed to open attachment");
+                            }
                           }}
                           className="flex items-center gap-1.5 text-[10px] text-primary hover:underline cursor-pointer"
                           title="Click to view / download file"
@@ -1799,8 +1875,6 @@ function AlertsTab() {
                     {isRequirementAlert ? "Status" : "Set Status"}
                   </span>
                   {isRequirementAlert ? (
-                    // Requirement alerts start as Open; status is updated later by the
-                    // assigned manager / higher authority, not from this window.
                     <div
                       className={cn(
                         "w-full rounded-md border p-2 text-xs font-bold shadow-xs",
@@ -1854,39 +1928,20 @@ function AlertsTab() {
                   )}
                 </div>
 
-                {/* Discussion Area Comment box */}
+                {/* Resolution Timeline Details (Placed under Set Status with readonly day-month-year date) */}
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
-                    Discussion Chat Thread
+                    Resolution Timeline Details
                   </span>
-                  <div className="space-y-2 max-h-36 overflow-y-auto pl-1 pr-0.5 text-[10px] leading-relaxed">
-                    {(selectedAlert.comments || []).map((cm) => (
-                      <div
-                        key={cm.id}
-                        className="bg-muted/30 border border-border p-2 rounded-md space-y-0.5"
-                      >
-                        <div className="flex justify-between font-semibold text-gray-800 text-[9px]">
-                          <span>{cm.authorName}</span>
-                          <span className="text-muted-foreground">
-                            {cm.at ? new Date(cm.at).toLocaleDateString() : ""}
-                          </span>
-                        </div>
-                        <p className="text-gray-700">{cm.text}</p>
-                      </div>
-                    ))}
-                    {(!selectedAlert.comments || selectedAlert.comments.length === 0) && (
-                      <span className="text-muted-foreground italic text-[10px]">
-                        No chat messages yet.
-                      </span>
-                    )}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-muted-foreground">Expected Resolution Date</span>
+                    <input
+                      type="text"
+                      readOnly
+                      value={formatToDayMonthYear(selectedAlert.expectedResolutionDate) || "—"}
+                      className="w-full rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs font-semibold text-gray-800 outline-none cursor-default"
+                    />
                   </div>
-                  <textarea
-                    value={newChatMsg}
-                    onChange={(e) => setNewChatMsg(e.target.value)}
-                    placeholder="Type an internal governance comment or reply..."
-                    rows={2}
-                    className="w-full rounded-md border border-border p-1.5 text-xs bg-card outline-none focus-visible:ring-1 focus-visible:ring-ring mt-2"
-                  />
                 </div>
               </div>
 

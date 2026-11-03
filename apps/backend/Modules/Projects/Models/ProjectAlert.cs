@@ -61,4 +61,6 @@ public class ProjectAlert : BaseEntity
     public string? EscalatedTo { get; set; }
 
     public Guid? ServiceEscalationId { get; set; }
+
+    public string? ChatJson { get; set; }
 }
