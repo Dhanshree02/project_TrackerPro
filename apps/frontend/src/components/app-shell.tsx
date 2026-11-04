@@ -27,26 +27,29 @@ export function AppShell({
   }, []);
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { hasPermission, hasAny } = usePermissions();
+  const { hasPermission, hasAny, loading: permissionsLoading } = usePermissions();
   const { permissionsReady } = useAuth();
   const landingItems = NAV_ITEMS;
 
-  // Wait for /rbac/effective + user switch before bouncing. A new origin
-  // (LAN IP vs localhost) has its own localStorage; racing here 403s the home page.
-  if (!permissionsReady) {
+  // Wait for permissions to finish loading before evaluating route guards.
+  if (!permissionsReady || permissionsLoading) {
     return (
       <div className="flex min-h-screen w-full isolate bg-background text-foreground">
         <AppSidebar />
         <div className="relative flex min-w-0 flex-1 flex-col bg-background">
           <AppTopbar title={title} subtitle={subtitle} />
-          <main className="flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
+          <main className="flex-1 overflow-x-hidden p-4 md:p-6">
+            <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+              Loading permissions…
+            </div>
+          </main>
           <MobileTabs />
         </div>
       </div>
     );
   }
 
-  // Users without dashboard access (e.g. HR) land on their first permitted
+  // Users without dashboard access land on their first permitted
   // module after login instead of hitting the 403 page on the root route.
   if (pathname === "/" && !hasPermission("dashboard.view")) {
     const items = filterNavItems(landingItems, hasPermission, hasAny, {
@@ -58,15 +61,31 @@ export function AppShell({
       isSales,
     });
     const landing = firstNavRoute(items);
-    if (landing) return <Navigate to={landing} replace />;
+    if (landing && landing !== pathname) return <Navigate to={landing} replace />;
+    if (!landing) return <Navigate to="/access-denied" replace />;
   }
 
   // Route-level RBAC guard: direct URL access to a module the user has no
-  // permission for shows the 403 page instead of rendering the module.
+  // permission for navigates to their first permitted module, or shows 403
+  // only if the user has no accessible modules at all.
   const required = resolveRoutePermission(pathname);
   if (required !== null) {
     const keys = Array.isArray(required) ? required : [required];
-    if (!hasAny(...keys)) return <Navigate to="/access-denied" replace />;
+    if (!hasAny(...keys)) {
+      const items = filterNavItems(landingItems, hasPermission, hasAny, {
+        isHr,
+        isEmployee,
+        isPmFamily,
+        isPmoFamily,
+        isAccounts,
+        isSales,
+      });
+      const landing = firstNavRoute(items);
+      if (landing && landing !== pathname) {
+        return <Navigate to={landing} replace />;
+      }
+      return <Navigate to="/access-denied" replace />;
+    }
   }
 
   return (

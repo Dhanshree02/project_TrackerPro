@@ -1077,7 +1077,7 @@ export function CustomerDetailPage() {
         </aside>
       </div>
 
-      {showEMPicker && (
+      {showEMPicker && canManageCustomerDetail && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center overscroll-none p-4">
           <button
             type="button"
@@ -1178,7 +1178,7 @@ export function CustomerDetailPage() {
       )}
 
       {/* Change Sales Manager Modal */}
-      {showSMPicker && (
+      {showSMPicker && canManageCustomerDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overscroll-none p-4">
           <button
             type="button"

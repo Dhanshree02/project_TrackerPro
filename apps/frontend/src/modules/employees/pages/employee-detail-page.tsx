@@ -461,7 +461,7 @@ export function EmployeeProfilePage() {
     useRoleContext();
   const { canView, canManage, loading: permissionsLoading } = usePermissions();
 
-  const canViewEmployeeDetail = canView("employee-detail");
+  const canViewEmployeeDetail = canView("employee-detail") || canView("employee-directory");
   const canManageEmployeeDetail = canManage("employee-detail");
 
   const [emp, setEmp] = useState<Employee | null>(null);

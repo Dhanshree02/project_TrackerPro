@@ -46,8 +46,8 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
 
   const onSwitchRole = async (next: DemoRoleKey) => {
     if (next === demoRole) return;
-    await switchDemoRole(next);
     await navigate({ to: "/" });
+    await switchDemoRole(next);
   };
 
   const activePersona = useMemo(() => {

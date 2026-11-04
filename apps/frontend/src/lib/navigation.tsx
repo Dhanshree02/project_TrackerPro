@@ -44,7 +44,7 @@ export interface NavItem {
 /** Sidebar labels and routes. Roles & Permissions reads the same catalog from the database. */
 export const NAV_ITEMS: NavItem[] = [
   { code: "dashboard", to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true, permission: "dashboard.view" },
-  { code: "action-centre", to: "/action-centre", label: "Action Center", icon: ListChecks, permission: "action-center.view" },
+  { code: "action-centre", to: "/action-centre", label: "Action Center", icon: ListChecks, permission: ["action-centre.view", "action-center.view"] },
   { code: "projects", to: "/projects", label: "Projects", icon: FolderKanban, permission: "projects.view" },
   {
     code: "resources",
@@ -62,9 +62,10 @@ export const NAV_ITEMS: NavItem[] = [
     code: "my-team",
     label: "My Team",
     icon: Users,
+    permission: "my-team.view",
     subItems: [
-      { code: "team-dashboard", to: "/my-team/", label: "Team Dashboard" },
-      { code: "timesheets", to: "/my-team/timesheets", label: "Timesheets" },
+      { code: "team-dashboard", to: "/my-team/", label: "Team Dashboard", permission: "team-dashboard.view" },
+      { code: "timesheets", to: "/my-team/timesheets", label: "Timesheets", permission: "timesheets.view" },
     ],
   },
   {
@@ -73,8 +74,8 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Settings,
     permission: "settings.view",
     subItems: [
-      { code: "roles-permissions", to: "/settings-security-roles", label: "Roles & Permissions" },
-      { code: "master", to: "/settings-masters", label: "Master" },
+      { code: "roles-permissions", to: "/settings-security-roles", label: "Roles & Permissions", permission: "roles-permissions.view" },
+      { code: "master", to: "/settings-masters", label: "Master", permission: "master.view" },
     ],
   },
 ];
@@ -181,9 +182,10 @@ export function filterNavItems(
 
 // ─── Route guard map ─────────────────────────────────────────────────────────
 export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] | null }[] = [
-  { prefix: "/settings-masters", permission: "settings.view" },
+  { prefix: "/settings-security-roles", permission: "roles-permissions.view" },
+  { prefix: "/settings-masters", permission: "master.view" },
   { prefix: "/settings", permission: "settings.view" },
-  { prefix: "/action-centre", permission: "action-center.view" },
+  { prefix: "/action-centre", permission: ["action-centre.view", "action-center.view"] },
   { prefix: "/projects/new", permission: "projects.create" },
   { prefix: "/projects", permission: "projects.view" },
   { prefix: "/customers", permission: "customers.view" },
@@ -191,8 +193,8 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] 
   { prefix: "/employee-directory", permission: "employee-directory.view" },
   { prefix: "/resources", permission: "resources.view" },
   { prefix: "/repository", permission: "repository.view" },
-  { prefix: "/my-team/timesheets", permission: null },
-  { prefix: "/my-team", permission: null },
+  { prefix: "/my-team/timesheets", permission: "timesheets.view" },
+  { prefix: "/my-team", permission: "my-team.view" },
   { prefix: "/health", permission: "projects.health.view" },
   { prefix: "/access-denied", permission: null },
   { prefix: "/", permission: "dashboard.view" },

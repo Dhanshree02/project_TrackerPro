@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { AppShell } from "@/components/app-shell";
+import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { type Client, type ClientSubVenture, type Project } from "@/lib/domain-models";
 import { fetchProjects, mapApiProjectToProject } from "@/modules/projects/api/projects";
@@ -291,16 +292,12 @@ export function CustomersListPage() {
     void refreshApiClients();
   }, [refreshApiClients]);
 
-  // Only users holding customers.create or clients:write (or Admins) may onboard new customers (RBAC).
-  const canCreateClient =
-    isAdmin ||
-    isDhanshree ||
-    (can ? can("customers.create") : false) ||
-    Boolean(
-      authUser?.permissions?.some(
-        (p) => p === "customers.create" || p === "clients:write",
-      ),
-    );
+  const { canView: canViewRbac, canManage: canManageRbac, loading: permissionsLoading } = usePermissions();
+  const canViewCustomers = canViewRbac("customers");
+  const canManageCustomers = canManageRbac("customers");
+
+  // Only users holding View + Manage access on Customer module may onboard new customers (RBAC).
+  const canCreateClient = canManageCustomers;
 
   // Customer and project records come exclusively from the API (Postgres). No mock fallback.
   const clients = useMemo(() => apiClients ?? [], [apiClients]);
@@ -391,6 +388,20 @@ export function CustomersListPage() {
   }, [filtered, sortKey, sortDir]);
 
   const open = openId ? clients.find((c) => c.id === openId) : null;
+
+  if (!permissionsLoading && !canViewCustomers) {
+    return (
+      <AppShell title="Customers">
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
+          <ShieldCheck className="h-12 w-12 text-destructive mb-4" />
+          <h2 className="text-xl font-bold text-foreground mb-2">Access Denied</h2>
+          <p className="text-muted-foreground text-sm max-w-md">
+            You do not have permission to view Customers. Please contact your system administrator.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell title="Customers" subtitle="Customer directory with active and completed engagements">
@@ -980,7 +991,7 @@ export function CustomersListPage() {
       )}
 
       {open && <CustomerDrawer client={open} projects={projects} onClose={() => setOpenId(null)} />}
-      {openNew && (
+      {openNew && canCreateClient && (
         <NewClientModal
           apiClients={apiClients}
           onClose={() => setOpenNew(false)}

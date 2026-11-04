@@ -1,6 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ShieldX } from "lucide-react";
 import { DEFAULT_DEMO_ROLE, setStoredDemoRole } from "@/lib/user-personas";
+import { usePermissions } from "@/lib/permissions";
+import { useRoleContext } from "@/lib/role-context";
+import { filterNavItems, firstNavRoute, NAV_ITEMS } from "@/lib/navigation";
 
 export const Route = createFileRoute("/access-denied")({
   head: () => ({
@@ -18,6 +22,24 @@ function continueAsAdmin() {
 }
 
 function AccessDeniedPage() {
+  const { hasPermission, hasAny, loading } = usePermissions();
+  const { isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } = useRoleContext();
+  const navigate = useNavigate();
+
+  const allowedItems = useMemo(() => {
+    if (loading) return [];
+    return filterNavItems(NAV_ITEMS, hasPermission, hasAny, {
+      isHr,
+      isEmployee,
+      isPmFamily,
+      isPmoFamily,
+      isAccounts,
+      isSales,
+    });
+  }, [loading, hasPermission, hasAny, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales]);
+
+  const landingRoute = useMemo(() => firstNavRoute(allowedItems), [allowedItems]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
@@ -40,10 +62,10 @@ function AccessDeniedPage() {
             Continue as Admin
           </button>
           <Link
-            to="/"
+            to={landingRoute || "/"}
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Back to dashboard
+            {landingRoute && landingRoute !== "/" ? "Go to allowed module" : "Back to dashboard"}
           </Link>
         </div>
       </div>
