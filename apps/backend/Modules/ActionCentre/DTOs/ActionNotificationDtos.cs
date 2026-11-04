@@ -53,7 +53,7 @@ public class ActionNotificationDto
 
     public List<AlertCommentDto> Comments { get; set; } = [];
 
-    public Guid ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 
     public Guid? IssueId { get; set; }
 }

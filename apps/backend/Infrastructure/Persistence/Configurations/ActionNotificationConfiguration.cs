@@ -12,7 +12,7 @@ public sealed class ActionNotificationConfiguration : IEntityTypeConfiguration<A
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.ProjectCode).HasMaxLength(50);
-        builder.Property(x => x.ProjectName).HasMaxLength(255).IsRequired();
+        builder.Property(x => x.ProjectName).HasMaxLength(255);
         builder.Property(x => x.Title).HasMaxLength(255).IsRequired();
         builder.Property(x => x.Type).HasMaxLength(100).IsRequired().HasDefaultValue("Issue Raised");
         builder.Property(x => x.Priority).HasMaxLength(20).IsRequired().HasDefaultValue("Medium");
@@ -37,6 +37,7 @@ public sealed class ActionNotificationConfiguration : IEntityTypeConfiguration<A
         builder.HasOne(x => x.Project)
             .WithMany()
             .HasForeignKey(x => x.ProjectId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(x => x.Issue)

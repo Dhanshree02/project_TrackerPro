@@ -10,7 +10,7 @@ using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.Projects.Services;
 
-public sealed partial class ProjectAppService(AppDbContext db, IFileStorageService fileStorage, IProjectTaskService taskService) : IProjectAppService
+public sealed partial class ProjectAppService(AppDbContext db, IFileStorageService fileStorage, IProjectTaskService taskService, PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService, PMS.API.Infrastructure.Authorization.ICurrentUserService currentUser) : IProjectAppService
 {
 
     public async Task<PagedResult<ProjectDto>> GetProjectsAsync(ProjectQueryParameters queryParams, CancellationToken ct = default)
@@ -210,6 +210,14 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
         db.Projects.Add(project);
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+
+        await notificationService.NotifyWbsCreatedAsync(
+            project.Id,
+            project.Name,
+            project.WbsId,
+            project.ProjectCode,
+            currentUser.Name,
+            ct);
 
         return (await GetProjectByIdAsync(project.Id, ct))!;
     }

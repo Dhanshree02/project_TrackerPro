@@ -13,7 +13,7 @@ using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Customers.Services;
 
-public sealed class ClientService(AppDbContext db, ICurrentUserService currentUser) : IClientService
+public sealed class ClientService(AppDbContext db, ICurrentUserService currentUser, PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService) : IClientService
 {
     // Roles that see every client.
     private static readonly HashSet<string> GlobalVisibilityRoleNames = new(StringComparer.OrdinalIgnoreCase)
@@ -141,6 +141,14 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
         var created = await LoadClientGraphAsync(client.Id, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
+
+        await notificationService.NotifyCustomerOnboardedAsync(
+            created.Id,
+            created.Name,
+            clientCodes.GetValueOrDefault(created.Id) ?? created.ClientCode,
+            created.CreatedByName,
+            ct);
+
         return MapToDto(created, clientCodes.GetValueOrDefault(created.Id));
     }
 

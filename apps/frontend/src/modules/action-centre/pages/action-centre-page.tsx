@@ -1,2790 +1,5747 @@
 import { Link, Navigate } from "@tanstack/react-router";
+
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+
 import {
+
   Search,
+
   Filter,
+
   Plus,
+
   Send,
+
   Trash2,
+
   Clock,
+
   MessageSquare,
+
   Copy,
+
   X,
+
   CheckCircle2,
+
   XCircle,
+
   RotateCcw,
+
   AlertTriangle,
+
   AlertCircle,
+
   Calendar,
+
   DollarSign,
+
   Check,
+
   ExternalLink,
+
   ShieldAlert,
+
   ListFilter,
+
   User,
+
   Paperclip,
+
   Bell,
+
   Archive,
+
   ChevronDown,
+
   Play,
+
   Square,
+
   Pause,
+
   Loader2,
+
 } from "lucide-react";
+
 import { AppShell } from "@/components/app-shell";
+
 import { useRoleContext } from "@/lib/role-context";
+
 import { usePermissions } from "@/lib/permissions";
+
 import { startTaskTimer, stopTaskTimer } from "@/modules/projects/api/projects";
+
 import {
+
   people,
+
   getPerson,
+
   type TaskStatus,
+
   type CellCommentData,
+
   type CellCommentMessage,
+
 } from "@/lib/domain-models";
+
 import { TaskStatusPill, TimesheetStatusPill, PriorityPill, Avatar } from "@/components/pills";
+
 import {
+
   useDhStore,
+
   dhStore,
+
   type DhAlert,
+
   type DhInterview,
+
   type DhTimesheet,
+
   type DhCentralApproval,
+
   type AlertStatus,
+
   type DhNotification,
+
   type IssueCategory,
+
   type DhPriority,
+
 } from "@/lib/workspace-store";
+
 import { apiFetch, apiFetchBlob } from "@/lib/api-client";
+
 import { cn } from "@/lib/utils";
+
 import { toast } from "sonner";
-import { Modal } from "@/modules/projects/pages/projects-list-page";
-import { Field } from "@/components/form-row";
+
 import {
+
+  fetchPendingApprovals,
+
+  approveProjectAdditionalRequirement,
+
+  rejectProjectAdditionalRequirement,
+
+} from "@/modules/projects/api/project-additional-requirements";
+
+import {
+
+  fetchPendingExtensionApprovals,
+
+  approveProjectExtensionRequest,
+
+  rejectProjectExtensionRequest,
+
+} from "@/modules/projects/api/project-extension-requests";
+
+import { Modal } from "@/modules/projects/pages/projects-list-page";
+
+import { Field } from "@/components/form-row";
+
+import {
+
   createProjectIssue,
+
   fetchMyAssignedProjects,
+
   type AssignedProjectSummary,
+
 } from "@/modules/projects/api/project-issues";
 
+
+
 function formatToDayMonthYear(val?: string | null): string {
+
   if (!val) return "";
+
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
+
   if (match) {
+
     return `${match[3]}-${match[2]}-${match[1]}`;
+
   }
+
   const d = new Date(val);
+
   if (!isNaN(d.getTime())) {
+
     const day = String(d.getDate()).padStart(2, "0");
+
     const month = String(d.getMonth() + 1).padStart(2, "0");
+
     const year = d.getFullYear();
+
     return `${day}-${month}-${year}`;
+
   }
+
   return val;
+
 }
 
+
+
 const actionTabs = [
+
   { code: "bucket-list", name: "Bucket List" },
+
   { code: "approvals", name: "Approvals" },
+
   { code: "alerts", name: "Alerts" },
+
   { code: "notifications", name: "Notifications" },
+
 ] as const;
 
+
+
 const employeeTabCodes = ["bucket-list", "notifications"];
-const salesTabCodes = ["alerts", "notifications"];
+
+const salesTabCodes = ["approvals", "alerts", "notifications"];
+
 const pmoTabCodes = ["approvals", "alerts", "notifications"];
 
+
+
 export function ActionCentrePage() {
+
   const { isDhanshree, user, isEmployee, isPmoFamily, isSales } = useRoleContext();
+
   const { hasPermission } = usePermissions();
+
   const store = useDhStore((s) => s);
+
   const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
+
   const [tabCode, setTabCode] = useState("");
 
+
+
   const visibleTabs = useMemo(() => {
+
     const allowed = isEmployee ? employeeTabCodes : isSales ? salesTabCodes : isPmoFamily ? pmoTabCodes : null;
+
     return actionTabs.filter((tab) => allowed === null || allowed.includes(tab.code));
+
   }, [isEmployee, isPmoFamily, isSales]);
+
+
 
   const activeTab = visibleTabs.find((tab) => tab.code === tabCode) ?? visibleTabs[0];
 
+
+
   if (!isDhanshree && !hasPermission("action-center.view")) return <Navigate to="/" />;
 
+
+
   return (
+
     <AppShell
+
       title="Action Centre"
+
       subtitle="Bucket list, timesheets, approvals and alerts in one place"
+
     >
+
       <div className="mb-4 inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
+
         {visibleTabs.map((tab) => {
+
           const isNotif = tab.code === "notifications";
+
           return (
+
             <button
+
               key={tab.code}
+
               onClick={() => setTabCode(tab.code)}
+
               className={cn(
+
                 "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+
                 activeTab?.code === tab.code
+
                   ? "bg-primary text-primary-foreground"
+
                   : "text-muted-foreground hover:text-foreground",
+
               )}
+
             >
+
               <span>{tab.name}</span>
+
               {isNotif && pendingCount > 0 && (
+
                 <span className="rounded-full bg-destructive text-destructive-foreground px-2 py-0.5 text-xs font-semibold leading-none">
+
                   {pendingCount}
+
                 </span>
+
               )}
+
             </button>
+
           );
+
         })}
+
       </div>
 
+
+
       {activeTab?.code === "bucket-list" && <BucketList />}
+
       {activeTab?.code === "approvals" && <ApprovalsTab />}
+
       {activeTab?.code === "alerts" && <AlertsTab />}
+
       {activeTab?.code === "notifications" && <NotificationsTab />}
+
     </AppShell>
+
   );
+
 }
+
+
 
 // ---------- Bucket List ----------
+
 import {
+
   fetchBucketList,
+
   startBucketTaskTimer,
+
   pauseBucketTaskTimer,
+
   stopBucketTaskTimer,
+
   completeBucketTask,
+
   type ApiBucketTask,
+
 } from "../api/action-centre";
 
+
+
 function BucketListRow({
+
   r,
+
   onRefresh,
+
   onUpdateRow,
+
 }: {
+
   r: ApiBucketTask;
+
   onRefresh: (showLoader?: boolean) => void;
+
   onUpdateRow?: (updated: ApiBucketTask) => void;
+
 }) {
+
   const byName = r.assignedByName || (r.assignedById ? getPerson(r.assignedById).name : "") || "Project Manager";
+
   const [now, setNow] = useState(Date.now());
 
+
+
   // Optimistic local state for immediate smooth button and timer transitions
+
   const [localStatus, setLocalStatus] = useState<string>(r.status);
+
   const [localTimerRunning, setLocalTimerRunning] = useState<boolean>(r.timerRunning);
+
   const [localAccumulatedSeconds, setLocalAccumulatedSeconds] = useState<number>(r.timerAccumulatedSeconds ?? 0);
+
   const [localTimerStartedAt, setLocalTimerStartedAt] = useState<string | null>(r.timerStartedAtUtc ?? null);
 
+
+
   useEffect(() => {
+
     setLocalStatus(r.status);
+
     setLocalTimerRunning(r.timerRunning);
+
     setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+
     setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+
   }, [r.status, r.timerRunning, r.timerAccumulatedSeconds, r.timerStartedAtUtc]);
 
+
+
   useEffect(() => {
+
     if (!localTimerRunning) return;
+
     const interval = setInterval(() => {
+
       setNow(Date.now());
+
     }, 1000);
+
     return () => clearInterval(interval);
+
   }, [localTimerRunning]);
 
+
+
   let workingTimeSeconds = localAccumulatedSeconds;
+
   if (localTimerRunning && localTimerStartedAt) {
+
     const elapsedSinceStart = Math.floor((now - new Date(localTimerStartedAt).getTime()) / 1000);
+
     workingTimeSeconds += Math.max(0, elapsedSinceStart);
+
   } else if (!localTimerRunning && (r.elapsedTimeSeconds ?? 0) > workingTimeSeconds) {
+
     workingTimeSeconds = r.elapsedTimeSeconds;
+
   }
+
+
 
   const formatTimer = (totalSecs: number) => {
+
     const h = Math.floor(totalSecs / 3600);
+
     const m = Math.floor((totalSecs % 3600) / 60);
+
     const s = totalSecs % 60;
+
     return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
+
   };
+
+
 
   const handleStart = async () => {
+
     try {
+
       setLocalStatus("Ongoing");
+
       setLocalTimerRunning(true);
+
       setLocalTimerStartedAt(new Date().toISOString());
+
       const updated = await startBucketTaskTimer(r.id);
+
       toast.success("Timer started", { description: r.taskTitle });
+
       onUpdateRow?.(updated);
+
       onRefresh(false);
+
     } catch (err: any) {
+
       setLocalStatus(r.status);
+
       setLocalTimerRunning(r.timerRunning);
+
       setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+
       setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+
       toast.error(err.message || "Failed to start timer");
+
     }
+
   };
+
+
 
   const handlePause = async () => {
+
     try {
+
       const currentSeconds = workingTimeSeconds;
+
       setLocalStatus("Paused");
+
       setLocalTimerRunning(false);
+
       setLocalAccumulatedSeconds(currentSeconds);
+
       setLocalTimerStartedAt(null);
+
       const updated = await pauseBucketTaskTimer(r.id);
+
       toast.info("Timer paused", { description: r.taskTitle });
+
       onUpdateRow?.(updated);
+
       onRefresh(false);
+
     } catch (err: any) {
+
       setLocalStatus(r.status);
+
       setLocalTimerRunning(r.timerRunning);
+
       setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+
       setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+
       toast.error(err.message || "Failed to pause timer");
+
     }
+
   };
+
+
 
   const handleResume = async () => {
+
     try {
+
       setLocalStatus("Ongoing");
+
       setLocalTimerRunning(true);
+
       setLocalTimerStartedAt(new Date().toISOString());
+
       const updated = await startBucketTaskTimer(r.id);
+
       toast.success("Timer resumed", { description: r.taskTitle });
+
       onUpdateRow?.(updated);
+
       onRefresh(false);
+
     } catch (err: any) {
+
       setLocalStatus(r.status);
+
       setLocalTimerRunning(r.timerRunning);
+
       setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+
       setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+
       toast.error(err.message || "Failed to resume timer");
+
     }
+
   };
+
+
 
   const handleStop = async () => {
+
     try {
+
       const currentSeconds = workingTimeSeconds;
+
       setLocalStatus("Stopped");
+
       setLocalTimerRunning(false);
+
       setLocalAccumulatedSeconds(currentSeconds);
+
       setLocalTimerStartedAt(null);
+
       const updated = await stopBucketTaskTimer(r.id);
+
       toast.warning("Timer stopped", { description: r.taskTitle });
+
       onUpdateRow?.(updated);
+
       onRefresh(false);
+
     } catch (err: any) {
+
       setLocalStatus(r.status);
+
       setLocalTimerRunning(r.timerRunning);
+
       setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
+
       setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
+
       toast.error(err.message || "Failed to stop timer");
+
     }
+
   };
+
+
 
   const handleComplete = async () => {
+
     try {
+
       const updated = await completeBucketTask(r.id);
+
       toast.success("Task completed!", { description: r.taskTitle });
+
       onUpdateRow?.(updated);
+
       onRefresh(false);
+
     } catch (err: any) {
+
       toast.error(err.message || "Failed to complete task");
+
     }
+
   };
+
+
 
   // Determine true display status dynamically based on timerRunning and state
+
   let displayStatus = localStatus;
+
   if (localTimerRunning) {
+
     displayStatus = "Ongoing";
+
   } else if (localStatus === "Completed") {
+
     displayStatus = "Completed";
+
   } else if (localStatus === "On Hold") {
+
     displayStatus = "On Hold";
+
   } else if (localStatus === "Cancelled") {
+
     displayStatus = "Cancelled";
+
   } else if (localStatus === "Stopped") {
+
     displayStatus = "Stopped";
+
   } else if (localStatus === "Paused" || workingTimeSeconds > 0) {
+
     displayStatus = "Paused";
+
   } else {
+
     displayStatus = localStatus || "Not Started";
+
   }
 
+
+
   return (
+
     <tr className="hover:bg-accent/30 border-b border-border">
+
       <td className="px-3 py-2.5">
+
         <Link
+
           to="/projects/$projectId"
+
           params={{ projectId: r.projectId }}
+
           hash={r.taskId}
+
           className="font-semibold text-gray-800 hover:text-primary transition-colors"
+
         >
+
           {r.taskTitle}
+
         </Link>
+
       </td>
+
       <td className="px-3 py-2.5 text-muted-foreground font-medium">{r.projectName}</td>
+
       <td className="px-3 py-2.5">
+
         <PriorityPill priority={(r.priority?.toLowerCase() as any) || "medium"} />
+
       </td>
+
       <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground font-medium">
+
         {r.dueDate
+
           ? new Date(r.dueDate).toLocaleDateString("en-GB", {
+
               day: "2-digit",
+
               month: "short",
+
               year: "numeric",
+
             })
+
           : "—"}
+
       </td>
+
       <td className="px-3 py-2.5">
+
         <span
+
           className={cn(
+
             "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold capitalize shadow-2xs",
+
             displayStatus === "Not Started" && "bg-slate-50 text-slate-700 border-slate-200",
+
             displayStatus === "Ongoing" && "bg-blue-50 text-blue-700 border-blue-200 animate-pulse",
+
             displayStatus === "Paused" && "bg-amber-50 text-amber-700 border-amber-200",
+
             displayStatus === "Stopped" && "bg-rose-50 text-rose-700 border-rose-200",
+
             displayStatus === "Completed" && "bg-green-50 text-green-700 border-green-200",
+
             displayStatus === "On Hold" && "bg-amber-50 text-amber-800 border-amber-300",
+
             displayStatus === "Cancelled" && "bg-rose-50 text-rose-800 border-rose-300",
+
           )}
+
         >
+
           {displayStatus === "Ongoing" && <Clock className="h-3 w-3 animate-spin text-blue-600" />}
+
           {displayStatus === "Paused" && <Pause className="h-3 w-3 text-amber-700" />}
+
           {displayStatus === "Stopped" && <Square className="h-3 w-3 text-rose-700 fill-current" />}
+
           {displayStatus === "On Hold" && <Pause className="h-3 w-3 text-amber-700" />}
+
           {displayStatus === "Cancelled" && <XCircle className="h-3 w-3 text-rose-700" />}
+
           {displayStatus === "Completed" && <CheckCircle2 className="h-3 w-3 text-green-600" />}
+
           {displayStatus}
+
         </span>
+
       </td>
+
       <td className="px-3 py-2.5">
+
         <div className="flex items-center gap-2">
+
           <Avatar name={byName} size={24} />
+
           <span className="text-xs font-semibold text-gray-700">{byName}</span>
+
         </div>
+
       </td>
+
       <td className="px-3 py-2.5">
+
         <div className="flex flex-col gap-1.5 min-w-[210px] bg-muted/20 p-2 rounded-lg border border-border/80">
+
           {(displayStatus !== "Not Started" || workingTimeSeconds > 0 || !!r.actualStartDate) && (
+
             <div className="text-[10px] text-muted-foreground flex flex-col gap-0.5 font-medium">
+
               {r.actualStartDate && (
+
                 <div>
+
                   <span className="font-semibold text-gray-500">Started:</span>{" "}
+
                   {new Date(r.actualStartDate).toLocaleDateString("en-GB", {
+
                     day: "2-digit",
+
                     month: "short",
+
                     year: "numeric",
+
                   })}
+
                 </div>
+
               )}
+
               <div className="flex items-center justify-between font-mono font-bold text-gray-800 border-t border-border/50 mt-1 pt-1">
+
                 <span>Working Time:</span>
+
                 <span
+
                   className={cn(
+
                     "text-xs font-bold",
+
                     localTimerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
+
                   )}
+
                 >
+
                   {formatTimer(workingTimeSeconds)}
+
                 </span>
+
               </div>
+
               {displayStatus === "On Hold" && (
+
                 <div className="text-amber-800 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1 text-[10px]">
+
                   <Pause className="h-3 w-3 text-amber-600" /> Timer Paused (On Hold)
+
                 </div>
+
               )}
+
               {displayStatus === "Cancelled" && (
+
                 <div className="text-rose-700 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1 text-[10px]">
+
                   <XCircle className="h-3 w-3 text-rose-600" /> Task Cancelled
+
                 </div>
+
               )}
+
               {displayStatus === "Stopped" && (
+
                 <div className="text-rose-600 font-semibold border-t border-border/50 mt-1 pt-1 flex items-center gap-1">
+
                   Timer Frozen
+
                 </div>
+
               )}
+
               {displayStatus === "Completed" && r.actualEndDate && (
+
                 <div className="text-success font-semibold border-t border-border/50 mt-1 pt-1">
+
                   Completed:{" "}
+
                   {new Date(r.actualEndDate).toLocaleDateString("en-GB", {
+
                     day: "2-digit",
+
                     month: "short",
+
                     year: "numeric",
+
                   })}
+
                 </div>
+
               )}
+
             </div>
+
           )}
+
+
 
           <div className="flex items-center gap-1.5">
+
             {/* If task is completed */}
+
             {displayStatus === "Completed" && (
+
               <span className="text-xs font-bold text-success flex items-center gap-1 py-1">
+
                 <CheckCircle2 className="h-4.5 w-4.5 text-success" /> Task Completed
+
               </span>
+
             )}
+
+
 
             {/* If task is On Hold */}
+
             {displayStatus === "On Hold" && (
+
               <div className="flex flex-col gap-1 w-full">
+
                 <button
+
                   disabled
+
                   className="inline-flex items-center justify-center gap-1.5 rounded-md bg-amber-100/70 px-3 py-1.5 text-xs font-bold text-amber-800 border border-amber-300 cursor-not-allowed opacity-90 shadow-2xs w-full"
+
                   title="Task is On Hold. Move stage to Ongoing in the project task tab to resume this task."
+
                 >
+
                   <Pause className="h-3.5 w-3.5" /> On Hold (Paused)
+
                 </button>
+
                 <span className="text-[9px] text-muted-foreground italic leading-tight text-center">
+
                   Stage must be Ongoing to resume
+
                 </span>
+
               </div>
+
             )}
+
+
 
             {/* If task is Cancelled */}
+
             {displayStatus === "Cancelled" && (
+
               <div className="flex flex-col gap-1 w-full">
+
                 <button
+
                   disabled
+
                   className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-100/70 px-3 py-1.5 text-xs font-bold text-rose-800 border border-rose-300 cursor-not-allowed opacity-90 shadow-2xs w-full"
+
                   title="This task is Cancelled."
+
                 >
+
                   <XCircle className="h-3.5 w-3.5" /> Cancelled
+
                 </button>
+
               </div>
+
             )}
+
+
 
             {/* If task is Not Started (zero working time, not running) */}
+
             {displayStatus === "Not Started" && !localTimerRunning && workingTimeSeconds === 0 && (
+
               <>
+
                 <button
+
                   onClick={handleStart}
+
                   className="inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-sm cursor-pointer"
+
                   title="Start Task"
+
                 >
+
                   <Play className="h-3.5 w-3.5 fill-current" /> Start
+
                 </button>
+
                 <button
+
                   disabled
+
                   title="Start the task first before pausing"
+
                   className="inline-flex items-center justify-center gap-1 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs font-bold text-muted-foreground/60 cursor-not-allowed select-none"
+
                 >
+
                   <Pause className="h-3.5 w-3.5" /> Pause
+
                 </button>
+
               </>
+
             )}
+
+
 
             {/* If timer is actively running */}
+
             {localTimerRunning && (
+
               <>
+
                 <button
+
                   onClick={handlePause}
+
                   className="inline-flex items-center justify-center gap-1.5 rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-2xs cursor-pointer"
+
                   title="Pause Timer"
+
                 >
+
                   <Pause className="h-3.5 w-3.5" /> Pause
+
                 </button>
+
                 <button
+
                   onClick={handleStop}
+
                   className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
+
                   title="Stop Timer"
+
                 >
+
                   <Square className="h-3 w-3 fill-current" /> Stop
+
                 </button>
+
               </>
+
             )}
+
+
 
             {/* If timer is paused or stopped (not running, but was started or has accumulated time) */}
+
             {!localTimerRunning && displayStatus !== "Completed" && displayStatus !== "On Hold" && displayStatus !== "Cancelled" && (displayStatus === "Paused" || displayStatus === "Stopped" || workingTimeSeconds > 0) && (
+
               <>
+
                 <button
+
                   onClick={handleResume}
+
                   className="inline-flex items-center justify-center gap-1.5 rounded-md border border-blue-300 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100 transition-all shadow-2xs cursor-pointer"
+
                   title="Resume Timer"
+
                 >
+
                   <Play className="h-3.5 w-3.5 fill-current" /> Resume
+
                 </button>
+
                 {displayStatus === "Stopped" ? (
+
                   <button
+
                     disabled
+
                     className="inline-flex items-center justify-center gap-1.5 rounded-md bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground border border-border cursor-not-allowed select-none"
+
                     title="Timer is stopped"
+
                   >
+
                     <Square className="h-3 w-3 fill-current" /> Stopped
+
                   </button>
+
                 ) : (
+
                   <button
+
                     onClick={handleStop}
+
                     className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
+
                     title="Stop Timer"
+
                   >
+
                     <Square className="h-3 w-3 fill-current" /> Stop
+
                   </button>
+
                 )}
+
               </>
+
             )}
+
           </div>
+
         </div>
+
       </td>
+
     </tr>
+
   );
+
 }
 
+
+
 function BucketList() {
+
   const { user, isEmployee, employeePersonId, assignedProjects } = useRoleContext();
 
+
+
   const [q, setQ] = useState("");
+
   const [statusFilter, setStatusFilter] = useState<
+
     "all" | "todo" | "in_progress" | "on_hold" | "done"
+
   >("all");
+
   const [priorityFilter, setPriorityFilter] = useState<
+
     "all" | "Low" | "Medium" | "High" | "Critical"
+
   >("all");
+
   const [showRaiseModal, setShowRaiseModal] = useState(false);
+
   const [dbAssignedProjects, setDbAssignedProjects] = useState<AssignedProjectSummary[]>([]);
+
   const [formData, setFormData] = useState({
+
     projectId: "",
+
     title: "",
+
     description: "",
+
     category: "Technical Related Issues" as IssueCategory,
+
     priority: "Medium" as DhPriority,
+
   });
+
   const [submittingIssue, setSubmittingIssue] = useState(false);
 
+
+
   useEffect(() => {
+
     fetchMyAssignedProjects()
+
       .then((projs) => {
+
         if (projs && projs.length > 0) setDbAssignedProjects(projs);
+
       })
+
       .catch(() => {});
+
   }, []);
+
+
 
   const userProjects = useMemo(() => {
+
     if (dbAssignedProjects.length > 0) return dbAssignedProjects;
+
     return assignedProjects;
+
   }, [dbAssignedProjects, assignedProjects]);
 
+
+
   const handleSubmitIssue = async () => {
+
     if (!formData.title.trim() || !formData.description.trim()) {
+
       toast.error("Fill all fields");
+
       return;
+
     }
+
     const targetProjectId = formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || "";
+
     if (!targetProjectId) {
+
       toast.error("Please select a project");
+
       return;
+
     }
+
+
 
     setSubmittingIssue(true);
+
     try {
+
       await createProjectIssue(targetProjectId, {
+
         subject: formData.title.trim(),
+
         description: formData.description.trim(),
+
         issueType: formData.category,
+
         priority: formData.priority,
+
       });
+
+
 
       toast.success("Issue raised successfully", {
+
         description: "Mirrored to project health and alerts",
+
       });
+
+
 
       setShowRaiseModal(false);
+
       setFormData({
+
         projectId: userProjects[0]?.id || assignedProjects[0]?.id || "",
+
         title: "",
+
         description: "",
+
         category: "Technical Related Issues",
+
         priority: "Medium",
+
       });
+
     } catch (err: any) {
+
       toast.error(err?.message || "Failed to raise issue");
+
     } finally {
+
       setSubmittingIssue(false);
+
     }
+
   };
 
+
+
   const [apiTasks, setApiTasks] = useState<ApiBucketTask[]>([]);
+
   const [loading, setLoading] = useState(true);
 
+
+
   const handleUpdateRow = useCallback((updated: ApiBucketTask) => {
+
     setApiTasks((prev) =>
+
       prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
+
     );
+
   }, []);
 
+
+
   const loadData = useCallback(async (showLoader = false) => {
+
     try {
+
       if (showLoader) {
+
         setLoading(true);
+
       }
+
       const res = await fetchBucketList({
+
         search: q.trim() || undefined,
+
         status: statusFilter !== "all" ? statusFilter : undefined,
+
         priority: priorityFilter !== "all" ? priorityFilter : undefined,
+
       });
+
       setApiTasks(res.items || []);
+
     } catch (err: any) {
+
       toast.error(err.message || "Failed to load bucket tasks");
+
     } finally {
+
       if (showLoader) {
+
         setLoading(false);
+
       }
+
     }
+
   }, [q, statusFilter, priorityFilter, user?.id, employeePersonId]);
 
+
+
   useEffect(() => {
+
     loadData(true);
+
   }, [loadData]);
 
 
 
+
+
+
+
   return (
+
     <section className="rounded-xl border border-border bg-card shadow-sm">
+
       <header className="flex flex-wrap items-center gap-2.5 border-b border-border p-3">
+
         {/* Search Bar */}
+
         <div className="relative w-60 max-w-xs">
+
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
           <input
+
             value={q}
+
             onChange={(e) => setQ(e.target.value)}
+
             placeholder="Search task or project…"
+
             className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
           />
+
         </div>
+
+
 
         {/* Status Filter Bar */}
+
         <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
+
           <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 mx-1" />
+
           {(["all", "todo", "in_progress", "on_hold", "done"] as const).map((s) => (
+
             <button
+
               key={s}
+
               onClick={() => setStatusFilter(s)}
+
               className={cn(
+
                 "h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
+
                 statusFilter === s
+
                   ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/40",
+
               )}
+
             >
+
               {s === "all"
+
                 ? "All"
+
                 : s === "todo"
+
                 ? "To Do"
+
                 : s === "in_progress"
+
                 ? "In Progress"
+
                 : s === "on_hold"
+
                 ? "On Hold"
+
                 : "Done"}
+
             </button>
+
           ))}
+
         </div>
+
+
 
         {/* Priority Filter */}
+
         <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
+
           {(["all", "Low", "Medium", "High", "Critical"] as const).map((p) => (
+
             <button
+
               key={p}
+
               onClick={() => setPriorityFilter(p)}
+
               className={cn(
+
                 "h-7 rounded-sm px-2 text-xs font-medium transition-colors cursor-pointer",
+
                 priorityFilter === p
+
                   ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
+
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/40",
+
               )}
+
             >
+
               {p === "all" ? "All priority" : p}
+
             </button>
+
           ))}
+
         </div>
+
+
 
         {/* Raise Issue Button */}
+
         <button
+
           onClick={() => setShowRaiseModal(true)}
+
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer whitespace-nowrap"
+
         >
+
           <Plus className="h-3.5 w-3.5" /> Raise Issue
+
         </button>
 
+
+
         <span className="ml-auto text-xs text-muted-foreground font-medium whitespace-nowrap">
+
           {apiTasks.length} {apiTasks.length === 1 ? "task" : "tasks"}
+
         </span>
+
       </header>
 
+
+
       <div className="overflow-x-auto">
+
         <table className="w-full text-sm">
+
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
+
             <tr>
+
               <th className="px-3 py-2 font-bold">Task</th>
+
               <th className="px-3 py-2 font-bold">Project</th>
+
               <th className="px-3 py-2 font-bold">Priority</th>
+
               <th className="px-3 py-2 font-bold">Due Date</th>
+
               <th className="px-3 py-2 font-bold">Status</th>
+
               <th className="px-3 py-2 font-bold">Assigned By</th>
+
               <th className="px-3 py-2 font-bold">Actions & Timer</th>
+
             </tr>
+
           </thead>
+
           <tbody className="divide-y divide-border">
+
             {loading ? (
+
               <tr>
+
                 <td colSpan={7} className="px-3 py-12 text-center text-xs text-muted-foreground">
+
                   <div className="flex items-center justify-center gap-2">
+
                     <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading bucket tasks...
+
                   </div>
+
                 </td>
+
               </tr>
+
             ) : apiTasks.length === 0 ? (
+
               <tr>
+
                 <td colSpan={7} className="px-3 py-12 text-center text-xs text-muted-foreground">
+
                   No tasks assigned in your bucket list matching current filters.
+
                 </td>
+
               </tr>
+
             ) : (
+
               apiTasks.map((r) => (
+
                 <BucketListRow
+
                   key={r.id}
+
                   r={r}
+
                   onRefresh={loadData}
+
                   onUpdateRow={handleUpdateRow}
+
                 />
+
               ))
+
             )}
+
           </tbody>
+
         </table>
+
       </div>
 
+
+
       {/* Raise Issue Modal */}
+
       {showRaiseModal && (
+
         <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
+
           <div className="space-y-3">
+
             <Field label="Project">
+
               <select
+
                 value={formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || ""}
+
                 onChange={(e) => setFormData((s) => ({ ...s, projectId: e.target.value }))}
+
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
               >
+
                 {userProjects.map((p) => (
+
                   <option key={p.id} value={p.id}>
+
                     {p.name}
+
                   </option>
+
                 ))}
+
               </select>
+
             </Field>
+
             <Field label="Issue Title">
+
               <input
+
                 value={formData.title}
+
                 onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))}
+
                 placeholder="Brief summary..."
+
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
               />
+
             </Field>
+
             <Field label="Description">
+
               <textarea
+
                 value={formData.description}
+
                 onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))}
+
                 placeholder="Detailed description..."
+
                 rows={3}
+
                 className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
               />
+
             </Field>
+
             <Field label="Issue Type">
+
               <select
+
                 value={formData.category}
+
                 onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))}
+
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
               >
+
                 {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => (
+
                   <option key={cat} value={cat}>
+
                     {cat}
+
                   </option>
+
                 ))}
+
               </select>
+
             </Field>
+
             <Field label="Priority">
+
               <select
+
                 value={formData.priority}
+
                 onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))}
+
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+
               >
+
                 {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => (
+
                   <option key={pri} value={pri}>
+
                     {pri}
+
                   </option>
+
                 ))}
+
               </select>
+
             </Field>
+
             <div className="flex justify-end gap-2 border-t border-border pt-3">
+
               <button
+
                 onClick={() => setShowRaiseModal(false)}
+
                 className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
+
               >
+
                 Cancel
+
               </button>
+
               <button
+
                 onClick={handleSubmitIssue}
+
                 disabled={submittingIssue}
+
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+
               >
+
                 {submittingIssue ? "Raising..." : "Raise Issue"}
+
               </button>
+
             </div>
+
           </div>
+
         </Modal>
+
       )}
+
     </section>
+
   );
+
 }
 
+
+
 // ---------- Approvals ----------
+
 function ApprovalsTab() {
+
   const store = useDhStore((s) => s);
+
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+
   const [appComment, setAppComment] = useState("");
+
   const [projectFilter, setProjectFilter] = useState("all");
+
   const [typeFilter, setTypeFilter] = useState("all");
+
   const [statusFilter, setStatusFilter] = useState("all");
+
   const { user, isBO, assignedProjects } = useRoleContext();
 
+
+
+
+  const [isLoadingApprovals, setIsLoadingApprovals] = useState(false);
+
+  const loadApprovals = useCallback(async () => {
+    setIsLoadingApprovals(true);
+    try {
+      const [reqItems, extItems] = await Promise.all([
+        fetchPendingApprovals().catch((err) => {
+          console.error("Error loading approvals:", err);
+          return [];
+        }),
+        fetchPendingExtensionApprovals().catch((err) => {
+          console.error("Error loading extension approvals:", err);
+          return [];
+        }),
+      ]);
+
+      const toMerge: DhCentralApproval[] = [];
+
+      if (Array.isArray(reqItems)) {
+        reqItems.forEach((item) => {
+          toMerge.push({
+            id: `APP-REQ-${item.id}`,
+            projectId: item.projectId,
+            projectName: item.projectName || "Project",
+            requestType: "Customer Requirement Approval",
+            requestedBy: item.requestedByName,
+            requestedById: item.requestedByEmployeeId || "",
+            requestedDate: item.requestedDate,
+            status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : "Pending",
+            description: `${item.requirementType}: ${item.title}\n\n${item.description}${item.attachmentFileName ? `\n\nAttachment: ${item.attachmentFileName}` : ""}`,
+            comments: [],
+            history: [],
+          });
+        });
+      }
+
+      if (Array.isArray(extItems)) {
+        extItems.forEach((item) => {
+          toMerge.push({
+            id: `APP-EXT-${item.id}`,
+            projectId: item.projectId,
+            projectName: item.projectName || "Project",
+            requestType: "Timeline Extension Approval",
+            requestedBy: item.requestedByName,
+            requestedById: item.requestedByEmployeeId || "",
+            requestedDate: item.createdAtUtc ? item.createdAtUtc.slice(0, 10) : "",
+            status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : "Pending",
+            description: `Timeline Extension: Requesting extension of ${item.extensionDays} days. New End Date: ${item.requestedEndDate}. Reason: ${item.reason}`,
+            comments: [],
+            history: [
+              {
+                status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : "Pending",
+                at: item.createdAtUtc || new Date().toISOString(),
+                updatedBy: item.requestedByName,
+                details: `Requested extension to ${item.requestedEndDate}`,
+              },
+            ],
+          });
+        });
+      }
+
+      // Preserve any non-API local approvals in store, replace API approvals with freshly fetched items
+      const nonApiApprovals = (store.approvals || []).filter(
+        (a) => !a.id.startsWith("APP-REQ-") && !a.id.startsWith("APP-EXT-")
+      );
+      dhStore.setApprovals([...toMerge, ...nonApiApprovals]);
+    } finally {
+      setIsLoadingApprovals(false);
+    }
+  }, [user.id, user.email, user.role]);
+
+  useEffect(() => {
+    loadApprovals();
+  }, [loadApprovals]);
+
   const selectedApproval = useMemo(() => {
+
     return store.approvals.find((a) => a.id === selectedAppId);
+
   }, [store.approvals, selectedAppId]);
 
+
+
   const approvalTypes = [
+
     "WBS Approval",
+
     "Budget Approval",
+
     "PM Assignment Approval",
+
     "SPM Assignment Approval",
+
     "Project Ready To Start Approval",
+
     "Resource Allocation Approval",
+
     "Customer Requirement Approval",
+
     "Timeline Extension Approval",
+
   ];
 
+
+
   const filteredApprovals = useMemo(() => {
+
     return store.approvals.filter((a) => {
+
       if (projectFilter !== "all" && a.projectId !== projectFilter) return false;
+
       if (typeFilter !== "all" && a.requestType !== typeFilter) return false;
+
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
+
       return true;
+
     });
+
   }, [store.approvals, projectFilter, typeFilter, statusFilter]);
 
-  const handleAction = (status: DhCentralApproval["status"]) => {
+
+
+  const handleAction = async (status: DhCentralApproval["status"]) => {
+
     if (!selectedAppId) return;
+
     if (!appComment.trim()) {
+
       toast.error("Comments are mandatory for every central approval action!");
+
       return;
+
     }
+
+    const currentApp = store.approvals.find((a) => a.id === selectedAppId);
+
+    if (currentApp && currentApp.requestType === "Customer Requirement Approval") {
+
+      try {
+
+        const rawReqId = currentApp.id.replace(/^APP-REQ-/, "");
+
+        if (status === "Approved") {
+
+          await approveProjectAdditionalRequirement(currentApp.projectId, rawReqId, appComment);
+
+        } else if (status === "Rejected") {
+
+          await rejectProjectAdditionalRequirement(currentApp.projectId, rawReqId, appComment);
+
+        }
+
+      } catch (err: any) {
+
+        console.error("Failed to update additional requirement approval on backend:", err);
+
+      }
+
+    }
+
+
+
+    if (currentApp && currentApp.requestType === "Timeline Extension Approval") {
+
+      try {
+
+        const rawExtId = currentApp.id.replace(/^APP-EXT-/, "");
+
+        if (status === "Approved") {
+
+          await approveProjectExtensionRequest(currentApp.projectId, rawExtId, appComment);
+
+        } else if (status === "Rejected") {
+
+          await rejectProjectExtensionRequest(currentApp.projectId, rawExtId, appComment);
+
+        }
+
+      } catch (err: any) {
+
+        console.error("Failed to update extension request approval on backend:", err);
+
+      }
+
+    }
+
     dhStore.updateCentralApprovalStatus(selectedAppId, status, appComment, user.name, user.id);
+
     toast.success(`Success: Approval Request marked as ${status}!`);
+
     setAppComment("");
+
     setSelectedAppId(null);
+
   };
+
+
 
   const handleAcknowledge = (appId: string) => {
+
     dhStore.acknowledgeCentralApproval(appId);
+
     toast.success("Decision Acknowledged Persistently!");
+
   };
 
+
+
   return (
+
     <section className="rounded-xl border border-border bg-card shadow-sm">
+
       <header className="border-b border-border p-4 space-y-3">
+
         <div className="flex items-center gap-2">
-          <ShieldAlert className="h-4.5 w-4.5 text-primary" />
-          <h3 className="text-sm font-semibold">Central Approval Center</h3>
+
+        <div className="flex items-center justify-between">
+            <ShieldAlert className="h-4.5 w-4.5 text-primary" />
+            <h3 className="text-sm font-semibold">Central Approval Center</h3>
+          </div>
+          <button
+            type="button"
+            onClick={loadApprovals}
+            disabled={isLoadingApprovals}
+            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-50 transition-colors shadow-xs"
+            title="Refresh Approvals"
+          >
+            <RotateCcw className={cn("h-3.5 w-3.5", isLoadingApprovals && "animate-spin")} />
+            <span>Refresh</span>
+          </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+
           <div className="flex flex-col gap-1">
+
             <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+
               Project
+
             </span>
+
             <select
+
               value={projectFilter}
+
               onChange={(e) => setProjectFilter(e.target.value)}
+
               className="form-input rounded-md border border-border p-1.5 bg-card"
+
             >
+
               <option value="all">All Projects</option>
+
               {assignedProjects.map((p) => (
+
                 <option key={p.id} value={p.id}>
+
                   {p.name}
+
                 </option>
+
               ))}
+
             </select>
+
           </div>
+
           <div className="flex flex-col gap-1">
+
             <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+
               Request Type
+
             </span>
+
             <select
+
               value={typeFilter}
+
               onChange={(e) => setTypeFilter(e.target.value)}
+
               className="form-input rounded-md border border-border p-1.5 bg-card"
+
             >
+
               <option value="all">All Request Types</option>
+
               {approvalTypes.map((t) => (
+
                 <option key={t} value={t}>
+
                   {t}
+
                 </option>
+
               ))}
+
             </select>
+
           </div>
+
           <div className="flex flex-col gap-1">
+
             <span className="text-[10px] font-semibold text-muted-foreground uppercase">
+
               Status
+
             </span>
+
             <select
+
               value={statusFilter}
+
               onChange={(e) => setStatusFilter(e.target.value)}
+
               className="form-input rounded-md border border-border p-1.5 bg-card"
+
             >
+
               <option value="all">All Statuses</option>
+
               {(["Pending", "Approved", "Rejected", "Hold", "Request Changes"] as const).map(
+
                 (s) => (
+
                   <option key={s} value={s}>
+
                     {s}
+
                   </option>
+
                 ),
+
               )}
+
             </select>
+
           </div>
+
         </div>
+
       </header>
 
+
+
       <div className="overflow-x-auto">
+
         <table className="w-full text-sm">
+
           <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+
             <tr>
+
               <th className="px-3 py-2 font-medium">Approval ID</th>
+
               <th className="px-3 py-2 font-medium">Project</th>
+
               <th className="px-3 py-2 font-medium">Request Type</th>
+
               <th className="px-3 py-2 font-medium">Requested By</th>
+
               <th className="px-3 py-2 font-medium">Date</th>
+
               <th className="px-3 py-2 font-medium">Status</th>
+
               <th className="px-3 py-2 font-medium text-right">Actions</th>
+
             </tr>
+
           </thead>
+
           <tbody className="divide-y divide-border">
+
             {filteredApprovals.map((app) => (
+
               <tr key={app.id} className="hover:bg-accent/30">
+
                 <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-800">{app.id}</td>
+
                 <td className="px-3 py-2.5 font-medium text-gray-700">{app.projectName}</td>
+
                 <td className="px-3 py-2.5 text-xs text-primary font-semibold">
+
                   {app.requestType}
+
                 </td>
+
                 <td className="px-3 py-2.5">
+
                   <div className="flex items-center gap-2">
+
                     <Avatar name={app.requestedBy} size={20} />
+
                     <span className="text-xs">{app.requestedBy}</span>
+
+                  </div>
+
+                </td>
+
+                <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
+
+                  {new Date(app.requestedDate).toLocaleDateString()}
+
+                </td>
+
+                <td className="px-3 py-2.5">
+
+                  <span
+
+                    className={cn(
+
+                      "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
+
+                      app.status === "Approved"
+
+                        ? "bg-success/10 text-success border-success/30"
+
+                        : app.status === "Rejected"
+
+                          ? "bg-destructive/10 text-destructive border-destructive/30"
+
+                          : app.status === "Hold"
+
+                            ? "bg-warning/15 text-warning-foreground border-warning/30"
+
+                            : app.status === "Request Changes"
+
+                              ? "bg-info/10 text-info border-info/30"
+
+                              : "bg-muted text-muted-foreground border-border",
+
+                    )}
+
+                  >
+
+                    {app.status}
+
+                  </span>
+
+                </td>
+
+                <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
+
+                  <button
+
+                    onClick={() => setSelectedAppId(app.id)}
+
+                    className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
+
+                  >
+
+                    View
+
+                  </button>
+
+                  {app.status !== "Pending" && !app.acknowledgedAt && !isBO && (
+
+                    <button
+
+                      onClick={() => handleAcknowledge(app.id)}
+
+                      className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20"
+
+                    >
+
+                      <Check className="h-3 w-3" /> Acknowledge
+
+                    </button>
+
+                  )}
+
+                  {app.acknowledgedAt && (
+
+                    <span className="text-[10px] font-medium text-success pl-1 inline-flex items-center gap-0.5">
+
+                      <CheckCircle2 className="h-3 w-3 inline" /> Acked
+
+                    </span>
+
+                  )}
+
+                </td>
+
+              </tr>
+
+            ))}
+
+            {isLoadingApprovals && filteredApprovals.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span>Loading approvals...</span>
                   </div>
                 </td>
-                <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-                  {new Date(app.requestedDate).toLocaleDateString()}
-                </td>
-                <td className="px-3 py-2.5">
-                  <span
-                    className={cn(
-                      "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
-                      app.status === "Approved"
-                        ? "bg-success/10 text-success border-success/30"
-                        : app.status === "Rejected"
-                          ? "bg-destructive/10 text-destructive border-destructive/30"
-                          : app.status === "Hold"
-                            ? "bg-warning/15 text-warning-foreground border-warning/30"
-                            : app.status === "Request Changes"
-                              ? "bg-info/10 text-info border-info/30"
-                              : "bg-muted text-muted-foreground border-border",
-                    )}
-                  >
-                    {app.status}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
-                  <button
-                    onClick={() => setSelectedAppId(app.id)}
-                    className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
-                  >
-                    View
-                  </button>
-                  {app.status !== "Pending" && !app.acknowledgedAt && !isBO && (
-                    <button
-                      onClick={() => handleAcknowledge(app.id)}
-                      className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20"
-                    >
-                      <Check className="h-3 w-3" /> Acknowledge
-                    </button>
-                  )}
-                  {app.acknowledgedAt && (
-                    <span className="text-[10px] font-medium text-success pl-1 inline-flex items-center gap-0.5">
-                      <CheckCircle2 className="h-3 w-3 inline" /> Acked
-                    </span>
-                  )}
-                </td>
               </tr>
-            ))}
-            {filteredApprovals.length === 0 && (
+            ) : filteredApprovals.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No approvals found
                 </td>
               </tr>
-            )}
+            ) : null}
           </tbody>
+
         </table>
+
       </div>
 
+
+
       {selectedApproval && (
+
         <Modal
+
           title={`Review Request — ${selectedApproval.id}`}
+
           onClose={() => setSelectedAppId(null)}
+
           wide
+
           draggable
+
         >
+
           <div className="space-y-4">
+
             <div className="bg-muted/30 border border-border rounded-lg p-3 text-xs leading-relaxed grid grid-cols-2 md:grid-cols-4 gap-3">
+
               <div>
+
                 <span className="text-muted-foreground">Project Link</span>
+
                 <p className="font-medium text-primary hover:underline">
+
                   <Link
+
                     to="/projects/$projectId"
+
                     params={{ projectId: selectedApproval.projectId }}
+
                   >
+
                     {selectedApproval.projectName}
+
                   </Link>
+
                 </p>
+
               </div>
+
               <div>
+
                 <span className="text-muted-foreground">Requested By</span>
+
                 <p className="font-semibold">{selectedApproval.requestedBy}</p>
+
               </div>
+
               <div>
+
                 <span className="text-muted-foreground">Submitted On</span>
+
                 <p className="font-medium">{selectedApproval.requestedDate}</p>
+
               </div>
+
               <div>
+
                 <span className="text-muted-foreground">Request Type</span>
+
                 <p className="font-bold text-xs text-primary">{selectedApproval.requestType}</p>
+
               </div>
+
             </div>
+
+
 
             <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
+
               <span className="text-xs font-bold text-muted-foreground uppercase">
+
                 Description & Justification
+
               </span>
+
               <p className="text-sm text-gray-800 leading-relaxed font-medium">
+
                 {selectedApproval.description}
+
               </p>
+
             </div>
+
+
 
             {selectedApproval.comments.length > 0 && (
+
               <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+
                   Discussion & Audit Log History
+
                 </span>
+
                 <div className="space-y-2 max-h-40 overflow-y-auto pl-1">
+
                   {selectedApproval.history.map((h, idx) => (
+
                     <div
+
                       key={idx}
+
                       className="text-xs border-l-2 border-primary pl-2 py-0.5 bg-muted/10 rounded-sm"
+
                     >
+
                       <div className="flex justify-between text-muted-foreground text-[10px]">
+
                         <span>
+
                           Status:{" "}
+
                           <strong className="text-gray-700 font-semibold">{h.status}</strong> by{" "}
+
                           {h.updatedBy}
+
                         </span>
+
                         <span>{new Date(h.at).toLocaleString()}</span>
+
                       </div>
+
                       {h.comment && <p className="text-gray-800 mt-0.5">"{h.comment}"</p>}
+
                     </div>
+
                   ))}
+
                 </div>
+
               </div>
+
             )}
+
+
 
             {/* Requester Acknowledge State */}
+
             {selectedApproval.acknowledgedAt && (
+
               <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success flex items-center gap-2">
+
                 <CheckCircle2 className="h-4 w-4" />
+
                 <span>
+
                   This decision was acknowledged by the requester on{" "}
+
                   <strong>{new Date(selectedApproval.acknowledgedAt).toLocaleString()}</strong>.
+
                 </span>
+
               </div>
+
             )}
+
+
 
             {/* Mandatory Comment box */}
+
             {selectedApproval.status === "Pending" && (
+
               <div className="space-y-2 border-t border-border pt-3">
+
                 <label className="text-xs font-semibold text-gray-700 block">
+
                   Action Comments / Clarifications / Instructions{" "}
+
                   <span className="text-destructive font-bold">*Mandatory</span>
+
                 </label>
+
                 <textarea
+
                   value={appComment}
+
                   onChange={(e) => setAppComment(e.target.value)}
+
                   placeholder="Provide detailed instructions, clarification request, or reasons..."
+
                   rows={3}
+
                   className="w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
+
                 />
+
               </div>
+
             )}
 
+
+
             <div className="flex justify-end gap-2 border-t border-border pt-3">
+
               <button
+
                 onClick={() => setSelectedAppId(null)}
+
                 className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent"
+
               >
+
                 Close
+
               </button>
+
               {selectedApproval.status === "Pending" && !isBO && (
+
                 <>
+
                   <button
+
                     onClick={() => handleAction("Hold")}
+
                     disabled={!appComment.trim()}
+
                     className="inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning/10 px-4 py-2 text-xs font-medium text-warning-foreground hover:bg-warning/20 disabled:opacity-50"
+
                   >
+
                     Hold
+
                   </button>
+
                   <button
+
                     onClick={() => handleAction("Request Changes")}
+
                     disabled={!appComment.trim()}
+
                     className="inline-flex items-center gap-1 rounded-md border border-info/30 bg-info/10 px-4 py-2 text-xs font-medium text-info hover:bg-info/20 disabled:opacity-50"
+
                   >
+
                     Request Changes
+
                   </button>
+
                   <button
+
                     onClick={() => handleAction("Rejected")}
+
                     disabled={!appComment.trim()}
+
                     className="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
+
                   >
+
                     Reject
+
                   </button>
+
                   <button
+
                     onClick={() => handleAction("Approved")}
+
                     disabled={!appComment.trim()}
+
                     className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+
                   >
+
                     Approve
+
                   </button>
+
                 </>
+
               )}
+
             </div>
+
           </div>
+
         </Modal>
+
       )}
+
     </section>
+
   );
+
 }
+
+
 
 // ---------- Alerts ----------
+
 function MetricCard({ label, value, color }: { label: string; value: number; color: string }) {
+
   return (
+
     <div
+
       className={cn("rounded-lg border p-3 flex flex-col justify-between shadow-xs bg-card", color)}
+
     >
+
       <span className="text-[10px] font-bold uppercase tracking-wider opacity-85">{label}</span>
+
       <span className="text-xl font-extrabold tracking-tight mt-1">{value}</span>
+
     </div>
+
   );
+
 }
 
+
+
 function AlertsTab() {
+
   const store = useDhStore((s) => s);
+
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+
   const [projFilter, setProjFilter] = useState("all");
+
   const [clientFilter, setClientFilter] = useState("all");
+
   const [prioFilter, setPrioFilter] = useState("all");
+
   const [typeFilter, setTypeFilter] = useState("all");
+
   const [statusFilter, setStatusFilter] = useState("all");
 
+
+
   // Modal states
+
   const [newChatMsg, setNewChatMsg] = useState("");
+
   const [pendingChatMsgs, setPendingChatMsgs] = useState<string[]>([]);
+
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+
   const [selectedOwner, setSelectedOwner] = useState("");
+
   const [selectedResOwner, setSelectedResOwner] = useState("");
+
   const [selectedEscOwner, setSelectedEscOwner] = useState("");
+
   const [resDetails, setResDetails] = useState("");
+
   const [selectedStatus, setSelectedStatus] = useState<AlertStatus>("Open");
+
   const [approved, setApproved] = useState(false);
+
   const { user, assignedProjects: projectsList, assignedClients: clientsList } = useRoleContext();
 
+
+
   const allAlerts = store.alerts;
+
+
 
   const [loadingAlerts, setLoadingAlerts] = useState(false);
 
 
 
+
+
+
+
   const loadAlerts = useCallback(async () => {
+
+
 
     setLoadingAlerts(true);
 
+
+
     try {
+
+
 
       const data = await apiFetch<DhAlert[]>("/api/v1/action-centre/alerts");
 
+
+
       if (Array.isArray(data)) {
 
+
+
         const normalized = data.map((a: any) => ({
+
           ...a,
+
           comments: Array.isArray(a.comments) ? a.comments : [],
+
           attachments: Array.isArray(a.attachments) && a.attachments.length > 0
+
             ? a.attachments
+
             : (a.attachmentFileName ? [a.attachmentFileName] : []),
+
           history: Array.isArray(a.history) ? a.history : [],
+
         }));
+
         dhStore.setAlerts(normalized);
+
+
 
       }
 
+
+
     } catch (e) {
+
+
 
       console.error("Failed to load action centre alerts:", e);
 
+
+
     } finally {
+
+
 
       setLoadingAlerts(false);
 
+
+
     }
+
+
 
   }, []);
 
 
 
+
+
+
+
   useEffect(() => {
+
+
 
     loadAlerts();
 
+
+
   }, [loadAlerts, user?.id]);
 
+
+
   const filtered = useMemo(() => {
+
     return allAlerts.filter((a) => {
+
       const proj = projectsList.find((p) => p.id === a.projectId);
+
       if (projFilter !== "all" && a.projectId !== projFilter) return false;
+
       if (clientFilter !== "all" && proj?.clientId !== clientFilter) return false;
+
       if (prioFilter !== "all" && a.priority !== prioFilter) return false;
+
       if (typeFilter !== "all" && a.alertType !== typeFilter) return false;
+
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
+
       return true;
+
     });
+
   }, [allAlerts, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, projectsList]);
 
+
+
   const metrics = useMemo(() => {
+
     const total = allAlerts.length;
+
     const open = allAlerts.filter((a) => a.status === "Open").length;
+
     const critical = allAlerts.filter((a) => a.priority === "Critical").length;
+
     const resolved = allAlerts.filter((a) => a.status === "Resolved").length;
+
     const escalated = allAlerts.filter(
+
       (a) => a.priority === "Critical" || a.status === "Closed",
+
     ).length;
+
     return { total, open, critical, resolved, escalated };
+
   }, [allAlerts]);
 
+
+
   const selectedAlert = useMemo(() => {
+
     return allAlerts.find((a) => a.id === selectedAlertId);
+
   }, [allAlerts, selectedAlertId]);
 
+
+
   // Alerts raised by the Log Requirement flow (add service / scope cancellation)
+
   const isRequirementAlert = !!selectedAlert?.alertId?.startsWith("REQ-AL-");
 
+
+
   const allDisplayComments = useMemo(() => {
+
     const existing = selectedAlert?.comments || [];
+
     const pending = pendingChatMsgs.map((text, idx) => ({
+
       id: `pending-${idx}`,
+
       authorName: user?.name || "You",
+
       authorEmail: user?.email || "",
+
       text,
+
       at: new Date().toISOString(),
+
       isPending: true,
+
     }));
+
     return [...existing, ...pending];
+
   }, [selectedAlert?.comments, pendingChatMsgs, user?.name, user?.email]);
 
+
+
   const openDetails = (id: string) => {
+
     const alert = allAlerts.find((a) => a.id === id);
+
     if (alert) {
+
       setSelectedAlertId(id);
+
       setSelectedOwner(alert.owner || "");
+
       setSelectedResOwner(alert.resolutionOwner || "");
+
       setSelectedEscOwner(alert.escalationOwner || "");
+
       const formattedExpDate = formatToDayMonthYear(alert.expectedResolutionDate);
+
       setResDetails(
+
         alert.resolutionDetails ||
+
         (formattedExpDate ? `Expected Resolution Date: ${formattedExpDate}` : "")
+
       );
+
       setSelectedStatus(alert.status);
+
       setApproved(false);
+
       setNewChatMsg("");
+
       setPendingChatMsgs([]);
+
     }
+
   };
+
+
 
   const handleStageChatMessage = () => {
+
     if (!newChatMsg.trim()) return;
+
     const msg = newChatMsg.trim().slice(0, 50);
+
     setPendingChatMsgs((prev) => [...prev, msg]);
+
     setNewChatMsg("");
+
   };
+
+
 
   const handleUpdateAlert = async () => {
+
     if (!selectedAlertId) return;
+
     try {
+
       const allCommentsToSend = [...pendingChatMsgs];
+
       if (newChatMsg.trim()) {
+
         allCommentsToSend.push(newChatMsg.trim().slice(0, 50));
+
       }
+
       await apiFetch(`/api/v1/action-centre/alerts/${selectedAlertId}/governance`, {
+
         method: "PUT",
+
         headers: { "Content-Type": "application/json" },
+
         body: JSON.stringify({
+
           status: selectedStatus,
+
           owner: selectedOwner || undefined,
+
           resolutionOwner: selectedResOwner || undefined,
+
           escalationOwner: selectedEscOwner || undefined,
+
           resolutionDetails: resDetails,
+
           comment: allCommentsToSend.length === 1 ? allCommentsToSend[0] : undefined,
+
           comments: allCommentsToSend.length > 1 ? allCommentsToSend : undefined,
+
         }),
+
       });
+
       dhStore.updateGovernanceAlert(
+
         selectedAlertId,
+
         {
+
           status: selectedStatus,
+
           owner: selectedOwner,
+
           resolutionOwner: selectedResOwner,
+
           escalationOwner: selectedEscOwner,
+
           resolutionDetails: resDetails,
+
         },
+
         allCommentsToSend.join("\n"),
+
         user.id,
+
         user.name,
+
       );
+
       toast.success("Governance changes saved successfully!");
+
       setPendingChatMsgs([]);
+
       setNewChatMsg("");
+
       setSelectedAlertId(null);
+
       await loadAlerts();
+
     } catch (e: any) {
+
       toast.error(e?.message || "Failed to update alert");
+
     }
+
   };
 
+
+
   const alertTypes = [
+
     "Project Risk",
+
     "Resource Risk",
+
     "Technical Issue",
+
     "Dependency Blocker",
+
     "Escalation",
+
     "Customer Concern",
+
     "Budget Concern",
+
     "Schedule Delay",
+
     "Quality Concern",
+
     "Governance Alert",
+
   ];
 
+
+
   return (
+
     <>
+
       {/* Metrics Dashboard Grid */}
+
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+
         <MetricCard
+
           label="Total Alerts"
+
           value={metrics.total}
+
           color="bg-blue-50 text-blue-700 border-blue-200"
+
         />
+
         <MetricCard
+
           label="Open Alerts"
+
           value={metrics.open}
+
           color="bg-orange-50 text-orange-700 border-orange-200"
+
         />
+
         <MetricCard
+
           label="Critical Alerts"
+
           value={metrics.critical}
+
           color="bg-red-50 text-red-700 border-red-200"
+
         />
+
         <MetricCard
+
           label="Resolved Alerts"
+
           value={metrics.resolved}
+
           color="bg-green-50 text-green-700 border-green-200"
+
         />
+
         <MetricCard
+
           label="Escalated Alerts"
+
           value={metrics.escalated}
+
           color="bg-purple-50 text-purple-700 border-purple-200"
+
         />
+
       </div>
 
+
+
       <section className="rounded-xl border border-border bg-card shadow-sm">
+
         {/* Filters Panel */}
+
         <header className="border-b border-border p-4 space-y-3">
+
           <div className="flex items-center gap-2">
+
             <ShieldAlert className="h-4.5 w-4.5 text-yellow-500" />
+
             <h3 className="text-sm font-semibold">PMO Health & Governance Governance Panel</h3>
+
           </div>
+
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 text-xs">
+
             <div className="flex flex-col gap-1">
+
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Project</span>
+
               <select
+
                 value={projFilter}
+
                 onChange={(e) => setProjFilter(e.target.value)}
+
                 className="form-input rounded-md border border-border p-1.5 bg-card"
+
               >
+
                 <option value="all">All Projects</option>
+
                 {(projectsList || []).map((p) => (
+
                   <option key={p.id} value={p.id}>
+
                     {p.name}
+
                   </option>
+
                 ))}
+
               </select>
+
             </div>
+
             <div className="flex flex-col gap-1">
+
               <span className="text-[10px] font-bold text-muted-foreground uppercase">
+
                 Customer
+
               </span>
+
               <select
+
                 value={clientFilter}
+
                 onChange={(e) => setClientFilter(e.target.value)}
+
                 className="form-input rounded-md border border-border p-1.5 bg-card"
+
               >
+
                 <option value="all">All Customers</option>
+
                 {(clientsList || []).map((c) => (
+
                   <option key={c.id} value={c.id}>
+
                     {c.name}
+
                   </option>
+
                 ))}
+
               </select>
+
             </div>
+
             <div className="flex flex-col gap-1">
+
               <span className="text-[10px] font-bold text-muted-foreground uppercase">
+
                 Priority
+
               </span>
+
               <select
+
                 value={prioFilter}
+
                 onChange={(e) => setPrioFilter(e.target.value)}
+
                 className="form-input rounded-md border border-border p-1.5 bg-card"
+
               >
+
                 <option value="all">All Priorities</option>
+
                 {(["Low", "Medium", "High", "Critical"] as const).map((pr) => (
+
                   <option key={pr} value={pr}>
+
                     {pr}
+
                   </option>
+
                 ))}
+
               </select>
+
             </div>
+
             <div className="flex flex-col gap-1">
+
               <span className="text-[10px] font-bold text-muted-foreground uppercase">
+
                 Alert Type
+
               </span>
+
               <select
+
                 value={typeFilter}
+
                 onChange={(e) => setTypeFilter(e.target.value)}
+
                 className="form-input rounded-md border border-border p-1.5 bg-card"
+
               >
+
                 <option value="all">All Types</option>
+
                 {alertTypes.map((t) => (
+
                   <option key={t} value={t}>
+
                     {t}
+
                   </option>
+
                 ))}
+
               </select>
+
             </div>
+
             <div className="flex flex-col gap-1">
+
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
+
               <select
+
                 value={statusFilter}
+
                 onChange={(e) => setStatusFilter(e.target.value)}
+
                 className="form-input rounded-md border border-border p-1.5 bg-card"
+
               >
+
                 <option value="all">All Statuses</option>
+
                 {(
+
                   [
+
                     "Open",
+
                     "Acknowledged",
+
                     "In Progress",
+
                     "Waiting for Customer",
+
                     "Resolved",
+
                     "Closed",
+
                   ] as const
+
                 ).map((s) => (
+
                   <option key={s} value={s}>
+
                     {s}
+
                   </option>
+
                 ))}
+
               </select>
+
             </div>
+
           </div>
+
         </header>
 
+
+
         {filtered.length === 0 ? (
+
           <div className="p-8 text-center">
+
             <p className="text-sm text-muted-foreground">
+
               No governance alerts found matching the active filters.
+
             </p>
+
           </div>
+
         ) : (
+
           <div className="overflow-x-auto">
+
             <table className="w-full text-sm">
+
               <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+
                 <tr>
+
                   <th className="px-3 py-2 font-medium">Alert ID</th>
+
                   <th className="px-3 py-2 font-medium">Alert Title</th>
+
                   <th className="px-3 py-2 font-medium">Project Name</th>
+
                   <th className="px-3 py-2 font-medium">Customer Name</th>
+
                   <th className="px-3 py-2 font-medium">Alert Type</th>
+
                   <th className="px-3 py-2 font-medium">Priority</th>
+
                   <th className="px-3 py-2 font-medium">Raised By</th>
+
                   <th className="px-3 py-2 font-medium">Raised Date</th>
+
                   <th className="px-3 py-2 font-medium">Status</th>
+
                   <th className="px-3 py-2 font-medium text-right">Actions</th>
+
                 </tr>
+
               </thead>
+
               <tbody className="divide-y divide-border">
+
                 {filtered.map((alert) => {
+
                   const project = projectsList.find((p) => p.id === alert.projectId);
+
                   const client = clientsList.find((c) => c.id === project?.clientId);
+
                   return (
+
                     <tr key={alert.id} className="hover:bg-accent/30">
+
                       <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-800">
+
                         {alert.alertId || "ALT-GEN"}
+
                       </td>
+
                       <td className="px-3 py-2.5 font-medium text-gray-700">{alert.title}</td>
+
                       <td className="px-3 py-2.5 text-xs text-muted-foreground font-semibold">
+
                         {project?.name || "—"}
+
                       </td>
+
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">
+
                         {client?.name || "—"}
+
                       </td>
+
                       <td className="px-3 py-2.5">
+
                         <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-gray-700">
+
                           {alert.alertType || alert.kind}
+
                         </span>
+
                       </td>
+
                       <td className="px-3 py-2.5">
+
                         <PriorityPill priority={alert.priority.toLowerCase() as any} />
+
                       </td>
+
                       <td className="px-3 py-2.5 text-xs font-medium">{alert.raisedByName}</td>
+
                       <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
+
                         {new Date(alert.createdAt).toLocaleDateString()}
+
                       </td>
+
                       <td className="px-3 py-2.5">
+
                         <span
+
                           className={cn(
+
                             "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
+
                             alert.status === "Open"
+
                               ? "bg-orange-50 text-orange-700 border-orange-200"
+
                               : alert.status === "In Progress"
+
                                 ? "bg-blue-50 text-blue-700 border-blue-200"
+
                                 : alert.status === "Resolved" || alert.status === "Closed"
+
                                   ? "bg-green-50 text-green-700 border-green-200"
+
                                   : alert.status === "Waiting for Customer"
+
                                     ? "bg-purple-50 text-purple-700 border-purple-200"
+
                                     : "bg-muted text-muted-foreground border-border",
+
                           )}
+
                         >
+
                           {alert.status}
+
                         </span>
+
                       </td>
+
                       <td className="px-3 py-2.5 text-right">
+
                         <button
+
                           onClick={() => openDetails(alert.id)}
+
                           className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
+
                         >
+
                           Review details
+
                         </button>
+
                       </td>
+
                     </tr>
+
                   );
+
                 })}
+
               </tbody>
+
             </table>
+
           </div>
+
         )}
+
       </section>
 
+
+
       {/* Alert Details Modal */}
+
       {selectedAlert && (
+
         <Modal
+
           title={
+
             selectedAlert.kind === "Escalation"
+
               ? `Escalation Review Details — ${selectedAlert.alertId || "ALT-GEN"}`
+
               : `Governance Alert Details — ${selectedAlert.alertId || "ALT-GEN"}`
+
           }
+
           onClose={() => setSelectedAlertId(null)}
+
           wide
+
           draggable
+
         >
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+
             {/* Left side details (md:col-span-2) */}
+
             <div className="md:col-span-2 space-y-4">
+
               <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
+
                 <span className="font-semibold text-[10px] text-muted-foreground uppercase">
+
                   {selectedAlert.kind === "Escalation" ? "Escalation Subject" : "Alert Title"}
+
                 </span>
+
                 <p className="text-sm font-bold text-gray-800">{selectedAlert.title}</p>
+
               </div>
+
+
 
               {selectedAlert.kind === "Escalation" && (
+
                 <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
+
                   <div>
+
                     <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+
                       Service Name
+
                     </span>
+
                     <span className="font-semibold text-primary">
+
                       {selectedAlert.serviceName || "—"}
+
                     </span>
+
                   </div>
+
                   <div>
+
                     <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+
                       Escalation Type
+
                     </span>
+
                     <span className="font-semibold text-gray-800">
+
                       {selectedAlert.escalationType || "—"}
+
                     </span>
+
                   </div>
+
                   <div>
+
                     <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+
                       Raised By
+
                     </span>
+
                     <span className="font-semibold text-gray-800">
+
                       {selectedAlert.raisedByName || "—"}
+
                     </span>
+
                   </div>
+
                   {selectedAlert.expectedResolutionDate && (
+
                     <div>
+
                       <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+
                         Expected Resolution Date
+
                       </span>
+
                       <span className="font-semibold text-gray-800">
+
                         {formatToDayMonthYear(selectedAlert.expectedResolutionDate)}
+
                       </span>
+
                     </div>
+
                   )}
+
                 </div>
+
               )}
+
+
 
               <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+
                 <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+
                   Full Description
+
                 </span>
+
                 <p className="text-xs text-gray-700 leading-relaxed font-medium">
+
                   {selectedAlert.description || "No full description provided."}
+
                 </p>
+
               </div>
+
+
 
               {/* Discussion Chat Thread (Swapped to left side with wide view) */}
+
               <div className="rounded-lg border border-border p-3 bg-card space-y-2.5">
+
                 <div className="flex items-center justify-between border-b border-border pb-1.5">
+
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase flex items-center gap-1.5">
+
                     <MessageSquare className="h-3.5 w-3.5 text-primary" /> Discussion Chat Thread
+
                   </span>
+
                   <span className="text-[10px] text-muted-foreground font-medium">
+
                     {allDisplayComments.length} {allDisplayComments.length === 1 ? "message" : "messages"}
+
                   </span>
+
                 </div>
+
+
 
                 {/* WhatsApp-Style Chat Area with scroll after 3 chats (Like Status Transitions Timeline) */}
+
                 <div className="flex flex-col space-y-2 max-h-36 overflow-y-auto p-2.5 rounded-md bg-[#efeae2]/30 border border-border">
+
                   {allDisplayComments.map((cm: any, idx: number) => {
+
                     const isMe = (cm.authorEmail && user.email && cm.authorEmail.toLowerCase() === user.email.toLowerCase()) ||
+
                                  (cm.authorName && user.name && cm.authorName.toLowerCase() === user.name.toLowerCase());
+
                     const timeStr = cm.at
+
                       ? new Date(cm.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+
                       : "";
+
                     const dateStr = formatToDayMonthYear(cm.at);
 
+
+
                     return (
+
                       <div
+
                         key={cm.id || idx}
+
                         className={cn(
+
                           "flex flex-col max-w-[80%] rounded-lg px-3 py-1.5 text-xs shadow-xs",
+
                           isMe
+
                             ? "self-end ml-auto bg-emerald-100 text-emerald-950 border border-emerald-300 rounded-tr-none"
+
                             : "self-start mr-auto bg-white text-gray-900 border border-border rounded-tl-none"
+
                         )}
+
                       >
+
                         <div className="flex items-center justify-between gap-3 text-[10px] pb-1 border-b border-black/5 font-semibold">
+
                           <span className={cn(isMe ? "text-emerald-800" : "text-primary")}>
+
                             {isMe ? "You" : cm.authorName || "Stakeholder"}
+
                             {cm.isPending && (
+
                               <span className="ml-1 text-[9px] font-normal text-muted-foreground italic">(staged)</span>
+
                             )}
+
                           </span>
+
                           <span className="text-[9px] text-muted-foreground font-normal tabular-nums">
+
                             {dateStr} {timeStr}
+
                           </span>
+
                         </div>
+
                         <p className="mt-0.5 text-xs break-words whitespace-pre-wrap leading-relaxed">
+
                           {cm.text}
+
                         </p>
+
                       </div>
+
                     );
+
                   })}
+
                   {allDisplayComments.length === 0 && (
+
                     <div className="flex flex-col items-center justify-center py-4 text-center text-muted-foreground">
+
                       <MessageSquare className="h-5 w-5 stroke-[1.5] mb-1 opacity-40" />
+
                       <span className="text-xs italic">No chat messages yet.</span>
+
                       <span className="text-[10px]">Type below and click Send (up to 50 characters).</span>
+
                     </div>
+
                   )}
+
                   <div ref={chatEndRef} />
+
                 </div>
+
+
 
                 {/* 50-Character Chat Input with live remaining counter and Send button */}
+
                 <div className="flex items-center gap-2 pt-1">
+
                   <div className="relative flex-1">
+
                     <input
+
                       type="text"
+
                       maxLength={50}
+
                       value={newChatMsg}
+
                       onChange={(e) => setNewChatMsg(e.target.value)}
+
                       onKeyDown={(e) => {
+
                         if (e.key === "Enter" && !e.shiftKey) {
+
                           e.preventDefault();
+
                           handleStageChatMessage();
+
                         }
+
                       }}
+
                       placeholder="Type a message (max 50 chars)..."
+
                       className="w-full rounded-md border border-border bg-card px-3 py-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring pr-20"
+
                     />
+
                     <span className={cn(
+
                       "absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold select-none",
+
                       50 - (newChatMsg || "").length <= 10 ? "text-red-500 font-bold" : "text-muted-foreground"
+
                     )}>
+
                       {50 - (newChatMsg || "").length} left
+
                     </span>
+
                   </div>
+
                   <button
+
                     type="button"
+
                     onClick={handleStageChatMessage}
+
                     disabled={!newChatMsg.trim()}
+
                     className="inline-flex items-center gap-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer shrink-0"
+
                   >
+
                     <Send className="h-3 w-3" /> Send
+
                   </button>
+
                 </div>
+
               </div>
+
+
 
               {/* Status Transitions Timeline (Format: day-month-year) */}
+
               {selectedAlert.history && selectedAlert.history.length > 0 && (
+
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+
                     Status Transitions Timeline
+
                   </span>
+
                   <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
+
                     {(selectedAlert.history || []).map((h: any, idx) => {
+
                       const dateStr = formatToDayMonthYear(h.at || h.date);
+
                       const timeStr = h.at ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : (h.time || "");
+
                       const text = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — \"${h.details}\"` : ""}`;
+
                       return (
+
                         <div key={idx} className="flex gap-2 text-[10px]">
+
                           <span className="text-muted-foreground tabular-nums">
+
                             {dateStr} {timeStr}:
+
                           </span>
+
                           <span>{text}</span>
+
                         </div>
+
                       );
+
                     })}
+
                   </div>
+
                 </div>
+
               )}
+
             </div>
+
+
 
             {/* Right side controls (md:col-span-1) */}
+
             <div className="space-y-4 flex flex-col justify-between">
+
               <div className="space-y-3">
+
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+
                     Project Link
+
                   </span>
+
                   {selectedAlert.projectId ? (
+
                     <Link
+
                       to="/projects/$projectId"
+
                       params={{ projectId: selectedAlert.projectId }}
+
                       hash="health-alerts"
+
                       className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded-md px-2.5 py-1.5 font-bold hover:bg-primary/20 text-xs w-full justify-between"
+
                     >
+
                       <span>
+
                         {projectsList.find((p) => p.id === selectedAlert.projectId)?.name ||
+
                           "Go to project"}
+
                       </span>
+
                       <ExternalLink className="h-3 w-3" />
+
                     </Link>
+
                   ) : (
+
                     <span className="text-muted-foreground italic">No linked project.</span>
+
                   )}
+
                 </div>
+
+
 
                 <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
+
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
+
                     Attachments
+
                   </span>
+
                   {selectedAlert.attachments && selectedAlert.attachments.length > 0 ? (
+
                     <div className="space-y-1">
+
                       {(selectedAlert.attachments || []).map((file, idx) => (
+
                         <div
+
                           key={idx}
+
                           onClick={async () => {
+
                             try {
+
                               const downloadUrl = (selectedAlert as any).attachmentUrl || `/api/v1/action-centre/alerts/${selectedAlert.id}/attachment`;
+
                               const blob = await apiFetchBlob(downloadUrl);
+
                               const ext = file.split(".").pop()?.toLowerCase() || "";
+
                               let mime = blob.type;
+
                               if (!mime || mime === "application/octet-stream") {
+
                                 if (ext === "pdf") mime = "application/pdf";
+
                                 else if (ext === "png") mime = "image/png";
+
                                 else if (ext === "jpg" || ext === "jpeg") mime = "image/jpeg";
+
                                 else if (ext === "txt") mime = "text/plain";
+
                               }
+
                               const typedBlob = new Blob([blob], { type: mime });
+
                               const blobUrl = URL.createObjectURL(typedBlob);
+
                               window.open(blobUrl, "_blank", "noopener,noreferrer");
+
                             } catch (err: any) {
+
                               toast.error(err?.message || "Failed to open attachment");
+
                             }
+
                           }}
+
                           className="flex items-center gap-1.5 text-[10px] text-primary hover:underline cursor-pointer"
+
                           title="Click to view / download file"
+
                         >
+
                           <Paperclip className="h-3 w-3 text-muted-foreground shrink-0" />
+
                           <span className="truncate">{file}</span>
+
                         </div>
+
                       ))}
+
                     </div>
+
                   ) : (
+
                     <span className="text-muted-foreground italic text-[10px]">
+
                       No attachments.
+
                     </span>
+
                   )}
+
                 </div>
+
+
 
                 {/* Escalated To */}
+
                 {selectedAlert.kind === "Escalation" && selectedAlert.escalatedTo && (
+
                   <div className="rounded-lg border border-border p-3 bg-muted/10 space-y-1">
+
                     <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
+
                       Escalated To
+
                     </span>
+
                     <p
+
                       className="text-xs font-semibold text-primary truncate"
+
                       title={selectedAlert.escalatedTo.join(", ")}
+
                     >
+
                       {selectedAlert.escalatedTo.join(", ")}
+
                     </p>
+
                   </div>
+
                 )}
+
+
 
                 {/* Status Switcher */}
+
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block">
+
                     {isRequirementAlert ? "Status" : "Set Status"}
+
                   </span>
+
                   {isRequirementAlert ? (
+
                     <div
+
                       className={cn(
+
                         "w-full rounded-md border p-2 text-xs font-bold shadow-xs",
+
                         selectedAlert.status === "Resolved" || selectedAlert.status === "Closed"
+
                           ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+
                           : selectedAlert.status === "Open"
+
                             ? "bg-orange-50 border-orange-200 text-orange-700"
+
                             : "bg-gray-50 border-gray-200 text-gray-600",
+
                       )}
+
                     >
+
                       {selectedAlert.status}
+
                     </div>
+
                   ) : (
+
                     <select
+
                       value={selectedStatus}
+
                       onChange={(e) => setSelectedStatus(e.target.value as any)}
+
                       className={cn(
+
                         "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
+
                         selectedStatus === "Resolved" || selectedStatus === "Closed"
+
                           ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+
                           : selectedStatus === "Open"
+
                             ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+
                             : selectedStatus === "In Progress"
+
                               ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+
                               : selectedStatus === "Waiting for Customer"
+
                                 ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+
                                 : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100",
+
                       )}
+
                     >
+
                       {selectedAlert.kind === "Escalation"
+
                         ? (
+
                             [
+
                               "Open",
+
                               "Acknowledged",
+
                               "In Progress",
+
                               "Waiting for Customer",
+
                               "Resolved",
+
                               "Closed",
+
                             ] as const
+
                           ).map((s) => (
+
                             <option key={s} value={s}>
+
                               {s}
+
                             </option>
+
                           ))
+
                         : (["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
+
                             <option key={s} value={s}>
+
                               {s}
+
                             </option>
+
                           ))}
+
                     </select>
+
                   )}
+
                 </div>
+
+
 
                 {/* Resolution Timeline Details (Placed under Set Status with readonly day-month-year date) */}
+
                 <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+
                   <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+
                     Resolution Timeline Details
+
                   </span>
+
                   <div className="space-y-1">
+
                     <span className="text-[10px] font-bold text-muted-foreground">Expected Resolution Date</span>
+
                     <input
+
                       type="text"
+
                       readOnly
+
                       value={formatToDayMonthYear(selectedAlert.expectedResolutionDate) || "—"}
+
                       className="w-full rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs font-semibold text-gray-800 outline-none cursor-default"
+
                     />
+
                   </div>
+
                 </div>
+
               </div>
+
+
 
               <div className="flex justify-end gap-2 border-t border-border pt-3">
+
                 {isRequirementAlert ? (
+
                   <>
+
                     <button
+
                       onClick={() => {
+
                         setApproved(true);
+
                         toast.success("Requirement approved — click Update to save");
+
                       }}
+
                       className={cn(
+
                         "rounded-md border px-3.5 py-1.5 text-xs font-medium transition-colors",
+
                         approved
+
                           ? "border-emerald-600 bg-emerald-600 text-white"
+
                           : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+
                       )}
+
                     >
+
                       {approved ? "Approved ✓" : "Approve"}
+
                     </button>
+
                     <button
+
                       onClick={() => {
+
                         // TODO: notify the manager assigned to this project on reject (to be wired later)
+
                         toast("Requirement rejected — manager notification will be enabled later");
+
                         setSelectedAlertId(null);
+
                       }}
+
                       className="rounded-md border border-red-300 bg-red-50 px-3.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+
                     >
+
                       Reject
+
                     </button>
+
                     <button
+
                       onClick={handleUpdateAlert}
+
                       disabled={!approved}
+
                       className={cn(
+
                         "rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors",
+
                         approved
+
                           ? "bg-primary text-primary-foreground hover:bg-primary/90"
+
                           : "border border-border bg-muted text-muted-foreground cursor-not-allowed",
+
                       )}
+
                     >
+
                       Update
+
                     </button>
+
                   </>
+
                 ) : (
+
                   <>
+
                     <button
+
                       onClick={() => setSelectedAlertId(null)}
+
                       className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent"
+
                     >
+
                       Cancel
+
                     </button>
+
                     <button
+
                       onClick={handleUpdateAlert}
+
                       className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+
                     >
+
                       Save Governance Changes
+
                     </button>
+
                   </>
+
                 )}
+
               </div>
+
             </div>
+
           </div>
+
         </Modal>
+
       )}
+
     </>
+
   );
+
 }
 
+
+
 function NotificationsTab() {
+
   const store = useDhStore((s) => s);
+
   const { user, isBO } = useRoleContext();
+
   const [subTab, setSubTab] = useState<"Current" | "Archived">("Current");
 
+
+
   // Search state
+
   const [searchQuery, setSearchQuery] = useState("");
 
+
+
   // Filters state
+
   const [typeFilter, setTypeFilter] = useState("all");
+
   const [priorityFilter, setPriorityFilter] = useState("all");
+
   const [dateFilter, setDateFilter] = useState("");
+
   const [statusFilter, setStatusFilter] = useState("all");
 
+
+
   // Modal details state
+
   const [selectedNotifId, setSelectedNotifId] = useState<string | null>(null);
+
   const [commentText, setCommentText] = useState("");
+
   const [showCommentError, setShowCommentError] = useState(false);
+
+
 
   const notifications = store.notifications || [];
 
+
+
   const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+
+
   const fetchNotifications = useCallback(async () => {
+
     setIsLoadingNotifs(true);
+
     try {
+
       const data = await apiFetch<DhNotification[]>("/api/v1/action-centre/notifications");
+
       if (Array.isArray(data)) {
+
         dhStore.setNotifications(data);
+
       }
+
     } catch (e) {
+
       console.error("Failed to load notifications:", e);
+
     } finally {
+
       setIsLoadingNotifs(false);
+
     }
+
   }, []);
 
+
+
   useEffect(() => {
+
     fetchNotifications();
+
   }, [fetchNotifications, user?.id]);
 
+
+
   // Metrics
+
   const totalCount = notifications.length;
+
   const pendingCount = notifications.filter((n) => n.status === "Pending").length;
+
   const criticalPendingCount = notifications.filter(
+
     (n) => n.status === "Pending" && (n.priority === "Critical" || n.priority === "High"),
+
   ).length;
+
   const archivedCount = notifications.filter((n) => n.status === "Acknowledged").length;
 
+
+
   // Formatting helpers matching images
+
   const formatNotifDate = (dateStr: string): string => {
+
     try {
+
       const d = new Date(dateStr);
+
       if (isNaN(d.getTime())) return dateStr;
+
       const day = d.getDate();
+
       const months = [
+
         "Jan",
+
         "Feb",
+
         "Mar",
+
         "Apr",
+
         "May",
+
         "Jun",
+
         "Jul",
+
         "Aug",
+
         "Sep",
+
         "Oct",
+
         "Nov",
+
         "Dec",
+
       ];
+
       const month = months[d.getMonth()];
+
       const year = d.getFullYear();
+
       return `${day} ${month} ${year}`;
+
     } catch (e) {
+
       return dateStr;
+
     }
+
   };
+
+
 
   const formatNotifTime = (dateStr: string): string => {
+
     try {
+
       const d = new Date(dateStr);
+
       if (isNaN(d.getTime())) return "12:00";
+
       const hours = String(d.getHours()).padStart(2, "0");
+
       const minutes = String(d.getMinutes()).padStart(2, "0");
+
       return `${hours}:${minutes}`;
+
     } catch (e) {
+
       return "12:00";
+
     }
+
   };
+
+
 
   // Type styles helper
+
   const getTypeStyles = (type: string) => {
+
     const t = type.toLowerCase();
+
     if (t.includes("wbs")) {
+
       return "bg-orange-50 text-orange-700 border border-orange-200";
+
     } else if (
+
       t.includes("ready") ||
+
       t.includes("completed") ||
+
       t.includes("resolved") ||
-      t.includes("approved")
+
+      t.includes("approved") ||
+
+      t.includes("selected")
+
     ) {
+
       return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+
     } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal")) {
+
       return "bg-red-50 text-red-700 border border-red-200";
-    } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval")) {
+
+    } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed")) {
+
       return "bg-amber-50 text-amber-700 border border-amber-200";
+
+    } else if (t.includes("appreciation")) {
+
+      return "bg-purple-50 text-purple-700 border border-purple-200";
+
     } else if (
+
       t.includes("interview") ||
+
       t.includes("shuffle") ||
+
       t.includes("allocation") ||
+
       t.includes("assignment")
+
     ) {
+
       return "bg-sky-50 text-sky-700 border border-sky-200";
+
     }
+
     return "bg-gray-50 text-gray-700 border border-gray-200";
+
   };
+
+
 
   // Filter & Search Logic
+
   const filteredNotifications = useMemo(() => {
+
     return notifications.filter((n) => {
+
       // 1. Sub-tab filter
+
       if (subTab === "Current") {
+
         const isCurrent = n.status === "Pending" || n.unread;
+
         if (!isCurrent) return false;
+
       } else {
+
         const isArchived = n.status === "Acknowledged";
+
         if (!isArchived) return false;
+
       }
+
+
 
       // 2. Search query filter (Project, Task, Notification Type, Employee, Title)
+
       if (searchQuery.trim()) {
+
         const query = searchQuery.toLowerCase();
+
         const matchesProject = n.relatedProject.toLowerCase().includes(query);
+
         const matchesTask = n.relatedTask ? n.relatedTask.toLowerCase().includes(query) : false;
+
         const matchesType = n.type.toLowerCase().includes(query);
+
         const matchesEmployee = n.raisedBy.toLowerCase().includes(query);
+
         const matchesTitle = n.title.toLowerCase().includes(query);
 
+
+
         if (!matchesProject && !matchesTask && !matchesType && !matchesEmployee && !matchesTitle) {
+
           return false;
+
         }
+
       }
+
+
 
       // 3. Dropdown/Inputs filters
+
       if (typeFilter !== "all" && n.type !== typeFilter) return false;
+
       if (priorityFilter !== "all" && n.priority.toLowerCase() !== priorityFilter.toLowerCase())
+
         return false;
+
       if (statusFilter !== "all" && n.status.toLowerCase() !== statusFilter.toLowerCase())
+
         return false;
+
       if (dateFilter) {
+
         const notifDate = n.createdAt.slice(0, 10);
+
         if (notifDate !== dateFilter) return false;
+
       }
 
+
+
       return true;
+
     });
+
   }, [notifications, subTab, searchQuery, typeFilter, priorityFilter, dateFilter, statusFilter]);
 
+
+
   const selectedNotification = useMemo(() => {
+
     return notifications.find((n) => n.id === selectedNotifId);
+
   }, [notifications, selectedNotifId]);
 
+
+
   const handleOpenDetails = (id: string) => {
+
     apiFetch(`/api/v1/action-centre/notifications/${id}/read`, { method: "PUT" }).catch(() => {});
+
     dhStore.markNotificationAsRead(id);
+
     setSelectedNotifId(id);
+
     setCommentText("");
+
     setShowCommentError(false);
+
   };
 
+
+
   const handleConfirmAcknowledge = async () => {
+
     if (!selectedNotification) return;
+
     if (!commentText.trim()) {
+
       setShowCommentError(true);
+
       return;
+
     }
+
     setIsSubmitting(true);
+
     try {
+
       await apiFetch(`/api/v1/action-centre/notifications/${selectedNotification.id}/acknowledge`, {
+
         method: "PUT",
+
         headers: { "Content-Type": "application/json" },
+
         body: JSON.stringify({ comment: commentText.trim() }),
+
       });
+
       dhStore.acknowledgeNotification(selectedNotification.id, user.name, commentText);
+
       toast.success("Notification Acknowledged Persistently!");
+
       setSelectedNotifId(null);
+
       setCommentText("");
+
       setShowCommentError(false);
+
       fetchNotifications();
+
     } catch (err: any) {
+
       toast.error(err?.message || "Failed to acknowledge notification");
+
     } finally {
+
       setIsSubmitting(false);
+
     }
+
   };
+
+
 
   const totalSubtabCount = subTab === "Current" ? pendingCount : archivedCount;
 
+
+
   return (
+
     <>
+
       {/* Metrics Dashboard Cards */}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+
         {/* TOTAL NOTIFICATIONS */}
+
         <div className="rounded-xl border border-blue-200 bg-blue-50/15 p-4 flex flex-col justify-between shadow-xs">
+
           <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">
+
             Total Notifications
+
           </span>
+
           <span className="text-2xl font-bold text-blue-900 mt-1">{totalCount}</span>
+
         </div>
+
+
 
         {/* PENDING */}
+
         <div className="rounded-xl border border-amber-250 bg-amber-50/15 p-4 flex flex-col justify-between shadow-xs">
+
           <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">
+
             Pending
+
           </span>
+
           <span className="text-2xl font-bold text-amber-900 mt-1">{pendingCount}</span>
+
         </div>
+
+
 
         {/* CRITICAL PENDING */}
+
         <div className="rounded-xl border border-red-200 bg-red-50/15 p-4 flex flex-col justify-between shadow-xs">
+
           <span className="text-[10px] font-bold text-red-600 uppercase tracking-wider">
+
             Critical Pending
+
           </span>
+
           <span className="text-2xl font-bold text-red-900 mt-1">{criticalPendingCount}</span>
+
         </div>
+
+
 
         {/* ARCHIVED */}
+
         <div className="rounded-xl border border-emerald-250 bg-emerald-50/15 p-4 flex flex-col justify-between shadow-xs">
+
           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+
             Archived
+
           </span>
+
           <span className="text-2xl font-bold text-emerald-900 mt-1">{archivedCount}</span>
+
         </div>
+
       </div>
+
+
 
       {/* Notification Inbox Container */}
+
       <div className="border border-border rounded-xl bg-card shadow-sm p-4 space-y-4">
+
         <div className="flex items-center justify-between">
+
           <div className="flex items-center gap-2">
+
             <Bell className="h-5 w-5 text-primary" />
+
             <span className="font-bold text-gray-800 text-sm">Notification Inbox</span>
+
           </div>
+
           <span className="text-xs text-muted-foreground">
+
             {filteredNotifications.length} of {totalSubtabCount} shown
+
           </span>
+
         </div>
+
+
 
         {/* Search */}
+
         <div className="relative">
+
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
           <input
+
             value={searchQuery}
+
             onChange={(e) => setSearchQuery(e.target.value)}
+
             placeholder="Search by project, task, type, employee..."
+
             className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
+
           />
+
         </div>
+
+
 
         {/* Filters */}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-[11px] leading-relaxed">
+
           <div className="flex flex-col gap-1">
+
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+
               Notification Type
+
             </span>
+
             <select
+
               value={typeFilter}
+
               onChange={(e) => setTypeFilter(e.target.value)}
+
               className="form-input rounded-md border border-border p-1.5 bg-card outline-none focus-visible:ring-1 focus-visible:ring-primary"
+
             >
+
               <option value="all">All Types</option>
+
               {NOTIFICATION_TYPES.map((t) => (
+
                 <option key={t} value={t}>
+
                   {t}
+
                 </option>
+
               ))}
+
             </select>
+
           </div>
 
+
+
           <div className="flex flex-col gap-1">
+
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+
               Priority
+
             </span>
+
             <select
+
               value={priorityFilter}
+
               onChange={(e) => setPriorityFilter(e.target.value)}
+
               className="form-input rounded-md border border-border p-1.5 bg-card outline-none focus-visible:ring-1 focus-visible:ring-primary"
+
             >
+
               <option value="all">All Priorities</option>
+
               <option value="low">Low</option>
+
               <option value="medium">Medium</option>
+
               <option value="high">High</option>
+
               <option value="critical">Critical</option>
+
             </select>
+
           </div>
 
+
+
           <div className="flex flex-col gap-1">
+
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+
               Date
+
             </span>
+
             <input
+
               type="date"
+
               value={dateFilter}
+
               onChange={(e) => setDateFilter(e.target.value)}
+
               placeholder="dd-mm-yyyy"
+
               className="form-input rounded-md border border-border p-1.5 bg-card outline-none focus-visible:ring-1 focus-visible:ring-primary text-xs"
+
             />
+
           </div>
 
+
+
           <div className="flex flex-col gap-1">
+
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
+
               Status
+
             </span>
+
             <select
+
               value={statusFilter}
+
               onChange={(e) => setStatusFilter(e.target.value)}
+
               className="form-input rounded-md border border-border p-1.5 bg-card outline-none focus-visible:ring-1 focus-visible:ring-primary"
+
             >
+
               <option value="all">All Statuses</option>
+
               <option value="pending">Pending</option>
+
               <option value="acknowledged">Acknowledged</option>
+
             </select>
+
           </div>
+
         </div>
+
+
 
         {/* Sub-tabs line selector */}
+
         <div className="flex gap-4 border-b border-border pb-1 mt-2">
+
           {(["Current", "Archived"] as const).map((st) => {
+
             const count = notifications.filter((n) => {
+
               if (st === "Current") {
+
                 return n.status === "Pending" || n.unread;
+
               } else {
+
                 return n.status === "Acknowledged";
+
               }
+
             }).length;
 
+
+
             return (
+
               <button
+
                 key={st}
+
                 onClick={() => setSubTab(st)}
+
                 className={cn(
+
                   "border-b-2 px-4 py-2 text-sm font-medium transition-all -mb-[6px] flex items-center gap-1.5 cursor-pointer",
+
                   subTab === st
+
                     ? "border-primary text-foreground"
+
                     : "border-transparent text-muted-foreground hover:text-foreground",
+
                 )}
+
               >
+
                 {st === "Current" ? (
+
                   <Bell className="h-3.5 w-3.5" />
+
                 ) : (
+
                   <Archive className="h-3.5 w-3.5" />
+
                 )}
+
                 <span>{st}</span>
+
                 <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground">
+
                   {count}
+
                 </span>
+
               </button>
+
             );
+
           })}
+
         </div>
+
+
 
         {/* Notifications Table */}
+
         <div className="overflow-x-auto border border-border rounded-xl">
+
           <table className="min-w-full divide-y divide-border text-sm leading-relaxed text-left">
+
             <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+
               <tr>
+
                 <th className="px-3 py-2 font-medium min-w-[340px] w-[35%]">Notification Title</th>
+
                 <th className="px-3 py-2 font-medium">Type</th>
+
                 <th className="px-3 py-2 font-medium max-w-[180px]">Related Project</th>
+
                 <th className="px-3 py-2 font-medium max-w-[150px]">Related Task</th>
+
                 <th className="px-3 py-2 font-medium">Raised By</th>
+
                 <th className="px-3 py-2 font-medium">Date</th>
+
                 <th className="px-3 py-2 font-medium">Time</th>
+
                 <th className="px-3 py-2 font-medium">Status</th>
+
                 <th className="px-3 py-2 font-medium">Priority</th>
+
                 {subTab === "Current" && (
+
                   <th className="px-3 py-2 font-medium text-right">Actions</th>
+
                 )}
+
               </tr>
+
             </thead>
+
             <tbody className="divide-y divide-border/60 align-middle">
+
               {filteredNotifications.length === 0 ? (
+
                 <tr>
+
                   <td colSpan={10} className="p-8 text-center text-muted-foreground">
+
                     No notifications matching search and filters.
+
                   </td>
+
                 </tr>
+
               ) : (
+
                 filteredNotifications.map((n) => (
+
                   <tr key={n.id} className="hover:bg-muted/10 transition-colors">
+
                     {/* Title */}
+
                     <td className="px-3 py-2.5 min-w-[340px] w-[35%]">
+
                       <div className="flex items-start gap-1.5">
+
                         {n.unread && (
+
                           <span className="text-primary mt-1 text-[10px] select-none">●</span>
+
                         )}
+
                         <button
+
                           onClick={() => handleOpenDetails(n.id)}
+
                           className="text-left font-medium text-gray-800 hover:text-primary transition-colors cursor-pointer hover:underline block w-full"
+
                         >
+
                           {n.title}
+
                         </button>
+
                       </div>
+
                     </td>
+
+
 
                     {/* Type Badge */}
+
                     <td className="px-3 py-2.5 whitespace-nowrap">
+
                       <span
+
                         className={cn(
+
                           "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+
                           getTypeStyles(n.type),
+
                         )}
+
                       >
+
                         {n.type}
+
                       </span>
+
                     </td>
+
+
 
                     {/* Related Project */}
+
                     <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[180px] break-words">
+
                       {n.relatedProject}
+
                     </td>
+
+
 
                     {/* Related Task */}
+
                     <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[150px] break-words">
+
                       {n.relatedTask || "—"}
+
                     </td>
+
+
 
                     {/* Raised By */}
+
                     <td className="px-3 py-2.5 whitespace-nowrap">
+
                       <div className="flex items-center gap-2">
+
                         <Avatar name={n.raisedBy} size={24} />
+
                         <span className="text-xs">{n.raisedBy}</span>
+
                       </div>
+
                     </td>
+
+
 
                     {/* Date */}
+
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+
                       {formatNotifDate(n.createdAt)}
+
                     </td>
+
+
 
                     {/* Time */}
+
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap font-mono">
+
                       {formatNotifTime(n.createdAt)}
+
                     </td>
+
+
 
                     {/* Status Badge */}
+
                     <td className="px-3 py-2.5 whitespace-nowrap">
+
                       <span
+
                         className={cn(
+
                           "inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
+
                           n.status === "Acknowledged"
+
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+
                             : "bg-orange-50 text-orange-700 border-orange-200",
+
                         )}
+
                       >
+
                         {n.status === "Acknowledged" ? (
+
                           <>
+
                             <Check className="h-2.5 w-2.5" />
+
                             <span>Acknowledged</span>
+
                           </>
+
                         ) : (
+
                           <>
+
                             <Clock className="h-2.5 w-2.5" />
+
                             <span>Pending</span>
+
                           </>
+
                         )}
+
                       </span>
+
                     </td>
+
+
 
                     {/* Priority */}
+
                     <td className="px-3 py-2.5 whitespace-nowrap">
+
                       <PriorityPill priority={n.priority.toLowerCase() as any} />
+
                     </td>
 
+
+
                     {/* Actions */}
+
                     {subTab === "Current" && (
+
                       <td className="px-3 py-2.5 pr-4 text-right whitespace-nowrap">
+
                         {n.status === "Pending" ? (
+
                           <button
+
                             onClick={() => handleOpenDetails(n.id)}
+
                             className="inline-flex items-center gap-1 rounded-md border border-success text-success bg-transparent hover:bg-success/10 px-2.5 py-1 text-xs font-semibold cursor-pointer transition-colors"
+
                           >
+
                             <Check className="h-3.5 w-3.5" /> Acknowledge
+
                           </button>
+
                         ) : (
+
                           <span className="text-muted-foreground">—</span>
+
                         )}
+
                       </td>
+
                     )}
+
                   </tr>
+
                 ))
+
               )}
+
             </tbody>
+
           </table>
+
         </div>
+
       </div>
 
+
+
       {/* Details & Interactive Comment Modal */}
+
       {selectedNotification && (
+
         <Modal
+
           title={`Notification Details — ${selectedNotification.id}`}
+
           onClose={() => setSelectedNotifId(null)}
+
           wide
+
         >
+
           <div className="space-y-4 text-xs">
+
             {/* Top pill badges and Large Title */}
+
             <div className="space-y-2">
+
               <div className="flex flex-wrap gap-2">
+
                 <span
+
                   className={cn(
+
                     "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+
                     getTypeStyles(selectedNotification.type),
+
                   )}
+
                 >
+
                   {selectedNotification.type}
+
                 </span>
+
                 <PriorityPill priority={selectedNotification.priority.toLowerCase() as any} />
+
                 <span
+
                   className={cn(
+
                     "inline-flex rounded-full border px-2.5 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
+
                     selectedNotification.status === "Acknowledged"
+
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+
                       : "bg-orange-50 text-orange-700 border-orange-200",
+
                   )}
+
                 >
+
                   {selectedNotification.status === "Acknowledged" ? (
+
                     <Check className="h-2.5 w-2.5" />
+
                   ) : (
+
                     <Clock className="h-2.5 w-2.5" />
+
                   )}
+
                   {selectedNotification.status}
+
                 </span>
+
               </div>
+
               <h3 className="text-base font-bold text-gray-800 leading-snug">
+
                 {selectedNotification.title}
+
               </h3>
+
             </div>
+
+
 
             {/* Metadata Grid */}
+
             <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3.5 gap-x-6 border border-border rounded-xl p-4 bg-muted/5">
+
               <div>
+
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+
                   Related Project
+
                 </span>
+
                 <span className="font-semibold text-gray-800">
+
                   {selectedNotification.relatedProject}
+
                 </span>
+
               </div>
+
               <div>
+
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+
                   Related Task
+
                 </span>
+
                 <span className="font-semibold text-gray-800">
+
                   {selectedNotification.relatedTask || "—"}
+
                 </span>
+
               </div>
+
               <div>
+
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+
                   Raised By
+
                 </span>
+
                 <div className="flex items-center gap-1.5 mt-0.5">
+
                   <Avatar name={selectedNotification.raisedBy} size={18} />
+
                   <span className="font-semibold text-gray-700">
+
                     {selectedNotification.raisedBy}
+
                   </span>
+
                 </div>
+
               </div>
+
               <div>
+
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+
                   Date
+
                 </span>
+
                 <span className="font-medium text-gray-800">
+
                   {formatNotifDate(selectedNotification.createdAt)}
+
                 </span>
+
               </div>
+
               <div>
+
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+
                   Time
+
                 </span>
+
                 <span className="font-medium text-gray-800 font-mono">
+
                   {formatNotifTime(selectedNotification.createdAt)}
+
                 </span>
+
               </div>
+
               <div>
+
                 <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+
                   Notification ID
+
                 </span>
+
                 <span className="font-bold text-gray-800">{selectedNotification.id}</span>
+
               </div>
+
             </div>
+
+
 
             {/* Awaiting acknowledgement warning box */}
+
             {selectedNotification.status === "Pending" && (
+
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-3.5 text-xs text-orange-800 space-y-0.5">
+
                 <div className="font-semibold">This notification is awaiting acknowledgement.</div>
+
                 <div className="text-orange-700">
+
                   Add your comment and click Acknowledge to confirm you have reviewed this
+
                   notification.
+
                 </div>
+
               </div>
+
             )}
+
+
 
             {/* Mandatory Comment Area */}
+
             {selectedNotification.status === "Pending" ? (
+
               <div className="space-y-1">
+
                 <label className="block text-xs font-bold text-gray-700">
+
                   Acknowledgement Comment <span className="text-red-500">* Mandatory</span>
+
                 </label>
+
                 <textarea
+
                   value={commentText}
+
                   onChange={(e) => {
+
                     setCommentText(e.target.value);
+
                     if (e.target.value.trim()) setShowCommentError(false);
+
                   }}
+
                   placeholder="Enter your acknowledgement remarks before confirming..."
+
                   rows={3}
+
                   className={cn(
+
                     "w-full rounded-lg border p-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-primary focus:border-primary/55 bg-card",
+
                     showCommentError ? "border-red-500" : "border-border",
+
                   )}
+
                 />
+
                 {showCommentError && (
+
                   <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1 font-semibold select-none">
+
                     ⚠ Comment is required to acknowledge this notification.
+
                   </p>
+
                 )}
+
               </div>
+
             ) : (
+
               // Read-only comment box for Acknowledged
+
               <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 text-xs text-emerald-800 space-y-1">
+
                 <div className="font-semibold">This notification has been acknowledged.</div>
+
                 <div className="text-emerald-700">
+
                   Acknowledged by <strong>{selectedNotification.acknowledgedBy}</strong> on{" "}
+
                   {formatNotifDate(selectedNotification.acknowledgedDate || "")} at{" "}
+
                   {selectedNotification.acknowledgedTime}.
+
                 </div>
+
               </div>
+
             )}
 
+
+
             {/* Audit History Card */}
+
             <div className="border border-border rounded-xl p-4 bg-card space-y-3 shadow-xs">
+
               <span className="font-bold text-muted-foreground uppercase text-[10px] tracking-wider block border-b border-border/50 pb-1">
+
                 Audit History
+
               </span>
+
               <div className="grid grid-cols-3 gap-4 text-[11px] leading-relaxed">
+
                 <div>
+
                   <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+
                     Created By
+
                   </span>
+
                   <span className="font-semibold text-gray-700">
+
                     {selectedNotification.createdBy}
+
                   </span>
+
                 </div>
+
                 <div>
+
                   <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+
                     Created Date
+
                   </span>
+
                   <span className="font-medium text-gray-755">
+
                     {formatNotifDate(selectedNotification.createdAt)}
+
                   </span>
+
                 </div>
+
                 <div>
+
                   <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+
                     Created Time
+
                   </span>
+
                   <span className="font-medium text-gray-755 font-mono">
+
                     {formatNotifTime(selectedNotification.createdAt)}
+
                   </span>
+
                 </div>
+
+
 
                 {selectedNotification.status === "Acknowledged" && (
+
                   <>
+
                     <div>
+
                       <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+
                         Acknowledged By
+
                       </span>
+
                       <span className="font-bold text-emerald-700">
+
                         {selectedNotification.acknowledgedBy}
+
                       </span>
+
                     </div>
+
                     <div>
+
                       <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+
                         Acknowledged Date
+
                       </span>
+
                       <span className="font-semibold text-emerald-700">
+
                         {formatNotifDate(selectedNotification.acknowledgedDate || "")}
+
                       </span>
+
                     </div>
+
                     <div>
+
                       <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
+
                         Acknowledged Time
+
                       </span>
+
                       <span className="font-semibold text-emerald-700 font-mono">
+
                         {selectedNotification.acknowledgedTime}
+
                       </span>
+
                     </div>
+
                   </>
+
                 )}
+
               </div>
+
+
 
               {/* Chronological Timeline History Log */}
+
               <div className="relative pl-4 border-l border-border/60 space-y-3 mt-4">
+
                 {selectedNotification.history.map((h, idx) => (
+
                   <div key={idx} className="relative flex items-start gap-2">
+
                     <span className="absolute -left-[20.5px] top-1.5 h-2 w-2 rounded-full border border-primary bg-card" />
+
                     <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
+
                       <div className="flex items-center gap-2">
+
                         <span className="text-muted-foreground font-mono text-[10px]">
+
                           {formatNotifDate(h.date)} {h.time}
+
                         </span>
+
                         <span className="font-semibold text-gray-700">
+
                           {h.action.includes("Remarks:") ? (
+
                             <>
+
                               Notification acknowledged by <strong>{h.by}</strong>
+
                               <span className="block text-muted-foreground font-normal mt-0.5 italic">
+
                                 Remarks: {h.action.split("Remarks:")[1]?.replace(/"/g, "")}
+
                               </span>
+
                             </>
+
                           ) : (
+
                             `${h.action} by ${h.by}`
+
                           )}
+
                         </span>
+
                       </div>
+
                     </div>
+
                   </div>
+
                 ))}
+
               </div>
+
             </div>
+
+
 
             {/* Modal Footer Controls */}
+
             <div className="flex justify-end gap-2 border-t border-border pt-3">
+
               <button
+
                 onClick={() => setSelectedNotifId(null)}
+
                 className="rounded-md border border-input bg-card px-4 py-2 font-medium hover:bg-accent text-xs cursor-pointer"
+
               >
+
                 Close
+
               </button>
+
               {selectedNotification.status === "Pending" && !isBO && (
+
                 <button
+
                   onClick={handleConfirmAcknowledge}
+
                   className="rounded-md bg-success text-success-foreground px-4 py-2 font-semibold hover:bg-success/90 text-xs flex items-center gap-1 cursor-pointer"
+
                 >
+
                   <Check className="h-3.5 w-3.5" /> Acknowledge
+
                 </button>
+
               )}
+
             </div>
+
           </div>
+
         </Modal>
+
       )}
+
     </>
+
   );
+
 }
 
+
+
 const NOTIFICATION_TYPES = [
+
   "New Project Assignment",
+
   "New Task Assignment",
+
   "WBS Assignment",
+
   "WBS Escalation",
+
   "Project Ready To Start",
+
   "Team Assignment",
+
   "Shadow Team Assignment",
+
   "Appreciation Received",
+
   "Issue Raised",
+
   "Issue Resolved",
+
   "Customer Interview Selected",
+
   "Customer Interview Rejected",
+
+  "Customer Interview Postponed",
+
   "Additional Customer Requirement",
+
   "Approval Request",
+
   "Timesheet Approved",
+
   "Timesheet Rejected",
+
   "Timesheet Request Changes",
+
   "Resource Allocation",
+
   "Resource Removal",
+
   "Project Status Change",
+
   "Project Completed",
+
   "Project Cancelled",
+
   "Scope Change",
+
   "Resource Shuffle",
+
 ] as const;
+

@@ -27,6 +27,10 @@ export interface ProjectServiceEscalation {
   raisedByName: string;
   createdAtUtc: string;
   stakeholders: ServiceEscalationStakeholder[];
+  statusChangedBy?: string | null;
+  statusChangedAtUtc?: string | null;
+  chatJson?: string | null;
+  resolutionDetails?: string | null;
 }
 
 export async function fetchServiceEscalationStakeholders(): Promise<ServiceEscalationStakeholder[]> {

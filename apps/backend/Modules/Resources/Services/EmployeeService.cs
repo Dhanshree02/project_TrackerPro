@@ -13,7 +13,7 @@ using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Resources.Services;
 
-public sealed class EmployeeService(AppDbContext db, IFileStorageService storage, ICurrentUserService currentUser) : IEmployeeService
+public sealed class EmployeeService(AppDbContext db, IFileStorageService storage, ICurrentUserService currentUser, PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService) : IEmployeeService
 {
     private (string Email, string Name) GetCurrentPerformer()
     {
@@ -397,6 +397,14 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             });
             await db.SaveChangesAsync(ct);
             await SyncLinkedUserAsync(entity, ct);
+
+            await notificationService.NotifyResourceOnboardedAsync(
+                entity.Id,
+                $"{entity.FirstName} {entity.LastName}".Trim(),
+                entity.EmployeeCode,
+                entity.ReportingManagerId,
+                performerName,
+                ct);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {

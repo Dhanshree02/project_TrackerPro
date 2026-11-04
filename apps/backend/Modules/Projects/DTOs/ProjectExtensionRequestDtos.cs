@@ -17,9 +17,32 @@ public sealed record ProjectExtensionRequestDto(
     string Status,
     string RequestedByName,
     DateTime CreatedAtUtc,
-    IReadOnlyList<ExtensionApproverDto> Approvers);
+    IReadOnlyList<ExtensionApproverDto> Approvers,
+    string? ProjectName = null,
+    string? ProjectCode = null);
 
 public sealed record CreateProjectExtensionRequest(
     DateOnly RequestedEndDate,
     string Reason,
     IReadOnlyList<Guid> ApproverEmployeeIds);
+
+public sealed record ApproveExtensionRequestDto(
+    string? Comment);
+
+public sealed record RejectExtensionRequestDto(
+    string? Comment);
+
+public sealed record PendingExtensionApprovalDto(
+    Guid Id,
+    Guid ProjectId,
+    string ProjectName,
+    string? ProjectCode,
+    DateOnly CurrentEndDate,
+    DateOnly RequestedEndDate,
+    int ExtensionDays,
+    string Reason,
+    string Status,
+    Guid? RequestedByEmployeeId,
+    string RequestedByName,
+    DateTime CreatedAtUtc,
+    IReadOnlyList<ExtensionApproverDto> Approvers);

@@ -50,7 +50,42 @@ public sealed class ProjectServiceEscalationService(
             .Where(x => x.ProjectId == projectId)
             .OrderByDescending(x => x.CreatedAtUtc)
             .ToListAsync(ct);
-        return rows.Select(Map).ToList();
+
+        var alerts = await db.ProjectAlerts
+            .AsNoTracking()
+            .Where(a => a.ProjectId == projectId && a.ServiceEscalationId != null && a.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        var alertMap = alerts
+            .GroupBy(a => a.ServiceEscalationId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.UpdatedAtUtc ?? x.CreatedAtUtc).First());
+
+        return rows.Select(r =>
+        {
+            alertMap.TryGetValue(r.Id, out var linkedAlert);
+            var status = linkedAlert != null && !string.IsNullOrWhiteSpace(linkedAlert.Status) ? linkedAlert.Status : r.Status;
+            var changedBy = linkedAlert?.StatusChangedBy ?? linkedAlert?.ResolutionOwner;
+            var changedAt = linkedAlert?.StatusChangedAtUtc ?? (status != "Open" ? (linkedAlert?.UpdatedAtUtc ?? r.UpdatedAtUtc) : null);
+            var chatJson = !string.IsNullOrWhiteSpace(r.ChatJson) ? r.ChatJson : linkedAlert?.ChatJson;
+            var resDetails = linkedAlert?.ResolutionDetails;
+            return Map(r, status, changedBy, changedAt, chatJson, resDetails);
+        }).ToList();
+    }
+
+    public async Task<(Stream Stream, string ContentType, string FileName)?> DownloadAttachmentAsync(
+        Guid projectId,
+        Guid escalationId,
+        CancellationToken ct = default)
+    {
+        var esc = await db.ProjectServiceEscalations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == escalationId && e.ProjectId == projectId, ct);
+        if (esc == null || string.IsNullOrWhiteSpace(esc.AttachmentPath)) return null;
+
+        var fileResult = storage.GetProjectFileStream(esc.AttachmentPath);
+        if (fileResult == null) return null;
+
+        return (fileResult.Value.Stream, fileResult.Value.ContentType, esc.AttachmentFileName ?? Path.GetFileName(esc.AttachmentPath));
     }
 
     public async Task<ProjectServiceEscalationDto> CreateAsync(
@@ -287,7 +322,13 @@ public sealed class ProjectServiceEscalationService(
         employee.SubDepartment?.Trim() ?? "",
         status);
 
-    private static ProjectServiceEscalationDto Map(ProjectServiceEscalation row) => new(
+    private static ProjectServiceEscalationDto Map(
+        ProjectServiceEscalation row,
+        string? statusOverride = null,
+        string? statusChangedBy = null,
+        DateTime? statusChangedAtUtc = null,
+        string? chatJsonOverride = null,
+        string? resolutionDetails = null) => new(
         row.Id,
         row.ProjectId,
         row.ProjectServiceId,
@@ -302,11 +343,15 @@ public sealed class ProjectServiceEscalationService(
         row.ExpectedResolutionDate,
         row.AttachmentFileName,
         row.AttachmentPath,
-        row.Status,
+        statusOverride ?? row.Status,
         row.RaisedByName,
         row.CreatedAtUtc,
         row.Stakeholders
             .OrderBy(s => s.EmployeeName)
             .Select(s => new ServiceEscalationStakeholderDto(s.EmployeeId, s.EmployeeName, null, s.SubDepartment, s.Status))
-            .ToList());
+            .ToList(),
+        statusChangedBy,
+        statusChangedAtUtc,
+        chatJsonOverride ?? row.ChatJson,
+        resolutionDetails);
 }

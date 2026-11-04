@@ -27,7 +27,11 @@ public sealed record ProjectServiceEscalationDto(
     string Status,
     string RaisedByName,
     DateTime CreatedAtUtc,
-    IReadOnlyList<ServiceEscalationStakeholderDto> Stakeholders);
+    IReadOnlyList<ServiceEscalationStakeholderDto> Stakeholders,
+    string? StatusChangedBy = null,
+    DateTime? StatusChangedAtUtc = null,
+    string? ChatJson = null,
+    string? ResolutionDetails = null);
 
 public sealed class CreateProjectServiceEscalationForm
 {

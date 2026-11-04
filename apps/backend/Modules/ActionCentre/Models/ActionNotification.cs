@@ -12,11 +12,11 @@ public class ActionNotification : BaseEntity
 {
     public Guid RecipientEmployeeId { get; set; }
 
-    public Guid ProjectId { get; set; }
+    public Guid? ProjectId { get; set; }
 
     public string? ProjectCode { get; set; }
 
-    public string ProjectName { get; set; } = string.Empty;
+    public string? ProjectName { get; set; }
 
     public string Title { get; set; } = string.Empty;
 
