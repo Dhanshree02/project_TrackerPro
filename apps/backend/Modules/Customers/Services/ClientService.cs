@@ -149,6 +149,18 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             created.CreatedByName,
             ct);
 
+        foreach (var sv in created.SubVentures)
+        {
+            await notificationService.NotifySubVentureOnboardedAsync(
+                created.Id,
+                created.Name,
+                sv.Id,
+                sv.Name,
+                sv.SubVentureCode,
+                created.CreatedByName,
+                ct);
+        }
+
         return MapToDto(created, clientCodes.GetValueOrDefault(created.Id));
     }
 
@@ -221,6 +233,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
             client.CreatedByName = NormalizeManagerName(request.CreatedByName);
         if (request.Notes is not null) client.Notes = request.Notes;
         if (request.KycDocumentName is not null) client.KycDocumentName = request.KycDocumentName;
+        var newlyAddedSubVentures = new List<SubVenture>();
         if (request.SubVentures is not null)
         {
             // The incoming list is the full desired set. An id updates that row, including a rename.
@@ -268,6 +281,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
                         Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim(),
                     };
                     db.SubVentures.Add(subVenture);
+                    newlyAddedSubVentures.Add(subVenture);
                 }
             }
         }
@@ -284,6 +298,20 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
         var updated = await LoadClientGraphAsync(client.Id, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
+
+        foreach (var sv in newlyAddedSubVentures)
+        {
+            var svCode = updated.SubVentures.FirstOrDefault(s => s.Id == sv.Id)?.SubVentureCode;
+            await notificationService.NotifySubVentureOnboardedAsync(
+                updated.Id,
+                updated.Name,
+                sv.Id,
+                sv.Name,
+                svCode,
+                currentUser.Name,
+                ct);
+        }
+
         return MapToDto(updated, clientCodes.GetValueOrDefault(updated.Id));
     }
 

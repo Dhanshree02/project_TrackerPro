@@ -2,7 +2,7 @@ import { getRouteApi, Link, Navigate, notFound } from "@tanstack/react-router";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Loader2, ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2 } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, CheckCircle2, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2 } from "lucide-react";
 
 import { toast } from "sonner";
 
@@ -37,13 +37,10 @@ import { cn } from "@/lib/utils";
 import { deriveProjectDates } from "@/lib/project-dates";
 
 import { fetchClients, mapApiClient, formatCustomerId } from "@/modules/customers/api/clients";
-
 import {
-
   fetchProjectAdditionalRequirements,
-
   createProjectAdditionalRequirement,
-
+  addProjectAdditionalRequirementComment,
 } from "@/modules/projects/api/project-additional-requirements";
 
 import {
@@ -3749,78 +3746,82 @@ function WbsTab({
   const [isEditServicesOpen, setIsEditServicesOpen] = useState(false);
 
   const [showDeletedServices, setShowDeletedServices] = useState(false);
-
   const [refreshCount, setRefreshCount] = useState(0);
-
-
+  const [dbRequirements, setDbRequirements] = useState<any[]>([]);
 
   useEffect(() => {
-
     if (project?.id && isApiGuid(project.id)) {
-
       fetchProjectAdditionalRequirements(project.id).then((reqs) => {
-
         if (Array.isArray(reqs)) {
-
+          setDbRequirements(reqs);
           dhStore.mergeRequirements(
-            reqs.map((r) => ({
-              id: r.id,
-              projectId: r.projectId,
-              requirementId: r.requirementId,
-              clientName: r.clientName || "",
-              projectName: r.projectName || "",
-              title: r.title,
-              description: r.description,
-              priority: r.priority as any,
-              requestedBy: r.requestedByName,
-              requestedDate: r.requestedDate,
-              attachmentName: r.attachmentFileName || undefined,
-              scopeCancellationService: r.scopeCancellationService || undefined,
-              status: r.status as any,
-              comments: [],
-              history: [],
-              createdAt: r.createdAtUtc,
-              approvedAtUtc: r.approvedAtUtc || undefined,
-            }))
+            reqs.map((r) => {
+              let parsedComments: any[] = [];
+              try {
+                if (r.commentsJson) {
+                  const raw = JSON.parse(r.commentsJson);
+                  if (Array.isArray(raw)) parsedComments = raw;
+                }
+              } catch {}
+              let parsedHistory: any[] = [];
+              try {
+                if (r.historyJson) {
+                  const raw = JSON.parse(r.historyJson);
+                  if (Array.isArray(raw)) parsedHistory = raw.flat(Infinity);
+                }
+              } catch {}
+              return {
+                id: r.id,
+                projectId: r.projectId,
+                requirementId: r.requirementId,
+                clientName: r.clientName || "",
+                projectName: r.projectName || "",
+                title: r.title,
+                description: r.description,
+                priority: r.priority as any,
+                requestedBy: r.requestedByName,
+                requestedDate: r.requestedDate,
+                attachmentName: r.attachmentFileName || undefined,
+                scopeCancellationService: r.scopeCancellationService || undefined,
+                status: r.status as any,
+                comments: parsedComments,
+                history: parsedHistory,
+                createdAt: r.createdAtUtc,
+                approvedAtUtc: r.approvedAtUtc || undefined,
+              };
+            })
           );
-
         }
-
       }).catch((err) => console.error("Error fetching project requirements for WBS:", err));
-
     }
-
   }, [project?.id]);
 
-
-
   const isEditServicesEnabled = useMemo(() => {
-
     const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
-
     const now = Date.now();
+    const projId = (project?.id || "").toLowerCase();
 
-    const reqs = (store.requirements || []).filter((r) => r.projectId === project.id);
-
-    return reqs.some((r) => {
-
-      if (r.status !== "Approved") return false;
-
-      const approvedAt = (r as any).approvedAtUtc
-
-        ? new Date((r as any).approvedAtUtc).getTime()
-
-        : r.history?.find((h) => h.status === "Approved")
-
-          ? new Date(r.history.find((h) => h.status === "Approved")!.at).getTime()
-
-          : 0;
-
+    // Check directly fetched requirements from API first
+    const hasApprovedInDb = dbRequirements.some((r) => {
+      if ((r.projectId || "").toLowerCase() !== projId) return false;
+      if (r.status?.toLowerCase() !== "approved") return false;
+      const approvedAt = r.approvedAtUtc ? new Date(r.approvedAtUtc).getTime() : 0;
       return approvedAt > 0 && (now - approvedAt) <= twoDaysMs;
-
     });
+    if (hasApprovedInDb) return true;
 
-  }, [store.requirements, project.id]);
+    // Check store requirements
+    const reqs = (store.requirements || []).filter((r) => (r.projectId || "").toLowerCase() === projId);
+    return reqs.some((r) => {
+      if (r.status?.toLowerCase() !== "approved") return false;
+      const approvedAt = (r as any).approvedAtUtc
+        ? new Date((r as any).approvedAtUtc).getTime()
+        : r.history?.find((h: any) => h.status?.toLowerCase() === "approved")
+          ? new Date(r.history.find((h: any) => h.status?.toLowerCase() === "approved")!.at).getTime()
+          : 0;
+      return approvedAt > 0 && (now - approvedAt) <= twoDaysMs;
+    });
+  }, [dbRequirements, store.requirements, project?.id]);
 
 
 
@@ -17276,43 +17277,50 @@ function AdditionalRequirementsPanel({ requirements, project, clientName }: { re
 
 
   // Load requirements from database on mount
-
   useEffect(() => {
-
     if (project?.id) {
-
       fetchProjectAdditionalRequirements(project.id).then((reqs) => {
-
         if (Array.isArray(reqs)) {
-
           dhStore.mergeRequirements(
-            reqs.map((r) => ({
-              id: r.id,
-              projectId: r.projectId,
-              requirementId: r.requirementId,
-              clientName: r.clientName || "",
-              projectName: r.projectName || "",
-              title: r.title,
-              description: r.description,
-              priority: r.priority as any,
-              requestedBy: r.requestedByName,
-              requestedDate: r.requestedDate,
-              attachmentName: r.attachmentFileName || undefined,
-              scopeCancellationService: r.scopeCancellationService || undefined,
-              status: r.status as any,
-              comments: [],
-              history: [],
-              createdAt: r.createdAtUtc,
-              approvedAtUtc: r.approvedAtUtc || undefined,
-            }))
+            reqs.map((r) => {
+              let parsedComments: any[] = [];
+              try {
+                if (r.commentsJson) {
+                  const raw = JSON.parse(r.commentsJson);
+                  if (Array.isArray(raw)) parsedComments = raw;
+                }
+              } catch {}
+              let parsedHistory: any[] = [];
+              try {
+                if (r.historyJson) {
+                  const raw = JSON.parse(r.historyJson);
+                  if (Array.isArray(raw)) parsedHistory = raw.flat(Infinity);
+                }
+              } catch {}
+              return {
+                id: r.id,
+                projectId: r.projectId,
+                requirementId: r.requirementId,
+                clientName: r.clientName || "",
+                projectName: r.projectName || "",
+                title: r.title,
+                description: r.description,
+                priority: r.priority as any,
+                requestedBy: r.requestedByName,
+                requestedDate: r.requestedDate,
+                attachmentName: r.attachmentFileName || undefined,
+                scopeCancellationService: r.scopeCancellationService || undefined,
+                status: r.status as any,
+                comments: parsedComments,
+                history: parsedHistory,
+                createdAt: r.createdAtUtc,
+                approvedAtUtc: r.approvedAtUtc || undefined,
+              };
+            })
           );
-
         }
-
       }).catch((err) => console.error("Error fetching project requirements:", err));
-
     }
-
   }, [project?.id]);
 
 
@@ -17861,46 +17869,125 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
 
   const { user } = useRoleContext();
 
-
-
   const req = store.requirements.find(r => r.id === requirement.id) || requirement;
 
-
-
-  const handleComment = () => {
-
-    if (!commentText.trim()) return;
-
-    dhStore.addRequirementComment(req.id, {
-
-      authorId: user.id,
-
-      authorName: user.name,
-
-      text: commentText.trim()
-
+  const displayComments = useMemo(() => {
+    const raw = req.comments || [];
+    const seen = new Set<string>();
+    return raw.filter((c: DhComment) => {
+      const text = (c.text || "").trim();
+      const key = c.id ? String(c.id) : `${c.authorName || ""}|${text}|${c.at || ""}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
     });
+  }, [req.comments]);
 
+  // Always refresh requirement chat, history, and status directly from the database table on modal open
+  useEffect(() => {
+    if (isApiGuid(req.projectId)) {
+      fetchProjectAdditionalRequirements(req.projectId).then((reqs) => {
+        if (Array.isArray(reqs)) {
+          const match = reqs.find((r) => r.id === req.id || r.requirementId === req.requirementId);
+          if (match) {
+            let parsedComments: any[] = [];
+            try {
+              if (match.commentsJson) {
+                const raw = JSON.parse(match.commentsJson);
+                if (Array.isArray(raw)) parsedComments = raw;
+              }
+            } catch {}
+            let parsedHistory: any[] = [];
+            try {
+              if (match.historyJson) {
+                const raw = JSON.parse(match.historyJson);
+                if (Array.isArray(raw)) parsedHistory = raw.flat(Infinity);
+              }
+            } catch {}
+            dhStore.mergeRequirements([{
+              id: match.id,
+              projectId: match.projectId,
+              requirementId: match.requirementId,
+              clientName: match.clientName || "",
+              projectName: match.projectName || "",
+              title: match.title,
+              description: match.description,
+              priority: match.priority as any,
+              requestedBy: match.requestedByName,
+              requestedDate: match.requestedDate,
+              attachmentName: match.attachmentFileName || undefined,
+              scopeCancellationService: match.scopeCancellationService || undefined,
+              status: match.status as any,
+              comments: parsedComments,
+              history: parsedHistory,
+              createdAt: match.createdAtUtc,
+              approvedAtUtc: match.approvedAtUtc || undefined,
+            }]);
+          }
+        }
+      }).catch((err) => console.error("Error refreshing requirement from DB:", err));
+    }
+  }, [req.projectId, req.id]);
+
+  const handleComment = async () => {
+    if (!commentText.trim()) return;
+    const text = commentText.trim();
     setCommentText("");
-
-    toast.success("Comment added persistently!");
-
+    try {
+      if (isApiGuid(req.projectId) && isApiGuid(req.id)) {
+        const updated = await addProjectAdditionalRequirementComment(req.projectId, req.id, text, user.name);
+        if (updated) {
+          let parsedComments: any[] = [];
+          try {
+            if (updated.commentsJson) {
+              const raw = JSON.parse(updated.commentsJson);
+              if (Array.isArray(raw)) parsedComments = raw;
+            }
+          } catch {}
+          let parsedHistory: any[] = [];
+          try {
+            if (updated.historyJson) {
+              const raw = JSON.parse(updated.historyJson);
+              if (Array.isArray(raw)) parsedHistory = raw.flat(Infinity);
+            }
+          } catch {}
+          dhStore.mergeRequirements([{
+            id: updated.id,
+            projectId: updated.projectId,
+            requirementId: updated.requirementId,
+            clientName: updated.clientName || "",
+            projectName: updated.projectName || "",
+            title: updated.title,
+            description: updated.description,
+            priority: updated.priority as any,
+            requestedBy: updated.requestedByName,
+            requestedDate: updated.requestedDate,
+            attachmentName: updated.attachmentFileName || undefined,
+            scopeCancellationService: updated.scopeCancellationService || undefined,
+            status: updated.status as any,
+            comments: parsedComments,
+            history: parsedHistory,
+            createdAt: updated.createdAtUtc,
+            approvedAtUtc: updated.approvedAtUtc || undefined,
+          }]);
+          toast.success("Comment posted to discussion thread!");
+          return;
+        }
+      }
+    } catch (err: any) {
+      console.error("Failed to post comment to backend:", err);
+      toast.error(err?.message || "Failed to post comment");
+    }
   };
 
-
-
-  const statusColors = {
-
+  const statusColors: Record<string, string> = {
     "Open": "bg-warning/10 text-warning-foreground border-warning/30",
-
     "Under Review": "bg-info/10 text-info-foreground border-info/30",
-
+    "Hold": "bg-amber-100 text-amber-800 border-amber-300",
+    "Request Changes": "bg-purple-100 text-purple-800 border-purple-300",
     "Approved": "bg-success/10 text-success border-success/30",
-
     "Rejected": "bg-destructive/10 text-destructive border-destructive/30",
-
     "Implemented": "bg-success/10 text-success border-success/30",
-
   };
 
 
@@ -17916,59 +18003,12 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
         <div className="md:col-span-1 space-y-3">
 
           <div className="rounded-lg border border-border bg-muted/20 p-3">
-
             <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide mb-2">Requirement Status</h5>
-
             <div className="flex items-center gap-2">
-
-              <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold", statusColors[req.status])}>
-
+              <span className={cn("inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold", statusColors[req.status] || "bg-muted text-muted-foreground")}>
                 {req.status}
-
               </span>
-
-              <select
-
-                value={req.status}
-
-                onChange={(e) => {
-
-                  const s = e.target.value as RequirementStatus;
-
-                  dhStore.updateRequirementStatus(req.id, s, user.id, user.name);
-
-                  toast.success(`Status updated to ${s}`);
-
-                }}
-
-                className={cn(
-
-                  "h-8 rounded-md border px-2.5 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-
-                  req.status === "Approved" || req.status === "Implemented" ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100" :
-
-                    req.status === "Open" ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100" :
-
-                      req.status === "Under Review" ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100" :
-
-                        req.status === "Rejected" ? "bg-red-50 border-red-200 text-red-700 hover:bg-red-100" :
-
-                          "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-
-                )}
-
-              >
-
-                {["Open", "Under Review", "Approved", "Rejected", "Implemented"].map((s) => (
-
-                  <option key={s} value={s}>{s}</option>
-
-                ))}
-
-              </select>
-
             </div>
-
           </div>
 
 
@@ -18025,13 +18065,13 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
 
             <h5 className="font-semibold text-xs text-muted-foreground uppercase tracking-wide flex items-center gap-1">
 
-              <MessageSquare className="h-3.5 w-3.5" /> Discussion Thread ({req.comments.length})
+              <MessageSquare className="h-3.5 w-3.5" /> Discussion Thread ({displayComments.length})
 
             </h5>
 
 
 
-            {req.comments.map((c: DhComment) => (
+            {displayComments.map((c: DhComment) => (
 
               <div key={c.id} className="flex gap-3 text-xs">
 
@@ -18055,7 +18095,7 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
 
             ))}
 
-            {req.comments.length === 0 && (
+            {displayComments.length === 0 && (
 
               <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
 
@@ -18102,40 +18142,31 @@ function RequirementDetailsModal({ requirement, onClose }: { requirement: DhAddi
             </div>
 
           </div>
-
-
-
-          <div className="border-t border-border pt-3 flex gap-2">
-
-            <textarea
-
-              value={commentText}
-
-              onChange={(e) => setCommentText(e.target.value)}
-
-              placeholder="Add a remark, feedback, or update to the thread..."
-
-              rows={2}
-
-              className="flex-1 resize-none rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
-            />
-
-            <button
-
-              onClick={handleComment}
-
-              disabled={!commentText.trim()}
-
-              className="inline-flex items-center gap-1.5 self-end rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-
-            >
-
-              <Send className="h-3.5 w-3.5" /> Post
-
-            </button>
-
-          </div>
+          {req.status === "Approved" ? (
+            <div className="border-t border-border pt-3">
+              <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>This requirement has been approved. The discussion thread is closed.</span>
+              </div>
+            </div>
+          ) : (
+            <div className="border-t border-border pt-3 flex gap-2">
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Add a remark, feedback, or update to the thread..."
+                rows={2}
+                className="flex-1 resize-none rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <button
+                onClick={handleComment}
+                disabled={!commentText.trim()}
+                className="inline-flex items-center gap-1.5 self-end rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                <Send className="h-3.5 w-3.5" /> Post
+              </button>
+            </div>
+          )}
 
         </div>
 
@@ -21916,4 +21947,3 @@ function WbsAssignmentModal({
   );
 
 }
-

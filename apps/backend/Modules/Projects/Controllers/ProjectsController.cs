@@ -1786,17 +1786,27 @@ public class ProjectsController(
 
     }
 
+
+    [HttpPost("{projectId:guid}/additional-requirements/{requirementId:guid}/action")]
+    public async Task<ActionResult<ApiResponse<ProjectAdditionalRequirementDto>>> TakeActionAdditionalRequirement(
+        Guid projectId,
+        Guid requirementId,
+        [FromBody] AdditionalRequirementActionRequest request,
+        CancellationToken ct)
+    {
+        var result = await additionalRequirementService.TakeActionAsync(projectId, requirementId, request, ct);
+        return Ok(ApiResponse<ProjectAdditionalRequirementDto>.Ok(result));
+    }
+
+    [HttpPost("{projectId:guid}/additional-requirements/{requirementId:guid}/comments")]
+    public async Task<ActionResult<ApiResponse<ProjectAdditionalRequirementDto>>> AddCommentAdditionalRequirement(
+        Guid projectId,
+        Guid requirementId,
+        [FromBody] AddRequirementCommentRequest request,
+        CancellationToken ct)
+    {
+        var result = await additionalRequirementService.AddCommentAsync(projectId, requirementId, request, ct);
+        return Ok(ApiResponse<ProjectAdditionalRequirementDto>.Ok(result));
+    }
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

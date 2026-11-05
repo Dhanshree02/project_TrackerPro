@@ -2823,6 +2823,8 @@ function loadPersistedState() {
 
 
     if (data && typeof data === "object") {
+      delete (data as any).comments;
+      delete (data as any).requirements;
 
 
 
@@ -2886,7 +2888,7 @@ function loadPersistedState() {
 
 
 
-      if (Array.isArray(data.comments)) state.comments = data.comments;
+      // Comments not persisted in browser memory
 
 
 
@@ -2994,7 +2996,6 @@ function persistState() {
 
 
 
-        comments: state.comments,
 
 
 
@@ -6671,29 +6672,25 @@ export const dhStore = {
 
 
   addRequirementComment(id: string, comment: Omit<DhComment, "id" | "at">) {
-
-
-
-    const req = state.requirements.find((x) => x.id === id);
-
-
-
+    const req = state.requirements.find((x) => x.id === id || x.requirementId === id);
     if (!req) return;
-
-
-
+    if (!req.comments) req.comments = [];
     const cm: DhComment = { ...comment, id: uid("cm"), at: new Date().toISOString() };
-
-
-
-    req.comments.push(cm);
-
-
-
+    const isDup = req.comments.some((c) => c.text === cm.text && Math.abs(new Date(c.at).getTime() - new Date(cm.at).getTime()) < 3000);
+    if (!isDup) {
+      req.comments.push(cm);
+    }
+    const app = state.approvals.find((a) => a.id === `APP-REQ-${req.id}` || a.id === `APP-REQ-${req.requirementId}` || a.id === id);
+    if (app) {
+      if (!app.comments) app.comments = [];
+      const appDup = app.comments.some((c) => c.text === cm.text && Math.abs(new Date(c.at).getTime() - new Date(cm.at).getTime()) < 3000);
+      if (!appDup) {
+        app.comments.push(cm);
+      }
+    }
+    state.requirements = [...state.requirements];
+    state.approvals = [...state.approvals];
     emit();
-
-
-
   },
 
 
@@ -10526,7 +10523,12 @@ export const dhStore = {
 
 
 
-    app.comments.push(cm);
+    if (comment.trim()) {
+      const isDup = app.comments.some((c) => c.text === comment.trim() && Math.abs(new Date(c.at).getTime() - new Date(now).getTime()) < 5000);
+      if (!isDup) {
+        app.comments.push(cm);
+      }
+    }
 
 
 
@@ -10559,35 +10561,21 @@ export const dhStore = {
 
 
     if (app.requestType === "Customer Requirement Approval") {
-
       const rawReqId = id.replace(/^APP-REQ-/, "");
-
       const req = state.requirements.find((r) => r.id === rawReqId || r.requirementId === rawReqId);
-
       if (req) {
-
-        req.status = status === "Approved" ? "Approved" : status === "Rejected" ? "Rejected" : "Open";
-
+        req.status = (status === "Approved" || status === "Rejected" || status === "Hold" || status === "Request Changes") ? (status as any) : "Open";
         if (status === "Approved") {
-
           req.approvedAtUtc = now;
-
         }
-
+        if (!req.history) req.history = [];
         req.history.push({
-
           status: req.status,
-
           at: now,
-
           updatedBy: updatedById,
-
           updatedByName: updatedBy,
-
         });
-
       }
-
     }
 
 
@@ -12548,6 +12536,8 @@ export const dhStore = {
 
 
 
+    state.requirements = [...state.requirements];
+    state.approvals = [...state.approvals];
     emit();
 
 
@@ -14234,11 +14224,15 @@ export const dhStore = {
     requirements.forEach((req) => {
       const idx = state.requirements.findIndex((r) => r.id === req.id || r.requirementId === req.requirementId);
       if (idx >= 0) {
-        state.requirements[idx] = { ...state.requirements[idx], ...req };
+        const existing = state.requirements[idx];
+        const mergedComments = (req.comments && req.comments.length > 0) ? req.comments : (existing.comments || []);
+        const mergedHistory = (req.history && req.history.length > 0) ? req.history : (existing.history || []);
+        state.requirements[idx] = { ...existing, ...req, comments: mergedComments, history: mergedHistory };
       } else {
         state.requirements.push(req);
       }
     });
+    state.requirements = [...state.requirements];
     emit();
   },
   setApprovals(approvals: DhCentralApproval[]) {

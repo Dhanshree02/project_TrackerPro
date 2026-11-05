@@ -117,15 +117,11 @@ import { apiFetch, apiFetchBlob } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 import { toast } from "sonner";
-
 import {
-
   fetchPendingApprovals,
-
   approveProjectAdditionalRequirement,
-
   rejectProjectAdditionalRequirement,
-
+  takeProjectAdditionalRequirementAction,
 } from "@/modules/projects/api/project-additional-requirements";
 
 import {
@@ -1726,9 +1722,57 @@ function ApprovalsTab() {
       ]);
 
       const toMerge: DhCentralApproval[] = [];
-
       if (Array.isArray(reqItems)) {
         reqItems.forEach((item) => {
+          let parsedComments: DhComment[] = [];
+          try {
+            if (item.commentsJson) {
+              const raw = JSON.parse(item.commentsJson);
+              if (Array.isArray(raw)) {
+                const seenComments = new Set<string>();
+                raw.forEach((c: any) => {
+                  if (c && typeof c === "object" && !Array.isArray(c)) {
+                    const text = (c.text || "").trim();
+                    const key = c.id ? String(c.id) : `${c.authorName || ""}|${text}|${c.at || ""}`;
+                    if (!seenComments.has(key)) {
+                      seenComments.add(key);
+                      parsedComments.push({
+                        id: c.id || Math.random().toString(36).slice(2),
+                        authorId: c.authorId || "",
+                        authorName: c.authorName || "User",
+                        text: c.text || "",
+                        at: c.at || new Date().toISOString(),
+                      });
+                    }
+                  }
+                });
+              }
+            }
+          } catch {}
+
+          let parsedHistory: any[] = [];
+          try {
+            if (item.historyJson) {
+              const raw = JSON.parse(item.historyJson);
+              if (Array.isArray(raw)) {
+                parsedHistory = raw.flat(Infinity).map((h: any) => ({
+                  status: h.status || "",
+                  at: h.at || new Date().toISOString(),
+                  updatedBy: h.updatedBy || "",
+                  comment: h.comment || "",
+                  details: h.details || "",
+                }));
+              }
+            }
+          } catch {}
+
+          const normStatus = (item.status || "").toLowerCase();
+          const mappedStatus: DhCentralApproval["status"] = normStatus === "approved" ? "Approved"
+            : normStatus === "rejected" ? "Rejected"
+            : normStatus === "hold" ? "Hold"
+            : normStatus === "request changes" ? "Request Changes"
+            : "Pending";
+
           toMerge.push({
             id: `APP-REQ-${item.id}`,
             projectId: item.projectId,
@@ -1737,10 +1781,10 @@ function ApprovalsTab() {
             requestedBy: item.requestedByName,
             requestedById: item.requestedByEmployeeId || "",
             requestedDate: item.requestedDate,
-            status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : "Pending",
+            status: mappedStatus,
             description: `${item.requirementType}: ${item.title}\n\n${item.description}${item.attachmentFileName ? `\n\nAttachment: ${item.attachmentFileName}` : ""}`,
-            comments: [],
-            history: [],
+            comments: parsedComments,
+            history: parsedHistory,
           });
         });
       }
@@ -1845,64 +1889,41 @@ function ApprovalsTab() {
     }
 
     const currentApp = store.approvals.find((a) => a.id === selectedAppId);
-
+    let handledByApi = false;
     if (currentApp && currentApp.requestType === "Customer Requirement Approval") {
-
       try {
-
         const rawReqId = currentApp.id.replace(/^APP-REQ-/, "");
-
-        if (status === "Approved") {
-
-          await approveProjectAdditionalRequirement(currentApp.projectId, rawReqId, appComment);
-
-        } else if (status === "Rejected") {
-
-          await rejectProjectAdditionalRequirement(currentApp.projectId, rawReqId, appComment);
-
-        }
-
+        await takeProjectAdditionalRequirementAction(currentApp.projectId, rawReqId, status, appComment);
+        await loadApprovals();
+        handledByApi = true;
       } catch (err: any) {
-
         console.error("Failed to update additional requirement approval on backend:", err);
-
       }
-
     }
-
-
 
     if (currentApp && currentApp.requestType === "Timeline Extension Approval") {
-
       try {
-
         const rawExtId = currentApp.id.replace(/^APP-EXT-/, "");
-
         if (status === "Approved") {
-
           await approveProjectExtensionRequest(currentApp.projectId, rawExtId, appComment);
-
         } else if (status === "Rejected") {
-
           await rejectProjectExtensionRequest(currentApp.projectId, rawExtId, appComment);
-
         }
-
+        await loadApprovals();
+        handledByApi = true;
       } catch (err: any) {
-
         console.error("Failed to update extension request approval on backend:", err);
-
       }
-
     }
 
-    dhStore.updateCentralApprovalStatus(selectedAppId, status, appComment, user.name, user.id);
-
+    if (!handledByApi) {
+      dhStore.updateCentralApprovalStatus(selectedAppId, status, appComment, user.name, user.id);
+    }
     toast.success(`Success: Approval Request marked as ${status}!`);
-
     setAppComment("");
-
-    setSelectedAppId(null);
+    if (status === "Approved") {
+      setSelectedAppId(null);
+    }
 
   };
 
@@ -2150,47 +2171,13 @@ function ApprovalsTab() {
                   </span>
 
                 </td>
-
                 <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
-
                   <button
-
                     onClick={() => setSelectedAppId(app.id)}
-
                     className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
-
                   >
-
                     View
-
                   </button>
-
-                  {app.status !== "Pending" && !app.acknowledgedAt && !isBO && (
-
-                    <button
-
-                      onClick={() => handleAcknowledge(app.id)}
-
-                      className="inline-flex items-center gap-1 rounded-md border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-semibold text-success hover:bg-success/20"
-
-                    >
-
-                      <Check className="h-3 w-3" /> Acknowledge
-
-                    </button>
-
-                  )}
-
-                  {app.acknowledgedAt && (
-
-                    <span className="text-[10px] font-medium text-success pl-1 inline-flex items-center gap-0.5">
-
-                      <CheckCircle2 className="h-3 w-3 inline" /> Acked
-
-                    </span>
-
-                  )}
-
                 </td>
 
               </tr>
@@ -2304,58 +2291,41 @@ function ApprovalsTab() {
               </p>
 
             </div>
+            {/* Discussion Thread comments */}
+            {(() => {
+              const rawList = selectedApproval.comments || [];
+              const seen = new Set<string>();
+              const displayComments = rawList.filter((c) => {
+                const text = (c.text || "").trim();
+                const key = c.id ? String(c.id) : `${c.authorName || ""}|${text}|${c.at || ""}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+              });
 
+              if (displayComments.length === 0) return null;
 
-
-            {selectedApproval.comments.length > 0 && (
-
-              <div className="rounded-lg border border-border bg-card p-3 space-y-2">
-
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-
-                  Discussion & Audit Log History
-
-                </span>
-
-                <div className="space-y-2 max-h-40 overflow-y-auto pl-1">
-
-                  {selectedApproval.history.map((h, idx) => (
-
-                    <div
-
-                      key={idx}
-
-                      className="text-xs border-l-2 border-primary pl-2 py-0.5 bg-muted/10 rounded-sm"
-
-                    >
-
-                      <div className="flex justify-between text-muted-foreground text-[10px]">
-
-                        <span>
-
-                          Status:{" "}
-
-                          <strong className="text-gray-700 font-semibold">{h.status}</strong> by{" "}
-
-                          {h.updatedBy}
-
-                        </span>
-
-                        <span>{new Date(h.at).toLocaleString()}</span>
-
+              return (
+                <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5 text-primary" /> Discussion Thread ({displayComments.length})
+                  </span>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pl-1">
+                    {displayComments.map((c, idx) => (
+                      <div key={c.id || idx} className="text-xs rounded-md border border-border/60 bg-muted/20 p-2.5">
+                        <div className="flex justify-between items-center text-muted-foreground text-[10px] mb-1">
+                          <span className="font-semibold text-foreground">{c.authorName}</span>
+                          <span>{new Date(c.at).toLocaleString()}</span>
+                        </div>
+                        <p className="text-foreground leading-normal whitespace-pre-wrap">{c.text}</p>
                       </div>
-
-                      {h.comment && <p className="text-gray-800 mt-0.5">"{h.comment}"</p>}
-
-                    </div>
-
-                  ))}
-
+                    ))}
+                  </div>
                 </div>
+              );
+            })()}
 
-              </div>
 
-            )}
 
 
 
@@ -2378,121 +2348,96 @@ function ApprovalsTab() {
               </div>
 
             )}
-
-
-
-            {/* Mandatory Comment box */}
-
-            {selectedApproval.status === "Pending" && (
-
+            {/* Action Comments box: enabled when not Approved; locked when Approved */}
+            {selectedApproval.status !== "Approved" ? (
               <div className="space-y-2 border-t border-border pt-3">
-
                 <label className="text-xs font-semibold text-gray-700 block">
-
                   Action Comments / Clarifications / Instructions{" "}
-
                   <span className="text-destructive font-bold">*Mandatory</span>
-
                 </label>
-
                 <textarea
-
                   value={appComment}
-
                   onChange={(e) => setAppComment(e.target.value)}
-
                   placeholder="Provide detailed instructions, clarification request, or reasons..."
-
                   rows={3}
-
                   className="w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
-
                 />
-
               </div>
-
+            ) : (
+              <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>
+                  This request has been <strong>Approved</strong>. Further action comments cannot be added.
+                </span>
+              </div>
             )}
 
-
+            {/* Audit Log History */}
+            {selectedApproval.history && selectedApproval.history.length > 0 && (
+              <div className="rounded-lg border border-border bg-card p-3 space-y-2">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Audit Log History
+                </span>
+                <div className="space-y-2 max-h-40 overflow-y-auto pl-1">
+                  {selectedApproval.history.map((h, idx) => (
+                    <div
+                      key={idx}
+                      className="text-xs border-l-2 border-primary pl-2 py-0.5 bg-muted/10 rounded-sm"
+                    >
+                      <div className="flex justify-between text-muted-foreground text-[10px]">
+                        <span>
+                          Status:{" "}
+                          <strong className="text-gray-700 font-semibold">{h.status}</strong> by{" "}
+                          {h.updatedBy}
+                        </span>
+                        <span>{new Date(h.at).toLocaleString()}</span>
+                      </div>
+                      {h.comment && <p className="text-gray-800 mt-0.5">"{h.comment}"</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 border-t border-border pt-3">
-
               <button
-
                 onClick={() => setSelectedAppId(null)}
-
                 className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium hover:bg-accent"
-
               >
-
                 Close
-
               </button>
-
-              {selectedApproval.status === "Pending" && !isBO && (
-
+              {selectedApproval.status !== "Approved" && !isBO && (
                 <>
-
                   <button
-
                     onClick={() => handleAction("Hold")}
-
                     disabled={!appComment.trim()}
-
                     className="inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning/10 px-4 py-2 text-xs font-medium text-warning-foreground hover:bg-warning/20 disabled:opacity-50"
-
                   >
-
                     Hold
-
                   </button>
-
                   <button
-
                     onClick={() => handleAction("Request Changes")}
-
                     disabled={!appComment.trim()}
-
                     className="inline-flex items-center gap-1 rounded-md border border-info/30 bg-info/10 px-4 py-2 text-xs font-medium text-info hover:bg-info/20 disabled:opacity-50"
-
                   >
-
                     Request Changes
-
                   </button>
-
                   <button
-
                     onClick={() => handleAction("Rejected")}
-
                     disabled={!appComment.trim()}
-
                     className="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-xs font-medium text-destructive hover:bg-destructive/20 disabled:opacity-50"
-
                   >
-
                     Reject
-
                   </button>
-
                   <button
-
                     onClick={() => handleAction("Approved")}
-
                     disabled={!appComment.trim()}
-
                     className="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-
                   >
-
                     Approve
-
                   </button>
-
                 </>
-
               )}
-
             </div>
 
           </div>
@@ -5744,4 +5689,3 @@ const NOTIFICATION_TYPES = [
   "Resource Shuffle",
 
 ] as const;
-

@@ -200,75 +200,17 @@ public sealed class ProjectAdditionalRequirementService(
         requirement.ApprovedByName = approverName;
         requirement.ApprovalComments = request.Comment?.Trim();
 
-        // Append to history
-        var historyList = new List<object>();
-        try
+        if (!string.IsNullOrWhiteSpace(request.Comment))
         {
-            if (!string.IsNullOrWhiteSpace(requirement.HistoryJson))
-            {
-                var parsed = JsonSerializer.Deserialize<List<JsonElement>>(requirement.HistoryJson);
-                if (parsed != null)
-                {
-                    historyList.AddRange(parsed);
-                }
-            }
+            requirement.CommentsJson = AppendComment(requirement.CommentsJson, request.Comment, approverEmployeeId?.ToString() ?? currentUser.UserId?.ToString() ?? "", approverName);
         }
-        catch { }
 
-        historyList.Add(new
-        {
-            status = "Approved",
-            at = DateTime.UtcNow.ToString("o"),
-            updatedBy = approverName,
-            comment = request.Comment?.Trim() ?? string.Empty,
-            details = $"Approved by {approverName}"
-        });
-        requirement.HistoryJson = JsonSerializer.Serialize(historyList);
+        requirement.HistoryJson = AppendHistory(requirement.HistoryJson, "Approved", approverName, request.Comment, $"Approved by {approverName}");
 
-        // ── On Approval: Notify PM, SPM, and EM ──
         var project = requirement.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
         if (project != null)
         {
-            var projectManager = await ResolveProjectManagerAsync(project, ct);
-            var seniorProjectManager = await ResolveSeniorProjectManagerAsync(project, ct);
-            var engagementManager = await ResolveEngagementManagerAsync(project, ct);
-
-            var notifyRecipients = new List<Employee>();
-            if (projectManager != null) notifyRecipients.Add(projectManager);
-            if (seniorProjectManager != null && !notifyRecipients.Any(r => r.Id == seniorProjectManager.Id)) notifyRecipients.Add(seniorProjectManager);
-            if (engagementManager != null && !notifyRecipients.Any(r => r.Id == engagementManager.Id)) notifyRecipients.Add(engagementManager);
-
-            var approvedNotifTitle = $"Requirement Approved: {requirement.Title} — {project.Name}";
-            foreach (var recipient in notifyRecipients)
-            {
-                var notif = new ActionNotification
-                {
-                    Id = Guid.NewGuid(),
-                    RecipientEmployeeId = recipient.Id,
-                    ProjectId = project.Id,
-                    ProjectCode = project.ProjectCode,
-                    ProjectName = project.Name,
-                    Title = approvedNotifTitle,
-                    Type = "Additional Customer Requirement",
-                    Priority = requirement.Priority,
-                    Status = "Approved",
-                    Unread = true,
-                    RaisedByEmployeeId = approverEmployeeId,
-                    RaisedByName = approverName,
-                    RelatedTask = requirement.RequirementId,
-                    HistoryJson = JsonSerializer.Serialize(new[]
-                    {
-                        new
-                        {
-                            status = "Approved",
-                            at = DateTime.UtcNow.ToString("o"),
-                            updatedBy = approverName,
-                            details = $"Approved by {approverName}. Comment: {request.Comment?.Trim()}"
-                        }
-                    })
-                };
-                db.ActionNotifications.Add(notif);
-            }
+            await NotifyLeadershipOnStatusChangeAsync(requirement, project, "Approved", approverName, approverEmployeeId, request.Comment, ct);
         }
 
         await db.SaveChangesAsync(ct);
@@ -296,28 +238,102 @@ public sealed class ProjectAdditionalRequirementService(
         requirement.Status = "Rejected";
         requirement.ApprovalComments = request.Comment?.Trim();
 
-        var historyList = new List<object>();
-        try
+        if (!string.IsNullOrWhiteSpace(request.Comment))
         {
-            if (!string.IsNullOrWhiteSpace(requirement.HistoryJson))
-            {
-                var parsed = JsonSerializer.Deserialize<List<JsonElement>>(requirement.HistoryJson);
-                if (parsed != null) historyList.AddRange(parsed);
-            }
+            requirement.CommentsJson = AppendComment(requirement.CommentsJson, request.Comment, rejecter?.Id.ToString() ?? currentUser.UserId?.ToString() ?? "", rejecterName);
         }
-        catch { }
 
-        historyList.Add(new
+        requirement.HistoryJson = AppendHistory(requirement.HistoryJson, "Rejected", rejecterName, request.Comment, $"Rejected by {rejecterName}");
+
+        var project = requirement.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
+        if (project != null)
         {
-            status = "Rejected",
-            at = DateTime.UtcNow.ToString("o"),
-            updatedBy = rejecterName,
-            comment = request.Comment?.Trim() ?? string.Empty,
-            details = $"Rejected by {rejecterName}"
-        });
-        requirement.HistoryJson = JsonSerializer.Serialize(historyList);
+            await NotifyLeadershipOnStatusChangeAsync(requirement, project, "Rejected", rejecterName, rejecter?.Id, request.Comment, ct);
+        }
 
         await db.SaveChangesAsync(ct);
+        return MapToDto(requirement);
+    }
+
+    public async Task<ProjectAdditionalRequirementDto> TakeActionAsync(
+        Guid projectId,
+        Guid requirementId,
+        AdditionalRequirementActionRequest request,
+        CancellationToken ct = default)
+    {
+        var normStatus = (request.Status ?? "").Trim();
+        if (normStatus.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ApproveAsync(projectId, requirementId, new ApproveAdditionalRequirementRequest { Comment = request.Comment }, ct);
+        }
+        if (normStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
+        {
+            return await RejectAsync(projectId, requirementId, new RejectAdditionalRequirementRequest { Comment = request.Comment }, ct);
+        }
+
+        var requirement = await db.ProjectAdditionalRequirements
+            .Include(r => r.Project)
+            .FirstOrDefaultAsync(r => r.Id == requirementId && r.ProjectId == projectId && r.DeletedAtUtc == null, ct)
+            ?? throw new NotFoundException($"Requirement with id {requirementId} not found.");
+
+        var performer = await FindCurrentUserEmployeeAsync(ct);
+        var performerName = !string.IsNullOrWhiteSpace(performer?.FirstName)
+            ? $"{performer.FirstName} {performer.LastName}".Trim()
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name.Trim() : "Reviewer");
+        var performerId = performer?.Id.ToString() ?? currentUser.UserId?.ToString() ?? "";
+
+        var mappedStatus = normStatus.Equals("Hold", StringComparison.OrdinalIgnoreCase) ? "Hold"
+            : (normStatus.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Requested changes", StringComparison.OrdinalIgnoreCase)) ? "Request Changes"
+            : normStatus;
+
+        requirement.Status = mappedStatus;
+        if (!string.IsNullOrWhiteSpace(request.Comment))
+        {
+            requirement.ApprovalComments = request.Comment.Trim();
+            requirement.CommentsJson = AppendComment(requirement.CommentsJson, request.Comment, performerId, performerName);
+        }
+
+        requirement.HistoryJson = AppendHistory(requirement.HistoryJson, mappedStatus, performerName, request.Comment, $"{mappedStatus} by {performerName}");
+
+        var project = requirement.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
+        if (project != null)
+        {
+            await NotifyLeadershipOnStatusChangeAsync(requirement, project, mappedStatus, performerName, performer?.Id, request.Comment, ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Action {Status} taken on requirement {ReqId} by {PerformerName}.", mappedStatus, requirement.RequirementId, performerName);
+        return MapToDto(requirement);
+    }
+
+    public async Task<ProjectAdditionalRequirementDto> AddCommentAsync(
+        Guid projectId,
+        Guid requirementId,
+        AddRequirementCommentRequest request,
+        CancellationToken ct = default)
+    {
+        var requirement = await db.ProjectAdditionalRequirements
+            .Include(r => r.Project)
+            .FirstOrDefaultAsync(r => r.Id == requirementId && r.ProjectId == projectId && r.DeletedAtUtc == null, ct)
+            ?? throw new NotFoundException($"Requirement with id {requirementId} not found.");
+
+        if (string.Equals(requirement.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ConflictException("Cannot post comments to an already approved requirement.");
+        }
+
+        var performer = await FindCurrentUserEmployeeAsync(ct);
+        var authorName = !string.IsNullOrWhiteSpace(request.AuthorName)
+            ? request.AuthorName.Trim()
+            : (!string.IsNullOrWhiteSpace(performer?.FirstName)
+                ? $"{performer.FirstName} {performer.LastName}".Trim()
+                : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name.Trim() : "User"));
+        var authorId = performer?.Id.ToString() ?? currentUser.UserId?.ToString() ?? "";
+
+        requirement.CommentsJson = AppendComment(requirement.CommentsJson, request.Text, authorId, authorName);
+
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Comment added to requirement {ReqId} by {AuthorName}.", requirement.RequirementId, authorName);
         return MapToDto(requirement);
     }
 
@@ -385,6 +401,71 @@ public sealed class ProjectAdditionalRequirementService(
         }
 
         return null;
+    }
+
+    private async Task NotifyLeadershipOnStatusChangeAsync(
+        ProjectAdditionalRequirement requirement,
+        Project project,
+        string status,
+        string actorName,
+        Guid? actorEmployeeId,
+        string? comment,
+        CancellationToken ct)
+    {
+        var projectManager = await ResolveProjectManagerAsync(project, ct);
+        var seniorProjectManager = await ResolveSeniorProjectManagerAsync(project, ct);
+        var engagementManager = await ResolveEngagementManagerAsync(project, ct);
+
+        var notifyRecipients = new List<Employee>();
+        if (projectManager != null) notifyRecipients.Add(projectManager);
+        if (seniorProjectManager != null && !notifyRecipients.Any(r => r.Id == seniorProjectManager.Id)) notifyRecipients.Add(seniorProjectManager);
+        if (engagementManager != null && !notifyRecipients.Any(r => r.Id == engagementManager.Id)) notifyRecipients.Add(engagementManager);
+
+        if (notifyRecipients.Count == 0) return;
+
+        var actionVerb = status.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) || status.Equals("Requested changes", StringComparison.OrdinalIgnoreCase)
+            ? "Changes Requested"
+            : status.Equals("Hold", StringComparison.OrdinalIgnoreCase)
+                ? "Put on Hold"
+                : status.Equals("Approved", StringComparison.OrdinalIgnoreCase)
+                    ? "Approved"
+                    : status.Equals("Rejected", StringComparison.OrdinalIgnoreCase)
+                        ? "Rejected"
+                        : status;
+
+        var notifTitle = $"Requirement {actionVerb}: {requirement.Title} — {project.Name}";
+        var commentDetail = !string.IsNullOrWhiteSpace(comment) ? $". Comment: {comment.Trim()}" : string.Empty;
+
+        foreach (var recipient in notifyRecipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                ProjectId = project.Id,
+                ProjectCode = project.ProjectCode,
+                ProjectName = project.Name,
+                Title = notifTitle,
+                Type = "Additional Customer Requirement",
+                Priority = requirement.Priority,
+                Status = status,
+                Unread = true,
+                RaisedByEmployeeId = actorEmployeeId,
+                RaisedByName = actorName,
+                RelatedTask = requirement.RequirementId,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status,
+                        at = DateTime.UtcNow.ToString("o"),
+                        updatedBy = actorName,
+                        details = $"{status} by {actorName}{commentDetail}"
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+        }
     }
 
     private async Task<Employee?> ResolveSalesPersonAsync(Project project, CancellationToken ct)
@@ -480,6 +561,75 @@ public sealed class ProjectAdditionalRequirementService(
         }
 
         return null;
+    }
+
+
+    private static string AppendComment(string? currentJson, string text, string authorId, string authorName)
+    {
+        var comments = new List<object>();
+        if (!string.IsNullOrWhiteSpace(currentJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(currentJson);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var elem in doc.RootElement.EnumerateArray())
+                    {
+                        if (elem.ValueKind == JsonValueKind.Object)
+                        {
+                            comments.Add(elem.Clone());
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        comments.Add(new
+        {
+            id = "cm-" + Guid.NewGuid().ToString("N")[..8],
+            authorId,
+            authorName,
+            text = text?.Trim() ?? string.Empty,
+            at = DateTime.UtcNow.ToString("o")
+        });
+
+        return JsonSerializer.Serialize(comments);
+    }
+
+    private static string AppendHistory(string? currentJson, string status, string updatedBy, string? comment, string details)
+    {
+        var historyList = new List<object>();
+        if (!string.IsNullOrWhiteSpace(currentJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(currentJson);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var elem in doc.RootElement.EnumerateArray())
+                    {
+                        if (elem.ValueKind == JsonValueKind.Object)
+                        {
+                            historyList.Add(elem.Clone());
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        historyList.Add(new
+        {
+            status,
+            at = DateTime.UtcNow.ToString("o"),
+            updatedBy,
+            comment = comment?.Trim() ?? string.Empty,
+            details
+        });
+
+        return JsonSerializer.Serialize(historyList);
     }
 
     private static ProjectAdditionalRequirementDto MapToDto(ProjectAdditionalRequirement r) => new(
