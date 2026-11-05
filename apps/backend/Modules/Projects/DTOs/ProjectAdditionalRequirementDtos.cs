@@ -52,3 +52,15 @@ public class RejectAdditionalRequirementRequest
 {
     public string Comment { get; set; } = string.Empty;
 }
+
+public class AdditionalRequirementActionRequest
+{
+    public string Status { get; set; } = string.Empty;
+    public string Comment { get; set; } = string.Empty;
+}
+
+public class AddRequirementCommentRequest
+{
+    public string Text { get; set; } = string.Empty;
+    public string? AuthorName { get; set; }
+}

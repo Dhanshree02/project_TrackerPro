@@ -13,6 +13,7 @@ public interface IActionNotificationService
     Task<(Stream Stream, string ContentType, string FileName)?> DownloadAlertAttachmentAsync(Guid id, CancellationToken ct = default);
 
     Task NotifyCustomerOnboardedAsync(Guid clientId, string clientName, string? clientCode, string? createdByName, CancellationToken ct = default);
+    Task NotifySubVentureOnboardedAsync(Guid clientId, string clientName, Guid subVentureId, string subVentureName, string? subVentureCode, string? createdByName, CancellationToken ct = default);
     Task NotifyWbsCreatedAsync(Guid projectId, string projectName, string? wbsId, string? projectCode, string? createdByName, CancellationToken ct = default);
     Task NotifyResourceOnboardedAsync(Guid employeeId, string employeeName, string employeeCode, Guid? reportingManagerId, string? performerName, CancellationToken ct = default);
 }

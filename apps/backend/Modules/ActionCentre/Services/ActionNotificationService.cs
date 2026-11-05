@@ -1440,587 +1440,400 @@ public sealed class ActionNotificationService(
 
 
 
-    public async Task NotifyCustomerOnboardedAsync(
-
-        Guid clientId,
-
-        string clientName,
-
-        string? clientCode,
-
-        string? createdByName,
-
-        CancellationToken ct = default)
-
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveCustomerNotificationRecipientsAsync(CancellationToken ct)
     {
-
-        // Criteria: Resources whose Sub-Department are `EM (Engagement Manager)`
-
-        // AND whose On Floor Role are `Head Of Department`, `Leader`
-
+        // Criteria:
+        // 1. Resources whose Sub-Department is `EM (Engagement Manager)`
+        // AND
+        // 2. Resources whose On Floor Role is `Head Of Department` or `Leader` (strictly excluding Team Leader)
         var emKey = "em (engagement manager)";
+        var emSubDeptId = Guid.Parse("63bc0f54-4d35-4279-bb62-4daeff6ceeaa");
 
         var candidates = await db.Employees
-
             .Include(e => e.SubDepartmentRef)
-
             .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")))
-
-            .Where(e => (e.SubDepartment != null && e.SubDepartment.Trim().ToLower() == emKey)
-
-                     || (e.SubDepartmentRef != null && e.SubDepartmentRef.Name.Trim().ToLower() == emKey))
-
             .ToListAsync(ct);
-
-
-
-        if (candidates.Count == 0) return;
-
-
 
         var desigIds = candidates.Where(e => e.DesignationId.HasValue).Select(e => e.DesignationId!.Value).Distinct().ToList();
-
         var floorRoleList = await db.OnFloorRoles
-
             .Where(r => desigIds.Contains(r.DesignationId) && r.DeletedAtUtc == null)
-
             .Select(r => new { r.DesignationId, r.Name })
-
             .ToListAsync(ct);
 
-
-
         var floorRoles = new Dictionary<Guid, string>();
-
         foreach (var fr in floorRoleList)
-
         {
-
             if (!floorRoles.ContainsKey(fr.DesignationId) && !string.IsNullOrWhiteSpace(fr.Name))
-
             {
-
                 floorRoles[fr.DesignationId] = fr.Name;
-
             }
-
         }
-
-
 
         var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
-
         foreach (var e in candidates)
-
         {
+            var subDept = (e.SubDepartment ?? e.SubDepartmentRef?.Name ?? "").Trim().ToLowerInvariant();
+            var subDeptCode = (e.SubDepartmentRef?.Code ?? "").Trim().ToLowerInvariant();
+            var isEm = e.SubDepartmentId == emSubDeptId ||
+                       subDept == emKey ||
+                       subDeptCode == "em_engagement_manager" ||
+                       subDept.Contains("engagement manager") ||
+                       subDept == "em" || subDept.StartsWith("em ") || subDept.StartsWith("em-");
 
-            string roleName = string.Empty;
-
+            string roleFromFloor = string.Empty;
             if (e.DesignationId.HasValue && floorRoles.TryGetValue(e.DesignationId.Value, out var mappedRole))
-
             {
-
-                roleName = mappedRole;
-
+                roleFromFloor = mappedRole;
             }
 
-            else if (!string.IsNullOrWhiteSpace(e.Role))
+            var rLower = roleFromFloor.Trim().ToLowerInvariant();
+            var roleFieldLower = (e.Role ?? "").Trim().ToLowerInvariant();
 
+            // Strictly exclude Team Leader
+            var isTeamLeader = rLower.Contains("team leader") || roleFieldLower.Contains("team leader");
+            if (isTeamLeader) continue;
+
+            var isHodOrLeader = rLower == "head of department" || rLower == "leader" || rLower == "hod" || rLower.Contains("head of department") ||
+                                roleFieldLower == "head of department" || roleFieldLower == "leader" || roleFieldLower == "hod" || roleFieldLower.Contains("head of department");
+
+            // Strict AND condition: Sub-Department is EM AND On Floor Role is Head Of Department or Leader
+            if (isEm && isHodOrLeader)
             {
-
-                roleName = e.Role;
-
+                if (!recipients.Any(r => r.Id == e.Id))
+                {
+                    recipients.Add(e);
+                }
             }
-
-
-
-            string rLower = roleName.Trim().ToLowerInvariant();
-
-            // Strictly Head Of Department or Leader (explicitly excludes Team Leader)
-            if (!rLower.Contains("team leader") && (rLower == "head of department" || rLower == "leader" || rLower.Contains("hod")))
-
-            {
-
-                recipients.Add(e);
-
-            }
-
         }
 
+        return recipients;
+    }
 
-
+    public async Task NotifyCustomerOnboardedAsync(
+        Guid clientId,
+        string clientName,
+        string? clientCode,
+        string? createdByName,
+        CancellationToken ct = default)
+    {
+        var recipients = await ResolveCustomerNotificationRecipientsAsync(ct);
         if (recipients.Count == 0) return;
-
-
 
         var title = $"Customer Onboarded: {clientName}";
-
         var addedList = new List<ActionNotification>();
-
         foreach (var recipient in recipients)
-
         {
-
             var notif = new ActionNotification
-
             {
-
                 Id = Guid.NewGuid(),
-
                 RecipientEmployeeId = recipient.Id,
-
                 Title = title,
-
                 Type = "Customer Onboarded",
-
-                Priority = "High",
-
+                Priority = "Low",
                 Status = "Pending",
-
                 Unread = true,
-
                 RaisedByName = createdByName ?? currentUser.Name ?? "System",
-
                 RelatedTask = clientCode ?? clientName,
-
                 CreatedAtUtc = DateTime.UtcNow,
-
                 HistoryJson = JsonSerializer.Serialize(new[]
-
                 {
-
                     new
-
                     {
-
                         status = "Pending",
-
                         at = DateTime.UtcNow.ToString("o"),
-
                         details = $"Customer '{clientName}' has been successfully onboarded."
-
                     }
-
                 })
-
             };
-
             db.ActionNotifications.Add(notif);
-
             addedList.Add(notif);
-
         }
 
-
-
         await db.SaveChangesAsync(ct);
-
         TrySyncNotificationsToOtherDatabase(addedList);
-
     }
 
+    public async Task NotifySubVentureOnboardedAsync(
+        Guid clientId,
+        string clientName,
+        Guid subVentureId,
+        string subVentureName,
+        string? subVentureCode,
+        string? createdByName,
+        CancellationToken ct = default)
+    {
+        var recipients = await ResolveCustomerNotificationRecipientsAsync(ct);
+        if (recipients.Count == 0) return;
 
+        var title = $"Sub-Venture Onboarded: {subVentureName} ({clientName})";
+        var addedList = new List<ActionNotification>();
+        foreach (var recipient in recipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                Title = title,
+                Type = "Sub-Venture Onboarded",
+                Priority = "Low",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = createdByName ?? currentUser.Name ?? "System",
+                RelatedTask = subVentureCode ?? subVentureName,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = "Pending",
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = $"Sub-Venture '{subVentureName}' under Customer '{clientName}' has been successfully onboarded."
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(addedList);
+    }
 
     public async Task NotifyWbsCreatedAsync(
-
         Guid projectId,
-
         string projectName,
-
         string? wbsId,
-
         string? projectCode,
-
         string? createdByName,
-
         CancellationToken ct = default)
-
     {
-
-        // Criteria: Resources whose Sub-Department are `EM (Engagement Manager)`, `PMO (Project Management Office)`
-
-        // AND whose On Floor Role are `Head Of Department`
-
-        var targetSubDepts = new[] { "em (engagement manager)", "pmo (project management office)" };
+        // Criteria:
+        // 1. Resources whose Sub-Department is `EM (Engagement Manager)` or `PMO (Project Management Office)`
+        // AND
+        // 2. Resources whose On Floor Role is `Head Of Department`
+        var emSubDeptId = Guid.Parse("63bc0f54-4d35-4279-bb62-4daeff6ceeaa");
+        var pmoSubDeptId = Guid.Parse("fd84aa38-11ef-46af-ade7-241f2a2c08fd");
 
         var candidates = await db.Employees
-
             .Include(e => e.SubDepartmentRef)
-
             .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")))
-
-            .Where(e => (e.SubDepartment != null && targetSubDepts.Contains(e.SubDepartment.Trim().ToLower()))
-
-                     || (e.SubDepartmentRef != null && targetSubDepts.Contains(e.SubDepartmentRef.Name.Trim().ToLower())))
-
             .ToListAsync(ct);
-
-
 
         if (candidates.Count == 0) return;
 
-
-
         var desigIds = candidates.Where(e => e.DesignationId.HasValue).Select(e => e.DesignationId!.Value).Distinct().ToList();
-
         var floorRoleList = await db.OnFloorRoles
-
             .Where(r => desigIds.Contains(r.DesignationId) && r.DeletedAtUtc == null)
-
             .Select(r => new { r.DesignationId, r.Name })
-
             .ToListAsync(ct);
-
-
 
         var floorRoles = new Dictionary<Guid, string>();
-
         foreach (var fr in floorRoleList)
-
         {
-
             if (!floorRoles.ContainsKey(fr.DesignationId) && !string.IsNullOrWhiteSpace(fr.Name))
-
             {
-
                 floorRoles[fr.DesignationId] = fr.Name;
-
             }
-
         }
-
-
 
         var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
-
         foreach (var e in candidates)
-
         {
+            var subDept = (e.SubDepartment ?? e.SubDepartmentRef?.Name ?? "").Trim().ToLowerInvariant();
+            var subDeptCode = (e.SubDepartmentRef?.Code ?? "").Trim().ToLowerInvariant();
+            var isEmOrPmo = e.SubDepartmentId == emSubDeptId || e.SubDepartmentId == pmoSubDeptId ||
+                            subDept == "em (engagement manager)" || subDept == "pmo (project management office)" ||
+                            subDeptCode == "em_engagement_manager" || subDeptCode == "pmo_project_management_office" ||
+                            subDept.Contains("engagement manager") || subDept.Contains("project management office") ||
+                            subDept == "em" || subDept == "pmo" || subDept.StartsWith("em ") || subDept.StartsWith("pmo ") ||
+                            subDept.StartsWith("em-") || subDept.StartsWith("pmo-");
 
-            string roleName = string.Empty;
-
+            string roleFromFloor = string.Empty;
             if (e.DesignationId.HasValue && floorRoles.TryGetValue(e.DesignationId.Value, out var mappedRole))
-
             {
-
-                roleName = mappedRole;
-
+                roleFromFloor = mappedRole;
             }
 
-            else if (!string.IsNullOrWhiteSpace(e.Role))
+            var rLower = roleFromFloor.Trim().ToLowerInvariant();
+            var roleFieldLower = (e.Role ?? "").Trim().ToLowerInvariant();
 
+            var isTeamLeader = rLower.Contains("team leader") || roleFieldLower.Contains("team leader");
+            if (isTeamLeader) continue;
+
+            var isHod = rLower == "head of department" || rLower == "hod" || rLower.Contains("head of department") ||
+                        roleFieldLower == "head of department" || roleFieldLower == "hod" || roleFieldLower.Contains("head of department");
+
+            // Strict AND: Sub-Department is (EM or PMO) AND On Floor Role is Head Of Department
+            if (isEmOrPmo && isHod)
             {
-
-                roleName = e.Role;
-
+                if (!recipients.Any(r => r.Id == e.Id))
+                {
+                    recipients.Add(e);
+                }
             }
-
-
-
-            string rLower = roleName.Trim().ToLowerInvariant();
-
-            if (rLower == "head of department" || rLower.Contains("head of department") || rLower.Contains("hod"))
-
-            {
-
-                recipients.Add(e);
-
-            }
-
         }
-
-
 
         if (recipients.Count == 0) return;
 
-
-
-        var title = $"WBS Created: {projectName} ({wbsId ?? projectCode})";
-
+        var title = $"WBS Created: {projectName}";
         var addedList = new List<ActionNotification>();
-
         foreach (var recipient in recipients)
-
         {
-
             var notif = new ActionNotification
-
             {
-
                 Id = Guid.NewGuid(),
-
                 RecipientEmployeeId = recipient.Id,
-
-                ProjectId = projectId,
-
-                ProjectCode = projectCode,
-
-                ProjectName = projectName,
-
                 Title = title,
-
                 Type = "WBS Created",
-
-                Priority = "High",
-
+                Priority = "Low",
                 Status = "Pending",
-
                 Unread = true,
-
                 RaisedByName = createdByName ?? currentUser.Name ?? "System",
-
-                RelatedTask = wbsId ?? projectCode,
-
+                ProjectId = projectId,
+                ProjectName = projectName,
+                ProjectCode = projectCode,
+                RelatedTask = wbsId ?? projectCode ?? projectName,
                 CreatedAtUtc = DateTime.UtcNow,
-
                 HistoryJson = JsonSerializer.Serialize(new[]
-
                 {
-
                     new
-
                     {
-
                         status = "Pending",
-
                         at = DateTime.UtcNow.ToString("o"),
-
-                        details = $"WBS created for project '{projectName}' with ID {wbsId ?? projectCode}."
-
+                        details = $"Work Breakdown Structure for project '{projectName}' has been created."
                     }
-
                 })
-
             };
-
             db.ActionNotifications.Add(notif);
-
             addedList.Add(notif);
-
         }
 
-
-
         await db.SaveChangesAsync(ct);
-
         TrySyncNotificationsToOtherDatabase(addedList);
-
     }
-
-
 
     public async Task NotifyResourceOnboardedAsync(
-
         Guid employeeId,
-
         string employeeName,
-
         string employeeCode,
-
         Guid? reportingManagerId,
-
         string? performerName,
-
         CancellationToken ct = default)
-
     {
-
         // Criteria:
-
         // 1. Assigned Reporting Manager
-
-        // 2. Resources whose Sub-Department are `EM (Engagement Manager)`, `PMO (Project Management Office)`
-
-        //    AND whose Resource On Floor Role are `Sr. Manager`, `Manager`
-
+        // AND / OR
+        // 2. Resources whose Sub-Department is `EM (Engagement Manager)` or `PMO (Project Management Office)`
+        //    AND whose On Floor Role is `Sr. Manager` or `Manager`
         var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
 
-
-
         if (reportingManagerId.HasValue)
-
         {
-
             var mgr = await db.Employees.FirstOrDefaultAsync(e => e.Id == reportingManagerId.Value && e.DeletedAtUtc == null, ct);
-
-            if (mgr != null)
-
+            if (mgr != null && !recipients.Any(r => r.Id == mgr.Id))
             {
-
                 recipients.Add(mgr);
-
             }
-
         }
 
-
-
-        var targetSubDepts = new[] { "em (engagement manager)", "pmo (project management office)" };
+        var emSubDeptId = Guid.Parse("63bc0f54-4d35-4279-bb62-4daeff6ceeaa");
+        var pmoSubDeptId = Guid.Parse("fd84aa38-11ef-46af-ade7-241f2a2c08fd");
 
         var candidates = await db.Employees
-
             .Include(e => e.SubDepartmentRef)
-
             .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")))
-
-            .Where(e => (e.SubDepartment != null && targetSubDepts.Contains(e.SubDepartment.Trim().ToLower()))
-
-                     || (e.SubDepartmentRef != null && targetSubDepts.Contains(e.SubDepartmentRef.Name.Trim().ToLower())))
-
             .ToListAsync(ct);
 
-
-
         if (candidates.Count > 0)
-
         {
-
             var desigIds = candidates.Where(e => e.DesignationId.HasValue).Select(e => e.DesignationId!.Value).Distinct().ToList();
-
             var floorRoleList = await db.OnFloorRoles
-
                 .Where(r => desigIds.Contains(r.DesignationId) && r.DeletedAtUtc == null)
-
                 .Select(r => new { r.DesignationId, r.Name })
-
                 .ToListAsync(ct);
 
-
-
             var floorRoles = new Dictionary<Guid, string>();
-
             foreach (var fr in floorRoleList)
-
             {
-
                 if (!floorRoles.ContainsKey(fr.DesignationId) && !string.IsNullOrWhiteSpace(fr.Name))
-
                 {
-
                     floorRoles[fr.DesignationId] = fr.Name;
-
                 }
-
             }
-
-
 
             foreach (var e in candidates)
-
             {
+                var subDept = (e.SubDepartment ?? e.SubDepartmentRef?.Name ?? "").Trim().ToLowerInvariant();
+                var subDeptCode = (e.SubDepartmentRef?.Code ?? "").Trim().ToLowerInvariant();
+                var isEmOrPmo = e.SubDepartmentId == emSubDeptId || e.SubDepartmentId == pmoSubDeptId ||
+                                subDept == "em (engagement manager)" || subDept == "pmo (project management office)" ||
+                                subDeptCode == "em_engagement_manager" || subDeptCode == "pmo_project_management_office" ||
+                                subDept.Contains("engagement manager") || subDept.Contains("project management office") ||
+                                subDept == "em" || subDept == "pmo" || subDept.StartsWith("em ") || subDept.StartsWith("pmo ") ||
+                                subDept.StartsWith("em-") || subDept.StartsWith("pmo-");
 
-                string roleName = string.Empty;
-
+                string roleFromFloor = string.Empty;
                 if (e.DesignationId.HasValue && floorRoles.TryGetValue(e.DesignationId.Value, out var mappedRole))
-
                 {
-
-                    roleName = mappedRole;
-
+                    roleFromFloor = mappedRole;
                 }
 
-                else if (!string.IsNullOrWhiteSpace(e.Role))
+                var rLower = roleFromFloor.Trim().ToLowerInvariant();
+                var roleFieldLower = (e.Role ?? "").Trim().ToLowerInvariant();
 
+                var isTeamLeader = rLower.Contains("team leader") || roleFieldLower.Contains("team leader");
+                if (isTeamLeader) continue;
+
+                var isMgrOrSrMgr = rLower == "sr. manager" || rLower == "manager" || rLower == "senior manager" ||
+                                   roleFieldLower == "sr. manager" || roleFieldLower == "manager" || roleFieldLower == "senior manager" ||
+                                   (!rLower.Contains("associate") && rLower.Contains("manager") && !rLower.Contains("account manager") && !rLower.Contains("engagement manager"));
+
+                // Strict AND: Sub-Department is (EM or PMO) AND On Floor Role is Sr. Manager or Manager
+                if (isEmOrPmo && isMgrOrSrMgr)
                 {
-
-                    roleName = e.Role;
-
-                }
-
-
-
-                string rLower = roleName.Trim().ToLowerInvariant();
-
-                if (rLower == "sr. manager" || rLower == "manager" || rLower.Contains("senior manager") || rLower.Contains("manager"))
-
-                {
-
                     if (!recipients.Any(r => r.Id == e.Id))
-
                     {
-
                         recipients.Add(e);
-
                     }
-
                 }
-
             }
-
         }
-
-
 
         if (recipients.Count == 0) return;
 
-
-
         var title = $"Resource Onboarded: {employeeName} ({employeeCode})";
-
         var addedList = new List<ActionNotification>();
-
         foreach (var recipient in recipients)
-
         {
-
             var notif = new ActionNotification
-
             {
-
                 Id = Guid.NewGuid(),
-
                 RecipientEmployeeId = recipient.Id,
-
                 Title = title,
-
                 Type = "Resource Onboarded",
-
-                Priority = "High",
-
+                Priority = "Low",
                 Status = "Pending",
-
                 Unread = true,
-
                 RaisedByName = performerName ?? currentUser.Name ?? "System",
-
                 RelatedTask = employeeCode,
-
                 CreatedAtUtc = DateTime.UtcNow,
-
                 HistoryJson = JsonSerializer.Serialize(new[]
-
                 {
-
                     new
-
                     {
-
                         status = "Pending",
-
                         at = DateTime.UtcNow.ToString("o"),
-
-                        details = $"Resource '{employeeName}' ({employeeCode}) was successfully onboarded."
-
+                        details = $"Resource '{employeeName}' ({employeeCode}) has been successfully onboarded."
                     }
-
                 })
-
             };
-
             db.ActionNotifications.Add(notif);
-
             addedList.Add(notif);
-
         }
 
-
-
         await db.SaveChangesAsync(ct);
-
         TrySyncNotificationsToOtherDatabase(addedList);
-
     }
-
 
 
     private static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications)

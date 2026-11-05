@@ -26,6 +26,18 @@ public interface IProjectAdditionalRequirementService
         RejectAdditionalRequirementRequest request,
         CancellationToken ct = default);
 
+    Task<ProjectAdditionalRequirementDto> TakeActionAsync(
+        Guid projectId,
+        Guid requirementId,
+        AdditionalRequirementActionRequest request,
+        CancellationToken ct = default);
+
+    Task<ProjectAdditionalRequirementDto> AddCommentAsync(
+        Guid projectId,
+        Guid requirementId,
+        AddRequirementCommentRequest request,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<ProjectAdditionalRequirementDto>> ListPendingApprovalsAsync(
         CancellationToken ct = default);
 }

@@ -78,6 +78,38 @@ export async function rejectProjectAdditionalRequirement(
   );
 }
 
+export async function takeProjectAdditionalRequirementAction(
+  projectId: string,
+  requirementId: string,
+  status: string,
+  comment: string
+): Promise<ProjectAdditionalRequirement> {
+  return apiFetch<ProjectAdditionalRequirement>(
+    `/api/v1/projects/${projectId}/additional-requirements/${requirementId}/action`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, comment }),
+    }
+  );
+}
+
+export async function addProjectAdditionalRequirementComment(
+  projectId: string,
+  requirementId: string,
+  text: string,
+  authorName?: string
+): Promise<ProjectAdditionalRequirement> {
+  return apiFetch<ProjectAdditionalRequirement>(
+    `/api/v1/projects/${projectId}/additional-requirements/${requirementId}/comments`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, authorName }),
+    }
+  );
+}
+
 export async function fetchPendingApprovals(): Promise<ProjectAdditionalRequirement[]> {
   const res = await apiFetch<ProjectAdditionalRequirement[]>(
     `/api/v1/action-centre/approvals`

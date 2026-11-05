@@ -38,6 +38,125 @@ Whenever a new feature, database migration, API route, or business logic change 
 
 <!-- New changes will be logged below this line -->
 
+### [2026-11-05] Action Center Approvals Enhancements, Two-Way Discussion Thread, and WBS "Edit Services" Activation
+
+- **Branch**: `uat_clean7`
+- **Module**: Action Centre / Approvals & Project Health Customer Engagement (Additional Customer Requirements & WBS)
+- **Purpose**:
+  1. In Action Center Approvals tab, remove the "Acknowledge" button and "Acked" status badge next to the "View" action button.
+  2. In Central Approval Center modal (Review Request):
+     - Support interactive commenting and actioning when selecting "Hold", "Reject", or "Request changes", keeping the modal open and re-enabling further comments.
+     - When a request is "Approved", lock the review view completely (disable and hide action comment input and action buttons, displaying a read-only approved banner).
+     - Relocate the Audit Log History section directly under the comment section in the Review Request modal.
+  3. Enable two-way discussion thread communication between Project Health (`Health -> Customer Engagement -> Additional Customer Requirement` -> `Requirement Details` -> `Discussion Thread`) and Action Center Approvals:
+     - Reviewer's action comments / clarifications appear in the Discussion Thread.
+     - Requester and reviewers can exchange messages via the Discussion Thread while the requirement is not approved.
+     - When the requirement is approved, discussion thread posting is strictly locked/disabled on both frontend and backend.
+     - Remove the status change dropdown `<select>` option from the Requirement Details form (read-only badge only; status transitions can only occur via the Action Center approval flow).
+     - Ensure chat messages and requirement status are never persisted to browser memory (`localStorage`), querying and persisting authoritative data directly from PostgreSQL database table `project.tbl_project_additional_requirements`.
+  4. Notification delivery on all status changes:
+     - When an additional requirement transitions to "Approved", "Hold", "Rejected", or "Request Changes" ("Requested changes"), dispatch Action Center notifications directly to the project's Assigned Engagement Manager, Project Manager, and Senior Project Manager.
+  5. Fix Project WBS "Edit Services" button activation:
+     - When an Additional Customer Requirement is approved, enable the "Edit Services" button under WBS (Section A: Services & Deliverables from WBS) for 2 days.
+     - Synchronize approval state dynamically across DB and workspace store with immutable array references to trigger immediate UI reactivity.
+
+#### 📁 Files Affected
+- **Modified**: `apps/backend/Modules/Projects/DTOs/ProjectAdditionalRequirementDtos.cs`
+- **Modified**: `apps/backend/Modules/Projects/Services/IProjectAdditionalRequirementService.cs`
+- **Modified**: `apps/backend/Modules/Projects/Services/ProjectAdditionalRequirementService.cs`
+- **Modified**: `apps/backend/Modules/Projects/Controllers/ProjectsController.cs`
+- **Modified**: `apps/frontend/src/modules/projects/api/project-additional-requirements.ts`
+- **Modified**: `apps/frontend/src/lib/workspace-store.ts`
+- **Modified**: `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- **Modified**: `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
+- **Modified**: `CHANGELOG_AI.md`
+
+#### 🗄️ Database & Schema Changes
+- Stored and queried structured comments in `CommentsJson` and audit logs in `HistoryJson` on `project.tbl_project_additional_requirements`.
+- Dispatches status change notifications to `action.tbl_notifications` with status and actor comments.
+- No DDL migrations required as columns already exist in schema.
+
+#### 🔌 APIs & Business Logic Changed
+- **Backend Endpoints Added & Modified**:
+  - `POST /api/v1/projects/{projectId}/additional-requirements/{requirementId}/action`:
+    - Handles approval statuses (`Approved`, `Rejected`, `Hold`, `Request Changes`).
+    - Appends reviewer comment to `CommentsJson` and `HistoryJson`.
+    - Dispatches notifications to Assigned EM, PM, and SPM on any status transition ("Approved", "Hold", "Rejected", "Request Changes").
+    - If status is `Approved`, sets `ApprovedAtUtc`.
+  - `POST /api/v1/projects/{projectId}/additional-requirements/{requirementId}/comments`:
+    - Allows requester or reviewer to post comments in the discussion thread.
+    - Validates requirement status: returns `409 Conflict` ("Cannot post comments to an already approved requirement.") if already approved.
+- **Backend Service Logic (`ProjectAdditionalRequirementService`)**:
+  - Implemented `AppendComment` and `AppendHistory` utilizing `JsonDocument.Parse` to sanitize JSON arrays and prevent nested list artifacts.
+  - Implemented `NotifyLeadershipOnStatusChangeAsync` to reliably dispatch Action Center notifications to EM, PM, and SPM when status changes to Approved, Hold, Rejected, or Request Changes.
+- **Frontend State Management (`workspace-store.ts`)**:
+  - Purged legacy `comments` from `localStorage` persistence and removed comments/requirements from `persistState` and `loadPersistedState` to ensure chat and status are never stored in browser memory.
+  - Updated `updateCentralApprovalStatus` to de-duplicate comments and history before appending, preventing duplicate entries when local state synchronizes.
+  - Updated `updateCentralApprovalStatus` to handle "Hold", "Request Changes", "Approved", and "Rejected", updating `req.status`, `req.approvedAtUtc`, and appending comments.
+  - Replaced array in-place mutations with shallow copies (`state.requirements = [...state.requirements]`) to ensure React observers re-render immediately.
+- **Frontend Project Detail Page (`project-detail-page.tsx`)**:
+  - `WbsTab`: Fetches additional requirements via `fetchProjectAdditionalRequirements` and evaluates `isEditServicesEnabled` against both DB requirements and store requirements within 2 days of approval.
+  - `RequirementDetailsModal`:
+    - Removed the `<select>` status change dropdown list option, displaying the status as a read-only badge.
+    - Added on-mount database query (`fetchProjectAdditionalRequirements`) to retrieve chat messages and status directly from the database table.
+    - When comments are posted, updates state directly from the backend API response.
+    - Displays closed notice with `CheckCircle2` icon and disables input when approved.
+- **Frontend Action Center Page (`action-centre-page.tsx`)**:
+  - Removed "Acknowledge" button and "Acked" badge from Central Approval Center table.
+  - In Review Request modal, renders full Discussion Thread with duplicate message prevention, enables iterative action comments on "Hold", "Request Changes", and "Reject", and locks the view when "Approved".
+  - Fixed double comment display issue in Review Request Discussion Thread by suppressing redundant local store comment pushes when `loadApprovals()` reloads the authoritative database state, and de-duplicating comments on parse and render.
+  - Moved the `Audit Log History` section directly under the action comment section.
+  - Calls `loadApprovals()` after taking actions to refresh authoritative records from the database table.
+
+#### ⚠️ Critical Dependencies & Invariants to Preserve
+- "Edit Services" button in WBS must only be clickable within 2 days of an additional customer requirement approval.
+- Two-way communication is strictly disallowed once a requirement is approved.
+- All existing project detail, client engagement, and action center workflows are fully preserved.
+
+
+### [2026-11-05] Low-Priority Customer, Sub-Venture, WBS, and Resource Onboarding Notification Delivery Fix
+
+- **Branch**: `uat_clean7`
+- **Module**: Action Centre / Notifications (Customer, Sub-Venture, WBS, Resource)
+- **Purpose**:
+  1. Fix notification recipient resolution for Customer Onboarding, Sub-Venture Onboarding under Customer, WBS Creation, and Resource Onboarding so that all target resources accurately receive notifications in their Action Center notifications tab.
+  2. Implement sub-venture onboarding notifications (`Type = "Sub-Venture Onboarded"`, `NotifySubVentureOnboardedAsync`) when sub-ventures are created during customer onboarding or added during customer updates.
+  3. Enforce strict **AND** conditions:
+     - Customer Onboarding and Sub-Venture Onboarding strictly target active resources whose `Sub-Department == "EM (Engagement Manager)"` **AND** whose `On Floor Role in ("Head Of Department", "Leader")` (strictly excluding `Team Leader`). If no employee holds this role in the database, 0 notifications are dispatched until such an employee is onboarded or assigned that role.
+     - WBS Creation strictly targets active resources whose `Sub-Department in ("EM (Engagement Manager)", "PMO (Project Management Office)")` **AND** whose `On Floor Role == "Head Of Department"`.
+     - Resource Onboarding targets the assigned `Reporting Manager` of the resource, plus active resources whose `Sub-Department in ("EM (Engagement Manager)", "PMO (Project Management Office)")` **AND** whose `On Floor Role in ("Sr. Manager", "Manager")`.
+  4. Set the priority across all four notification types (`Customer Onboarded`, `Sub-Venture Onboarded`, `WBS Created`, `Resource Onboarded`) to `Low`.
+
+#### 📁 Files Affected
+- **Modified**: `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`
+- **Modified**: `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+- **Modified**: `apps/backend/Modules/Customers/Services/ClientService.cs`
+- **Modified**: `CHANGELOG_AI.md`
+
+#### 🗄️ Database & Schema Changes
+- None (dispatches records to `action.tbl_notifications` with `Priority = "Low"` and dual-syncs to `pms_uat`).
+
+#### 🔌 APIs & Business Logic Changed
+- **`ActionNotificationService`**:
+  - `NotifyCustomerOnboardedAsync` & `NotifySubVentureOnboardedAsync`:
+    - Dispatches strictly to active resources whose Sub-Department is `EM (Engagement Manager)` AND whose On Floor Role is `Head Of Department` or `Leader`.
+    - Strictly excludes `Team Leader`.
+    - Dynamically evaluates against current employees so any newly onboarded or updated EM Leader/HOD immediately receives notifications for subsequent onboardings.
+    - Sets `Priority = "Low"`.
+  - `NotifyWbsCreatedAsync`:
+    - Dispatches strictly to active resources whose Sub-Department is `EM (Engagement Manager)` or `PMO (Project Management Office)` AND whose On Floor Role is `Head Of Department`.
+    - Sets `Priority = "Low"`.
+  - `NotifyResourceOnboardedAsync`:
+    - Dispatches to the assigned `Reporting Manager` of the resource, plus active resources whose Sub-Department is `EM (Engagement Manager)` or `PMO (Project Management Office)` AND whose On Floor Role is `Sr. Manager` or `Manager`.
+    - Sets `Priority = "Low"`.
+- **`ClientService`**:
+  - `CreateClientAsync`: Dispatches `NotifyCustomerOnboardedAsync` and loops through `created.SubVentures` to dispatch `NotifySubVentureOnboardedAsync` for each onboarded sub-venture.
+  - `UpdateClientAsync`: Detects newly added sub-ventures in `request.SubVentures` and dispatches `NotifySubVentureOnboardedAsync` for each new sub-venture.
+
+#### ⚠️ Critical Dependencies & Invariants to Preserve
+- Dispatches strictly to Action Center notifications (`action.tbl_notifications`), never creating governance alerts in `project.tbl_project_alerts`.
+- Dual database synchronization to `pms_uat` is preserved.
+
 ### [2026-11-04] Customer Onboarded Notification Recipient Refinement (Strictly Exclude Team Leader)
 
 - **Branch**: `uat_clean6`
