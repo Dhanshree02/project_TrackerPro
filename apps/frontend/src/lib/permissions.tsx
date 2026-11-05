@@ -39,6 +39,11 @@ const DEFAULT_CODE_TO_ID: Record<string, string> = {
   "project-detail": "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
   "employee-detail": "e8f7c125-0e5b-4e3d-98e3-542638fa0b23",
 
+  // Timesheets Tabs
+  "my-timesheet": "d67426d3-0001-4000-8000-000000000001",
+  "timesheet-history": "d67426d3-0001-4000-8000-000000000002",
+  "timesheet-approval": "d67426d3-0001-4000-8000-000000000003",
+
   // Dashboard Widgets
   "total-team-size": "682f26ec-e31d-43a0-82de-e915bab54b59",
   "resource-boarding-details": "9c916f1a-72e0-4d52-bec1-6d684e990c65",
@@ -71,11 +76,17 @@ const DEFAULT_PARENT_MAP: Record<string, string> = {
   "e231d2d4-9ebb-4eb2-af48-fbe3b3b4ab90": "fcb69b3e-e5aa-49bb-921f-7793f0a8c90d",
   "roles-permissions": "settings",
 
-  // My Team submodules
+  // My Team submodules & Timesheets tabs
   "9854b7f3-8e7e-4ecb-864f-f2533ff295f9": "6055ce3c-b466-4354-ba9a-b4c309111e9d",
   "team-dashboard": "my-team",
   "d67426d3-05df-4608-b8cf-c0ecfe698dc3": "6055ce3c-b466-4354-ba9a-b4c309111e9d",
   timesheets: "my-team",
+  "d67426d3-0001-4000-8000-000000000001": "d67426d3-05df-4608-b8cf-c0ecfe698dc3",
+  "my-timesheet": "timesheets",
+  "d67426d3-0001-4000-8000-000000000002": "d67426d3-05df-4608-b8cf-c0ecfe698dc3",
+  "timesheet-history": "timesheets",
+  "d67426d3-0001-4000-8000-000000000003": "d67426d3-05df-4608-b8cf-c0ecfe698dc3",
+  "timesheet-approval": "timesheets",
 
   // Detail pages
   "a7e6b014-9f4a-4d2c-87d2-431527ef9a10": "4e57fd71-b53e-43c0-862e-5698e09c0922",

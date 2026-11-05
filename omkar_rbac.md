@@ -253,19 +253,17 @@ We will use a single, unified permission table: **`auth.tbl_role_permissions`**
   2. `Timesheet History` (`Code = 'timesheet-history'`, `Id = d67426d3-0001-4000-8000-000000000002`, `SortOrder = 20`)
   3. `Timesheet Approval` (`Code = 'timesheet-approval'`, `Id = d67426d3-0001-4000-8000-000000000003`, `SortOrder = 30`)
 
-1. **Hierarchy Rules:**
+1. **Hierarchy & Permission Rules:**
    - Submodule `Timesheets` requires parent `My Team` view access to be viewable in navigation.
-   - Tabs (`My Timesheet`, `Timesheet History`, `Timesheet Approval`) require parent `Timesheets` view access to be viewable.
+   - **Timesheets Submodule and its 3 Tabs have no "Only view" capability (`—` in matrix)**: either `View + Manage` or nothing.
    - Any tab under `Timesheets` can only receive `View + Manage` if parent `Timesheets` has `View + Manage`.
+   - When a tab under `Timesheets` is unchecked (`nothing`), that tab is hidden and inaccessible on the `/my-team/timesheets` screen.
 
-2. **When View is OFF (`CanView = 0` / cleared / no record):**
+2. **When View/Manage is OFF (`CanView = 0, CanManage = 0` / cleared / no record):**
    - Access to timesheets screens (`/my-team/timesheets`) is blocked and redirects to `/access-denied`.
 
-3. **When "Only view" is ON (`CanView = 1, CanManage = 0`):**
-   - User can view timesheet data, history, and approval logs in read-only mode.
-
-4. **When "View + Manage" is ON (`CanView = 1, CanManage = 1`):**
-   - User has full access to log hours, submit timesheet drafts, approve/reject subordinate timesheets.
+3. **When "View + Manage" is ON (`CanView = 1, CanManage = 1`):**
+   - User has full access to the permitted timesheet tabs: log hours, submit timesheet drafts, and approve/reject subordinate timesheets.
 
 ---
 

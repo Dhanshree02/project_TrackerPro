@@ -183,12 +183,12 @@ export function SettingsMastersPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={resetAllToDefaults}
+          onClick={activeTab === "leave-calendar" ? () => window.dispatchEvent(new CustomEvent("tk:reset-holiday-calendar")) : resetAllToDefaults}
           className="mb-1.5 h-7 text-[11px] gap-1.5 text-muted-foreground hover:text-foreground"
-          title="Reset all masters to initial mock datasets"
+          title={activeTab === "leave-calendar" ? "Reset and clear all holidays for the selected year" : "Reset all masters to initial mock datasets"}
         >
           <RotateCcw className="h-3 w-3" />
-          Reset Defaults
+          {activeTab === "leave-calendar" ? "Reset" : "Reset Defaults"}
         </Button>
       </div>
 

@@ -110,6 +110,14 @@ function isViewOnlyRow(row?: AccessRow | null, parent?: AccessRow | null | strin
   return isEmployeeDetailTab || isExitSummary;
 }
 
+function isViewManageOnlyRow(row?: AccessRow | null, parent?: AccessRow | null | string): boolean {
+  if (!row) return false;
+  const pName = typeof parent === "string" ? parent : parent?.name ?? "";
+  const isTimesheetTab = row.kind === "tab" && pName.toLowerCase() === "timesheets";
+  const isTimesheetsSubmodule = row.kind === "submodule" && row.name.toLowerCase() === "timesheets";
+  return isTimesheetTab || isTimesheetsSubmodule;
+}
+
 export function RolesPermissionsPage() {
   const [roles, setRoles] = useState<ApiRole[]>([]);
   const [modules, setModules] = useState<SidebarModule[]>([]);
@@ -167,8 +175,14 @@ export function RolesPermissionsPage() {
         for (const p of perms) {
           const located = locateRow(rows, p.itemId);
           const viewOnly = isViewOnlyRow(located?.row, located?.parent);
-          if (p.canManage === 1 && !viewOnly) map[p.itemId] = "view-manage";
-          else if (p.canView === 1 || p.canManage === 1) map[p.itemId] = "view";
+          const manageOnly = isViewManageOnlyRow(located?.row, located?.parent);
+          if (manageOnly) {
+            if (p.canManage === 1 || p.canView === 1) map[p.itemId] = "view-manage";
+          } else if (p.canManage === 1 && !viewOnly) {
+            map[p.itemId] = "view-manage";
+          } else if (p.canView === 1 || p.canManage === 1) {
+            map[p.itemId] = "view";
+          }
         }
         setAccessByRole((prev) => ({ ...prev, [roleId]: map }));
         setSavedAccessByRole((prev) => ({ ...prev, [roleId]: map }));
@@ -210,13 +224,24 @@ export function RolesPermissionsPage() {
       const current = { ...(prev[roleId] ?? {}) };
       const located = locateRow(rows, moduleId);
       const viewOnly = isViewOnlyRow(located?.row, located?.parent);
+      const manageOnly = isViewManageOnlyRow(located?.row, located?.parent);
       if (viewOnly && access === "view-manage") {
         access = "view";
       }
+      if (manageOnly && access === "view") {
+        access = "view-manage";
+      }
       const parentAccess = located?.parent ? current[located.parent.id] : undefined;
+      const isTimesheetsUnderMyTeam =
+        located?.row.kind === "submodule" &&
+        located.row.name.toLowerCase() === "timesheets" &&
+        located.parent?.name.toLowerCase() === "my team";
+
       if (access !== null && located?.parent) {
         if (!parentAccess) return prev;
-        if (access === "view-manage" && parentAccess !== "view-manage") return prev;
+        if (access === "view-manage" && parentAccess !== "view-manage" && !isTimesheetsUnderMyTeam) {
+          return prev;
+        }
       }
       if (access === null) {
         delete current[moduleId];
@@ -227,7 +252,14 @@ export function RolesPermissionsPage() {
         current[moduleId] = access;
         if (access === "view" && located) {
           for (const id of descendantIds(located.row)) {
-            if (current[id] === "view-manage") current[id] = "view";
+            if (current[id] === "view-manage") {
+              const childLoc = locateRow(rows, id);
+              if (isViewManageOnlyRow(childLoc?.row, childLoc?.parent)) {
+                delete current[id];
+              } else {
+                current[id] = "view";
+              }
+            }
           }
         }
       }
@@ -253,7 +285,8 @@ export function RolesPermissionsPage() {
       const payload: ApiRolePermission[] = Object.entries(current).map(([itemId, access]) => {
         const located = locateRow(rows, itemId);
         const viewOnly = isViewOnlyRow(located?.row, located?.parent);
-        const effectiveAccess = viewOnly && access === "view-manage" ? "view" : access;
+        const manageOnly = isViewManageOnlyRow(located?.row, located?.parent);
+        const effectiveAccess = viewOnly && access === "view-manage" ? "view" : manageOnly ? "view-manage" : access;
         return {
           itemId,
           itemType: located?.row.kind ?? "module",
@@ -401,6 +434,7 @@ function AccessRows({
     const isDashboardModule = row.kind === "module" && row.name.toLowerCase() === "dashboard";
     const isWidget = row.kind === "widget";
     const viewOnly = isViewOnlyRow(row, parentName);
+    const manageOnly = isViewManageOnlyRow(row, parentName);
     const access = viewOnly && selectedAccess[row.id] === "view-manage" ? "view" : selectedAccess[row.id];
     const hasChildren = row.children.length > 0;
     const open = hasChildren && !!openIds[row.id];
@@ -408,15 +442,23 @@ function AccessRows({
     // Core rule: Dashboard, widgets, Employee Detail tabs, and Exit Summary do not support View + Manage
     const viewManageSupported = !isDashboardModule && !isWidget && !viewOnly;
 
+    // View radio button supported: false if manageOnly (Timesheets tabs & Timesheets submodule)
+    const viewSupported = !manageOnly;
+
     // View radio button disabled rules
-    const viewDisabled = !roleId || !!saving || (isChild && !parentAccess);
+    const viewDisabled = !roleId || !!saving || (isChild && !parentAccess) || !viewSupported;
+
+    const isTimesheetsUnderMyTeam =
+      row.kind === "submodule" &&
+      row.name.toLowerCase() === "timesheets" &&
+      parentName.toLowerCase() === "my team";
 
     // Manage radio button disabled rules
     const manageDisabled =
       !roleId ||
       !!saving ||
       !viewManageSupported ||
-      (isChild && parentAccess !== "view-manage");
+      (isChild && parentAccess !== "view-manage" && !isTimesheetsUnderMyTeam);
 
     return (
       <Fragment key={row.id}>
@@ -455,22 +497,26 @@ function AccessRows({
           <td
             className={cn(
               "px-4 py-3 text-center",
-              viewDisabled ? "cursor-not-allowed" : "cursor-pointer",
+              !viewSupported || viewDisabled ? "cursor-not-allowed" : "cursor-pointer",
             )}
             onClick={() => {
-              if (viewDisabled) return;
+              if (!viewSupported || viewDisabled) return;
               if (access === "view") onSetAccess(row.id, null);
               else onSetAccess(row.id, "view");
             }}
           >
-            <AccessRadio
-              checked={access === "view"}
-              disabled={viewDisabled}
-              label={`Only view for ${row.name}`}
-              title={viewDisabled && parentName ? `Give ${parentName} access first` : undefined}
-              onChange={() => onSetAccess(row.id, "view")}
-              onClear={() => onSetAccess(row.id, null)}
-            />
+            {viewSupported ? (
+              <AccessRadio
+                checked={access === "view"}
+                disabled={viewDisabled}
+                label={`Only view for ${row.name}`}
+                title={viewDisabled && parentName ? `Give ${parentName} access first` : undefined}
+                onChange={() => onSetAccess(row.id, "view")}
+                onClear={() => onSetAccess(row.id, null)}
+              />
+            ) : (
+              <span className="text-xs text-muted-foreground/60 select-none">—</span>
+            )}
           </td>
           <td
             className={cn(

@@ -16,7 +16,9 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { Navigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
+import { usePermissions } from "@/lib/permissions";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { TimesheetStatusPill, Avatar } from "@/components/pills";
@@ -42,7 +44,11 @@ import {
 
 export function TimesheetsPage() {
   const { status: authStatus } = useAuth();
+  const { canView } = usePermissions();
   if (authStatus === "loading") return null;
+  if (!canView("timesheets")) {
+    return <Navigate to="/access-denied" />;
+  }
   return (
     <AppShell title="Timesheets" subtitle="My Team · timesheets and approvals">
       <TimesheetTab />
@@ -152,34 +158,66 @@ function thisMonday() {
 }
 
 // ── TimesheetTab ─────────────────────────────────────────────────────────────
+const TIMESHEET_TABS = [
+  { id: "my-timesheet", label: "My Timesheet" as const },
+  { id: "timesheet-history", label: "Timesheet History" as const },
+  { id: "timesheet-approval", label: "Timesheet Approval" as const },
+] as const;
+
+type TimesheetSubTab = (typeof TIMESHEET_TABS)[number]["label"];
+
 function TimesheetTab() {
-  const [subTab, setSubTab] = useState<"My Timesheet" | "Timesheet History" | "Timesheet Approval">("My Timesheet");
+  const { canView, canManage } = usePermissions();
+
+  const visibleTabs = useMemo(() => {
+    return TIMESHEET_TABS.filter((t) => canView(t.id) || canManage(t.id));
+  }, [canView, canManage]);
+
+  const [subTab, setSubTab] = useState<TimesheetSubTab>("My Timesheet");
+
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.label === subTab)) {
+      setSubTab(visibleTabs[0].label);
+    }
+  }, [visibleTabs, subTab]);
+
+  if (visibleTabs.length === 0) {
+    return (
+      <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground shadow-2xs">
+        <p className="text-sm font-semibold text-foreground">No Access to Timesheet Tabs</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          You do not have permission to view or manage any timesheet tabs. Contact your administrator to request access.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-4 flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm w-fit">
-        {(["My Timesheet", "Timesheet History", "Timesheet Approval"] as const).map((st) => (
+        {visibleTabs.map((st) => (
           <button
-            key={st}
+            key={st.id}
             type="button"
-            onClick={() => setSubTab(st)}
+            onClick={() => setSubTab(st.label)}
             className={cn(
               "rounded-md px-3 py-1.5 font-medium",
-              subTab === st
+              subTab === st.label
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {st}
+            {st.label}
           </button>
         ))}
       </div>
-      {subTab === "My Timesheet" ? (
+      {subTab === "My Timesheet" && visibleTabs.some((t) => t.label === "My Timesheet") ? (
         <MyTimesheetView />
-      ) : subTab === "Timesheet History" ? (
+      ) : subTab === "Timesheet History" && visibleTabs.some((t) => t.label === "Timesheet History") ? (
         <TimesheetHistoryView />
-      ) : (
+      ) : subTab === "Timesheet Approval" && visibleTabs.some((t) => t.label === "Timesheet Approval") ? (
         <TimesheetApprovalView />
-      )}
+      ) : null}
     </div>
   );
 }

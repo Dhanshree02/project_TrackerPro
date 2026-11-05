@@ -42,11 +42,21 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
         ValidateRequest(request);
 
         var existing = await db.LeaveCalendarHolidays
-            .FirstOrDefaultAsync(h => h.HolidayDate == request.Date && h.DeletedAtUtc == null, ct);
+            .FirstOrDefaultAsync(h => h.HolidayDate == request.Date, ct);
 
         if (existing is not null)
         {
-            throw new ConflictException($"A holiday named '{existing.Name}' already exists on {request.Date:yyyy-MM-dd}.");
+            if (existing.DeletedAtUtc == null)
+            {
+                throw new ConflictException($"A holiday named '{existing.Name}' already exists on {request.Date:yyyy-MM-dd}.");
+            }
+
+            existing.Name = request.Name.Trim();
+            existing.Year = request.Date.Year;
+            existing.DeletedAtUtc = null;
+            existing.UpdatedAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+            return MapDto(existing);
         }
 
         var holiday = new LeaveCalendarHoliday
@@ -114,6 +124,21 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task ClearYearHolidaysAsync(int year, CancellationToken ct = default)
+    {
+        var holidays = await db.LeaveCalendarHolidays
+            .Where(h => (h.Year == year || h.HolidayDate.Year == year) && h.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        foreach (var h in holidays)
+        {
+            h.DeletedAtUtc = now;
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task<IReadOnlyList<LeaveCalendarHolidayDto>> BulkCreateHolidaysAsync(
         IReadOnlyList<UpsertLeaveCalendarHolidayRequest> requests,
         CancellationToken ct = default)
@@ -125,12 +150,13 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
             ValidateRequest(req);
 
             var existing = await db.LeaveCalendarHolidays
-                .FirstOrDefaultAsync(h => h.HolidayDate == req.Date && h.DeletedAtUtc == null, ct);
+                .FirstOrDefaultAsync(h => h.HolidayDate == req.Date, ct);
 
             if (existing is not null)
             {
                 existing.Name = req.Name.Trim();
                 existing.Year = req.Date.Year;
+                existing.DeletedAtUtc = null;
                 existing.UpdatedAtUtc = DateTime.UtcNow;
                 created.Add(existing);
             }

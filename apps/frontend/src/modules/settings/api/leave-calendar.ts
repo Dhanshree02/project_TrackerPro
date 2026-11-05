@@ -36,9 +36,9 @@ export const DEFAULT_HOLIDAY_PRESETS: Array<Omit<LeaveCalendarHoliday, "id">> = 
 export function getLocalFallbackHolidays(): LeaveCalendarHoliday[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch {
     // ignore
@@ -70,8 +70,15 @@ export async function fetchLeaveCalendarHolidays(year?: number): Promise<LeaveCa
   try {
     const url = year ? `/api/v1/leave-calendar?year=${year}` : "/api/v1/leave-calendar";
     const data = await apiFetch<LeaveCalendarHoliday[]>(url);
-    if (Array.isArray(data) && data.length > 0) {
-      saveLocalHolidays(data);
+    if (Array.isArray(data)) {
+      if (year) {
+        const others = getLocalFallbackHolidays().filter(
+          (h) => h.year !== year && Number(h.date.slice(0, 4)) !== year
+        );
+        saveLocalHolidays([...others, ...data]);
+      } else {
+        saveLocalHolidays(data);
+      }
       return data;
     }
   } catch {
@@ -145,6 +152,20 @@ export async function deleteLeaveCalendarHoliday(id: string): Promise<boolean> {
   }
 
   const current = getLocalFallbackHolidays().filter((h) => h.id !== id);
+  saveLocalHolidays(current);
+  return true;
+}
+
+export async function clearLeaveCalendarYear(year: number): Promise<boolean> {
+  try {
+    await apiFetch(`/api/v1/leave-calendar/year/${year}`, { method: "DELETE" });
+  } catch {
+    // local fallback
+  }
+
+  const current = getLocalFallbackHolidays().filter(
+    (h) => h.year !== year && Number(h.date.slice(0, 4)) !== year
+  );
   saveLocalHolidays(current);
   return true;
 }

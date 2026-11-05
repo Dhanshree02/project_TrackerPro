@@ -64,6 +64,15 @@ public class LeaveCalendarController(ILeaveCalendarService leaveCalendarService)
         return Ok(ApiResponse<Guid>.Ok(id));
     }
 
+    [HttpDelete("year/{year:int}")]
+    public async Task<ActionResult<ApiResponse<int>>> ClearYearHolidays(
+        int year,
+        CancellationToken ct)
+    {
+        await leaveCalendarService.ClearYearHolidaysAsync(year, ct);
+        return Ok(ApiResponse<int>.Ok(year));
+    }
+
     [HttpPost("bulk")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<LeaveCalendarHolidayDto>>>> BulkCreateHolidays(
         [FromBody] IReadOnlyList<UpsertLeaveCalendarHolidayRequest> requests,

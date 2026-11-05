@@ -7,7 +7,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
+  History,
   Calendar as CalendarIcon,
   ListFilter,
   Info,
@@ -16,6 +16,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -36,8 +42,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   bulkCreateLeaveCalendarHolidays,
+  clearLeaveCalendarYear,
   createLeaveCalendarHoliday,
-  DEFAULT_HOLIDAY_PRESETS,
   deleteLeaveCalendarHoliday,
   fetchLeaveCalendarHolidays,
   updateLeaveCalendarHoliday,
@@ -54,6 +60,9 @@ interface LeaveCalendarSectionProps {
 
 export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProps) {
   const currentYear = new Date().getFullYear();
+  // Switching to a year back is only available for the last one (currentYear - 1)
+  const minYear = currentYear - 1;
+
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [holidays, setHolidays] = useState<LeaveCalendarHoliday[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -74,6 +83,10 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
   // Delete dialog state
   const [deletingHoliday, setDeletingHoliday] = useState<LeaveCalendarHoliday | null>(null);
 
+  // Reset year dialog state (triggered from top Masters header "Reset" button)
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState<boolean>(false);
+  const [clearingYear, setClearingYear] = useState<boolean>(false);
+
   const loadHolidays = useCallback(async (year: number) => {
     setLoading(true);
     try {
@@ -90,6 +103,15 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
   useEffect(() => {
     void loadHolidays(selectedYear);
   }, [loadHolidays, selectedYear]);
+
+  // Listen for reset trigger from top Masters header "Reset" button
+  useEffect(() => {
+    const handleResetEvent = () => {
+      setIsResetDialogOpen(true);
+    };
+    window.addEventListener("tk:reset-holiday-calendar", handleResetEvent);
+    return () => window.removeEventListener("tk:reset-holiday-calendar", handleResetEvent);
+  }, []);
 
   // Filtered holidays
   const filteredHolidays = useMemo(() => {
@@ -161,19 +183,57 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
     }
   };
 
-  const handlePrepopulatePresets = async () => {
-    const presetsForYear = DEFAULT_HOLIDAY_PRESETS.map((p) => ({
-      date: `${selectedYear}-${p.date.slice(5)}`,
-      name: p.name,
-    }));
+  const handleClearYear = async () => {
+    try {
+      setClearingYear(true);
+      await clearLeaveCalendarYear(selectedYear);
+      setHolidays([]);
+      onCountChange?.(0);
+      toast.success(`All holidays for ${selectedYear} have been cleared.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clear holidays");
+    } finally {
+      setClearingYear(false);
+      setIsResetDialogOpen(false);
+    }
+  };
 
+  const handleLoadPreviousHolidays = async () => {
+    const prevYear = selectedYear - 1;
     try {
       setLoading(true);
-      await bulkCreateLeaveCalendarHolidays(presetsForYear);
-      toast.success(`Loaded ${presetsForYear.length} sample holidays for ${selectedYear}.`);
+      const prevHolidays = await fetchLeaveCalendarHolidays(prevYear);
+      if (!prevHolidays || prevHolidays.length === 0) {
+        toast.info(`No holidays found in ${prevYear} to load.`);
+        return;
+      }
+
+      const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+
+      const mapped: UpsertLeaveCalendarHolidayPayload[] = prevHolidays.map((h) => {
+        let mmdd = h.date.slice(5);
+        if (mmdd === "02-29" && !isLeap(selectedYear)) {
+          mmdd = "02-28";
+        }
+        return {
+          date: `${selectedYear}-${mmdd}`,
+          name: h.name,
+        };
+      });
+
+      // Deduplicate by date
+      const mapByDate = new Map<string, UpsertLeaveCalendarHolidayPayload>();
+      for (const item of mapped) {
+        mapByDate.set(item.date, item);
+      }
+      const uniquePayload = Array.from(mapByDate.values());
+
+      await bulkCreateLeaveCalendarHolidays(uniquePayload);
+      toast.success(`Loaded ${uniquePayload.length} holidays from ${prevYear} into ${selectedYear}.`);
       await loadHolidays(selectedYear);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load sample holidays");
+      toast.error(err instanceof Error ? err.message : "Failed to load previous year holidays");
+    } finally {
       setLoading(false);
     }
   };
@@ -210,14 +270,15 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Year Switcher */}
+          {/* Year Switcher (restricted to maximum 1 year back: minYear = currentYear - 1) */}
           <div className="flex items-center rounded-lg border border-border bg-card p-0.5 shadow-2xs">
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
-              onClick={() => setSelectedYear((y) => y - 1)}
-              title="Previous Year"
+              className="h-7 w-7 disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={() => setSelectedYear((y) => Math.max(minYear, y - 1))}
+              disabled={selectedYear <= minYear}
+              title={selectedYear <= minYear ? `Cannot navigate earlier than ${minYear}` : "Previous Year"}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -255,16 +316,16 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
             </Button>
           </div>
 
-          {/* Pre-populate Button */}
+          {/* Load Previous Holidays Button */}
           <Button
             variant="outline"
             size="sm"
-            onClick={handlePrepopulatePresets}
+            onClick={handleLoadPreviousHolidays}
             className="h-7 text-xs gap-1.5 border-dashed"
-            title="Auto-load standard holidays for the year"
+            title={`Load holidays from ${selectedYear - 1} into ${selectedYear}`}
           >
-            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            <span>Load Sample Holidays</span>
+            <History className="h-3.5 w-3.5 text-blue-500" />
+            <span>Load Previous Holidays</span>
           </Button>
 
           {/* Add Holiday Button */}
@@ -279,17 +340,44 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
         </div>
       </div>
 
-      {/* ── Metric Summary ───────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
+      {/* ── Metric Summary: Total Holidays with info icon & legend ────── */}
+      <div className="flex items-center justify-between gap-3">
         <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs min-w-[200px]">
-          <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-            Total Holidays
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <span>Total Holidays</span>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-help"
+                    title="Click any holiday to edit. Click any empty date to quickly add a new holiday."
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                    <span className="sr-only">Holiday instructions</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs max-w-xs shadow-md">
+                  Click any holiday to edit. Click any empty date to quickly add a new holiday.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-bold tracking-tight text-foreground">{holidays.length}</span>
             <span className="text-[11px] text-muted-foreground font-medium">days in {selectedYear}</span>
           </div>
         </div>
+
+        {activeView === "calendar" && (
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: HOLIDAY_COLOR }}
+            />
+            <span>Holiday</span>
+          </div>
+        )}
       </div>
 
       {/* ── Search Bar (only shown in table view or available across views) ─ */}
@@ -301,19 +389,19 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
               placeholder="Search holiday by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 pl-8 text-xs bg-background"
+              className="h-8 pl-8 text-xs"
             />
           </div>
         </div>
       )}
 
-      {/* ── Full Year 12-Month Calendar Grid View (Default) ───────────── */}
+      {/* ── Full Year 12-Month Calendar View (Primary / Default) ──────── */}
       {activeView === "calendar" && (
         <FullYearCalendarView
           year={selectedYear}
-          holidays={holidays}
+          holidays={filteredHolidays}
           onAddDate={(dateStr) => handleOpenAddDialog(dateStr)}
-          onEditHoliday={(hol) => handleOpenEditDialog(hol)}
+          onEditHoliday={(holiday) => handleOpenEditDialog(holiday)}
         />
       )}
 
@@ -329,14 +417,14 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
               <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
               <div className="text-sm font-semibold text-foreground">No holidays found</div>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                No holidays registered for {selectedYear} matching your criteria. Click &quot;Add Holiday&quot; or &quot;Load Sample Holidays&quot; to configure holidays.
+                No holidays registered for {selectedYear} matching your criteria. Click &quot;Add Holiday&quot; or &quot;Load Previous Holidays&quot; to configure holidays.
               </p>
               <div className="mt-4 flex justify-center gap-2">
                 <Button size="sm" onClick={() => handleOpenAddDialog()} className="h-7 text-xs">
                   <Plus className="h-3 w-3 mr-1" /> Add Holiday
                 </Button>
-                <Button variant="outline" size="sm" onClick={handlePrepopulatePresets} className="h-7 text-xs">
-                  <Sparkles className="h-3 w-3 mr-1 text-amber-500" /> Load Sample Holidays
+                <Button variant="outline" size="sm" onClick={handleLoadPreviousHolidays} className="h-7 text-xs">
+                  <History className="h-3 w-3 mr-1 text-blue-500" /> Load Previous Holidays
                 </Button>
               </div>
             </div>
@@ -486,6 +574,30 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Reset Year Confirmation Dialog ────────────────────────────── */}
+      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset {selectedYear} Holidays?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear all {holidays.length} holiday{holidays.length === 1 ? "" : "s"} for the year {selectedYear}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={clearingYear} className="h-8 text-xs">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearYear}
+              disabled={clearingYear}
+              className="h-8 text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {clearingYear ? "Clearing..." : "Reset & Clear"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -524,20 +636,6 @@ function FullYearCalendarView({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-border bg-card p-3 shadow-2xs flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Info className="h-4 w-4 text-primary" />
-          <span>Click any holiday to edit. Click any empty date to quickly add a new holiday.</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: HOLIDAY_COLOR }}
-          />
-          <span className="text-[11px] font-medium text-muted-foreground">Holiday</span>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {months.map(({ monthIndex, monthName, daysInMonth, firstDayWeekday }) => {
           const daysArray = Array.from({ length: daysInMonth }, (_, d) => d + 1);

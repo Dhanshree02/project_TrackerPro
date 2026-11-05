@@ -14,6 +14,8 @@ public interface ILeaveCalendarService
 
     Task DeleteHolidayAsync(Guid id, CancellationToken ct = default);
 
+    Task ClearYearHolidaysAsync(int year, CancellationToken ct = default);
+
     Task<IReadOnlyList<LeaveCalendarHolidayDto>> BulkCreateHolidaysAsync(
         IReadOnlyList<UpsertLeaveCalendarHolidayRequest> requests,
         CancellationToken ct = default);

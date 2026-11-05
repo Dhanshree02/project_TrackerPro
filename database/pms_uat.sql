@@ -2,15 +2,14 @@
 -- PostgreSQL database dump
 --
 
-\restrict 387908lckIoN4CrveOjs54kMjnwHmeSlC9ukwXXTEdjIMlXMvvmRS03SyleaN8C
+\restrict 9FourwRC9S5rD4fMp7dYXSRF1vJ05FeWchIy6M5T6LwcLaCBOw1eV92Jbgw0YZL
 
 -- Dumped from database version 16.15
--- Dumped by pg_dump version 18.4
+-- Dumped by pg_dump version 16.15
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -673,6 +672,25 @@ CREATE TABLE master.mst_industries (
 ALTER TABLE master.mst_industries OWNER TO trackerpro;
 
 --
+-- Name: mst_leave_calendar; Type: TABLE; Schema: master; Owner: trackerpro
+--
+
+CREATE TABLE master.mst_leave_calendar (
+    "Id" uuid NOT NULL,
+    "HolidayDate" date NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "Year" integer NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+ALTER TABLE master.mst_leave_calendar OWNER TO trackerpro;
+
+--
 -- Name: mst_modules; Type: TABLE; Schema: master; Owner: trackerpro
 --
 
@@ -1051,20 +1069,6 @@ CREATE TABLE master.mst_work_locations (
 
 
 ALTER TABLE master.mst_work_locations OWNER TO trackerpro;
-
-CREATE TABLE master.mst_leave_calendar (
-    "Id" uuid NOT NULL,
-    "HolidayDate" date NOT NULL,
-    "Name" character varying(200) NOT NULL,
-    "Year" integer NOT NULL,
-    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
-    "UpdatedAtUtc" timestamp with time zone,
-    "CreatedBy" uuid,
-    "UpdatedBy" uuid,
-    "DeletedAtUtc" timestamp with time zone
-);
-
-ALTER TABLE master.mst_leave_calendar OWNER TO trackerpro;
 
 --
 -- Name: log_project_task_assignments; Type: TABLE; Schema: project; Owner: trackerpro
@@ -2014,10 +2018,13 @@ COPY action.tbl_bucket_tasks ("Id", "TaskId", "ProjectId", "ProjectServiceId", "
 b4a24912-80d9-45b7-8827-6ce5e9d61ffe	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b91ca6a8-82ad-4bb8-8397-27b0a1c9938e	5e5ca2f9-5b6e-459c-bd08-3c4d1eec1cde	3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Task 01	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	High	2027-04-14	Completed	2026-10-28	2026-10-28	f	\N	0	0.00	2026-10-28 10:20:56.916276+00	2026-10-28 13:24:24.369785+00	00000000-0000-4000-8000-000000000035	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 c93195ef-2780-429c-98dd-25dd8a539836	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b91ca6a8-82ad-4bb8-8397-27b0a1c9938e	b341b1be-e496-4490-a94c-d90401a8828c	78b71d74-d255-4ac0-a75f-ead11a61427a	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Task 01	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	High	2027-04-14	Completed	2026-10-28	2026-10-28	f	\N	2935	0.82	2026-10-28 07:27:15.958936+00	2026-10-28 13:24:24.369785+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 66ee8496-4cfc-4545-a09e-43c3190c0c3f	d97b4bad-ccd2-42c0-b1ff-e52787ef8f0c	8e260568-b761-4795-ad27-12bddd698d9d	e0494ab5-859c-442b-9998-66e5cfb3ecbe	467636cf-419e-47ce-9443-0e20fd38bad4	cc295432-e771-4d6f-9cc3-079cc5d9b576	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Task 01	Aditya Birla(Aditya Birla_Finance)_Mixed_02	medium	2026-10-23	Completed	2026-10-28	2026-10-28	f	\N	25	0.01	2026-10-28 06:50:38.56294+00	2026-10-28 06:53:58.357257+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N
-b6223464-1bae-4e35-9a16-cb6485d5db2d	76163f06-d217-45a1-a127-30f59b86d5a1	8e260568-b761-4795-ad27-12bddd698d9d	1a7796a3-3296-4f53-a764-d1092171eb9d	efc8ff42-50eb-4e68-9cbd-26746f236d0f	ffcdc44f-996b-4ef6-90e6-db858823a4c4	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Task 01	Aditya Birla(Aditya Birla_Finance)_Mixed_02	medium	2026-10-20	Ongoing	2026-10-14	2026-10-21	f	\N	0	0.00	2026-10-28 07:06:54.129677+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 9e315a45-f4f3-402d-a788-dade804db82a	3757f288-0451-44bc-b54c-e29a3a758d69	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b91ca6a8-82ad-4bb8-8397-27b0a1c9938e	e3ffdda6-7663-4d89-83b3-b6596a0089b6	b9c0b8fc-4c96-42fb-8669-d68097cf5392	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Task 01	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Medium	2027-04-14	Paused	2026-10-28	\N	f	\N	26	0.01	2026-10-28 06:50:38.56294+00	2026-10-28 13:38:56.076553+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N
 16c45dc5-781f-424c-a266-24bc86cf1a72	315f66e7-e091-4451-bee9-5209ffc9632e	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	2c52fb57-ae77-4b44-96c1-0fa2edc223e4	6a1ac61a-89d6-4951-8246-621d4e1b071f	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Testing	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Critical	2026-11-06	On Hold	2026-11-03	\N	f	\N	73	0.02	2026-11-03 17:08:12.617579+00	2026-11-03 17:10:22.868562+00	6a1ac61a-89d6-4951-8246-621d4e1b071f	049ac489-bbd3-4153-b933-aec7b7baec89	\N
-4b6bfd27-bf00-450b-a244-b042f620e81f	b2f0840e-dc0d-45a6-932f-5f892ab2cd9a	96427433-d1b9-4089-bcee-e95f02d3154d	32c68ca2-cb1b-43e9-96a9-d34dd2c89bfb	1fc85a63-900c-441f-8211-394fd5031982	78b71d74-d255-4ac0-a75f-ead11a61427a	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Task 01	Aditya Birla(Aditya Birla_Finance)_Mixed_02	medium	2026-10-30	Stopped	2026-10-28	\N	f	\N	55894	15.53	2026-10-28 07:06:54.129677+00	2026-11-04 09:18:04.534515+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+3bb0299c-98f2-4cf3-ae00-6ea27cbef3b7	c83bc679-4c68-4242-8069-4b7f67078dec	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	2356c5f0-91ca-422c-90c9-23b53ce14183	42583b6b-008c-45f6-b258-b08495712c7c	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Testing 5	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	High	2026-11-06	Completed	2026-11-05	2026-11-05	f	\N	76	0.02	2026-11-05 05:56:49.680864+00	2026-11-05 06:00:59.109166+00	00000000-0000-4000-8000-000000000026	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+b6223464-1bae-4e35-9a16-cb6485d5db2d	76163f06-d217-45a1-a127-30f59b86d5a1	8e260568-b761-4795-ad27-12bddd698d9d	1a7796a3-3296-4f53-a764-d1092171eb9d	efc8ff42-50eb-4e68-9cbd-26746f236d0f	ffcdc44f-996b-4ef6-90e6-db858823a4c4	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	ASI	Aditya Birla(Aditya Birla_Finance)_Mixed_02	medium	2026-10-20	Ongoing	2026-10-14	2026-10-21	f	\N	0	0.00	2026-10-28 07:06:54.129677+00	2026-11-05 09:15:48.154887+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	ffcdc44f-996b-4ef6-90e6-db858823a4c4	\N
+caf80acd-baf0-4677-b949-e9d01c489d05	2ada186c-5cb4-4ada-b394-80af06a43c45	96427433-d1b9-4089-bcee-e95f02d3154d	a9a1d0f2-a9f7-490a-91cf-03353ea5c121	27b5ed0c-ce9b-4599-bb70-287d4a767b74	78b71d74-d255-4ac0-a75f-ead11a61427a	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Sp	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Medium	2026-11-06	Stopped	2026-11-05	\N	f	\N	7	0.00	2026-11-05 09:20:21.331435+00	2026-11-05 09:20:47.202661+00	78b71d74-d255-4ac0-a75f-ead11a61427a	78b71d74-d255-4ac0-a75f-ead11a61427a	\N
+8096a11a-7453-4d3a-bbb3-b8e5a5cfa938	10a63367-152d-4dfe-959f-3034d54724a4	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	55705bea-79f8-4272-9e4a-fdc67522f486	9f646393-8fea-4b38-9f35-d88a6ab6787e	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Testing 2	test cust(sub test cust)_Network Vulnerability Assessment_01	Medium	2027-04-29	Not Started	\N	\N	f	\N	0	0.00	2026-11-05 09:39:40.791227+00	\N	9f646393-8fea-4b38-9f35-d88a6ab6787e	\N	\N
+4b6bfd27-bf00-450b-a244-b042f620e81f	b2f0840e-dc0d-45a6-932f-5f892ab2cd9a	96427433-d1b9-4089-bcee-e95f02d3154d	32c68ca2-cb1b-43e9-96a9-d34dd2c89bfb	1fc85a63-900c-441f-8211-394fd5031982	78b71d74-d255-4ac0-a75f-ead11a61427a	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Task 01	Aditya Birla(Aditya Birla_Finance)_Mixed_02	medium	2026-10-30	Stopped	2026-10-28	\N	f	\N	55908	15.53	2026-10-28 07:06:54.129677+00	2026-11-05 09:52:36.004071+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 \.
 
 
@@ -2066,8 +2073,6 @@ fd1f130b-2c68-492c-8743-55b147421a05	bfb55863-c987-497b-9a1b-9a7bc56a9509	964274
 f59d046a-347e-4df4-8901-8df2a5f4ad50	bfb55863-c987-497b-9a1b-9a7bc56a9509	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Appreciation: You received a Star Performer badge from Admin User!	Appreciation Received	Low	Acknowledged	f	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Outstanding leadership and testing delivery!	\N	Nidhi Bose	2026-11-04	14:07:53	[{"action":"Appreciation received: Star Performer from Admin User \\u2014 \\u0022Outstanding leadership and testing delivery!\\u0022","date":"2026-11-04","time":"14:02:32","by":"Admin User"},{"action":"Notification marked as read","date":"2026-11-04","time":"14:07:41","by":"System"},{"action":"Notification acknowledged - Remarks: \\u0022Thank you\\u0022","date":"2026-11-04","time":"14:07:53","by":"Nidhi Bose"}]	2026-11-04 14:02:32.220544+00	2026-11-04 14:07:53.418719+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	bfb55863-c987-497b-9a1b-9a7bc56a9509	\N
 87c87449-20aa-4a34-bc4e-fe372979aef7	3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	89744e80-08e3-4f7c-a4ba-78ff0ce54634	P001	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Customer Interview Result: Selected — Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Customer Interview Selected	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Excellent performance during technical round.	\N	\N	\N	\N	[{"action":"Interview result changed from \\u0027Pending\\u0027 to \\u0027Selected\\u0027 by Admin User \\u2014 Remarks: \\u0022Excellent performance during technical round.\\u0022","date":"2026-11-04","time":"14:19:43","by":"Admin User"}]	2026-11-04 14:19:43.105939+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 b82b7d46-35a0-4d94-bd8a-8aec388f7d6c	0a46bda6-6481-4bbe-8689-18fe959fa98a	89744e80-08e3-4f7c-a4ba-78ff0ce54634	P001	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Customer Interview Selected: Harsh Gupta — Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Customer Interview Selected	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Excellent performance during technical round.	\N	\N	\N	\N	[{"action":"Interview result changed from \\u0027Pending\\u0027 to \\u0027Selected\\u0027 by Admin User \\u2014 Remarks: \\u0022Excellent performance during technical round.\\u0022","date":"2026-11-04","time":"14:19:43","by":"Admin User"}]	2026-11-04 14:19:43.105939+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
-cfa8d26a-273f-4306-85d3-c2b8293ccb7c	42583b6b-008c-45f6-b258-b08495712c7c	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Customer Interview Result: Selected — Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Customer Interview Selected	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	You are selected	\N	\N	\N	\N	[{"action":"Interview result changed from \\u0027Pending\\u0027 to \\u0027Selected\\u0027 by Admin User \\u2014 Remarks: \\u0022You are selected\\u0022","date":"2026-11-04","time":"14:22:37","by":"Admin User"}]	2026-11-04 14:22:37.11373+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
-19e1604e-2a30-46cd-8399-646336eef74b	049ac489-bbd3-4153-b933-aec7b7baec89	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Customer Interview Selected: Harsh Wardhan — Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Customer Interview Selected	Medium	Pending	f	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	You are selected	\N	\N	\N	\N	[{"action":"Interview result changed from \\u0027Pending\\u0027 to \\u0027Selected\\u0027 by Admin User \\u2014 Remarks: \\u0022You are selected\\u0022","date":"2026-11-04","time":"14:22:37","by":"Admin User"},{"action":"Notification marked as read","date":"2026-11-04","time":"14:24:00","by":"System"}]	2026-11-04 14:22:37.11373+00	2026-11-04 14:24:00.546911+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 1ac0218e-d890-439a-ba07-630f3344c7eb	ffcdc44f-996b-4ef6-90e6-db858823a4c4	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Customer Requirement: Automated Penetration Testing Additional Requirement — Aditya Birla(Aditya Birla_Finance)_Mixed_02	Additional Customer Requirement	High	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261104-72A5	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-04T14:51:35.9191360Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-04 14:51:35.919489+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 60335493-5801-43de-91b9-536c6d136572	bfb55863-c987-497b-9a1b-9a7bc56a9509	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Customer Requirement: Automated Penetration Testing Additional Requirement — Aditya Birla(Aditya Birla_Finance)_Mixed_02	Additional Customer Requirement	High	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261104-72A5	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-04T14:51:35.9193616Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-04 14:51:35.919489+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 94239406-6ce4-40d3-ab4b-de801cb58a45	776f2cf7-c4cc-4299-b38f-afbcaff7703e	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Customer Requirement: Automated Penetration Testing Additional Requirement — Aditya Birla(Aditya Birla_Finance)_Mixed_02	Additional Customer Requirement	High	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261104-72A5	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-04T14:51:35.8791341Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-04 14:51:35.919489+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
@@ -2091,6 +2096,7 @@ acf09208-a280-4967-be84-4cf5830b21b4	bfb55863-c987-497b-9a1b-9a7bc56a9509	964274
 b086d995-cbbc-4e27-8271-ed5dcdd80fd7	be9f417e-d40a-4c66-91e6-e7fde84b46d5	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Timeline Extension Approved: Aditya Birla(Aditya Birla_Finance)_Mixed_02 extended to 09-May-2027	Timeline Extension	High	Approved	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	7ad79137-9593-4731-945f-4a996ca950e9	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-04T15:26:39.3177039Z","updatedBy":"Admin User","details":"Timeline extension approved to 09-May-2027. Comment: Extension approved following executive review."}]	2026-11-04 15:26:39.317818+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 bd26bef9-9023-4503-b1ac-ff048b268ef5	ffcdc44f-996b-4ef6-90e6-db858823a4c4	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Timeline Extension Approved: Aditya Birla(Aditya Birla_Finance)_Mixed_02 extended to 09-May-2027	Timeline Extension	High	Approved	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	7ad79137-9593-4731-945f-4a996ca950e9	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-04T15:26:39.3173523Z","updatedBy":"Admin User","details":"Timeline extension approved to 09-May-2027. Comment: Extension approved following executive review."}]	2026-11-04 15:26:39.317818+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 d5ee1061-1537-4d74-95c2-744fe14a3f8f	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Timeline Extension Approved: Aditya Birla(Aditya Birla_Finance)_Mixed_02 extended to 09-May-2027	Timeline Extension	High	Approved	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	7ad79137-9593-4731-945f-4a996ca950e9	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-04T15:26:39.3177591Z","updatedBy":"Admin User","details":"Timeline extension approved to 09-May-2027. Comment: Extension approved following executive review."}]	2026-11-04 15:26:39.317818+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+dff6b191-462c-46e0-a79a-622ee6948ec7	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	\N	\N	\N	Customer Onboarded: Test Enterprise 1793863649	Customer Onboarded	Low	Pending	t	\N	admin	C006	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.4838338Z","details":"Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.484046+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 809ee79d-c5f8-4a5f-8565-e28e54224863	be9f417e-d40a-4c66-91e6-e7fde84b46d5	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Timeline Extension Approval Request: Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06 (Requested: 04-May-2027)	Timeline Extension Approval	High	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	e817a468-bd76-42d3-b149-cc77ffd296fe	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-04T15:31:59.4594159Z","updatedBy":"Admin User","details":"Requested timeline extension of 4 days to 04-May-2027. Reason: Project testing delay"}]	2026-11-04 15:31:59.459536+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 006f36d7-1b58-4642-89b0-21a6ea54c514	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Timeline Extension Approved: Aditya Birla(Aditya Birla_Finance)_Mixed_02 extended to 20-Apr-2027	Timeline Extension	High	Approved	t	be9f417e-d40a-4c66-91e6-e7fde84b46d5	Krishna Pandey	f790b06c-6959-49fe-90a1-47b1b70e05d3	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-04T16:37:08.3797636Z","updatedBy":"Krishna Pandey","details":"Timeline extension approved to 20-Apr-2027. Comment: Approved by Krishna Pandey via test"}]	2026-11-04 16:37:08.379807+00	\N	ee03982b-f816-a4c3-59b1-167e9b8e9067	\N	\N
 17bdfa3c-0908-4332-bfae-c3925581b3bb	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Timeline Extension Approved: Aditya Birla(Aditya Birla_Finance)_Mixed_02 extended to 20-Apr-2027	Timeline Extension	High	Approved	t	be9f417e-d40a-4c66-91e6-e7fde84b46d5	Krishna Pandey	f790b06c-6959-49fe-90a1-47b1b70e05d3	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-04T16:37:08.3795642Z","updatedBy":"Krishna Pandey","details":"Timeline extension approved to 20-Apr-2027. Comment: Approved by Krishna Pandey via test"}]	2026-11-04 16:37:08.379807+00	\N	ee03982b-f816-a4c3-59b1-167e9b8e9067	\N	\N
@@ -2101,6 +2107,81 @@ d5ee1061-1537-4d74-95c2-744fe14a3f8f	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	964274
 6e4f2666-ebef-46fd-a825-c629890f29ee	696f99d7-2380-443c-b90d-0e065642e1d4	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Timeline Extension Approved: Aditya Birla(Aditya Birla_Finance)_Mixed_02 extended to 20-Apr-2027	Timeline Extension	High	Approved	t	be9f417e-d40a-4c66-91e6-e7fde84b46d5	Krishna Pandey	f790b06c-6959-49fe-90a1-47b1b70e05d3	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-04T16:37:08.3796501Z","updatedBy":"Krishna Pandey","details":"Timeline extension approved to 20-Apr-2027. Comment: Approved by Krishna Pandey via test"}]	2026-11-04 16:37:08.379807+00	\N	ee03982b-f816-a4c3-59b1-167e9b8e9067	\N	\N
 97bdecb5-03f9-4f35-87af-3b91cf947f5e	be9f417e-d40a-4c66-91e6-e7fde84b46d5	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Timeline Extension Approved: Aditya Birla(Aditya Birla_Finance)_Mixed_02 extended to 20-Apr-2027	Timeline Extension	High	Approved	t	be9f417e-d40a-4c66-91e6-e7fde84b46d5	Krishna Pandey	f790b06c-6959-49fe-90a1-47b1b70e05d3	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-04T16:37:08.3797273Z","updatedBy":"Krishna Pandey","details":"Timeline extension approved to 20-Apr-2027. Comment: Approved by Krishna Pandey via test"}]	2026-11-04 16:37:08.379807+00	\N	ee03982b-f816-a4c3-59b1-167e9b8e9067	\N	\N
 c86260ad-17e4-44c4-a614-ccaac0230e7c	8e0616db-48af-4b73-807f-6e250dba2072	96427433-d1b9-4089-bcee-e95f02d3154d	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Timeline Extension Approved: Aditya Birla(Aditya Birla_Finance)_Mixed_02 extended to 20-Apr-2027	Timeline Extension	High	Approved	t	be9f417e-d40a-4c66-91e6-e7fde84b46d5	Krishna Pandey	f790b06c-6959-49fe-90a1-47b1b70e05d3	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-04T16:37:08.3796923Z","updatedBy":"Krishna Pandey","details":"Timeline extension approved to 20-Apr-2027. Comment: Approved by Krishna Pandey via test"}]	2026-11-04 16:37:08.379807+00	\N	ee03982b-f816-a4c3-59b1-167e9b8e9067	\N	\N
+cfa8d26a-273f-4306-85d3-c2b8293ccb7c	42583b6b-008c-45f6-b258-b08495712c7c	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Customer Interview Result: Selected — Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Customer Interview Selected	Medium	Pending	f	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	You are selected	\N	\N	\N	\N	[{"action":"Interview result changed from \\u0027Pending\\u0027 to \\u0027Selected\\u0027 by Admin User \\u2014 Remarks: \\u0022You are selected\\u0022","date":"2026-11-04","time":"14:22:37","by":"Admin User"},{"action":"Notification marked as read","date":"2026-11-05","time":"07:00:41","by":"System"}]	2026-11-04 14:22:37.11373+00	2026-11-05 07:00:41.105361+00	049ac489-bbd3-4153-b933-aec7b7baec89	42583b6b-008c-45f6-b258-b08495712c7c	\N
+22a595b4-eba5-4d0c-bc0b-650c7a94bef3	d17be428-1602-4e09-a164-c3c2666fad73	\N	\N	\N	Customer Onboarded: Test Enterprise 1793863649	Customer Onboarded	Low	Pending	t	\N	admin	C006	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.4387658Z","details":"Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.484046+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+34a1870a-535a-4c8a-8937-42f5fdfeafca	218f30c7-87bd-4410-99fc-4d10da3e8014	\N	\N	\N	Customer Onboarded: Test Enterprise 1793863649	Customer Onboarded	Low	Pending	t	\N	admin	C006	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.4834744Z","details":"Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.484046+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+58a1fe26-f5b4-45e1-9a37-716884d7db9d	eba0b052-26bb-4216-ab6e-dff23c63bc57	\N	\N	\N	Customer Onboarded: Test Enterprise 1793863649	Customer Onboarded	Low	Pending	t	\N	admin	C006	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.4839375Z","details":"Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.484046+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+8334b523-afa7-4cd0-9ad2-b3e664e5265e	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	\N	\N	Customer Onboarded: Test Enterprise 1793863649	Customer Onboarded	Low	Pending	t	\N	admin	C006	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.4838890Z","details":"Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.484046+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+9f927e58-96c1-40cc-a06a-26eafbea3a57	818ae1ea-5842-4adb-b475-ac12dba9fd2a	\N	\N	\N	Customer Onboarded: Test Enterprise 1793863649	Customer Onboarded	Low	Pending	t	\N	admin	C006	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.4837780Z","details":"Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.484046+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+febda6d0-5c9d-4b95-8709-e87715ab9432	f01f614a-af85-4225-a3b4-3c463fb97bdf	\N	\N	\N	Customer Onboarded: Test Enterprise 1793863649	Customer Onboarded	Low	Pending	t	\N	admin	C006	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.4839833Z","details":"Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.484046+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+0ae99478-151c-4d7c-873d-050da421a5f9	218f30c7-87bd-4410-99fc-4d10da3e8014	\N	\N	\N	Sub-Venture Onboarded: Test SubVenture 1793863649 (Test Enterprise 1793863649)	Sub-Venture Onboarded	Low	Pending	t	\N	admin	C006-01	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.9115514Z","details":"Sub-Venture \\u0027Test SubVenture 1793863649\\u0027 under Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.911999+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+8679b037-b0fc-4ef8-aabf-eeeb6e21816f	818ae1ea-5842-4adb-b475-ac12dba9fd2a	\N	\N	\N	Sub-Venture Onboarded: Test SubVenture 1793863649 (Test Enterprise 1793863649)	Sub-Venture Onboarded	Low	Pending	t	\N	admin	C006-01	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.9116334Z","details":"Sub-Venture \\u0027Test SubVenture 1793863649\\u0027 under Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.911999+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+96972099-60cd-41ad-bfa9-0f167844d649	eba0b052-26bb-4216-ab6e-dff23c63bc57	\N	\N	\N	Sub-Venture Onboarded: Test SubVenture 1793863649 (Test Enterprise 1793863649)	Sub-Venture Onboarded	Low	Pending	t	\N	admin	C006-01	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.9118447Z","details":"Sub-Venture \\u0027Test SubVenture 1793863649\\u0027 under Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.911999+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+b4c8f292-c381-49a7-815d-ce2f60a4db92	d17be428-1602-4e09-a164-c3c2666fad73	\N	\N	\N	Sub-Venture Onboarded: Test SubVenture 1793863649 (Test Enterprise 1793863649)	Sub-Venture Onboarded	Low	Pending	t	\N	admin	C006-01	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.9113132Z","details":"Sub-Venture \\u0027Test SubVenture 1793863649\\u0027 under Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.911999+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+da56bda4-9fb7-4df2-8d92-fbbb820a5e0a	f01f614a-af85-4225-a3b4-3c463fb97bdf	\N	\N	\N	Sub-Venture Onboarded: Test SubVenture 1793863649 (Test Enterprise 1793863649)	Sub-Venture Onboarded	Low	Pending	t	\N	admin	C006-01	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.9119131Z","details":"Sub-Venture \\u0027Test SubVenture 1793863649\\u0027 under Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.911999+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+dfe0456d-d38d-498d-a51f-33f30bb871c3	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	\N	\N	Sub-Venture Onboarded: Test SubVenture 1793863649 (Test Enterprise 1793863649)	Sub-Venture Onboarded	Low	Pending	t	\N	admin	C006-01	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.9117746Z","details":"Sub-Venture \\u0027Test SubVenture 1793863649\\u0027 under Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.911999+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+ea212ec1-6a28-40c5-90bc-d6ec46d6861b	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	\N	\N	\N	Sub-Venture Onboarded: Test SubVenture 1793863649 (Test Enterprise 1793863649)	Sub-Venture Onboarded	Low	Pending	t	\N	admin	C006-01	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:27:31.9117057Z","details":"Sub-Venture \\u0027Test SubVenture 1793863649\\u0027 under Customer \\u0027Test Enterprise 1793863649\\u0027 has been successfully onboarded."}]	2026-11-05 07:27:31.911999+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+06924e7b-8353-4e89-8e31-e64e3308fa78	218f30c7-87bd-4410-99fc-4d10da3e8014	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8401430Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+2a5a20ed-05c1-4fe2-b013-dd24bf0a4a37	eba0b052-26bb-4216-ab6e-dff23c63bc57	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8403956Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+393c5090-c186-4d1a-b49f-dfa35b81e314	696f99d7-2380-443c-b90d-0e065642e1d4	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8402544Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+498c7176-2c44-4336-bf22-02705eaadcc6	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8404175Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+5b236b4c-f56e-4cfa-a4b5-86512b072cf4	818ae1ea-5842-4adb-b475-ac12dba9fd2a	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8402795Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+627d4911-fe01-4ea4-aecf-1e58343b77df	2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8387185Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+a0bc6202-4526-4beb-8b97-276a7f5a76d9	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8403489Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+c94562e5-bf45-41b9-9449-a647ba543468	033446c7-c133-4395-bdaa-69b5f227a7a8	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8403733Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+d065e60e-24df-4ba6-9ef6-9dc93ce647a8	be9f417e-d40a-4c66-91e6-e7fde84b46d5	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8403270Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+f58827b8-57e5-4e85-81ee-101ab8c4affc	8e0616db-48af-4b73-807f-6e250dba2072	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Pending	t	\N	admin	IN-2026-27-C001-P009	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T07:28:31.8403049Z","details":"Work Breakdown Structure for project \\u0027Sample Project Name\\u0027 has been created."}]	2026-11-05 07:28:31.840472+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+17a39952-9ff3-4e9d-bc13-4ea4bfd6736e	9f646393-8fea-4b38-9f35-d88a6ab6787e	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	WBS Created: Sample Project Name	WBS Created	Low	Acknowledged	f	\N	admin	IN-2026-27-C001-P009	\N	Aarav Rao	2026-11-05	09:43:09	[{"action":"","date":"","time":"","by":""},{"action":"Notification marked as read","date":"2026-11-05","time":"09:42:56","by":"System"},{"action":"Notification acknowledged - Remarks: \\u0022sadsdassad\\u0022","date":"2026-11-05","time":"09:43:09","by":"Aarav Rao"}]	2026-11-05 07:28:31.840472+00	2026-11-05 09:43:09.567198+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	9f646393-8fea-4b38-9f35-d88a6ab6787e	\N
+19e1604e-2a30-46cd-8399-646336eef74b	049ac489-bbd3-4153-b933-aec7b7baec89	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Customer Interview Selected: Harsh Wardhan — Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Customer Interview Selected	Medium	Acknowledged	f	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	You are selected	\N	Admin User	2026-11-05	10:10:39	[{"action":"Interview result changed from \\u0027Pending\\u0027 to \\u0027Selected\\u0027 by Admin User \\u2014 Remarks: \\u0022You are selected\\u0022","date":"2026-11-04","time":"14:22:37","by":"Admin User"},{"action":"Notification marked as read","date":"2026-11-04","time":"14:24:00","by":"System"},{"action":"Notification acknowledged - Remarks: \\u0022rr\\u0022","date":"2026-11-05","time":"10:10:39","by":"Admin User"}]	2026-11-04 14:22:37.11373+00	2026-11-05 10:10:39.741401+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+24f3a330-8d3b-4e4a-8319-9703827e7676	df8f375a-d0b0-40c0-8ada-264fc2275f4f	\N	\N	\N	Resource Onboarded: Asmon Shroff (TK-9898)	Resource Onboarded	High	Pending	t	\N	admin	TK-9898	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T10:37:41.0243528Z","details":"Resource \\u0027Asmon Shroff\\u0027 (TK-9898) was successfully onboarded."}]	2026-11-05 10:37:41.083785+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+41dab114-6926-4f85-b800-6bfc7979d174	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	\N	\N	Resource Onboarded: Asmon Shroff (TK-9898)	Resource Onboarded	High	Pending	t	\N	admin	TK-9898	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T10:37:41.0837231Z","details":"Resource \\u0027Asmon Shroff\\u0027 (TK-9898) was successfully onboarded."}]	2026-11-05 10:37:41.083785+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+4cbd63a5-f0b9-4b5e-82b5-99e2e2afb815	be9f417e-d40a-4c66-91e6-e7fde84b46d5	\N	\N	\N	Resource Onboarded: Asmon Shroff (TK-9898)	Resource Onboarded	High	Pending	t	\N	admin	TK-9898	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T10:37:41.0833575Z","details":"Resource \\u0027Asmon Shroff\\u0027 (TK-9898) was successfully onboarded."}]	2026-11-05 10:37:41.083785+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+54f79253-e673-4226-8a1d-f45cbc856bab	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Critical	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-10F9	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:05:17.9352679Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 11:05:17.935306+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+76a64ea5-0908-49ba-827b-0c1b9468f2ae	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Critical	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-10F9	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:05:17.9352889Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 11:05:17.935306+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+e573cac1-7f99-4068-ab5a-7b1648b3f137	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Critical	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-10F9	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:05:17.9343236Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 11:05:17.935306+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+f247462a-8a8e-4ae1-83ee-e779f0ecad18	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Critical	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-10F9	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:05:17.9351900Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 11:05:17.935306+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+4475033f-dcc6-47f3-a697-73e0ec48f49a	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Critical	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-10F9	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T11:06:29.3805445Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk done"}]	2026-11-05 11:06:29.380612+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+592b1629-5337-4826-aae1-a0dc7a70d001	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Critical	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-10F9	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T11:06:29.3805675Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk done"}]	2026-11-05 11:06:29.380612+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+f1c5a891-b13b-498a-a750-2f983d850154	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Critical	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-10F9	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T11:06:29.3802688Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk done"}]	2026-11-05 11:06:29.380612+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+76db6e69-48bf-4737-ad77-ec01d7f92f96	d6ea9f00-bf1b-4aa0-815f-89fe43b1c249	\N	\N	\N	Resource Onboarded: Sahil Lad (TK-9896)	Resource Onboarded	High	Pending	t	\N	admin	TK-9896	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:15:01.9357878Z","details":"Resource \\u0027Sahil Lad\\u0027 (TK-9896) was successfully onboarded."}]	2026-11-05 11:15:01.937326+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+9d37e9e4-cf2c-4f19-b9cc-01d6e9db3ae2	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	\N	\N	Resource Onboarded: Sahil Lad (TK-9896)	Resource Onboarded	High	Pending	t	\N	admin	TK-9896	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:15:01.9372656Z","details":"Resource \\u0027Sahil Lad\\u0027 (TK-9896) was successfully onboarded."}]	2026-11-05 11:15:01.937326+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+c383403f-4180-4526-926a-fd9acde534e4	be9f417e-d40a-4c66-91e6-e7fde84b46d5	\N	\N	\N	Resource Onboarded: Sahil Lad (TK-9896)	Resource Onboarded	High	Pending	t	\N	admin	TK-9896	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:15:01.9370543Z","details":"Resource \\u0027Sahil Lad\\u0027 (TK-9896) was successfully onboarded."}]	2026-11-05 11:15:01.937326+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+4ee06113-c3e4-4be5-b3e6-3cd3a7b61dc2	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-A368	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:59:52.1908471Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 11:59:52.191277+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+7714b70f-bd42-4e20-8fc2-e98310c69ce0	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-A368	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:59:52.1506195Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 11:59:52.191277+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+d32f322c-97f3-41ae-b77d-c4d8276b48bd	dd200677-337b-440b-afcb-3a661406f98b	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-A368	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T11:59:52.1912148Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 11:59:52.191277+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+15d6348a-52c8-453f-9dd5-fd3c51c5609b	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-AD03	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:00:01.2803945Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:00:01.280841+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+18398ec8-c14c-49b2-8f53-1883790e08e3	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-AD03	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:00:01.2807132Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:00:01.280841+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+3c920e43-a1d4-4116-a1d9-cb7178822851	dd200677-337b-440b-afcb-3a661406f98b	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-AD03	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:00:01.2807859Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:00:01.280841+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+2e7a0ba2-81d6-429f-a8df-cffb37017703	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-2AAD	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:04:38.3069381Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:04:38.343741+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+daede99b-157c-4178-98ae-fdb30b67457b	dd200677-337b-440b-afcb-3a661406f98b	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-2AAD	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:04:38.3436655Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:04:38.343741+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+e0ff01fc-f701-4896-b4f3-51bd665343ef	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Customer Requirement: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-2AAD	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:04:38.3434239Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:04:38.343741+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+440a3fbd-0776-4272-a02d-95401d47bebb	dd200677-337b-440b-afcb-3a661406f98b	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Requirement Approved: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Approved	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-2AAD	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T12:04:39.1046042Z","updatedBy":"Admin User","details":"Approved by Admin User. Comment: Looks good, approved!"}]	2026-11-05 12:04:39.104683+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+db45490b-452a-4112-a2f6-bc4999333dd3	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	7d687a61-de2b-4b09-b967-9955ff49bfed	P009	Sample Project Name	Requirement Approved: E2E Test Requirement — Sample Project Name	Additional Customer Requirement	Medium	Approved	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-2AAD	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T12:04:39.1043787Z","updatedBy":"Admin User","details":"Approved by Admin User. Comment: Looks good, approved!"}]	2026-11-05 12:04:39.104683+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
+1895fb6c-4fb5-4c43-b332-24e253d57887	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Scope Cancellation: Internal Network Penetration Testing — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Low	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-9D04	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:20:10.8729092Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:20:10.872932+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+8df9ae7a-4914-44d7-a2fe-c0e018dc04ad	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Scope Cancellation: Internal Network Penetration Testing — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Low	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-9D04	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:20:10.8728559Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:20:10.872932+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+9ebca842-47e4-47bf-8c3c-fe02358d4b16	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Scope Cancellation: Internal Network Penetration Testing — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Low	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-9D04	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:20:10.8728864Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:20:10.872932+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+c6af1940-fe06-4916-bccd-239551fd8831	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Scope Cancellation: Internal Network Penetration Testing — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Low	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-9D04	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T12:20:10.8725753Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 12:20:10.872932+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1a33620a-a6b4-4267-aeb8-c09a17f34edc	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Scope Cancellation: Internal Network Penetration Testing — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Low	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-9D04	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T12:24:13.2475518Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk i will aproved it"}]	2026-11-05 12:24:13.247957+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+5c01a363-9bc4-49fc-9420-caee1c890c9b	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Scope Cancellation: Internal Network Penetration Testing — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Low	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-9D04	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T12:24:13.2478929Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk i will aproved it"}]	2026-11-05 12:24:13.247957+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+e215caac-e3e4-4ae4-a2b5-b261643faaef	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Scope Cancellation: Internal Network Penetration Testing — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Low	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-9D04	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T12:24:13.2479293Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk i will aproved it"}]	2026-11-05 12:24:13.247957+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+46f545c7-84c5-4e3c-9d38-ff2e25c84b62	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T13:20:58.3125824Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 13:20:58.312609+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+5e433fbb-babf-4c0a-ba4b-07621d59a0c2	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T13:20:58.3125423Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 13:20:58.312609+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+a3176535-66b7-4b4a-b479-a2480a38bf89	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T13:20:58.3125625Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 13:20:58.312609+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+aac5eb67-2c91-48ca-bd79-1bc024a7596e	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T13:20:58.3123709Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 13:20:58.312609+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+500d492b-d323-4bee-8133-4783d88ce005	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Put on Hold: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Hold	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Hold","at":"2026-11-05T13:21:59.9701838Z","updatedBy":"Reyansh Sawant","details":"Hold by Reyansh Sawant. Comment: Hello Whats the main issue"}]	2026-11-05 13:21:59.970622+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+5110c732-0d38-4fc8-8c5d-d8ba942fdf2d	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Put on Hold: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Hold	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Hold","at":"2026-11-05T13:21:59.9705115Z","updatedBy":"Reyansh Sawant","details":"Hold by Reyansh Sawant. Comment: Hello Whats the main issue"}]	2026-11-05 13:21:59.970622+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+947909d0-40ff-43d3-b8dc-a8c4f5025b0b	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Put on Hold: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Hold	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Hold","at":"2026-11-05T13:21:59.9705862Z","updatedBy":"Reyansh Sawant","details":"Hold by Reyansh Sawant. Comment: Hello Whats the main issue"}]	2026-11-05 13:21:59.970622+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+38743243-6ed3-47b9-87a5-95b018db4ded	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T13:23:24.1576845Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk done"}]	2026-11-05 13:23:24.15771+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+6ed981ff-ff34-49f1-8ec2-aed421184635	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T13:23:24.1576548Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk done"}]	2026-11-05 13:23:24.15771+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+7679a24d-9324-48e5-9916-d0a374526d40	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Approved: Resource Requirement — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Approved	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-97C7	\N	\N	\N	\N	[{"status":"Approved","at":"2026-11-05T13:23:24.1574877Z","updatedBy":"Reyansh Sawant","details":"Approved by Reyansh Sawant. Comment: ohk done"}]	2026-11-05 13:23:24.15771+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+2ba1b85e-6084-4b76-98c3-5c573096bd38	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Scope Cancellation: Network Vulnerability Assessment — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-23E8	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T13:25:44.6526959Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 13:25:44.652727+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+d820e98b-596a-4bd0-aeb2-22ea8388511f	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Scope Cancellation: Network Vulnerability Assessment — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-23E8	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T13:25:44.6524469Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 13:25:44.652727+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+e59afe02-d3ae-4a2e-8cf0-80caeda432da	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Scope Cancellation: Network Vulnerability Assessment — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-23E8	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T13:25:44.6526825Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 13:25:44.652727+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+e67bc767-5ba3-47e0-9c1b-ceeda62089eb	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Customer Requirement: Scope Cancellation: Network Vulnerability Assessment — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Pending	t	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	REQ-20261105-23E8	\N	\N	\N	\N	[{"status":"Pending","at":"2026-11-05T13:25:44.6526630Z","updatedBy":"Admin User","details":"Requirement logged by Admin User"}]	2026-11-05 13:25:44.652727+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1947f3b4-01a7-4597-b236-93f435b1f2e6	315ae0c9-ecdf-48ba-a662-f93c21ef31d2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Put on Hold: Scope Cancellation: Network Vulnerability Assessment — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Hold	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-23E8	\N	\N	\N	\N	[{"status":"Hold","at":"2026-11-05T13:26:10.4403941Z","updatedBy":"Reyansh Sawant","details":"Hold by Reyansh Sawant. Comment: hi"}]	2026-11-05 13:26:10.440442+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+23cab3eb-63ae-45a5-994b-67ff75c7a03a	41708635-a60e-4fbd-a76b-91c0c23d18be	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Put on Hold: Scope Cancellation: Network Vulnerability Assessment — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Hold	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-23E8	\N	\N	\N	\N	[{"status":"Hold","at":"2026-11-05T13:26:10.4402086Z","updatedBy":"Reyansh Sawant","details":"Hold by Reyansh Sawant. Comment: hi"}]	2026-11-05 13:26:10.440442+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+5da3bc81-b042-4822-97f8-65c3a583903c	5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Requirement Put on Hold: Scope Cancellation: Network Vulnerability Assessment — test cust(sub test cust)_Network Vulnerability Assessment_01	Additional Customer Requirement	Medium	Hold	t	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	REQ-20261105-23E8	\N	\N	\N	\N	[{"status":"Hold","at":"2026-11-05T13:26:10.4404169Z","updatedBy":"Reyansh Sawant","details":"Hold by Reyansh Sawant. Comment: hi"}]	2026-11-05 13:26:10.440442+00	\N	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N	\N
+64e165bd-ecbb-45c1-8274-7e7b14ed0a53	8e0616db-48af-4b73-807f-6e250dba2072	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	P004	test cust(sub test cust)_Network Vulnerability Assessment_01	Timeline Extension Approval Request: test cust(sub test cust)_Network Vulnerability Assessment_01 (Requested: 04-May-2027)	Timeline Extension Approval	High	Pending	f	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	04c26c4f-7929-4e3b-aee7-c5eecc85c899	\N	\N	\N	\N	[{"action":"","date":"","time":"","by":""},{"action":"Notification marked as read","date":"2026-11-05","time":"13:39:46","by":"System"}]	2026-11-05 13:38:40.075533+00	2026-11-05 13:39:46.986459+00	049ac489-bbd3-4153-b933-aec7b7baec89	8e0616db-48af-4b73-807f-6e250dba2072	\N
 \.
 
 
@@ -2164,8 +2245,6 @@ COPY auth.tbl_refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "Revo
 --
 
 COPY auth.tbl_role_permissions ("Id", "RoleId", "ItemId", "ItemType", "CanView", "CanManage", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
-531b14e6-e9e4-4478-9106-500c8dd16d31	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	d6dea306-2e8f-41a0-89c8-857cb96f5558	widget	1	0	2026-10-24 16:50:27.272824+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
-f009aa13-5eb1-4b71-a862-906a8f46d58a	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	471bc977-be2e-449d-91e7-5c11cb9c4ec0	module	1	0	2026-10-24 16:50:27.272824+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 16c48db4-6db8-4932-b7d6-4dcf44bc119d	64c49f37-a38a-46a6-9622-7427f1501658	c04c546e-0f2c-448d-b634-5d517843d365	module	1	1	2026-10-25 20:35:55.763886+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 07bdabe1-c326-457a-a45c-19ef19869dbd	bb568e26-548b-4ca5-9221-fefb9c9143b3	e1a11111-0001-4000-8000-000000000004	tab	1	0	2026-11-02 08:42:05.014219+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 2931843e-d649-41ed-a8ed-04d98f2aaf93	bb568e26-548b-4ca5-9221-fefb9c9143b3	e1a11111-0001-4000-8000-000000000001	tab	1	0	2026-11-02 08:42:05.014219+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
@@ -2190,6 +2269,11 @@ efdc6e31-4475-4fda-86fb-fa1d656730ae	a5bfe265-981a-4723-b7bb-6ddc389db7f0	a7e6b0
 1876bcb6-daf7-4045-ab65-40a30029fe33	914d8500-03b6-4a43-a250-244effca1cf1	5a049953-8170-4ef4-a59e-43dc19e12de5	module	1	1	2026-11-04 15:13:38.456387+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 1ffba9bb-2bf0-472f-9dc6-16a105a9ff0b	914d8500-03b6-4a43-a250-244effca1cf1	a7bd6c40-4e96-4abb-be93-4ed4e4211978	tab	1	1	2026-11-04 15:13:38.456387+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 8dad33a3-cf95-4e10-82e3-0566efae9b2c	914d8500-03b6-4a43-a250-244effca1cf1	69e5bbc5-3f28-494e-a9c7-e4cff3c3dccc	tab	1	1	2026-11-04 15:13:38.456387+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+203fde05-7016-4056-8542-46f57453334e	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c1a11111-0001-4000-8000-000000000001	tab	1	0	2026-11-05 13:03:50.723272+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+52ee2652-4c8f-4462-b4fe-40eb5216953b	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	168b1296-de6a-4f9e-a3b9-617b83863736	module	1	0	2026-11-05 13:03:50.723272+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+538a7ed1-a150-4bd8-b0fa-ac076626a350	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c1a11111-0003-4000-8000-000000000004	tab	1	0	2026-11-05 13:03:50.723272+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+e46807dc-cb40-4b13-8e6d-87f10811b11b	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c1a11111-0003-4000-8000-000000000002	tab	1	0	2026-11-05 13:03:50.723272+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+fdbd2bcc-ac92-4e7f-979b-682b825d0bb0	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	b8f7c125-0e5b-4e3d-98e3-542638fa0b21	submodule	1	0	2026-11-05 13:03:50.723272+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -2257,8 +2341,6 @@ COPY customer.tbl_client_assignments ("ClientId", "UserId") FROM stdin;
 COPY customer.tbl_client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Country", "PhoneCode") FROM stdin;
 8fd48693-946d-4794-9c47-17ac63c3a581	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Abhi Mistry	abhi@adityabirla.com	9874237847	Accounts Head	Accounts	f	2026-10-14 04:10:42.001025+00	2026-10-14 04:14:49.555943+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	2026-10-14 04:14:49.555943+00	India	+91
 994f1b38-e2e1-4e84-a6a9-44707059954d	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Krshna	krsna@adityabirla.com	8723463284	CIO	Technical	f	2026-10-14 04:10:42.001025+00	2026-10-14 04:14:49.555943+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	2026-10-14 04:14:49.555943+00	India	+91
-17552817-df66-49cb-843f-e4a269871e53	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Omakar	omkar@gmail.com	8723463284	CIO	Technical	f	2026-10-14 04:14:49.55821+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	India	+91
-3faf9dea-ce22-4338-80f0-46dc0a7838de	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Abhi Mistry	abhi@adityabirla.com	9874237847	Accounts Head	Accounts	f	2026-10-14 04:14:49.55821+00	\N	00000000-0000-4000-8000-000000000004	\N	\N	India	+91
 3f4e7f21-22c2-40d8-9459-a99c68a15f25	\N	0737c566-0a0a-4cbc-93b2-a10e8d56c3cc	Vighnesh Pai	vighneshpai2003@gmail.com	9221117564	CISO	Technical	f	2026-10-26 11:48:41.529661+00	2026-10-26 11:50:49.368666+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-26 11:50:49.368666+00	India	+91
 79775855-0aeb-4e5f-a6da-689fc88ba630	\N	0737c566-0a0a-4cbc-93b2-a10e8d56c3cc	Billu Singh	vighneshpai2003@gmail.com	9221117564	CISO	Technical	f	2026-10-26 11:50:49.370823+00	2026-10-26 11:53:47.719813+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-26 11:53:47.719813+00	India	+91
 2897ebe9-fc7e-477e-826a-203915dd2a92	\N	0737c566-0a0a-4cbc-93b2-a10e8d56c3cc	Billu Singh	vighneshpai2003@gmail.com	9221117564	CISO	Technical	f	2026-10-26 11:53:47.721138+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
@@ -2266,6 +2348,18 @@ COPY customer.tbl_client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Em
 cdd36d63-2277-4409-89c1-1b43236e0d0f	\N	a585a207-e23c-4694-9a6e-1dfea515c585	test	test@gg.com	5645467676	Desg Test	Test cnt	f	2026-10-18 10:28:17.271962+00	2026-10-29 14:14:10.426908+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-29 14:14:10.426908+00	India	+91
 d01b9534-5f4b-4516-9370-4ca9a64d7edb	\N	a585a207-e23c-4694-9a6e-1dfea515c585	test	test@gg.com	5645467676	Desg Test	Test cnt	f	2026-10-29 14:14:10.442548+00	2026-10-29 14:15:25.2957+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-29 14:15:25.2957+00	India	+91
 167daddd-cf4d-4942-8640-e62c1da7aa01	\N	a585a207-e23c-4694-9a6e-1dfea515c585	test	test@gg.com	7821548742	Desg Test	Test cnt	f	2026-10-29 14:15:25.306304+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
+25734951-a87f-4c17-b606-e5d95b9bbff4	\N	b5067082-5514-4a55-9322-8cae2efa87b8	Sahil	sahillad77@gmail.com	6897854512	Accounts Head	Accounts	f	2026-11-05 06:57:59.863237+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
+17552817-df66-49cb-843f-e4a269871e53	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Omakar	omkar@gmail.com	8723463284	CIO	Technical	f	2026-10-14 04:14:49.55821+00	2026-11-05 09:14:22.275501+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 09:14:22.275501+00	India	+91
+3faf9dea-ce22-4338-80f0-46dc0a7838de	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Abhi Mistry	abhi@adityabirla.com	9874237847	Accounts Head	Accounts	f	2026-10-14 04:14:49.55821+00	2026-11-05 09:14:22.275501+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 09:14:22.275501+00	India	+91
+64012ab1-bf3e-4e73-9661-19e3536d66e4	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Abhi Mistry	abhi@adityabirla.com	9874237847	Accounts Head	Accounts	f	2026-11-05 09:14:22.300775+00	2026-11-05 09:14:33.642845+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 09:14:33.642845+00	India	+91
+805b9bd5-8c34-4f94-a4a6-782139bdc4ed	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Omakar	omkar@gmail.com	8723463284	CIO	Technical	f	2026-11-05 09:14:22.300775+00	2026-11-05 09:14:33.642845+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 09:14:33.642845+00	India	+91
+fccbac1c-ea6f-43a6-8d6a-8169d6ee2f0c	\N	45a3d7da-acfe-4409-8126-f05773437934	Casper Singh	sadak@gmail.com	6545447632	CFO	Procurement	f	2026-11-05 09:14:22.300775+00	2026-11-05 09:14:33.642845+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 09:14:33.642845+00	India	+91
+5010c66f-447c-4419-9eb5-5d47dd63c5e2	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Abhi Mistry	abhi@adityabirla.com	9874237847	Accounts Head	Accounts	f	2026-11-05 09:14:33.659939+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
+50b5e0a1-95fc-4509-aa97-1d08c8fb6ad0	\N	45a3d7da-acfe-4409-8126-f05773437934	Casper Singh	sadak@gmail.com	6545447632	CFO	Procurement	f	2026-11-05 09:14:33.659939+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
+e0f44745-a6d6-435b-b4d8-832356665431	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Omakar	omkar@gmail.com	8723463284	CIO	Technical	f	2026-11-05 09:14:33.659939+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
+90df83e9-fcf0-48d1-996b-960caf97ba8b	\N	741f5365-d860-4b8c-ac29-3dc7193249b5	Viggu	viggu@gmail.com	7821345673	CIO	Accounts	f	2026-11-05 09:30:40.709153+00	2026-11-05 10:51:14.517667+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 10:51:14.517667+00	India	+91
+46575cba-ce06-481f-9d04-bce7ab15515d	\N	741f5365-d860-4b8c-ac29-3dc7193249b5	Viggu	viggu@gmail.com	7821345673	CIO	Accounts	f	2026-11-05 10:51:14.542583+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
+e07f8885-b80e-49e3-b644-6a628d9f9aef	\N	ccde74ed-68a3-4189-a8f2-dd5e39f54a5f	Aman	aman@gmail.com	7852145896	CISO	Procurement	f	2026-11-05 10:51:14.542583+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	India	+91
 \.
 
 
@@ -2277,7 +2371,9 @@ COPY customer.tbl_clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "Cl
 bf01f81e-b09c-47c1-811c-40a58a56db12	Aditya Birla	Logistics	AB	\N	New	Active	Karan Wardhan	Dhanshree	9348753534	\N	Group SPOC	2026-10-14 04:10:41.986238+00	2026-10-19 12:34:42.476388+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	Navi Mumbai	India	Resume_Omkar_Gaikwad.pdf	\N	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	f175fde9-14f8-40e8-b564-47d8a29d84ff	ea72f142-d2b7-4d74-8877-4c5c64106d84	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-10-14	Sales User	\N	\N	Portal Based	Dhanshree	9348753534	C001	admin	+91
 56d405f8-13d8-44de-a4fe-2a74167c7f6f	Paytm	Energy	P	\N	New	Active	Karan Wardhan	VMP	9221117564	\N	Group SPOC	2026-10-26 11:48:41.511895+00	2026-10-26 11:50:49.365031+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	Mumbai	India	TK  PMS_Changes_OutScope.xlsx	\N	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	c7e82721-829b-4450-8393-022587178471	6ffbb80b-985d-4f00-9140-db22f39a625d	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-10-26	Omkar Reddy	776f2cf7-c4cc-4299-b38f-afbcaff7703e	\N	Manual Based	VMP	9221117564	C003	admin	+91
 5a526476-8299-49a7-af85-4a322006bde9	test cust	INDUSTRY Test	TC	\N	New	Active	Atharv Reddy	test spoc	7821502154	\N	Group SPOC	2026-10-18 10:28:17.255787+00	2026-10-29 14:14:10.39856+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	Amritsar	India	TK_PMS_Tool_BRD_Module_V05.pdf	\N	033446c7-c133-4395-bdaa-69b5f227a7a8	8e0492bb-3e1c-47b8-890c-a2aa8cdd3a03	55e401d4-a911-4f92-ba41-23e34513ef78	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-10-18	Omkar Reddy	776f2cf7-c4cc-4299-b38f-afbcaff7703e	\N	Manual Based	test spoc	7821502154	C002	admin	+91
-1fa47ef9-e483-4741-a6e3-eb7ed13a5d15	Test Client 45ffcb	Technology	TC	\N	New	Active	\N	\N	\N	\N	\N	2026-11-04 15:53:35.828968+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	India	\N	\N	\N	\N	\N	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-11-04	\N	\N	\N	\N	\N	\N	C004	admin	\N
+1df50d92-df3c-46af-8fa8-5b2ea322c0cf	Test	Logistics	T	\N	New	Active	Aarav Rao	Aman	6784542121	\N	Group SPOC	2026-11-05 06:57:59.787006+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	Vienna	Austria	Sahillad_Resume.pdf	\N	9f646393-8fea-4b38-9f35-d88a6ab6787e	f175fde9-14f8-40e8-b564-47d8a29d84ff	e28e5c98-4103-43a2-b5a0-ad2ba96bf6d6	25e6b9ec-058b-4778-9c17-1151079562f4	2026-11-05	Omkar Reddy	776f2cf7-c4cc-4299-b38f-afbcaff7703e	\N	Portal Based	Aman	6784542121	C005	admin	\N
+78d17ba0-1517-426a-9c9d-6e3c2e9ce2e6	Test Enterprise 1793863649	Finance	TE	\N	New	Active	\N	\N	\N	\N	\N	2026-11-05 07:27:31.030542+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-11-05	\N	\N	\N	\N	\N	\N	C006	admin	\N
+88209383-5e28-4811-a5ac-08039b7ae5da	ABC	Energy	A	\N	New	Active	Aarav Rao	Bhavesh	7821093801	\N	Group SPOC	2026-11-05 09:30:40.595715+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	Navi Mumbai	India	TK I MIS Report I Backend Data Support I Sample_Vo1.xlsx	\N	9f646393-8fea-4b38-9f35-d88a6ab6787e	c7e82721-829b-4450-8393-022587178471	ea72f142-d2b7-4d74-8877-4c5c64106d84	f6f9895d-c4be-4b1c-adf4-6030b5dc9ca0	2026-11-05	Omkar Reddy	776f2cf7-c4cc-4299-b38f-afbcaff7703e	\N	Portal Based	Bhavesh	7821093801	C007	admin	\N
 \.
 
 
@@ -2290,6 +2386,11 @@ c005cbc3-03a8-4dec-b3d0-c44868e18f28	bf01f81e-b09c-47c1-811c-40a58a56db12	Aditya
 a585a207-e23c-4694-9a6e-1dfea515c585	5a526476-8299-49a7-af85-4a322006bde9	sub test cust	2026-10-18 10:28:17.255787+00	2026-10-18 10:28:17.400741+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	TK_PMS_Tool_BRD_Module_V05.pdf	KYC/20261018_102817_392_test_cust_sub_test_cust_TK_PMS_Tool_BRD_Module_V05.pdf	C002-01
 0737c566-0a0a-4cbc-93b2-a10e8d56c3cc	56d405f8-13d8-44de-a4fe-2a74167c7f6f	urbancompany	2026-10-26 11:48:41.511895+00	2026-10-26 11:48:41.782815+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	TK  PMS_Changes_OutScope.xlsx	KYC/20261026_114841_770_Paytm_urbancompany_TK__PMS_Changes_OutScope.xlsx	C003-01
 6647545b-7062-49e3-b36b-2f3947885742	56d405f8-13d8-44de-a4fe-2a74167c7f6f	pinelabs	2026-10-26 11:53:47.71626+00	2026-10-26 11:53:47.80564+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	TK  PMS_Changes_OutScope.xlsx	KYC/20261026_115347_802_Paytm_pinelabs_TK__PMS_Changes_OutScope.xlsx	C003-02
+b5067082-5514-4a55-9322-8cae2efa87b8	1df50d92-df3c-46af-8fa8-5b2ea322c0cf	Test_Notification	2026-11-05 06:57:59.787006+00	2026-11-05 06:58:00.18169+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	Hellooo this is the note related to the subventure	Sahillad_Resume.pdf	KYC/20261105_065800_154_Test_Test_Notification_Sahillad_Resume.pdf	C005-01
+d7caa436-833f-4ec5-86be-08ffe93c8fa1	78d17ba0-1517-426a-9c9d-6e3c2e9ce2e6	Test SubVenture 1793863649	2026-11-05 07:27:31.030542+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	C006-01
+45a3d7da-acfe-4409-8126-f05773437934	bf01f81e-b09c-47c1-811c-40a58a56db12	Aditya Birla_Capp	2026-11-05 09:14:22.249431+00	2026-11-05 09:14:34.05371+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	TK  PMS_Changes_OutScope.xlsx	KYC/20261105_091434_017_Aditya_Birla_Aditya_Birla_Capp_TK__PMS_Changes_OutScope.xlsx	C001-02
+741f5365-d860-4b8c-ac29-3dc7193249b5	88209383-5e28-4811-a5ac-08039b7ae5da	XXX	2026-11-05 09:30:40.595715+00	2026-11-05 09:30:41.274812+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	This is the note for the new customer	TK I MIS Report I Backend Data Support I Sample_Vo1.xlsx	KYC/20261105_093041_218_ABC_XXX_TK_I_MIS_Report_I_Backend_Data_Support_I_Sample_Vo1.xlsx	C007-01
+ccde74ed-68a3-4189-a8f2-dd5e39f54a5f	88209383-5e28-4811-a5ac-08039b7ae5da	BBB	2026-11-05 10:51:14.483424+00	2026-11-05 10:51:14.736698+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	This is the information is related to the subventure	SahilLad_Pancard.pdf	KYC/20261105_105114_705_ABC_BBB_SahilLad_Pancard.pdf	C007-02
 \.
 
 
@@ -2731,121 +2832,121 @@ be8e036d-ad13-4c79-89ec-294e490a6816	services_consulting	Services - Consulting	t
 --
 
 COPY master.mst_designation_sub_departments ("Id", "DesignationId", "SubDepartmentId") FROM stdin;
-002031b7-aab7-48f0-8ec5-19642d60f7c3	a697a798-caaf-4248-8e4e-7e89096a9c30	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-00a32b5f-5479-4fc3-9759-092b4a7df0cf	4650d4e0-f73c-4688-ae5f-830a46348ff9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-00e92a9d-54c9-4814-bced-e31402811dab	e228c999-bf54-48b4-a373-d2bc9db88554	db0addff-605e-439f-917b-38016a398755
-012b2564-dd72-4f45-aa5e-d407a9ff97b4	bb7ccd5f-2f60-49fb-b984-f11fc47add22	7682acb3-561b-4951-801b-c1564adda131
-041e4851-2b5a-43f2-aa40-f585e085ece7	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	db0addff-605e-439f-917b-38016a398755
-06c9c43b-1606-44ed-b34f-3ccc62bb7e2e	b3309eea-7374-4a8d-ac13-481b2a7fd492	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-075ac5c0-a629-4e0c-b540-c918d9376e00	3b7ea453-324e-40a0-bb41-77a0795d5af5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-09b99d3e-d4f9-49d7-a16f-28143149d3ce	73bd55bb-5d0e-4381-8ad2-2238377fca93	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-0be7d7fa-9bcb-4cfa-9dd6-a8ba997eccc4	3b7ea453-324e-40a0-bb41-77a0795d5af5	db0addff-605e-439f-917b-38016a398755
-0c59ee3b-69d1-461a-bf1c-09836ac41c9e	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-0cc3add7-6864-467b-92cd-0453b8d9b23a	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-0d578649-7715-43ed-bc91-c19d3e48b5cd	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-0e3ff1d8-9e79-4f25-aa71-0a280f6cf699	c6c6cd04-6df3-4593-b686-e4b9d362c96f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-0ef81fe2-ed45-4342-b139-dc042242ff70	e2b10def-c91d-45da-94c5-f5530e743aa2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-0f150f8e-b57e-4595-beb7-e11a5f4db5d0	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	7682acb3-561b-4951-801b-c1564adda131
-0feddd68-a730-40bb-8afe-216d8cf102e3	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-11e0d226-22ae-4597-aaa4-102d2581c59a	163d8c87-8f90-4295-a926-2e912c625a1c	db0addff-605e-439f-917b-38016a398755
-136232d6-b2fb-482d-9d6b-8ff150217d86	168d11d7-ca26-4d61-b870-51779dc63023	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-14916b12-d40e-42fb-afef-5958a60bf68e	a697a798-caaf-4248-8e4e-7e89096a9c30	db0addff-605e-439f-917b-38016a398755
-15afbed2-ce56-4e85-a1e9-bc8a706c2238	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	88b29e0c-39b7-4169-ab5c-350075014a84
-160f55e7-f520-442c-954b-4efa5ac65fc9	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	db0addff-605e-439f-917b-38016a398755
-17ab0881-1d61-4ece-9026-79e4dd6ee540	1e7faab8-273d-40df-9f9a-485160186c5a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-186a400f-aaaf-4ae3-99c3-1e58e4cc468a	485012d4-2c28-4bc4-92c7-3609e3e3749e	c88d783b-b628-4f3a-a972-aa56aeed5e77
-18b98e5e-acbf-43d2-963a-d146ec0d62eb	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	c88d783b-b628-4f3a-a972-aa56aeed5e77
-19117604-03ac-478a-8891-459daeeb082e	138434a2-625f-4df5-836d-fcf0cfceef79	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-1c5a68e7-662f-4720-b91b-d90140959c08	6193be76-40ad-4973-9ee7-246a4d8f4109	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-1dac8609-6837-4cfe-b712-e351e627c91e	9858c224-f97f-4ff8-908d-f46bd5e2243c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-25d5b00c-d033-41b2-b03f-2f0476846279	e36018c5-bf48-4f93-bef7-93e8864a0b51	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2647d22c-d4a0-45ba-843d-9bf09933e655	4ef1cb5b-9688-4ce2-95b3-6a0863200166	5d962383-f175-4dd8-af63-8a566a0d2255
-278bcd68-0e49-4c9f-a298-8da593cf130a	a697a798-caaf-4248-8e4e-7e89096a9c30	682d36c0-4256-42ab-811e-054ab3a5b10f
-30ee7e52-b177-4cf3-befd-67fe106d3e5b	3b7ea453-324e-40a0-bb41-77a0795d5af5	682d36c0-4256-42ab-811e-054ab3a5b10f
-3455864d-54b8-4967-a79b-8e3c16d09bdf	911f6d7f-8d43-40f2-897a-2f416abf8cf9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-36ae3419-e581-4a64-820e-da3103c43a00	e8c22eff-0daf-4690-a537-c8b0b6110a01	c88d783b-b628-4f3a-a972-aa56aeed5e77
-36d500a2-0975-48d2-bb7c-3d4d9a4064b4	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	682d36c0-4256-42ab-811e-054ab3a5b10f
-383c44b9-71de-4d56-ae90-0de87ace6ab3	c0e1a001-0000-4000-8000-000000000001	63765624-d7d1-472d-abd4-627127646998
-388649c8-a593-43af-b546-31526775388c	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-3b1a9d31-86da-44d9-9cbe-da382a45c8a8	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-3c61ca99-ae32-46e6-948f-1118451e2016	4f972924-350a-47fb-a6b6-f2b34bb6b621	db0addff-605e-439f-917b-38016a398755
-3d0158dd-abd3-4e8f-9fb7-7ab805784a20	6e606c29-2ebf-4ab8-8006-aaedd5680009	5d962383-f175-4dd8-af63-8a566a0d2255
-414f2b93-53b5-4d04-9ade-1af1b5dfd24e	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-443e5a27-60d2-46ac-9ca3-3a2bffe9fc6f	da990f6e-3379-4cc4-89b7-0ead29da472b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-47ce2ced-3acf-493e-a4b3-db514466e5e1	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-4a7f8b00-cdf9-4ba2-8cef-bce95ad222f6	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	88b29e0c-39b7-4169-ab5c-350075014a84
-4ed9406f-beb8-4934-96be-c2159fc6aad3	d8a2b9e5-f54d-4344-a78d-c6c840467543	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-51467316-fda2-4d95-be64-00bc0e26ceee	e2b4be77-2b20-4064-974d-e6322e7240b4	88b29e0c-39b7-4169-ab5c-350075014a84
-51cdd93c-0f3d-448a-8ed9-c9c25d254013	834c9e15-c70d-4a0b-bb12-5e55f23c181d	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-529dd932-f02a-4cfc-ac5b-c8a98dd2b864	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-53200672-cab7-412e-b22a-c2a329bded82	f20a7445-0b01-4f20-85a5-853101d864ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-562550f1-6a4e-42e0-8169-61a984631de5	4f972924-350a-47fb-a6b6-f2b34bb6b621	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-5776b412-2315-47d2-9177-7b33d8e8be3a	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	682d36c0-4256-42ab-811e-054ab3a5b10f
-57a7a920-d0ca-43bb-928c-fc53c54a8529	e228c999-bf54-48b4-a373-d2bc9db88554	682d36c0-4256-42ab-811e-054ab3a5b10f
-5bb44302-d63d-4fe1-8a6b-c2ee4f059b79	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-601aeee3-9b98-41fc-80dc-73eaf66ddb1c	778f1120-9633-4933-9160-ddaa46668838	a12ac80b-a665-4301-898e-e9ca3d44bb20
-619b20df-22ff-4aea-9e96-98ce24460002	e228c999-bf54-48b4-a373-d2bc9db88554	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-631c7f27-0dbf-48a8-87b4-a13fa05a0427	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	db0addff-605e-439f-917b-38016a398755
-644c64c7-f06b-4000-9aa7-5b2d5c3f9928	9858c224-f97f-4ff8-908d-f46bd5e2243c	db0addff-605e-439f-917b-38016a398755
-64c3c973-8c7e-4110-b198-400fbbd6d8b1	4b680e29-b4fb-4689-9afb-67a7f089f52b	b651aec8-5455-4329-8251-0ceb62cea798
-674598bc-6106-4433-8ccf-1a7a6ba58d7b	7d542941-65b9-499b-81b3-239748d6da52	c88d783b-b628-4f3a-a972-aa56aeed5e77
-68b1de58-59a2-470e-ac6c-c7c3a3b2d990	6d25ff6d-e13d-440f-b775-215547af7acb	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6945e026-9b34-48af-843d-da30835ce930	157d001c-b056-45b1-96a3-3c05bcd8d99c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-6be1c123-1fbf-4911-8a17-9c35196e6155	e2c675a7-92dc-4477-be75-9a304cbe4def	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-6c1569a5-b4bd-496d-a277-a0f7650d9f54	2b1558e3-158a-4a84-ae80-053129861a64	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-6d2827a2-ffc0-4ac3-9f43-13488780d2db	b5f39dd8-c305-489d-9f7d-9adfd010a134	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6ebfe3bf-9d5c-45be-880c-a0aa83146c9d	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	5d962383-f175-4dd8-af63-8a566a0d2255
-6f1f94f3-091b-485b-bedd-0cbb18109974	caa227a1-2dcf-4195-ab9c-8f76d1862daa	5d962383-f175-4dd8-af63-8a566a0d2255
-71113a39-bce3-48af-88a7-75297cd9f3e9	195d6a81-8457-4b60-9382-6a3a0664f0e9	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-74ae2d60-fc3e-4270-8985-ca9f61f06c9f	168d11d7-ca26-4d61-b870-51779dc63023	db0addff-605e-439f-917b-38016a398755
-7baa151b-427a-4ac2-9c3b-1fe85151a273	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	c88d783b-b628-4f3a-a972-aa56aeed5e77
-7da078eb-70d9-458f-83be-9c7a12544754	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	45755b2a-741a-4990-ab78-8f65090f75b1
-7da21f6f-9b33-4673-8696-a3034d191030	c0f974c3-f49c-449a-9276-aa64ce501344	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-80450fdc-5ea6-4664-8b1c-01ce04317111	4f972924-350a-47fb-a6b6-f2b34bb6b621	682d36c0-4256-42ab-811e-054ab3a5b10f
-837fb3d6-ba24-426b-bbfa-e9dec1e96a78	0525d830-ead9-44a0-871f-91b7845fec26	61bbeadf-3044-4123-929c-4b1e6e2e613e
-86cf4457-7194-40c8-a9f7-e64b5b54de0d	9dc69952-eae6-4ec0-a327-67392315f089	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-8a50db86-d0c6-4536-9e45-d8172e8f9ecf	9050e021-7d84-4401-820e-c0e768abb1ab	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-91729262-6f5c-4d27-b1c6-5df3f5d61c79	163d8c87-8f90-4295-a926-2e912c625a1c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-920bd5ac-34ef-481d-9afd-b77d96a759d6	3e60b693-d3dd-4481-95c4-9f02da21625c	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-92310f07-f466-4c0d-a185-ce83d9774bd9	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-95ff150a-d229-4a5f-9963-47ad048aa4cd	ea315f7d-d597-41b3-a999-4f3851bcd020	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-96564229-7604-44c5-81c5-271b837ab90c	9858c224-f97f-4ff8-908d-f46bd5e2243c	682d36c0-4256-42ab-811e-054ab3a5b10f
-a4474375-2529-4822-bbf9-f4161af4d264	444df30d-c195-42ad-b9a7-d80cdef69ccd	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-a979acc3-27fb-4cee-a1b1-53c9f50bd3db	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	682d36c0-4256-42ab-811e-054ab3a5b10f
-a9895e58-8437-47df-b4ea-1b80debddd13	168d11d7-ca26-4d61-b870-51779dc63023	682d36c0-4256-42ab-811e-054ab3a5b10f
-ab8d4870-e464-4970-8484-23f6fa41186d	2a76927c-461a-48e4-8190-dea7361ef3db	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-b2a17910-f0b1-415b-88ae-721df5de8309	2076a9b1-e432-46a9-99b1-36e732159856	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-b73b469a-7eac-4652-823d-e3462815f842	c70b9832-841e-4864-9b85-eaba3c0a995f	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-b8c40a91-8de8-44c1-b6d1-f63b0c888dba	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	c88d783b-b628-4f3a-a972-aa56aeed5e77
-ba8298cf-8c6f-40ad-b77f-d4fe96f00a00	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-be34db7c-1f2c-4053-a4b1-8e0385e4ddd1	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-c2886da9-5ce5-4f95-91cb-5edba694d0d0	8b57cfd5-5d4e-44a3-9646-b36873c111c2	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-c481f952-08ae-4870-8e11-99bd9a0dbcf9	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-c5efe8ba-e80c-47e8-bb17-9f3f8ca7df51	272973a6-c052-4aef-bf32-9e24f7eb6cc9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-c646f175-d69f-4e0b-a2bc-8bbd26671fad	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-c939e34e-b64d-41f8-b924-2dce672d7a04	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	b651aec8-5455-4329-8251-0ceb62cea798
-ca7f9336-e04d-4109-bdf1-bc68d358008c	155642eb-a633-4460-b658-aca9fde2d817	5d962383-f175-4dd8-af63-8a566a0d2255
-cb321164-b983-4c2e-8511-4291765a1c21	767a00dd-6f09-4f64-a44e-8fbe901222af	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-ccf201ff-4006-40ed-9149-07043f7aa122	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	b651aec8-5455-4329-8251-0ceb62cea798
-cf432db9-8576-41b5-8e57-02f6c5c76ab7	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	682d36c0-4256-42ab-811e-054ab3a5b10f
-d0410e68-a6cc-4bb1-9a2d-55e2930ea40d	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	db0addff-605e-439f-917b-38016a398755
-d57b1c56-fb7e-47e2-9da6-f14e4e8827e4	f8502c44-b289-49e4-8401-3dcad4d5bbe0	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-d78a79f5-6f25-4aab-b9b5-d373a4ffda97	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-d9f71ea6-469d-4e5a-ba9d-3964d2628e48	7c2380da-3ee6-46ad-93d6-a79ce3027f29	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-da909ca2-6642-4fef-b19d-b636c8510e92	c1fa4328-a970-48a1-bc08-d50fe36bf44c	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-db90278c-4c5c-49ed-bcd6-abd4430ef6e6	48429bb5-c583-4684-b30a-7ed443b671ca	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-dc33b160-bbf2-4ae7-a80a-75596a53d1e0	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	682d36c0-4256-42ab-811e-054ab3a5b10f
-ee96454d-6625-4aa8-b5dd-1058b0ead395	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-eefb7a83-1cd7-48c8-bb86-cf9ceba773ae	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	7682acb3-561b-4951-801b-c1564adda131
-efabcbae-df20-4e2c-8362-816f53dd4eda	1f97b442-95c5-4b11-93a0-ea146534ae85	5d962383-f175-4dd8-af63-8a566a0d2255
-f05cf14a-3e9c-470a-8519-8ed03f90b51d	163d8c87-8f90-4295-a926-2e912c625a1c	682d36c0-4256-42ab-811e-054ab3a5b10f
-f5f7ccf8-1393-4b21-862e-314c06d1efa3	ae255622-ddcc-45ea-a699-8ec416fe57ab	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-f715e153-0f2a-4ce3-953f-2f835a2b4cc8	af8a1442-c5ee-409d-aa91-61c9dba852ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-f7701f14-4815-4a42-adf9-aa4c481eaab8	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	5d962383-f175-4dd8-af63-8a566a0d2255
-f8697664-9786-4246-9580-0c55cd9c4218	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-f9dc4489-d5df-4cbe-b95b-dc3b97c27748	3356f353-1566-4df6-9958-fa01d67d13c7	7682acb3-561b-4951-801b-c1564adda131
-fb3da72b-73ab-4d5a-b4f4-66a5b4304ea5	85cc9fbe-98a4-464d-a638-05f40529c6de	b651aec8-5455-4329-8251-0ceb62cea798
-fc4f396d-ed9c-4615-97b8-bd7b78a735ac	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	db0addff-605e-439f-917b-38016a398755
+021fd522-ef34-4340-aeeb-7feadd3c4f01	f20a7445-0b01-4f20-85a5-853101d864ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+03e1b72c-dc8d-494a-8d9e-017de2c2789b	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+09a36d89-87a9-4cd2-a659-ef9e8cd7ca4d	e36018c5-bf48-4f93-bef7-93e8864a0b51	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+0cd2139f-8b5e-4019-9a48-2cf478fee2a8	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+0ed0f75f-3683-46a9-b817-90c0931593d9	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	682d36c0-4256-42ab-811e-054ab3a5b10f
+119c0528-225f-4edf-927a-a4e3cf951ec2	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	db0addff-605e-439f-917b-38016a398755
+1c7a76bc-f7d2-42b2-b7f7-edbcf88932db	ea315f7d-d597-41b3-a999-4f3851bcd020	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+1c7e3f78-676a-43fc-b7c3-e3cd0046349b	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+1d764ee7-1558-4e37-aac8-741ec4fe1ae5	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+201aa641-eaa1-4379-b9c5-6e29e205441b	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+2203072a-be93-48d3-afae-5f02c5847123	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	db0addff-605e-439f-917b-38016a398755
+22fa8726-3339-4ba5-ba57-a63d94e6de56	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+22fb3d54-e6e0-4cdc-9acc-b3598462334e	163d8c87-8f90-4295-a926-2e912c625a1c	682d36c0-4256-42ab-811e-054ab3a5b10f
+2abcde6c-8998-48ca-b603-07792ea8aeb3	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	682d36c0-4256-42ab-811e-054ab3a5b10f
+2b010250-3053-4c3a-98f9-9689cf2e8f3d	6e606c29-2ebf-4ab8-8006-aaedd5680009	5d962383-f175-4dd8-af63-8a566a0d2255
+2b7a7d2f-4de4-4c31-8ab7-005942fad526	c1fa4328-a970-48a1-bc08-d50fe36bf44c	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+3136096e-3a03-44cd-829b-fa0504932453	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	7682acb3-561b-4951-801b-c1564adda131
+34516ba2-09da-4ce9-830d-300286a33a8c	c6c6cd04-6df3-4593-b686-e4b9d362c96f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+363dda14-6fd2-40d9-9f8d-25a2c4a67ebb	9050e021-7d84-4401-820e-c0e768abb1ab	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+36b0def8-3ca0-4a6e-b288-6d405051d06a	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	7682acb3-561b-4951-801b-c1564adda131
+3810af85-d5b4-45c7-bdba-6d3533db05bb	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	45755b2a-741a-4990-ab78-8f65090f75b1
+38a25bfe-c02b-4909-a01e-ff37945d95e5	a697a798-caaf-4248-8e4e-7e89096a9c30	682d36c0-4256-42ab-811e-054ab3a5b10f
+398b8446-bd93-4f4c-a3a9-e6cba7f47cba	4b680e29-b4fb-4689-9afb-67a7f089f52b	b651aec8-5455-4329-8251-0ceb62cea798
+3b1433ff-3707-4c04-9ae3-c634e707a23b	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	b651aec8-5455-4329-8251-0ceb62cea798
+3c600a56-4317-4ebb-8879-70c171f5b184	2a76927c-461a-48e4-8190-dea7361ef3db	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+3f436ab6-6d76-46a4-b5ec-5297621baa6e	e2b4be77-2b20-4064-974d-e6322e7240b4	88b29e0c-39b7-4169-ab5c-350075014a84
+3fa3c9fb-abeb-4d08-a82e-d1c8e1439789	168d11d7-ca26-4d61-b870-51779dc63023	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+4143a4ce-08e9-4638-bcbf-cb9d53fe8b56	e2c675a7-92dc-4477-be75-9a304cbe4def	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+4154ee29-bbcb-4fb3-9f4b-e1b70a7ea59f	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+42821845-5b59-4424-b51b-7ad31dff1f7b	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+45e8109a-4070-4486-a910-16384339ff8d	ae255622-ddcc-45ea-a699-8ec416fe57ab	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+4674e205-ced5-41b2-ad24-273d84cbc4bc	4f972924-350a-47fb-a6b6-f2b34bb6b621	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+498a3e34-bb38-4e29-8a01-6cfbafd06e07	3b7ea453-324e-40a0-bb41-77a0795d5af5	682d36c0-4256-42ab-811e-054ab3a5b10f
+4b050883-c0fa-4bbb-905d-29a654056868	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+4de5d1fc-ca36-4289-8d8a-458a667ca746	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+4fa707da-f6bf-4440-b794-8e086885927a	4f972924-350a-47fb-a6b6-f2b34bb6b621	682d36c0-4256-42ab-811e-054ab3a5b10f
+5373d3e5-e504-4a98-9872-ba1852668b46	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	5d962383-f175-4dd8-af63-8a566a0d2255
+5aa193a2-b9fc-46a9-8040-d2efa71adedc	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	682d36c0-4256-42ab-811e-054ab3a5b10f
+5d999914-e6fa-4434-a065-a864aa4544bc	168d11d7-ca26-4d61-b870-51779dc63023	db0addff-605e-439f-917b-38016a398755
+5df40528-bbd5-4d03-b125-6f5752b8501e	6193be76-40ad-4973-9ee7-246a4d8f4109	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+5e3db624-c30a-47de-af17-4663e9ff4d71	272973a6-c052-4aef-bf32-9e24f7eb6cc9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+6316db12-2b1e-406b-9c1d-b756988949e7	e228c999-bf54-48b4-a373-d2bc9db88554	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+6530b13c-2402-4c0d-b7ef-2e41cd111a8e	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	88b29e0c-39b7-4169-ab5c-350075014a84
+653d816c-7448-4c29-bd3e-080b87266294	778f1120-9633-4933-9160-ddaa46668838	a12ac80b-a665-4301-898e-e9ca3d44bb20
+67abd563-39c5-4501-b748-a172b8d9babb	163d8c87-8f90-4295-a926-2e912c625a1c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+680ef0e5-dd42-4b76-9027-023367397c3a	9858c224-f97f-4ff8-908d-f46bd5e2243c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+681d68a4-f15b-4d53-a419-e05cd9eab67e	911f6d7f-8d43-40f2-897a-2f416abf8cf9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+6ed13b96-d6d4-4819-86dd-6c6ee0723ff6	168d11d7-ca26-4d61-b870-51779dc63023	682d36c0-4256-42ab-811e-054ab3a5b10f
+72f0e46f-c4d1-445d-83c4-8dbf7b3147fb	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	b651aec8-5455-4329-8251-0ceb62cea798
+733d6b69-1738-424a-897e-c57e68288205	195d6a81-8457-4b60-9382-6a3a0664f0e9	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+76d292fd-431a-48b1-b921-8d21c20f43f6	d8a2b9e5-f54d-4344-a78d-c6c840467543	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+785a478c-2a4a-416a-9752-18d5a033e82a	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+7a4054c3-677d-414e-bb06-5c7dbc80820a	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+7a9817b6-f81f-44c3-a1c6-d1b54800a8d9	c0e1a001-0000-4000-8000-000000000001	63765624-d7d1-472d-abd4-627127646998
+7b2d535d-b248-4d35-85d9-9d06b78dcdb2	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	c88d783b-b628-4f3a-a972-aa56aeed5e77
+7fdf5076-5186-4bd4-8fa6-b2b209ec0002	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+805641c8-6e1c-4e72-96ce-50ac5023e243	4ef1cb5b-9688-4ce2-95b3-6a0863200166	5d962383-f175-4dd8-af63-8a566a0d2255
+811e05a9-b71d-4eca-aeef-3d590e2244c0	b3309eea-7374-4a8d-ac13-481b2a7fd492	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+814d7edb-eedd-4250-aaa6-9bde92d9e5ab	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+84db97c4-e473-49f1-ab8c-a0eb6f249959	0525d830-ead9-44a0-871f-91b7845fec26	61bbeadf-3044-4123-929c-4b1e6e2e613e
+87a863c5-8374-4e51-8dbd-963afb6834c3	6d25ff6d-e13d-440f-b775-215547af7acb	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+87dffd82-0454-46db-86e6-6658ee6d8282	c70b9832-841e-4864-9b85-eaba3c0a995f	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+87f18990-5579-4724-a2a2-8d3befafec15	4f972924-350a-47fb-a6b6-f2b34bb6b621	db0addff-605e-439f-917b-38016a398755
+886e28e2-70de-4a8d-b4bc-02923cc097c8	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	c88d783b-b628-4f3a-a972-aa56aeed5e77
+8d7691f9-f650-4f1c-a2c2-3b52e9b61ad5	4650d4e0-f73c-4688-ae5f-830a46348ff9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+918c3c8a-f137-44f4-b236-387464fb0fd8	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	db0addff-605e-439f-917b-38016a398755
+92067fb9-7cc1-4469-b6ae-4148bd3c0761	9858c224-f97f-4ff8-908d-f46bd5e2243c	682d36c0-4256-42ab-811e-054ab3a5b10f
+94276662-e8bb-4b87-947b-69b7a17e5fc4	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+9565ea78-05d9-4509-aaa1-615a40e06248	73bd55bb-5d0e-4381-8ad2-2238377fca93	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+9a86690e-4518-42fe-abfa-d964c6022ba0	9dc69952-eae6-4ec0-a327-67392315f089	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+9af520ee-79b6-4489-b21b-bb9e46c2dd3e	a697a798-caaf-4248-8e4e-7e89096a9c30	db0addff-605e-439f-917b-38016a398755
+9b66f93e-caea-4e9d-9043-b3b333c71a6b	834c9e15-c70d-4a0b-bb12-5e55f23c181d	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+9fc9caf2-37e8-4d01-a156-1a14edcd21a8	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	db0addff-605e-439f-917b-38016a398755
+a257b4e7-f727-47ab-8476-3b5037fce5f1	485012d4-2c28-4bc4-92c7-3609e3e3749e	c88d783b-b628-4f3a-a972-aa56aeed5e77
+a2e929c7-02ad-4f74-8dfb-8ef29ec6c002	3b7ea453-324e-40a0-bb41-77a0795d5af5	db0addff-605e-439f-917b-38016a398755
+a45ac293-fc18-490d-bbdd-ec31e48e1cc3	85cc9fbe-98a4-464d-a638-05f40529c6de	b651aec8-5455-4329-8251-0ceb62cea798
+a58456ff-1fe0-4573-8c61-0f433eb096df	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	c88d783b-b628-4f3a-a972-aa56aeed5e77
+a67b097e-99d8-4b83-aa64-53a660d01759	af8a1442-c5ee-409d-aa91-61c9dba852ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+a8bad953-21db-4169-b656-d4b079ab6d4b	7d542941-65b9-499b-81b3-239748d6da52	c88d783b-b628-4f3a-a972-aa56aeed5e77
+ac9049b1-ef61-4f36-a27a-82b3a155941c	157d001c-b056-45b1-96a3-3c05bcd8d99c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+aca55fe7-9fae-45dc-b030-b6fccfb85754	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+aeb47600-8a4b-4dbf-a6f5-7025fc895751	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	682d36c0-4256-42ab-811e-054ab3a5b10f
+af0bdc65-302b-40c4-bf4f-88f55058447b	2076a9b1-e432-46a9-99b1-36e732159856	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+b1675df2-207f-4436-9438-87a5a69de0fd	138434a2-625f-4df5-836d-fcf0cfceef79	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+b1f29cca-b594-4eb7-b957-f99eb180ffb3	1f97b442-95c5-4b11-93a0-ea146534ae85	5d962383-f175-4dd8-af63-8a566a0d2255
+b2b6e5da-0322-4c50-a917-d124573abb6d	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	5d962383-f175-4dd8-af63-8a566a0d2255
+b4342991-4741-46c1-8afc-e33603f756a9	8b57cfd5-5d4e-44a3-9646-b36873c111c2	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+b630e692-4cc5-43a0-86a7-f5d3d69e1af4	a697a798-caaf-4248-8e4e-7e89096a9c30	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+b63152b1-a280-4a5d-8fdd-a5e39fc652f1	3b7ea453-324e-40a0-bb41-77a0795d5af5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+b94378b9-7368-48f1-a966-c003dc9bd8d4	444df30d-c195-42ad-b9a7-d80cdef69ccd	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+bc544806-5c8f-4276-bee3-a6774ce00d36	bb7ccd5f-2f60-49fb-b984-f11fc47add22	7682acb3-561b-4951-801b-c1564adda131
+bf2d7972-7c68-4d86-a17e-c42479b68057	9858c224-f97f-4ff8-908d-f46bd5e2243c	db0addff-605e-439f-917b-38016a398755
+c0a85fbf-5aa4-4e08-890a-d9a33a147a28	1e7faab8-273d-40df-9f9a-485160186c5a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+c665a7e5-e4af-4445-bd26-088c17e1a895	e2b10def-c91d-45da-94c5-f5530e743aa2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+ca935188-f7ef-4b32-8ef5-8f3f247d74b4	7c2380da-3ee6-46ad-93d6-a79ce3027f29	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+cc2a6e8f-1785-4867-9261-5a6249c46b88	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	db0addff-605e-439f-917b-38016a398755
+d02d8b17-faa7-4f6c-8b35-6a99dc318af9	3356f353-1566-4df6-9958-fa01d67d13c7	7682acb3-561b-4951-801b-c1564adda131
+d11747d2-4239-44f4-acad-cad9419e09a3	767a00dd-6f09-4f64-a44e-8fbe901222af	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+d257e696-2471-44a3-bb81-4e7e42a25d2e	e228c999-bf54-48b4-a373-d2bc9db88554	db0addff-605e-439f-917b-38016a398755
+d28bd24d-7472-4e00-b680-6a698c0b7576	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d472f34c-406b-43ab-a63a-3713a798066e	caa227a1-2dcf-4195-ab9c-8f76d1862daa	5d962383-f175-4dd8-af63-8a566a0d2255
+d6ccf2aa-b090-48e4-9e78-2d6f680871e3	da990f6e-3379-4cc4-89b7-0ead29da472b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+d809068d-7f40-46f1-9827-8017e6bc0aeb	e228c999-bf54-48b4-a373-d2bc9db88554	682d36c0-4256-42ab-811e-054ab3a5b10f
+d95e10e2-35bc-4185-8af2-ad70eb1fb301	c0f974c3-f49c-449a-9276-aa64ce501344	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+db5b940b-b4f3-4f20-bbca-e21ac1629c0a	163d8c87-8f90-4295-a926-2e912c625a1c	db0addff-605e-439f-917b-38016a398755
+e1322a7d-ddad-40b9-aae5-9e57583479b4	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+e7154092-1ccc-45ca-a3c3-877981b694a2	2b1558e3-158a-4a84-ae80-053129861a64	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+e82c6494-c300-4a9c-82c1-631276362b8f	48429bb5-c583-4684-b30a-7ed443b671ca	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+ea67abd6-d7f7-4965-85ce-ea89a48b4afa	155642eb-a633-4460-b658-aca9fde2d817	5d962383-f175-4dd8-af63-8a566a0d2255
+ec4cd715-1d02-49e8-8b6a-a2f585ac69ed	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	682d36c0-4256-42ab-811e-054ab3a5b10f
+ec98ce43-d0f8-4088-85bf-9e736585f820	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	88b29e0c-39b7-4169-ab5c-350075014a84
+f2bfd9e7-468d-43cc-964e-30e0070ed6d5	f8502c44-b289-49e4-8401-3dcad4d5bbe0	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+f8f6d184-2faf-434c-aa2b-af99ae182f1a	3e60b693-d3dd-4481-95c4-9f02da21625c	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+fa7397f2-c646-4740-ae09-c230988f4a45	b5f39dd8-c305-489d-9f7d-9adfd010a134	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+fbb0fb04-0902-4c36-b93c-e60c554943fe	e8c22eff-0daf-4690-a537-c8b0b6110a01	c88d783b-b628-4f3a-a972-aa56aeed5e77
 \.
 
 
@@ -3012,6 +3113,95 @@ dcb2b955-8d33-4b9b-b04a-64208dce1520	telecom	Telecom	t	2026-09-09 07:16:02.33270
 
 
 --
+-- Data for Name: mst_leave_calendar; Type: TABLE DATA; Schema: master; Owner: trackerpro
+--
+
+COPY master.mst_leave_calendar ("Id", "HolidayDate", "Name", "Year", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
+0e56fac8-3bcc-4716-9409-ba998cfda6b6	2026-04-14	Dr. Ambedkar Jayanti	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1995c8db-9db2-45d8-b0f5-43dc664ce3f6	2026-09-14	Ganesh Chaturthi	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+20d2640c-6e11-48c0-a98f-73e2162d5e6f	2026-11-08	Diwali (Laxmi Pujan)	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+25e2e4f5-9ab7-4da8-b39b-5e6e715c9657	2026-05-27	Bakrid / Id-ul-Zuha	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+264d027b-689f-4566-9f2e-182d15cc696d	2026-10-02	Mahatma Gandhi Jayanti	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+2f9482d3-fdd9-424e-8a23-6cdda807e3dd	2026-04-03	Good Friday	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+48b86242-508d-40bb-a7da-30feec544338	2026-03-03	Holi	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+4cf3c365-d10c-43c2-a839-cc2e4087de02	2026-01-26	Republic Day	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+6410c702-e55d-4012-8926-0be6094ac54d	2026-08-15	Independence Day	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+70f75742-81ff-4f9a-85ac-f3a05f61b86c	2026-05-01	Maharashtra Day / May Day	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+7f7804a0-65ef-4040-a580-3a546531cf1b	2026-03-20	Id-ul-Fitr (Ramzan Eid)	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+92fb1787-6064-4cf6-ae63-01df0a932853	2026-11-09	Diwali (Balipratipada)	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b22a91da-e0c7-4b71-b179-1f53e9469d7f	2026-10-20	Dussehra (Vijaya Dashami)	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+ccb99a81-02e5-486b-adc9-16d06c621671	2026-01-01	New Year's Day	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+e783ff7b-82ef-4278-8e51-a23ded840865	2026-12-25	Christmas	2026	2026-11-05 04:28:36.990623+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+0bf833d4-e1b0-4650-aa03-b4a693741745	2028-10-20	Dussehra (Vijaya Dashami)	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+22c228a9-aa2a-42ce-9522-e77cbc6bfaea	2028-01-26	Republic Day	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+3dff8e7e-30b6-4923-9082-3cb9b88530c2	2028-10-02	Mahatma Gandhi Jayanti	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+50f04325-e671-4981-b060-da0bfc51cb7e	2028-11-09	Diwali (Balipratipada)	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+55a06da4-0cc3-4079-9286-d3529b69512f	2028-01-01	New Year's Day	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+5bd6e0f7-ca42-41be-b26c-81efba47facc	2028-05-27	Bakrid / Id-ul-Zuha	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+695796b0-ca76-4e40-b40b-af946827ce5d	2028-05-01	Maharashtra Day / May Day	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+6dfc1e05-2c88-40ea-af07-59150b4a1eee	2028-03-20	Id-ul-Fitr (Ramzan Eid)	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+76e842e8-dcd2-45d9-aa10-8c2a86b8b446	2028-09-14	Ganesh Chaturthi	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+7d70a686-00a4-42e1-bab3-cd1098b78413	2028-12-25	Christmas	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+8ad6cf86-f25b-4559-b6db-005d7322741f	2028-11-08	Diwali (Laxmi Pujan)	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+8e79279f-6517-41e2-af48-e0c1392ceaac	2028-04-14	Dr. Ambedkar Jayanti	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+a855e6d7-11da-4912-bbc4-a31d302d96e8	2028-04-03	Good Friday	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+ca644cb3-fcc8-4546-ba5c-aa4c8d31cbae	2028-08-15	Independence Day	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+e5a2f785-2f9a-4f93-82c1-165e95350e56	2028-03-03	Holi	2028	2026-11-05 04:29:08.400923+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+6786fde8-bd9f-4269-89d1-5d92d32ad4af	2026-12-31	New Year Eve	2026	2026-11-05 05:57:26.107376+00	2026-11-05 05:57:48.067229+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	2026-11-05 05:57:48.067209+00
+2344315e-7b22-41ca-8e85-26dc51f20dbb	2029-05-01	Maharashtra Day / May Day	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+291bd779-c0c4-48c4-a784-85bd75a1d163	2029-08-15	Independence Day	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+3a07f1ba-9698-4b01-ac75-75fa04cd4847	2029-10-02	Mahatma Gandhi Jayanti	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+59dfa226-ce33-4282-bcc8-55fb8ace3a1e	2029-03-20	Id-ul-Fitr (Ramzan Eid)	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+5bb7a58c-abf8-45ce-95b4-f0a530e629a8	2029-10-20	Dussehra (Vijaya Dashami)	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+647622af-f592-45a9-9803-7852040ac935	2029-11-08	Diwali (Laxmi Pujan)	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+6fa42ab5-7c04-482d-841f-13f4b7adb0bb	2029-01-26	Republic Day	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1c40d9a1-9902-4d78-bace-fd76e2e12a75	2029-03-04	Holi test	2029	2026-11-05 09:55:07.415358+00	2026-11-05 09:56:32.689315+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+721c4ee5-fe7a-4c71-b11e-5135d91107db	2029-01-01	New Year's Day	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+81cfea4c-fded-4bf9-92d7-8131aeec4003	2029-05-27	Bakrid / Id-ul-Zuha	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+8f70d61e-ada8-4cd9-9f59-18e518608fbd	2029-04-03	Good Friday	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+ada4b5e4-d691-498e-9b50-fe6fc50d00a2	2029-12-25	Christmas	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+ee1ae6eb-a6d5-4dc6-835b-37d27bf70f1b	2029-04-14	Dr. Ambedkar Jayanti	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+f613e591-a0d2-495c-8133-33c7739388f7	2029-09-14	Ganesh Chaturthi	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+fb279cf0-160c-4250-a257-3ccb308577da	2029-11-09	Diwali (Balipratipada)	2029	2026-11-05 09:55:07.415358+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+aef147c7-03c1-474a-9c65-d3a3e6d369b0	2029-07-10	Test	2029	2026-11-05 09:55:23.486794+00	2026-11-05 09:56:08.091553+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 09:56:08.091533+00
+19762306-c007-4694-8ef0-2a08cb81b8c3	2026-11-11	omkar test	2026	2026-11-05 10:00:28.429468+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1422b37f-3bc2-4ced-82e8-ef4a0666de11	9999-01-01	Test 9999	9999	2026-11-05 13:21:51.460111+00	2026-11-05 13:21:51.925063+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	2026-11-05 13:21:51.925023+00
+30da6786-dc6a-4951-a11e-76f7dfeda6a3	2027-09-14	Ganesh Chaturthi	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+3d060710-0a2a-49b0-a0e1-fb2121278e61	2027-11-08	Diwali (Laxmi Pujan)	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+4a5db713-7852-4576-9ac8-dfb9ab12f792	2027-11-09	Diwali (Balipratipada)	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+66fecb7c-7b55-4c5a-aba7-34186f3cfee1	2027-05-01	Maharashtra Day / May Day	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+93409228-42c1-447f-b79e-e77bf6d449d7	2027-12-25	Christmas	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+99512c0a-494b-4b0f-9f90-600dca3af9b8	2027-04-03	Good Friday	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+a145b6e4-073a-4ec9-b2a8-d9efaa58c024	2027-04-14	Dr. Ambedkar Jayanti	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+b84ac0d1-d316-49b6-8683-a1c6f13ba3e1	2027-10-20	Dussehra (Vijaya Dashami)	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+be8f0b45-e231-47c0-a1a2-8a6666430c3e	2027-02-05	HUijkgjg	2027	2026-11-05 09:54:39.941172+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+d656d165-86e1-46e4-892d-f7bf5671a3df	2027-03-20	Id-ul-Fitr (Ramzan Eid)	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+dc553be2-6c3f-4d1f-b667-7ddfea1223c9	2027-08-15	Independence Day	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+e05ebb44-ec7a-47ed-92bd-f94f0afc2ab3	2027-01-01	New Year's Day	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+f2683a8e-f06b-44fd-9727-971c80d476be	2027-03-03	Holi	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+f4c4f0f3-baf7-4b2c-bdfa-92658401348a	2027-01-26	Republic Day	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+f68471a8-db91-47a6-90a1-8d982840af67	2027-10-02	Mahatma Gandhi Jayanti	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+f7706e92-cf5e-4b7d-a91e-0b1f64f95234	2027-05-27	Bakrid / Id-ul-Zuha	2027	2026-11-05 04:28:18.188748+00	2026-11-05 13:23:28.854531+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:23:28.854512+00
+053ce929-e4cb-4ae1-90d8-b130b0e3d2a8	2027-04-03	Good Friday	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+199af8b3-deb6-4fc2-8002-f838ccf4ac62	2027-01-01	New Year's Day	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+1a7aa5eb-994a-4d3c-8f47-e0eef83b4639	2027-09-14	Ganesh Chaturthi	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+3d34da8f-efbb-42d5-93fc-349454f8b73e	2027-03-20	Id-ul-Fitr (Ramzan Eid)	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+41205b51-7578-424b-8ae4-79067930cd77	2027-03-03	Holi	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+54dfe3d9-cb42-479b-8d20-3818f4db9918	2027-11-09	Diwali (Balipratipada)	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+60d333ac-cf20-45c5-bd2b-1dfacf60eb57	2027-11-08	Diwali (Laxmi Pujan)	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+886422ad-95c9-419e-a2d0-e79cae0b5a80	2027-08-15	Independence Day	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+97be4a07-8040-465d-bcf4-e050b5846a78	2027-04-14	Dr. Ambedkar Jayanti	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+a403a934-dec5-4ff1-8ba4-b3daf2f29bcb	2027-05-27	Bakrid / Id-ul-Zuha	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+ac22c17a-71b2-4c07-ae73-b0998f4f11c0	2027-01-26	Republic Day	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+c1ea737e-2c9d-4d30-a815-5171f15402d5	2027-05-01	Maharashtra Day / May Day	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+cbd52978-b58a-4145-a68f-e026e81c767c	2027-10-20	Dussehra (Vijaya Dashami)	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+efef046c-7c7c-4100-99a8-0afc21f214a0	2027-11-11	omkar test	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+f4492fe3-4865-4461-820f-b70b46b49a53	2027-10-02	Mahatma Gandhi Jayanti	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+f9378489-765a-4c9a-bbc8-f68c0ec57431	2027-12-25	Christmas	2027	2026-11-05 13:23:58.617527+00	2026-11-05 13:24:04.106942+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-05 13:24:04.10692+00
+\.
+
+
+--
 -- Data for Name: mst_modules; Type: TABLE DATA; Schema: master; Owner: trackerpro
 --
 
@@ -3088,121 +3278,121 @@ COPY master.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "So
 --
 
 COPY master.mst_onfloorrole_sub_departments ("Id", "OnFloorRoleId", "SubDepartmentId") FROM stdin;
-03984ce9-6ba0-496c-b375-e32442a6e764	c5ea1ba3-9974-4cca-9320-362527502c6e	5d962383-f175-4dd8-af63-8a566a0d2255
-046fc830-de01-42ac-90d3-e9071ceb14e7	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-082a59a7-abbd-4f44-a6f6-bbd82d3a7151	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	682d36c0-4256-42ab-811e-054ab3a5b10f
-08c02e4b-5607-448e-8461-fcbbdc0cf415	0acaaceb-a951-4492-bdba-69d5e916f8b4	b651aec8-5455-4329-8251-0ceb62cea798
-0c4ede6b-7a21-40d1-ac22-ce0a8e325f27	e60fe13f-6f3e-4410-80c9-dcfbb88f0301	a12ac80b-a665-4301-898e-e9ca3d44bb20
-0f45e31a-f6dc-435d-9796-221e990b69f5	6890c399-940e-4c2a-9aba-0dd90a50e063	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-12d4e108-0aad-4c24-8ad4-edadb2d471a4	8765d1b0-e4fc-4686-91ea-f5ad4e929818	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-139b2bd4-06d4-459d-8fdf-302dfad70744	d8d41d59-fe4b-4c54-80d3-751a7bbf714c	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-14bc06d6-dd40-4c56-b249-b4dfa6f4abc9	29119117-9aa3-4def-9db8-802f70f74e4b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-16445074-57b5-4a66-8720-a9ca59b8a683	f39ba18d-6be5-4d23-a99f-f8d7a68c43dc	c88d783b-b628-4f3a-a972-aa56aeed5e77
-1a66e51f-f983-4de7-9943-e8494bc89500	c4ef6b03-baa6-47ac-8d06-c8819ddbdaa7	c88d783b-b628-4f3a-a972-aa56aeed5e77
-1cb0039a-f219-4010-a4ec-6c382080a02d	eb9edaa3-2522-4d91-ab86-d786a7250f91	b651aec8-5455-4329-8251-0ceb62cea798
-1cd6e0f9-01bb-4b15-ac36-b8419106d319	d862a290-2a0a-47f2-9c23-2baf830a37b9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-22d660fb-34d1-49de-8f0c-5a8d627cda6a	39c52128-53f4-4e39-8102-4b9ccc9f5584	682d36c0-4256-42ab-811e-054ab3a5b10f
-244c009d-0976-4239-9fa3-a762fe94f794	6eaffc67-3d6e-4bb6-9c90-0a604398090d	db0addff-605e-439f-917b-38016a398755
-24ad7dd5-b951-4a31-8870-bb7acf394e95	fec21974-29e7-4dcf-8438-efb813045170	45755b2a-741a-4990-ab78-8f65090f75b1
-2e956785-f0a4-4009-83c0-72fec610fa83	6eaffc67-3d6e-4bb6-9c90-0a604398090d	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-2f4bced3-c091-49ce-893b-d9cbe8e0dd42	5814389a-4416-4e4d-96a7-58f4801e2757	682d36c0-4256-42ab-811e-054ab3a5b10f
-30fe099b-56e6-4ca6-bcd4-9e62ca872c80	e1f2260d-b878-4693-86db-2513390804aa	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-31b12d99-fb92-440b-8b0e-ae9936ff7996	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	682d36c0-4256-42ab-811e-054ab3a5b10f
-31c78849-8b99-4940-8f23-a791a2aa9fd1	ecc39c47-956d-49b9-8fbc-44a6433f3912	88b29e0c-39b7-4169-ab5c-350075014a84
-337dc11b-460a-4ae1-9583-ee5241dc38e2	70480603-7eae-41f7-b659-052b7500ca91	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-3b74a763-da49-4794-8541-803a6048485a	bb6f610b-b2f5-4b01-9ea4-fb9ad074b768	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-3c7d4dc2-9c6d-4ed1-aec9-aea83f605609	9326acb0-20c1-4d05-89b6-d85ee3425469	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-3d3d2a38-2e5d-47e2-9e07-387837fd846b	b4b2673b-fc1c-4484-8f2d-903a39dff2a9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-423db5fc-78e3-4cf8-b2eb-3715a2295bfc	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-42e6e9d0-a439-4216-9e00-2c05d22b88d5	67bdeca7-fe42-4b4e-b5b6-9e8e8d410413	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-42ea6f2e-9835-43e8-9193-e120780500c1	d6002117-fdbb-437a-986f-dde6b5b5c162	88b29e0c-39b7-4169-ab5c-350075014a84
-475858ce-0524-4370-abf9-0f8130fc4d78	03d492f0-4458-48e5-9ee8-06f09f660218	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-4f70532c-3e19-4611-a132-63785c4613fe	5c9266d9-5a57-4b6c-aabc-18edce40ae96	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-56e19cbf-5c95-425c-b6b8-79ac8b399dfc	4cc83d93-7b2f-4c97-a4a7-e9ec47735e4b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-59788aa7-d3e1-45b9-968c-1fc6b09412da	8211f0b1-d111-400b-94ab-fd663d50ec65	7682acb3-561b-4951-801b-c1564adda131
-5a0cf9cd-5fe0-40c8-809f-920cf8ae1a60	885809b5-843a-4ec9-bafe-da1472b73a03	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-5c5896e5-20db-412e-a584-8197db1e63e6	39c52128-53f4-4e39-8102-4b9ccc9f5584	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-5e92e6ce-eac8-4405-a6f7-d11a6f4d985c	8765d1b0-e4fc-4686-91ea-f5ad4e929818	682d36c0-4256-42ab-811e-054ab3a5b10f
-602aecb2-6dea-46d3-ade4-06541170b184	f51841ca-ffbc-4619-98be-201d736e4f48	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-60629062-646b-4b15-8d8b-969b39f68e44	746752f8-decb-46a0-a7e1-d07a0a68dbc3	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-62462ad3-d15a-4877-a16a-54e132c434fa	475cc74e-698a-4547-966a-823be44cfd15	7682acb3-561b-4951-801b-c1564adda131
-64e770d2-7c06-4574-9c86-a28511a5bff8	f4e2358e-5ec0-4292-8377-438dabb72fbe	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-64ee34f7-e6ef-4ea5-b47d-11fe7467ac52	9ed3ce2c-add0-4472-9da8-4cd5c0552867	5d962383-f175-4dd8-af63-8a566a0d2255
-6b7b7f1b-516f-471b-b9af-07dc62bb8ad5	56ed9417-a9fd-40ff-a517-1e75bbf02d63	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6ca51a8f-2bf0-44d9-941f-a0c6b66bd0d4	b9f75ed9-10c6-4b61-ad05-b27ec89a8b3b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-6d742a5a-9ed4-4d6f-8715-11d809c9d613	39c52128-53f4-4e39-8102-4b9ccc9f5584	db0addff-605e-439f-917b-38016a398755
-6de3b136-9006-4624-839a-abe7d0eda339	23f52e10-894f-4e50-970b-202a3127a1d9	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-6fca91e8-aa69-48a1-9988-c79fcfa3a08d	7fe8d8b6-c0fc-4015-a3ff-5bb8e95ea0d5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-71d0fa27-0886-4e65-8385-3c3b34643b87	b5974e61-080c-4de2-a977-7f0bdee29949	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-72f8405f-cc2b-49e6-be03-ddcbfd8c8690	27d8ec30-01ad-45f2-a7d8-7a54c2d2c754	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-777148bc-9d87-47d3-84ad-097bc555469e	b24b3d9d-7454-4657-bb24-3c4f0f40956e	7682acb3-561b-4951-801b-c1564adda131
-7b5470e2-f3ff-4e01-9ec2-e1f0b381ef3b	e3ede776-6573-4898-9195-fb2a398100b2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-7c05c09b-b365-427d-99ab-02658e1245ce	22a8384f-6070-4554-89f1-ee327ae48f16	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-8239495b-a998-4f20-9357-46a3b6853960	56779122-3301-4a2c-bc35-085f96ee714b	c88d783b-b628-4f3a-a972-aa56aeed5e77
-854d26d6-d5d3-4f9b-b9a2-4bc8d5651f89	e061fae9-2430-4025-ad39-ff79717301a5	682d36c0-4256-42ab-811e-054ab3a5b10f
-891668f1-c72f-4c8f-961e-9958c8d6dc67	87ea604f-b245-49c0-9172-3956f1d6eb75	db0addff-605e-439f-917b-38016a398755
-8a2d4402-d44e-4e19-a4ea-7c11f8b09bfe	9ad0a166-cde2-4817-9acd-363d217422d9	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-8a3c0628-4093-4e8a-b1b1-6f0276a6c6ca	87ea604f-b245-49c0-9172-3956f1d6eb75	682d36c0-4256-42ab-811e-054ab3a5b10f
-8cd62a87-e5f2-4ae5-8527-87f7ee71c097	e061fae9-2430-4025-ad39-ff79717301a5	db0addff-605e-439f-917b-38016a398755
-8e9d929d-a4b8-43d3-b4a0-469641067cb7	9ad0a166-cde2-4817-9acd-363d217422d9	682d36c0-4256-42ab-811e-054ab3a5b10f
-920436a4-ed45-4736-a48c-c993d807bcbc	c4d57da3-eff2-4cd1-834f-e0d77b39f299	682d36c0-4256-42ab-811e-054ab3a5b10f
-9567ab14-1e96-4e79-bfb2-2e1af5ac69c3	54123afd-2783-4a41-b18f-328d024e8a22	5d962383-f175-4dd8-af63-8a566a0d2255
-963ace6e-fd86-4f75-9128-a92154f9682e	9ac666ca-eaa2-46a5-b489-66a8cc550b65	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-9790d909-376a-4cfd-8488-7dd10cc08d8c	c4d57da3-eff2-4cd1-834f-e0d77b39f299	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-97eeb504-0cec-47a5-a154-24ec950dbc50	0837f524-0260-4283-a37f-6e1fb06d3dcd	b651aec8-5455-4329-8251-0ceb62cea798
-9976817c-fa28-48fa-a50e-169154938cd4	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	db0addff-605e-439f-917b-38016a398755
-9a136d44-bb94-4f2a-8e1d-c6c961f723ee	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	db0addff-605e-439f-917b-38016a398755
-9a993413-de04-4ed3-a905-f8605f647636	1abc8fed-e830-4103-a5ab-c3402b166116	63765624-d7d1-472d-abd4-627127646998
-9bff39ee-ed11-4fdb-9cc6-e876db28789b	21c47c58-0be4-41bb-8407-8df5fa4b8e9d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-9fc1842f-abdb-4d8b-828d-da5aaef7eeeb	59cf62d4-7c2d-4e4c-b075-0db51d40ea4e	7682acb3-561b-4951-801b-c1564adda131
-a07a592e-9b5c-47ff-b34f-dd36d116b04a	87ea604f-b245-49c0-9172-3956f1d6eb75	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-a4623233-7fc3-43d2-9543-3a197ac2f5a4	d412d761-e42e-4ab2-8e58-1df17b290365	5d962383-f175-4dd8-af63-8a566a0d2255
-a4f9608c-e412-48d9-b6b0-333eb8d2c14b	ce7509b0-415c-4d04-a2d8-43c3ee382a72	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-a94b96b1-0d91-48fb-829f-3bdebd68e04d	ec4a89e1-35a6-495a-83c9-b6a34ee00402	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-a9af5aba-c22a-4199-a6fd-8df44dcf7482	734614d6-908f-4f24-8331-c515a6d70149	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-aae155ee-11f1-4ce5-ae43-66f12a9a871b	e061fae9-2430-4025-ad39-ff79717301a5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-ad9c8bcc-4c91-4811-b6ad-bbc2b2054c45	36339f27-5abf-4ffc-bca3-5a2333a94df2	682d36c0-4256-42ab-811e-054ab3a5b10f
-b2053177-bc58-41ba-918b-bfc75be6797d	b7425734-5262-4802-9a10-5e3141b11d6c	c88d783b-b628-4f3a-a972-aa56aeed5e77
-b5ccb9e9-c202-432e-9129-540e2908adb7	3101ee42-6788-4ae4-a80b-f7394720b740	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-b9e48705-8bd4-4115-900c-da698544fe39	a1826c58-197f-4c7e-9909-a8970491fe38	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-ba0d8bf1-d4cd-4e8f-9d27-dbca28c9bdfd	67306ff5-e313-43da-99bc-56b6a6ca65ee	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-bb7e8d58-9e0f-457a-af81-847738ec6b86	8765d1b0-e4fc-4686-91ea-f5ad4e929818	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-bdfc3a12-9fb2-45b8-85f9-e9b5f746d6ea	acf26b08-e6ae-4343-9bf9-529b070835a3	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-bea305a7-5a3d-42a3-a961-be63acdfaf8c	ae6e9e5b-7337-47a3-8fe5-bb02a9a7f374	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-c1a72cd0-443e-4b45-ac14-ee8a1da7820a	67084a5d-02d0-4a73-a15f-45aca43adb58	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-c3d0df51-1a56-41e0-9877-4d02a2b835c1	c637e1a2-5677-45fa-bbbf-f88fc60a9443	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-c522ec78-7d03-44a4-b046-3bc1ec956541	acbe4f0d-8058-4a88-9255-08104f0037b6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-ca336aca-1ed7-46ce-842c-26779b97a2c5	f7a34722-94ab-4e14-ad50-5e5f0b44cca6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-cc8e88d1-f5f1-43d2-9cb6-46ed81a58da2	4766e158-b2c1-44dd-a36d-18583c490193	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-d00957f7-24d8-450d-b7b1-ef65397ed94b	6eaffc67-3d6e-4bb6-9c90-0a604398090d	682d36c0-4256-42ab-811e-054ab3a5b10f
-d0778c03-cfa8-41e5-8d3a-ed8967d5fddd	4d8c99f7-b5c4-434a-ae7c-64419a5a1bcf	c88d783b-b628-4f3a-a972-aa56aeed5e77
-d1b7c12f-a211-4cc7-b441-29e2f0428a94	da608430-bf9a-4a87-9881-1c07e7f2974a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-d9962c38-d229-46ee-9944-c0feacb9ec7c	bce667dd-cae2-404d-8013-49194e0f48d9	5d962383-f175-4dd8-af63-8a566a0d2255
-d9cca01e-470e-4e8c-bd10-37651026ac7b	f6560080-4b30-4b4b-b8ba-90d5b0ead2da	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-da44b297-f28e-486e-8994-78348d563a48	8765d1b0-e4fc-4686-91ea-f5ad4e929818	b651aec8-5455-4329-8251-0ceb62cea798
-daa095e5-0983-43b2-8f42-f06af49b880d	5814389a-4416-4e4d-96a7-58f4801e2757	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-db522643-44fe-47ea-94d6-e5e897f6acca	9ad0a166-cde2-4817-9acd-363d217422d9	db0addff-605e-439f-917b-38016a398755
-dc472c02-7d87-43b5-9a0c-464b1fb60664	c4d57da3-eff2-4cd1-834f-e0d77b39f299	db0addff-605e-439f-917b-38016a398755
-e4e7890d-f48d-44d7-b506-b6f8f6a1b11c	b9232654-c160-4e84-bdc3-ad94a605dbe1	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-e58cd6e5-3d36-4e33-aec3-6e307c88d4ea	3d74762f-cfbc-4cb9-b172-c2aaffc64f30	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-e7927763-2214-4b56-86a4-785e77612250	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	682d36c0-4256-42ab-811e-054ab3a5b10f
-e80836f5-6661-4c66-8e60-1306f54e1230	e3c262a4-4108-4592-abb0-643085d6a305	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-eaa48343-851a-498b-b324-e7c2bf0a7b45	b25515f1-974c-4b63-a8b6-ca6e7ab95393	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-eb6cbcd0-f52b-4798-b211-9513e69a0bce	8765d1b0-e4fc-4686-91ea-f5ad4e929818	db0addff-605e-439f-917b-38016a398755
-ed1b1e88-4946-4746-a79b-22916026f09d	3091c873-f1f0-4632-ac1e-62d1a451c39d	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-edf1222d-86ae-4796-9b5b-2eeecc7c068b	7d2b7826-2f63-4796-9032-5ffa35cd5b37	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-f0fa4137-f1bf-47ad-a141-f8b0fa4d7724	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-f4c2e789-e455-4fe2-9c28-0f856114def2	580f3fc7-ff2d-4881-a222-d91a7c00f491	c88d783b-b628-4f3a-a972-aa56aeed5e77
-f55fa40b-36e1-4385-81e9-a0c30168d053	36339f27-5abf-4ffc-bca3-5a2333a94df2	db0addff-605e-439f-917b-38016a398755
-f581b4b8-49db-4ca1-88ec-84d6478edc97	ccf1432a-d667-4fff-8071-efbc9f841976	5d962383-f175-4dd8-af63-8a566a0d2255
-f677904b-afdc-4fd2-afc7-fb54bad589aa	2d4e6116-3ec3-4c5d-9d75-35517814a964	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-f7046ece-5e05-4143-9a2e-bdccac48364c	01a26d31-4fcd-4ad3-b08e-1276a4620cb8	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-f7df3f54-fdc1-4e33-bc71-0ff6553e4f2e	36339f27-5abf-4ffc-bca3-5a2333a94df2	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-f7fb2382-0c1d-48ca-81af-0bb5df820801	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	db0addff-605e-439f-917b-38016a398755
-f9981f17-8b35-46d6-8688-95841ab93988	5814389a-4416-4e4d-96a7-58f4801e2757	db0addff-605e-439f-917b-38016a398755
-fbb9570d-1d55-4363-8bb2-a85761c851b2	99039771-cd5a-4878-a7b9-9cdaa02f5be6	5d962383-f175-4dd8-af63-8a566a0d2255
-fd9af7e7-887b-4062-920f-df2e488021da	8765d1b0-e4fc-4686-91ea-f5ad4e929818	88b29e0c-39b7-4169-ab5c-350075014a84
-ffd8e856-e15c-40d8-9a6c-bc56e1211a0a	9635b694-a552-42c0-9df3-a6090c9b1923	61bbeadf-3044-4123-929c-4b1e6e2e613e
+02ffce7d-66b6-4dfa-ba44-6128982ce416	87ea604f-b245-49c0-9172-3956f1d6eb75	682d36c0-4256-42ab-811e-054ab3a5b10f
+05920ef8-fc43-4ad6-9885-36c0b2d8f6ec	475cc74e-698a-4547-966a-823be44cfd15	7682acb3-561b-4951-801b-c1564adda131
+075627f4-11b4-4c66-99fd-aad4daed8b65	e061fae9-2430-4025-ad39-ff79717301a5	682d36c0-4256-42ab-811e-054ab3a5b10f
+0b85ee1c-9dd8-4427-bf32-19ab1bfdb095	9ad0a166-cde2-4817-9acd-363d217422d9	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+0be034e6-0b18-4bcb-ade1-d6f86a5226ba	8765d1b0-e4fc-4686-91ea-f5ad4e929818	682d36c0-4256-42ab-811e-054ab3a5b10f
+0be2c356-e37c-4839-b1e6-18d225ecebde	7d2b7826-2f63-4796-9032-5ffa35cd5b37	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+0d2a775e-5d75-4b6c-8e7f-e046007372b1	ae6e9e5b-7337-47a3-8fe5-bb02a9a7f374	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+10e25c49-dac5-4a36-95df-36df356cc2e1	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	db0addff-605e-439f-917b-38016a398755
+1147c243-8b7f-4cbc-98b1-5073110a4d76	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	db0addff-605e-439f-917b-38016a398755
+13d7bed8-9706-4bda-a3e5-aa70f0a3d84e	ec4a89e1-35a6-495a-83c9-b6a34ee00402	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+1460e685-4b0e-45aa-9769-7e7daae95176	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+14ec9205-8ef2-4dba-ba16-a72c95fe0d00	d412d761-e42e-4ab2-8e58-1df17b290365	5d962383-f175-4dd8-af63-8a566a0d2255
+15a4827c-04c1-40e6-9303-05b929a868fb	c4d57da3-eff2-4cd1-834f-e0d77b39f299	db0addff-605e-439f-917b-38016a398755
+18169a1e-006c-48e9-a408-9072bb7ef7f0	8765d1b0-e4fc-4686-91ea-f5ad4e929818	b651aec8-5455-4329-8251-0ceb62cea798
+1c97ad1f-6874-434a-b713-568429878471	734614d6-908f-4f24-8331-c515a6d70149	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+1d752a44-c45a-445d-b1ae-63334713a94b	2d4e6116-3ec3-4c5d-9d75-35517814a964	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+1e646a3f-2cdb-488d-9af3-1361ed960339	5c9266d9-5a57-4b6c-aabc-18edce40ae96	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+21afb219-ebec-46a3-b781-665db0687cfa	36339f27-5abf-4ffc-bca3-5a2333a94df2	682d36c0-4256-42ab-811e-054ab3a5b10f
+245ce41b-1e4e-4b0f-bae6-59ff5f91ef40	b25515f1-974c-4b63-a8b6-ca6e7ab95393	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+246e300e-5743-40e7-8e29-34cae0951c71	bce667dd-cae2-404d-8013-49194e0f48d9	5d962383-f175-4dd8-af63-8a566a0d2255
+293be62c-4e3e-439f-95f3-5925977f24ad	5814389a-4416-4e4d-96a7-58f4801e2757	db0addff-605e-439f-917b-38016a398755
+2c14fd8a-96f5-4329-b58d-b97bf06a49bb	4cc83d93-7b2f-4c97-a4a7-e9ec47735e4b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+2cc9408e-78a6-4be6-bfaf-8a96b6839f3f	29119117-9aa3-4def-9db8-802f70f74e4b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2e9a2c5f-c3ca-4d1a-af03-b7e847e92ca7	a1826c58-197f-4c7e-9909-a8970491fe38	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+34881c51-8719-4a5d-9e5d-0d5550960ae4	e3c262a4-4108-4592-abb0-643085d6a305	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+351a3e12-28e4-4100-a58e-80a0b5b5659a	6eaffc67-3d6e-4bb6-9c90-0a604398090d	db0addff-605e-439f-917b-38016a398755
+35cd5707-4cb5-4f93-a1cc-13d59c6f6b15	6890c399-940e-4c2a-9aba-0dd90a50e063	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+39a6aad9-28b5-41eb-ad4e-38acaf46f3cc	eb9edaa3-2522-4d91-ab86-d786a7250f91	b651aec8-5455-4329-8251-0ceb62cea798
+3abd40e1-e807-43e5-bebe-e86e6ae2f603	e60fe13f-6f3e-4410-80c9-dcfbb88f0301	a12ac80b-a665-4301-898e-e9ca3d44bb20
+3acf9061-aee4-4975-924f-460e23754093	e061fae9-2430-4025-ad39-ff79717301a5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+3ae0e1ed-946a-4238-8466-b2911a20e267	59cf62d4-7c2d-4e4c-b075-0db51d40ea4e	7682acb3-561b-4951-801b-c1564adda131
+3f5fe772-a314-4cec-8f39-f077e273eb12	fec21974-29e7-4dcf-8438-efb813045170	45755b2a-741a-4990-ab78-8f65090f75b1
+402b063b-5d45-409b-a0b4-2a517a34b964	b9232654-c160-4e84-bdc3-ad94a605dbe1	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+40bf1d43-7d0d-4829-9646-70dd2d842f99	ccf1432a-d667-4fff-8071-efbc9f841976	5d962383-f175-4dd8-af63-8a566a0d2255
+42254b3d-9ea0-4624-99f6-d7efb4a912e6	21c47c58-0be4-41bb-8407-8df5fa4b8e9d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+474dc4f6-f448-44ed-abba-b5d48a4a3623	f51841ca-ffbc-4619-98be-201d736e4f48	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+478cc102-87f3-445c-9e1a-42bcf14f5558	0837f524-0260-4283-a37f-6e1fb06d3dcd	b651aec8-5455-4329-8251-0ceb62cea798
+489ae0f5-e1df-40fe-b274-4a8bc7e128ed	b7425734-5262-4802-9a10-5e3141b11d6c	c88d783b-b628-4f3a-a972-aa56aeed5e77
+4a11d4fa-460f-4abc-8d25-e01dd26bf595	03d492f0-4458-48e5-9ee8-06f09f660218	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+4b41db85-eb5b-468b-80f4-5e82d0b1709e	580f3fc7-ff2d-4881-a222-d91a7c00f491	c88d783b-b628-4f3a-a972-aa56aeed5e77
+525bd36f-9833-476f-af3f-5d7a2cdde9b7	5814389a-4416-4e4d-96a7-58f4801e2757	682d36c0-4256-42ab-811e-054ab3a5b10f
+52fda4af-c6f0-4994-8397-2d894e67ad9c	3091c873-f1f0-4632-ac1e-62d1a451c39d	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+57b6a7d2-a4a5-4fc3-807f-9c9704d41ff4	885809b5-843a-4ec9-bafe-da1472b73a03	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+58c72a16-96d2-4e2a-91cc-0679c2a321c1	ce7509b0-415c-4d04-a2d8-43c3ee382a72	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+5f675b05-6350-4c1a-b894-28715407b1ca	36339f27-5abf-4ffc-bca3-5a2333a94df2	db0addff-605e-439f-917b-38016a398755
+60696df4-143b-4eb2-b315-6f0717202b99	d862a290-2a0a-47f2-9c23-2baf830a37b9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+6784be20-bb98-4aed-941f-2dce035367eb	8765d1b0-e4fc-4686-91ea-f5ad4e929818	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+686f088c-4e56-4aba-a729-e4417a711ca2	8765d1b0-e4fc-4686-91ea-f5ad4e929818	db0addff-605e-439f-917b-38016a398755
+6cb21ced-417b-4bab-b8d1-526a11c834c6	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	db0addff-605e-439f-917b-38016a398755
+6d62f8c7-29d0-454c-be55-0af33478aecb	4d8c99f7-b5c4-434a-ae7c-64419a5a1bcf	c88d783b-b628-4f3a-a972-aa56aeed5e77
+6ecca99c-1a5a-403c-b507-f9a0d9afb483	9635b694-a552-42c0-9df3-a6090c9b1923	61bbeadf-3044-4123-929c-4b1e6e2e613e
+71da8af1-3ba7-429c-b7d3-188215aab2a5	1abc8fed-e830-4103-a5ab-c3402b166116	63765624-d7d1-472d-abd4-627127646998
+738e5f91-d9ba-4d4b-aeb3-cc0295efdb10	da608430-bf9a-4a87-9881-1c07e7f2974a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+768c14d7-7ab4-41a2-a814-438b544e6935	39c52128-53f4-4e39-8102-4b9ccc9f5584	db0addff-605e-439f-917b-38016a398755
+7760d699-106f-4ad1-b900-0bc6ec2bba68	f4e2358e-5ec0-4292-8377-438dabb72fbe	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+7993219c-460a-419d-b395-a7b0b6525792	5814389a-4416-4e4d-96a7-58f4801e2757	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+7e1d3aba-a0f5-4940-9769-5d4c923b3090	f39ba18d-6be5-4d23-a99f-f8d7a68c43dc	c88d783b-b628-4f3a-a972-aa56aeed5e77
+81826d86-7980-4492-8248-2055820e4ea5	67bdeca7-fe42-4b4e-b5b6-9e8e8d410413	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+8280aa6e-3ff9-4d5a-8488-e640fc16d9b2	22a8384f-6070-4554-89f1-ee327ae48f16	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+8652c2dd-c6ef-4de5-81b7-e1b24cfe2a76	b9f75ed9-10c6-4b61-ad05-b27ec89a8b3b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+88215e3d-e00e-4498-90aa-b72da146c7db	c637e1a2-5677-45fa-bbbf-f88fc60a9443	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+8a28c7cf-e12f-4a28-8193-e196b40dfa02	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	682d36c0-4256-42ab-811e-054ab3a5b10f
+8a65549b-6b13-4da5-9119-6377198b5f38	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+8cfc1311-1876-4efe-beb6-b15a24c11d98	99039771-cd5a-4878-a7b9-9cdaa02f5be6	5d962383-f175-4dd8-af63-8a566a0d2255
+8e013960-5583-4023-aa6b-9191b7d3c941	c4d57da3-eff2-4cd1-834f-e0d77b39f299	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+8e62a197-da91-4cde-831c-2a948d6c8608	67306ff5-e313-43da-99bc-56b6a6ca65ee	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+90822d4e-e1fe-4677-b229-6a6c5759722c	e3ede776-6573-4898-9195-fb2a398100b2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+91d1c389-bfa0-4e4e-8964-d2c481820b8e	bb6f610b-b2f5-4b01-9ea4-fb9ad074b768	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+936ddefd-5ff4-42f7-b364-c2bec86a3679	9ed3ce2c-add0-4472-9da8-4cd5c0552867	5d962383-f175-4dd8-af63-8a566a0d2255
+93cd5499-5751-41ca-9f71-3e0e79e9a382	9ad0a166-cde2-4817-9acd-363d217422d9	db0addff-605e-439f-917b-38016a398755
+947c7885-7736-4a67-aaad-ffa9d6a4d85e	36339f27-5abf-4ffc-bca3-5a2333a94df2	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+94a800bb-60d1-4f41-bb2e-e0a00ebc9c14	8765d1b0-e4fc-4686-91ea-f5ad4e929818	88b29e0c-39b7-4169-ab5c-350075014a84
+9540bee1-c9e2-4967-a4e4-5e765c9770ac	23f52e10-894f-4e50-970b-202a3127a1d9	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+95d9876f-9681-42c3-b9fd-f3342a0ea825	39c52128-53f4-4e39-8102-4b9ccc9f5584	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+962ac060-906b-4a33-b519-ad1c6b07ae34	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+9acdf64c-4b6d-4969-9531-98f0134e2e54	e061fae9-2430-4025-ad39-ff79717301a5	db0addff-605e-439f-917b-38016a398755
+a26df844-ff41-4f0d-a241-dec2cdd73b8f	6eaffc67-3d6e-4bb6-9c90-0a604398090d	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+a3649757-5892-4860-a220-2c6319294af1	d8d41d59-fe4b-4c54-80d3-751a7bbf714c	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+a3cc340b-12f8-42a2-8aaf-5a6c46a11abe	746752f8-decb-46a0-a7e1-d07a0a68dbc3	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+a8db1fc9-758a-409f-94c1-ca3acb1965fc	9ad0a166-cde2-4817-9acd-363d217422d9	682d36c0-4256-42ab-811e-054ab3a5b10f
+a9ad4b90-74bc-45d7-8c1d-ab6a58545dca	9326acb0-20c1-4d05-89b6-d85ee3425469	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+aa3590bc-22d1-4774-8831-09570bf40769	c4ef6b03-baa6-47ac-8d06-c8819ddbdaa7	c88d783b-b628-4f3a-a972-aa56aeed5e77
+acc6123a-5828-41ee-8d08-2541b6a9ec1e	b4b2673b-fc1c-4484-8f2d-903a39dff2a9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+adf681d2-d1b5-4d89-bfc6-c3ffd71cb264	acf26b08-e6ae-4343-9bf9-529b070835a3	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+aedc5f4d-ea04-4343-8d4b-21efab85818d	0acaaceb-a951-4492-bdba-69d5e916f8b4	b651aec8-5455-4329-8251-0ceb62cea798
+af039ea3-1dd2-4d37-bcfb-4dd5cf3645ed	70480603-7eae-41f7-b659-052b7500ca91	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+b4d48e61-7c8b-4f3b-8dcb-684f607c4e1d	39c52128-53f4-4e39-8102-4b9ccc9f5584	682d36c0-4256-42ab-811e-054ab3a5b10f
+b7753393-4fc9-444e-ab64-1260ba662cc3	56779122-3301-4a2c-bc35-085f96ee714b	c88d783b-b628-4f3a-a972-aa56aeed5e77
+b80aa27a-4bbe-47a9-9170-aad442c50c90	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	682d36c0-4256-42ab-811e-054ab3a5b10f
+bcc39c67-727e-483f-93ef-4b9a780fd333	c5ea1ba3-9974-4cca-9320-362527502c6e	5d962383-f175-4dd8-af63-8a566a0d2255
+bf8fff45-4489-400a-a4bd-dddd4282e63b	01a26d31-4fcd-4ad3-b08e-1276a4620cb8	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+bfb98fd2-c848-433f-ad3a-162fb298142f	3101ee42-6788-4ae4-a80b-f7394720b740	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+bfc39010-22e7-494d-8ae8-9e6bacc18f90	ecc39c47-956d-49b9-8fbc-44a6433f3912	88b29e0c-39b7-4169-ab5c-350075014a84
+c2416f4d-dd85-4c85-a2a5-fd0df6b203d8	f6560080-4b30-4b4b-b8ba-90d5b0ead2da	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+c5e94bb3-967a-4cc5-ae4f-02453f15c57a	7fe8d8b6-c0fc-4015-a3ff-5bb8e95ea0d5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+c699b3e6-0b0f-4bea-a37a-1865b80a3405	27d8ec30-01ad-45f2-a7d8-7a54c2d2c754	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+c90458a4-106d-422c-a714-24499cc1ba3d	d6002117-fdbb-437a-986f-dde6b5b5c162	88b29e0c-39b7-4169-ab5c-350075014a84
+ca7b2755-1d5b-48c9-8226-8fc5ecd1d16a	87ea604f-b245-49c0-9172-3956f1d6eb75	db0addff-605e-439f-917b-38016a398755
+cb05c19d-ffa8-424e-947d-79d06fc7bd7b	b5974e61-080c-4de2-a977-7f0bdee29949	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+cf60d489-73fc-4dd1-8da9-2d560d7f6e48	4766e158-b2c1-44dd-a36d-18583c490193	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+d4c5e606-363b-44f6-8547-93133cb89984	c4d57da3-eff2-4cd1-834f-e0d77b39f299	682d36c0-4256-42ab-811e-054ab3a5b10f
+d57db9b0-7516-4a2f-87c2-e021ca2bd2d4	87ea604f-b245-49c0-9172-3956f1d6eb75	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d7268b21-79fa-486a-b644-943c0d80d0ae	67084a5d-02d0-4a73-a15f-45aca43adb58	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+e02720f7-6338-4b2a-9a96-c9eb928bb04c	e1f2260d-b878-4693-86db-2513390804aa	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e4d2a60f-56ff-4301-9dcc-6a0fb7737118	56ed9417-a9fd-40ff-a517-1e75bbf02d63	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e4f0f21b-fd37-4364-a2c6-151842cb8c99	6eaffc67-3d6e-4bb6-9c90-0a604398090d	682d36c0-4256-42ab-811e-054ab3a5b10f
+e7dea41c-1754-49aa-a6ba-2480d0466668	9ac666ca-eaa2-46a5-b489-66a8cc550b65	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+e7fdfc23-5f2a-4132-9331-c2a38345d761	3d74762f-cfbc-4cb9-b172-c2aaffc64f30	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+e9e13a5a-54a4-4c93-ac1a-251b761319ce	acbe4f0d-8058-4a88-9255-08104f0037b6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+eaed1b81-f209-41ed-aee6-2cc4f6c2489c	8765d1b0-e4fc-4686-91ea-f5ad4e929818	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+ec8a36c1-66c4-403a-bc29-dbcc6337d949	f7a34722-94ab-4e14-ad50-5e5f0b44cca6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+f05a574e-9ee2-4904-8595-d296129d3df1	54123afd-2783-4a41-b18f-328d024e8a22	5d962383-f175-4dd8-af63-8a566a0d2255
+f3526f68-cac1-4338-86a0-349e8b19fa7a	b24b3d9d-7454-4657-bb24-3c4f0f40956e	7682acb3-561b-4951-801b-c1564adda131
+fa0399f6-2390-45d6-8396-3f5ebcee1fda	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	682d36c0-4256-42ab-811e-054ab3a5b10f
+fd9367c8-919d-4ea4-9c64-941dcdf80085	8211f0b1-d111-400b-94ab-fd663d50ec65	7682acb3-561b-4951-801b-c1564adda131
 \.
 
 
@@ -3310,121 +3500,121 @@ fcd178d9-a936-4f02-a42a-ea9bdcf646a2	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9f
 --
 
 COPY master.mst_org_role_sub_departments ("Id", "OrgRoleMapId", "SubDepartmentId") FROM stdin;
-004d376b-4dca-48c6-9f25-b4b68c8cd818	e91d743d-70da-4bbe-92ce-8e9bf436acd9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-04391ec2-d4ca-4b3b-b731-e166f87d7bc9	73687605-0927-471b-b8c2-ec61f4d5164e	682d36c0-4256-42ab-811e-054ab3a5b10f
-07ca0fb2-65c9-47e4-a870-79fbb75b718f	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	db0addff-605e-439f-917b-38016a398755
-07fb6b19-29b1-4663-867c-3f7dd3e50137	999c4385-21ef-4a47-800f-1c08938edcee	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-0db27376-3593-43b2-86a6-37493815c683	759ce52f-d3bf-414e-bd79-c33c038dfdf6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-0e6df012-f674-4252-8104-236bff179c36	159c2701-2318-4ba7-b809-fa07d078305e	db0addff-605e-439f-917b-38016a398755
-0e93ed53-3065-45fc-9c19-d0858e3db0e0	7d7850cf-72da-411d-ba58-bd2d4a43ca28	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-0f811bb1-988c-45f3-98b6-41b5ed1a3412	305ab402-2d28-4607-ad44-7b1031dea076	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-120a2c4b-ac7f-4339-94be-2e5f5f7d46f8	15e4938e-241c-4f53-b64e-56a4b2201981	c88d783b-b628-4f3a-a972-aa56aeed5e77
-136e01a8-3efb-456a-9d50-374783ca14b9	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	682d36c0-4256-42ab-811e-054ab3a5b10f
-138918f7-d612-43b0-a56e-d6807dfb8b07	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-1605b0d0-7481-4685-8b2d-ef37a6467e50	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	88b29e0c-39b7-4169-ab5c-350075014a84
-189abab6-bcc5-4814-890e-5576d4b00d13	0717101c-438d-4f69-b0ef-a56fcaf47a45	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-18f2f086-8e6c-475f-8094-b106d8eacf9b	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	db0addff-605e-439f-917b-38016a398755
-197748d2-36bb-4d4b-8bb8-0e11c916d645	e064b573-153e-4f5c-bca0-37d89be9564a	5d962383-f175-4dd8-af63-8a566a0d2255
-1d3ff6f0-d1f6-4a48-acf5-695c3d18df56	73687605-0927-471b-b8c2-ec61f4d5164e	db0addff-605e-439f-917b-38016a398755
-1fffdea9-dc0c-45c3-8949-2686afcb8da8	b79f5fee-71cf-4fe3-b61f-7e3811fedcea	c88d783b-b628-4f3a-a972-aa56aeed5e77
-232995de-a327-4eef-a2c2-1a871a335f51	766c6052-09ad-44e4-8746-ed4795e712f1	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-257cd7a1-e916-4d2e-b718-37318262498d	378f0582-07ec-4a86-a0ff-56575cc28dd0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2622cc2e-d5d3-40c1-a136-5d6234ce6812	325fcf79-60ee-46bc-931d-612002282ff3	88b29e0c-39b7-4169-ab5c-350075014a84
-26cc4a32-256b-49b3-8541-07ef5a87e736	a7cb72a9-ec77-44e1-998a-a0638f8becc5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-29cb965e-0d7b-48ee-8395-0f1d56eea5c1	0a1dda59-5a52-496e-8d30-5f082dbe343e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2af758b4-2bed-42ee-a418-dfbaec72287b	8a351e0a-8631-4aca-9598-81b276dbc990	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-2b134377-42a3-4905-8bc8-dee5c82381e1	0717101c-438d-4f69-b0ef-a56fcaf47a45	682d36c0-4256-42ab-811e-054ab3a5b10f
-2b481419-2207-481b-8a5d-3653bd75fc33	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	682d36c0-4256-42ab-811e-054ab3a5b10f
-2c1cf627-fa89-44e7-9aee-159080c08e57	b823d89e-aab0-477f-8b85-7129d59dd202	7682acb3-561b-4951-801b-c1564adda131
-2e789d40-5652-4b2a-b095-a33fc6f93a17	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	b651aec8-5455-4329-8251-0ceb62cea798
-3568c65f-b6cd-438a-aabf-7b065fd4cc4b	98b476d3-39f3-4af1-83df-00639379db5e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-36ab97fe-0612-4fe4-b3bf-d4d51fa85f35	ab07d7c9-e503-4641-8db6-25ac3fc0993e	5d962383-f175-4dd8-af63-8a566a0d2255
-37401a80-2fa8-4687-af9b-f171d590da5b	bf03ad3b-c399-4afa-a0e2-682f1d475fe8	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-38d19261-a64f-4d93-afc8-b3cfd52fe7f4	37fe770e-4c51-4e31-bbb6-0ca302286b91	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-45e2714a-4e30-49d2-90dd-973a6d08036d	45469efe-b575-417d-adb7-5c9ee591cb05	682d36c0-4256-42ab-811e-054ab3a5b10f
-46e807fa-7348-4c59-9979-cdffa8db28ec	b2819c45-99c7-4306-9ffb-1d585f0a29d0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-497eb184-6c75-4c6c-87ff-af85980fa902	81e65582-e98d-4ded-b699-ea7fcb82f071	5d962383-f175-4dd8-af63-8a566a0d2255
-4d3f301a-21f5-4555-98fe-7683ac7cfa31	36243b2d-d487-49db-87d4-a46216df15ae	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-4e89f00c-17e7-459c-8d42-6bcd3b26dff0	86237191-01ee-4aad-9a6b-e75600c375fc	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-4ebc42cd-600d-4928-8388-da79d606aff1	159c2701-2318-4ba7-b809-fa07d078305e	682d36c0-4256-42ab-811e-054ab3a5b10f
-4f895bf8-b8ae-41af-bebe-9fe649424abc	6df1609a-13f1-469d-96a1-253b2bc66b4f	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-50d12e03-7d75-4590-ba8a-ed19acd16eb7	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	db0addff-605e-439f-917b-38016a398755
-5190de9b-1419-408c-977f-6b050309c0d7	a77285b6-5266-4959-8399-f34dfbfcb44e	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-5673d719-d43d-4ca7-8217-28f7372fc0c2	3c8fda3c-c84a-4ef8-80ed-327dc87a3abc	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-56da81a5-c2d9-449b-85fb-cd700d3b7a7c	caa92f5c-1925-436c-9bf0-b270d5ddb38d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-66e34261-7eac-4883-b803-3a27a1207562	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	682d36c0-4256-42ab-811e-054ab3a5b10f
-67732d73-0163-4474-8fb2-66d1ba8f499a	4f83891a-823a-406f-aa9f-5e23abeaba11	63765624-d7d1-472d-abd4-627127646998
-67fa0de9-5a78-4f13-bb34-fb24f825a3ac	651dc356-0c28-457e-bc56-69fdf6ea321f	7682acb3-561b-4951-801b-c1564adda131
-69da516b-d5f4-4494-9313-de826b096636	872930ee-4d00-4d37-a2cb-dc57167f6973	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-6aa405ac-2165-4238-8cb4-117c9540a40d	4804833e-7bbf-4746-9e57-16542de6c3dc	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6aca5c30-4d02-4f1b-80ca-b8ee8043aefd	8fbc1e25-42da-426a-be89-975dde3326bc	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-6aed53f3-b484-4b6b-b986-6ff9d12631fb	e323d911-96c9-4d01-be14-6ff9f00b5f68	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-6b970d99-5fc3-444d-84d9-1301e6913317	72fc796a-c5ba-4bf3-b93f-5b8f52491aed	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-6be1c682-ca74-4d21-83f7-ae7106b61a02	837d9855-e239-4046-83d9-ae224ecce6ef	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-6c16d181-c9e3-4688-b3fc-ad5e316f57f9	3f714252-8945-41a7-8520-1c1c8925854e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6dfdc6a9-3df2-43ae-bf9f-f9a83031d4fb	b3eb1bdf-188b-4292-9cfd-f72381c366f0	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-70bb454f-94c4-4c3a-be47-b296e43225b8	8a92cbcd-7247-4f89-94a4-546013a78a29	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-749bf7b0-a815-4aee-8bef-99907faf3e89	a0c6147f-a977-4215-840a-60f95d2bd729	7682acb3-561b-4951-801b-c1564adda131
-7925673b-dfa9-4e19-905a-2b91061de57b	76ad509e-ba7a-412e-a0cb-be0b8eeb8305	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-79586ab8-7587-4380-91c0-5db71aeb3e67	159c2701-2318-4ba7-b809-fa07d078305e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-7aa5e261-ac6a-43db-a2e3-892f55d9bca7	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-7c53b9e0-d1cc-4e3c-8bdb-3dd09c1d3e64	047399e0-7821-4f80-be7a-78057c4c2f5f	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-7cf9acbf-5c4a-4047-a1e6-3f23371c2b82	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-804eaaf6-0da2-4a7e-8de8-cc2ee123e130	45469efe-b575-417d-adb7-5c9ee591cb05	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-80930c80-0179-4137-afe7-742b34906715	1c213096-46a8-48e1-b353-fdf2d25074ab	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-814ae916-90b2-4f01-80da-f74147ddd51d	50581768-4796-4731-b6e2-fc50e877f192	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-85b854f9-1c82-4b9f-a7ea-471584c5dbb8	7428ebde-4c77-4358-bc21-6acef30a85a4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-89004405-3e20-445f-8a8e-3111cc9cfee3	872930ee-4d00-4d37-a2cb-dc57167f6973	db0addff-605e-439f-917b-38016a398755
-8997fb2d-4ae9-4d3b-b625-3a1109b572a0	759ce52f-d3bf-414e-bd79-c33c038dfdf6	db0addff-605e-439f-917b-38016a398755
-8a8b6e97-17cf-4d08-832e-982f28f275d8	6c3fcc16-3602-4bf5-9dd2-7e51fe23d336	b651aec8-5455-4329-8251-0ceb62cea798
-8bc91b2e-0321-485c-8756-be7b95d6f7aa	554562de-10b1-4365-9e6e-cf769630de75	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-8c30e3c6-4d9e-46ad-a6b3-7a7b35192f78	81a34a8f-1fb9-431f-bc96-1bb95dab3fdb	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-8cb5eb1e-0fac-4f18-ad2a-5b15bd1fc73c	a220a973-9f98-4654-8a57-ee6b44579be5	45755b2a-741a-4990-ab78-8f65090f75b1
-8de22199-8690-453e-8169-6d34fe5a4bde	5d79d51f-fcd5-40a1-96e8-8a8ae7c76c00	b651aec8-5455-4329-8251-0ceb62cea798
-90e0a67b-12a1-4458-88a3-bb5367dabf86	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	682d36c0-4256-42ab-811e-054ab3a5b10f
-91f34bd7-0341-4b69-bf8f-3f584ec6b72e	da6c7063-b8d6-47d9-8ad6-e5654b1a6190	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-9556468a-8fe8-4490-b810-d6a2645523f5	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	db0addff-605e-439f-917b-38016a398755
-95d8f379-f1d2-421d-a26b-a43813107b67	38bd29af-b288-4b62-ae24-679d6b2713ac	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-96ab3345-26ab-48b8-a742-7cc08215768a	b11be1e9-662a-4bc7-b06b-7f401c8b00b3	7682acb3-561b-4951-801b-c1564adda131
-9cfded9c-e331-489b-976f-7d84280d7621	872930ee-4d00-4d37-a2cb-dc57167f6973	682d36c0-4256-42ab-811e-054ab3a5b10f
-9e07e1c2-bf92-41ae-b7aa-92be5fb68d10	45469efe-b575-417d-adb7-5c9ee591cb05	db0addff-605e-439f-917b-38016a398755
-a933ced1-c944-4b6c-a358-995e84cc2d5a	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-acba8b39-d002-4625-b11b-174d0e2dd76e	759ce52f-d3bf-414e-bd79-c33c038dfdf6	682d36c0-4256-42ab-811e-054ab3a5b10f
-acf0335c-27b5-4fb8-941c-f76a72baa4c1	359026a0-80bd-4c27-99f3-f63fb1741c6d	c88d783b-b628-4f3a-a972-aa56aeed5e77
-affc52ce-4ff2-4fc2-98f9-f39baa38d943	a2113157-8223-486e-a506-90ae7a3daa93	c88d783b-b628-4f3a-a972-aa56aeed5e77
-b09720d0-34ed-44fc-ab2b-88d78ca50f31	0f8dfe0e-d5d5-4a23-b9dc-cff6d71ae84f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-b19ce0cc-31e1-4e1c-9b22-231c6458961d	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-b24b6147-f239-41f4-acad-9594b9e36b53	73687605-0927-471b-b8c2-ec61f4d5164e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-ba01aea4-fb7d-4e59-a235-3cfa711a7b85	c1010573-777c-45fa-8b66-c77e8e4cbc3f	c88d783b-b628-4f3a-a972-aa56aeed5e77
-bc5e5061-e2f7-4597-ab7d-bdb36e4d945d	2d9893c2-a2b8-4a26-a41d-85061c629ec2	c88d783b-b628-4f3a-a972-aa56aeed5e77
-bcf5185d-e0f9-4b2c-a371-2af284c85e6f	6ccedaf4-671c-4375-8200-f860eb7d46d9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-bfb32601-4625-48cd-b41c-0b51b4a0095a	c034e919-e8b3-4bcc-8ee2-72f4fe2ad36f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-c64b3f95-1b9f-4a34-9728-59b440e5b226	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-c7bd7903-171b-4f53-8a57-0e6a12a72995	128f2bec-ea83-4f7e-8115-9899a302d677	5d962383-f175-4dd8-af63-8a566a0d2255
-cb6f37ef-1e48-47c4-973a-aa83c64e5fce	4192b456-ca31-4de0-a8ce-698c41732ec4	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-cd6f82f9-8b91-4d90-a348-1ae5fa7fcbcb	003fd050-8939-4d05-ac2b-29876038cb76	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-cea70659-74a8-457f-808a-bcfc8a1b65a6	36732dd0-7171-4b3e-a7a6-48427a14f504	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-d5eb438d-2700-4758-8e45-65dd65348f4e	e323d911-96c9-4d01-be14-6ff9f00b5f68	db0addff-605e-439f-917b-38016a398755
-d6ca0c40-83d1-481f-9d9d-74c49a385514	5f392507-7f0b-4614-9679-fcc103e3dbc7	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-e1a5aee5-1d6b-40aa-b149-6e4db9bbb31b	5e1badcc-b621-4c3b-b729-4f3ddf5877a0	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-e5d489e3-1fb0-43e2-8722-a534278629c8	2a21a67d-6020-4c2c-b06c-9e394c101fab	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-e67b72e3-2add-4b5b-aabb-14af4457379c	ef3cba27-0a2a-4348-82e3-7d86feed3e31	5d962383-f175-4dd8-af63-8a566a0d2255
-e71d3346-0d0b-4e06-b71d-d7b99867d939	af28c045-efab-45db-83dc-c487bab9019f	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-e77422b3-20f9-49a1-af88-ba9f00680529	5808fbe9-5fd4-4e3f-86b4-5a0ad69517bd	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-e8d58aed-77ba-4769-9187-9df0effd503c	3bce413c-a323-4f80-a417-190414a3d56b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-ea1a82fd-2ee5-4c53-a59b-46361111047a	0717101c-438d-4f69-b0ef-a56fcaf47a45	db0addff-605e-439f-917b-38016a398755
-eb47e6a2-02c5-4102-a51b-c053677bc682	222358f3-3516-49b6-b7db-60f936d4a8c9	61bbeadf-3044-4123-929c-4b1e6e2e613e
-f15b3e97-3994-4682-8e0a-aa9797e239da	2faf5d1b-751e-4a11-9b34-33bf797eef82	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-f1f06c3d-3ee0-447b-af86-49165e04fe9c	a3451572-fefd-4cec-aa55-b28d3d3cac92	a12ac80b-a665-4301-898e-e9ca3d44bb20
-f4676a23-c542-42e1-bb9d-fa3dd0161584	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	db0addff-605e-439f-917b-38016a398755
-f63eb51b-a48f-43e2-ac3f-1ed2e24f3e52	85559f41-c8d4-44b1-8906-a5e1d064f78c	5d962383-f175-4dd8-af63-8a566a0d2255
-f89f667b-0c4c-4262-81c2-d7d9294a00bb	e323d911-96c9-4d01-be14-6ff9f00b5f68	682d36c0-4256-42ab-811e-054ab3a5b10f
-f9442197-3f70-4e58-aae5-7362a6da2c30	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	682d36c0-4256-42ab-811e-054ab3a5b10f
-fba2c551-2cbc-4840-aaa5-28c1e52e634a	fcd178d9-a936-4f02-a42a-ea9bdcf646a2	b651aec8-5455-4329-8251-0ceb62cea798
-fbeb2f4e-7057-435b-ada0-9d4fdef4f158	79d8ed54-9a91-4486-a19f-e5485de7b490	88b29e0c-39b7-4169-ab5c-350075014a84
-fc4447db-b1db-4fda-8900-77808e0f765d	ccff1a9e-10e0-43e8-9379-77811383a397	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-fe8aa226-3473-4e0f-bc83-fe74a8f75a08	3514262c-d7ec-4d76-81c8-20995e4d22f8	5d962383-f175-4dd8-af63-8a566a0d2255
-ffbe324f-8aad-4ba4-87d1-d93faf3c9e19	cf705a0a-b654-4219-955c-a187d514a84f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+005448c4-cdbc-44b9-b68b-e3cd03f9457b	e064b573-153e-4f5c-bca0-37d89be9564a	5d962383-f175-4dd8-af63-8a566a0d2255
+00fa068d-8fcc-445f-a1f6-b7f4de5cf027	da6c7063-b8d6-47d9-8ad6-e5654b1a6190	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+01ab0fc1-0e3d-4961-90fc-4b5248c7ff36	8fbc1e25-42da-426a-be89-975dde3326bc	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+02be6670-d5ec-4204-b265-6ef6b5602719	159c2701-2318-4ba7-b809-fa07d078305e	db0addff-605e-439f-917b-38016a398755
+06b2339e-ad6b-427a-8edb-defae598f748	378f0582-07ec-4a86-a0ff-56575cc28dd0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+07904647-415b-4a65-a72f-82dc11003135	047399e0-7821-4f80-be7a-78057c4c2f5f	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+09b45a54-9086-4c08-aa21-8136fe7e56ca	a3451572-fefd-4cec-aa55-b28d3d3cac92	a12ac80b-a665-4301-898e-e9ca3d44bb20
+0f7a3629-8ea6-4c59-81e0-3e76c6e487d6	b11be1e9-662a-4bc7-b06b-7f401c8b00b3	7682acb3-561b-4951-801b-c1564adda131
+0ff938b7-e7bc-4bd1-8bf5-f58eea347ad2	872930ee-4d00-4d37-a2cb-dc57167f6973	682d36c0-4256-42ab-811e-054ab3a5b10f
+10ea9bd1-75b2-4692-81b1-95e76cd2e50c	5808fbe9-5fd4-4e3f-86b4-5a0ad69517bd	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+1440eb99-b88e-4093-9166-cd32672c54a6	a220a973-9f98-4654-8a57-ee6b44579be5	45755b2a-741a-4990-ab78-8f65090f75b1
+14c4b21b-cbaf-40dd-9afe-05255508881e	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	88b29e0c-39b7-4169-ab5c-350075014a84
+15b83145-6fca-4ca6-82f4-ad456ff75520	a77285b6-5266-4959-8399-f34dfbfcb44e	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+184653bd-eadc-48c8-8fed-c63ce078f341	37fe770e-4c51-4e31-bbb6-0ca302286b91	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+1987e2be-c46d-41a4-bf49-9f9a20ec4b4a	c034e919-e8b3-4bcc-8ee2-72f4fe2ad36f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+1aca1fc9-6ef5-4614-83a6-821191fd2327	1c213096-46a8-48e1-b353-fdf2d25074ab	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+1b65df07-2d5d-4fe3-948c-908cb22604db	0f8dfe0e-d5d5-4a23-b9dc-cff6d71ae84f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+1f948e4c-2c5f-414b-ab6e-ad665847824d	2d9893c2-a2b8-4a26-a41d-85061c629ec2	c88d783b-b628-4f3a-a972-aa56aeed5e77
+1fbec217-c5e1-45cf-8a45-33416ee2e6c5	3514262c-d7ec-4d76-81c8-20995e4d22f8	5d962383-f175-4dd8-af63-8a566a0d2255
+2397c1e7-dbe9-44ae-9f1e-dd107e34b093	cf705a0a-b654-4219-955c-a187d514a84f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+270cad3f-57c0-4daa-b376-110dc37bbab9	159c2701-2318-4ba7-b809-fa07d078305e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+27c38edd-6a2c-4899-b61b-a44b62d3bbd3	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	682d36c0-4256-42ab-811e-054ab3a5b10f
+2861f580-3366-4337-89b2-ee8e4a4e176e	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+2c6f9c90-8619-422d-9193-1fb15cbf2d15	8a92cbcd-7247-4f89-94a4-546013a78a29	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+2d2a5d90-8250-4bb2-85e9-250fc7709218	af28c045-efab-45db-83dc-c487bab9019f	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+30b786c5-62ef-435f-baaa-6572e0650971	e91d743d-70da-4bbe-92ce-8e9bf436acd9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+310c0f44-b4bc-48db-a161-cdfa1f4b8edf	36732dd0-7171-4b3e-a7a6-48427a14f504	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+3190aec3-763f-4ab9-8ab6-388589c99e16	81a34a8f-1fb9-431f-bc96-1bb95dab3fdb	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+323fad49-4814-452e-973d-c2ff2d0a7bc0	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	db0addff-605e-439f-917b-38016a398755
+3450dd1a-45e6-4640-ae3b-754f9dfdd384	e323d911-96c9-4d01-be14-6ff9f00b5f68	db0addff-605e-439f-917b-38016a398755
+36f62edc-9db0-414e-903c-0e43c3bdb46c	c1010573-777c-45fa-8b66-c77e8e4cbc3f	c88d783b-b628-4f3a-a972-aa56aeed5e77
+37af83c7-6b4c-41bf-884f-5e07727b8d6f	b79f5fee-71cf-4fe3-b61f-7e3811fedcea	c88d783b-b628-4f3a-a972-aa56aeed5e77
+3a41cd54-a1bc-4ffc-9a36-7fb837f53e43	b2819c45-99c7-4306-9ffb-1d585f0a29d0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+3ac299bd-cd80-42e4-a86f-b3b5959ca4a9	50581768-4796-4731-b6e2-fc50e877f192	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+3ac9f4d7-653c-48d0-8c6b-ddcee62a64b3	73687605-0927-471b-b8c2-ec61f4d5164e	682d36c0-4256-42ab-811e-054ab3a5b10f
+3d51005c-0e3d-4d0c-88ef-c103c7d4ec1b	86237191-01ee-4aad-9a6b-e75600c375fc	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+40f9a11d-91bb-4cec-9f74-9bb5274b0911	0a1dda59-5a52-496e-8d30-5f082dbe343e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+42045fe6-5290-4323-bfce-911eb6ac1e0b	837d9855-e239-4046-83d9-ae224ecce6ef	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+42829e1f-388f-4bfe-8ece-52bba3c923cc	caa92f5c-1925-436c-9bf0-b270d5ddb38d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+4514987f-0580-4f11-bfbf-2d8a0cf26a29	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	682d36c0-4256-42ab-811e-054ab3a5b10f
+4561b9ff-0583-4cb0-ba81-39053689317e	325fcf79-60ee-46bc-931d-612002282ff3	88b29e0c-39b7-4169-ab5c-350075014a84
+45cdc623-2cb7-490b-bd5c-ed9e47e5ba1d	3f714252-8945-41a7-8520-1c1c8925854e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+462b143a-ccb9-413a-83d2-e8692cb51745	6df1609a-13f1-469d-96a1-253b2bc66b4f	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+465a471f-0ce6-4c60-b6fc-bc3bc6e61472	15e4938e-241c-4f53-b64e-56a4b2201981	c88d783b-b628-4f3a-a972-aa56aeed5e77
+48962dbe-9095-4265-a9b8-5fe848ce0ce3	305ab402-2d28-4607-ad44-7b1031dea076	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+4bcdc26c-d003-49f2-8f7d-96e8a16b40a7	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	db0addff-605e-439f-917b-38016a398755
+4e68748e-a1c6-45ef-bf1c-81de401fe27d	5d79d51f-fcd5-40a1-96e8-8a8ae7c76c00	b651aec8-5455-4329-8251-0ceb62cea798
+4fd85cfd-3ffd-40b1-b533-9bf1c74f2907	8a351e0a-8631-4aca-9598-81b276dbc990	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+535fb07a-c581-4a55-9706-b570475a84ba	159c2701-2318-4ba7-b809-fa07d078305e	682d36c0-4256-42ab-811e-054ab3a5b10f
+54c36f04-02c5-48c7-b465-a0fe84ca768a	872930ee-4d00-4d37-a2cb-dc57167f6973	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+624dd884-f154-498b-90c1-f59a741a7aea	76ad509e-ba7a-412e-a0cb-be0b8eeb8305	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+641666ba-d3aa-4005-a083-a27790f2b8c6	a0c6147f-a977-4215-840a-60f95d2bd729	7682acb3-561b-4951-801b-c1564adda131
+65f13ac6-d9c7-44dc-a193-a324d8196f88	766c6052-09ad-44e4-8746-ed4795e712f1	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+6e1bb351-3cbc-4fa3-8170-fd5a12827874	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	db0addff-605e-439f-917b-38016a398755
+71da8516-7cf7-4fa8-9f3b-20de52e08128	0717101c-438d-4f69-b0ef-a56fcaf47a45	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+753d94e2-0560-4ddf-b2a2-bbfbbbeec4b5	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	682d36c0-4256-42ab-811e-054ab3a5b10f
+754288be-b0ea-41ef-ba90-3dbad31d8c1a	45469efe-b575-417d-adb7-5c9ee591cb05	682d36c0-4256-42ab-811e-054ab3a5b10f
+7682b27a-1202-4d81-8493-504c45713737	4804833e-7bbf-4746-9e57-16542de6c3dc	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+76d22357-3d3c-4df1-bb93-22c614b85386	b823d89e-aab0-477f-8b85-7129d59dd202	7682acb3-561b-4951-801b-c1564adda131
+785213f7-1dd5-4142-bc7c-4173399886dd	ccff1a9e-10e0-43e8-9379-77811383a397	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+78dc8886-4a9f-4a12-bb7b-63892ca702ec	554562de-10b1-4365-9e6e-cf769630de75	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+7c6573ef-9779-4041-9568-f5f04e11cd69	79d8ed54-9a91-4486-a19f-e5485de7b490	88b29e0c-39b7-4169-ab5c-350075014a84
+807f5bc6-1ed4-4783-98c7-ada429b2a89c	872930ee-4d00-4d37-a2cb-dc57167f6973	db0addff-605e-439f-917b-38016a398755
+81c4b022-3dde-46e9-a5ce-87e499c65602	4192b456-ca31-4de0-a8ce-698c41732ec4	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+82f496b3-4551-4505-9d9c-b36e546e165f	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	682d36c0-4256-42ab-811e-054ab3a5b10f
+8590e6cd-6bd3-4e3f-9cc6-67a37e49d682	45469efe-b575-417d-adb7-5c9ee591cb05	db0addff-605e-439f-917b-38016a398755
+8593e53b-289b-4e33-9391-34c8d73d8925	fcd178d9-a936-4f02-a42a-ea9bdcf646a2	b651aec8-5455-4329-8251-0ceb62cea798
+8604e7b5-2c62-4723-a008-65e3fa66c48b	2a21a67d-6020-4c2c-b06c-9e394c101fab	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+8a17b4d5-691b-4c53-80cc-b595f2e8baee	3bce413c-a323-4f80-a417-190414a3d56b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+8d7b8042-3d59-43bd-9cf5-5dad4007f219	85559f41-c8d4-44b1-8906-a5e1d064f78c	5d962383-f175-4dd8-af63-8a566a0d2255
+8fdd7945-7e29-45b6-896e-fc04756c0ff8	128f2bec-ea83-4f7e-8115-9899a302d677	5d962383-f175-4dd8-af63-8a566a0d2255
+92213af6-07d3-4e71-bf8b-87ac8f4c7184	bf03ad3b-c399-4afa-a0e2-682f1d475fe8	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+947062ad-2fc3-407c-b630-51f8847782b5	999c4385-21ef-4a47-800f-1c08938edcee	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+99ae6c73-06e2-4968-af8c-2972894dae19	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	db0addff-605e-439f-917b-38016a398755
+9a0d9557-e74b-4885-a609-ad574920fc1c	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+9fbd9844-85c5-4b43-9fc6-e4b54f3675e1	98b476d3-39f3-4af1-83df-00639379db5e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+a534a239-3f9f-4e92-bac9-bf12f10e6165	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+a8fe5ab9-f6be-49fa-9f3d-53c32744e275	73687605-0927-471b-b8c2-ec61f4d5164e	db0addff-605e-439f-917b-38016a398755
+aaaefc3e-df03-47a7-998a-fdf8360d6914	ab07d7c9-e503-4641-8db6-25ac3fc0993e	5d962383-f175-4dd8-af63-8a566a0d2255
+aacedc89-79bd-4c51-b20f-e942315b692b	759ce52f-d3bf-414e-bd79-c33c038dfdf6	682d36c0-4256-42ab-811e-054ab3a5b10f
+acb26793-f87a-4c47-a84d-5a8527a2728e	003fd050-8939-4d05-ac2b-29876038cb76	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+b011cace-49f2-49b0-a9df-4953e02bf033	759ce52f-d3bf-414e-bd79-c33c038dfdf6	db0addff-605e-439f-917b-38016a398755
+b2b3c7f5-4912-426b-a624-d1bf4732b22b	b3eb1bdf-188b-4292-9cfd-f72381c366f0	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+b2ff920d-d14e-4206-bd4d-fa5e71a85349	7428ebde-4c77-4358-bc21-6acef30a85a4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+bd8add29-7660-473f-bf7d-af8e8c8b7cd6	7d7850cf-72da-411d-ba58-bd2d4a43ca28	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+c37f0084-59c8-4f5f-b26d-6d9360b52d13	4f83891a-823a-406f-aa9f-5e23abeaba11	63765624-d7d1-472d-abd4-627127646998
+c3e3d52e-6479-4334-a5f0-54da6fe303c4	73687605-0927-471b-b8c2-ec61f4d5164e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+c4e8af65-a01f-4a59-b18c-f408df59bf54	a7cb72a9-ec77-44e1-998a-a0638f8becc5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+c64df1f2-5d57-4439-85a4-380a90de6c1a	81e65582-e98d-4ded-b699-ea7fcb82f071	5d962383-f175-4dd8-af63-8a566a0d2255
+c7d00934-6a58-4444-a488-af04a3648a99	0717101c-438d-4f69-b0ef-a56fcaf47a45	682d36c0-4256-42ab-811e-054ab3a5b10f
+c9eb56f1-c72d-4e69-ac96-0baaf5f70f59	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	682d36c0-4256-42ab-811e-054ab3a5b10f
+c9f13edf-fed0-421b-a591-7ad8a0e1e29a	2faf5d1b-751e-4a11-9b34-33bf797eef82	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+cde9d151-8866-428d-9788-0b9aad00f5f5	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d3ca7b43-0774-4def-a68e-d3d4b7d4869a	3c8fda3c-c84a-4ef8-80ed-327dc87a3abc	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+d3db124b-d2c4-4a38-828d-4a9f2af1461b	759ce52f-d3bf-414e-bd79-c33c038dfdf6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d3ecd568-98a7-4312-9096-d34d1d5f5732	651dc356-0c28-457e-bc56-69fdf6ea321f	7682acb3-561b-4951-801b-c1564adda131
+d6618261-3c3b-4205-93f6-13b05140e624	0717101c-438d-4f69-b0ef-a56fcaf47a45	db0addff-605e-439f-917b-38016a398755
+d7384dc2-f693-4a7a-8c5b-a5d4ad85acae	e323d911-96c9-4d01-be14-6ff9f00b5f68	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d96bc02a-95ad-40ac-83f5-a99d49fc790d	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+dadfce8d-ae11-472c-8982-7b96bc17ead2	5e1badcc-b621-4c3b-b729-4f3ddf5877a0	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+de1267df-5b04-4137-985b-c30270aa9638	a2113157-8223-486e-a506-90ae7a3daa93	c88d783b-b628-4f3a-a972-aa56aeed5e77
+df299d73-b8e5-437a-b511-a5d728317749	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	db0addff-605e-439f-917b-38016a398755
+e0108d08-b4b0-408a-a5c2-5689bf76a15a	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+e25e7d2f-73d3-4ec1-879f-59d109d8c032	6ccedaf4-671c-4375-8200-f860eb7d46d9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+ec3376a8-2746-4761-90ac-4dc44567ec51	38bd29af-b288-4b62-ae24-679d6b2713ac	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+ecd5e992-a579-4c5f-9938-6643439e1fc6	e323d911-96c9-4d01-be14-6ff9f00b5f68	682d36c0-4256-42ab-811e-054ab3a5b10f
+ecdd4b38-5e46-4140-a4c7-184cf0254cb6	72fc796a-c5ba-4bf3-b93f-5b8f52491aed	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+eece060e-5766-456c-a1f6-2f101c642105	359026a0-80bd-4c27-99f3-f63fb1741c6d	c88d783b-b628-4f3a-a972-aa56aeed5e77
+ef5094be-7ab5-4472-bac8-2a75a920aed0	36243b2d-d487-49db-87d4-a46216df15ae	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+f10bad44-3bc7-4b65-a6ff-40608505eb8b	ef3cba27-0a2a-4348-82e3-7d86feed3e31	5d962383-f175-4dd8-af63-8a566a0d2255
+f33273b7-3e1f-48ca-9425-7dd9723739f4	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	b651aec8-5455-4329-8251-0ceb62cea798
+f54173bb-c9a9-4fde-97e8-e2167d4ddc5b	5f392507-7f0b-4614-9679-fcc103e3dbc7	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+f803e8d2-024c-431c-b465-3b34e5c7e8b2	45469efe-b575-417d-adb7-5c9ee591cb05	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+f9602716-25c5-4d9b-9539-fda8ea309023	222358f3-3516-49b6-b7db-60f936d4a8c9	61bbeadf-3044-4123-929c-4b1e6e2e613e
+ff44b3d3-9205-442c-9710-16236b234adc	6c3fcc16-3602-4bf5-9dd2-7e51fe23d336	b651aec8-5455-4329-8251-0ceb62cea798
 \.
 
 
@@ -3725,6 +3915,9 @@ e03e77ba-1ec1-4843-a6f8-9dea093220df	76163f06-d217-45a1-a127-30f59b86d5a1	ffcdc4
 443f2cdd-fc72-46d8-be7b-d471dd65db05	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	78b71d74-d255-4ac0-a75f-ead11a61427a	Assign	Aarav Desai	Project Team	2026-10-28 07:26:57.52314+00	2026-10-28 07:26:57.627842+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 dc22efce-f8b7-4045-8839-de6c1fc44b99	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	Assign	Harsh Gupta	Project Team	2026-10-28 10:20:26.488013+00	2026-10-28 10:20:26.582237+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 d6a9fc07-69f6-465b-892a-98773a974df3	315f66e7-e091-4451-bee9-5209ffc9632e	6a1ac61a-89d6-4951-8246-621d4e1b071f	Assign	Nikhil Joshi	Project Team	2026-11-03 17:07:17.407279+00	2026-11-03 17:07:17.488092+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b5e5f7e9-f20e-467a-9d85-d0f7c62aa691	c83bc679-4c68-4242-8069-4b7f67078dec	42583b6b-008c-45f6-b258-b08495712c7c	Assign	Harsh Wardhan	Project Team	2026-11-05 05:56:40.723797+00	2026-11-05 05:56:40.824609+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+ad1878a2-e8ff-4bc9-851e-fc12266c7e6e	2ada186c-5cb4-4ada-b394-80af06a43c45	78b71d74-d255-4ac0-a75f-ead11a61427a	Assign	Aarav Desai	Project Team	2026-11-05 09:19:58.683165+00	2026-11-05 09:19:58.946654+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+2f991e32-6b42-45b1-84bf-cad34c5b5441	10a63367-152d-4dfe-959f-3034d54724a4	9f646393-8fea-4b38-9f35-d88a6ab6787e	Assign	Aarav Rao	Project Team	2026-11-05 09:39:21.709265+00	2026-11-05 09:39:22.044813+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -3735,7 +3928,11 @@ d6a9fc07-69f6-465b-892a-98773a974df3	315f66e7-e091-4451-bee9-5209ffc9632e	6a1ac6
 COPY project.tbl_project_additional_requirements ("Id", "RequirementId", "ProjectId", "ClientName", "ProjectName", "RequirementType", "Title", "Description", "Priority", "RequestedByEmployeeId", "RequestedByName", "RequestedDate", "AttachmentFileName", "AttachmentPath", "ScopeCancellationService", "Status", "ApprovedAtUtc", "ApprovedByEmployeeId", "ApprovedByName", "ApprovalComments", "CommentsJson", "HistoryJson", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
 a747eddc-8b7f-42af-afbd-65b669592cf3	REQ-20261104-72A5	96427433-d1b9-4089-bcee-e95f02d3154d	Aditya Birla	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Add Service	Automated Penetration Testing Additional Requirement	Customer requested automated monthly pentest scans with executive summary reports.	High	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-04	SOW_Requirement_Addendum.pdf	Customer Requirement/20261104_145135_662_P003_SOW_Requirement_Addendum.pdf	\N	Open	\N	\N	\N	\N	[]	[{"status":"Open","at":"2026-11-04T14:51:35.6663182Z","updatedBy":"Admin User","details":"Additional customer requirement logged for Aditya Birla(Aditya Birla_Finance)_Mixed_02"}]	2026-11-04 14:51:35.919489+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 475eb3f7-073b-41c2-986c-1bbefdd23b70	REQ-20261104-D225	96427433-d1b9-4089-bcee-e95f02d3154d	Aditya Birla	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Add Service	Automated Penetration Testing Additional Requirement	Customer requested automated monthly pentest scans with executive summary reports.	High	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-04	SOW_Requirement_Addendum.pdf	Customer Requirement/20261104_145203_319_P003_SOW_Requirement_Addendum.pdf	\N	Approved	2026-11-04 14:52:03.531781+00	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	Approved per client discussion and revised commercial agreement.	[]	[[{"status":"Open","at":"2026-11-04T14:52:03.3200339Z","updatedBy":"Admin User","details":"Additional customer requirement logged for Aditya Birla(Aditya Birla_Finance)_Mixed_02"}],{"status":"Approved","at":"2026-11-04T14:52:03.5357211Z","updatedBy":"Admin User","comment":"Approved per client discussion and revised commercial agreement.","details":"Approved by Admin User"}]	2026-11-04 14:52:03.352607+00	2026-11-04 14:52:03.564222+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N
-aefd5e79-b100-4810-803d-b4a949e849ac	REQ-20261104-0E36	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	Aditya Birla	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Add Service	Scope Requirement	Service needed	High	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-25	\N	\N	\N	Open	\N	\N	\N	\N	[]	[{"status":"Open","at":"2026-11-04T15:09:13.5667797Z","updatedBy":"Admin User","details":"Additional customer requirement logged for Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06"}]	2026-11-04 15:09:13.607398+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+213072c4-0418-45f8-8ed8-76cb5eb7f344	REQ-20261105-10F9	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	test cust	test cust(sub test cust)_Network Vulnerability Assessment_01	Add Service	Resource Requirement	need cloud service	Critical	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-07	\N	\N	\N	Approved	2026-11-05 11:06:29.250724+00	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	ohk done	[]	[[{"status":"Open","at":"2026-11-05T11:05:17.7125417Z","updatedBy":"Admin User","details":"Additional customer requirement logged for test cust(sub test cust)_Network Vulnerability Assessment_01"}],{"status":"Approved","at":"2026-11-05T11:06:29.2564825Z","updatedBy":"Reyansh Sawant","comment":"ohk done","details":"Approved by Reyansh Sawant"}]	2026-11-05 11:05:17.935306+00	2026-11-05 11:06:29.380612+00	049ac489-bbd3-4153-b933-aec7b7baec89	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N
+aefd5e79-b100-4810-803d-b4a949e849ac	REQ-20261104-0E36	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	Aditya Birla	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Add Service	Scope Requirement	Service needed	High	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-25	\N	\N	\N	Rejected	\N	\N	\N	not interested	[]	[[[{"status":"Open","at":"2026-11-04T15:09:13.5667797Z","updatedBy":"Admin User","details":"Additional customer requirement logged for Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06"}],{"status":"Rejected","at":"2026-11-05T11:26:35.2039004Z","updatedBy":"Omkar Reddy","comment":"not interested","details":"Rejected by Omkar Reddy"}],{"status":"Rejected","at":"2026-11-05T11:26:39.4842461Z","updatedBy":"Omkar Reddy","comment":"not interested","details":"Rejected by Omkar Reddy"}]	2026-11-04 15:09:13.607398+00	2026-11-05 11:26:39.484316+00	049ac489-bbd3-4153-b933-aec7b7baec89	776f2cf7-c4cc-4299-b38f-afbcaff7703e	\N
+c63c67fb-1bfe-4a1a-a85a-d1dac6508e1e	REQ-20261105-9D04	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	test cust	test cust(sub test cust)_Network Vulnerability Assessment_01	Scope Cancellation	Scope Cancellation: Internal Network Penetration Testing	Testing this	Low	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-05	\N	\N	Internal Network Penetration Testing	Approved	2026-11-05 12:24:13.20127+00	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	ohk i will aproved it	[{"id":"cm-4935baad","authorId":"13b14e34-f865-4c83-a6c0-3fdf7d196c1c","authorName":"Reyansh Sawant","text":"Wait for it...","at":"2026-11-05T12:22:44.6526980Z"},{"id":"cm-4e044e30","authorId":"049ac489-bbd3-4153-b933-aec7b7baec89","authorName":"Admin User","text":"But Sir do this fast","at":"2026-11-05T12:23:26.8697771Z"},{"id":"cm-9cdc73f4","authorId":"13b14e34-f865-4c83-a6c0-3fdf7d196c1c","authorName":"Reyansh Sawant","text":"ohk i will aproved it","at":"2026-11-05T12:24:13.2013413Z"}]	[{"status":"Open","at":"2026-11-05T12:20:10.7977770Z","updatedBy":"Admin User","details":"Additional customer requirement logged for test cust(sub test cust)_Network Vulnerability Assessment_01"},{"status":"Hold","at":"2026-11-05T12:22:44.6527656Z","updatedBy":"Reyansh Sawant","comment":"Wait for it...","details":"Hold by Reyansh Sawant"},{"status":"Approved","at":"2026-11-05T12:24:13.2014168Z","updatedBy":"Reyansh Sawant","comment":"ohk i will aproved it","details":"Approved by Reyansh Sawant"}]	2026-11-05 12:20:10.872932+00	2026-11-05 12:24:13.247957+00	049ac489-bbd3-4153-b933-aec7b7baec89	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N
+0bb50ce5-48fc-4421-b576-ff2eed3e3615	REQ-20261105-97C7	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	test cust	test cust(sub test cust)_Network Vulnerability Assessment_01	Add Service	Resource Requirement	SOC Tesing	Medium	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-05	\N	\N	\N	Approved	2026-11-05 13:23:24.121817+00	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	Reyansh Sawant	ohk done	[{"id":"cm-31314728","authorId":"13b14e34-f865-4c83-a6c0-3fdf7d196c1c","authorName":"Reyansh Sawant","text":"Hello Whats the main issue","at":"2026-11-05T13:21:59.9368341Z"},{"id":"cm-66d80d00","authorId":"049ac489-bbd3-4153-b933-aec7b7baec89","authorName":"Admin User","text":"client want this service into the project... plz aprove this","at":"2026-11-05T13:23:06.8067933Z"},{"id":"cm-d0cbd866","authorId":"13b14e34-f865-4c83-a6c0-3fdf7d196c1c","authorName":"Reyansh Sawant","text":"ohk done","at":"2026-11-05T13:23:24.1218881Z"}]	[{"status":"Open","at":"2026-11-05T13:20:58.2612980Z","updatedBy":"Admin User","details":"Additional customer requirement logged for test cust(sub test cust)_Network Vulnerability Assessment_01"},{"status":"Hold","at":"2026-11-05T13:21:59.9369204Z","updatedBy":"Reyansh Sawant","comment":"Hello Whats the main issue","details":"Hold by Reyansh Sawant"},{"status":"Approved","at":"2026-11-05T13:23:24.1219620Z","updatedBy":"Reyansh Sawant","comment":"ohk done","details":"Approved by Reyansh Sawant"}]	2026-11-05 13:20:58.312609+00	2026-11-05 13:23:24.15771+00	049ac489-bbd3-4153-b933-aec7b7baec89	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N
+a6708d4d-6ae8-451d-8903-4b2d443630d0	REQ-20261105-23E8	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	test cust	test cust(sub test cust)_Network Vulnerability Assessment_01	Scope Cancellation	Scope Cancellation: Network Vulnerability Assessment	Hellooo	Medium	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-05	\N	\N	Network Vulnerability Assessment	Hold	\N	\N	\N	hi	[{"id":"cm-e1424941","authorId":"13b14e34-f865-4c83-a6c0-3fdf7d196c1c","authorName":"Reyansh Sawant","text":"hi","at":"2026-11-05T13:26:10.4079951Z"}]	[{"status":"Open","at":"2026-11-05T13:25:44.6154823Z","updatedBy":"Admin User","details":"Additional customer requirement logged for test cust(sub test cust)_Network Vulnerability Assessment_01"},{"status":"Hold","at":"2026-11-05T13:26:10.4080712Z","updatedBy":"Reyansh Sawant","comment":"hi","details":"Hold by Reyansh Sawant"}]	2026-11-05 13:25:44.652727+00	2026-11-05 13:26:10.440442+00	049ac489-bbd3-4153-b933-aec7b7baec89	13b14e34-f865-4c83-a6c0-3fdf7d196c1c	\N
 \.
 
 
@@ -3760,8 +3957,8 @@ ab8a1b1a-3044-4c3c-904f-5a80008f9897	96427433-d1b9-4089-bcee-e95f02d3154d	\N	WBS
 1e659cb7-a33b-49c3-9db0-ea510c039403	96427433-d1b9-4089-bcee-e95f02d3154d	\N	WBS Escalation: ISO 27001 Security Audit - Missing Architectural Schematics	Prerequisite Pending: Client has not delivered CAD blueprints required to begin civil prerequisites.	WBS Escalation	High	Open	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	Vihaan Pillai	["4aba0077-4d88-4e0c-8d18-9152eea3fbf9"]	2026-11-03 19:46:40.437572+00	\N	6bbf1d5d-265a-0b8f-3de0-0f071d1087ec	\N	\N	Vihaan Pillai	\N	\N	Expected Resolution Date: 2026-11-20	[{"action":"Notification created","date":"2026-11-03","time":"19:46:40","by":"Vihaan Pillai"}]	\N	\N	escalation_evidence_52a639.pdf	Escalation/20261103_194640_187_P003_escalation_evidence_52a639.pdf	2026-11-20	ISO 27001 Security Audit	Prerequisite Pending	["Vihaan Pillai"]	6de4fa8e-78b2-4a0a-bca7-24dccb5afb77	\N
 7f12c17d-ff1f-4936-a6e0-c9d5aa63d705	96427433-d1b9-4089-bcee-e95f02d3154d	\N	WBS Escalation: ISO 27001 Security Audit - Missing Architectural Schematics	Prerequisite Pending: Client has not delivered CAD blueprints required to begin civil prerequisites.	WBS Escalation	High	Open	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	Vihaan Pillai	["4aba0077-4d88-4e0c-8d18-9152eea3fbf9"]	2026-11-03 19:47:10.140519+00	\N	6bbf1d5d-265a-0b8f-3de0-0f071d1087ec	\N	\N	Vihaan Pillai	\N	\N	Expected Resolution Date: 2026-11-20	[{"action":"Notification created","date":"2026-11-03","time":"19:47:10","by":"Vihaan Pillai"}]	\N	\N	escalation_evidence_2c134f.pdf	Escalation/20261103_194710_132_P003_escalation_evidence_2c134f.pdf	2026-11-20	ISO 27001 Security Audit	Prerequisite Pending	["Vihaan Pillai"]	67226330-be52-4e80-b691-596a9e389b43	\N
 d572b16e-3632-4257-8d35-1bf2de1e1ea3	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	\N	WBS Escalation: SOC - Test title	Customer Dependency: Testing the des	WBS Escalation	High	In Progress	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	["696f99d7-2380-443c-b90d-0e065642e1d4"]	2026-11-03 19:55:36.698521+00	2026-11-03 20:57:34.033079+00	049ac489-bbd3-4153-b933-aec7b7baec89	6bbf1d5d-265a-0b8f-3de0-0f071d1087ec	\N	Admin User			Expected Resolution Date: 20-11-2026	[{"action":"Notification created","date":"2026-11-03","time":"19:55:36","by":"Admin User"},{"action":"Comment added: \\u0022hellooo dear\\u0022","date":"2026-11-03","time":"20:01:17","by":"Priya Mishra"},{"action":"Governance updated - Status: Open","date":"2026-11-03","time":"20:01:17","by":"Priya Mishra"},{"action":"Comment added: \\u0022Working on CAD schematics with client\\u0022","date":"2026-11-03","time":"20:27:26","by":"Vihaan Pillai"},{"action":"Governance updated - Status: In Progress","date":"2026-11-03","time":"20:27:26","by":"Vihaan Pillai"},{"action":"Comment added: \\u0022Client confirmed prerequisite scope!\\u0022","date":"2026-11-03","time":"20:31:59","by":"Vihaan Pillai"},{"action":"Governance updated - Status: In Progress","date":"2026-11-03","time":"20:31:59","by":"Vihaan Pillai"},{"action":"Comment added: \\u0022Architect reviewed and approved CAD.\\u0022","date":"2026-11-03","time":"20:31:59","by":"atharv.reddy.tk-0002"},{"action":"Governance updated - Status: In Progress","date":"2026-11-03","time":"20:31:59","by":"atharv.reddy.tk-0002"},{"action":"Comment added: \\u0022This message is definitely longer than fifty chara\\u0022","date":"2026-11-03","time":"20:31:59","by":"Vihaan Pillai"},{"action":"Governance updated - Status: In Progress","date":"2026-11-03","time":"20:31:59","by":"Vihaan Pillai"},{"action":"Comment added: \\u0022Staged comment 1 saved on Governance update\\u0022","date":"2026-11-03","time":"20:57:33","by":"Vihaan Pillai"},{"action":"Comment added: \\u0022Staged comment 2 saved on Governance update\\u0022","date":"2026-11-03","time":"20:57:33","by":"Vihaan Pillai"},{"action":"Governance updated - Status: In Progress","date":"2026-11-03","time":"20:57:33","by":"Vihaan Pillai"}]	Vihaan Pillai	2026-11-03 20:27:26.919734+00	SahilLad_MSCSem4.jpeg	Escalation/20261103_195536_692_P007_SahilLad_MSCSem4.jpeg	2026-11-25	SOC	Customer Dependency	["Priya Mishra"]	b0e14d6d-883f-44d5-8931-61031f63de41	[{"Id":"dd6033f0-aeab-425a-b3eb-a1e609c309f1","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Working on CAD schematics with client","At":"2026-11-03T20:27:26.9197344Z"},{"Id":"3ba00456-6e83-41af-9f03-1c915745d00c","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Client confirmed prerequisite scope!","At":"2026-11-03T20:31:59.8695722Z"},{"Id":"b689e448-fb89-41e3-b0d9-d13fd7b526e5","AuthorName":"atharv.reddy.tk-0002","AuthorEmail":"atharv.reddy.tk-0002@talakunchi.com","Text":"Architect reviewed and approved CAD.","At":"2026-11-03T20:31:59.8958021Z"},{"Id":"a7d3847d-2573-438a-87da-559c5b991c22","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"This message is definitely longer than fifty chara","At":"2026-11-03T20:31:59.9695812Z"},{"Id":"7cf1e872-c8d8-443c-82d8-6f61ee061aaa","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Staged comment 1 saved on Governance update","At":"2026-11-03T20:57:33.9671180Z"},{"Id":"80e3593a-604f-438d-bfae-6b276d01929b","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Staged comment 2 saved on Governance update","At":"2026-11-03T20:57:33.9671180Z"}]
-1d94f879-ac8c-4634-a420-c1bea326b586	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	\N	WBS Escalation: AWS Security Assessment - Testing the subject title	Prerequisite Pending: Testing the Description	WBS Escalation	High	Resolved	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	["9f646393-8fea-4b38-9f35-d88a6ab6787e","d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c","033446c7-c133-4395-bdaa-69b5f227a7a8"]	2026-11-03 20:35:35.00161+00	2026-11-03 20:59:41.018675+00	049ac489-bbd3-4153-b933-aec7b7baec89	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	Admin User	Aarav Rao	\N	Expected Resolution Date: 2026-11-19	[{"action":"Notification created","date":"2026-11-03","time":"20:35:34","by":"Admin User"},{"action":"Comment added: \\u0022hello\\u0022","date":"2026-11-03","time":"20:38:17","by":"Atharv Reddy"},{"action":"Governance updated - Status: Open","date":"2026-11-03","time":"20:38:17","by":"Atharv Reddy"},{"action":"Governance updated - Status: Open","date":"2026-11-03","time":"20:38:27","by":"Atharv Reddy"},{"action":"Comment added: \\u0022How its going ???\\u0022","date":"2026-11-03","time":"20:39:31","by":"Karan Wardhan"},{"action":"Governance updated - Status: Open","date":"2026-11-03","time":"20:39:31","by":"Karan Wardhan"},{"action":"Governance updated - Status: Waiting for Customer","date":"2026-11-03","time":"20:39:53","by":"Karan Wardhan"},{"action":"Comment added: \\u0022The issue is resolved Now\\u0022","date":"2026-11-03","time":"20:41:09","by":"Aarav Rao"},{"action":"Governance updated - Status: Resolved","date":"2026-11-03","time":"20:41:09","by":"Aarav Rao"},{"action":"Governance updated - Status: Resolved","date":"2026-11-03","time":"20:41:15","by":"Aarav Rao"},{"action":"Comment added: \\u0022Good !!! well done\\u0022","date":"2026-11-03","time":"20:59:41","by":"Atharv Reddy"},{"action":"Governance updated - Status: Resolved","date":"2026-11-03","time":"20:59:41","by":"Atharv Reddy"}]	Aarav Rao	2026-11-03 20:41:09.84151+00	SahilLad_BSCSem6.jpeg	Escalation/20261103_203534_924_P007_SahilLad_BSCSem6.jpeg	2026-11-19	AWS Security Assessment	Prerequisite Pending	["Aarav Rao","Karan Wardhan","Atharv Reddy"]	9b28a8b3-f675-40e3-8575-c145d603960a	[{"Id":"c087ab11-fc52-4118-8957-dc08546939e4","AuthorName":"Atharv Reddy","AuthorEmail":"atharv.reddy.tk-0024@talakunchi.com","Text":"hello","At":"2026-11-03T20:38:17.1812511Z"},{"Id":"12f4bae1-2ae0-42c3-92cd-ecf46a8c0e0e","AuthorName":"Karan Wardhan","AuthorEmail":"karan.wardhan.tk-0021@talakunchi.com","Text":"How its going ???","At":"2026-11-03T20:39:31.3292764Z"},{"Id":"96604fd8-3d54-44d4-aeb0-09c8bba193d5","AuthorName":"Aarav Rao","AuthorEmail":"aarav.rao.tk-0023@talakunchi.com","Text":"The issue is resolved Now","At":"2026-11-03T20:41:09.8415101Z"},{"Id":"af009de4-52a9-4a78-839f-9150e000949d","AuthorName":"Atharv Reddy","AuthorEmail":"atharv.reddy.tk-0024@talakunchi.com","Text":"Good !!! well done","At":"2026-11-03T20:59:41.0139478Z"}]
 3d3d1f41-6a2d-4eaf-9a98-d0e465da85a7	89744e80-08e3-4f7c-a4ba-78ff0ce54634	\N	WBS Escalation: AWS Security Assessment - Testing 2	Billing Issue: Testing the desc	WBS Escalation	Critical	Resolved	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	["2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb","4aba0077-4d88-4e0c-8d18-9152eea3fbf9"]	2026-11-04 11:28:33.71436+00	2026-11-04 11:30:45.844348+00	049ac489-bbd3-4153-b933-aec7b7baec89	2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	\N	Admin User	Vihaan Mathur	\N	Expected Resolution Date: 2026-11-26	[{"action":"Notification created","date":"2026-11-04","time":"11:28:33","by":"Admin User"},{"action":"Comment added: \\u0022Hello\\u0022","date":"2026-11-04","time":"11:30:00","by":"Vihaan Pillai"},{"action":"Governance updated - Status: In Progress","date":"2026-11-04","time":"11:30:00","by":"Vihaan Pillai"},{"action":"Comment added: \\u0022Its done bro\\u0022","date":"2026-11-04","time":"11:30:45","by":"Vihaan Mathur"},{"action":"Comment added: \\u0022Is any another Issues\\u0022","date":"2026-11-04","time":"11:30:45","by":"Vihaan Mathur"},{"action":"Governance updated - Status: Resolved","date":"2026-11-04","time":"11:30:45","by":"Vihaan Mathur"}]	Vihaan Mathur	2026-11-04 11:30:45.815972+00	ESIC_Info Sheet.xls	Escalation/20261104_112833_451_P001_ESIC_Info_Sheet.xls	2026-11-26	AWS Security Assessment	Billing Issue	["Vihaan Mathur","Vihaan Pillai"]	35209f9f-a7cc-49d6-b343-6e063799d6aa	[{"Id":"1287178b-eb4c-4dcb-b84d-aabeb8884ac3","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Hello","At":"2026-11-04T11:30:00.5723233Z"},{"Id":"7431045d-b419-48e0-b890-1771aa0af977","AuthorName":"Vihaan Mathur","AuthorEmail":"vihaan.mathur.tk-0025@talakunchi.com","Text":"Its done bro","At":"2026-11-04T11:30:45.8159721Z"},{"Id":"7196268f-833f-4979-ae93-c1ac2f05b4d2","AuthorName":"Vihaan Mathur","AuthorEmail":"vihaan.mathur.tk-0025@talakunchi.com","Text":"Is any another Issues","At":"2026-11-04T11:30:45.8159721Z"}]
+1d94f879-ac8c-4634-a420-c1bea326b586	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	\N	WBS Escalation: AWS Security Assessment - Testing the subject title	Prerequisite Pending: Testing the Description	WBS Escalation	High	Resolved	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	["9f646393-8fea-4b38-9f35-d88a6ab6787e","d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c","033446c7-c133-4395-bdaa-69b5f227a7a8"]	2026-11-03 20:35:35.00161+00	2026-11-05 09:45:51.383007+00	049ac489-bbd3-4153-b933-aec7b7baec89	9f646393-8fea-4b38-9f35-d88a6ab6787e	\N	Admin User	Aarav Rao	\N	Expected Resolution Date: 2026-11-19	[{"action":"Notification created","date":"2026-11-03","time":"20:35:34","by":"Admin User"},{"action":"Comment added: \\u0022hello\\u0022","date":"2026-11-03","time":"20:38:17","by":"Atharv Reddy"},{"action":"Governance updated - Status: Open","date":"2026-11-03","time":"20:38:17","by":"Atharv Reddy"},{"action":"Governance updated - Status: Open","date":"2026-11-03","time":"20:38:27","by":"Atharv Reddy"},{"action":"Comment added: \\u0022How its going ???\\u0022","date":"2026-11-03","time":"20:39:31","by":"Karan Wardhan"},{"action":"Governance updated - Status: Open","date":"2026-11-03","time":"20:39:31","by":"Karan Wardhan"},{"action":"Governance updated - Status: Waiting for Customer","date":"2026-11-03","time":"20:39:53","by":"Karan Wardhan"},{"action":"Comment added: \\u0022The issue is resolved Now\\u0022","date":"2026-11-03","time":"20:41:09","by":"Aarav Rao"},{"action":"Governance updated - Status: Resolved","date":"2026-11-03","time":"20:41:09","by":"Aarav Rao"},{"action":"Governance updated - Status: Resolved","date":"2026-11-03","time":"20:41:15","by":"Aarav Rao"},{"action":"Comment added: \\u0022Good !!! well done\\u0022","date":"2026-11-03","time":"20:59:41","by":"Atharv Reddy"},{"action":"Governance updated - Status: Resolved","date":"2026-11-03","time":"20:59:41","by":"Atharv Reddy"},{"action":"Comment added: \\u0022Nice one\\u0022","date":"2026-11-05","time":"09:45:51","by":"Aarav Rao"},{"action":"Governance updated - Status: Resolved","date":"2026-11-05","time":"09:45:51","by":"Aarav Rao"}]	Aarav Rao	2026-11-03 20:41:09.84151+00	SahilLad_BSCSem6.jpeg	Escalation/20261103_203534_924_P007_SahilLad_BSCSem6.jpeg	2026-11-19	AWS Security Assessment	Prerequisite Pending	["Aarav Rao","Karan Wardhan","Atharv Reddy"]	9b28a8b3-f675-40e3-8575-c145d603960a	[{"Id":"c087ab11-fc52-4118-8957-dc08546939e4","AuthorName":"Atharv Reddy","AuthorEmail":"atharv.reddy.tk-0024@talakunchi.com","Text":"hello","At":"2026-11-03T20:38:17.1812511Z"},{"Id":"12f4bae1-2ae0-42c3-92cd-ecf46a8c0e0e","AuthorName":"Karan Wardhan","AuthorEmail":"karan.wardhan.tk-0021@talakunchi.com","Text":"How its going ???","At":"2026-11-03T20:39:31.3292764Z"},{"Id":"96604fd8-3d54-44d4-aeb0-09c8bba193d5","AuthorName":"Aarav Rao","AuthorEmail":"aarav.rao.tk-0023@talakunchi.com","Text":"The issue is resolved Now","At":"2026-11-03T20:41:09.8415101Z"},{"Id":"af009de4-52a9-4a78-839f-9150e000949d","AuthorName":"Atharv Reddy","AuthorEmail":"atharv.reddy.tk-0024@talakunchi.com","Text":"Good !!! well done","At":"2026-11-03T20:59:41.0139478Z"},{"Id":"c2a871c1-44c4-4ce9-b1c0-a56ebc62dc3f","AuthorName":"Aarav Rao","AuthorEmail":"aarav.rao.tk-0023@talakunchi.com","Text":"Nice one","At":"2026-11-05T09:45:51.2722781Z"}]
 \.
 
 
@@ -3812,6 +4009,7 @@ COPY project.tbl_project_extension_approvers ("Id", "ExtensionRequestId", "Emplo
 3d07cb0b-5b08-424d-b9fa-cae496c0507f	7ad79137-9593-4731-945f-4a996ca950e9	8e0616db-48af-4b73-807f-6e250dba2072	Anita Pandey	Approved	2026-11-04 15:26:38.782704+00	2026-11-04 15:26:39.317818+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N
 6113f31e-4b97-44a1-80ce-a91b45e2d7e8	e817a468-bd76-42d3-b149-cc77ffd296fe	be9f417e-d40a-4c66-91e6-e7fde84b46d5	Krishna Pandey	Pending	2026-11-04 15:31:59.459536+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 4b7186df-c9fd-4ecd-9921-a017f6d7ffe6	f790b06c-6959-49fe-90a1-47b1b70e05d3	be9f417e-d40a-4c66-91e6-e7fde84b46d5	Krishna Pandey	Approved	2026-10-22 08:05:09.241684+00	2026-11-04 16:37:08.379807+00	049ac489-bbd3-4153-b933-aec7b7baec89	ee03982b-f816-a4c3-59b1-167e9b8e9067	\N
+9677f573-9a2d-45d1-9167-c6d8618f11fc	04c26c4f-7929-4e3b-aee7-c5eecc85c899	8e0616db-48af-4b73-807f-6e250dba2072	Anita Pandey	Pending	2026-11-05 13:38:40.075533+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -3824,6 +4022,7 @@ COPY project.tbl_project_extension_requests ("Id", "ProjectId", "CurrentEndDate"
 7ad79137-9593-4731-945f-4a996ca950e9	96427433-d1b9-4089-bcee-e95f02d3154d	2027-04-19	2027-05-09	20	Automated verification test of extension approval workflow	Approved	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-04 15:26:38.782704+00	2026-11-04 15:26:39.317818+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N
 e817a468-bd76-42d3-b149-cc77ffd296fe	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	2027-04-30	2027-05-04	4	Project testing delay	Pending	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-04 15:31:59.459536+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 f790b06c-6959-49fe-90a1-47b1b70e05d3	96427433-d1b9-4089-bcee-e95f02d3154d	2027-04-19	2027-04-20	1	developers delay	Approved	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-10-22 08:05:09.241684+00	2026-11-04 16:37:08.379807+00	049ac489-bbd3-4153-b933-aec7b7baec89	ee03982b-f816-a4c3-59b1-167e9b8e9067	\N
+04c26c4f-7929-4e3b-aee7-c5eecc85c899	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	2027-04-29	2027-05-04	5	service delay	Pending	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-05 13:38:40.075533+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -3990,7 +4189,6 @@ COPY project.tbl_project_service_escalations ("Id", "ProjectId", "ProjectService
 9846557c-a879-4f60-9191-0d05992b5402	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b91ca6a8-82ad-4bb8-8397-27b0a1c9938e	P001	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Aditya Birla	AWS Security Assessment	Prerequisite Pending	High	AWS access is still pending	The customer has not shared the AWS console access.	2026-11-10	\N	\N	\N	\N	Open	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-10-22 10:25:25.851886+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 516ae012-e68a-498b-a232-2bacba591745	96427433-d1b9-4089-bcee-e95f02d3154d	32c68ca2-cb1b-43e9-96a9-d34dd2c89bfb	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Aditya Birla	Targeted Red Team Engagement	Technical Blocker	High	Test	Test	2026-10-31	\N	\N	\N	\N	Open	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-10-22 10:27:11.969724+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 773ecee8-8e42-4f63-bb70-20da3cbb2aa9	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Aditya Birla	Full Spectrum Red Team Exercise	Technical Blocker	High	Test	testing	2026-11-18	\N	\N	\N	\N	Open	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-03 18:00:07.046163+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
-9b28a8b3-f675-40e3-8575-c145d603960a	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	40a03c59-89f2-4854-8492-b26c288eea53	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Aditya Birla	AWS Security Assessment	Prerequisite Pending	High	Testing the subject title	Testing the Description	2026-11-19	SahilLad_BSCSem6.jpeg	Escalation/20261103_203534_924_P007_SahilLad_BSCSem6.jpeg	image/jpeg	229695	Open	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-03 20:35:35.00161+00	2026-11-03 20:59:41.018675+00	049ac489-bbd3-4153-b933-aec7b7baec89	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	[{"Id":"c087ab11-fc52-4118-8957-dc08546939e4","AuthorName":"Atharv Reddy","AuthorEmail":"atharv.reddy.tk-0024@talakunchi.com","Text":"hello","At":"2026-11-03T20:38:17.1812511Z"},{"Id":"12f4bae1-2ae0-42c3-92cd-ecf46a8c0e0e","AuthorName":"Karan Wardhan","AuthorEmail":"karan.wardhan.tk-0021@talakunchi.com","Text":"How its going ???","At":"2026-11-03T20:39:31.3292764Z"},{"Id":"96604fd8-3d54-44d4-aeb0-09c8bba193d5","AuthorName":"Aarav Rao","AuthorEmail":"aarav.rao.tk-0023@talakunchi.com","Text":"The issue is resolved Now","At":"2026-11-03T20:41:09.8415101Z"},{"Id":"af009de4-52a9-4a78-839f-9150e000949d","AuthorName":"Atharv Reddy","AuthorEmail":"atharv.reddy.tk-0024@talakunchi.com","Text":"Good !!! well done","At":"2026-11-03T20:59:41.0139478Z"}]
 8e36ae70-874c-4a8a-8572-2e478cb9944e	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	40a03c59-89f2-4854-8492-b26c288eea53	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Aditya Birla	AWS Security Assessment	Billing Issue	High	Testing	Test	2026-11-05	\N	\N	\N	\N	Acknowledged	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-03 18:45:55.630604+00	2026-11-03 18:50:07.928252+00	049ac489-bbd3-4153-b933-aec7b7baec89	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	\N
 b7bc4818-4831-47b5-8c32-05c6806dd0ac	96427433-d1b9-4089-bcee-e95f02d3154d	a9a1d0f2-a9f7-490a-91cf-03353ea5c121	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Aditya Birla	SOC	Technical Blocker	High	asddasd	asdasd	2026-11-17	\N	\N	\N	\N	Open	033446c7-c133-4395-bdaa-69b5f227a7a8	Atharv Reddy	2026-11-03 19:07:58.028546+00	\N	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	\N	\N
 6764c1ed-75c0-4a6e-b841-ca399db5742b	96427433-d1b9-4089-bcee-e95f02d3154d	6ace031a-2e4e-4517-83ac-bf1078882b71	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Aditya Birla	ISO 27001 Security Audit	Prerequisite Pending	High	Missing Architectural Schematics	Client has not delivered CAD blueprints required to begin civil prerequisites.	2026-11-20	escalation_evidence_b7e480.pdf	Escalation/20261103_193733_922_P003_escalation_evidence_b7e480.pdf	application/pdf	51	Open	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	Vihaan Pillai	2026-11-03 19:37:34.155554+00	\N	6bbf1d5d-265a-0b8f-3de0-0f071d1087ec	\N	\N	\N
@@ -3998,6 +4196,7 @@ b7bc4818-4831-47b5-8c32-05c6806dd0ac	96427433-d1b9-4089-bcee-e95f02d3154d	a9a1d0
 67226330-be52-4e80-b691-596a9e389b43	96427433-d1b9-4089-bcee-e95f02d3154d	6ace031a-2e4e-4517-83ac-bf1078882b71	P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	Aditya Birla	ISO 27001 Security Audit	Prerequisite Pending	High	Missing Architectural Schematics	Client has not delivered CAD blueprints required to begin civil prerequisites.	2026-11-20	escalation_evidence_2c134f.pdf	Escalation/20261103_194710_132_P003_escalation_evidence_2c134f.pdf	application/pdf	51	Open	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	Vihaan Pillai	2026-11-03 19:47:10.140519+00	\N	6bbf1d5d-265a-0b8f-3de0-0f071d1087ec	\N	\N	\N
 b0e14d6d-883f-44d5-8931-61031f63de41	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	30a3872a-698b-49e3-a7b3-9bde60390502	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Aditya Birla	SOC	Customer Dependency	High	Test title	Testing the des	2026-11-25	SahilLad_MSCSem4.jpeg	Escalation/20261103_195536_692_P007_SahilLad_MSCSem4.jpeg	image/jpeg	191621	Open	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-03 19:55:36.698521+00	2026-11-03 20:57:34.033079+00	049ac489-bbd3-4153-b933-aec7b7baec89	6bbf1d5d-265a-0b8f-3de0-0f071d1087ec	\N	[{"Id":"dd6033f0-aeab-425a-b3eb-a1e609c309f1","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Working on CAD schematics with client","At":"2026-11-03T20:27:26.9197344Z"},{"Id":"3ba00456-6e83-41af-9f03-1c915745d00c","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Client confirmed prerequisite scope!","At":"2026-11-03T20:31:59.8695722Z"},{"Id":"b689e448-fb89-41e3-b0d9-d13fd7b526e5","AuthorName":"atharv.reddy.tk-0002","AuthorEmail":"atharv.reddy.tk-0002@talakunchi.com","Text":"Architect reviewed and approved CAD.","At":"2026-11-03T20:31:59.8958021Z"},{"Id":"a7d3847d-2573-438a-87da-559c5b991c22","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"This message is definitely longer than fifty chara","At":"2026-11-03T20:31:59.9695812Z"},{"Id":"7cf1e872-c8d8-443c-82d8-6f61ee061aaa","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Staged comment 1 saved on Governance update","At":"2026-11-03T20:57:33.9671180Z"},{"Id":"80e3593a-604f-438d-bfae-6b276d01929b","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Staged comment 2 saved on Governance update","At":"2026-11-03T20:57:33.9671180Z"}]
 35209f9f-a7cc-49d6-b343-6e063799d6aa	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b91ca6a8-82ad-4bb8-8397-27b0a1c9938e	P001	Aditya Birla(Aditya Birla_Finance)_AWS Security Assessment_01	Aditya Birla	AWS Security Assessment	Billing Issue	Critical	Testing 2	Testing the desc	2026-11-26	ESIC_Info Sheet.xls	Escalation/20261104_112833_451_P001_ESIC_Info_Sheet.xls	application/vnd.ms-excel	27648	Open	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-04 11:28:33.71436+00	2026-11-04 11:30:45.844348+00	049ac489-bbd3-4153-b933-aec7b7baec89	2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	\N	[{"Id":"1287178b-eb4c-4dcb-b84d-aabeb8884ac3","AuthorName":"Vihaan Pillai","AuthorEmail":"vihaan.pillai.tk-0001@talakunchi.com","Text":"Hello","At":"2026-11-04T11:30:00.5723233Z"},{"Id":"7431045d-b419-48e0-b890-1771aa0af977","AuthorName":"Vihaan Mathur","AuthorEmail":"vihaan.mathur.tk-0025@talakunchi.com","Text":"Its done bro","At":"2026-11-04T11:30:45.8159721Z"},{"Id":"7196268f-833f-4979-ae93-c1ac2f05b4d2","AuthorName":"Vihaan Mathur","AuthorEmail":"vihaan.mathur.tk-0025@talakunchi.com","Text":"Is any another Issues","At":"2026-11-04T11:30:45.8159721Z"}]
+9b28a8b3-f675-40e3-8575-c145d603960a	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	40a03c59-89f2-4854-8492-b26c288eea53	P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Aditya Birla	AWS Security Assessment	Prerequisite Pending	High	Testing the subject title	Testing the Description	2026-11-19	SahilLad_BSCSem6.jpeg	Escalation/20261103_203534_924_P007_SahilLad_BSCSem6.jpeg	image/jpeg	229695	Resolved	049ac489-bbd3-4153-b933-aec7b7baec89	Admin User	2026-11-03 20:35:35.00161+00	2026-11-05 09:45:51.383007+00	049ac489-bbd3-4153-b933-aec7b7baec89	9f646393-8fea-4b38-9f35-d88a6ab6787e	\N	[{"Id":"c087ab11-fc52-4118-8957-dc08546939e4","AuthorName":"Atharv Reddy","AuthorEmail":"atharv.reddy.tk-0024@talakunchi.com","Text":"hello","At":"2026-11-03T20:38:17.1812511Z"},{"Id":"12f4bae1-2ae0-42c3-92cd-ecf46a8c0e0e","AuthorName":"Karan Wardhan","AuthorEmail":"karan.wardhan.tk-0021@talakunchi.com","Text":"How its going ???","At":"2026-11-03T20:39:31.3292764Z"},{"Id":"96604fd8-3d54-44d4-aeb0-09c8bba193d5","AuthorName":"Aarav Rao","AuthorEmail":"aarav.rao.tk-0023@talakunchi.com","Text":"The issue is resolved Now","At":"2026-11-03T20:41:09.8415101Z"},{"Id":"af009de4-52a9-4a78-839f-9150e000949d","AuthorName":"Atharv Reddy","AuthorEmail":"atharv.reddy.tk-0024@talakunchi.com","Text":"Good !!! well done","At":"2026-11-03T20:59:41.0139478Z"},{"Id":"c2a871c1-44c4-4ce9-b1c0-a56ebc62dc3f","AuthorName":"Aarav Rao","AuthorEmail":"aarav.rao.tk-0023@talakunchi.com","Text":"Nice one","At":"2026-11-05T09:45:51.2722781Z"}]
 \.
 
 
@@ -4039,7 +4238,10 @@ efc8ff42-50eb-4e68-9cbd-26746f236d0f	76163f06-d217-45a1-a127-30f59b86d5a1	ffcdc4
 b341b1be-e496-4490-a94c-d90401a8828c	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	78b71d74-d255-4ac0-a75f-ead11a61427a	Contributor	262.00	0.82	\N	2935	t	2026-10-28 07:26:57.627842+00	2026-10-28 10:20:26.63903+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 e3ffdda6-7663-4d89-83b3-b6596a0089b6	3757f288-0451-44bc-b54c-e29a3a758d69	b9c0b8fc-4c96-42fb-8669-d68097cf5392	Contributor	524.00	0.01	\N	26	t	2026-10-18 05:58:43.274124+00	2026-10-28 13:38:56.076553+00	049ac489-bbd3-4153-b933-aec7b7baec89	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N
 2c52fb57-ae77-4b44-96c1-0fa2edc223e4	315f66e7-e091-4451-bee9-5209ffc9632e	6a1ac61a-89d6-4951-8246-621d4e1b071f	Contributor	40.00	0.02	\N	73	t	2026-11-03 17:07:17.488092+00	2026-11-03 17:10:22.868562+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
-1fc85a63-900c-441f-8211-394fd5031982	b2f0840e-dc0d-45a6-932f-5f892ab2cd9a	78b71d74-d255-4ac0-a75f-ead11a61427a	Contributor	80.00	15.53	\N	55894	t	2026-10-21 07:32:26.006286+00	2026-11-04 09:18:04.534515+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+2356c5f0-91ca-422c-90c9-23b53ce14183	c83bc679-4c68-4242-8069-4b7f67078dec	42583b6b-008c-45f6-b258-b08495712c7c	Contributor	\N	0.02	\N	76	t	2026-11-05 05:56:40.824609+00	2026-11-05 05:59:10.273577+00	049ac489-bbd3-4153-b933-aec7b7baec89	42583b6b-008c-45f6-b258-b08495712c7c	\N
+27b5ed0c-ce9b-4599-bb70-287d4a767b74	2ada186c-5cb4-4ada-b394-80af06a43c45	78b71d74-d255-4ac0-a75f-ead11a61427a	Contributor	120.00	0.00	\N	7	t	2026-11-05 09:19:58.946654+00	2026-11-05 09:20:47.202661+00	049ac489-bbd3-4153-b933-aec7b7baec89	78b71d74-d255-4ac0-a75f-ead11a61427a	\N
+55705bea-79f8-4272-9e4a-fdc67522f486	10a63367-152d-4dfe-959f-3034d54724a4	9f646393-8fea-4b38-9f35-d88a6ab6787e	Contributor	131.00	0.00	\N	0	t	2026-11-05 09:39:22.044813+00	2026-11-05 09:39:22.25612+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
+1fc85a63-900c-441f-8211-394fd5031982	b2f0840e-dc0d-45a6-932f-5f892ab2cd9a	78b71d74-d255-4ac0-a75f-ead11a61427a	Contributor	80.00	15.53	\N	55908	t	2026-10-21 07:32:26.006286+00	2026-11-05 09:52:36.004071+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 \.
 
 
@@ -4074,15 +4276,12 @@ d01aa337-266e-40e5-ad82-05eb8b5c7be2	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	d359d7
 b089f9ea-bb72-474b-a9e1-8c3ee97327ea	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	d359d7b7-0a2e-45bc-b180-1c58cb4e6513	Task 03	Retest 2		INPTX1	Not Started	medium	2026-10-29	2026-11-02	\N	\N	6.00	0.00	0	110	2026-10-29 15:18:33.686543+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 8961f395-c67b-469d-9c60-acc01c4c31d1	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	6768cf15-ca63-45c6-8ebf-dc7a2d2c547e	Task 01	Initial Test		TKPT3	Not Started	medium	2026-10-29	2026-11-04	\N	\N	40.00	0.00	0	190	2026-10-29 15:22:35.980772+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 df989a1d-3d14-4393-bd8e-fdd6e17fd23a	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	6768cf15-ca63-45c6-8ebf-dc7a2d2c547e	Task 01	Initial Test		TKPT1	Not Started	medium	2026-10-29	2026-11-04	\N	\N	40.00	0.00	0	170	2026-10-29 15:22:35.980772+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
-10a63367-152d-4dfe-959f-3034d54724a4	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Task 01	Initial Test	Quarter 1	ENPT1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	200	2026-10-29 15:27:29.236584+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 518e30b5-f8c4-4746-9299-be35dd84b516	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Task 02	Retest 1	Quarter 2	ENPT1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	250	2026-10-29 15:27:29.236584+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 687c2e18-162e-40b3-99c8-eed178b4bcd6	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Task 04	Retest 3	Quarter 1	ENPT1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	230	2026-10-29 15:27:29.236584+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 859e3952-c89c-43f8-80d5-abec694b4082	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Task 03	Retest 2	Quarter 2	ENPT1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	260	2026-10-29 15:27:29.236584+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 9e938c22-edd6-4834-ad39-85214d8dcf19	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Task 04	Retest 3	Quarter 2	ENPT1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	270	2026-10-29 15:27:29.236584+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 d5f2ad5a-06d4-4dec-a790-8bec10d0d4ff	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Task 02	Retest 1	Quarter 1	ENPT1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	210	2026-10-29 15:27:29.236584+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
-76163f06-d217-45a1-a127-30f59b86d5a1	8e260568-b761-4795-ad27-12bddd698d9d	1a7796a3-3296-4f53-a764-d1092171eb9d	Task 01	NA		AZURE1	Ongoing	medium	2026-10-14	2026-10-20	2026-10-14	2026-10-21	40.00	0.00	0	10	2026-10-14 07:10:26.068485+00	2026-11-02 06:34:18.123075+00	00000000-0000-4000-8000-000000000004	00000000-0000-4000-8000-000000000004	\N	\N
 0f5bed7a-7c99-4a91-b2e5-9c1fe578093e	96427433-d1b9-4089-bcee-e95f02d3154d	32c68ca2-cb1b-43e9-96a9-d34dd2c89bfb	Task 01	NA		TRTE2	Not Started	medium	2026-10-19	2026-10-30	\N	\N	80.00	0.00	0	40	2026-10-27 05:50:41.690974+00	2026-11-02 06:34:18.123075+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
-2ada186c-5cb4-4ada-b394-80af06a43c45	96427433-d1b9-4089-bcee-e95f02d3154d	a9a1d0f2-a9f7-490a-91cf-03353ea5c121	Task 01	NA		SOC1	Not Started	medium	2026-10-19	2026-11-06	\N	\N	120.00	0.00	0	50	2026-10-27 06:01:59.139503+00	2026-11-02 06:34:18.123075+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 c5525158-23a3-4f31-a8f2-5026a880d3c9	8e260568-b761-4795-ad27-12bddd698d9d	a47ece44-9b09-4b4e-acbc-4e1a66ec8401	Task 01	Initial Test		CS1	Not Started	medium	2026-10-14	2026-10-23	\N	\N	40.00	0.00	0	40	2026-10-18 04:02:03.487494+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N
 d95f575b-0318-4b13-9b06-f7636273de06	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Task 03	Retest 2	Quarter 1	ENPT1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	220	2026-10-29 15:27:29.236584+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 e23af317-fe99-47cd-9648-a5fbef70245b	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Task 01	Initial Test	Quarter 2	ENPT1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	240	2026-10-29 15:27:29.236584+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
@@ -4091,6 +4290,8 @@ dd0646a3-05cb-4cd1-83dc-0f91d3079e91	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	40a03c
 3757f288-0451-44bc-b54c-e29a3a758d69	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b91ca6a8-82ad-4bb8-8397-27b0a1c9938e	Task 01	NA	Quarter 1	AWS1	Ongoing	Medium	2026-10-14	2027-04-14	2026-10-28	\N	524.00	0.00	0	10	2026-10-14 04:28:52.764637+00	2026-11-03 17:42:24.310824+00	00000000-0000-4000-8000-000000000004	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 8455a236-3735-41a6-a9bf-ad6d914f275e	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	56819460-9fb1-4a5c-91ae-48cfe813b1a1	Task 01	Initial Test	Quarter 1	NVA1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	262.00	0.00	0	10	2026-10-29 14:02:05.099576+00	2026-11-03 18:06:45.772417+00	049ac489-bbd3-4153-b933-aec7b7baec89	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 4cb22d50-55b7-4a34-b275-de02ee53a2b9	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	150340b3-9196-4d7d-a5f1-f9a34ec7ee73	Task 01	NA	Quarter 1	TMRA2	Not Started	medium	2026-11-02	2027-11-02	\N	\N	524.00	0.00	0	60	2026-11-02 07:17:18.400107+00	2026-11-02 08:30:59.94495+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-02 08:30:59.94495+00	\N
+2ada186c-5cb4-4ada-b394-80af06a43c45	96427433-d1b9-4089-bcee-e95f02d3154d	a9a1d0f2-a9f7-490a-91cf-03353ea5c121	Sp	NA		SOC1	Ongoing	Medium	2026-10-19	2026-11-06	2026-11-05	\N	120.00	0.00	0	50	2026-10-27 06:01:59.139503+00	2026-11-05 09:20:47.202661+00	049ac489-bbd3-4153-b933-aec7b7baec89	78b71d74-d255-4ac0-a75f-ead11a61427a	\N	\N
+10a63367-152d-4dfe-959f-3034d54724a4	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	dbf49c40-3df8-499a-b2ea-c14aade28138	Testing 2	Initial Test	Quarter 1	ENPT1	Not Started	Medium	2026-10-29	2027-04-29	\N	\N	131.00	0.00	0	200	2026-10-29 15:27:29.236584+00	2026-11-05 09:39:22.044813+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 5a7a3fc6-4eaf-4447-ba46-6f268f0272df	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	150340b3-9196-4d7d-a5f1-f9a34ec7ee73	Task 01	NA	Quarter 1	TMRA1	Not Started	medium	2026-11-02	2027-11-02	\N	\N	524.00	0.00	0	50	2026-11-02 07:17:18.400107+00	2026-11-02 08:30:59.94495+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-02 08:30:59.94495+00	\N
 8899bc5c-64cd-4556-b8f4-601ab9706730	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	150340b3-9196-4d7d-a5f1-f9a34ec7ee73	Task 01	NA	Quarter 4	TMRA2	Not Started	medium	2026-11-02	2027-11-02	\N	\N	524.00	0.00	0	120	2026-11-02 07:17:18.400107+00	2026-11-02 08:30:59.94495+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-02 08:30:59.94495+00	\N
 924fe68a-4df2-4366-9796-a576d0c8d64b	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	150340b3-9196-4d7d-a5f1-f9a34ec7ee73	Task 01	NA	Quarter 3	TMRA1	Not Started	medium	2026-11-02	2027-11-02	\N	\N	524.00	0.00	0	90	2026-11-02 07:17:18.400107+00	2026-11-02 08:30:59.94495+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-02 08:30:59.94495+00	\N
@@ -4100,7 +4301,6 @@ db5e4993-ef89-429c-bfcf-c3f050c0f5fe	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	150340
 f3b78a44-3127-43c6-8edf-0d1ef652b44c	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	150340b3-9196-4d7d-a5f1-f9a34ec7ee73	Task 01	NA	Quarter 3	TMRA2	Not Started	medium	2026-11-02	2027-11-02	\N	\N	524.00	0.00	0	100	2026-11-02 07:17:18.400107+00	2026-11-02 08:30:59.94495+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	2026-11-02 08:30:59.94495+00	\N
 60801369-b8c8-4783-b5ff-9d6d827fcb40	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	Testing	NA		FSRE1	Not Started	medium	2026-11-02	2026-11-06	\N	\N	40.00	0.00	0	10	2026-11-02 06:12:36.14528+00	2026-11-02 10:11:39.095782+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 b1d5b364-af08-4c5d-bdc4-3db877edc190	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	Task 01	NA		FSRE1	Not Started	medium	2026-11-02	2026-11-06	\N	\N	40.00	0.00	0	70	2026-11-02 10:27:30.600332+00	2026-11-02 10:41:37.188683+00	049ac489-bbd3-4153-b933-aec7b7baec89	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
-c83bc679-4c68-4242-8069-4b7f67078dec	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	Testing 5	Training/Learning		FSRE1	Not Started	medium	2026-11-02	2027-04-30	\N	\N	\N	0.00	0	50	2026-11-02 10:29:33.803153+00	2026-11-02 10:41:37.188683+00	049ac489-bbd3-4153-b933-aec7b7baec89	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	Training/Learning
 e1d55dbf-856a-4b8a-b995-7243f19ea7f2	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	Testing 2	NA		FSRE1	Not Started	medium	2026-11-02	2026-11-06	\N	\N	40.00	0.00	0	60	2026-11-02 10:24:32.370677+00	2026-11-02 10:41:37.188683+00	049ac489-bbd3-4153-b933-aec7b7baec89	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 6d1b36dd-0cd1-4f9c-a6f9-687397e2cff2	96427433-d1b9-4089-bcee-e95f02d3154d	a9a1d0f2-a9f7-490a-91cf-03353ea5c121	Task 01	NA		SOC5	Not Started	medium	2026-10-19	2026-11-06	\N	\N	120.00	0.00	0	90	2026-10-27 06:01:59.139503+00	2026-11-02 06:34:18.123075+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
 b44bcbad-c9db-42c7-8dc4-e373a5faeba6	96427433-d1b9-4089-bcee-e95f02d3154d	a9a1d0f2-a9f7-490a-91cf-03353ea5c121	Task 01	NA		SOC2	Not Started	medium	2026-10-19	2026-11-06	\N	\N	120.00	0.00	0	60	2026-10-27 06:01:59.139503+00	2026-11-02 06:34:18.123075+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N
@@ -4114,7 +4314,9 @@ a642a70b-e5ce-48c3-8c94-f6c9204ea428	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	d359d7
 82439aaa-8208-41b5-b48c-2e4b7a282d69	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	Testing 2	NA		FSRE2	Not Started	medium	2026-11-02	2026-11-06	\N	\N	40.00	0.00	0	100	2026-11-03 18:03:41.718833+00	2026-11-03 18:09:42.208957+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 6326e724-ee20-4cbf-9e9d-e67df5029159	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	56819460-9fb1-4a5c-91ae-48cfe813b1a1	Automated Test Task 999	Managerial Task	Quarter 1	NVA1	Not Started	medium	2026-10-29	2027-04-29	\N	\N	\N	0.00	0	40	2026-11-03 18:06:59.985993+00	2026-11-03 18:07:00.101478+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	2026-11-03 18:07:00.101478+00	Managerial Task
 b5b0a914-468d-462c-8aa8-7c19b56d466c	8e260568-b761-4795-ad27-12bddd698d9d	e0494ab5-859c-442b-9998-66e5cfb3ecbe	Automated Verification Task	Managerial Task		ISO1	Not Started	medium	2026-10-14	2026-10-23	\N	\N	\N	0.00	0	999	2026-11-02 09:21:59.000614+00	2026-11-03 19:13:10.284498+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	033446c7-c133-4395-bdaa-69b5f227a7a8	\N	Managerial Task
-b2f0840e-dc0d-45a6-932f-5f892ab2cd9a	96427433-d1b9-4089-bcee-e95f02d3154d	32c68ca2-cb1b-43e9-96a9-d34dd2c89bfb	Task 01	NA		TRTE1	Ongoing	medium	2026-10-19	2026-10-30	2026-10-28	\N	80.00	0.00	0	10	2026-10-19 10:27:34.74909+00	2026-11-04 11:20:42.515013+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+c83bc679-4c68-4242-8069-4b7f67078dec	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a772b-b692-46f2-b7ba-ff9541e6ae70	Testing 5	Training/Learning		FSRE1	Completed	High	2026-11-02	2027-04-30	2026-11-05	2026-11-05	\N	0.02	100	50	2026-11-02 10:29:33.803153+00	2026-11-05 06:00:59.109166+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	Training/Learning
+76163f06-d217-45a1-a127-30f59b86d5a1	8e260568-b761-4795-ad27-12bddd698d9d	1a7796a3-3296-4f53-a764-d1092171eb9d	ASI	NA		AZURE1	Ongoing	medium	2026-10-14	2026-10-20	2026-10-14	2026-10-21	40.00	0.00	0	10	2026-10-14 07:10:26.068485+00	2026-11-05 09:15:25.781793+00	00000000-0000-4000-8000-000000000004	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+b2f0840e-dc0d-45a6-932f-5f892ab2cd9a	96427433-d1b9-4089-bcee-e95f02d3154d	32c68ca2-cb1b-43e9-96a9-d34dd2c89bfb	Task 01	NA		TRTE1	Ongoing	medium	2026-10-19	2026-10-30	2026-10-28	\N	80.00	15.53	0	10	2026-10-19 10:27:34.74909+00	2026-11-05 09:52:36.004071+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4146,6 +4348,9 @@ be41e7fa-5b39-4629-a4ff-b1a066615a57	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	315ae0
 c63f650e-d036-4890-a389-4fc844c02299	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	41708635-a60e-4fbd-a76b-91c0c23d18be	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - Mobile	2026-11-02	2027-04-30	Billable	f	Dedicated	2026-11-02 06:12:28.052636+00	2026-11-02 08:31:00.016092+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	f	ProjectManager
 994d7b17-af95-493a-9365-576b69924bcb	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	6a1ac61a-89d6-4951-8246-621d4e1b071f	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - AppSec	2026-11-05	2026-11-25	Billable	f	Shared Resource	2026-11-03 17:07:00.321107+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectTeam
 ed68b65b-d4e1-4b14-956c-4aa69b17091f	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	42583b6b-008c-45f6-b258-b08495712c7c	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	Functional - IT Administration	2026-11-04	2026-11-17	Billable	t	Dedicated	2026-11-03 17:06:21.65721+00	2026-11-04 14:53:27.504912+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	f	ProjectTeam
+3fa43ec8-d604-4445-8c2f-79c8b0fd576a	7d687a61-de2b-4b09-b967-9955ff49bfed	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	be8e036d-ad13-4c79-89ec-294e490a6816	Services - Consulting	2026-12-01	2027-03-01	Billable	f	Dedicated	2026-11-05 09:35:25.021958+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectManager
+b2bf5dfd-2010-4ed1-87fe-db740ef60532	7d687a61-de2b-4b09-b967-9955ff49bfed	dd200677-337b-440b-afcb-3a661406f98b	0aed67b8-c454-439a-a07f-4f46d46d58af	Service - Testing - Infra	2026-12-01	2027-03-01	Billable	f	Dedicated	2026-11-05 09:35:28.876409+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	SeniorProjectManager
+6e44dd52-df66-486b-b878-c28863b08a5a	7c3b40fc-3c8d-411c-85ed-8cf1010b1d34	9f646393-8fea-4b38-9f35-d88a6ab6787e	8e4e88f1-e294-4554-80cc-92ed6169caeb	EM (Engagement Manager)	2026-11-11	2026-11-26	Billable	f	Dedicated	2026-11-05 09:39:07.183117+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	f	ProjectTeam
 \.
 
 
@@ -4162,6 +4367,7 @@ COPY project.tbl_projects ("Id", "ProjectCode", "WbsId", "Name", "Description", 
 bc30f6f7-d3c5-46b6-9d3c-beb011067f30	P007	IN-2026-27/C001-01/P007	Aditya Birla(Aditya Birla_Finance)_Adversary Simulation_06	Helllooo	bf01f81e-b09c-47c1-811c-40a58a56db12	c005cbc3-03a8-4dec-b3d0-c44868e18f28	ongoing	green	0	Resource	Long Term	INR	18.00	2026-11-02	2027-04-30	556873146.00	0.00	1240.00	155.00	649005310.00	41708635-a60e-4fbd-a76b-91c0c23d18be	42583b6b-008c-45f6-b258-b08495712c7c	Karan Wardhan	\N	Omkar Reddy	\N	2026-11-02	\N	\N	assigned	WBS Assigned	\N	PO Pending	\N	\N	Monthly Arrears	End of Each Month	\N	\N	\N	\N	2026-11-02 06:12:15.500044+00	2026-11-04 14:53:27.504912+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 0cd8a3e2-d3ae-4246-b927-f217508496e4	PRJ-10EE	WBS-433F	Test WBS Proj 4a1521	\N	bf01f81e-b09c-47c1-811c-40a58a56db12	\N	ongoing	green	0	\N	\N	USD	18.00	2026-11-01	2026-12-31	\N	0.00	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-11-04	\N	\N	draft	Draft	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-11-04 15:53:03.255762+00	\N	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N
 96427433-d1b9-4089-bcee-e95f02d3154d	P003	IN-2026-27/C001-01/P003	Aditya Birla(Aditya Birla_Finance)_Mixed_02	This is the comment related to project	bf01f81e-b09c-47c1-811c-40a58a56db12	c005cbc3-03a8-4dec-b3d0-c44868e18f28	ongoing	green	0	Resource	Long Term	INR	18.00	2026-10-19	2027-04-20	267500.00	0.00	1808.00	226.00	315652.36	ffcdc44f-996b-4ef6-90e6-db858823a4c4	78b71d74-d255-4ac0-a75f-ead11a61427a	Karan Wardhan	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Omkar Reddy	\N	2026-10-19	\N	\N	assigned	WBS Assigned	8e260568-b761-4795-ad27-12bddd698d9d	PO Received	\N	\N	Monthly Advance	Start of Each Month	\N	\N	\N	\N	2026-10-19 10:25:54.182447+00	2026-11-04 16:37:08.379807+00	049ac489-bbd3-4153-b933-aec7b7baec89	ee03982b-f816-a4c3-59b1-167e9b8e9067	\N
+7d687a61-de2b-4b09-b967-9955ff49bfed	P009	IN-2026-27-C001-P009	Sample Project Name	\N	bf01f81e-b09c-47c1-811c-40a58a56db12	\N	ongoing	green	0	\N	\N	INR	18.00	2026-12-01	2027-03-01	\N	0.00	\N	\N	\N	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	\N	\N	\N	\N	\N	2026-11-05	\N	\N	draft	Draft	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-11-05 07:28:31.735633+00	2026-11-05 09:35:25.021958+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N
 \.
 
 
@@ -4473,6 +4679,8 @@ f80aff3f-aa2b-40de-83db-d8fb77f31723	d94878fd-4650-46bc-b84c-753c841e7404	Update
 5d39a809-ba17-401f-9c66-35dae4d6ddbb	4aba0077-4d88-4e0c-8d18-9152eea3fbf9	Updated	admin@talakunchi.com	admin	Updated: Reporting Manager	2026-11-04 10:34:08.409791+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 d0d07f0a-bc4a-449a-9e8b-f6f97265d3c3	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	BillableStatusChanged	admin@talakunchi.com	admin	 -> Billable	2026-11-04 16:28:55.559303+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 d2d50df6-425c-429d-8fa8-ffb831ad4929	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Updated	admin@talakunchi.com	admin	Updated: Department, Designation, Role, Experience, Bond Status, Sub Department (+5 more)	2026-11-04 16:28:55.559303+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+1fcefcbd-5b6a-4407-9993-8015ee2f5de6	ac93f0c7-7920-4f9a-a2ac-38eea61ae438	Created	admin@talakunchi.com	admin	Profile created for Asmon Shroff (TK-9898)	2026-11-05 10:37:40.732154+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
+6fb9d61d-9e01-4b87-881e-77f14f991738	a957755e-2968-4bf5-9b46-98adbc7065fa	Created	admin@talakunchi.com	admin	Profile created for Sahil Lad (TK-9896)	2026-11-05 11:15:01.759325+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N
 \.
 
 
@@ -4533,6 +4741,7 @@ d94878fd-4650-46bc-b84c-753c841e7404	TK-0008	Nikhil	Saxena	nikhil.saxena.tk-0008
 7d2b2c7a-254e-4605-9f79-3f42ac7f9735	TK-0027	Reyansh	Chopra	reyansh.chopra.tk-0027@talakunchi.com	\N	9820010031	\N	\N	\N	Andheri (Western Line)	9811000527	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-11-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.969016+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Yash Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
 804c8187-6f28-411f-8fa5-cc9baceba3e7	TK-0031	Arjun	Joshi	arjun.joshi.tk-0031@talakunchi.com	\N	9820010035	\N	\N	\N	Andheri (Western Line)	9811000595	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	6193be76-40ad-4973-9ee7-246a4d8f4109	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-02-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.006223+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ira Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
 818ae1ea-5842-4adb-b475-ac12dba9fd2a	TK-0044	Vihaan	Bose	vihaan.bose.tk-0044@talakunchi.com	\N	9820010052	\N	\N	\N	Andheri (Western Line)	9811000884	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	SOC-HOD	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.171436+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Anita Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+a957755e-2968-4bf5-9b46-98adbc7065fa	TK-9896	Sahil	Lad	sahil@talakunchi.com	\N	9879678567	9698696896	\N	\N	Charni Road (Western Line)	8798797979	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	SOC-HOD	d6ea9f00-bf1b-4aa0-815f-89fe43b1c249	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Intern - Paid	\N	2026-11-05	Active	Active	Completed	0 (Relevant: 0)	\N	Intern	\N	No bond	\N	\N	NA	NA	B.Pharm (2023), M.Sc (2025)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-11-05 11:15:01.716659+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	\N	Omkar	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	B.Pharm	2023	M.Sc	2025		0	0	Father	\N	Services - Operations	Billable	\N	Long Term	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
 86862bf8-c075-44ef-9f3e-f65d2cc1bb56	TK-0034	Suresh	Desai	suresh.desai.tk-0034@talakunchi.com	\N	9820010040	\N	\N	\N	Andheri (Western Line)	9811000680	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-04-21	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.057075+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Mehra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131
 8bf95b5f-0a1b-4512-9fc4-0e0fd9a4503c	TK-0018	Harsh	Pandey	harsh.pandey.tk-0018@talakunchi.com	\N	9820010020	\N	\N	\N	Andheri (Western Line)	9811000340	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-04-19	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.859733+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
 849d2fb1-a4e4-4eb2-947b-f97057e4954b	TK-0005	Dev	Bose	dev.bose.tk-0005@talakunchi.com	\N	9820010005	\N	\N	\N	Andheri (Western Line)	9811000085	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	155642eb-a633-4460-b658-aca9fde2d817	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-06-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	30 days	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.683541+00	2026-10-28 05:17:44.884439+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	Aarav Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
@@ -4592,6 +4801,7 @@ f39b20bb-8963-4917-aed5-0f1d86f0cbc3	TK-0007	Aarav	Roy	aarav.roy.tk-0007@talakun
 4aba0077-4d88-4e0c-8d18-9152eea3fbf9	TK-0001	Vihaan	Pillai	vihaan.pillai.tk-0001@talakunchi.com	\N	9820010001	\N	\N	\N	Andheri (Western Line)	9811000017	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	78b71d74-d255-4ac0-a75f-ead11a61427a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2026-10-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.636311+00	2026-11-04 10:34:08.31507+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Nikhil Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	PMO (Project Management Office)	Billable	\N	Long Term	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
 e96df572-92a2-4aa3-a3b4-6f52cfcb5293	TK-0011	Aditya	Roy	aditya.roy.tk-0011@talakunchi.com	\N	9820010012	\N	\N	\N	Andheri (Western Line)	9811000204	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	195d6a81-8457-4b60-9382-6a3a0664f0e9	Consulting-Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-11-09	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.770263+00	2026-11-04 16:28:55.469801+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Harsh Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-11-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Spouse	\N	Services - Consulting	Billable	\N	Long Term	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
 9f646393-8fea-4b38-9f35-d88a6ab6787e	TK-0023	Aarav	Rao	aarav.rao.tk-0023@talakunchi.com	\N	9820010027	\N	\N	\N	Andheri (Western Line)	9811000459	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	8b57cfd5-5d4e-44a3-9646-b36873c111c2	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-08-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.931379+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+ac93f0c7-7920-4f9a-a2ac-38eea61ae438	TK-9898	Asmon	Shroff	omkar@talakunchi.com	\N	9345353535	7868678678	\N	\N	Charni Road (Western Line)	9793742974	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	834c9e15-c70d-4a0b-bb12-5e55f23c181d	EngagementManager	df8f375a-d0b0-40c0-8ada-264fc2275f4f	Talakunchi Networks Private Limited	Navare Plaza, Dombivli	\N	Permanent - Bond	\N	2026-11-19	Active	Active	Completed	9 Years (Relevant: 5 Years)	\N	Permanent	\N	In bond	\N	AST-792	NA	NA	B.Pharm (2022), M.Sc (2026)	[]	["Certified Cloud Security Professional (CCSP)", "Certified Information Systems Auditor (CISA)"]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-11-05 10:37:40.601795+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	\N	kunal	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	9	2027-08-19	B.Pharm	2022	M.Sc	2026	Experienced	9 Years	5 Years	Mother	\N	EM (Engagement Manager)	Billable	\N	Long Term	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
 \.
 
 
@@ -14776,5 +14986,5 @@ ALTER TABLE ONLY timesheet.tbl_timesheets
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 387908lckIoN4CrveOjs54kMjnwHmeSlC9ukwXXTEdjIMlXMvvmRS03SyleaN8C
+\unrestrict 9FourwRC9S5rD4fMp7dYXSRF1vJ05FeWchIy6M5T6LwcLaCBOw1eV92Jbgw0YZL
 
