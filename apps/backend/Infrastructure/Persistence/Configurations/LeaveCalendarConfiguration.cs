@@ -19,19 +19,6 @@ public class LeaveCalendarConfiguration : IEntityTypeConfiguration<LeaveCalendar
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(x => x.Tag)
-            .IsRequired()
-            .HasMaxLength(100)
-            .HasDefaultValue("Public Holiday");
-
-        builder.Property(x => x.Color)
-            .IsRequired()
-            .HasMaxLength(50)
-            .HasDefaultValue("#a6c63a");
-
-        builder.Property(x => x.Description)
-            .HasMaxLength(500);
-
         builder.Property(x => x.Year)
             .IsRequired();
 
@@ -43,4 +30,3 @@ public class LeaveCalendarConfiguration : IEntityTypeConfiguration<LeaveCalendar
             .HasFilter("\"DeletedAtUtc\" IS NULL");
     }
 }
-

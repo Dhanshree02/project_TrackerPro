@@ -44,10 +44,6 @@ interface CalendarDayCellProps {
   holidayName?: string;
   /** Optional comment or reason for this employee's holiday */
   holidayComment?: string;
-  /** Custom reflected color from Leave Calendar master */
-  holidayColor?: string;
-  /** Name tag/category from Leave Calendar master */
-  holidayTag?: string;
   /** Whether this day is a weekly off according to employee's working days */
   isWeeklyOff?: boolean;
   isToday?: boolean;
@@ -69,8 +65,6 @@ function buildTooltip(args: {
   isHoliday: boolean;
   holidayName?: string;
   holidayComment?: string;
-  holidayTag?: string;
-  holidayColor?: string;
   isPast: boolean;
   isWeeklyOff?: boolean;
   attendanceLabel?: string;
@@ -83,9 +77,8 @@ function buildTooltip(args: {
     : "";
 
   if (args.isHoliday && args.holidayName) {
-    const tagPart = args.holidayTag ? ` [${args.holidayTag}]` : "";
     const commentPart = args.holidayComment ? ` (${args.holidayComment})` : "";
-    return `Holiday: ${args.holidayName}${tagPart}${commentPart} · ${dmy}${allocSuffix}`;
+    return `Holiday: ${args.holidayName}${commentPart} · ${dmy}${allocSuffix}`;
   }
 
   const shiftLabel = args.shift
@@ -118,8 +111,6 @@ export function CalendarDayCell({
   isHoliday,
   holidayName,
   holidayComment,
-  holidayColor,
-  holidayTag,
   isWeeklyOff,
   isToday = false,
   isLastRow = false,
@@ -144,7 +135,7 @@ export function CalendarDayCell({
   const displayShift = isLeave || isHoliday ? undefined : (event?.shift ?? DEFAULT_SHIFT);
   const isLocked = isPast || isHoliday || readOnly;
 
-  const activeHolidayColor = holidayColor || attendanceMeta.holiday.solid;
+  const activeHolidayColor = attendanceMeta.holiday.solid;
 
   const attendanceLabel = isHoliday
     ? (holidayName ? `Holiday: ${holidayName}` : "Holiday")
@@ -158,8 +149,6 @@ export function CalendarDayCell({
     isHoliday,
     holidayName,
     holidayComment,
-    holidayTag,
-    holidayColor: activeHolidayColor,
     isPast,
     isWeeklyOff: isWeekend,
     attendanceLabel,

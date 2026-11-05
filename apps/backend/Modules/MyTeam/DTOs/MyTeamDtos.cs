@@ -3,10 +3,7 @@ namespace PMS.API.Modules.MyTeam.DTOs;
 public sealed record TeamCompanyHolidayDto(
     Guid Id,
     DateOnly Date,
-    string Name,
-    string Tag,
-    string Color,
-    string? Description);
+    string Name);
 
 public sealed record TeamCalendarDto(
     IReadOnlyList<TeamMemberDto> Members,

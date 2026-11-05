@@ -54,9 +54,6 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
             Id = Guid.NewGuid(),
             HolidayDate = request.Date,
             Name = request.Name.Trim(),
-            Tag = string.IsNullOrWhiteSpace(request.Tag) ? "Public Holiday" : request.Tag.Trim(),
-            Color = NormalizeColor(request.Color),
-            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
             Year = request.Date.Year,
             CreatedAtUtc = DateTime.UtcNow,
         };
@@ -95,9 +92,6 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
 
         holiday.HolidayDate = request.Date;
         holiday.Name = request.Name.Trim();
-        holiday.Tag = string.IsNullOrWhiteSpace(request.Tag) ? "Public Holiday" : request.Tag.Trim();
-        holiday.Color = NormalizeColor(request.Color);
-        holiday.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         holiday.Year = request.Date.Year;
         holiday.UpdatedAtUtc = DateTime.UtcNow;
 
@@ -135,11 +129,7 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
 
             if (existing is not null)
             {
-                // Update existing record
                 existing.Name = req.Name.Trim();
-                existing.Tag = string.IsNullOrWhiteSpace(req.Tag) ? "Public Holiday" : req.Tag.Trim();
-                existing.Color = NormalizeColor(req.Color);
-                existing.Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim();
                 existing.Year = req.Date.Year;
                 existing.UpdatedAtUtc = DateTime.UtcNow;
                 created.Add(existing);
@@ -151,9 +141,6 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
                     Id = Guid.NewGuid(),
                     HolidayDate = req.Date,
                     Name = req.Name.Trim(),
-                    Tag = string.IsNullOrWhiteSpace(req.Tag) ? "Public Holiday" : req.Tag.Trim(),
-                    Color = NormalizeColor(req.Color),
-                    Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim(),
                     Year = req.Date.Year,
                     CreatedAtUtc = DateTime.UtcNow,
                 };
@@ -179,26 +166,11 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
         }
     }
 
-    private static string NormalizeColor(string? color)
-    {
-        if (string.IsNullOrWhiteSpace(color))
-        {
-            return "#a6c63a";
-        }
-
-        var trimmed = color.Trim();
-        return trimmed.StartsWith('#') ? trimmed : $"#{trimmed}";
-    }
-
     private static LeaveCalendarHolidayDto MapDto(LeaveCalendarHoliday h) =>
         new(
             h.Id,
             h.HolidayDate,
             h.Name,
-            h.Tag,
-            h.Color,
-            h.Description,
             h.Year,
             h.CreatedAtUtc);
 }
-

@@ -901,12 +901,6 @@ export function MyTeamPage() {
     return new Map(companyHolidays.map((h) => [h.date, h]));
   }, [companyHolidays]);
 
-  const monthCompanyHolidays = useMemo(() => {
-    const mm = String(monthIndex + 1).padStart(2, "0");
-    const prefix = `${year}-${mm}`;
-    return companyHolidays.filter((h) => h.date.startsWith(prefix));
-  }, [companyHolidays, year, monthIndex]);
-
   useEffect(() => {
     const handleLeaveCalendarUpdate = () => {
       void loadCalendar(selectedMonth);
@@ -1532,7 +1526,7 @@ export function MyTeamPage() {
                         return (
                           <div
                             key={day}
-                            title={companyHol ? `Holiday: ${companyHol.name} [${companyHol.tag}]` : undefined}
+                            title={companyHol ? `Holiday: ${companyHol.name}` : undefined}
                             className={`relative flex h-full items-center justify-center text-[11px] font-bold border-b border-r border-[#edf0f4] ${
                               isToday
                                 ? "bg-primary/20 text-primary"
@@ -1544,13 +1538,13 @@ export function MyTeamPage() {
                                       ? "bg-[#f3f4f7] text-[#8a94a6]"
                                       : "bg-white text-[#334155]"
                             }`}
-                            style={isCompanyHoliday && companyHol?.color ? { backgroundColor: `${companyHol.color}18` } : undefined}
+                            style={isCompanyHoliday ? { backgroundColor: `${attendanceMeta.holiday.solid}18` } : undefined}
                           >
                             {weekday}
                             {isCompanyHoliday ? (
                               <span
                                 className="absolute bottom-1 left-1/2 h-[4px] w-[4px] -translate-x-1/2 rounded-full"
-                                style={{ backgroundColor: companyHol?.color || "#10b981" }}
+                                style={{ backgroundColor: attendanceMeta.holiday.solid }}
                               />
                             ) : indicatorColor ? (
                               <span className="absolute bottom-1 left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full"
@@ -1590,10 +1584,7 @@ export function MyTeamPage() {
                           const dayAllocation = resolveDayAllocation(member, dateKey);
 
                           const holidayName = holidayEntry?.name;
-                          const holidayComment =
-                            companyHoliday?.description ?? memberHoliday?.comment;
-                          const holidayTag = companyHoliday?.tag;
-                          const holidayColor = companyHoliday?.color;
+                          const holidayComment = memberHoliday?.comment;
 
                           return (
                             <CalendarDayCell
@@ -1611,8 +1602,6 @@ export function MyTeamPage() {
                               isLastRow={isLastRow}
                               holidayName={holidayName}
                               holidayComment={holidayComment}
-                              holidayTag={holidayTag}
-                              holidayColor={holidayColor}
                               isWeeklyOff={isWeeklyOff}
                               weekRangeLabel={`${formatDateDMY(monFri[0])} to ${formatDateDMY(monFri[4])}`}
                               dayAllocation={dayAllocation}
@@ -1639,9 +1628,6 @@ export function MyTeamPage() {
                 <Legend color={attendanceMeta.leave.solid}     text="Leave" />
                 <Legend color={attendanceMeta.weeklyOff.solid} text="Weekly Off" />
                 <Legend color={attendanceMeta.holiday.solid}   text="Holiday" />
-                {monthCompanyHolidays.map((h) => (
-                  <Legend key={h.date} color={h.color} text={`${h.name} (${h.tag})`} />
-                ))}
                 <span className="h-3 w-px bg-[#e5e8ef]" />
                 <ShiftChipLegend chip={shiftMeta.Morning.chip}   text="Morning" />
                 <ShiftChipLegend chip={shiftMeta.Afternoon.chip} text="Afternoon" />

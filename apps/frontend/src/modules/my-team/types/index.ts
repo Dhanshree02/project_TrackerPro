@@ -92,9 +92,6 @@ export type CompanyHoliday = {
   id?: string;
   date: string;   // YYYY-MM-DD
   name: string;
-  tag: string;
-  color: string;
-  description?: string;
 };
 
 /** Individual holiday for an employee (e.g. onsite client or regional holiday). */

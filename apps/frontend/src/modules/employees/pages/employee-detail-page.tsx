@@ -706,9 +706,14 @@ export function EmployeeProfilePage() {
           ))}
         </div>
 
-        <div className="mt-5">
+        {visibleTabs.length === 0 ? (
+          <div className="mt-5 rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground shadow-2xs">
+            You do not have permission to view any profile tabs.
+          </div>
+        ) : (
+          <div className="mt-5">
           {/* ── 1. Personal Information ── */}
-          {tab === "personal" && (
+          {tab === "personal" && visibleTabs.some((t) => t.id === "personal") && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="TK ID" value={emp.id} />
@@ -726,7 +731,7 @@ export function EmployeeProfilePage() {
           )}
 
           {/* ── 2. Organization Assignment ── */}
-          {tab === "org" && (
+          {tab === "org" && visibleTabs.some((t) => t.id === "org") && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="Business Unit" value={emp.businessUnit} />
@@ -748,7 +753,7 @@ export function EmployeeProfilePage() {
           )}
 
           {/* ── 3. Employment & Bond Details ── */}
-          {tab === "employment" && (
+          {tab === "employment" && visibleTabs.some((t) => t.id === "employment") && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="Date of Joining" value={formatDateDMY(emp.joiningDate)} />
@@ -792,7 +797,7 @@ export function EmployeeProfilePage() {
           )}
 
           {/* ── 4. Education & Experience ── */}
-          {tab === "education" && (
+          {tab === "education" && visibleTabs.some((t) => t.id === "education") && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="Graduation Degree" value={emp.gradDegree || "—"} />
@@ -841,7 +846,7 @@ export function EmployeeProfilePage() {
           )}
 
           {/* ── 5. PMO Information ── */}
-          {tab === "pmo" && (
+          {tab === "pmo" && visibleTabs.some((t) => t.id === "pmo") && (
             <div className="rounded-lg border border-border bg-card p-6 shadow-2xs">
               <Grid>
                 <Row label="PMO Department" value={emp.pmoDepartment} />
@@ -856,7 +861,7 @@ export function EmployeeProfilePage() {
 
 
           {/* ── 6. Activity Logs ── */}
-          {tab === "logs" && (
+          {tab === "logs" && visibleTabs.some((t) => t.id === "logs") && (
             <div className="rounded-xl border border-border bg-card p-6 shadow-2xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4 mb-6">
                 <div>
@@ -969,6 +974,7 @@ export function EmployeeProfilePage() {
 
 
         </div>
+        )}
       </div>
 
       {offboardConfirmOpen && (

@@ -254,30 +254,18 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     "d6dea306-2e8f-41a0-89c8-857cb96f5558",
   ]);
 
-  const detailPagesAndTabs = new Set([
+  const detailPages = new Set([
     "employee-detail",
     "customer-detail",
     "project-detail",
     "e8f7c125-0e5b-4e3d-98e3-542638fa0b23",
     "a7e6b014-9f4a-4d2c-87d2-431527ef9a10",
     "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
-    "employee-personal-info",
-    "employee-organization-details",
-    "employee-employment-bond",
-    "employee-education-experience",
-    "employee-pmo-em-information",
-    "employee-activity-logs",
-    "e1a11111-0001-4000-8000-000000000001",
-    "e1a11111-0001-4000-8000-000000000002",
-    "e1a11111-0001-4000-8000-000000000003",
-    "e1a11111-0001-4000-8000-000000000004",
-    "e1a11111-0001-4000-8000-000000000005",
-    "e1a11111-0001-4000-8000-000000000006",
   ]);
 
   const canView = (codeOrId: string): boolean => {
-    // 0. Super-admin has full access to view everything
-    if (activeRoleName === "admin") return true;
+    // 0. Super-admin default fallback: if no explicit permissions configured for admin, full access
+    if (activeRoleName === "admin" && permissionMap.size === 0) return true;
 
     const lower = codeOrId.trim().toLowerCase();
     const itemId = (codeToId[lower] ?? lower).toLowerCase();
@@ -317,8 +305,8 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         return canView("dashboard");
       }
 
-      // Detail pages and tabs inherit view from their parent when not explicitly configured in permissionMap
-      if (detailPagesAndTabs.has(lower) || detailPagesAndTabs.has(itemId)) {
+      // Detail pages (employee-detail, customer-detail, project-detail) inherit view from their parent when not explicitly configured in permissionMap
+      if (detailPages.has(lower) || detailPages.has(itemId)) {
         if (parent) {
           return canView(parent);
         }
@@ -331,6 +319,8 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     }
 
     // 2. Default fallback: only when no permissions exist in DB for the role
+    if (activeRoleName === "admin") return true;
+
     // Strict RBAC items with no records default to false
     const strictRbacItems = new Set(["dashboard", "repository", ...dashboardWidgets]);
     if (strictRbacItems.has(lower) || strictRbacItems.has(itemId)) {
@@ -347,8 +337,8 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   };
 
   const canManage = (codeOrId: string): boolean => {
-    // 0. Super-admin has full access to manage everything
-    if (activeRoleName === "admin") return true;
+    // 0. Super-admin default fallback: if no explicit permissions configured for admin, full access
+    if (activeRoleName === "admin" && permissionMap.size === 0) return true;
 
     const lower = codeOrId.trim().toLowerCase();
     const itemId = (codeToId[lower] ?? lower).toLowerCase();
@@ -369,6 +359,9 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
       // Manage access NEVER inherits automatically — must be explicitly granted
       return false;
     }
+
+    // 2. Default fallback: only when no permissions exist in DB for the role
+    if (activeRoleName === "admin") return true;
 
     return false;
   };

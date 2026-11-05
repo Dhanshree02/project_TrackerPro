@@ -108,10 +108,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .Select(h => new TeamCompanyHolidayDto(
                 h.Id,
                 h.HolidayDate,
-                h.Name,
-                h.Tag,
-                h.Color,
-                h.Description))
+                h.Name))
             .ToListAsync(ct);
 
         return new TeamCalendarDto(

@@ -10,9 +10,6 @@ import {
   Sparkles,
   Calendar as CalendarIcon,
   ListFilter,
-  Check,
-  Tag,
-  Palette,
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -37,19 +34,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { cn } from "@/lib/utils";
 import {
   bulkCreateLeaveCalendarHolidays,
   createLeaveCalendarHoliday,
   DEFAULT_HOLIDAY_PRESETS,
   deleteLeaveCalendarHoliday,
   fetchLeaveCalendarHolidays,
-  PRESET_COLORS,
-  PRESET_TAGS,
   updateLeaveCalendarHoliday,
   type LeaveCalendarHoliday,
   type UpsertLeaveCalendarHolidayPayload,
 } from "@/modules/settings/api/leave-calendar";
+
+// Standard company holiday green matching Team Dashboard
+const HOLIDAY_COLOR = "#a6c63a";
 
 interface LeaveCalendarSectionProps {
   onCountChange?: (count: number) => void;
@@ -61,8 +58,8 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
   const [holidays, setHolidays] = useState<LeaveCalendarHoliday[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedTagFilter, setSelectedTagFilter] = useState<string>("all");
-  const [activeView, setActiveView] = useState<"table" | "calendar">("table");
+  // Full Year View is default, List View is secondary
+  const [activeView, setActiveView] = useState<"calendar" | "table">("calendar");
 
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -70,9 +67,6 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
   const [formData, setFormData] = useState<UpsertLeaveCalendarHolidayPayload>({
     date: "",
     name: "",
-    tag: "Public Holiday",
-    color: "#10b981",
-    description: "",
   });
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
@@ -87,7 +81,7 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
       setHolidays(data);
       onCountChange?.(data.length);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load leave calendar holidays");
+      toast.error(err instanceof Error ? err.message : "Failed to load holiday calendar");
     } finally {
       setLoading(false);
     }
@@ -97,38 +91,12 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
     void loadHolidays(selectedYear);
   }, [loadHolidays, selectedYear]);
 
-  // Available unique tags for filter
-  const availableTags = useMemo(() => {
-    const set = new Set<string>();
-    for (const h of holidays) {
-      if (h.tag) set.add(h.tag);
-    }
-    return Array.from(set);
-  }, [holidays]);
-
   // Filtered holidays
   const filteredHolidays = useMemo(() => {
-    return holidays.filter((h) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.tag.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (h.description && h.description.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      const matchesTag = selectedTagFilter === "all" || h.tag === selectedTagFilter;
-
-      return matchesSearch && matchesTag;
-    });
-  }, [holidays, searchQuery, selectedTagFilter]);
-
-  // Statistics
-  const stats = useMemo(() => {
-    const total = holidays.length;
-    const national = holidays.filter((h) => h.tag.toLowerCase().includes("national")).length;
-    const festivals = holidays.filter((h) => h.tag.toLowerCase().includes("festival")).length;
-    const others = total - national - festivals;
-    return { total, national, festivals, others };
-  }, [holidays]);
+    if (!searchQuery.trim()) return holidays;
+    const q = searchQuery.toLowerCase();
+    return holidays.filter((h) => h.name.toLowerCase().includes(q));
+  }, [holidays, searchQuery]);
 
   const handleOpenAddDialog = (initialDate?: string) => {
     const defaultDate = initialDate ?? `${selectedYear}-01-01`;
@@ -136,9 +104,6 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
     setFormData({
       date: defaultDate,
       name: "",
-      tag: "Public Holiday",
-      color: "#10b981",
-      description: "",
     });
     setFormError(null);
     setIsDialogOpen(true);
@@ -149,9 +114,6 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
     setFormData({
       date: holiday.date,
       name: holiday.name,
-      tag: holiday.tag || "Public Holiday",
-      color: holiday.color || "#10b981",
-      description: holiday.description || "",
     });
     setFormError(null);
     setIsDialogOpen(true);
@@ -201,17 +163,17 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
 
   const handlePrepopulatePresets = async () => {
     const presetsForYear = DEFAULT_HOLIDAY_PRESETS.map((p) => ({
-      ...p,
       date: `${selectedYear}-${p.date.slice(5)}`,
+      name: p.name,
     }));
 
     try {
       setLoading(true);
       await bulkCreateLeaveCalendarHolidays(presetsForYear);
-      toast.success(`Pre-populated ${presetsForYear.length} holidays for ${selectedYear}.`);
+      toast.success(`Loaded ${presetsForYear.length} sample holidays for ${selectedYear}.`);
       await loadHolidays(selectedYear);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to pre-populate holidays");
+      toast.error(err instanceof Error ? err.message : "Failed to load sample holidays");
       setLoading(false);
     }
   };
@@ -237,13 +199,13 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">Leave Calendar</h2>
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Holiday Calendar</h2>
             <Badge variant="outline" className="font-mono text-xs font-semibold px-2">
               {selectedYear}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Configure full year holidays with name tags and custom colors. Reflects across the Team Dashboard.
+            Configure full year holidays. Reflects across the Team Dashboard.
           </p>
         </div>
 
@@ -271,17 +233,8 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
             </Button>
           </div>
 
-          {/* View Switcher */}
+          {/* View Switcher: Full Year View first (default), List View secondary */}
           <div className="flex items-center rounded-lg border border-border bg-card p-0.5 shadow-2xs">
-            <Button
-              variant={activeView === "table" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 px-2.5 text-xs gap-1.5"
-              onClick={() => setActiveView("table")}
-            >
-              <ListFilter className="h-3.5 w-3.5" />
-              <span>List View</span>
-            </Button>
             <Button
               variant={activeView === "calendar" ? "secondary" : "ghost"}
               size="sm"
@@ -291,6 +244,15 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
               <CalendarIcon className="h-3.5 w-3.5" />
               <span>Full Year View</span>
             </Button>
+            <Button
+              variant={activeView === "table" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-2.5 text-xs gap-1.5"
+              onClick={() => setActiveView("table")}
+            >
+              <ListFilter className="h-3.5 w-3.5" />
+              <span>List View</span>
+            </Button>
           </div>
 
           {/* Pre-populate Button */}
@@ -299,7 +261,7 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
             size="sm"
             onClick={handlePrepopulatePresets}
             className="h-7 text-xs gap-1.5 border-dashed"
-            title="Auto-load standard national and festival holidays for the year"
+            title="Auto-load standard holidays for the year"
           >
             <Sparkles className="h-3.5 w-3.5 text-amber-500" />
             <span>Load Sample Holidays</span>
@@ -317,104 +279,57 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
         </div>
       </div>
 
-      {/* ── Metric Cards ─────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs">
+      {/* ── Metric Summary ───────────────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs min-w-[200px]">
           <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
             Total Holidays
           </div>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-foreground">{stats.total}</span>
+            <span className="text-2xl font-bold tracking-tight text-foreground">{holidays.length}</span>
             <span className="text-[11px] text-muted-foreground font-medium">days in {selectedYear}</span>
           </div>
         </div>
-
-        <div className="rounded-xl border border-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-950/20 p-3 shadow-2xs">
-          <div className="text-[11px] font-medium text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">
-            National Holidays
-          </div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-emerald-700 dark:text-emerald-300">
-              {stats.national}
-            </span>
-            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">gazetted</span>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-purple-500/20 bg-purple-50/30 dark:bg-purple-950/20 p-3 shadow-2xs">
-          <div className="text-[11px] font-medium text-purple-800 dark:text-purple-400 uppercase tracking-wider">
-            Festivals
-          </div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-purple-700 dark:text-purple-300">
-              {stats.festivals}
-            </span>
-            <span className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">cultural</span>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-amber-500/20 bg-amber-50/30 dark:bg-amber-950/20 p-3 shadow-2xs">
-          <div className="text-[11px] font-medium text-amber-800 dark:text-amber-400 uppercase tracking-wider">
-            Public & Optional
-          </div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-bold tracking-tight text-amber-700 dark:text-amber-300">
-              {stats.others}
-            </span>
-            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">regional / other</span>
-          </div>
-        </div>
       </div>
 
-      {/* ── Search & Filter Controls ─────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search holiday by name, tag, or description..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 pl-8 text-xs bg-background"
-          />
+      {/* ── Search Bar (only shown in table view or available across views) ─ */}
+      {activeView === "table" && (
+        <div className="flex items-center justify-between">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search holiday by name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-8 text-xs bg-background"
+            />
+          </div>
         </div>
+      )}
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-medium text-muted-foreground mr-1">Filter Tag:</span>
-          <Button
-            variant={selectedTagFilter === "all" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => setSelectedTagFilter("all")}
-            className="h-6 px-2 text-[11px]"
-          >
-            All ({holidays.length})
-          </Button>
-          {availableTags.map((tag) => (
-            <Button
-              key={tag}
-              variant={selectedTagFilter === tag ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setSelectedTagFilter(tag)}
-              className="h-6 px-2 text-[11px]"
-            >
-              {tag}
-            </Button>
-          ))}
-        </div>
-      </div>
+      {/* ── Full Year 12-Month Calendar Grid View (Default) ───────────── */}
+      {activeView === "calendar" && (
+        <FullYearCalendarView
+          year={selectedYear}
+          holidays={holidays}
+          onAddDate={(dateStr) => handleOpenAddDialog(dateStr)}
+          onEditHoliday={(hol) => handleOpenEditDialog(hol)}
+        />
+      )}
 
-      {/* ── Table / List View ────────────────────────────────────────── */}
+      {/* ── Table / List View (Secondary) ─────────────────────────────── */}
       {activeView === "table" && (
         <div className="rounded-xl border border-border bg-card shadow-2xs overflow-hidden">
           {loading ? (
             <div className="p-12 text-center text-xs text-muted-foreground">
-              Loading Leave Calendar for {selectedYear}...
+              Loading Holiday Calendar for {selectedYear}...
             </div>
           ) : filteredHolidays.length === 0 ? (
             <div className="p-12 text-center">
               <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
               <div className="text-sm font-semibold text-foreground">No holidays found</div>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                No holidays registered for {selectedYear} matching your criteria. Click &quot;Add Holiday&quot; or &quot;Load Sample Holidays&quot; to configure full year holidays.
+                No holidays registered for {selectedYear} matching your criteria. Click &quot;Add Holiday&quot; or &quot;Load Sample Holidays&quot; to configure holidays.
               </p>
               <div className="mt-4 flex justify-center gap-2">
                 <Button size="sm" onClick={() => handleOpenAddDialog()} className="h-7 text-xs">
@@ -430,11 +345,8 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-border bg-muted/40 font-semibold text-muted-foreground">
-                    <th className="py-2.5 px-4 w-44">Date</th>
+                    <th className="py-2.5 px-4 w-56">Date</th>
                     <th className="py-2.5 px-4">Holiday Name</th>
-                    <th className="py-2.5 px-4 w-48">Name Tag</th>
-                    <th className="py-2.5 px-4 w-36">Color Tag</th>
-                    <th className="py-2.5 px-4">Description</th>
                     <th className="py-2.5 px-4 text-right w-24">Actions</th>
                   </tr>
                 </thead>
@@ -445,46 +357,17 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
                         key={holiday.id}
                         className="transition-colors hover:bg-muted/30"
                       >
-                        <td className="py-3 px-4 font-medium whitespace-nowrap">
+                        <td className="py-3 px-4 font-medium whitespace-nowrap text-foreground">
                           <div className="flex items-center gap-2">
                             <span
                               className="h-2.5 w-2.5 shrink-0 rounded-full"
-                              style={{ backgroundColor: holiday.color || "#10b981" }}
+                              style={{ backgroundColor: HOLIDAY_COLOR }}
                             />
                             <span>{formatDateLabel(holiday.date)}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4 font-semibold text-foreground">
                           {holiday.name}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span
-                            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border"
-                            style={{
-                              borderColor: `${holiday.color}40`,
-                              backgroundColor: `${holiday.color}15`,
-                              color: holiday.color,
-                            }}
-                          >
-                            <Tag className="h-3 w-3" />
-                            {holiday.tag}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="h-5 w-5 rounded-md border border-black/10 shadow-2xs flex items-center justify-center text-[10px] text-white font-bold"
-                              style={{ backgroundColor: holiday.color }}
-                            >
-                              ✓
-                            </span>
-                            <span className="font-mono text-[11px] text-muted-foreground">
-                              {holiday.color}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-muted-foreground max-w-xs truncate">
-                          {holiday.description || "—"}
                         </td>
                         <td className="py-3 px-4 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1">
@@ -518,25 +401,15 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
         </div>
       )}
 
-      {/* ── Full Year 12-Month Calendar Grid View ────────────────────── */}
-      {activeView === "calendar" && (
-        <FullYearCalendarView
-          year={selectedYear}
-          holidays={holidays}
-          onAddDate={(dateStr) => handleOpenAddDialog(dateStr)}
-          onEditHoliday={(hol) => handleOpenEditDialog(hol)}
-        />
-      )}
-
       {/* ── Add / Edit Holiday Dialog ─────────────────────────────────── */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingHoliday ? "Edit Leave Calendar Holiday" : "Add Leave Calendar Holiday"}
+              {editingHoliday ? "Edit Holiday" : "Add Holiday"}
             </DialogTitle>
             <DialogDescription>
-              Holidays entered here will be marked across the Team Dashboard with the selected tag and colour.
+              Holidays configured here will be marked across the Team Dashboard.
             </DialogDescription>
           </DialogHeader>
 
@@ -567,119 +440,6 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
                 onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                 className="h-8 text-xs"
               />
-            </div>
-
-            {/* Tag Selection */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">Name Tag / Category *</label>
-              <Input
-                placeholder="Type or select a tag..."
-                value={formData.tag}
-                onChange={(e) => setFormData((prev) => ({ ...prev, tag: e.target.value }))}
-                className="h-8 text-xs"
-              />
-              <div className="flex flex-wrap gap-1 pt-1">
-                {PRESET_TAGS.map((t) => (
-                  <button
-                    key={t.name}
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        tag: t.name,
-                        color: prev.color === "#10b981" ? t.defaultColor : prev.color,
-                      }))
-                    }
-                    className={cn(
-                      "rounded-full border px-2 py-0.5 text-[10px] font-medium transition-colors",
-                      formData.tag === t.name
-                        ? "border-primary bg-primary/10 text-primary font-semibold"
-                        : "border-border text-muted-foreground hover:bg-muted"
-                    )}
-                  >
-                    {t.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Colour Tag */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center justify-between">
-                <span>Reflected Colour *</span>
-                <span className="font-mono text-[11px] text-muted-foreground">{formData.color}</span>
-              </label>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, color: e.target.value }))}
-                  className="h-8 w-12 cursor-pointer rounded border border-border p-0.5 bg-transparent"
-                  title="Pick custom color"
-                />
-                <div className="grid grid-cols-6 gap-1 flex-1">
-                  {PRESET_COLORS.map((c) => (
-                    <button
-                      key={c.hex}
-                      type="button"
-                      onClick={() => setFormData((prev) => ({ ...prev, color: c.hex }))}
-                      className={cn(
-                        "h-6 rounded-md border border-black/10 transition-transform flex items-center justify-center text-[10px] text-white font-bold",
-                        formData.color.toLowerCase() === c.hex.toLowerCase()
-                          ? "ring-2 ring-primary ring-offset-1 scale-105"
-                          : "hover:scale-105"
-                      )}
-                      style={{ backgroundColor: c.hex }}
-                      title={c.label}
-                    >
-                      {formData.color.toLowerCase() === c.hex.toLowerCase() && <Check className="h-3 w-3" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Description / Notes */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground">
-                Description / Notes <span className="text-muted-foreground font-normal">(optional)</span>
-              </label>
-              <Input
-                placeholder="Optional notes or comment"
-                value={formData.description ?? ""}
-                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                className="h-8 text-xs"
-              />
-            </div>
-
-            {/* Live Preview on Dashboard */}
-            <div className="rounded-lg border border-border/80 bg-muted/30 p-3 space-y-2">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground">
-                <Palette className="h-3.5 w-3.5" />
-                <span>Team Dashboard Appearance Preview</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white shadow-xs"
-                  style={{ backgroundColor: formData.color || "#10b981" }}
-                >
-                  {formData.date ? formData.date.split("-")[2] || "26" : "26"}
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-foreground">
-                    {formData.name || "Holiday Name"}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ backgroundColor: formData.color || "#10b981" }}
-                    />
-                    <span>{formData.tag || "Public Holiday"}</span>
-                    <span>· Marked on team calendar in this colour</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -767,21 +527,14 @@ function FullYearCalendarView({
       <div className="rounded-lg border border-border bg-card p-3 shadow-2xs flex items-center justify-between text-xs">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Info className="h-4 w-4 text-primary" />
-          <span>Click any holiday to edit its details, tag, or color. Click any empty date to quickly add a new holiday.</span>
+          <span>Click any holiday to edit. Click any empty date to quickly add a new holiday.</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            <span className="text-[11px] text-muted-foreground">National</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-pink-500" />
-            <span className="text-[11px] text-muted-foreground">Festival</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
-            <span className="text-[11px] text-muted-foreground">Public</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <span
+            className="h-2.5 w-2.5 rounded-full"
+            style={{ backgroundColor: HOLIDAY_COLOR }}
+          />
+          <span className="text-[11px] font-medium text-muted-foreground">Holiday</span>
         </div>
       </div>
 
@@ -830,8 +583,8 @@ function FullYearCalendarView({
                         type="button"
                         onClick={() => onEditHoliday(holiday)}
                         className="group relative flex h-6 w-full items-center justify-center rounded-md font-bold text-white shadow-2xs transition-transform hover:scale-110"
-                        style={{ backgroundColor: holiday.color || "#10b981" }}
-                        title={`${holiday.name} [${holiday.tag}] · Click to edit`}
+                        style={{ backgroundColor: HOLIDAY_COLOR }}
+                        title={`${holiday.name} · Click to edit`}
                       >
                         <span className="text-[10px] leading-none">{dayNum}</span>
                       </button>
@@ -858,4 +611,3 @@ function FullYearCalendarView({
     </div>
   );
 }
-

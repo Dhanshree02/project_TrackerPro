@@ -69,9 +69,6 @@ interface CalendarResponse {
     id?: string;
     date: string;
     name: string;
-    tag?: string;
-    color?: string;
-    description?: string | null;
   }> | null;
 }
 
@@ -237,28 +234,22 @@ export const teamDataService = {
 
     const membersWithRoles = await attachOnFloorRoles(members);
 
-    // Map company-wide holidays from Leave Calendar Master
+    // Map company-wide holidays from Holiday Calendar Master
     let companyHolidays: CompanyHoliday[] = [];
     if (data.companyHolidays && data.companyHolidays.length > 0) {
       companyHolidays = data.companyHolidays.map((h) => ({
         id: h.id,
         date: h.date,
         name: h.name,
-        tag: h.tag || "Public Holiday",
-        color: h.color || "#a6c63a",
-        description: h.description ?? undefined,
       }));
     } else {
       try {
-        const calYear = Number(month.slice(0, 4));
+        const calYear = Number(from.slice(0, 4));
         const allHols = await fetchLeaveCalendarHolidays(calYear);
         companyHolidays = allHols.map((h) => ({
           id: h.id,
           date: h.date,
           name: h.name,
-          tag: h.tag,
-          color: h.color,
-          description: h.description ?? undefined,
         }));
       } catch {
         companyHolidays = [];

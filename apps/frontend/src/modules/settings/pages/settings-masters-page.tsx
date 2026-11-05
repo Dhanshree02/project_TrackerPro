@@ -162,7 +162,7 @@ export function SettingsMastersPage() {
             )}
           >
             <CalendarDays className="h-4 w-4" />
-            <span>Leave Calendar</span>
+            <span>Holiday Calendar</span>
             {leaveCalendarCount !== null && (
               <Badge
                 variant="secondary"
