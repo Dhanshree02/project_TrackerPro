@@ -44,6 +44,10 @@ interface CalendarDayCellProps {
   holidayName?: string;
   /** Optional comment or reason for this employee's holiday */
   holidayComment?: string;
+  /** Custom reflected color from Leave Calendar master */
+  holidayColor?: string;
+  /** Name tag/category from Leave Calendar master */
+  holidayTag?: string;
   /** Whether this day is a weekly off according to employee's working days */
   isWeeklyOff?: boolean;
   isToday?: boolean;
@@ -65,6 +69,8 @@ function buildTooltip(args: {
   isHoliday: boolean;
   holidayName?: string;
   holidayComment?: string;
+  holidayTag?: string;
+  holidayColor?: string;
   isPast: boolean;
   isWeeklyOff?: boolean;
   attendanceLabel?: string;
@@ -77,8 +83,9 @@ function buildTooltip(args: {
     : "";
 
   if (args.isHoliday && args.holidayName) {
+    const tagPart = args.holidayTag ? ` [${args.holidayTag}]` : "";
     const commentPart = args.holidayComment ? ` (${args.holidayComment})` : "";
-    return `Holiday: ${args.holidayName}${commentPart} · ${dmy}${allocSuffix}`;
+    return `Holiday: ${args.holidayName}${tagPart}${commentPart} · ${dmy}${allocSuffix}`;
   }
 
   const shiftLabel = args.shift
@@ -111,6 +118,8 @@ export function CalendarDayCell({
   isHoliday,
   holidayName,
   holidayComment,
+  holidayColor,
+  holidayTag,
   isWeeklyOff,
   isToday = false,
   isLastRow = false,
@@ -128,17 +137,20 @@ export function CalendarDayCell({
   const isWeekend = isWeeklyOff !== undefined ? isWeeklyOff : isWeekendDate(date);
   const event = getEventByDate(schedule, memberId, date, isWeekend);
   const rawAttendanceType = event?.type;
-  // Holidays do not have colored circles; only weekly off (yellow~orange) or explicit attendance have circles.
   const attendanceType =
     isHoliday || rawAttendanceType === "holiday" ? undefined : rawAttendanceType;
   const isLeave = attendanceType === "leave" || rawAttendanceType === "leave";
-  // On leave, people have NO shift data ("G" is removed)
-  const displayShift = isLeave ? undefined : (event?.shift ?? DEFAULT_SHIFT);
+  // On leave or holiday, people have NO shift data ("G" is removed)
+  const displayShift = isLeave || isHoliday ? undefined : (event?.shift ?? DEFAULT_SHIFT);
   const isLocked = isPast || isHoliday || readOnly;
 
-  const attendanceLabel = attendanceType
-    ? event?.title ?? attendanceMeta[attendanceType].label
-    : undefined;
+  const activeHolidayColor = holidayColor || attendanceMeta.holiday.solid;
+
+  const attendanceLabel = isHoliday
+    ? (holidayName ? `Holiday: ${holidayName}` : "Holiday")
+    : attendanceType
+      ? event?.title ?? attendanceMeta[attendanceType].label
+      : undefined;
 
   const tooltipTitle = buildTooltip({
     memberName,
@@ -146,6 +158,8 @@ export function CalendarDayCell({
     isHoliday,
     holidayName,
     holidayComment,
+    holidayTag,
+    holidayColor: activeHolidayColor,
     isPast,
     isWeeklyOff: isWeekend,
     attendanceLabel,
@@ -207,7 +221,7 @@ export function CalendarDayCell({
                   : "focus:ring-2 focus:ring-[#5a49b8]/40"
               } ${
                 isHoliday
-                  ? "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 font-semibold"
+                  ? "cursor-not-allowed font-bold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
                   : isLocked
                     ? "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
                     : attendanceType
@@ -217,12 +231,17 @@ export function CalendarDayCell({
                         : "text-[#1e293b] dark:text-slate-100 font-bold cursor-pointer"
               }`}
               style={
-                attendanceType
+                isHoliday
                   ? {
-                      backgroundColor: attendanceMeta[attendanceType]?.solid,
-                      color: attendanceMeta[attendanceType]?.textColor,
+                      backgroundColor: activeHolidayColor,
+                      color: "#ffffff",
                     }
-                  : undefined
+                  : attendanceType
+                    ? {
+                        backgroundColor: attendanceMeta[attendanceType]?.solid,
+                        color: attendanceMeta[attendanceType]?.textColor,
+                      }
+                    : undefined
               }
             >
               <span className="flex items-center justify-center leading-none text-center -mt-[0.5px]">
@@ -272,7 +291,11 @@ export function CalendarDayCell({
   const cellShell = (
     <div
       data-calendar-day-cell=""
-      style={{ width: "100%", height: CALENDAR_ROW_PX }}
+      style={{
+        width: "100%",
+        height: CALENDAR_ROW_PX,
+        ...(isHoliday && activeHolidayColor ? { backgroundColor: `${activeHolidayColor}14` } : {}),
+      }}
       className={cellSurfaceClass}
     >
       {cellBody}

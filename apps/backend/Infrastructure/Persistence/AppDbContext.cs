@@ -109,7 +109,9 @@ public class AppDbContext(
 
     public DbSet<TeamMemberSchedule> TeamMemberSchedules => Set<TeamMemberSchedule>();
 
-    public DbSet<TeamMemberHoliday> TeamMemberHolidays => Set<TeamMemberHoliday>();
+    public DbSet<TeamMemberHoliday> TeamMemberHolidays => Set<TeamMemberHoliday>();
+
+    public DbSet<LeaveCalendarHoliday> LeaveCalendarHolidays => Set<LeaveCalendarHoliday>();
 
     public DbSet<TimesheetWeek> TimesheetWeeks => Set<TimesheetWeek>();
 

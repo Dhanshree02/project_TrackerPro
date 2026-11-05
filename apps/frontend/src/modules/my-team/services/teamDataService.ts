@@ -2,8 +2,10 @@ import { apiFetch } from "@/lib/api-client";
 import { fetchAllEmployees, fetchJobRoleOptions } from "@/modules/employees/api/employees";
 import { uniqueOnFloorRoleLabels } from "@/lib/on-floor-role";
 import { attendanceMeta } from "@/modules/my-team/constants";
+import { fetchLeaveCalendarHolidays } from "@/modules/settings/api/leave-calendar";
 import type {
   AttendanceType,
+  CompanyHoliday,
   MemberScheduleConfig,
   PoolAllocationStatus,
   PoolAllocationType,
@@ -20,6 +22,7 @@ export interface TeamCalendarPayload {
   members: TeamMember[];
   schedule: TeamSchedule;
   configs: Record<string, MemberScheduleConfig>;
+  companyHolidays: CompanyHoliday[];
 }
 
 interface CalendarResponse {
@@ -62,6 +65,14 @@ interface CalendarResponse {
     notes?: string | null;
     holidays: Array<{ date: string; name: string; comment?: string | null }>;
   }>;
+  companyHolidays?: Array<{
+    id?: string;
+    date: string;
+    name: string;
+    tag?: string;
+    color?: string;
+    description?: string | null;
+  }> | null;
 }
 
 function avatarColor(id: string): string {
@@ -226,7 +237,35 @@ export const teamDataService = {
 
     const membersWithRoles = await attachOnFloorRoles(members);
 
-    return { members: membersWithRoles, schedule, configs };
+    // Map company-wide holidays from Leave Calendar Master
+    let companyHolidays: CompanyHoliday[] = [];
+    if (data.companyHolidays && data.companyHolidays.length > 0) {
+      companyHolidays = data.companyHolidays.map((h) => ({
+        id: h.id,
+        date: h.date,
+        name: h.name,
+        tag: h.tag || "Public Holiday",
+        color: h.color || "#a6c63a",
+        description: h.description ?? undefined,
+      }));
+    } else {
+      try {
+        const calYear = Number(month.slice(0, 4));
+        const allHols = await fetchLeaveCalendarHolidays(calYear);
+        companyHolidays = allHols.map((h) => ({
+          id: h.id,
+          date: h.date,
+          name: h.name,
+          tag: h.tag,
+          color: h.color,
+          description: h.description ?? undefined,
+        }));
+      } catch {
+        companyHolidays = [];
+      }
+    }
+
+    return { members: membersWithRoles, schedule, configs, companyHolidays };
   },
 
   upsertDays(body: {

@@ -4,6 +4,7 @@ import {
   FolderKanban,
   Building2,
   Users,
+  CalendarDays,
   Database,
   RotateCcw,
   Sparkles,
@@ -18,14 +19,16 @@ import { useMastersStore } from "@/modules/settings/masters/use-masters";
 import { ProjectMastersSection } from "@/modules/settings/components/masters/project-masters-section";
 import { CustomerMastersSection } from "@/modules/settings/components/masters/customer-masters-section";
 import { ResourceMastersSection } from "@/modules/settings/components/masters/resource-masters-section";
+import { LeaveCalendarSection } from "@/modules/settings/components/masters/leave-calendar-section";
 
-type MasterTab = "projects" | "customers" | "resources";
+type MasterTab = "projects" | "customers" | "resources" | "leave-calendar";
 
 export function SettingsMastersPage() {
   const { can, isDhanshree } = useRoleContext();
   const { hasAny } = usePermissions();
   const [activeTab, setActiveTab] = useState<MasterTab>("projects");
   const [resourceCount, setResourceCount] = useState<number | null>(null);
+  const [leaveCalendarCount, setLeaveCalendarCount] = useState<number | null>(null);
 
   const allowed =
     isDhanshree ||
@@ -148,6 +151,33 @@ export function SettingsMastersPage() {
               <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
             )}
           </button>
+
+          <button
+            onClick={() => setActiveTab("leave-calendar")}
+            className={cn(
+              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+              activeTab === "leave-calendar"
+                ? "text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <CalendarDays className="h-4 w-4" />
+            <span>Leave Calendar</span>
+            {leaveCalendarCount !== null && (
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-[10px] px-1.5 py-0",
+                  activeTab === "leave-calendar" ? "bg-primary/15 text-primary font-semibold" : "",
+                )}
+              >
+                {leaveCalendarCount}
+              </Badge>
+            )}
+            {activeTab === "leave-calendar" && (
+              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+            )}
+          </button>
         </div>
 
         <Button
@@ -193,6 +223,10 @@ export function SettingsMastersPage() {
       )}
 
       {activeTab === "resources" && <ResourceMastersSection onCountChange={setResourceCount} />}
+
+      {activeTab === "leave-calendar" && (
+        <LeaveCalendarSection onCountChange={setLeaveCalendarCount} />
+      )}
     </AppShell>
   );
 }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Configurations;
+using PMS.API.Modules.Catalogs.Models;
 using PMS.API.Modules.Resources.Models;
 
 namespace PMS.API.Infrastructure.Persistence.Seeding;
@@ -42,6 +43,7 @@ public sealed class DbInitializerHostedService(
             var postGraduationDegrees = db.TableName<MstPostGraduationDegree>();
             var designations = db.TableName<MstDesignation>();
             var employeeActivityLogs = db.TableName<EmployeeActivityLog>();
+            var leaveCalendar = db.TableName<LeaveCalendarHoliday>();
             var resourceSchema = DbSchemas.Resource;
 
             // Dump-initialized DBs can lag the model (PhoneCode was added in code before a migration ran).
@@ -50,6 +52,34 @@ public sealed class DbInitializerHostedService(
                 cancellationToken);
             await db.Database.ExecuteSqlRawAsync(
                 $"""ALTER TABLE {countries} ADD COLUMN IF NOT EXISTS "PhoneDigits" integer NOT NULL DEFAULT 10;""",
+                cancellationToken);
+
+            await db.Database.ExecuteSqlRawAsync(
+                $"""
+                CREATE TABLE IF NOT EXISTS {leaveCalendar} (
+                    "Id" uuid NOT NULL,
+                    "HolidayDate" date NOT NULL,
+                    "Name" character varying(200) NOT NULL,
+                    "Tag" character varying(100) NOT NULL DEFAULT 'Public Holiday',
+                    "Color" character varying(50) NOT NULL DEFAULT '#a6c63a',
+                    "Description" character varying(500),
+                    "Year" integer NOT NULL,
+                    "CreatedAtUtc" timestamp with time zone NOT NULL DEFAULT now(),
+                    "UpdatedAtUtc" timestamp with time zone,
+                    "CreatedBy" uuid,
+                    "UpdatedBy" uuid,
+                    "DeletedAtUtc" timestamp with time zone,
+                    CONSTRAINT "PK_mst_leave_calendar" PRIMARY KEY ("Id")
+                );
+
+                CREATE UNIQUE INDEX IF NOT EXISTS "IX_mst_leave_calendar_HolidayDate"
+                    ON {leaveCalendar} ("HolidayDate")
+                    WHERE ("DeletedAtUtc" IS NULL);
+
+                CREATE INDEX IF NOT EXISTS "IX_mst_leave_calendar_Year"
+                    ON {leaveCalendar} ("Year")
+                    WHERE ("DeletedAtUtc" IS NULL);
+                """,
                 cancellationToken);
             // Dump-initialized DBs can lag the model (employee status catalog added after dump).
             await db.Database.ExecuteSqlRawAsync(

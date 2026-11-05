@@ -1,85 +1,86 @@
-using FluentValidation;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using PMS.API.Infrastructure.Authentication;
-using PMS.API.Infrastructure.Authorization;
-using PMS.API.Infrastructure.Persistence;
-using PMS.API.Infrastructure.Persistence.Seeding;
-using PMS.API.Infrastructure.Storage;
-using PMS.API.Modules.ActionCentre.Services;
-using PMS.API.Modules.Catalogs.Services;
-using PMS.API.Modules.Customers.Services;
-using PMS.API.Modules.Dashboard.Services;
-using PMS.API.Modules.MyTeam.Services;
-using PMS.API.Modules.Timesheets.Services;
-using PMS.API.Modules.Projects.Services;
-using PMS.API.Modules.Repository.Services;
-using PMS.API.Modules.Resources.Services;
-using PMS.API.Modules.Users.Services;
-
-namespace PMS.API.Configuration;
-
-/// <summary>
-/// Central dependency-injection registrations for the whole application.
-/// Called once from <c>Program.cs</c> via <c>builder.Services.AddApplicationServices()</c>.
-/// </summary>
-public static class DependencyInjectionExtensions
-{
-    public static IServiceCollection AddApplicationServices(
-        this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        // ---- Persistence (EF Core + Npgsql) ----
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
-
-        // ---- Storage (Local Modular File Storage) ----
-        services.AddSingleton<IFileStorageService, FileStorageService>();
-
-        // ---- Security / Authentication (M365 Transition) ----
-        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
-        services.AddSingleton<JwtTokenService>();
-        services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
-
-        // ---- Authorization ----
-        services.AddHttpContextAccessor();
-        services.AddScoped<ICurrentUserService, CurrentUserService>();
-
-        // ---- Features (modules) ----
-        services.AddScoped<IClientService, ClientService>();
-        services.AddScoped<ICatalogService, CatalogService>();
-        services.AddScoped<IProjectMastersService, ProjectMastersService>();
-        services.AddScoped<IResourceMastersService, ResourceMastersService>();
-        services.AddScoped<IEmployeeService, EmployeeService>();
-        services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IRepositoryService, RepositoryService>();
-        services.AddScoped<IMyTeamService, MyTeamService>();
-        services.AddScoped<ITimesheetService, TimesheetService>();
-        services.AddScoped<IProjectAppService, ProjectAppService>();
-        services.AddScoped<IProjectDraftService, ProjectDraftService>();
-        services.AddScoped<IProjectTeamMemberService, ProjectTeamMemberService>();
-        services.AddScoped<IProjectInterviewService, ProjectInterviewService>();
-        services.AddScoped<IProjectExtensionRequestService, ProjectExtensionRequestService>();
-        services.AddScoped<IProjectServiceEscalationService, ProjectServiceEscalationService>();
-        services.AddScoped<IProjectAppreciationService, ProjectAppreciationService>();
-        services.AddScoped<IProjectAdditionalRequirementService, ProjectAdditionalRequirementService>();
-        services.AddScoped<IProjectIssueService, ProjectIssueService>();
-        services.AddScoped<IProjectTaskService, ProjectTaskService>();
-        services.AddHostedService<OrgRoleMatrixHostedService>();
-        services.AddScoped<IDashboardService, DashboardService>();
-        services.AddScoped<IBucketTaskService, BucketTaskService>();
-        services.AddScoped<IActionNotificationService, ActionNotificationService>();
-
-        // ---- FluentValidation validators (scanned from this assembly) ----
-        services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);
-
-        // ---- Database bootstrap (Development only): apply migrations + seed demo data ----
-        if (configuration.GetValue<bool>("Database:AutoMigrate"))
-        {
-            services.AddHostedService<DbInitializerHostedService>();
-        }
-
-        return services;
-    }
-}
+using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PMS.API.Infrastructure.Authentication;
+using PMS.API.Infrastructure.Authorization;
+using PMS.API.Infrastructure.Persistence;
+using PMS.API.Infrastructure.Persistence.Seeding;
+using PMS.API.Infrastructure.Storage;
+using PMS.API.Modules.ActionCentre.Services;
+using PMS.API.Modules.Catalogs.Services;
+using PMS.API.Modules.Customers.Services;
+using PMS.API.Modules.Dashboard.Services;
+using PMS.API.Modules.MyTeam.Services;
+using PMS.API.Modules.Timesheets.Services;
+using PMS.API.Modules.Projects.Services;
+using PMS.API.Modules.Repository.Services;
+using PMS.API.Modules.Resources.Services;
+using PMS.API.Modules.Users.Services;
+
+namespace PMS.API.Configuration;
+
+/// <summary>
+/// Central dependency-injection registrations for the whole application.
+/// Called once from <c>Program.cs</c> via <c>builder.Services.AddApplicationServices()</c>.
+/// </summary>
+public static class DependencyInjectionExtensions
+{
+    public static IServiceCollection AddApplicationServices(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // ---- Persistence (EF Core + Npgsql) ----
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(configuration.GetConnectionString("DefaultConnection")));
+
+        // ---- Storage (Local Modular File Storage) ----
+        services.AddSingleton<IFileStorageService, FileStorageService>();
+
+        // ---- Security / Authentication (M365 Transition) ----
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddSingleton<JwtTokenService>();
+        services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+
+        // ---- Authorization ----
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+        // ---- Features (modules) ----
+        services.AddScoped<IClientService, ClientService>();
+        services.AddScoped<ICatalogService, CatalogService>();
+        services.AddScoped<ILeaveCalendarService, LeaveCalendarService>();
+        services.AddScoped<IProjectMastersService, ProjectMastersService>();
+        services.AddScoped<IResourceMastersService, ResourceMastersService>();
+        services.AddScoped<IEmployeeService, EmployeeService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IRepositoryService, RepositoryService>();
+        services.AddScoped<IMyTeamService, MyTeamService>();
+        services.AddScoped<ITimesheetService, TimesheetService>();
+        services.AddScoped<IProjectAppService, ProjectAppService>();
+        services.AddScoped<IProjectDraftService, ProjectDraftService>();
+        services.AddScoped<IProjectTeamMemberService, ProjectTeamMemberService>();
+        services.AddScoped<IProjectInterviewService, ProjectInterviewService>();
+        services.AddScoped<IProjectExtensionRequestService, ProjectExtensionRequestService>();
+        services.AddScoped<IProjectServiceEscalationService, ProjectServiceEscalationService>();
+        services.AddScoped<IProjectAppreciationService, ProjectAppreciationService>();
+        services.AddScoped<IProjectAdditionalRequirementService, ProjectAdditionalRequirementService>();
+        services.AddScoped<IProjectIssueService, ProjectIssueService>();
+        services.AddScoped<IProjectTaskService, ProjectTaskService>();
+        services.AddHostedService<OrgRoleMatrixHostedService>();
+        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IBucketTaskService, BucketTaskService>();
+        services.AddScoped<IActionNotificationService, ActionNotificationService>();
+
+        // ---- FluentValidation validators (scanned from this assembly) ----
+        services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);
+
+        // ---- Database bootstrap (Development only): apply migrations + seed demo data ----
+        if (configuration.GetValue<bool>("Database:AutoMigrate"))
+        {
+            services.AddHostedService<DbInitializerHostedService>();
+        }
+
+        return services;
+    }
+}

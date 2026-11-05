@@ -87,6 +87,16 @@ export type HolidayEntry = {
   name: string;
 };
 
+/** Company-wide holiday from Leave Calendar Master */
+export type CompanyHoliday = {
+  id?: string;
+  date: string;   // YYYY-MM-DD
+  name: string;
+  tag: string;
+  color: string;
+  description?: string;
+};
+
 /** Individual holiday for an employee (e.g. onsite client or regional holiday). */
 export type MemberHoliday = {
   date: string;     // YYYY-MM-DD

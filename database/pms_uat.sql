@@ -1052,6 +1052,23 @@ CREATE TABLE master.mst_work_locations (
 
 ALTER TABLE master.mst_work_locations OWNER TO trackerpro;
 
+CREATE TABLE master.mst_leave_calendar (
+    "Id" uuid NOT NULL,
+    "HolidayDate" date NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "Tag" character varying(100) DEFAULT 'Public Holiday'::character varying NOT NULL,
+    "Color" character varying(50) DEFAULT '#a6c63a'::character varying NOT NULL,
+    "Description" character varying(500),
+    "Year" integer NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+ALTER TABLE master.mst_leave_calendar OWNER TO trackerpro;
+
 --
 -- Name: log_project_task_assignments; Type: TABLE; Schema: project; Owner: trackerpro
 --

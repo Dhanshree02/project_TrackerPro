@@ -101,6 +101,19 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .Select(e => new TeamDayEntryDto(e.EmployeeId, e.WorkDate, e.Attendance, e.Shift))
             .ToList();
 
+        var companyHolidays = await db.LeaveCalendarHolidays
+            .AsNoTracking()
+            .Where(h => h.DeletedAtUtc == null && h.HolidayDate >= from && h.HolidayDate <= to)
+            .OrderBy(h => h.HolidayDate)
+            .Select(h => new TeamCompanyHolidayDto(
+                h.Id,
+                h.HolidayDate,
+                h.Name,
+                h.Tag,
+                h.Color,
+                h.Description))
+            .ToListAsync(ct);
+
         return new TeamCalendarDto(
             members.Select(m =>
             {
@@ -119,7 +132,8 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             members.Select(m => MapSchedule(
                 m.Id,
                 scheduleByEmployee.GetValueOrDefault(m.Id),
-                holidaysByEmployee.GetValueOrDefault(m.Id))).ToList());
+                holidaysByEmployee.GetValueOrDefault(m.Id))).ToList(),
+            companyHolidays);
     }
 
     public async Task UpsertDaysAsync(UpsertTeamDaysRequest request, CancellationToken ct = default)
@@ -136,7 +150,11 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
             .Where(h => h.EmployeeId == employee.Id && dates.Contains(h.HolidayDate))
             .Select(h => h.HolidayDate)
             .ToListAsync(ct);
-        if (holidayDates.Count > 0)
+        var companyHolidayDates = await db.LeaveCalendarHolidays
+            .Where(h => h.DeletedAtUtc == null && dates.Contains(h.HolidayDate))
+            .Select(h => h.HolidayDate)
+            .ToListAsync(ct);
+        if (holidayDates.Count > 0 || companyHolidayDates.Count > 0)
         {
             throw new ValidationException([new ValidationFailure("dates", "Holiday dates cannot be changed.")]);
         }

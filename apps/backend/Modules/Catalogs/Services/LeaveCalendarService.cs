@@ -1,0 +1,204 @@
+using Microsoft.EntityFrameworkCore;
+using PMS.API.Infrastructure.Persistence;
+using PMS.API.Modules.Catalogs.DTOs;
+using PMS.API.Modules.Catalogs.Models;
+using PMS.API.Shared.Exceptions;
+
+namespace PMS.API.Modules.Catalogs.Services;
+
+public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarService
+{
+    public async Task<IReadOnlyList<LeaveCalendarHolidayDto>> GetHolidaysAsync(int? year, CancellationToken ct = default)
+    {
+        var query = db.LeaveCalendarHolidays
+            .AsNoTracking()
+            .Where(h => h.DeletedAtUtc == null);
+
+        if (year.HasValue)
+        {
+            query = query.Where(h => h.Year == year.Value || h.HolidayDate.Year == year.Value);
+        }
+
+        var rows = await query
+            .OrderBy(h => h.HolidayDate)
+            .ToListAsync(ct);
+
+        return rows.Select(MapDto).ToList();
+    }
+
+    public async Task<LeaveCalendarHolidayDto?> GetHolidayByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var row = await db.LeaveCalendarHolidays
+            .AsNoTracking()
+            .FirstOrDefaultAsync(h => h.Id == id && h.DeletedAtUtc == null, ct);
+
+        return row is null ? null : MapDto(row);
+    }
+
+    public async Task<LeaveCalendarHolidayDto> CreateHolidayAsync(
+        UpsertLeaveCalendarHolidayRequest request,
+        CancellationToken ct = default)
+    {
+        ValidateRequest(request);
+
+        var existing = await db.LeaveCalendarHolidays
+            .FirstOrDefaultAsync(h => h.HolidayDate == request.Date && h.DeletedAtUtc == null, ct);
+
+        if (existing is not null)
+        {
+            throw new ConflictException($"A holiday named '{existing.Name}' already exists on {request.Date:yyyy-MM-dd}.");
+        }
+
+        var holiday = new LeaveCalendarHoliday
+        {
+            Id = Guid.NewGuid(),
+            HolidayDate = request.Date,
+            Name = request.Name.Trim(),
+            Tag = string.IsNullOrWhiteSpace(request.Tag) ? "Public Holiday" : request.Tag.Trim(),
+            Color = NormalizeColor(request.Color),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            Year = request.Date.Year,
+            CreatedAtUtc = DateTime.UtcNow,
+        };
+
+        db.LeaveCalendarHolidays.Add(holiday);
+        await db.SaveChangesAsync(ct);
+
+        return MapDto(holiday);
+    }
+
+    public async Task<LeaveCalendarHolidayDto> UpdateHolidayAsync(
+        Guid id,
+        UpsertLeaveCalendarHolidayRequest request,
+        CancellationToken ct = default)
+    {
+        ValidateRequest(request);
+
+        var holiday = await db.LeaveCalendarHolidays
+            .FirstOrDefaultAsync(h => h.Id == id && h.DeletedAtUtc == null, ct);
+
+        if (holiday is null)
+        {
+            throw new NotFoundException($"Holiday with ID '{id}' was not found.");
+        }
+
+        if (holiday.HolidayDate != request.Date)
+        {
+            var conflict = await db.LeaveCalendarHolidays
+                .AnyAsync(h => h.Id != id && h.HolidayDate == request.Date && h.DeletedAtUtc == null, ct);
+
+            if (conflict)
+            {
+                throw new ConflictException($"Another holiday is already registered for {request.Date:yyyy-MM-dd}.");
+            }
+        }
+
+        holiday.HolidayDate = request.Date;
+        holiday.Name = request.Name.Trim();
+        holiday.Tag = string.IsNullOrWhiteSpace(request.Tag) ? "Public Holiday" : request.Tag.Trim();
+        holiday.Color = NormalizeColor(request.Color);
+        holiday.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        holiday.Year = request.Date.Year;
+        holiday.UpdatedAtUtc = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+
+        return MapDto(holiday);
+    }
+
+    public async Task DeleteHolidayAsync(Guid id, CancellationToken ct = default)
+    {
+        var holiday = await db.LeaveCalendarHolidays
+            .FirstOrDefaultAsync(h => h.Id == id && h.DeletedAtUtc == null, ct);
+
+        if (holiday is null)
+        {
+            throw new NotFoundException($"Holiday with ID '{id}' was not found.");
+        }
+
+        holiday.DeletedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<LeaveCalendarHolidayDto>> BulkCreateHolidaysAsync(
+        IReadOnlyList<UpsertLeaveCalendarHolidayRequest> requests,
+        CancellationToken ct = default)
+    {
+        var created = new List<LeaveCalendarHoliday>();
+
+        foreach (var req in requests)
+        {
+            ValidateRequest(req);
+
+            var existing = await db.LeaveCalendarHolidays
+                .FirstOrDefaultAsync(h => h.HolidayDate == req.Date && h.DeletedAtUtc == null, ct);
+
+            if (existing is not null)
+            {
+                // Update existing record
+                existing.Name = req.Name.Trim();
+                existing.Tag = string.IsNullOrWhiteSpace(req.Tag) ? "Public Holiday" : req.Tag.Trim();
+                existing.Color = NormalizeColor(req.Color);
+                existing.Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim();
+                existing.Year = req.Date.Year;
+                existing.UpdatedAtUtc = DateTime.UtcNow;
+                created.Add(existing);
+            }
+            else
+            {
+                var newHoliday = new LeaveCalendarHoliday
+                {
+                    Id = Guid.NewGuid(),
+                    HolidayDate = req.Date,
+                    Name = req.Name.Trim(),
+                    Tag = string.IsNullOrWhiteSpace(req.Tag) ? "Public Holiday" : req.Tag.Trim(),
+                    Color = NormalizeColor(req.Color),
+                    Description = string.IsNullOrWhiteSpace(req.Description) ? null : req.Description.Trim(),
+                    Year = req.Date.Year,
+                    CreatedAtUtc = DateTime.UtcNow,
+                };
+                db.LeaveCalendarHolidays.Add(newHoliday);
+                created.Add(newHoliday);
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        return created.OrderBy(h => h.HolidayDate).Select(MapDto).ToList();
+    }
+
+    private static void ValidateRequest(UpsertLeaveCalendarHolidayRequest request)
+    {
+        if (request.Date == default)
+        {
+            throw new BadRequestException("Holiday date is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            throw new BadRequestException("Holiday name is required.");
+        }
+    }
+
+    private static string NormalizeColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return "#a6c63a";
+        }
+
+        var trimmed = color.Trim();
+        return trimmed.StartsWith('#') ? trimmed : $"#{trimmed}";
+    }
+
+    private static LeaveCalendarHolidayDto MapDto(LeaveCalendarHoliday h) =>
+        new(
+            h.Id,
+            h.HolidayDate,
+            h.Name,
+            h.Tag,
+            h.Color,
+            h.Description,
+            h.Year,
+            h.CreatedAtUtc);
+}
+

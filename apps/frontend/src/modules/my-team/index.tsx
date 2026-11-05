@@ -45,6 +45,7 @@ import {
 } from "./utils";
 import type {
   CellRef,
+  CompanyHoliday,
   MemberScheduleConfig,
   OpenCell,
   PoolAllocationStatus,
@@ -569,6 +570,7 @@ export function MyTeamPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamSchedule, setTeamSchedule] = useState<TeamSchedule>({});
   const [memberConfigs, setMemberConfigs] = useState<Record<string, MemberScheduleConfig>>({});
+  const [companyHolidays, setCompanyHolidays] = useState<CompanyHoliday[]>([]);
   const [loading, setLoading] = useState(true);
 
   // ── UI state ─────────────────────────────────────────────────────────────────
@@ -806,6 +808,9 @@ export function MyTeamPage() {
     setTeamMembers(data.members);
     setTeamSchedule(data.schedule);
     setMemberConfigs(data.configs);
+    if (data.companyHolidays) {
+      setCompanyHolidays(data.companyHolidays);
+    }
   }, []);
 
   const fetchRoster = useCallback((month: Date, scope: Roster) => {
@@ -892,10 +897,30 @@ export function MyTeamPage() {
     void loadCalendar(selectedMonth).catch(() => undefined);
   }, [loadCalendar, selectedMonth]);
 
+  const companyHolidaysMap = useMemo(() => {
+    return new Map(companyHolidays.map((h) => [h.date, h]));
+  }, [companyHolidays]);
+
+  const monthCompanyHolidays = useMemo(() => {
+    const mm = String(monthIndex + 1).padStart(2, "0");
+    const prefix = `${year}-${mm}`;
+    return companyHolidays.filter((h) => h.date.startsWith(prefix));
+  }, [companyHolidays, year, monthIndex]);
+
+  useEffect(() => {
+    const handleLeaveCalendarUpdate = () => {
+      void loadCalendar(selectedMonth);
+    };
+    window.addEventListener("tk:leave-calendar-updated", handleLeaveCalendarUpdate);
+    return () => {
+      window.removeEventListener("tk:leave-calendar-updated", handleLeaveCalendarUpdate);
+    };
+  }, [loadCalendar, selectedMonth]);
+
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const isLockedMemberKey = (memberId: string, dateKey: string) => {
     const memberConfig = memberConfigs[memberId] || DEFAULT_MEMBER_SCHEDULE_CONFIG;
-    const isHoliday = memberConfig.holidays.some((h) => h.date === dateKey);
+    const isHoliday = memberConfig.holidays.some((h) => h.date === dateKey) || companyHolidaysMap.has(dateKey);
     const date = parseDateKey(dateKey);
     date.setHours(0, 0, 0, 0);
     return date < today || isHoliday;
@@ -1502,24 +1527,35 @@ export function MyTeamPage() {
                         const weekend = isWeekendDate(date);
                         const isToday = dateKey === todayKey;
                         const isPast = date < today && !isToday;
+                        const isCompanyHoliday = companyHolidaysMap.has(dateKey);
+                        const companyHol = companyHolidaysMap.get(dateKey);
                         return (
                           <div
                             key={day}
+                            title={companyHol ? `Holiday: ${companyHol.name} [${companyHol.tag}]` : undefined}
                             className={`relative flex h-full items-center justify-center text-[11px] font-bold border-b border-r border-[#edf0f4] ${
                               isToday
                                 ? "bg-primary/20 text-primary"
-                                : isPast
-                                  ? "bg-[#ebedf3] text-[#8a94a6]"
-                                  : weekend
-                                    ? "bg-[#f3f4f7] text-[#8a94a6]"
-                                    : "bg-white text-[#334155]"
+                                : isCompanyHoliday
+                                  ? "text-foreground font-extrabold"
+                                  : isPast
+                                    ? "bg-[#ebedf3] text-[#8a94a6]"
+                                    : weekend
+                                      ? "bg-[#f3f4f7] text-[#8a94a6]"
+                                      : "bg-white text-[#334155]"
                             }`}
+                            style={isCompanyHoliday && companyHol?.color ? { backgroundColor: `${companyHol.color}18` } : undefined}
                           >
                             {weekday}
-                            {indicatorColor && (
+                            {isCompanyHoliday ? (
+                              <span
+                                className="absolute bottom-1 left-1/2 h-[4px] w-[4px] -translate-x-1/2 rounded-full"
+                                style={{ backgroundColor: companyHol?.color || "#10b981" }}
+                              />
+                            ) : indicatorColor ? (
                               <span className="absolute bottom-1 left-1/2 h-[3px] w-[3px] -translate-x-1/2 rounded-full"
                                 style={{ backgroundColor: indicatorColor }} />
-                            )}
+                            ) : null}
                           </div>
                         );
                       })}
@@ -1545,11 +1581,19 @@ export function MyTeamPage() {
                           const date = new Date(year, monthIndex, day);
                           const dateKey = makeDateKeyFromDate(date);
                           const isOpen = openCell?.memberId === member.id && openCell.dateKey === dateKey;
-                          const holidayEntry = memberHolidaysMap.get(dateKey);
+                          const companyHoliday = companyHolidaysMap.get(dateKey);
+                          const memberHoliday = memberHolidaysMap.get(dateKey);
+                          const holidayEntry = companyHoliday || memberHoliday;
                           const isHoliday = Boolean(holidayEntry);
                           const isWeeklyOff = !workingDaysSet.has(date.getDay());
                           const monFri = getMonFriKeys(date);
                           const dayAllocation = resolveDayAllocation(member, dateKey);
+
+                          const holidayName = holidayEntry?.name;
+                          const holidayComment =
+                            companyHoliday?.description ?? memberHoliday?.comment;
+                          const holidayTag = companyHoliday?.tag;
+                          const holidayColor = companyHoliday?.color;
 
                           return (
                             <CalendarDayCell
@@ -1565,8 +1609,10 @@ export function MyTeamPage() {
                               isHoliday={isHoliday}
                               isToday={dateKey === todayKey}
                               isLastRow={isLastRow}
-                              holidayName={holidayEntry?.name}
-                              holidayComment={holidayEntry?.comment}
+                              holidayName={holidayName}
+                              holidayComment={holidayComment}
+                              holidayTag={holidayTag}
+                              holidayColor={holidayColor}
                               isWeeklyOff={isWeeklyOff}
                               weekRangeLabel={`${formatDateDMY(monFri[0])} to ${formatDateDMY(monFri[4])}`}
                               dayAllocation={dayAllocation}
@@ -1593,6 +1639,9 @@ export function MyTeamPage() {
                 <Legend color={attendanceMeta.leave.solid}     text="Leave" />
                 <Legend color={attendanceMeta.weeklyOff.solid} text="Weekly Off" />
                 <Legend color={attendanceMeta.holiday.solid}   text="Holiday" />
+                {monthCompanyHolidays.map((h) => (
+                  <Legend key={h.date} color={h.color} text={`${h.name} (${h.tag})`} />
+                ))}
                 <span className="h-3 w-px bg-[#e5e8ef]" />
                 <ShiftChipLegend chip={shiftMeta.Morning.chip}   text="Morning" />
                 <ShiftChipLegend chip={shiftMeta.Afternoon.chip} text="Afternoon" />
