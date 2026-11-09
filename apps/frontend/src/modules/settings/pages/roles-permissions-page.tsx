@@ -136,8 +136,25 @@ export function RolesPermissionsPage() {
     Promise.all([fetchRoles(), fetchSidebarModules()])
       .then(([roleRows, moduleRows]) => {
         if (cancelled) return;
-        setRoles(roleRows.filter((role) => role.isActive));
-        setModules(moduleRows);
+        // Exclude Admin role from RBAC configuration dropdown (Admin always has full access)
+        setRoles(
+          roleRows.filter(
+            (role) =>
+              role.isActive &&
+              role.name.toLowerCase() !== "admin" &&
+              role.displayName?.toLowerCase() !== "admin" &&
+              role.id !== "a0000000-0000-0000-0000-000000000001",
+          ),
+        );
+        // Exclude Settings module from the Roles & Permissions matrix table to prevent access looping
+        setModules(
+          moduleRows.filter(
+            (m) =>
+              m.code?.toLowerCase() !== "settings" &&
+              m.name?.toLowerCase() !== "settings" &&
+              m.id !== "fcb69b3e-e5aa-49bb-921f-7793f0a8c90d",
+          ),
+        );
       })
       .catch(() => {
         if (!cancelled) setError("Could not load roles and modules.");
@@ -154,10 +171,17 @@ export function RolesPermissionsPage() {
 
   const roleOptions = useMemo(
     () =>
-      roles.map((role) => ({
-        value: role.id,
-        label: role.displayName || role.name,
-      })),
+      roles
+        .filter(
+          (role) =>
+            role.name.toLowerCase() !== "admin" &&
+            role.displayName?.toLowerCase() !== "admin" &&
+            role.id !== "a0000000-0000-0000-0000-000000000001",
+        )
+        .map((role) => ({
+          value: role.id,
+          label: role.displayName || role.name,
+        })),
     [roles],
   );
 

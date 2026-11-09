@@ -26,7 +26,6 @@ const DEFAULT_CODE_TO_ID: Record<string, string> = {
   customer: "4e57fd71-b53e-43c0-862e-5698e09c0922",
   repository: "c04c546e-0f2c-448d-b634-5d517843d365",
   "my-team": "6055ce3c-b466-4354-ba9a-b4c309111e9d",
-  settings: "fcb69b3e-e5aa-49bb-921f-7793f0a8c90d",
 
   // Submodules & Detail Pages
   "employee-directory": "39dbd425-643b-47e9-9936-6bbae9ef5ef5",
@@ -69,12 +68,6 @@ const DEFAULT_PARENT_MAP: Record<string, string> = {
   "employee-directory": "resources",
   "526e2d0d-47d4-4814-9e5a-8f7c53af1432": "715f79ce-51ea-46d3-b95d-8318840f90a6",
   "exit-summary": "resources",
-
-  // Settings submodules
-  "662d62ab-38b1-447e-876e-7f93bf2ba50e": "fcb69b3e-e5aa-49bb-921f-7793f0a8c90d",
-  master: "settings",
-  "e231d2d4-9ebb-4eb2-af48-fbe3b3b4ab90": "fcb69b3e-e5aa-49bb-921f-7793f0a8c90d",
-  "roles-permissions": "settings",
 
   // My Team submodules & Timesheets tabs
   "9854b7f3-8e7e-4ecb-864f-f2533ff295f9": "6055ce3c-b466-4354-ba9a-b4c309111e9d",
@@ -174,6 +167,14 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         };
 
         for (const mod of modules) {
+          // Exclude Settings from the dynamic RBAC catalog mapping to prevent access looping
+          if (
+            mod.code?.toLowerCase() === "settings" ||
+            mod.name?.toLowerCase() === "settings" ||
+            mod.id === "fcb69b3e-e5aa-49bb-921f-7793f0a8c90d"
+          ) {
+            continue;
+          }
           registerItem(mod.code, mod.id);
           for (const sub of mod.subModules ?? []) {
             registerSubModule(sub, mod.id, mod.code);
@@ -275,11 +276,24 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   ]);
 
   const canView = (codeOrId: string): boolean => {
-    // 0. Super-admin default fallback: if no explicit permissions configured for admin, full access
-    if (activeRoleName === "admin" && permissionMap.size === 0) return true;
-
     const lower = codeOrId.trim().toLowerCase();
     const itemId = (codeToId[lower] ?? lower).toLowerCase();
+
+    // Settings and administrative tools are reserved for Admin and not looped through RBAC catalog
+    const settingsItems = new Set([
+      "settings",
+      "master",
+      "roles-permissions",
+      "fcb69b3e-e5aa-49bb-921f-7793f0a8c90d",
+      "662d62ab-38b1-447e-876e-7f93bf2ba50e",
+      "e231d2d4-9ebb-4eb2-af48-fbe3b3b4ab90",
+    ]);
+    if (settingsItems.has(lower) || settingsItems.has(itemId)) {
+      return activeRoleName === "admin";
+    }
+
+    // 0. Super-admin default fallback: if no explicit permissions configured for admin, full access
+    if (activeRoleName === "admin" && permissionMap.size === 0) return true;
 
     // Check parent permission if item is a child
     const parent = parentMap[itemId] || parentMap[lower];
@@ -348,11 +362,24 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   };
 
   const canManage = (codeOrId: string): boolean => {
-    // 0. Super-admin default fallback: if no explicit permissions configured for admin, full access
-    if (activeRoleName === "admin" && permissionMap.size === 0) return true;
-
     const lower = codeOrId.trim().toLowerCase();
     const itemId = (codeToId[lower] ?? lower).toLowerCase();
+
+    // Settings and administrative tools are reserved for Admin and not looped through RBAC catalog
+    const settingsItems = new Set([
+      "settings",
+      "master",
+      "roles-permissions",
+      "fcb69b3e-e5aa-49bb-921f-7793f0a8c90d",
+      "662d62ab-38b1-447e-876e-7f93bf2ba50e",
+      "e231d2d4-9ebb-4eb2-af48-fbe3b3b4ab90",
+    ]);
+    if (settingsItems.has(lower) || settingsItems.has(itemId)) {
+      return activeRoleName === "admin";
+    }
+
+    // 0. Super-admin default fallback: if no explicit permissions configured for admin, full access
+    if (activeRoleName === "admin" && permissionMap.size === 0) return true;
 
     // If item is a child, it cannot have manage access if its parent does not have manage access
     const parent = parentMap[itemId] || parentMap[lower];

@@ -179,7 +179,13 @@ export async function bulkCreateLeaveCalendarHolidays(
       body: JSON.stringify(holidays),
     });
     if (Array.isArray(res) && res.length > 0) {
-      saveLocalHolidays(res);
+      const current = getLocalFallbackHolidays();
+      const map = new Map(current.map((h) => [h.date, h]));
+      for (const item of res) {
+        map.set(item.date, item);
+      }
+      const merged = Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+      saveLocalHolidays(merged);
       return res;
     }
   } catch {
@@ -188,16 +194,19 @@ export async function bulkCreateLeaveCalendarHolidays(
 
   const current = getLocalFallbackHolidays();
   const dateMap = new Map(current.map((h) => [h.date, h]));
+  const createdItems: LeaveCalendarHoliday[] = [];
   for (const h of holidays) {
     const year = Number(h.date.slice(0, 4));
-    dateMap.set(h.date, {
+    const item: LeaveCalendarHoliday = {
       id: `local-holiday-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       ...h,
       year,
       createdAtUtc: new Date().toISOString(),
-    });
+    };
+    dateMap.set(h.date, item);
+    createdItems.push(item);
   }
   const merged = Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
   saveLocalHolidays(merged);
-  return merged;
+  return createdItems;
 }

@@ -81,4 +81,27 @@ public class LeaveCalendarController(ILeaveCalendarService leaveCalendarService)
         var created = await leaveCalendarService.BulkCreateHolidaysAsync(requests, ct);
         return Ok(ApiResponse<IReadOnlyList<LeaveCalendarHolidayDto>>.Ok(created));
     }
+
+    [HttpGet("bulk/sample")]
+    public async Task<IActionResult> GetBulkSample(
+        [FromQuery] int? year,
+        CancellationToken ct)
+    {
+        var bytes = await leaveCalendarService.GetBulkSampleExcelAsync(year, ct);
+        var targetYear = year ?? DateTime.UtcNow.Year;
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"Holiday_Calendar_Sample_{targetYear}.xlsx");
+    }
+
+    [HttpPost("bulk/upload")]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<LeaveCalendarHolidayDto>>>> BulkUpload(
+        [FromForm] IFormFile file,
+        CancellationToken ct)
+    {
+        var created = await leaveCalendarService.UploadExcelAsync(file, ct);
+        return Ok(ApiResponse<IReadOnlyList<LeaveCalendarHolidayDto>>.Ok(created));
+    }
 }

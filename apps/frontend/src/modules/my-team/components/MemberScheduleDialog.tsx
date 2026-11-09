@@ -142,7 +142,11 @@ export function MemberScheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl border border-white/60 bg-white shadow-2xl dark:bg-slate-900 dark:border-white/10">
+      <DialogContent
+        disableAnimation
+        overlayClassName="!duration-0 !animate-none"
+        className="max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl border border-white/60 bg-white shadow-2xl dark:bg-slate-900 dark:border-white/10 !duration-0 !animate-none"
+      >
         {/* Header */}
         <div className="relative border-b border-[#edf0f4] bg-slate-50/80 px-6 py-4 dark:border-slate-800 dark:bg-slate-900/80">
           <div className="flex items-center gap-3">

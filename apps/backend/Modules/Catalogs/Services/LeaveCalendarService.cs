@@ -1,3 +1,6 @@
+using System.Globalization;
+using ClosedXML.Excel;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.Catalogs.DTOs;
@@ -177,6 +180,124 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
 
         await db.SaveChangesAsync(ct);
         return created.OrderBy(h => h.HolidayDate).Select(MapDto).ToList();
+    }
+
+    public Task<byte[]> GetBulkSampleExcelAsync(int? year, CancellationToken ct = default)
+    {
+        var targetYear = year ?? DateTime.UtcNow.Year;
+        using var workbook = new XLWorkbook();
+        var sheet = workbook.Worksheets.Add("Holidays");
+
+        sheet.Row(1).Height = 26;
+        sheet.Row(1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+        sheet.Cell(1, 1).Value = "Date";
+        sheet.Cell(1, 2).Value = "Holiday Name";
+
+        for (int col = 1; col <= 2; col++)
+        {
+            var cell = sheet.Cell(1, col);
+            cell.Style.Font.Bold = true;
+            cell.Style.Font.FontSize = 11;
+            cell.Style.Font.FontColor = XLColor.White;
+            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#166534"); // Forest green
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        }
+
+        var samples = new (string Date, string Name)[]
+        {
+            ($"{targetYear}-01-01", "New Year's Day"),
+            ($"{targetYear}-01-26", "Republic Day"),
+            ($"{targetYear}-03-03", "Holi"),
+            ($"{targetYear}-04-14", "Dr. Ambedkar Jayanti"),
+            ($"{targetYear}-05-01", "Maharashtra Day / May Day"),
+            ($"{targetYear}-08-15", "Independence Day"),
+            ($"{targetYear}-10-02", "Mahatma Gandhi Jayanti"),
+            ($"{targetYear}-12-25", "Christmas"),
+        };
+
+        for (int i = 0; i < samples.Length; i++)
+        {
+            var row = i + 2;
+            sheet.Cell(row, 1).Value = samples[i].Date;
+            sheet.Cell(row, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            sheet.Cell(row, 2).Value = samples[i].Name;
+        }
+
+        sheet.Column(1).Width = 18;
+        sheet.Column(2).Width = 36;
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        return Task.FromResult(ms.ToArray());
+    }
+
+    public async Task<IReadOnlyList<LeaveCalendarHolidayDto>> UploadExcelAsync(IFormFile file, CancellationToken ct = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            throw new BadRequestException("Please upload a valid Excel file.");
+        }
+
+        using var stream = file.OpenReadStream();
+        using var workbook = new XLWorkbook(stream);
+        var sheet = workbook.Worksheets.FirstOrDefault();
+        if (sheet is null)
+        {
+            throw new BadRequestException("The uploaded Excel workbook contains no sheets.");
+        }
+
+        int dateCol = -1;
+        int nameCol = -1;
+
+        var lastCol = sheet.LastColumnUsed()?.ColumnNumber() ?? 2;
+        for (int col = 1; col <= lastCol; col++)
+        {
+            var header = sheet.Cell(1, col).GetString().Trim().ToLowerInvariant();
+            if (header.Contains("date")) dateCol = col;
+            else if (header.Contains("name") || header.Contains("holiday")) nameCol = col;
+        }
+
+        if (dateCol == -1) dateCol = 1;
+        if (nameCol == -1) nameCol = 2;
+
+        var requests = new List<UpsertLeaveCalendarHolidayRequest>();
+        var lastRow = sheet.LastRowUsed()?.RowNumber() ?? 1;
+
+        for (int row = 2; row <= lastRow; row++)
+        {
+            var dateCell = sheet.Cell(row, dateCol);
+            var nameCell = sheet.Cell(row, nameCol);
+
+            if (dateCell.IsEmpty() && nameCell.IsEmpty()) continue;
+
+            DateOnly date;
+            if (dateCell.DataType == XLDataType.DateTime)
+            {
+                date = DateOnly.FromDateTime(dateCell.GetDateTime());
+            }
+            else
+            {
+                var dateStr = dateCell.GetString().Trim();
+                if (!DateOnly.TryParse(dateStr, CultureInfo.InvariantCulture, out date) &&
+                    !DateOnly.TryParse(dateStr, out date))
+                {
+                    continue;
+                }
+            }
+
+            var name = nameCell.GetString().Trim();
+            if (string.IsNullOrWhiteSpace(name)) continue;
+
+            requests.Add(new UpsertLeaveCalendarHolidayRequest(date, name));
+        }
+
+        if (requests.Count == 0)
+        {
+            throw new BadRequestException("No valid holiday rows found in the uploaded file.");
+        }
+
+        return await BulkCreateHolidaysAsync(requests, ct);
     }
 
     private static void ValidateRequest(UpsertLeaveCalendarHolidayRequest request)

@@ -136,7 +136,11 @@ export function EmployeeBulkUploadMenu({
           if (!open) resetModal();
         }}
       >
-        <DialogContent className="max-w-xl p-0 overflow-hidden border-border bg-card shadow-2xl rounded-xl">
+        <DialogContent
+          disableAnimation
+          overlayClassName="!duration-0 !animate-none"
+          className="max-w-xl p-0 overflow-hidden border-border bg-card shadow-2xl rounded-xl !duration-0 !animate-none"
+        >
           {/* Header */}
           <div className="border-b border-border/80 bg-muted/40 px-6 py-4">
             <DialogHeader className="space-y-1">
@@ -221,9 +225,9 @@ export function EmployeeBulkUploadMenu({
                 }}
                 onClick={() => !selectedFile && fileInputRef.current?.click()}
                 className={cn(
-                  "relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-all cursor-pointer",
+                  "relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center cursor-pointer",
                   isDragging
-                    ? "border-primary bg-primary/10 scale-[1.01]"
+                    ? "border-primary bg-primary/10"
                     : selectedFile
                       ? "border-success/60 bg-success/5 cursor-default"
                       : "border-border/90 bg-muted/10 hover:bg-muted/30 hover:border-primary/50",
@@ -274,7 +278,7 @@ export function EmployeeBulkUploadMenu({
                 ) : (
                   <div className="py-2 space-y-2">
                     <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <UploadCloud className="h-5 w-5 animate-pulse" />
+                      <UploadCloud className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-foreground">

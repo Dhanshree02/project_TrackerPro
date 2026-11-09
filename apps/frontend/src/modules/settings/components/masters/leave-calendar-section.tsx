@@ -7,7 +7,7 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
-  History,
+  Upload,
   Calendar as CalendarIcon,
   ListFilter,
   Info,
@@ -41,7 +41,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  bulkCreateLeaveCalendarHolidays,
   clearLeaveCalendarYear,
   createLeaveCalendarHoliday,
   deleteLeaveCalendarHoliday,
@@ -50,6 +49,7 @@ import {
   type LeaveCalendarHoliday,
   type UpsertLeaveCalendarHolidayPayload,
 } from "@/modules/settings/api/leave-calendar";
+import { HolidayBulkUploadDialog } from "./holiday-bulk-upload-dialog";
 
 // Standard company holiday green matching Team Dashboard
 const HOLIDAY_COLOR = "#a6c63a";
@@ -86,6 +86,9 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
   // Reset year dialog state (triggered from top Masters header "Reset" button)
   const [isResetDialogOpen, setIsResetDialogOpen] = useState<boolean>(false);
   const [clearingYear, setClearingYear] = useState<boolean>(false);
+
+  // Bulk upload dialog state
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState<boolean>(false);
 
   const loadHolidays = useCallback(async (year: number) => {
     setLoading(true);
@@ -198,46 +201,6 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
     }
   };
 
-  const handleLoadPreviousHolidays = async () => {
-    const prevYear = selectedYear - 1;
-    try {
-      setLoading(true);
-      const prevHolidays = await fetchLeaveCalendarHolidays(prevYear);
-      if (!prevHolidays || prevHolidays.length === 0) {
-        toast.info(`No holidays found in ${prevYear} to load.`);
-        return;
-      }
-
-      const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
-
-      const mapped: UpsertLeaveCalendarHolidayPayload[] = prevHolidays.map((h) => {
-        let mmdd = h.date.slice(5);
-        if (mmdd === "02-29" && !isLeap(selectedYear)) {
-          mmdd = "02-28";
-        }
-        return {
-          date: `${selectedYear}-${mmdd}`,
-          name: h.name,
-        };
-      });
-
-      // Deduplicate by date
-      const mapByDate = new Map<string, UpsertLeaveCalendarHolidayPayload>();
-      for (const item of mapped) {
-        mapByDate.set(item.date, item);
-      }
-      const uniquePayload = Array.from(mapByDate.values());
-
-      await bulkCreateLeaveCalendarHolidays(uniquePayload);
-      toast.success(`Loaded ${uniquePayload.length} holidays from ${prevYear} into ${selectedYear}.`);
-      await loadHolidays(selectedYear);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load previous year holidays");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const formatDateLabel = (isoDate: string) => {
     try {
       const parts = isoDate.split("-");
@@ -316,16 +279,16 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
             </Button>
           </div>
 
-          {/* Load Previous Holidays Button */}
+          {/* Bulk Upload Button */}
           <Button
             variant="outline"
             size="sm"
-            onClick={handleLoadPreviousHolidays}
-            className="h-7 text-xs gap-1.5 border-dashed"
-            title={`Load holidays from ${selectedYear - 1} into ${selectedYear}`}
+            onClick={() => setIsBulkUploadOpen(true)}
+            className="h-7 text-xs gap-1.5 border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+            title={`Bulk upload holidays from Excel for ${selectedYear}`}
           >
-            <History className="h-3.5 w-3.5 text-blue-500" />
-            <span>Load Previous Holidays</span>
+            <Upload className="h-3.5 w-3.5" />
+            <span>Bulk Upload</span>
           </Button>
 
           {/* Add Holiday Button */}
@@ -417,14 +380,19 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
               <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground/50 mb-2" />
               <div className="text-sm font-semibold text-foreground">No holidays found</div>
               <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                No holidays registered for {selectedYear} matching your criteria. Click &quot;Add Holiday&quot; or &quot;Load Previous Holidays&quot; to configure holidays.
+                No holidays registered for {selectedYear} matching your criteria. Click &quot;Add Holiday&quot; or &quot;Bulk Upload&quot; to configure holidays.
               </p>
               <div className="mt-4 flex justify-center gap-2">
                 <Button size="sm" onClick={() => handleOpenAddDialog()} className="h-7 text-xs">
                   <Plus className="h-3 w-3 mr-1" /> Add Holiday
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleLoadPreviousHolidays} className="h-7 text-xs">
-                  <History className="h-3 w-3 mr-1 text-blue-500" /> Load Previous Holidays
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsBulkUploadOpen(true)}
+                  className="h-7 text-xs border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                >
+                  <Upload className="h-3 w-3 mr-1" /> Bulk Upload
                 </Button>
               </div>
             </div>
@@ -491,7 +459,11 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
 
       {/* ── Add / Edit Holiday Dialog ─────────────────────────────────── */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          disableAnimation
+          overlayClassName="!duration-0 !animate-none"
+          className="sm:max-w-md !duration-0 !animate-none"
+        >
           <DialogHeader>
             <DialogTitle>
               {editingHoliday ? "Edit Holiday" : "Add Holiday"}
@@ -555,7 +527,11 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
 
       {/* ── Delete Confirmation Dialog ─────────────────────────────────── */}
       <AlertDialog open={Boolean(deletingHoliday)} onOpenChange={(open) => !open && setDeletingHoliday(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          disableAnimation
+          overlayClassName="!duration-0 !animate-none"
+          className="!duration-0 !animate-none"
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Holiday</AlertDialogTitle>
             <AlertDialogDescription>
@@ -577,7 +553,11 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
 
       {/* ── Reset Year Confirmation Dialog ────────────────────────────── */}
       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent
+          disableAnimation
+          overlayClassName="!duration-0 !animate-none"
+          className="!duration-0 !animate-none"
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Reset {selectedYear} Holidays?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -598,6 +578,14 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Bulk Upload Holidays Dialog ────────────────────────────── */}
+      <HolidayBulkUploadDialog
+        open={isBulkUploadOpen}
+        onOpenChange={setIsBulkUploadOpen}
+        selectedYear={selectedYear}
+        onImportSuccess={() => void loadHolidays(selectedYear)}
+      />
     </div>
   );
 }

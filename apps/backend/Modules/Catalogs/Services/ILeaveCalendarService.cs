@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using PMS.API.Modules.Catalogs.DTOs;
 
 namespace PMS.API.Modules.Catalogs.Services;
@@ -19,5 +20,9 @@ public interface ILeaveCalendarService
     Task<IReadOnlyList<LeaveCalendarHolidayDto>> BulkCreateHolidaysAsync(
         IReadOnlyList<UpsertLeaveCalendarHolidayRequest> requests,
         CancellationToken ct = default);
+
+    Task<byte[]> GetBulkSampleExcelAsync(int? year, CancellationToken ct = default);
+
+    Task<IReadOnlyList<LeaveCalendarHolidayDto>> UploadExcelAsync(IFormFile file, CancellationToken ct = default);
 }
 
