@@ -590,6 +590,23 @@ CREATE TABLE master.mst_graduation_degrees (
 
 
 --
+-- Name: mst_leave_calendar; Type: TABLE; Schema: master; Owner: -
+--
+
+CREATE TABLE master.mst_leave_calendar (
+    "Id" uuid NOT NULL,
+    "HolidayDate" date NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "Year" integer NOT NULL,
+    "CreatedAtUtc" timestamp with time zone DEFAULT now() NOT NULL,
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone
+);
+
+
+--
 -- Name: mst_industries; Type: TABLE; Schema: master; Owner: -
 --
 
@@ -12093,6 +12110,14 @@ ALTER TABLE ONLY master.mst_graduation_degrees
 
 
 --
+-- Name: mst_leave_calendar mst_leave_calendar_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+--
+
+ALTER TABLE ONLY master.mst_leave_calendar
+    ADD CONSTRAINT mst_leave_calendar_pkey PRIMARY KEY ("Id");
+
+
+--
 -- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: master; Owner: -
 --
 
@@ -12766,6 +12791,13 @@ CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON master.mst_email_domain
 --
 
 CREATE UNIQUE INDEX "IX_mst_employee_statuses_Code" ON master.mst_employee_statuses USING btree ("Code") WHERE ("DeletedAtUtc" IS NULL);
+
+
+--
+-- Name: IX_mst_leave_calendar_HolidayDate; Type: INDEX; Schema: master; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_mst_leave_calendar_HolidayDate" ON master.mst_leave_calendar USING btree ("HolidayDate") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
