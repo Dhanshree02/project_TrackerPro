@@ -20,9 +20,6 @@ public sealed class ActionNotificationConfiguration : IEntityTypeConfiguration<A
         builder.Property(x => x.Unread).IsRequired().HasDefaultValue(true);
         builder.Property(x => x.RaisedByName).HasMaxLength(255).IsRequired().HasDefaultValue("System");
         builder.Property(x => x.RelatedTask).HasMaxLength(255);
-        builder.Property(x => x.AcknowledgedBy).HasMaxLength(255);
-        builder.Property(x => x.AcknowledgedDate).HasMaxLength(50);
-        builder.Property(x => x.AcknowledgedTime).HasMaxLength(50);
         builder.Property(x => x.HistoryJson).HasColumnType("text").IsRequired().HasDefaultValue("[]");
 
         builder.HasIndex(x => new { x.RecipientEmployeeId, x.DeletedAtUtc });

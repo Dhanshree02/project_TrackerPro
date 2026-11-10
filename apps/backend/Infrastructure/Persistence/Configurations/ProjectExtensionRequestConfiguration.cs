@@ -14,6 +14,8 @@ public sealed class ProjectExtensionRequestConfiguration : IEntityTypeConfigurat
         builder.Property(x => x.Reason).HasColumnType("text").IsRequired();
         builder.Property(x => x.Status).HasMaxLength(20).IsRequired();
         builder.Property(x => x.RequestedByName).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.CommentsJson).HasColumnType("text").IsRequired(false);
+        builder.Property(x => x.HistoryJson).HasColumnType("text").IsRequired(false);
 
         builder.HasIndex(x => x.ProjectId);
 

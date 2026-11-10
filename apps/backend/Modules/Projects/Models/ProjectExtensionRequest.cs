@@ -28,5 +28,9 @@ public class ProjectExtensionRequest : BaseEntity
 
     public string RequestedByName { get; set; } = string.Empty;
 
+    public string? CommentsJson { get; set; }
+
+    public string? HistoryJson { get; set; }
+
     public ICollection<ProjectExtensionApprover> Approvers { get; set; } = new List<ProjectExtensionApprover>();
 }

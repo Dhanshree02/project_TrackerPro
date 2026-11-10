@@ -21,6 +21,8 @@ export interface ProjectExtensionRequest {
   approvers: ExtensionApprover[];
   projectName?: string | null;
   projectCode?: string | null;
+  commentsJson?: string | null;
+  historyJson?: string | null;
 }
 
 export interface PendingExtensionApproval {
@@ -37,6 +39,8 @@ export interface PendingExtensionApproval {
   requestedByName: string;
   createdAtUtc: string;
   approvers: ExtensionApprover[];
+  commentsJson?: string | null;
+  historyJson?: string | null;
 }
 
 export async function fetchExtensionApprovers(): Promise<ExtensionApprover[]> {
@@ -90,6 +94,37 @@ export async function rejectProjectExtensionRequest(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ comment }),
+    },
+  );
+}
+
+export async function takeProjectExtensionRequestAction(
+  projectId: string,
+  extensionRequestId: string,
+  status: string,
+  comment?: string,
+): Promise<ProjectExtensionRequest> {
+  return apiFetch<ProjectExtensionRequest>(
+    `/api/v1/projects/${projectId}/extension-requests/${extensionRequestId}/action`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, comment }),
+    },
+  );
+}
+
+export async function addProjectExtensionRequestComment(
+  projectId: string,
+  extensionRequestId: string,
+  text: string,
+): Promise<ProjectExtensionRequest> {
+  return apiFetch<ProjectExtensionRequest>(
+    `/api/v1/projects/${projectId}/extension-requests/${extensionRequestId}/comments`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
     },
   );
 }

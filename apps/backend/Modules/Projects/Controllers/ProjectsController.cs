@@ -1376,6 +1376,28 @@ public class ProjectsController(
 
     }
 
+    [HttpPost("{projectId:guid}/extension-requests/{extensionRequestId:guid}/action")]
+    public async Task<ActionResult<ApiResponse<ProjectExtensionRequestDto>>> TakeExtensionAction(
+        Guid projectId,
+        Guid extensionRequestId,
+        [FromBody] TakeExtensionActionRequest request,
+        CancellationToken ct)
+    {
+        var updated = await extensionRequestService.TakeActionAsync(projectId, extensionRequestId, request, ct);
+        return Ok(ApiResponse<ProjectExtensionRequestDto>.Ok(updated));
+    }
+
+    [HttpPost("{projectId:guid}/extension-requests/{extensionRequestId:guid}/comments")]
+    public async Task<ActionResult<ApiResponse<ProjectExtensionRequestDto>>> AddExtensionComment(
+        Guid projectId,
+        Guid extensionRequestId,
+        [FromBody] AddExtensionCommentRequest request,
+        CancellationToken ct)
+    {
+        var updated = await extensionRequestService.AddCommentAsync(projectId, extensionRequestId, request, ct);
+        return Ok(ApiResponse<ProjectExtensionRequestDto>.Ok(updated));
+    }
+
 
 
     [HttpGet("{projectId:guid}/interviews")]

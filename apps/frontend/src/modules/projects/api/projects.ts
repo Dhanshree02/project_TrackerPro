@@ -572,8 +572,9 @@ export function mapApiProjectToProject(
     },
   };
 
+  const explicitEnd = ap.endDate ? String(ap.endDate).slice(0, 10) : "";
   const projectStartDate = projectDates.startDate;
-  const projectEndDate = projectDates.endDate;
+  const projectEndDate = explicitEnd && explicitEnd > projectDates.endDate ? explicitEnd : projectDates.endDate;
 
   return {
     id: ap.id,

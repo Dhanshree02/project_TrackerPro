@@ -39,12 +39,6 @@ public class ActionNotificationDto
 
     public bool Unread { get; set; }
 
-    public string? AcknowledgedBy { get; set; }
-
-    public string? AcknowledgedDate { get; set; }
-
-    public string? AcknowledgedTime { get; set; }
-
     public string CreatedBy { get; set; } = string.Empty;
 
     public string CreatedDate { get; set; } = string.Empty;
@@ -58,10 +52,6 @@ public class ActionNotificationDto
     public Guid? IssueId { get; set; }
 }
 
-public class AcknowledgeNotificationRequest
-{
-    public string Comment { get; set; } = string.Empty;
-}
 
 public class NotificationQueryParameters
 {

@@ -159,6 +159,17 @@ public sealed class ProjectExtensionRequestService(
             RequestedByEmployeeId = requester?.Id,
 
             RequestedByName = string.IsNullOrWhiteSpace(requesterName) ? "User" : requesterName,
+            CommentsJson = "[]",
+            HistoryJson = JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    status = "Pending",
+                    at = DateTime.UtcNow.ToString("o"),
+                    updatedBy = string.IsNullOrWhiteSpace(requesterName) ? "User" : requesterName,
+                    details = $"Requested extension to {request.RequestedEndDate:dd-MMM-yyyy}"
+                }
+            }),
 
             Approvers = people
 
@@ -364,7 +375,9 @@ public sealed class ProjectExtensionRequestService(
 
                 .Select(a => new ExtensionApproverDto(a.EmployeeId, a.EmployeeName, null, PmoSubDepartment, a.Status))
 
-                .ToList()
+                .ToList(),
+            CommentsJson: x.CommentsJson,
+            HistoryJson: x.HistoryJson
 
         )).ToList();
 
@@ -420,6 +433,12 @@ public sealed class ProjectExtensionRequestService(
 
         ext.UpdatedAtUtc = DateTime.UtcNow;
 
+        if (!string.IsNullOrWhiteSpace(request.Comment))
+        {
+            ext.CommentsJson = AppendComment(ext.CommentsJson, request.Comment, approverEmployeeId?.ToString() ?? "", approverName);
+        }
+        ext.HistoryJson = AppendHistory(ext.HistoryJson, "Approved", approverName, request.Comment, $"Timeline extension approved to {ext.RequestedEndDate:dd-MMM-yyyy}. {(string.IsNullOrWhiteSpace(request.Comment) ? "" : $"Comment: {request.Comment.Trim()}")}");
+
 
 
         foreach (var app in ext.Approvers)
@@ -464,53 +483,47 @@ public sealed class ProjectExtensionRequestService(
 
 
 
-            TrySyncEndDateToOtherDatabase(project.Id, ext.RequestedEndDate);
+            // Also update the latest service's EndDate in project.tbl_project_services so WBS and services expand
+
+            var services = await db.ProjectServices
+
+                .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+
+                .OrderByDescending(s => s.EndDate)
+
+                .ToListAsync(ct);
 
 
 
-            // 3. Dispatch notification ONLY to:
-
-            // Assigned Team Lead, Assigned Project Manager, Assigned Senior Project Manager, Assigned Engagement Manager, and PMO Team
-
-            var recipients = new List<Employee>();
-
-
-
-            var tl = await ResolveTeamLeadAsync(project, ct);
-
-            if (tl != null) recipients.Add(tl);
-
-
-
-            var pm = await ResolveProjectManagerAsync(project, ct);
-
-            if (pm != null && !recipients.Any(r => r.Id == pm.Id)) recipients.Add(pm);
-
-
-
-            var spm = await ResolveSeniorProjectManagerAsync(project, ct);
-
-            if (spm != null && !recipients.Any(r => r.Id == spm.Id)) recipients.Add(spm);
-
-
-
-            var em = await ResolveEngagementManagerAsync(project, ct);
-
-            if (em != null && !recipients.Any(r => r.Id == em.Id)) recipients.Add(em);
-
-
-
-            var pmoTeam = await GetPmoTeamEmployeesAsync(ct);
-
-            foreach (var pmoMember in pmoTeam)
+            if (services.Count > 0)
 
             {
 
-                if (!recipients.Any(r => r.Id == pmoMember.Id))
+                var maxEndDate = services[0].EndDate;
+
+                foreach (var svc in services)
 
                 {
 
-                    recipients.Add(pmoMember);
+                    if (svc.EndDate == maxEndDate && svc.EndDate < ext.RequestedEndDate)
+
+                    {
+
+                        svc.EndDate = ext.RequestedEndDate;
+
+                        if (svc.StartDate.HasValue)
+
+                        {
+
+                            svc.TotalDays = ext.RequestedEndDate.DayNumber - svc.StartDate.Value.DayNumber + 1;
+
+                            svc.DurationDays = svc.TotalDays;
+
+                        }
+
+                        svc.UpdatedAtUtc = DateTime.UtcNow;
+
+                    }
 
                 }
 
@@ -518,71 +531,11 @@ public sealed class ProjectExtensionRequestService(
 
 
 
-            var approvedNotifTitle = $"Timeline Extension Approved: {project.Name} extended to {ext.RequestedEndDate:dd-MMM-yyyy}";
+            TrySyncEndDateToOtherDatabase(project.Id, ext.RequestedEndDate);
 
-            foreach (var recipient in recipients)
-
-            {
-
-                var notif = new ActionNotification
-
-                {
-
-                    Id = Guid.NewGuid(),
-
-                    RecipientEmployeeId = recipient.Id,
-
-                    ProjectId = project.Id,
-
-                    ProjectCode = project.ProjectCode,
-
-                    ProjectName = project.Name,
-
-                    Title = approvedNotifTitle,
-
-                    Type = "Timeline Extension",
-
-                    Priority = "High",
-
-                    Status = "Approved",
-
-                    Unread = true,
-
-                    RaisedByEmployeeId = approverEmployeeId,
-
-                    RaisedByName = approverName,
-
-                    RelatedTask = ext.Id.ToString(),
-
-                    CreatedAtUtc = DateTime.UtcNow,
-
-                    HistoryJson = JsonSerializer.Serialize(new[]
-
-                    {
-
-                        new
-
-                        {
-
-                            status = "Approved",
-
-                            at = DateTime.UtcNow.ToString("o"),
-
-                            updatedBy = approverName,
-
-                            details = $"Timeline extension approved to {ext.RequestedEndDate:dd-MMM-yyyy}. {(string.IsNullOrWhiteSpace(request.Comment) ? "" : $"Comment: {request.Comment.Trim()}")}"
-
-                        }
-
-                    })
-
-                };
-
-                db.ActionNotifications.Add(notif);
-
-            }
-
+            await NotifyLeadershipAndPmoAsync(project, ext, "Approved", approverName, approverEmployeeId, request.Comment, ct);
         }
+
 
 
 
@@ -636,6 +589,12 @@ public sealed class ProjectExtensionRequestService(
 
         ext.UpdatedAtUtc = DateTime.UtcNow;
 
+        if (!string.IsNullOrWhiteSpace(request.Comment))
+        {
+            ext.CommentsJson = AppendComment(ext.CommentsJson, request.Comment, approverEmployeeId?.ToString() ?? "", approverName);
+        }
+        ext.HistoryJson = AppendHistory(ext.HistoryJson, "Rejected", approverName, request.Comment, $"Timeline extension rejected. {(string.IsNullOrWhiteSpace(request.Comment) ? "" : $"Comment: {request.Comment.Trim()}")}");
+
 
 
         foreach (var app in ext.Approvers)
@@ -648,69 +607,12 @@ public sealed class ProjectExtensionRequestService(
 
         }
 
-
-
-        if (ext.RequestedByEmployeeId.HasValue)
-
+        var project = ext.Project ?? await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+        if (project != null)
         {
-
-            var notif = new ActionNotification
-
-            {
-
-                Id = Guid.NewGuid(),
-
-                RecipientEmployeeId = ext.RequestedByEmployeeId.Value,
-
-                ProjectId = ext.ProjectId,
-
-                ProjectCode = ext.Project?.ProjectCode,
-
-                ProjectName = ext.Project?.Name ?? "Project",
-
-                Title = $"Timeline Extension Rejected: {ext.Project?.Name ?? "Project"}",
-
-                Type = "Timeline Extension",
-
-                Priority = "Medium",
-
-                Status = "Rejected",
-
-                Unread = true,
-
-                RaisedByEmployeeId = approverEmployeeId,
-
-                RaisedByName = approverName,
-
-                RelatedTask = ext.Id.ToString(),
-
-                CreatedAtUtc = DateTime.UtcNow,
-
-                HistoryJson = JsonSerializer.Serialize(new[]
-
-                {
-
-                    new
-
-                    {
-
-                        status = "Rejected",
-
-                        at = DateTime.UtcNow.ToString("o"),
-
-                        updatedBy = approverName,
-
-                        details = $"Timeline extension rejected. {(string.IsNullOrWhiteSpace(request.Comment) ? "" : $"Comment: {request.Comment.Trim()}")}"
-
-                    }
-
-                })
-
-            };
-
-            db.ActionNotifications.Add(notif);
-
+            await NotifyLeadershipAndPmoAsync(project, ext, "Rejected", approverName, approverEmployeeId, request.Comment, ct);
         }
+
 
 
 
@@ -908,6 +810,105 @@ public sealed class ProjectExtensionRequestService(
 
 
 
+    private async Task NotifyLeadershipAndPmoAsync(
+        Project project,
+        ProjectExtensionRequest ext,
+        string status,
+        string actorName,
+        Guid? actorEmployeeId,
+        string? comment,
+        CancellationToken ct)
+    {
+        var recipients = new List<Employee>();
+
+        var tl = await ResolveTeamLeadAsync(project, ct);
+        if (tl != null) recipients.Add(tl);
+
+        var pm = await ResolveProjectManagerAsync(project, ct);
+        if (pm != null && !recipients.Any(r => r.Id == pm.Id)) recipients.Add(pm);
+
+        var spm = await ResolveSeniorProjectManagerAsync(project, ct);
+        if (spm != null && !recipients.Any(r => r.Id == spm.Id)) recipients.Add(spm);
+
+        var em = await ResolveEngagementManagerAsync(project, ct);
+        if (em != null && !recipients.Any(r => r.Id == em.Id)) recipients.Add(em);
+
+        var pmoTeam = await GetPmoTeamEmployeesAsync(ct);
+        foreach (var pmoMember in pmoTeam)
+        {
+            if (!recipients.Any(r => r.Id == pmoMember.Id))
+            {
+                recipients.Add(pmoMember);
+            }
+        }
+
+        var commentPart = string.IsNullOrWhiteSpace(comment) ? "" : $" Remarks: \"{comment.Trim()}\"";
+        string notifTitle;
+        string notifStatus = status;
+        string priority = "High";
+
+        if (status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            notifTitle = $"Timeline Extension Approved: {project.Name} extended to {ext.RequestedEndDate:dd-MMM-yyyy}.{commentPart}";
+            notifStatus = "Approved";
+            priority = "High";
+        }
+        else if (status.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
+        {
+            notifTitle = $"Timeline Extension Rejected: {project.Name}.{commentPart}";
+            notifStatus = "Rejected";
+            priority = "Medium";
+        }
+        else if (status.Equals("Hold", StringComparison.OrdinalIgnoreCase))
+        {
+            notifTitle = $"Timeline Extension On Hold: {project.Name}.{commentPart}";
+            notifStatus = "Hold";
+            priority = "Medium";
+        }
+        else
+        {
+            notifTitle = $"Timeline Extension Changes Requested: {project.Name}.{commentPart}";
+            notifStatus = "Request Changes";
+            priority = "Medium";
+        }
+
+        var createdNotifs = new List<ActionNotification>();
+        foreach (var recipient in recipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                ProjectId = project.Id,
+                ProjectCode = project.ProjectCode,
+                ProjectName = project.Name,
+                Title = notifTitle,
+                Type = "Timeline Extension",
+                Priority = priority,
+                Status = notifStatus,
+                Unread = true,
+                RaisedByEmployeeId = actorEmployeeId,
+                RaisedByName = actorName,
+                RelatedTask = ext.Id.ToString(),
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = notifStatus,
+                        at = DateTime.UtcNow.ToString("o"),
+                        updatedBy = actorName,
+                        details = $"{notifTitle}"
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            createdNotifs.Add(notif);
+        }
+
+        TrySyncNotificationsToOtherDatabase(createdNotifs);
+    }
+
     private async Task<List<Employee>> GetPmoTeamEmployeesAsync(CancellationToken ct)
 
     {
@@ -926,7 +927,7 @@ public sealed class ProjectExtensionRequestService(
 
         {
 
-            using var conn = new Npgsql.NpgsqlConnection("Host=10.50.30.189;Port=41763;Database=pms_uat;Username=postgres;Password=clockit;Include Error Detail=true");
+            using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");
 
             conn.Open();
 
@@ -1000,7 +1001,7 @@ public sealed class ProjectExtensionRequestService(
 
         {
 
-            using var conn = new Npgsql.NpgsqlConnection("Host=10.50.30.189;Port=41763;Database=pms_uat;Username=postgres;Password=clockit;Include Error Detail=true");
+            using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");
 
             conn.Open();
 
@@ -1013,6 +1014,18 @@ public sealed class ProjectExtensionRequestService(
             cmd.Parameters.AddWithValue("pid", projectId);
 
             cmd.ExecuteNonQuery();
+
+
+
+            using var cmd2 = conn.CreateCommand();
+
+            cmd2.CommandText = "UPDATE project.tbl_project_services SET \"EndDate\" = @end, \"UpdatedAtUtc\" = NOW() WHERE \"ProjectId\" = @pid AND \"EndDate\" = (SELECT MAX(\"EndDate\") FROM project.tbl_project_services WHERE \"ProjectId\" = @pid AND \"DeletedAtUtc\" IS NULL)";
+
+            cmd2.Parameters.AddWithValue("end", newEndDate);
+
+            cmd2.Parameters.AddWithValue("pid", projectId);
+
+            cmd2.ExecuteNonQuery();
 
         }
 
@@ -1121,7 +1134,149 @@ public sealed class ProjectExtensionRequestService(
 
 
 
-    private static ProjectExtensionRequestDto Map(ProjectExtensionRequest row) => new(
+        public async Task<ProjectExtensionRequestDto> TakeActionAsync(
+        Guid projectId,
+        Guid extensionRequestId,
+        TakeExtensionActionRequest request,
+        CancellationToken ct = default)
+    {
+        var normalizedStatus = (request.Status ?? "").Trim();
+        if (normalizedStatus.Equals("Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ApproveAsync(projectId, extensionRequestId, new ApproveExtensionRequestDto(request.Comment), ct);
+        }
+        if (normalizedStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
+        {
+            return await RejectAsync(projectId, extensionRequestId, new RejectExtensionRequestDto(request.Comment), ct);
+        }
+
+        var ext = await db.ProjectExtensionRequests
+            .Include(x => x.Approvers)
+            .Include(x => x.Project)
+            .FirstOrDefaultAsync(x => x.Id == extensionRequestId && x.ProjectId == projectId && x.DeletedAtUtc == null, ct)
+            ?? throw new NotFoundException($"Extension request '{extensionRequestId}' was not found.");
+
+        var currentEmp = await FindRequesterAsync(ct);
+        var actorName = currentEmp != null ? $"{currentEmp.FirstName} {currentEmp.LastName}".Trim() : (currentUser.Name ?? currentUser.Email ?? "Approver");
+        var actorEmployeeId = currentEmp?.Id;
+
+        var statusLabel = normalizedStatus.Equals("Hold", StringComparison.OrdinalIgnoreCase) ? "Hold" : "Request Changes";
+        ext.Status = statusLabel;
+        ext.UpdatedAtUtc = DateTime.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(request.Comment))
+        {
+            ext.CommentsJson = AppendComment(ext.CommentsJson, request.Comment, actorEmployeeId?.ToString() ?? "", actorName);
+        }
+        ext.HistoryJson = AppendHistory(ext.HistoryJson, statusLabel, actorName, request.Comment, $"Status changed to {statusLabel} by {actorName}. {(string.IsNullOrWhiteSpace(request.Comment) ? "" : $"Comment: {request.Comment.Trim()}")}");
+
+        var project = ext.Project ?? await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+        if (project != null)
+        {
+            await NotifyLeadershipAndPmoAsync(project, ext, statusLabel, actorName, actorEmployeeId, request.Comment, ct);
+        }
+
+        await db.SaveChangesAsync(ct);
+        return Map(ext);
+    }
+
+    public async Task<ProjectExtensionRequestDto> AddCommentAsync(
+        Guid projectId,
+        Guid extensionRequestId,
+        AddExtensionCommentRequest request,
+        CancellationToken ct = default)
+    {
+        var ext = await db.ProjectExtensionRequests
+            .Include(x => x.Approvers)
+            .Include(x => x.Project)
+            .FirstOrDefaultAsync(x => x.Id == extensionRequestId && x.ProjectId == projectId && x.DeletedAtUtc == null, ct)
+            ?? throw new NotFoundException($"Extension request '{extensionRequestId}' was not found.");
+
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            throw new BadRequestException("Comment text cannot be empty.");
+        }
+
+        var currentEmp = await FindRequesterAsync(ct);
+        var authorName = currentEmp != null ? $"{currentEmp.FirstName} {currentEmp.LastName}".Trim() : (currentUser.Name ?? currentUser.Email ?? "User");
+        var authorId = currentEmp?.Id.ToString() ?? currentUser.UserId?.ToString() ?? "";
+
+        ext.CommentsJson = AppendComment(ext.CommentsJson, request.Text.Trim(), authorId, authorName);
+        ext.UpdatedAtUtc = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        return Map(ext);
+    }
+
+    private static string AppendComment(string? currentJson, string text, string authorId, string authorName)
+    {
+        var comments = new List<object>();
+        if (!string.IsNullOrWhiteSpace(currentJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(currentJson);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var elem in doc.RootElement.EnumerateArray())
+                    {
+                        if (elem.ValueKind == JsonValueKind.Object)
+                        {
+                            comments.Add(elem.Clone());
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        comments.Add(new
+        {
+            id = "cm-" + Guid.NewGuid().ToString("N")[..8],
+            authorId,
+            authorName,
+            text = text?.Trim() ?? string.Empty,
+            at = DateTime.UtcNow.ToString("o")
+        });
+
+        return JsonSerializer.Serialize(comments);
+    }
+
+    private static string AppendHistory(string? currentJson, string status, string updatedBy, string? comment, string details)
+    {
+        var historyList = new List<object>();
+        if (!string.IsNullOrWhiteSpace(currentJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(currentJson);
+                if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var elem in doc.RootElement.EnumerateArray())
+                    {
+                        if (elem.ValueKind == JsonValueKind.Object)
+                        {
+                            historyList.Add(elem.Clone());
+                        }
+                    }
+                }
+            }
+            catch { }
+        }
+
+        historyList.Add(new
+        {
+            status,
+            at = DateTime.UtcNow.ToString("o"),
+            updatedBy,
+            comment = comment?.Trim() ?? string.Empty,
+            details
+        });
+
+        return JsonSerializer.Serialize(historyList);
+    }
+
+private static ProjectExtensionRequestDto Map(ProjectExtensionRequest row) => new(
 
         row.Id,
 
@@ -1151,7 +1306,9 @@ public sealed class ProjectExtensionRequestService(
 
         row.Project?.Name,
 
-        row.Project?.ProjectCode);
+        row.Project?.ProjectCode,
+        row.CommentsJson,
+        row.HistoryJson);
 
 }
 

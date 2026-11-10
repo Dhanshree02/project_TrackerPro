@@ -36,12 +36,6 @@ public class ActionNotification : BaseEntity
 
     public Guid? IssueId { get; set; }
 
-    public string? AcknowledgedBy { get; set; }
-
-    public string? AcknowledgedDate { get; set; }
-
-    public string? AcknowledgedTime { get; set; }
-
     public string HistoryJson { get; set; } = "[]";
 
     // Navigation properties

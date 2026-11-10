@@ -2358,18 +2358,6 @@ export interface DhNotification {
 
 
 
-  acknowledgedBy?: string;
-
-
-
-  acknowledgedDate?: string;
-
-
-
-  acknowledgedTime?: string;
-
-
-
   createdBy: string;
 
 
@@ -14446,71 +14434,43 @@ export const dhStore = {
 
 
 
-  acknowledgeNotification(id: string, userName: string, comment: string) {
+  updateProjectEndDate(projectId: string, newEndDate: string) {
 
 
 
-    const notif = state.notifications.find((n) => n.id === id);
+    const cleanDate = newEndDate.slice(0, 10);
 
 
 
-    if (!notif) return;
+    const p1 = state.extraProjects.find((p) => p.id === projectId);
 
 
 
-    const now = new Date();
+    if (p1) {
 
 
 
-    const dateStr = now.toISOString().slice(0, 10);
+      p1.endDate = cleanDate;
 
 
 
-    const timeStr = now.toTimeString().slice(0, 8);
+    }
 
 
 
-    notif.status = "Acknowledged";
+    const p2 = baseProjects.find((p) => p.id === projectId);
 
 
 
-    notif.unread = false;
+    if (p2) {
 
 
 
-    notif.acknowledgedBy = userName;
+      p2.endDate = cleanDate;
 
 
 
-    notif.acknowledgedDate = dateStr;
-
-
-
-    notif.acknowledgedTime = timeStr;
-
-
-
-    notif.history.push({
-
-
-
-      action: `Notification acknowledged - Remarks: "${comment.trim()}"`,
-
-
-
-      date: dateStr,
-
-
-
-      time: timeStr,
-
-
-
-      by: userName,
-
-
-
-    });
+    }
 
 
 

@@ -178,12 +178,10 @@ import {
 } from "@/modules/projects/api/project-interviews";
 
 import {
-
   fetchExtensionApprovers,
-
   fetchProjectExtensionRequests,
-
   createProjectExtensionRequest,
+  addProjectExtensionRequestComment,
 
   type ExtensionApprover,
 
@@ -1879,7 +1877,11 @@ export function ProjectDetailPage() {
 
           const dates = deriveProjectDates(dateSource, withLeaders.startDate, withLeaders.endDate);
 
-          return { ...withLeaders, startDate: dates.startDate, endDate: dates.endDate };
+          const explicitEnd = withLeaders.endDate ? String(withLeaders.endDate).slice(0, 10) : "";
+
+          const resolvedEnd = explicitEnd && explicitEnd > dates.endDate ? explicitEnd : dates.endDate;
+
+          return { ...withLeaders, startDate: dates.startDate, endDate: resolvedEnd };
 
         })();
 
@@ -2170,6 +2172,30 @@ export function ProjectDetailPage() {
     };
 
   }, [project.id]);
+
+  const [overviewExtRequests, setOverviewExtRequests] = useState<ProjectExtensionRequest[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    if (isApiGuid(project.id)) {
+      fetchProjectExtensionRequests(project.id)
+        .then((data) => {
+          if (active) setOverviewExtRequests(data || []);
+        })
+        .catch(() => {});
+    }
+    return () => {
+      active = false;
+    };
+  }, [project.id]);
+
+  const latestApprovedExt = useMemo(() => {
+    const approved = overviewExtRequests.filter((r) => r.status === "Approved" && r.requestedEndDate);
+    if (!approved.length) return null;
+    return [...approved].sort((a, b) => new Date(a.createdAtUtc).getTime() - new Date(b.createdAtUtc).getTime()).pop() || null;
+  }, [overviewExtRequests]);
+
+  const previousEndDate = latestApprovedExt ? latestApprovedExt.currentEndDate : null;
 
 
 
@@ -3290,6 +3316,10 @@ export function ProjectDetailPage() {
               customerRouteId={customerRouteId}
 
               onLeadershipSaved={applyLeadershipRows}
+
+              previousEndDate={previousEndDate}
+
+              latestApprovedExt={latestApprovedExt}
 
             />
 
@@ -4875,6 +4905,10 @@ function OverviewTab({
 
   onLeadershipSaved,
 
+  previousEndDate: propPreviousEndDate,
+
+  latestApprovedExt: propLatestApprovedExt,
+
 }: {
 
   project: Project;
@@ -4890,6 +4924,10 @@ function OverviewTab({
   customerRouteId: string | null;
 
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
+
+  previousEndDate?: string | null;
+
+  latestApprovedExt?: ProjectExtensionRequest | null;
 
 }) {
 
@@ -4912,6 +4950,34 @@ function OverviewTab({
   const knownPeople = useDhStore((s) => s.knownPeople);
 
   const isWbsCreated = Boolean(project.wbsDetails);
+
+  const [internalExtRequests, setInternalExtRequests] = useState<ProjectExtensionRequest[]>([]);
+
+  useEffect(() => {
+    if (propPreviousEndDate !== undefined && propLatestApprovedExt !== undefined) return;
+    let active = true;
+    if (isApiGuid(project.id)) {
+      fetchProjectExtensionRequests(project.id)
+        .then((data) => {
+          if (active) setInternalExtRequests(data || []);
+        })
+        .catch(() => {});
+    }
+    return () => {
+      active = false;
+    };
+  }, [project.id, propPreviousEndDate, propLatestApprovedExt]);
+
+  const activeApprovedExt = useMemo(() => {
+    if (propLatestApprovedExt !== undefined) return propLatestApprovedExt;
+    const approved = internalExtRequests.filter((r) => r.status === 'Approved' && r.requestedEndDate);
+    if (!approved.length) return null;
+    return [...approved].sort((a, b) => new Date(a.createdAtUtc).getTime() - new Date(b.createdAtUtc).getTime()).pop() || null;
+  }, [propLatestApprovedExt, internalExtRequests]);
+
+  const previousEndDate = propPreviousEndDate !== undefined
+    ? propPreviousEndDate
+    : (activeApprovedExt?.currentEndDate || null);
 
 
 
@@ -5285,7 +5351,15 @@ function OverviewTab({
 
   const effectiveStartDate = validStarts.length > 0 ? validStarts[0] : project.startDate;
 
-  const effectiveEndDate = validEnds.length > 0 ? validEnds[validEnds.length - 1] : project.endDate;
+  const latestServiceEnd = validEnds.length > 0 ? validEnds[validEnds.length - 1] : "";
+
+  const projEnd = project.endDate ? String(project.endDate).slice(0, 10) : "";
+
+  const effectiveEndDate = projEnd && latestServiceEnd
+
+    ? (projEnd > latestServiceEnd ? projEnd : latestServiceEnd)
+
+    : (projEnd || latestServiceEnd);
 
 
 
@@ -5387,7 +5461,24 @@ function OverviewTab({
 
           <Info icon={Calendar} label="Start" value={formatDate(effectiveStartDate)} />
 
-          <Info icon={Calendar} label="End" value={formatDate(effectiveEndDate)} />
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-3.5 w-3.5" /> End
+              </div>
+              {previousEndDate && (
+                <span className="inline-flex rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                  Extended
+                </span>
+              )}
+            </div>
+            <div className="mt-1 text-sm font-semibold">{formatDate(activeApprovedExt?.requestedEndDate || effectiveEndDate)}</div>
+            {previousEndDate && (
+              <div className="text-[11px] text-muted-foreground mt-0.5">
+                Previous: <span className="line-through">{formatDate(previousEndDate)}</span>
+              </div>
+            )}
+          </div>
 
         </div>
 
@@ -5640,6 +5731,11 @@ function OverviewTab({
 function ExtensionRequestPanel({ project }: { project: Project }) {
 
   const store = useDhStore((s) => s);
+  const { user } = useRoleContext();
+  const clientInfo = getClientInfo(project.clientId);
+  const [selectedExtId, setSelectedExtId] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState("");
+  const [isSendingComment, setIsSendingComment] = useState(false);
 
   const [open, setOpen] = useState(false);
 
@@ -5691,7 +5787,31 @@ function ExtensionRequestPanel({ project }: { project: Project }) {
 
 
 
-  const currentEnd = (project.endDate || "").slice(0, 10);
+  const latestApprovedEnd = useMemo(() => {
+
+    const approvedRows = requests.filter((r) => r.status === "Approved" && r.requestedEndDate);
+
+    if (!approvedRows.length) return "";
+
+    return approvedRows.map((r) => r.requestedEndDate.slice(0, 10)).sort().pop() || "";
+
+  }, [requests]);
+
+
+
+  const currentEnd = useMemo(() => {
+
+    const pEnd = (project.endDate || "").slice(0, 10);
+
+    if (latestApprovedEnd && pEnd) {
+
+      return latestApprovedEnd > pEnd ? latestApprovedEnd : pEnd;
+
+    }
+
+    return latestApprovedEnd || pEnd;
+
+  }, [project.endDate, latestApprovedEnd]);
 
 
 
@@ -5767,7 +5887,56 @@ function ExtensionRequestPanel({ project }: { project: Project }) {
 
 
 
-  const visibleApprovers = useMemo(() => {
+  
+  const selectedExt = useMemo(() => {
+    return requests.find((r) => r.id === selectedExtId);
+  }, [requests, selectedExtId]);
+
+  const parsedComments = useMemo(() => {
+    if (!selectedExt?.commentsJson) return [];
+    try {
+      const parsed = JSON.parse(selectedExt.commentsJson);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((cm: any, idx: number) => ({
+        id: cm.Id || cm.id || idx,
+        authorName: cm.AuthorName || cm.authorName || cm.AuthorEmail || cm.authorEmail || "Stakeholder",
+        authorEmail: cm.AuthorEmail || cm.authorEmail || "",
+        text: cm.Text || cm.text || "",
+        at: cm.At || cm.at || cm.Date || cm.date || "",
+      }));
+    } catch {
+      return [];
+    }
+  }, [selectedExt?.commentsJson]);
+
+  const parsedHistory = useMemo(() => {
+    if (!selectedExt?.historyJson) return [];
+    try {
+      const parsed = JSON.parse(selectedExt.historyJson);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [selectedExt?.historyJson]);
+
+  const handleSendComment = async () => {
+    if (!selectedExt || !newComment.trim() || isSendingComment) return;
+    setIsSendingComment(true);
+    try {
+      const updated = await addProjectExtensionRequestComment(project.id, selectedExt.id, newComment.trim());
+      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      setNewComment("");
+      toast.success("Comment posted successfully");
+    } catch (err: any) {
+      toast.error("Failed to post comment", {
+        description: err instanceof Error ? err.message : "API error",
+      });
+    } finally {
+      setIsSendingComment(false);
+    }
+  };
+
+const visibleApprovers = useMemo(() => {
 
     const needle = query.trim().toLowerCase();
 
@@ -5860,7 +6029,7 @@ function ExtensionRequestPanel({ project }: { project: Project }) {
           requestedById: "",
           requestedDate: (created.createdAtUtc || new Date().toISOString()).slice(0, 10),
           status: "Pending",
-          description: `Timeline Extension: Requesting extension of ${created.extensionDays} days. New End Date: ${created.requestedEndDate}. Reason: ${created.reason}`,
+          description: `Timeline Extension: Requesting extension of ${created.extensionDays} days. New End Date: ${formatToDayMonthYear(created.requestedEndDate) || created.requestedEndDate}. Reason: ${created.reason}`,
           comments: [],
           history: [
             {
@@ -5951,15 +6120,19 @@ function ExtensionRequestPanel({ project }: { project: Project }) {
             {requests.map((row) => (
 
               <div key={row.id} className="rounded-lg border border-border bg-card p-3">
-
-                <div className="flex items-center gap-2 flex-wrap">
-
-                  <h4 className="text-sm font-medium">{formatDate(row.requestedEndDate)}</h4>
-
-                  <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{row.status}</span>
-
-                  <span className="text-xs text-muted-foreground">{row.extensionDays} days</span>
-
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-medium">{formatDate(row.requestedEndDate)}</h4>
+                    <span className="inline-flex rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[10px] font-medium text-info">{row.status}</span>
+                    <span className="text-xs text-muted-foreground">{row.extensionDays} days</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedExtId(row.id)}
+                    className="rounded-md border border-input bg-card px-2.5 py-1 text-[10px] hover:bg-accent font-bold text-primary cursor-pointer transition-colors"
+                  >
+                    Review Detail
+                  </button>
                 </div>
 
                 <p className="mt-1 text-xs text-muted-foreground">{row.reason}</p>
@@ -6116,7 +6289,7 @@ function ExtensionRequestPanel({ project }: { project: Project }) {
 
               {showSearch && (
 
-                <div className="absolute bottom-full mb-1.5 left-0 right-0 z-50 rounded-lg border border-border bg-card shadow-2xl p-2.5 space-y-2 max-h-56 flex flex-col">
+                <div className="absolute top-full mt-1.5 left-0 right-0 z-50 rounded-lg border border-border bg-card shadow-2xl p-2.5 space-y-2 max-h-56 flex flex-col">
 
                   <div className="flex items-center justify-between border-b border-border pb-1.5 px-0.5">
 
@@ -6370,6 +6543,226 @@ function ExtensionRequestPanel({ project }: { project: Project }) {
 
         </Modal>
 
+      )}
+
+    
+
+      {/* Extension Request Review Details Modal */}
+      {selectedExt && (
+        <Modal
+          title={`Extension Request Review Details — EXT-${selectedExt.id.slice(0, 8).toUpperCase()}`}
+          onClose={() => {
+            setSelectedExtId(null);
+            setNewComment("");
+          }}
+          wide
+          draggable
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            {/* Left side details */}
+            <div className="md:col-span-2 space-y-4">
+              <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Project</span>
+                  <span className="font-semibold text-gray-800">{project.name}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Customer</span>
+                  <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Current End Date</span>
+                  <span className="font-semibold text-gray-800">{formatToDayMonthYear(selectedExt.currentEndDate) || formatDate(selectedExt.currentEndDate)}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] uppercase font-bold text-muted-foreground block">Requested End Date</span>
+                  <span className="font-semibold text-primary">{formatToDayMonthYear(selectedExt.requestedEndDate) || formatDate(selectedExt.requestedEndDate)} ({selectedExt.extensionDays} Days)</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
+                <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Reason For Extension</span>
+                <p className="text-xs text-gray-700 leading-relaxed font-medium whitespace-pre-wrap">{selectedExt.reason || "No reason provided."}</p>
+              </div>
+
+              {/* Discussion Thread Chat */}
+              <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                <div className="flex items-center justify-between border-b border-border pb-1.5">
+                  <span className="font-semibold text-[10px] text-muted-foreground uppercase flex items-center gap-1.5">
+                    <MessageSquare className="h-3.5 w-3.5 text-primary" /> Discussion Thread Chat
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {parsedComments.length} {parsedComments.length === 1 ? "message" : "messages"}
+                  </span>
+                </div>
+
+                <div
+                  className={cn(
+                    "flex flex-col space-y-2 p-2.5 rounded-md bg-[#efeae2]/30 border border-border",
+                    parsedComments.length > 2 ? "max-h-48 overflow-y-auto pr-1" : ""
+                  )}
+                >
+                  {parsedComments.map((cm: any, idx: number) => {
+                    const isMe =
+                      (cm.authorEmail && user?.email && cm.authorEmail.toLowerCase() === user.email.toLowerCase()) ||
+                      (cm.authorName && user?.name && cm.authorName.toLowerCase() === user.name.toLowerCase());
+                    const timeStr = cm.at
+                      ? new Date(cm.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                      : "";
+                    const dateStr = formatToDayMonthYear(cm.at);
+
+                    return (
+                      <div
+                        key={cm.id || idx}
+                        className={cn(
+                          "flex flex-col max-w-[85%] rounded-lg px-3 py-1.5 text-xs shadow-xs",
+                          isMe
+                            ? "self-end ml-auto bg-emerald-100 text-emerald-950 border border-emerald-300 rounded-tr-none"
+                            : "self-start mr-auto bg-white text-gray-900 border border-border rounded-tl-none"
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-3 text-[10px] pb-1 border-b border-black/5 font-semibold">
+                          <span className={isMe ? "text-emerald-800" : "text-primary"}>
+                            {isMe ? "You" : cm.authorName}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground font-normal tabular-nums">
+                            {dateStr} {timeStr}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs break-words whitespace-pre-wrap leading-relaxed">
+                          {cm.text}
+                        </p>
+                      </div>
+                    );
+                  })}
+
+                  {parsedComments.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-4 text-center text-muted-foreground">
+                      <MessageSquare className="h-5 w-5 stroke-[1.5] mb-1 opacity-40" />
+                      <span className="text-xs italic">No chat messages yet.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Add Comment input & Send button */}
+                <div className="flex items-center gap-2 pt-1 border-t border-border/60">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        void handleSendComment();
+                      }
+                    }}
+                    placeholder="Type a message or comment..."
+                    className="flex-1 h-8 rounded-md border border-border bg-card px-2.5 text-xs focus-visible:ring-1 focus-visible:ring-primary outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendComment}
+                    disabled={isSendingComment || !newComment.trim()}
+                    className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <Send className="h-3.5 w-3.5" /> Send
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Transitions Timeline Logs */}
+              {parsedHistory.length > 0 && (
+                <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                  <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">
+                    Status Transitions Timeline
+                  </span>
+                  <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
+                    {parsedHistory.map((h: any, idx: number) => {
+                      const dateStr = formatToDayMonthYear(h.at || h.date);
+                      const timeStr = h.at
+                        ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                        : (h.time || "");
+                      const text = h.details || h.action || `Status transitioned to ${h.status || ""}${h.updatedBy ? ` by ${h.updatedBy}` : ""}${h.comment ? ` — "${h.comment}"` : ""}`;
+                      return (
+                        <div key={idx} className="flex gap-2 text-[10px]">
+                          <span className="text-muted-foreground tabular-nums">{dateStr} {timeStr}:</span>
+                          <span>{text}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right side controls */}
+            <div className="space-y-4 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="bg-muted/10 rounded-lg border border-border p-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Requested By</span>
+                    <span className="font-semibold text-gray-800 truncate text-right">{selectedExt.requestedByName}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Tagged Approvers</span>
+                    <span
+                      className="font-semibold text-primary truncate text-right"
+                      title={selectedExt.approvers?.map((a) => a.name).join(", ")}
+                    >
+                      {selectedExt.approvers && selectedExt.approvers.length > 0
+                        ? selectedExt.approvers.map((a) => a.name).join(", ")
+                        : "—"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Created Date</span>
+                    <span className="font-semibold text-gray-800 truncate text-right">
+                      {formatToDayMonthYear(selectedExt.createdAtUtc)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Status Badge */}
+                <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
+                  <span className="font-semibold text-[9px] text-muted-foreground uppercase block">Status</span>
+                  <div className="pt-0.5">
+                    {(() => {
+                      const s = (selectedExt.status || "").toLowerCase().trim();
+                      const statusTone =
+                        s === "approved"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : s === "rejected"
+                          ? "bg-red-50 text-red-700 border-red-200"
+                          : s === "hold"
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : s === "request changes"
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : "bg-orange-50 text-orange-700 border-orange-200";
+                      return (
+                        <span className={cn("inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-bold", statusTone)}>
+                          {selectedExt.status}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 border-t border-border pt-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedExtId(null);
+                    setNewComment("");
+                  }}
+                  className="rounded-md border border-input bg-card px-4 py-1.5 text-xs font-semibold hover:bg-accent cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </Modal>
       )}
 
     </div>

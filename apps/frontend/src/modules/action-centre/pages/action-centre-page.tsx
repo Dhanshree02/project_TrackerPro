@@ -6,6 +6,8 @@ import {
 
   Search,
 
+  Eye,
+
   Filter,
 
   Plus,
@@ -131,6 +133,8 @@ import {
   approveProjectExtensionRequest,
 
   rejectProjectExtensionRequest,
+
+  takeProjectExtensionRequestAction,
 
 } from "@/modules/projects/api/project-extension-requests";
 
@@ -1791,6 +1795,30 @@ function ApprovalsTab() {
 
       if (Array.isArray(extItems)) {
         extItems.forEach((item) => {
+          let parsedComments: DhComment[] = [];
+          if (item.commentsJson) {
+            try {
+              const rawParsed = JSON.parse(item.commentsJson);
+              if (Array.isArray(rawParsed)) {
+                parsedComments = rawParsed.map((c: any, idx: number) => ({
+                  id: c.id || `c-${idx}`,
+                  authorName: c.authorName || "Stakeholder",
+                  authorEmail: c.authorEmail || "",
+                  text: c.text || "",
+                  at: c.at || new Date().toISOString(),
+                }));
+              }
+            } catch {}
+          }
+          let parsedHistory: any[] = [];
+          if (item.historyJson) {
+            try {
+              const rawH = JSON.parse(item.historyJson);
+              if (Array.isArray(rawH)) {
+                parsedHistory = rawH;
+              }
+            } catch {}
+          }
           toMerge.push({
             id: `APP-EXT-${item.id}`,
             projectId: item.projectId,
@@ -1799,10 +1827,10 @@ function ApprovalsTab() {
             requestedBy: item.requestedByName,
             requestedById: item.requestedByEmployeeId || "",
             requestedDate: item.createdAtUtc ? item.createdAtUtc.slice(0, 10) : "",
-            status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : "Pending",
-            description: `Timeline Extension: Requesting extension of ${item.extensionDays} days. New End Date: ${item.requestedEndDate}. Reason: ${item.reason}`,
-            comments: [],
-            history: [
+            status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : item.status === "Hold" ? "Hold" : item.status === "Request Changes" ? "Request Changes" : "Pending",
+            description: `Timeline Extension: Requesting extension of ${item.extensionDays} days. New End Date: ${formatToDayMonthYear(item.requestedEndDate)}. Reason: ${item.reason}`,
+            comments: parsedComments,
+            history: parsedHistory.length > 0 ? parsedHistory : [
               {
                 status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : "Pending",
                 at: item.createdAtUtc || new Date().toISOString(),
@@ -1904,10 +1932,9 @@ function ApprovalsTab() {
     if (currentApp && currentApp.requestType === "Timeline Extension Approval") {
       try {
         const rawExtId = currentApp.id.replace(/^APP-EXT-/, "");
-        if (status === "Approved") {
-          await approveProjectExtensionRequest(currentApp.projectId, rawExtId, appComment);
-        } else if (status === "Rejected") {
-          await rejectProjectExtensionRequest(currentApp.projectId, rawExtId, appComment);
+        const updatedExt = await takeProjectExtensionRequestAction(currentApp.projectId, rawExtId, status, appComment);
+        if (status === "Approved" && updatedExt?.requestedEndDate) {
+          dhStore.updateProjectEndDate(currentApp.projectId, updatedExt.requestedEndDate);
         }
         await loadApprovals();
         handledByApi = true;
@@ -2132,7 +2159,7 @@ function ApprovalsTab() {
 
                 <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
 
-                  {new Date(app.requestedDate).toLocaleDateString()}
+                  {formatToDayMonthYear(app.requestedDate)}
 
                 </td>
 
@@ -2260,7 +2287,7 @@ function ApprovalsTab() {
 
                 <span className="text-muted-foreground">Submitted On</span>
 
-                <p className="font-medium">{selectedApproval.requestedDate}</p>
+                <p className="font-medium">{formatToDayMonthYear(selectedApproval.requestedDate) || selectedApproval.requestedDate}</p>
 
               </div>
 
@@ -2315,7 +2342,7 @@ function ApprovalsTab() {
                       <div key={c.id || idx} className="text-xs rounded-md border border-border/60 bg-muted/20 p-2.5">
                         <div className="flex justify-between items-center text-muted-foreground text-[10px] mb-1">
                           <span className="font-semibold text-foreground">{c.authorName}</span>
-                          <span>{new Date(c.at).toLocaleString()}</span>
+                          <span>{formatToDayMonthYear(c.at)} {c.at ? new Date(c.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</span>
                         </div>
                         <p className="text-foreground leading-normal whitespace-pre-wrap">{c.text}</p>
                       </div>
@@ -2390,7 +2417,7 @@ function ApprovalsTab() {
                           <strong className="text-gray-700 font-semibold">{h.status}</strong> by{" "}
                           {h.updatedBy}
                         </span>
-                        <span>{new Date(h.at).toLocaleString()}</span>
+                        <span>{formatToDayMonthYear(h.at || h.date)} {h.at ? new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (h.time || '')}</span>
                       </div>
                       {h.comment && <p className="text-gray-800 mt-0.5">"{h.comment}"</p>}
                     </div>
@@ -4158,21 +4185,11 @@ function NotificationsTab() {
 
   const [selectedNotifId, setSelectedNotifId] = useState<string | null>(null);
 
-  const [commentText, setCommentText] = useState("");
-
-  const [showCommentError, setShowCommentError] = useState(false);
-
-
-
   const notifications = store.notifications || [];
 
 
 
   const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-
 
   const fetchNotifications = useCallback(async () => {
 
@@ -4463,65 +4480,7 @@ function NotificationsTab() {
     dhStore.markNotificationAsRead(id);
 
     setSelectedNotifId(id);
-
-    setCommentText("");
-
-    setShowCommentError(false);
-
   };
-
-
-
-  const handleConfirmAcknowledge = async () => {
-
-    if (!selectedNotification) return;
-
-    if (!commentText.trim()) {
-
-      setShowCommentError(true);
-
-      return;
-
-    }
-
-    setIsSubmitting(true);
-
-    try {
-
-      await apiFetch(`/api/v1/action-centre/notifications/${selectedNotification.id}/acknowledge`, {
-
-        method: "PUT",
-
-        headers: { "Content-Type": "application/json" },
-
-        body: JSON.stringify({ comment: commentText.trim() }),
-
-      });
-
-      dhStore.acknowledgeNotification(selectedNotification.id, user.name, commentText);
-
-      toast.success("Notification Acknowledged Persistently!");
-
-      setSelectedNotifId(null);
-
-      setCommentText("");
-
-      setShowCommentError(false);
-
-      fetchNotifications();
-
-    } catch (err: any) {
-
-      toast.error(err?.message || "Failed to acknowledge notification");
-
-    } finally {
-
-      setIsSubmitting(false);
-
-    }
-
-  };
-
 
 
   const totalSubtabCount = subTab === "Current" ? pendingCount : archivedCount;
@@ -4880,11 +4839,7 @@ function NotificationsTab() {
 
                 <th className="px-3 py-2 font-medium">Priority</th>
 
-                {subTab === "Current" && (
-
                   <th className="px-3 py-2 font-medium text-right">Actions</th>
-
-                )}
 
               </tr>
 
@@ -5080,33 +5035,21 @@ function NotificationsTab() {
 
                     {/* Actions */}
 
-                    {subTab === "Current" && (
+                    <td className="px-3 py-2.5 pr-4 text-right whitespace-nowrap">
 
-                      <td className="px-3 py-2.5 pr-4 text-right whitespace-nowrap">
+                      <button
 
-                        {n.status === "Pending" ? (
+                        onClick={() => handleOpenDetails(n.id)}
 
-                          <button
+                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card hover:bg-accent px-2.5 py-1 text-xs font-semibold cursor-pointer transition-colors text-foreground shadow-none"
 
-                            onClick={() => handleOpenDetails(n.id)}
+                      >
 
-                            className="inline-flex items-center gap-1 rounded-md border border-success text-success bg-transparent hover:bg-success/10 px-2.5 py-1 text-xs font-semibold cursor-pointer transition-colors"
+                        <Eye className="h-3.5 w-3.5" /> View
 
-                          >
+                      </button>
 
-                            <Check className="h-3.5 w-3.5" /> Acknowledge
-
-                          </button>
-
-                        ) : (
-
-                          <span className="text-muted-foreground">—</span>
-
-                        )}
-
-                      </td>
-
-                    )}
+                    </td>
 
                   </tr>
 
@@ -5312,101 +5255,6 @@ function NotificationsTab() {
 
 
 
-            {/* Awaiting acknowledgement warning box */}
-
-            {selectedNotification.status === "Pending" && (
-
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-3.5 text-xs text-orange-800 space-y-0.5">
-
-                <div className="font-semibold">This notification is awaiting acknowledgement.</div>
-
-                <div className="text-orange-700">
-
-                  Add your comment and click Acknowledge to confirm you have reviewed this
-
-                  notification.
-
-                </div>
-
-              </div>
-
-            )}
-
-
-
-            {/* Mandatory Comment Area */}
-
-            {selectedNotification.status === "Pending" ? (
-
-              <div className="space-y-1">
-
-                <label className="block text-xs font-bold text-gray-700">
-
-                  Acknowledgement Comment <span className="text-red-500">* Mandatory</span>
-
-                </label>
-
-                <textarea
-
-                  value={commentText}
-
-                  onChange={(e) => {
-
-                    setCommentText(e.target.value);
-
-                    if (e.target.value.trim()) setShowCommentError(false);
-
-                  }}
-
-                  placeholder="Enter your acknowledgement remarks before confirming..."
-
-                  rows={3}
-
-                  className={cn(
-
-                    "w-full rounded-lg border p-3 text-xs outline-none focus-visible:ring-1 focus-visible:ring-primary focus:border-primary/55 bg-card",
-
-                    showCommentError ? "border-red-500" : "border-border",
-
-                  )}
-
-                />
-
-                {showCommentError && (
-
-                  <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1 font-semibold select-none">
-
-                    ⚠ Comment is required to acknowledge this notification.
-
-                  </p>
-
-                )}
-
-              </div>
-
-            ) : (
-
-              // Read-only comment box for Acknowledged
-
-              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3.5 text-xs text-emerald-800 space-y-1">
-
-                <div className="font-semibold">This notification has been acknowledged.</div>
-
-                <div className="text-emerald-700">
-
-                  Acknowledged by <strong>{selectedNotification.acknowledgedBy}</strong> on{" "}
-
-                  {formatNotifDate(selectedNotification.acknowledgedDate || "")} at{" "}
-
-                  {selectedNotification.acknowledgedTime}.
-
-                </div>
-
-              </div>
-
-            )}
-
-
 
             {/* Audit History Card */}
 
@@ -5468,63 +5316,6 @@ function NotificationsTab() {
 
                 </div>
 
-
-
-                {selectedNotification.status === "Acknowledged" && (
-
-                  <>
-
-                    <div>
-
-                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
-
-                        Acknowledged By
-
-                      </span>
-
-                      <span className="font-bold text-emerald-700">
-
-                        {selectedNotification.acknowledgedBy}
-
-                      </span>
-
-                    </div>
-
-                    <div>
-
-                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
-
-                        Acknowledged Date
-
-                      </span>
-
-                      <span className="font-semibold text-emerald-700">
-
-                        {formatNotifDate(selectedNotification.acknowledgedDate || "")}
-
-                      </span>
-
-                    </div>
-
-                    <div>
-
-                      <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
-
-                        Acknowledged Time
-
-                      </span>
-
-                      <span className="font-semibold text-emerald-700 font-mono">
-
-                        {selectedNotification.acknowledgedTime}
-
-                      </span>
-
-                    </div>
-
-                  </>
-
-                )}
 
               </div>
 
@@ -5603,23 +5394,6 @@ function NotificationsTab() {
                 Close
 
               </button>
-
-              {selectedNotification.status === "Pending" && !isBO && (
-
-                <button
-
-                  onClick={handleConfirmAcknowledge}
-
-                  className="rounded-md bg-success text-success-foreground px-4 py-2 font-semibold hover:bg-success/90 text-xs flex items-center gap-1 cursor-pointer"
-
-                >
-
-                  <Check className="h-3.5 w-3.5" /> Acknowledge
-
-                </button>
-
-              )}
-
             </div>
 
           </div>

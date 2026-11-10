@@ -145,19 +145,6 @@ public class ActionCentreController : ControllerBase
     }
 
     /// <summary>
-    /// Acknowledges an Action Centre notification with a required comment.
-    /// </summary>
-    [HttpPut("notifications/{id:guid}/acknowledge")]
-    public async Task<ActionResult<ApiResponse<ActionNotificationDto>>> AcknowledgeNotification(
-        Guid id,
-        [FromBody] AcknowledgeNotificationRequest request,
-        CancellationToken ct = default)
-    {
-        var updated = await _notificationService.AcknowledgeNotificationAsync(id, request.Comment, ct);
-        return Ok(ApiResponse<ActionNotificationDto>.Ok(updated));
-    }
-
-    /// <summary>
     /// Marks an Action Centre notification as read.
     /// </summary>
     [HttpPut("notifications/{id:guid}/read")]
