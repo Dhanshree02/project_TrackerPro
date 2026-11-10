@@ -143,7 +143,9 @@ public class AppDbContext(
 
     public DbSet<ProjectDraft> ProjectDrafts => Set<ProjectDraft>();
 
-    public DbSet<ProjectTeamMember> ProjectTeamMembers => Set<ProjectTeamMember>();
+    public DbSet<ProjectTeamMember> ProjectTeamMembers => Set<ProjectTeamMember>();
+
+    public DbSet<ProjectResourceAllocationRequest> ProjectResourceAllocationRequests => Set<ProjectResourceAllocationRequest>();
 
     public DbSet<ProjectInterview> ProjectInterviews => Set<ProjectInterview>();
 

@@ -22,6 +22,8 @@ export interface ApiBucketTask {
   elapsedTimeSeconds: number;
   utilizedHours: number;
   createdAtUtc: string;
+  updatedAtUtc?: string | null;
+  employeeName?: string | null;
 }
 
 export interface PagedResult<T> {

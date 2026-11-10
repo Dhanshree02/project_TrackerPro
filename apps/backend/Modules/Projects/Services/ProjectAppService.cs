@@ -1,2595 +1,5273 @@
 using Microsoft.EntityFrameworkCore;
+
 using PMS.API.Infrastructure.Persistence;
+
 using PMS.API.Infrastructure.Storage;
+
 using PMS.API.Modules.ActionCentre.Models;
+
 using PMS.API.Modules.Customers.Models;
+
 using PMS.API.Modules.Projects.DTOs;
+
 using PMS.API.Modules.Projects.Models;
+
 using PMS.API.Shared.Common.Wrappers;
+
 using PMS.API.Shared.Exceptions;
+
+
 
 namespace PMS.API.Modules.Projects.Services;
 
+
+
 public sealed partial class ProjectAppService(AppDbContext db, IFileStorageService fileStorage, IProjectTaskService taskService, PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService, PMS.API.Infrastructure.Authorization.ICurrentUserService currentUser) : IProjectAppService
+
 {
 
+
+
     public async Task<PagedResult<ProjectDto>> GetProjectsAsync(ProjectQueryParameters queryParams, CancellationToken ct = default)
+
     {
+
         var query = db.Projects
+
             .Include(p => p.Client)
+
             .Include(p => p.SubVenture)
+
             .Include(p => p.ProjectManager)
+
             .Include(p => p.TeamLead)
+
             .Include(p => p.EngagementManagerRef)
+
             .Include(p => p.RenewedFromProject)
+
             .AsNoTracking();
 
+
+
         if (queryParams.ClientId.HasValue)
+
         {
+
             query = query.Where(p => p.ClientId == queryParams.ClientId.Value);
+
         }
+
+
 
         if (queryParams.EmployeeId.HasValue)
+
         {
+
             var empId = queryParams.EmployeeId.Value;
+
             query = query.Where(p =>
+
                 p.ProjectManagerId == empId ||
+
                 p.TeamLeadId == empId ||
+
                 p.EngagementManagerId == empId ||
+
                 db.ProjectTeamMembers.Any(tm => tm.ProjectId == p.Id && tm.EmployeeId == empId) ||
+
                 db.ProjectTasks.Any(t => t.ProjectId == p.Id && db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId)));
+
         }
+
+
 
         if (!string.IsNullOrWhiteSpace(queryParams.Status))
+
         {
+
             var status = queryParams.Status.Trim();
+
             if (status.Equals("active", StringComparison.OrdinalIgnoreCase))
+
             {
+
                 query = query.Where(p => p.Status != "completed" && p.Status != "archived" && p.Status != "Archived");
+
             }
+
             else if (status.Equals("archived", StringComparison.OrdinalIgnoreCase))
+
             {
+
                 query = query.Where(p => p.Status == "completed" || p.Status == "archived" || p.Status == "Archived");
+
             }
+
             else
+
             {
+
                 query = query.Where(p => p.Status == status);
+
             }
+
         }
+
+
 
         if (!string.IsNullOrWhiteSpace(queryParams.WbsStatus))
+
         {
+
             query = query.Where(p => p.WbsStatus == queryParams.WbsStatus.Trim());
+
         }
+
+
 
         if (!string.IsNullOrWhiteSpace(queryParams.Search))
+
         {
+
             var s = queryParams.Search.Trim().ToLower();
+
             query = query.Where(p =>
+
                 p.Name.ToLower().Contains(s) ||
+
                 p.ProjectCode.ToLower().Contains(s) ||
+
                 (p.WbsId != null && p.WbsId.ToLower().Contains(s)) ||
+
                 (p.Client != null && p.Client.Name.ToLower().Contains(s)) ||
+
                 (p.Description != null && p.Description.ToLower().Contains(s)));
+
         }
 
+
+
         var totalCount = await query.CountAsync(ct);
+
         var page = Math.Max(1, queryParams.Page);
+
         var pageSize = Math.Clamp(queryParams.PageSize, 1, 500);
 
+
+
         var projects = await query
+
             .OrderByDescending(p => p.CreatedAtUtc)
+
             .Skip((page - 1) * pageSize)
+
             .Take(pageSize)
+
             .ToListAsync(ct);
 
+
+
         var projectIds = projects.Select(p => p.Id).ToList();
+
         var managersByProject = await LoadProjectManagersAsync(projectIds, ct);
+
         var teamLeadsByProject = await LoadTeamLeadsAsync(projectIds, ct);
+
+
 
         var items = projects.Select(p => WithTeamLeads(WithProjectManagers(MapToDto(p), managersByProject), teamLeadsByProject)).ToList();
 
+
+
         return new PagedResult<ProjectDto>(items, page, pageSize, totalCount);
+
     }
+
+
 
     public async Task<ProjectDto?> GetProjectByIdAsync(Guid id, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects
+
             .Include(p => p.Client)
+
             .Include(p => p.SubVenture)
+
             .Include(p => p.ProjectManager)
+
             .Include(p => p.TeamLead)
+
             .Include(p => p.EngagementManagerRef)
+
             .Include(p => p.RenewedFromProject)
+
             .AsNoTracking()
+
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
+
+
         if (project == null) return null;
+
         var managers = await LoadProjectManagersAsync([project.Id], ct);
+
         var teamLeads = await LoadTeamLeadsAsync([project.Id], ct);
+
         return WithTeamLeads(WithProjectManagers(MapToDto(project), managers), teamLeads);
+
     }
 
+
+
     public async Task<ProjectDto> CreateProjectAsync(CreateProjectRequest request, CancellationToken ct = default)
+
     {
+
         var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == request.ClientId, ct)
+
             ?? throw new NotFoundException($"Client with ID '{request.ClientId}' was not found.");
 
+
+
         string? subVentureName = null;
+
         if (request.SubVentureId.HasValue)
+
         {
+
             var sv = await db.SubVentures.FirstOrDefaultAsync(s => s.Id == request.SubVentureId.Value && s.ClientId == request.ClientId, ct)
+
                 ?? throw new NotFoundException($"Sub-Venture with ID '{request.SubVentureId}' was not found for client.");
+
             subVentureName = sv.Name;
+
         }
 
+
+
         // Use transaction with advisory lock to ensure sequential code generation
+
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
+
+
         // Serialize sequence generation per client
+
         await db.Database.ExecuteSqlRawAsync(
+
             "SELECT pg_advisory_xact_lock(hashtext('project_seq_' || {0}));",
+
             request.ClientId.ToString());
+
+
 
         var nextCodeDto = await CalculateNextCodesInternalAsync(request.ClientId, client.Name, request.SubVentureId, ct);
 
+
+
         // Project Name resolution
+
         var resolvedName = !string.IsNullOrWhiteSpace(request.Name)
+
             ? request.Name.Trim()
+
             : BuildProjectName(client.Name, subVentureName, request.SubDepartmentNames, nextCodeDto.ClientProjectCount);
 
+
+
         // Resolve RenewedFromProjectId from RenewedFromWbsId if not directly supplied
+
         var renewedFromProjectId = request.RenewedFromProjectId;
+
         if (!renewedFromProjectId.HasValue && !string.IsNullOrWhiteSpace(request.RenewedFromWbsId))
+
         {
+
             var wbsOrCode = request.RenewedFromWbsId.Trim();
+
             var orig = await db.Projects.AsNoTracking().FirstOrDefaultAsync(
+
                 p => p.WbsId == wbsOrCode || p.ProjectCode == wbsOrCode, ct);
+
             if (orig != null)
+
             {
+
                 renewedFromProjectId = orig.Id;
+
             }
+
         }
+
+
 
         // For new (non-renewal) projects, ensure any project sequence suffix matches the authoritative count
+
         if (!renewedFromProjectId.HasValue && string.IsNullOrWhiteSpace(request.RenewedFromWbsId) && !string.IsNullOrWhiteSpace(resolvedName))
+
         {
+
             var match = System.Text.RegularExpressions.Regex.Match(resolvedName, @"^(.*)_(\d+)$");
+
             if (match.Success)
+
             {
+
                 resolvedName = $"{match.Groups[1].Value}_{nextCodeDto.FormattedClientProjectCount}";
+
             }
+
         }
 
+
+
         var project = new Project
+
         {
+
             ProjectCode = !string.IsNullOrWhiteSpace(request.ProjectCode) ? request.ProjectCode : nextCodeDto.ProjectSeqId,
+
             WbsId = request.SubVentureId.HasValue
+
                 ? nextCodeDto.WbsId
+
                 : (!string.IsNullOrWhiteSpace(request.WbsId) ? request.WbsId : nextCodeDto.WbsId),
+
             Name = resolvedName,
+
             Description = request.Description,
+
             ClientId = request.ClientId,
+
             SubVentureId = request.SubVentureId,
+
             Status = request.Status ?? "ongoing",
+
             Health = request.Health ?? "green",
+
             ContractType = request.ContractType,
+
             ProjectType = request.ProjectType,
+
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? "INR" : request.Currency,
+
             TaxPercent = request.TaxPercent ?? 18m,
+
             StartDate = request.StartDate,
+
             EndDate = request.EndDate,
+
             Budget = request.Budget,
+
             Spent = 0m,
+
             TotalHours = request.TotalHours,
+
             TotalDays = request.TotalDays,
+
             InvoiceValue = request.InvoiceValue,
+
             ProjectManagerId = request.ProjectManagerId,
+
             TeamLeadId = request.TeamLeadId,
+
             EngagementManager = request.EngagementManager,
+
             EngagementManagerId = request.EngagementManagerId,
+
             SalesPerson = request.SalesPerson,
+
             SalesPersonId = request.SalesPersonId,
+
             ProjectIssuedDate = request.ProjectIssuedDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+
             SectionAComments = request.SectionAComments,
+
             SectionBComments = request.SectionBComments,
+
             WbsStatus = request.WbsStatus ?? "draft",
+
             WbsSubStatus = request.WbsSubStatus ?? "Draft",
+
             RenewedFromProjectId = renewedFromProjectId,
+
             PoStatus = request.PoStatus,
+
             PoNumber = request.PoNumber,
+
             PoDate = request.PoDate,
+
             BillingModel = request.BillingModel,
+
             PaymentTerms = request.PaymentTerms,
+
             TargetDate = request.TargetDate,
+
             AccountContactName = request.AccountContactName,
+
             AccountContactPhone = request.AccountContactPhone,
+
             AccountContactEmail = request.AccountContactEmail
+
         };
 
+
+
         db.Projects.Add(project);
+
         await db.SaveChangesAsync(ct);
+
         await tx.CommitAsync(ct);
 
+
+
         await notificationService.NotifyWbsCreatedAsync(
+
             project.Id,
+
             project.Name,
+
             project.WbsId,
+
             project.ProjectCode,
+
             currentUser.Name,
+
             ct);
 
+
+
         return (await GetProjectByIdAsync(project.Id, ct))!;
+
     }
+
+
 
     public async Task<ProjectDto> UpdateProjectAsync(Guid id, UpdateProjectRequest request, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
+
             ?? throw new NotFoundException($"Project with ID '{id}' was not found.");
+
+
 
         project.Name = request.Name.Trim();
+
         project.Description = request.Description;
+
         if (request.Status != null) project.Status = request.Status;
+
         if (request.Health != null) project.Health = request.Health;
+
         if (request.Progress.HasValue) project.Progress = request.Progress.Value;
+
         if (request.ContractType != null) project.ContractType = request.ContractType;
+
         if (request.ProjectType != null) project.ProjectType = request.ProjectType;
+
         if (request.Currency != null) project.Currency = request.Currency;
+
         if (request.TaxPercent.HasValue) project.TaxPercent = request.TaxPercent.Value;
+
         if (request.StartDate.HasValue) project.StartDate = request.StartDate;
+
         if (request.EndDate.HasValue) project.EndDate = request.EndDate;
+
         if (request.Budget.HasValue) project.Budget = request.Budget;
+
         if (request.Spent.HasValue) project.Spent = request.Spent.Value;
+
         if (request.TotalHours.HasValue) project.TotalHours = request.TotalHours;
+
         if (request.TotalDays.HasValue) project.TotalDays = request.TotalDays;
+
         if (request.InvoiceValue.HasValue) project.InvoiceValue = request.InvoiceValue;
+
         if (request.ProjectManagerId.HasValue) project.ProjectManagerId = request.ProjectManagerId;
+
         if (request.TeamLeadId.HasValue) project.TeamLeadId = request.TeamLeadId;
+
         if (request.EngagementManager != null) project.EngagementManager = request.EngagementManager;
+
         if (request.EngagementManagerId.HasValue) project.EngagementManagerId = request.EngagementManagerId;
+
         if (request.SalesPerson != null) project.SalesPerson = request.SalesPerson;
+
         if (request.SalesPersonId.HasValue) project.SalesPersonId = request.SalesPersonId;
+
         if (request.ProjectIssuedDate.HasValue) project.ProjectIssuedDate = request.ProjectIssuedDate;
+
         if (request.SectionAComments != null) project.SectionAComments = request.SectionAComments;
+
         if (request.SectionBComments != null) project.SectionBComments = request.SectionBComments;
+
         if (request.WbsStatus != null) project.WbsStatus = request.WbsStatus;
+
         if (request.WbsSubStatus != null) project.WbsSubStatus = request.WbsSubStatus;
+
         if (request.PoStatus != null) project.PoStatus = request.PoStatus;
+
         if (request.PoNumber != null) project.PoNumber = request.PoNumber;
+
         if (request.PoDate.HasValue) project.PoDate = request.PoDate;
+
         if (request.BillingModel != null) project.BillingModel = request.BillingModel;
+
         if (request.PaymentTerms != null) project.PaymentTerms = request.PaymentTerms;
+
         if (request.TargetDate.HasValue) project.TargetDate = request.TargetDate;
+
         if (request.AccountContactName != null) project.AccountContactName = request.AccountContactName;
+
         if (request.AccountContactPhone != null) project.AccountContactPhone = request.AccountContactPhone;
+
         if (request.AccountContactEmail != null) project.AccountContactEmail = request.AccountContactEmail;
 
+
+
         await db.SaveChangesAsync(ct);
+
         return (await GetProjectByIdAsync(id, ct))!;
+
     }
+
+
 
     public async Task<bool> DeleteProjectAsync(Guid id, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct);
+
         if (project == null) return false;
 
+
+
         db.Projects.Remove(project);
+
         await db.SaveChangesAsync(ct);
+
         return true;
+
     }
+
+
 
     public async Task<ProjectDto> UpdateStatusAsync(Guid id, string status, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
+
             ?? throw new NotFoundException($"Project with ID '{id}' was not found.");
+
+
 
         project.Status = status;
+
         await db.SaveChangesAsync(ct);
+
         return (await GetProjectByIdAsync(id, ct))!;
+
     }
+
+
 
     public async Task<ProjectDto> UpdateWbsStatusAsync(Guid id, string wbsStatus, string? wbsSubStatus = null, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
+
             ?? throw new NotFoundException($"Project with ID '{id}' was not found.");
 
+
+
         project.WbsStatus = wbsStatus;
+
         if (wbsSubStatus != null) project.WbsSubStatus = wbsSubStatus;
+
         await db.SaveChangesAsync(ct);
+
         return (await GetProjectByIdAsync(id, ct))!;
+
     }
+
+
 
     public async Task<NextProjectCodeDto> GetNextProjectCodeAsync(Guid clientId, Guid? subVentureId = null, CancellationToken ct = default)
+
     {
+
         var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == clientId, ct)
+
             ?? throw new NotFoundException($"Client with ID '{clientId}' was not found.");
 
+
+
         return await CalculateNextCodesInternalAsync(clientId, client.Name, subVentureId, ct);
+
     }
+
+
 
     // â”€â”€ Project Services Methods â”€â”€
 
+
+
     public async Task<IReadOnlyList<ProjectServiceDto>> GetProjectServicesAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
+
     {
+
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
+
         if (!exists)
+
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         var query = db.ProjectServices.Include(s => s.ServiceCatalog).AsQueryable();
+
         if (includeDeleted)
+
         {
+
             query = query.IgnoreQueryFilters();
+
         }
+
+
 
         var services = await query
+
             .Where(s => s.ProjectId == projectId)
+
             .OrderBy(s => s.SortOrder)
+
             .ThenBy(s => s.CreatedAtUtc)
+
             .ToListAsync(ct);
+
+
 
         var unlinked = services.Where(s => s.ServiceCatalogId == null || string.IsNullOrWhiteSpace(s.ServiceAbbreviation)).ToList();
+
         if (unlinked.Count > 0)
+
         {
+
             var catalogList = await db.ServiceCatalogs.Where(c => c.IsActive).ToListAsync(ct);
+
             bool hasUpdates = false;
+
             foreach (var s in unlinked)
+
             {
+
                 var match = (s.ServiceCatalogId.HasValue ? catalogList.FirstOrDefault(c => c.Id == s.ServiceCatalogId.Value) : null)
+
                     ?? catalogList.FirstOrDefault(c => string.Equals(c.Name.Trim(), s.ServiceName?.Trim(), StringComparison.OrdinalIgnoreCase))
+
                     ?? catalogList.FirstOrDefault(c => string.Equals(c.Code.Trim(), s.TaskId?.Trim(), StringComparison.OrdinalIgnoreCase));
+
                 if (match != null)
+
                 {
+
                     if (s.ServiceCatalogId == null) s.ServiceCatalogId = match.Id;
+
                     if (string.IsNullOrWhiteSpace(s.ServiceAbbreviation)) s.ServiceAbbreviation = match.Abbreviation;
+
                     s.ServiceCatalog ??= match;
+
                     hasUpdates = true;
+
                 }
+
             }
+
             if (hasUpdates)
+
             {
+
                 try { await db.SaveChangesAsync(ct); } catch { /* best-effort backfill */ }
+
             }
+
         }
+
+
 
         return services.Select(MapToServiceDto).ToList();
+
     }
+
+
 
     public async Task<ProjectServiceDto?> GetProjectServiceByIdAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
+
     {
+
         var service = await db.ProjectServices
+
             .Include(s => s.ServiceCatalog)
+
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct);
 
+
+
         if (service != null && (service.ServiceCatalogId == null || string.IsNullOrWhiteSpace(service.ServiceAbbreviation)))
+
         {
+
             var match = (service.ServiceCatalogId.HasValue ? await db.ServiceCatalogs.FirstOrDefaultAsync(c => c.Id == service.ServiceCatalogId.Value && c.IsActive, ct) : null)
+
                 ?? await db.ServiceCatalogs
+
                 .FirstOrDefaultAsync(c => c.IsActive && (c.Name.ToLower() == (service.ServiceName ?? "").ToLower() || c.Code.ToLower() == (service.TaskId ?? "").ToLower()), ct);
+
             if (match != null)
+
             {
+
                 if (service.ServiceCatalogId == null) service.ServiceCatalogId = match.Id;
+
                 if (string.IsNullOrWhiteSpace(service.ServiceAbbreviation)) service.ServiceAbbreviation = match.Abbreviation;
+
                 service.ServiceCatalog ??= match;
+
                 try { await db.SaveChangesAsync(ct); } catch { /* best-effort backfill */ }
+
             }
+
         }
+
+
 
         return service == null ? null : MapToServiceDto(service);
+
     }
+
+
 
     public async Task<ProjectServiceDto> AddProjectServiceAsync(Guid projectId, CreateProjectServiceRequest request, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
+
             ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         MstServiceCatalog? catalog = null;
+
         if (request.ServiceCatalogId.HasValue)
+
         {
+
             catalog = await db.ServiceCatalogs
+
                 .Include(c => c.SubDepartment)
+
                     .ThenInclude(s => s!.Department)
+
                 .FirstOrDefaultAsync(c => c.Id == request.ServiceCatalogId.Value, ct);
+
         }
+
         else if (!string.IsNullOrWhiteSpace(request.ServiceName))
+
         {
+
             var sName = request.ServiceName.Trim().ToLower();
+
             catalog = await db.ServiceCatalogs
+
                 .Include(c => c.SubDepartment)
+
                     .ThenInclude(s => s!.Department)
+
                 .FirstOrDefaultAsync(c => c.Name.ToLower() == sName && c.IsActive, ct);
+
         }
+
         else if (!string.IsNullOrWhiteSpace(request.TaskId))
+
         {
+
             var tCode = request.TaskId.Trim().ToLower();
+
             catalog = await db.ServiceCatalogs
+
                 .Include(c => c.SubDepartment)
+
                     .ThenInclude(s => s!.Department)
+
                 .FirstOrDefaultAsync(c => c.Code.ToLower() == tCode && c.IsActive, ct);
+
         }
+
+
 
         var department = !string.IsNullOrWhiteSpace(request.Department)
+
             ? request.Department
+
             : catalog?.SubDepartment?.Department?.Name ?? "General";
 
+
+
         var subDept = !string.IsNullOrWhiteSpace(request.SubDepartment)
+
             ? request.SubDepartment
+
             : catalog?.SubDepartment?.Name;
 
+
+
         var serviceName = !string.IsNullOrWhiteSpace(request.ServiceName)
+
             ? request.ServiceName
+
             : catalog?.Name ?? "Custom Service";
 
+
+
         var taskId = !string.IsNullOrWhiteSpace(request.TaskId)
+
             ? request.TaskId
+
             : catalog?.Code;
 
+
+
         var tools = !string.IsNullOrWhiteSpace(request.Tools)
+
             ? request.Tools
+
             : catalog?.DefaultTools;
 
+
+
         var unitPrice = request.UnitPrice ?? catalog?.DefaultUnitPrice ?? 0m;
+
         var durationDays = request.DurationDays ?? catalog?.DefaultDurationDays ?? 5;
+
         var durationHours = durationDays * 8;
+
         var qty = Math.Max(1, request.Qty);
+
         var totalDays = qty * durationDays;
+
         var totalHours = qty * durationHours;
+
         var total = qty * unitPrice;
+
         var isResourceDept = string.Equals(request.ServiceModel, "Resource", StringComparison.OrdinalIgnoreCase)
+
             || string.Equals(request.ServiceModel, "NA", StringComparison.OrdinalIgnoreCase)
+
             || (!string.IsNullOrEmpty(project.ContractType) && project.ContractType.IndexOf("Resource", StringComparison.OrdinalIgnoreCase) >= 0);
 
+
+
         var service = new ProjectServiceEntity
+
         {
+
             ProjectId = projectId,
+
             ServiceCatalogId = request.ServiceCatalogId ?? catalog?.Id,
+
             TaskId = taskId,
+
             Department = department,
+
             SubDepartment = subDept,
+
             ServiceName = serviceName,
+
             Qty = qty,
+
             Description = request.Description,
+
             ResourceLevel = request.ResourceLevel,
+
             Frequency = request.Frequency ?? "Once",
+
             Location = request.Location ?? "Offsite",
+
             LocationText = request.LocationText,
+
             ServiceModel = request.ServiceModel ?? "Fixed",
+
             DeliveryModel = request.DeliveryModel ?? "Agile",
+
             FinalDeliveryFormat = request.FinalDeliveryFormat,
+
             BillingModel = request.BillingModel ?? project.BillingModel,
+
             Tools = tools,
+
             StartDate = request.StartDate ?? project.StartDate,
+
             EndDate = request.EndDate ?? project.EndDate,
+
             DurationDays = durationDays,
+
             DurationHours = durationHours,
+
             TotalDays = totalDays,
+
             TotalHours = totalHours,
+
             UnitPrice = unitPrice,
+
             Total = total,
+
             SortOrder = request.SortOrder,
+
             ChangeStatus = request.ChangeStatus ?? "Newly Added",
+
             IsReady = false,
+
             CollectionStatus = isResourceDept ? "NA" : "Pending To Collect",
+
             ValidationStatus = isResourceDept ? "NA" : "Pending To Validate",
+
             BillingStatus = "Advance Pending",
+
             ServiceAbbreviation = !string.IsNullOrWhiteSpace(request.ServiceAbbreviation)
+
                 ? request.ServiceAbbreviation
+
                 : catalog?.Abbreviation
+
         };
 
+
+
         db.ProjectServices.Add(service);
+
         await db.SaveChangesAsync(ct);
+
+
 
         // Generate invoice schedule rows if requested
+
         if (request.GenerateInvoices)
+
         {
+
             var freq = (service.Frequency ?? "Once").Trim();
+
             int periods = 1;
+
             if (freq.Contains("half", StringComparison.OrdinalIgnoreCase))
+
             {
+
                 periods = 6;
+
             }
+
             else if (freq.Contains("year", StringComparison.OrdinalIgnoreCase) || freq.Contains("annual", StringComparison.OrdinalIgnoreCase))
+
             {
+
                 periods = 12;
+
             }
+
             else
+
             {
+
                 periods = 1;
+
             }
+
+
 
             var serviceTotal = service.Total.HasValue && service.Total.Value > 0
+
                 ? service.Total.Value
+
                 : ((service.UnitPrice ?? 0m) * service.Qty);
 
+
+
             var taxPercent = project.TaxPercent;
+
             var baseAmount = periods > 0 ? Math.Round(serviceTotal / periods, 2) : serviceTotal;
+
             var startDate = service.StartDate ?? project.StartDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
+
+
             var maxSort = await db.ProjectInvoices
+
                 .IgnoreQueryFilters()
+
                 .Where(i => i.ProjectId == projectId)
+
                 .MaxAsync(i => (int?)i.SortOrder, ct) ?? 0;
 
+
+
             var newInvoices = new List<ProjectInvoice>();
+
             for (int m = 1; m <= periods; m++)
+
             {
+
                 var amount = (m == periods)
+
                     ? (serviceTotal - (baseAmount * (periods - 1)))
+
                     : baseAmount;
+
                 var taxAmount = Math.Round(amount * (taxPercent / 100m), 2);
+
                 var totalAmount = amount + taxAmount;
+
                 var dueDate = startDate.AddMonths(m - 1);
+
                 var pct = periods > 0 ? Math.Round(100m / periods, 2) : 100m;
 
+
+
                 newInvoices.Add(new ProjectInvoice
+
                 {
+
                     ProjectId = projectId,
+
                     ProjectServiceId = service.Id,
+
                     ServiceName = service.ServiceName,
+
                     MilestoneName = $"Month {m}",
+
                     Percentage = pct,
+
                     Amount = amount,
+
                     TaxAmount = taxAmount,
+
                     TotalAmount = totalAmount,
+
                     Status = "Pending",
+
                     PaymentStatus = "Not Received",
+
                     DueDate = dueDate,
+
                     InvoiceDate = dueDate,
+
                     Qty = service.Qty,
+
                     UnitPrice = service.UnitPrice,
+
                     Currency = project.Currency ?? "INR",
+
                     ResourceLevel = service.ResourceLevel,
+
                     SortOrder = maxSort + m
+
                 });
+
             }
+
+
 
             if (newInvoices.Count > 0)
+
             {
+
                 db.ProjectInvoices.AddRange(newInvoices);
+
                 await db.SaveChangesAsync(ct);
+
                 await RecalculateProjectInvoiceRollupAsync(projectId, ct);
+
             }
+
         }
 
+
+
         // Recalculate project totals
+
         await RecalculateProjectRollupsAsync(projectId, ct);
+
+
 
         return (await GetProjectServiceByIdAsync(projectId, service.Id, ct))!;
+
     }
+
+
 
     public async Task<ProjectServiceDto> UpdateProjectServiceAsync(Guid projectId, Guid serviceId, UpdateProjectServiceRequest request, CancellationToken ct = default)
+
     {
+
         var service = await db.ProjectServices
+
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
+
             ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
+
+
 
         if (request.AsPendingModification && service.IsReady && (service.ChangeStatus == "Active" || service.ChangeStatus == "Modified" || service.ChangeStatus == "Newly Added" || service.ChangeStatus == "Modification Pending"))
+
         {
+
             service.ChangeStatus = "Modification Pending";
+
             service.OriginalQty = service.Qty;
+
             service.PendingQty = request.Qty.HasValue ? Math.Max(1, request.Qty.Value) : service.Qty;
+
             service.PendingResourceLevel = request.ResourceLevel ?? service.ResourceLevel;
+
             service.PendingUnitPrice = request.UnitPrice ?? service.UnitPrice;
 
+
+
             var isResourceDept = string.Equals(service.ServiceModel, "Resource", StringComparison.OrdinalIgnoreCase)
+
                 || string.Equals(service.ServiceModel, "NA", StringComparison.OrdinalIgnoreCase)
+
                 || (!string.IsNullOrEmpty(service.Project?.ContractType) && service.Project.ContractType.IndexOf("Resource", StringComparison.OrdinalIgnoreCase) >= 0);
+
             service.ModCollectionStatus = isResourceDept ? "NA" : "Pending To Collect";
+
             service.ModValidationStatus = isResourceDept ? "NA" : "Pending To Validate";
+
             service.ModBillingStatus = "Advance Pending";
+
             service.ModIsReady = false;
 
+
+
             if (request.Description != null) service.Description = request.Description;
+
             if (request.LocationText != null) service.LocationText = request.LocationText;
+
             if (request.Tools != null) service.Tools = request.Tools;
+
             if (request.FinalDeliveryFormat != null) service.FinalDeliveryFormat = request.FinalDeliveryFormat;
+
         }
+
         else
+
         {
+
             if (request.Department != null) service.Department = request.Department;
+
             if (request.SubDepartment != null) service.SubDepartment = request.SubDepartment;
+
             if (request.ServiceName != null) service.ServiceName = request.ServiceName;
+
             if (request.ServiceAbbreviation != null) service.ServiceAbbreviation = request.ServiceAbbreviation;
+
             if (request.Qty.HasValue) service.Qty = Math.Max(1, request.Qty.Value);
+
             if (request.Description != null) service.Description = request.Description;
+
             if (request.Frequency != null) service.Frequency = request.Frequency;
+
             if (request.Location != null) service.Location = request.Location;
+
             if (request.LocationText != null) service.LocationText = request.LocationText;
+
             if (request.ServiceModel != null) service.ServiceModel = request.ServiceModel;
+
             if (request.DeliveryModel != null) service.DeliveryModel = request.DeliveryModel;
+
             if (request.FinalDeliveryFormat != null) service.FinalDeliveryFormat = request.FinalDeliveryFormat;
+
             if (request.BillingModel != null) service.BillingModel = request.BillingModel;
+
             if (request.Tools != null) service.Tools = request.Tools;
+
             if (request.StartDate.HasValue) service.StartDate = request.StartDate;
+
             if (request.EndDate.HasValue) service.EndDate = request.EndDate;
+
             if (request.DurationDays.HasValue) service.DurationDays = request.DurationDays;
+
             if (request.UnitPrice.HasValue) service.UnitPrice = request.UnitPrice;
+
             if (request.SortOrder.HasValue) service.SortOrder = request.SortOrder.Value;
+
             if (request.ResourceLevel != null) service.ResourceLevel = request.ResourceLevel;
 
+
+
             // Recompute derived totals
+
             var dDays = service.DurationDays ?? 5;
+
             service.DurationHours = dDays * 8;
+
             service.TotalDays = service.Qty * dDays;
+
             service.TotalHours = service.Qty * (service.DurationHours ?? 40);
+
             service.Total = service.Qty * (service.UnitPrice ?? 0m);
 
+
+
             // Update linked invoices if present
+
             var directInvoices = await db.ProjectInvoices
+
                 .Where(i => i.ProjectId == projectId && (i.ProjectServiceId == serviceId || (i.ProjectServiceId == null && i.ServiceName == service.ServiceName)) && i.DeletedAtUtc == null)
+
                 .OrderBy(i => i.SortOrder)
+
                 .ToListAsync(ct);
 
+
+
             if (directInvoices.Count > 0)
+
             {
+
                 var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
                 var taxPercent = project?.TaxPercent ?? 18m;
+
                 var periods = directInvoices.Count;
+
                 var serviceTotal = service.Total ?? (service.Qty * (service.UnitPrice ?? 0m));
+
                 var baseAmount = periods > 0 ? Math.Round(serviceTotal / periods, 2) : serviceTotal;
 
+
+
                 for (int m = 0; m < periods; m++)
+
                 {
+
                     var inv = directInvoices[m];
+
                     var amount = (m == periods - 1)
+
                         ? (serviceTotal - (baseAmount * (periods - 1)))
+
                         : baseAmount;
+
                     var taxAmount = Math.Round(amount * (taxPercent / 100m), 2);
+
                     inv.Qty = service.Qty;
+
                     inv.UnitPrice = service.UnitPrice;
+
                     if (!string.IsNullOrWhiteSpace(service.ResourceLevel))
+
                     {
+
                         inv.ResourceLevel = service.ResourceLevel;
+
                     }
+
                     inv.Amount = amount;
+
                     inv.TaxAmount = taxAmount;
+
                     inv.TotalAmount = amount + taxAmount;
+
                 }
+
                 await db.SaveChangesAsync(ct);
+
                 await RecalculateProjectInvoiceRollupAsync(projectId, ct);
+
             }
+
         }
+
+
 
         await db.SaveChangesAsync(ct);
 
+
+
         // Recalculate project totals
+
         await RecalculateProjectRollupsAsync(projectId, ct);
 
+
+
         return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
+
     }
+
+
 
     public async Task<ProjectServiceDto> UpdateServicePrerequisiteAsync(
+
         Guid projectId,
+
         Guid serviceId,
+
         UpdateServicePrerequisiteRequest request,
+
         CancellationToken ct = default)
+
     {
+
         var service = await db.ProjectServices
+
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
+
             ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
+
+
 
         if (request.CollectionStatus != null) service.CollectionStatus = request.CollectionStatus;
+
         if (request.ValidationStatus != null) service.ValidationStatus = request.ValidationStatus;
+
         if (request.BillingStatus != null) service.BillingStatus = request.BillingStatus;
 
+
+
         var becameReady = false;
+
         if (request.IsReady.HasValue)
+
         {
+
             if (request.IsReady.Value && !service.IsReady)
+
             {
+
                 service.IsReady = true;
+
                 if (string.IsNullOrWhiteSpace(service.ChangeStatus) || service.ChangeStatus == "Active")
+
                 {
+
                     service.ChangeStatus = "Active";
+
                 }
+
                 becameReady = true;
+
             }
+
             else
+
             {
+
                 service.IsReady = request.IsReady.Value;
+
             }
+
         }
+
+
 
         if (request.ModCollectionStatus != null) service.ModCollectionStatus = request.ModCollectionStatus;
+
         if (request.ModValidationStatus != null) service.ModValidationStatus = request.ModValidationStatus;
+
         if (request.ModBillingStatus != null) service.ModBillingStatus = request.ModBillingStatus;
 
+
+
         var modBecameReady = false;
+
         if (request.ModIsReady.HasValue && request.ModIsReady.Value)
+
         {
+
             modBecameReady = true;
+
         }
 
+
+
         await db.SaveChangesAsync(ct);
+
+
 
         if (becameReady)
+
         {
+
             await taskService.GenerateMissingTasksAsync(projectId, ct);
+
         }
+
+
 
         if (modBecameReady)
+
         {
+
             return await ApplyServiceModificationAsync(projectId, serviceId, ct);
+
         }
+
+
 
         return MapToServiceDto(service);
+
     }
+
+
 
     public async Task<ProjectServiceDto> ApplyServiceModificationAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
+
     {
+
         var service = await db.ProjectServices
+
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct)
+
             ?? throw new NotFoundException($"Project Service with ID '{serviceId}' was not found.");
 
+
+
         if ((service.ChangeStatus != "Modification Pending" && service.ChangeStatus != "Modified") || !service.PendingQty.HasValue)
+
         {
+
             throw new BadRequestException("Service does not have an active pending modification.");
+
         }
+
+
 
         var oldQty = service.OriginalQty.HasValue && service.OriginalQty.Value > 0 ? service.OriginalQty.Value : service.Qty;
+
         var newQty = service.PendingQty.Value;
 
+
+
         service.Qty = newQty;
+
         if (!string.IsNullOrWhiteSpace(service.PendingResourceLevel))
+
         {
+
             service.ResourceLevel = service.PendingResourceLevel;
+
         }
+
         if (service.PendingUnitPrice.HasValue)
+
         {
+
             service.UnitPrice = service.PendingUnitPrice.Value;
+
         }
+
+
 
         // Recompute derived totals
+
         var dDays = service.DurationDays ?? 5;
+
         service.DurationHours = dDays * 8;
+
         service.TotalDays = service.Qty * dDays;
+
         service.TotalHours = service.Qty * (service.DurationHours ?? 40);
+
         service.Total = service.Qty * (service.UnitPrice ?? 0m);
 
+
+
         // Keep modification fields intact with ChangeStatus = "Modified" and ModIsReady = true
+
         service.ChangeStatus = "Modified";
+
         service.OriginalQty = oldQty;
+
         service.PendingQty = newQty;
+
         service.ModIsReady = true;
 
+
+
         // Update linked invoices for this service
+
         var invoices = await db.ProjectInvoices
+
             .Where(i => i.ProjectId == projectId && (i.ProjectServiceId == serviceId || (i.ProjectServiceId == null && i.ServiceName == service.ServiceName)) && i.DeletedAtUtc == null)
+
             .OrderBy(i => i.SortOrder)
+
             .ToListAsync(ct);
 
+
+
         if (invoices.Count > 0)
+
         {
+
             var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
             var taxPercent = project?.TaxPercent ?? 18m;
+
             var periods = invoices.Count;
+
             var serviceTotal = service.Total ?? (service.Qty * (service.UnitPrice ?? 0m));
+
             var baseAmount = periods > 0 ? Math.Round(serviceTotal / periods, 2) : serviceTotal;
 
+
+
             for (int m = 0; m < periods; m++)
+
             {
+
                 var inv = invoices[m];
+
                 var amount = (m == periods - 1)
+
                     ? (serviceTotal - (baseAmount * (periods - 1)))
+
                     : baseAmount;
+
                 var taxAmount = Math.Round(amount * (taxPercent / 100m), 2);
+
                 inv.Qty = service.Qty;
+
                 inv.UnitPrice = service.UnitPrice;
+
                 if (!string.IsNullOrWhiteSpace(service.ResourceLevel))
+
                 {
+
                     inv.ResourceLevel = service.ResourceLevel;
+
                 }
+
                 inv.Amount = amount;
+
                 inv.TaxAmount = taxAmount;
+
                 inv.TotalAmount = amount + taxAmount;
+
             }
+
             await RecalculateProjectInvoiceRollupAsync(projectId, ct);
+
         }
 
+
+
         await db.SaveChangesAsync(ct);
+
+
 
         if (newQty > oldQty)
+
         {
+
             await taskService.GenerateMissingTasksAsync(projectId, ct);
-        }
-        else if (newQty < oldQty)
-        {
-            await taskService.DeactivateExcessTaskBranchesAsync(projectId, serviceId, newQty, ct);
+
         }
 
+        else if (newQty < oldQty)
+
+        {
+
+            await taskService.DeactivateExcessTaskBranchesAsync(projectId, serviceId, newQty, ct);
+
+        }
+
+
+
         await RecalculateProjectRollupsAsync(projectId, ct);
+
+
 
         return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
+
     }
+
+
 
     public async Task<ServiceModificationImpactDto> GetServiceModificationImpactAsync(
+
         Guid projectId,
+
         Guid serviceId,
+
         int targetQty,
+
         CancellationToken ct = default)
+
     {
+
         return await taskService.GetModificationImpactAsync(projectId, serviceId, targetQty, ct);
+
     }
+
+
 
     public async Task<bool> DeleteProjectServiceAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
+
     {
+
         var service = await db.ProjectServices.FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Id == serviceId, ct);
+
         if (service == null) return false;
 
+
+
         // Soft-delete related tasks
+
         var tasks = await db.ProjectTasks
+
             .Where(t => t.ProjectId == projectId && t.ProjectServiceId == serviceId)
+
             .ToListAsync(ct);
+
         if (tasks.Count > 0)
+
         {
+
             db.ProjectTasks.RemoveRange(tasks);
+
         }
+
+
 
         // Soft-delete related invoices
+
         var invoices = await db.ProjectInvoices
+
             .Where(i => i.ProjectId == projectId && (i.ProjectServiceId == serviceId || (i.ProjectServiceId == null && i.ServiceName == service.ServiceName)))
+
             .ToListAsync(ct);
+
         if (invoices.Count > 0)
+
         {
+
             db.ProjectInvoices.RemoveRange(invoices);
+
         }
+
+
 
         db.ProjectServices.Remove(service);
+
         await db.SaveChangesAsync(ct);
 
+
+
         // Recalculate project totals
+
         await RecalculateProjectRollupsAsync(projectId, ct);
+
         await RecalculateProjectInvoiceRollupAsync(projectId, ct);
 
+
+
         return true;
+
     }
+
+
 
     private async Task RecalculateProjectRollupsAsync(Guid projectId, CancellationToken ct)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
         if (project == null) return;
 
+
+
         var services = await db.ProjectServices.Where(s => s.ProjectId == projectId).ToListAsync(ct);
+
         if (services.Count > 0)
+
         {
+
             project.Budget = services.Sum(s => s.Total ?? 0m);
+
             project.TotalHours = services.Sum(s => s.TotalHours ?? 0);
+
             project.TotalDays = services.Sum(s => s.TotalDays ?? 0);
 
+
+
             var starts = services.Where(s => s.StartDate.HasValue).Select(s => s.StartDate!.Value).ToList();
+
             var ends = services.Where(s => s.EndDate.HasValue).Select(s => s.EndDate!.Value).ToList();
+
             if (starts.Count > 0) project.StartDate = starts.Min();
+
             if (ends.Count > 0) project.EndDate = ends.Max();
 
+
+
             if (project.StartDate.HasValue && project.EndDate.HasValue && project.EndDate >= project.StartDate)
+
             {
+
                 var managers = await db.ProjectTeamMembers
+
                     .Where(m => m.ProjectId == projectId
+
                         && (m.MemberRole == ProjectMemberRoles.ProjectManager
+
                             || m.MemberRole == ProjectMemberRoles.SeniorProjectManager))
+
                     .ToListAsync(ct);
+
                 foreach (var manager in managers)
+
                 {
+
                     manager.AllocationStartDate = project.StartDate.Value;
+
                     manager.AllocationEndDate = project.EndDate.Value;
+
                 }
+
             }
 
+
+
             await db.SaveChangesAsync(ct);
+
         }
+
     }
 
+
+
     private async Task<NextProjectCodeDto> CalculateNextCodesInternalAsync(Guid clientId, string clientName, Guid? subVentureId, CancellationToken ct)
+
     {
+
         var now = DateTime.UtcNow;
+
         var fyStartYear = now.Month >= 4 ? now.Year : now.Year - 1;
+
         var fyEndYear = (fyStartYear + 1) % 100;
+
         var fyStartDate = new DateTime(fyStartYear, 4, 1, 0, 0, 0, DateTimeKind.Utc);
+
         var fyEndDate = new DateTime(fyStartYear + 1, 4, 1, 0, 0, 0, DateTimeKind.Utc);
 
+
+
         // Global count of projects within this FY
+
         var globalFyProjectsCount = await db.Projects
+
             .IgnoreQueryFilters()
+
             .CountAsync(p => p.CreatedAtUtc >= fyStartDate && p.CreatedAtUtc < fyEndDate, ct);
 
+
+
         var projectSeqNum = globalFyProjectsCount + 1;
+
         var projectSeqId = "P" + projectSeqNum.ToString("D3");
 
+
+
         // Client position among all clients (ordered by CreatedAtUtc)
+
         var clientIndex = await db.Clients
+
             .IgnoreQueryFilters()
+
             .OrderBy(c => c.CreatedAtUtc)
+
             .Select(c => c.Id)
+
             .ToListAsync(ct);
 
+
+
         var clientPos = clientIndex.IndexOf(clientId);
+
         var clientSeq = clientPos >= 0 ? clientPos + 1 : 1;
+
         await db.Database.ExecuteSqlRawAsync(
+
             $"""ALTER TABLE {db.TableName<Client>()} ADD COLUMN IF NOT EXISTS "ClientCode" character varying(20);""",
+
             ct);
+
         var storedClientCode = await db.Clients
+
             .IgnoreQueryFilters()
+
             .Where(c => c.Id == clientId)
+
             .Select(c => c.ClientCode)
+
             .FirstOrDefaultAsync(ct);
+
         var paddedClientId = string.IsNullOrWhiteSpace(storedClientCode)
+
             ? "C" + clientSeq.ToString("D3")
+
             : storedClientCode.Trim();
 
+
+
         var financialYear = $"{fyStartYear}-{fyEndYear:D2}";
+
         string wbsId;
+
         if (subVentureId.HasValue)
+
         {
+
             var subVentureCode = await db.SubVentures
+
                 .Where(s => s.Id == subVentureId.Value && s.ClientId == clientId)
+
                 .Select(s => s.SubVentureCode)
+
                 .FirstOrDefaultAsync(ct);
+
             if (string.IsNullOrWhiteSpace(subVentureCode))
+
                 throw new NotFoundException($"Sub-venture '{subVentureId}' was not found for this client.");
+
             wbsId = BuildWbsId(financialYear, subVentureCode, projectSeqId);
-        }
-        else
-        {
-            wbsId = $"IN-{financialYear}-{paddedClientId}-{projectSeqId}";
+
         }
 
+        else
+
+        {
+
+            wbsId = $"IN-{financialYear}-{paddedClientId}-{projectSeqId}";
+
+        }
+
+
+
         // Client-specific project count
+
         var clientProjectCount = await db.Projects
+
             .CountAsync(p => p.ClientId == clientId, ct) + 1;
+
+
 
         var formattedClientProjectCount = clientProjectCount.ToString("D2");
 
+
+
         return new NextProjectCodeDto(
+
             projectSeqId,
+
             wbsId,
+
             financialYear,
+
             clientProjectCount,
+
             formattedClientProjectCount);
+
     }
+
+
 
     /// <summary>
+
     /// IN-{financialYear}/{subVentureCode}/{projectSeqId}, e.g. IN-2026-27/C013-01/P056.
+
     /// Financial year and project sequence are supplied by the existing generators.
+
     /// </summary>
+
     public static string BuildWbsId(string financialYear, string subVentureCode, string projectSeqId)
+
     {
+
         if (string.IsNullOrWhiteSpace(financialYear))
+
             throw new ArgumentException("Financial year is required.", nameof(financialYear));
+
         if (string.IsNullOrWhiteSpace(subVentureCode))
+
             throw new ArgumentException("Sub-venture ID is required.", nameof(subVentureCode));
+
         if (string.IsNullOrWhiteSpace(projectSeqId))
+
             throw new ArgumentException("Project ID is required.", nameof(projectSeqId));
+
         return $"IN-{financialYear.Trim()}/{subVentureCode.Trim()}/{projectSeqId.Trim()}";
+
     }
+
+
 
     public static string BuildProjectName(
+
         string clientName,
+
         string? subVentureName,
+
         IReadOnlyList<string>? subDepartmentNames,
+
         int clientProjectCount)
+
     {
+
         var cName = (clientName ?? "").Trim();
+
         var svName = (subVentureName ?? "").Trim();
+
         var descriptor = ProjectNameDescriptor(subDepartmentNames);
+
         var count = clientProjectCount.ToString("D2");
 
+
+
         if (!string.IsNullOrEmpty(svName))
+
         {
+
             return $"{cName}({svName})_{descriptor}_{count}";
+
         }
+
         return $"{cName}_{descriptor}_{count}";
+
     }
+
+
 
     public static string ProjectNameDescriptor(IReadOnlyList<string>? subDepartmentNames)
+
     {
+
         if (subDepartmentNames == null || subDepartmentNames.Count == 0)
+
             return "General";
 
+
+
         var unique = subDepartmentNames
+
             .Where(s => !string.IsNullOrWhiteSpace(s))
+
             .Select(s => s.Trim())
+
             .Distinct(StringComparer.OrdinalIgnoreCase)
+
             .ToList();
 
+
+
         if (unique.Count == 0) return "General";
+
         if (unique.Count == 1) return unique[0].Replace(" ", "");
+
         return "Mixed";
+
     }
+
+
 
     // â”€â”€ Project Tasks Methods â”€â”€
 
+
+
     public async Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
+
     {
+
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
+
         if (!exists)
+
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         var query = db.ProjectTasks.AsQueryable();
+
         if (includeDeleted)
+
         {
+
             query = query.IgnoreQueryFilters();
+
         }
+
+
 
         var tasks = await query
+
             .Include(t => t.ProjectService)
+
             .Include(t => t.Project)
+
             .Where(t => t.ProjectId == projectId)
+
             .OrderBy(t => t.SortOrder)
+
             .ThenBy(t => t.CreatedAtUtc)
+
             .ToListAsync(ct);
 
+
+
         var taskIds = tasks.Select(t => t.Id).ToList();
+
         var assignments = await db.ProjectTaskAssignments
+
             .Include(a => a.Employee)
+
             .Where(a => taskIds.Contains(a.TaskId) && a.IsActive)
+
             .ToListAsync(ct);
+
         var projectTeamIds = await LoadProjectTeamIdsAsync(projectId, ct);
+
         var hoursChanged = false;
+
         foreach (var task in tasks)
+
         {
+
             var taskAssignments = assignments.Where(a => a.TaskId == task.Id).ToList();
+
             var beforeTask = task.UtilizedHours;
+
             var beforeAllocations = taskAssignments.Select(a => (a.AllocatedHours, a.UtilizedHours)).ToList();
+
             ProjectTaskService.ApplyProjectTeamHourSplit(task, taskAssignments, projectTeamIds);
+
             if (task.UtilizedHours != beforeTask
+
                 || taskAssignments.Where((a, i) => a.AllocatedHours != beforeAllocations[i].AllocatedHours || a.UtilizedHours != beforeAllocations[i].UtilizedHours).Any())
+
                 hoursChanged = true;
+
         }
+
         if (hoursChanged) await db.SaveChangesAsync(ct);
+
+
 
         var byTask = assignments.GroupBy(a => a.TaskId).ToDictionary(g => g.Key, g => g.ToList());
 
+
+
         return tasks.Select(t => MapToTaskDto(t, byTask.GetValueOrDefault(t.Id))).ToList();
+
     }
+
+
 
     public async Task<ProjectTaskDto?> GetProjectTaskByIdAsync(Guid projectId, Guid taskId, CancellationToken ct = default)
+
     {
+
         var task = await db.ProjectTasks
+
             .Include(t => t.ProjectService)
+
             .FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct);
+
         if (task == null) return null;
 
+
+
         var assignments = await db.ProjectTaskAssignments
+
             .Include(a => a.Employee)
+
             .Where(a => a.TaskId == taskId && a.IsActive)
+
             .ToListAsync(ct);
 
+
+
         return MapToTaskDto(task, assignments);
+
     }
 
+
+
     public async Task<ProjectTaskDto> CreateProjectTaskAsync(Guid projectId, CreateProjectTaskRequest request, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
+
             ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         if (request.ProjectServiceId.HasValue)
+
         {
+
             var serviceExists = await db.ProjectServices.AnyAsync(s => s.Id == request.ProjectServiceId.Value && s.ProjectId == projectId, ct);
+
             if (!serviceExists)
+
                 throw new NotFoundException($"Project Service with ID '{request.ProjectServiceId}' was not found for this project.");
+
         }
+
+
 
         if (string.IsNullOrWhiteSpace(request.Title))
+
             throw new ConflictException("Task title is required.");
 
+
+
         var trimmedTitle = request.Title.Trim();
+
         var taskType = request.TaskType?.Trim();
+
         if (!string.IsNullOrWhiteSpace(taskType) &&
+
             !string.Equals(taskType, "Managerial Task", StringComparison.OrdinalIgnoreCase) &&
+
             !string.Equals(taskType, "Training/Learning", StringComparison.OrdinalIgnoreCase))
+
         {
+
             throw new ConflictException("Task type must be either 'Managerial Task' or 'Training/Learning'.");
+
         }
+
+
 
         var stage = string.IsNullOrWhiteSpace(request.Stage) ? "Not Started" : request.Stage.Trim();
 
+
+
         Guid? serviceId = request.ProjectServiceId;
+
         string period = request.Period ?? "";
+
         string phase = request.Phase ?? "Execution";
+
         int targetSortOrder = request.SortOrder;
 
+
+
         if (request.InsertAfterTaskId.HasValue && request.InsertAfterTaskId.Value != Guid.Empty)
+
         {
+
             var targetTask = await db.ProjectTasks.FirstOrDefaultAsync(
+
                 t => t.ProjectId == projectId && t.Id == request.InsertAfterTaskId.Value, ct);
 
+
+
             if (targetTask != null)
+
             {
+
                 serviceId = targetTask.ProjectServiceId ?? serviceId;
+
                 period = targetTask.Period ?? period;
+
                 phase = targetTask.Phase ?? phase;
 
+
+
                 var siblingTasks = await db.ProjectTasks
+
                     .Where(t => t.ProjectId == projectId &&
+
                                 t.ProjectServiceId == serviceId &&
+
                                 t.Phase == phase &&
+
                                 t.Period == period)
+
                     .OrderBy(t => t.SortOrder)
+
                     .ThenBy(t => t.CreatedAtUtc)
+
                     .ToListAsync(ct);
 
+
+
                 int targetIndex = siblingTasks.FindIndex(t => t.Id == targetTask.Id);
+
                 if (targetIndex >= 0)
+
                 {
+
                     int orderCounter = 10;
+
                     for (int i = 0; i <= targetIndex; i++)
+
                     {
+
                         siblingTasks[i].SortOrder = orderCounter;
+
                         orderCounter += 10;
+
                     }
+
+
 
                     targetSortOrder = orderCounter;
+
                     orderCounter += 10;
 
+
+
                     for (int i = targetIndex + 1; i < siblingTasks.Count; i++)
+
                     {
+
                         siblingTasks[i].SortOrder = orderCounter;
+
                         orderCounter += 10;
+
                     }
+
                 }
+
                 else
+
                 {
+
                     targetSortOrder = targetTask.SortOrder + 10;
+
                 }
+
             }
+
         }
+
         else
+
         {
+
             var maxSort = await db.ProjectTasks
+
                 .Where(t => t.ProjectId == projectId &&
+
                             t.ProjectServiceId == serviceId &&
+
                             t.Phase == phase &&
+
                             t.Period == period)
+
                 .MaxAsync(t => (int?)t.SortOrder, ct) ?? 0;
 
+
+
             targetSortOrder = maxSort > 0 ? maxSort + 10 : (request.SortOrder > 0 ? request.SortOrder : 10);
+
         }
+
+
 
         var task = new ProjectTask
+
         {
+
             ProjectId = projectId,
+
             ProjectServiceId = serviceId,
+
             Title = trimmedTitle,
+
             Description = request.Description ?? taskType,
+
             Period = period,
+
             Phase = phase,
+
             Stage = stage,
+
             Priority = request.Priority ?? "medium",
+
             PlannedStartDate = request.PlannedStartDate ?? project.StartDate,
+
             PlannedEndDate = request.PlannedEndDate ?? project.EndDate,
+
             EstimatedHours = request.EstimatedHours,
+
             SortOrder = targetSortOrder,
+
             TaskType = taskType
+
         };
 
+
+
         db.ProjectTasks.Add(task);
+
         await db.SaveChangesAsync(ct);
+
+
 
         return (await GetProjectTaskByIdAsync(projectId, task.Id, ct))!;
+
     }
+
+
 
     public async Task<ProjectTaskDto> UpdateProjectTaskAsync(Guid projectId, Guid taskId, UpdateProjectTaskRequest request, CancellationToken ct = default)
+
     {
+
         var task = await db.ProjectTasks
+
             .Include(t => t.ProjectService)
+
             .FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct)
+
             ?? throw new NotFoundException($"Project Task with ID '{taskId}' was not found.");
+
+
 
         if (request.ProjectServiceId.HasValue)
+
         {
+
             var serviceExists = await db.ProjectServices.AnyAsync(s => s.Id == request.ProjectServiceId.Value && s.ProjectId == projectId, ct);
+
             if (!serviceExists)
+
                 throw new NotFoundException($"Project Service with ID '{request.ProjectServiceId}' was not found for this project.");
+
             task.ProjectServiceId = request.ProjectServiceId;
+
         }
+
+
 
         if (request.Title != null)
+
         {
+
             if (string.IsNullOrWhiteSpace(request.Title))
+
                 throw new ConflictException("Task title cannot be empty.");
+
             task.Title = request.Title.Trim();
+
         }
+
         if (request.Description != null) task.Description = request.Description;
+
         if (request.Period != null) task.Period = request.Period;
+
         if (request.Phase != null) task.Phase = request.Phase;
+
         if (request.Stage != null) task.Stage = request.Stage;
+
         if (request.Priority != null) task.Priority = request.Priority;
+
         if (request.PlannedStartDate.HasValue) task.PlannedStartDate = request.PlannedStartDate;
+
         if (request.PlannedEndDate.HasValue) task.PlannedEndDate = request.PlannedEndDate;
+
         if (request.ActualStartDate.HasValue) task.ActualStartDate = request.ActualStartDate;
+
         if (request.ActualEndDate.HasValue) task.ActualEndDate = request.ActualEndDate;
+
         if (request.EstimatedHours.HasValue) task.EstimatedHours = request.EstimatedHours;
+
         if (request.UtilizedHours.HasValue) task.UtilizedHours = request.UtilizedHours.Value;
+
         if (request.Stage != null || request.EstimatedHours.HasValue)
+
             await ReapplyProjectTeamHourSplitAsync(projectId, task, ct);
+
         if (request.Progress.HasValue) task.Progress = request.Progress.Value;
+
         if (request.SortOrder.HasValue) task.SortOrder = request.SortOrder.Value;
+
         if (request.TaskType != null) task.TaskType = request.TaskType.Trim();
 
+
+
         if (task.ActualStartDate.HasValue && task.ActualEndDate.HasValue && task.ActualEndDate < task.ActualStartDate)
+
         {
+
             throw new ConflictException("Actual end date must not be before actual start date.");
+
         }
 
+
+
         await db.SaveChangesAsync(ct);
+
+
 
         return (await GetProjectTaskByIdAsync(projectId, taskId, ct))!;
+
     }
+
+
 
     public async Task<bool> DeleteProjectTaskAsync(Guid projectId, Guid taskId, CancellationToken ct = default)
+
     {
+
         var task = await db.ProjectTasks.FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct);
+
         if (task == null) return false;
 
+
+
         db.ProjectTasks.Remove(task);
+
         await db.SaveChangesAsync(ct);
+
         return true;
+
     }
 
+
+
     public async Task<ProjectTaskDto> UpdateTaskStageAsync(Guid projectId, Guid taskId, string stage, CancellationToken ct = default)
+
     {
+
         var task = await db.ProjectTasks
+
             .Include(t => t.ProjectService)
+
             .FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct)
+
             ?? throw new NotFoundException($"Project Task with ID '{taskId}' was not found.");
 
+
+
         // Once a task is completed, it cannot be changed to another stage
+
         if (task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase) && !stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+
         {
+
             throw new BadRequestException("A completed task cannot be changed to another stage.");
+
         }
+
+
 
         task.Stage = stage;
-        await ReapplyProjectTeamHourSplitAsync(projectId, task, ct);
+
+
 
         var nowUtc = DateTime.UtcNow;
+
         var today = DateOnly.FromDateTime(nowUtc);
+
         var isRunningStage = stage.Equals("Ongoing", StringComparison.OrdinalIgnoreCase) ||
+
                              stage.Equals("In Progress", StringComparison.OrdinalIgnoreCase);
 
+
+
         if (isRunningStage && !task.ActualStartDate.HasValue)
+
         {
+
             task.ActualStartDate = today;
+
         }
+
         else if (stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+
         {
+
             task.ActualEndDate ??= today;
+
             task.Progress = 100;
+
         }
+
+
 
         task.UpdatedAtUtc = nowUtc;
 
+
+
         var bucketTasks = await db.BucketTasks
+
             .Where(b => b.TaskId == taskId && b.DeletedAtUtc == null)
+
             .ToListAsync(ct);
 
+
+
         foreach (var bt in bucketTasks)
+
         {
+
             if (isRunningStage)
+
             {
+
                 if (bt.Status is "On Hold")
+
                 {
+
                     bt.Status = bt.TimerAccumulatedSeconds > 0 ? "Paused" : "Not Started";
+
                 }
+
                 else if (bt.TimerRunning)
+
                 {
+
                     bt.Status = "Ongoing";
+
                 }
+
             }
+
             else
+
             {
+
                 bt.Status = stage;
+
                 // Any non-running stage (On Hold, Cancelled, Paused, Stopped, Completed, etc.) pauses active timers
+
                 if (bt.TimerStartedAtUtc.HasValue)
+
                 {
+
                     var elapsed = (long)(nowUtc - bt.TimerStartedAtUtc.Value).TotalSeconds;
+
                     bt.TimerAccumulatedSeconds += Math.Max(0, elapsed);
+
                     bt.UtilizedHours = Math.Round((decimal)bt.TimerAccumulatedSeconds / 3600m, 2);
+
                 }
+
                 bt.TimerRunning = false;
+
                 bt.TimerStartedAtUtc = null;
 
+
+
                 if (stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+
                 {
+
                     bt.ActualEndDate ??= today;
+
                 }
+
             }
+
             bt.UpdatedAtUtc = nowUtc;
+
         }
+
+
 
         // Also pause active assignments when moving to a non-running stage (e.g. On Hold, Paused, Completed)
+
+        var activeAssignments = await db.ProjectTaskAssignments
+
+            .Where(a => a.TaskId == taskId && a.IsActive && a.DeletedAtUtc == null)
+
+            .ToListAsync(ct);
+
+
+
         if (!isRunningStage)
+
         {
-            var activeAssignments = await db.ProjectTaskAssignments
-                .Where(a => a.TaskId == taskId && a.TimerStartedAtUtc.HasValue)
-                .ToListAsync(ct);
 
             foreach (var a in activeAssignments)
+
             {
-                var elapsed = (long)(nowUtc - a.TimerStartedAtUtc!.Value).TotalSeconds;
-                a.TimerAccumulatedSeconds += Math.Max(0, elapsed);
-                a.TimerStartedAtUtc = null;
+
+                if (a.TimerStartedAtUtc.HasValue)
+
+                {
+
+                    var elapsed = (long)(nowUtc - a.TimerStartedAtUtc!.Value).TotalSeconds;
+
+                    a.TimerAccumulatedSeconds += Math.Max(0, elapsed);
+
+                    a.TimerStartedAtUtc = null;
+
+                }
+
+
+
+                // Match with bucket task if bucket task had higher accumulated time
+
+                var bt = bucketTasks.FirstOrDefault(b => b.EmployeeId == a.EmployeeId || b.AssignmentId == a.Id);
+
+                if (bt != null)
+
+                {
+
+                    a.TimerAccumulatedSeconds = Math.Max(a.TimerAccumulatedSeconds, bt.TimerAccumulatedSeconds);
+
+                }
+
+
+
                 a.UtilizedHours = Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2);
+
                 a.UpdatedAtUtc = nowUtc;
+
+
+
+                if (bt != null)
+
+                {
+
+                    bt.TimerAccumulatedSeconds = a.TimerAccumulatedSeconds;
+
+                    bt.UtilizedHours = a.UtilizedHours;
+
+                }
+
             }
+
         }
+
+
+
+        await ReapplyProjectTeamHourSplitAsync(projectId, task, ct);
+
+
+
+        // Compute total task utilized hours from all assigned resources
+
+        long totalTaskSeconds = 0;
+
+        decimal totalTaskHours = 0m;
+
+        foreach (var a in activeAssignments)
+
+        {
+
+            var bt = bucketTasks.FirstOrDefault(b => b.EmployeeId == a.EmployeeId || b.AssignmentId == a.Id);
+
+            var sec = Math.Max(a.TimerAccumulatedSeconds, bt?.TimerAccumulatedSeconds ?? 0);
+
+            totalTaskSeconds += sec;
+
+            totalTaskHours += (sec > 0 ? Math.Round((decimal)sec / 3600m, 2) : Math.Max(a.UtilizedHours, bt?.UtilizedHours ?? 0m));
+
+        }
+
+
+
+        task.UtilizedHours = totalTaskSeconds > 0 ? Math.Round((decimal)totalTaskSeconds / 3600m, 2) : totalTaskHours;
+
+
 
         await db.SaveChangesAsync(ct);
 
+
+
         return (await GetProjectTaskByIdAsync(projectId, taskId, ct))!;
+
     }
 
+
+
     public Task<AutoGeneratedTasksSummaryDto> AutoGenerateTasksFromServicesAsync(Guid projectId, CancellationToken ct = default)
+
         => taskService.GenerateMissingTasksAsync(projectId, ct);
+
+
 
     // â”€â”€ Task Assignments & Timer Methods â”€â”€
 
+
+
     public async Task<IReadOnlyList<ProjectTaskAssignmentDto>> GetTaskAssignmentsAsync(Guid projectId, Guid taskId, CancellationToken ct = default)
+
     {
+
         var taskExists = await db.ProjectTasks.AnyAsync(t => t.ProjectId == projectId && t.Id == taskId, ct);
+
         if (!taskExists)
+
             throw new NotFoundException($"Project Task with ID '{taskId}' was not found in this project.");
 
+
+
         var assignments = await db.ProjectTaskAssignments
+
             .Include(a => a.Employee)
+
             .Where(a => a.TaskId == taskId)
+
             .OrderBy(a => a.CreatedAtUtc)
+
             .ToListAsync(ct);
 
+
+
         return assignments.Select(MapToAssignmentDto).ToList();
+
     }
 
+
+
     public async Task<ProjectTaskAssignmentDto> AssignTaskResourceAsync(Guid projectId, Guid taskId, AssignTaskResourceRequest request, CancellationToken ct = default)
+
     {
+
         var task = await db.ProjectTasks.FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct)
+
             ?? throw new NotFoundException($"Project Task with ID '{taskId}' was not found in this project.");
 
+
+
         var employeeExists = await db.Employees.AnyAsync(e => e.Id == request.EmployeeId, ct);
+
         if (!employeeExists)
+
             throw new NotFoundException($"Employee with ID '{request.EmployeeId}' was not found.");
+
+
 
         await ProjectTaskService.EnsureOnProjectTeamAsync(db, projectId, request.EmployeeId, ct);
 
+
+
         var existing = await db.ProjectTaskAssignments
+
             .Include(a => a.Employee)
+
             .FirstOrDefaultAsync(a => a.TaskId == taskId && a.EmployeeId == request.EmployeeId, ct);
 
+
+
         if (existing != null)
+
         {
+
             if (existing.IsActive)
+
                 throw new ConflictException("Employee is already assigned to this task.");
 
+
+
             existing.IsActive = true;
+
             existing.Role = request.Role ?? existing.Role;
+
             if (request.AllocatedHours.HasValue) existing.AllocatedHours = request.AllocatedHours;
+
             await db.SaveChangesAsync(ct);
+
             await new ProjectTaskService(db).DistributeProjectTeamHoursAsync(projectId, taskId, ct);
+
             return MapToAssignmentDto(existing);
+
         }
 
+
+
         var assignment = new ProjectTaskAssignment
+
         {
+
             TaskId = taskId,
+
             EmployeeId = request.EmployeeId,
+
             Role = request.Role ?? "Contributor",
+
             AllocatedHours = request.AllocatedHours,
+
             UtilizedHours = 0m,
+
             TimerAccumulatedSeconds = 0,
+
             IsActive = true
+
         };
 
+
+
         db.ProjectTaskAssignments.Add(assignment);
+
         await db.SaveChangesAsync(ct);
+
         await new ProjectTaskService(db).DistributeProjectTeamHoursAsync(projectId, taskId, ct);
 
+
+
         var created = await db.ProjectTaskAssignments
+
             .Include(a => a.Employee)
+
             .FirstOrDefaultAsync(a => a.Id == assignment.Id, ct);
 
+
+
         return MapToAssignmentDto(created!);
+
     }
+
+
 
     public async Task<ProjectTaskAssignmentDto> UpdateTaskAssignmentAsync(Guid projectId, Guid taskId, Guid assignmentId, UpdateTaskAssignmentRequest request, CancellationToken ct = default)
+
     {
+
         var taskExists = await db.ProjectTasks.AnyAsync(t => t.ProjectId == projectId && t.Id == taskId, ct);
+
         if (!taskExists)
+
             throw new NotFoundException($"Project Task with ID '{taskId}' was not found in this project.");
 
+
+
         var assignment = await db.ProjectTaskAssignments
+
             .Include(a => a.Employee)
+
             .FirstOrDefaultAsync(a => a.TaskId == taskId && a.Id == assignmentId, ct)
+
             ?? throw new NotFoundException($"Task assignment with ID '{assignmentId}' was not found.");
 
+
+
         if (request.Role != null) assignment.Role = request.Role;
+
         if (request.AllocatedHours.HasValue) assignment.AllocatedHours = request.AllocatedHours;
+
         if (request.UtilizedHours.HasValue) assignment.UtilizedHours = request.UtilizedHours.Value;
+
         if (request.IsActive.HasValue) assignment.IsActive = request.IsActive.Value;
 
+
+
         await db.SaveChangesAsync(ct);
+
         return MapToAssignmentDto(assignment);
+
     }
 
+
+
     public async Task<bool> RemoveTaskAssignmentAsync(Guid projectId, Guid taskId, Guid assignmentId, CancellationToken ct = default)
+
     {
+
         var taskExists = await db.ProjectTasks.AnyAsync(t => t.ProjectId == projectId && t.Id == taskId, ct);
+
         if (!taskExists)
+
             throw new NotFoundException($"Project Task with ID '{taskId}' was not found in this project.");
 
+
+
         var assignment = await db.ProjectTaskAssignments
+
             .FirstOrDefaultAsync(a => a.TaskId == taskId && a.Id == assignmentId, ct);
+
+
 
         if (assignment == null) return false;
 
+
+
         db.ProjectTaskAssignments.Remove(assignment);
+
         await db.SaveChangesAsync(ct);
+
         await new ProjectTaskService(db).DistributeProjectTeamHoursAsync(projectId, taskId, ct);
+
         return true;
+
     }
+
+
 
     public async Task<TimerStatusDto> StartTaskTimerAsync(Guid projectId, Guid taskId, Guid assignmentId, CancellationToken ct = default)
+
     {
+
         var task = await db.ProjectTasks.FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct)
+
             ?? throw new NotFoundException($"Project Task with ID '{taskId}' was not found in this project.");
 
+
+
         var assignment = await db.ProjectTaskAssignments
+
             .FirstOrDefaultAsync(a => a.TaskId == taskId && a.Id == assignmentId, ct)
+
             ?? throw new NotFoundException($"Task assignment with ID '{assignmentId}' was not found.");
 
+
+
         if (task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+
         {
+
             throw new BadRequestException("A completed task cannot be started or restarted.");
+
         }
+
+
 
         if (task.Stage.Equals("On Hold", StringComparison.OrdinalIgnoreCase) || task.Stage.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+
         {
+
             throw new BadRequestException($"Cannot start or resume a task while it is {task.Stage}. The task stage must be Ongoing.");
+
         }
+
+
 
         var nowUtc = DateTime.UtcNow;
+
         var todayDate = DateOnly.FromDateTime(nowUtc);
 
+
+
         // Always record ActualStartDate when resource clicks start
+
         task.ActualStartDate ??= todayDate;
 
+
+
         // Single active task timer rule: pause any other running timer for this employee across tasks
+
         var otherRunningAssignments = await db.ProjectTaskAssignments
+
             .Where(a => a.EmployeeId == assignment.EmployeeId && a.Id != assignment.Id && a.TimerStartedAtUtc.HasValue)
+
             .ToListAsync(ct);
+
+
 
         foreach (var other in otherRunningAssignments)
+
         {
+
             var el = (long)(nowUtc - other.TimerStartedAtUtc!.Value).TotalSeconds;
+
             other.TimerAccumulatedSeconds += Math.Max(0, el);
+
             other.TimerStartedAtUtc = null;
+
             other.UtilizedHours = Math.Round((decimal)other.TimerAccumulatedSeconds / 3600m, 2);
+
             other.UpdatedAtUtc = nowUtc;
+
         }
+
+
 
         var otherRunningBucketTasks = await db.BucketTasks
+
             .Where(b => b.EmployeeId == assignment.EmployeeId && b.TaskId != taskId && b.TimerRunning && b.DeletedAtUtc == null)
+
             .ToListAsync(ct);
 
+
+
         foreach (var otherBt in otherRunningBucketTasks)
+
         {
+
             if (otherBt.TimerStartedAtUtc.HasValue)
+
             {
+
                 var el = (long)(nowUtc - otherBt.TimerStartedAtUtc.Value).TotalSeconds;
+
                 otherBt.TimerAccumulatedSeconds += Math.Max(0, el);
+
                 otherBt.UtilizedHours = Math.Round((decimal)otherBt.TimerAccumulatedSeconds / 3600m, 2);
+
             }
+
             otherBt.TimerRunning = false;
+
             otherBt.TimerStartedAtUtc = null;
+
             otherBt.Status = "Paused";
+
             otherBt.UpdatedAtUtc = nowUtc;
+
         }
+
+
 
         if (!assignment.TimerStartedAtUtc.HasValue)
+
         {
+
             assignment.TimerStartedAtUtc = nowUtc;
 
+
+
             // Auto-advance task stage from "Ready to Start" / "Not Started" / "To Do" to "Ongoing"
+
             if (task.Stage.Equals("Ready to Start", StringComparison.OrdinalIgnoreCase) ||
+
                 task.Stage.Equals("Not Started", StringComparison.OrdinalIgnoreCase) ||
+
                 task.Stage.Equals("To Do", StringComparison.OrdinalIgnoreCase))
+
             {
+
                 task.Stage = "Ongoing";
+
             }
+
+
 
             var bucketTask = await db.BucketTasks
+
                 .FirstOrDefaultAsync(b => b.TaskId == taskId && b.EmployeeId == assignment.EmployeeId && b.DeletedAtUtc == null, ct);
 
+
+
             if (bucketTask != null)
+
             {
+
                 bucketTask.ActualStartDate ??= todayDate;
+
                 bucketTask.TimerRunning = true;
+
                 bucketTask.TimerStartedAtUtc = nowUtc;
+
                 if (bucketTask.Status is "Not Started" or "Ready to Start" or "To Do")
+
                 {
+
                     bucketTask.Status = "Ongoing";
+
                 }
+
                 bucketTask.UpdatedAtUtc = nowUtc;
+
             }
 
+
+
             await db.SaveChangesAsync(ct);
+
         }
+
+
 
         var totalSeconds = assignment.TimerAccumulatedSeconds;
+
         if (assignment.TimerStartedAtUtc.HasValue)
+
         {
+
             totalSeconds += (long)(DateTime.UtcNow - assignment.TimerStartedAtUtc.Value).TotalSeconds;
+
         }
 
+
+
         return new TimerStatusDto(
+
             assignment.Id,
+
             taskId,
+
             assignment.EmployeeId,
+
             true,
+
             assignment.TimerStartedAtUtc,
+
             totalSeconds,
+
             Math.Round((decimal)totalSeconds / 3600m, 2));
+
     }
+
+
 
     public async Task<TimerStatusDto> StopTaskTimerAsync(Guid projectId, Guid taskId, Guid assignmentId, CancellationToken ct = default)
+
     {
+
         var task = await db.ProjectTasks.FirstOrDefaultAsync(t => t.ProjectId == projectId && t.Id == taskId, ct)
+
             ?? throw new NotFoundException($"Project Task with ID '{taskId}' was not found in this project.");
 
+
+
         var assignment = await db.ProjectTaskAssignments
+
             .FirstOrDefaultAsync(a => a.TaskId == taskId && a.Id == assignmentId, ct)
+
             ?? throw new NotFoundException($"Task assignment with ID '{assignmentId}' was not found.");
 
+
+
         if (task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+
         {
+
             throw new BadRequestException("A completed task cannot be stopped.");
+
         }
+
+
 
         if (task.Stage.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+
         {
+
             throw new BadRequestException("A cancelled task cannot be stopped.");
+
         }
+
+
 
         if (assignment.TimerStartedAtUtc.HasValue)
+
         {
+
             var elapsed = (long)(DateTime.UtcNow - assignment.TimerStartedAtUtc.Value).TotalSeconds;
+
             assignment.TimerAccumulatedSeconds += Math.Max(0, elapsed);
+
             assignment.TimerStartedAtUtc = null;
+
             assignment.UtilizedHours = Math.Round((decimal)assignment.TimerAccumulatedSeconds / 3600m, 2);
 
-            // Recompute task utilized hours
-            var otherAssignmentsTotal = await db.ProjectTaskAssignments
-                .Where(a => a.TaskId == taskId && a.Id != assignmentId)
-                .SumAsync(a => a.UtilizedHours, ct);
 
-            task.UtilizedHours = otherAssignmentsTotal + assignment.UtilizedHours;
 
-            var bucketTask = await db.BucketTasks
-                .FirstOrDefaultAsync(b => b.TaskId == taskId && b.EmployeeId == assignment.EmployeeId && b.DeletedAtUtc == null, ct);
+            // Recompute task utilized hours across all assignments
 
-            if (bucketTask != null)
+            var allAssignments = await db.ProjectTaskAssignments
+
+                .Where(a => a.TaskId == taskId && a.DeletedAtUtc == null)
+
+                .ToListAsync(ct);
+
+
+
+            task.UtilizedHours = allAssignments.Sum(a => a.Id == assignmentId
+
+                ? assignment.UtilizedHours
+
+                : (a.TimerAccumulatedSeconds > 0 ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2) : a.UtilizedHours));
+
+
+
+            var anyOtherRunning = await db.BucketTasks
+
+                .AnyAsync(b => b.TaskId == taskId && b.EmployeeId != assignment.EmployeeId && b.TimerRunning && b.DeletedAtUtc == null, ct);
+
+            if (!anyOtherRunning)
+
             {
-                bucketTask.TimerRunning = false;
-                bucketTask.TimerStartedAtUtc = null;
-                bucketTask.Status = "Paused";
-                bucketTask.TimerAccumulatedSeconds = assignment.TimerAccumulatedSeconds;
-                bucketTask.UtilizedHours = assignment.UtilizedHours;
-                bucketTask.UpdatedAtUtc = DateTime.UtcNow;
+
+                task.Stage = "Paused";
+
             }
 
+
+
+            var bucketTask = await db.BucketTasks
+
+                .FirstOrDefaultAsync(b => b.TaskId == taskId && b.EmployeeId == assignment.EmployeeId && b.DeletedAtUtc == null, ct);
+
+
+
+            if (bucketTask != null)
+
+            {
+
+                bucketTask.TimerRunning = false;
+
+                bucketTask.TimerStartedAtUtc = null;
+
+                bucketTask.Status = "Paused";
+
+                bucketTask.TimerAccumulatedSeconds = assignment.TimerAccumulatedSeconds;
+
+                bucketTask.UtilizedHours = assignment.UtilizedHours;
+
+                bucketTask.UpdatedAtUtc = DateTime.UtcNow;
+
+            }
+
+
+
             await db.SaveChangesAsync(ct);
+
         }
 
+
+
         return new TimerStatusDto(
+
             assignment.Id,
+
             taskId,
+
             assignment.EmployeeId,
+
             false,
+
             null,
+
             assignment.TimerAccumulatedSeconds,
+
             Math.Round((decimal)assignment.TimerAccumulatedSeconds / 3600m, 2));
+
     }
+
+
 
     // â”€â”€ Project Invoices Methods â”€â”€
 
+
+
     public async Task<IReadOnlyList<ProjectInvoiceDto>> GetProjectInvoicesAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
+
     {
+
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
+
         if (!exists)
+
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         var query = db.ProjectInvoices.AsQueryable();
+
         if (includeDeleted)
+
         {
+
             query = query.IgnoreQueryFilters();
+
         }
+
+
 
         var invoices = await query
+
             .Where(i => i.ProjectId == projectId)
+
             .OrderBy(i => i.SortOrder)
+
             .ThenBy(i => i.CreatedAtUtc)
+
             .ToListAsync(ct);
 
+
+
         string? fallbackServiceName = null;
+
         if (invoices.Any(i => string.IsNullOrWhiteSpace(i.ServiceName)))
+
         {
+
             var services = await db.ProjectServices
+
                 .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+
                 .Select(s => s.ServiceName)
+
                 .ToListAsync(ct);
+
             fallbackServiceName = services.Count == 1 ? services[0] : (services.Count > 1 ? string.Join(", ", services) : null);
+
         }
 
+
+
         return invoices.Select(i => MapToInvoiceDto(i, fallbackServiceName)).ToList();
+
     }
 
+
+
     public async Task<ProjectInvoiceDto?> GetProjectInvoiceByIdAsync(Guid projectId, Guid invoiceId, CancellationToken ct = default)
+
     {
+
         var invoice = await db.ProjectInvoices
+
             .FirstOrDefaultAsync(i => i.ProjectId == projectId && i.Id == invoiceId, ct);
+
+
 
         if (invoice == null) return null;
 
+
+
         string? fallbackServiceName = null;
+
         if (string.IsNullOrWhiteSpace(invoice.ServiceName))
+
         {
+
             var services = await db.ProjectServices
+
                 .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+
                 .Select(s => s.ServiceName)
+
                 .ToListAsync(ct);
+
             fallbackServiceName = services.Count == 1 ? services[0] : (services.Count > 1 ? string.Join(", ", services) : null);
+
         }
+
+
 
         return MapToInvoiceDto(invoice, fallbackServiceName);
+
     }
+
+
 
     public async Task<ProjectInvoiceDto> CreateProjectInvoiceAsync(Guid projectId, CreateProjectInvoiceRequest request, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
+
             ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
+
+
 
         var amount = request.Amount;
+
         if (amount == 0 && request.Percentage.HasValue && project.Budget.HasValue)
+
         {
+
             amount = Math.Round((project.Budget.Value * request.Percentage.Value) / 100m, 2);
+
         }
 
+
+
         var taxPercent = request.TaxPercent ?? project.TaxPercent;
+
         var taxAmount = request.TaxAmount ?? Math.Round(amount * (taxPercent / 100m), 2);
+
         var totalAmount = request.TotalAmount ?? (amount + taxAmount);
 
+
+
         var invoice = new ProjectInvoice
+
         {
+
             ProjectId = projectId,
+
             MilestoneName = request.MilestoneName.Trim(),
+
             Percentage = request.Percentage,
+
             Amount = amount,
+
             TaxAmount = taxAmount,
+
             TotalAmount = totalAmount,
+
             Status = request.Status ?? "Pending",
+
             InvoiceNumber = request.InvoiceNumber,
+
             InvoiceDate = request.InvoiceDate,
+
             DueDate = request.DueDate,
+
             PaymentDate = request.PaymentDate,
+
             Remarks = request.Remarks,
+
             SortOrder = request.SortOrder,
+
             ServiceName = string.IsNullOrWhiteSpace(request.ServiceName) ? null : request.ServiceName.Trim(),
+
             Qty = request.Qty,
+
             UnitPrice = request.UnitPrice,
+
             Currency = string.IsNullOrWhiteSpace(request.Currency) ? null : request.Currency.Trim(),
+
             ResourceLevel = string.IsNullOrWhiteSpace(request.ResourceLevel) ? null : request.ResourceLevel.Trim(),
+
             PaymentStatus = ResolvePaymentStatus(request.Status, request.PaymentStatus),
+
             ProjectServiceId = request.ProjectServiceId
+
         };
 
+
+
         db.ProjectInvoices.Add(invoice);
+
         await db.SaveChangesAsync(ct);
 
+
+
         await RecalculateProjectInvoiceRollupAsync(projectId, ct);
+
+
 
         return (await GetProjectInvoiceByIdAsync(projectId, invoice.Id, ct))!;
+
     }
+
+
 
     public async Task<ProjectInvoiceDto> UpdateProjectInvoiceAsync(Guid projectId, Guid invoiceId, UpdateProjectInvoiceRequest request, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
+
             ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         var invoice = await db.ProjectInvoices
+
             .FirstOrDefaultAsync(i => i.ProjectId == projectId && i.Id == invoiceId, ct)
+
             ?? throw new NotFoundException($"Project Invoice with ID '{invoiceId}' was not found.");
 
+
+
         if (request.MilestoneName != null) invoice.MilestoneName = request.MilestoneName.Trim();
+
         if (request.Percentage.HasValue) invoice.Percentage = request.Percentage.Value;
+
         if (request.Amount.HasValue) invoice.Amount = request.Amount.Value;
 
+
+
         var taxPercent = request.TaxPercent ?? project.TaxPercent;
+
         if (request.TaxAmount.HasValue)
+
         {
+
             invoice.TaxAmount = request.TaxAmount.Value;
+
         }
+
         else if (request.Amount.HasValue || request.TaxPercent.HasValue)
+
         {
+
             invoice.TaxAmount = Math.Round(invoice.Amount * (taxPercent / 100m), 2);
+
         }
+
+
 
         if (request.TotalAmount.HasValue)
+
         {
+
             invoice.TotalAmount = request.TotalAmount.Value;
+
         }
+
         else if (request.Amount.HasValue || request.TaxAmount.HasValue || request.TaxPercent.HasValue)
+
         {
+
             invoice.TotalAmount = invoice.Amount + invoice.TaxAmount;
+
         }
+
+
 
         if (request.Status != null) invoice.Status = request.Status;
+
         if (request.InvoiceNumber != null) invoice.InvoiceNumber = request.InvoiceNumber;
+
         if (request.InvoiceDate.HasValue) invoice.InvoiceDate = request.InvoiceDate;
+
         if (request.DueDate.HasValue) invoice.DueDate = request.DueDate;
+
         if (request.PaymentDate.HasValue) invoice.PaymentDate = request.PaymentDate;
+
         if (request.Remarks != null) invoice.Remarks = request.Remarks;
+
         if (request.SortOrder.HasValue) invoice.SortOrder = request.SortOrder.Value;
+
         if (request.ServiceName != null) invoice.ServiceName = string.IsNullOrWhiteSpace(request.ServiceName) ? null : request.ServiceName.Trim();
+
         if (request.Qty.HasValue) invoice.Qty = request.Qty;
+
         if (request.UnitPrice.HasValue) invoice.UnitPrice = request.UnitPrice;
+
         if (request.Currency != null) invoice.Currency = string.IsNullOrWhiteSpace(request.Currency) ? null : request.Currency.Trim();
+
         if (request.ResourceLevel != null) invoice.ResourceLevel = string.IsNullOrWhiteSpace(request.ResourceLevel) ? null : request.ResourceLevel.Trim();
+
         if (request.ProjectServiceId.HasValue) invoice.ProjectServiceId = request.ProjectServiceId.Value;
+
         if (request.PaymentStatus != null || request.Status != null)
+
         {
+
             invoice.PaymentStatus = ResolvePaymentStatus(request.Status ?? invoice.Status, request.PaymentStatus ?? invoice.PaymentStatus);
+
             if (string.Equals(invoice.PaymentStatus, "Not Received", StringComparison.OrdinalIgnoreCase))
+
                 invoice.PaymentDate = request.PaymentDate;
+
         }
 
+
+
         await db.SaveChangesAsync(ct);
+
         await RecalculateProjectInvoiceRollupAsync(projectId, ct);
 
+
+
         return (await GetProjectInvoiceByIdAsync(projectId, invoiceId, ct))!;
+
     }
 
+
+
     public async Task<bool> DeleteProjectInvoiceAsync(Guid projectId, Guid invoiceId, CancellationToken ct = default)
+
     {
+
         var invoice = await db.ProjectInvoices
+
             .FirstOrDefaultAsync(i => i.ProjectId == projectId && i.Id == invoiceId, ct);
+
+
 
         if (invoice == null) return false;
 
+
+
         db.ProjectInvoices.Remove(invoice);
+
         await db.SaveChangesAsync(ct);
+
         await RecalculateProjectInvoiceRollupAsync(projectId, ct);
 
+
+
         return true;
+
     }
 
+
+
     public async Task<AutoGenerateInvoicesSummaryDto> AutoGenerateInvoicesAsync(Guid projectId, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
+
             ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         var totalBudget = project.Budget ?? project.InvoiceValue ?? 0m;
+
         var taxPercent = project.TaxPercent;
+
         var billingModel = (project.BillingModel ?? "50-50").Trim();
 
+
+
         var projectServices = await db.ProjectServices
+
             .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+
             .ToListAsync(ct);
+
         var defaultServiceName = projectServices.Count == 1 
+
             ? projectServices[0].ServiceName 
+
             : projectServices.Count > 1 
+
                 ? string.Join(", ", projectServices.Select(s => s.ServiceName)) 
+
                 : null;
+
+
 
         var newInvoices = new List<ProjectInvoice>();
 
+
+
         if (billingModel.Contains("100", StringComparison.OrdinalIgnoreCase) || billingModel.Contains("Upfront", StringComparison.OrdinalIgnoreCase))
+
         {
+
             var amount = totalBudget;
+
             var tax = Math.Round(amount * (taxPercent / 100m), 2);
+
             newInvoices.Add(new ProjectInvoice
+
             {
+
                 ProjectId = projectId,
+
                 MilestoneName = "100% Upfront Advance Payment",
+
                 Percentage = 100m,
+
                 Amount = amount,
+
                 TaxAmount = tax,
+
                 TotalAmount = amount + tax,
+
                 Status = "Pending",
+
                 DueDate = project.StartDate,
+
                 SortOrder = 1,
+
                 ServiceName = defaultServiceName
+
             });
+
         }
+
         else if (billingModel.Contains("Quarter", StringComparison.OrdinalIgnoreCase))
+
         {
+
             var qAmount = Math.Round(totalBudget * 0.25m, 2);
+
             var qTax = Math.Round(qAmount * (taxPercent / 100m), 2);
+
             for (int q = 1; q <= 4; q++)
+
             {
+
                 newInvoices.Add(new ProjectInvoice
+
                 {
+
                     ProjectId = projectId,
+
                     MilestoneName = $"Q{q} Milestone (25%)",
+
                     Percentage = 25m,
+
                     Amount = qAmount,
+
                     TaxAmount = qTax,
+
                     TotalAmount = qAmount + qTax,
+
                     Status = "Pending",
+
                     SortOrder = q,
+
                     ServiceName = defaultServiceName
+
                 });
+
             }
+
         }
+
         else if (billingModel.Contains("Month", StringComparison.OrdinalIgnoreCase))
+
         {
+
             var mAmount = Math.Round(totalBudget / 12m, 2);
+
             var mTax = Math.Round(mAmount * (taxPercent / 100m), 2);
+
             var mPct = Math.Round(100m / 12m, 2);
+
             for (int m = 1; m <= 12; m++)
+
             {
+
                 newInvoices.Add(new ProjectInvoice
+
                 {
+
                     ProjectId = projectId,
+
                     MilestoneName = $"Month {m} Retainer ({mPct}%)",
+
                     Percentage = mPct,
+
                     Amount = mAmount,
+
                     TaxAmount = mTax,
+
                     TotalAmount = mAmount + mTax,
+
                     Status = "Pending",
+
                     SortOrder = m,
+
                     ServiceName = defaultServiceName
+
                 });
+
             }
+
         }
+
         else
+
         {
+
             // Default 50-50 milestone model
+
             var halfAmount = Math.Round(totalBudget * 0.50m, 2);
+
             var halfTax = Math.Round(halfAmount * (taxPercent / 100m), 2);
 
-            newInvoices.Add(new ProjectInvoice
-            {
-                ProjectId = projectId,
-                MilestoneName = "50% Advance Payment on Kickoff",
-                Percentage = 50m,
-                Amount = halfAmount,
-                TaxAmount = halfTax,
-                TotalAmount = halfAmount + halfTax,
-                Status = "Pending",
-                DueDate = project.StartDate,
-                SortOrder = 1,
-                ServiceName = defaultServiceName
-            });
+
 
             newInvoices.Add(new ProjectInvoice
+
             {
+
                 ProjectId = projectId,
-                MilestoneName = "50% Final Payment on Completion",
+
+                MilestoneName = "50% Advance Payment on Kickoff",
+
                 Percentage = 50m,
+
                 Amount = halfAmount,
+
                 TaxAmount = halfTax,
+
                 TotalAmount = halfAmount + halfTax,
+
                 Status = "Pending",
-                DueDate = project.EndDate,
-                SortOrder = 2,
+
+                DueDate = project.StartDate,
+
+                SortOrder = 1,
+
                 ServiceName = defaultServiceName
+
             });
+
+
+
+            newInvoices.Add(new ProjectInvoice
+
+            {
+
+                ProjectId = projectId,
+
+                MilestoneName = "50% Final Payment on Completion",
+
+                Percentage = 50m,
+
+                Amount = halfAmount,
+
+                TaxAmount = halfTax,
+
+                TotalAmount = halfAmount + halfTax,
+
+                Status = "Pending",
+
+                DueDate = project.EndDate,
+
+                SortOrder = 2,
+
+                ServiceName = defaultServiceName
+
+            });
+
         }
+
+
 
         if (newInvoices.Count > 0)
+
         {
+
             db.ProjectInvoices.AddRange(newInvoices);
+
             await db.SaveChangesAsync(ct);
+
             await RecalculateProjectInvoiceRollupAsync(projectId, ct);
+
         }
 
+
+
         var mapped = newInvoices.Select(i => MapToInvoiceDto(i, defaultServiceName)).ToList();
+
         var totalVal = mapped.Sum(i => i.TotalAmount);
 
+
+
         return new AutoGenerateInvoicesSummaryDto(projectId, newInvoices.Count, totalVal, mapped);
+
     }
+
+
 
     // â”€â”€ Project Documents Methods â”€â”€
 
+
+
     public async Task<IReadOnlyList<ProjectDocumentDto>> GetProjectDocumentsAsync(Guid projectId, CancellationToken ct = default)
+
     {
+
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
+
         if (!exists)
+
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         var docs = await db.ProjectDocuments
+
             .Where(d => d.ProjectId == projectId)
+
             .OrderByDescending(d => d.CreatedAtUtc)
+
             .ToListAsync(ct);
 
+
+
         return docs.Select(MapToDocumentDto).ToList();
+
     }
+
+
 
     public async Task<ProjectDocumentDto?> GetProjectDocumentByIdAsync(Guid projectId, Guid documentId, CancellationToken ct = default)
+
     {
+
         var doc = await db.ProjectDocuments
+
             .FirstOrDefaultAsync(d => d.ProjectId == projectId && d.Id == documentId, ct);
 
+
+
         return doc == null ? null : MapToDocumentDto(doc);
+
     }
 
+
+
     public async Task<ProjectDocumentDto> UploadProjectDocumentAsync(Guid projectId, string? documentType, string? description, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
+
             ?? throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
+
+
         if (file == null || file.Length == 0)
+
         {
+
             throw new InvalidOperationException("No file was uploaded.");
+
         }
 
+
+
         var category = string.IsNullOrWhiteSpace(documentType) ? "po" : documentType.Trim();
+
         var stored = await fileStorage.SaveProjectDocumentAsync(project.ProjectCode, category, file, ct);
+
+
 
         var docType = string.IsNullOrWhiteSpace(documentType) ? "PO" : documentType.Trim();
 
+
+
         var doc = new ProjectDocument
+
         {
+
             ProjectId = projectId,
+
             DocumentType = docType,
+
             FileName = stored.FileName,
+
             OriginalFileName = stored.OriginalFileName,
+
             FilePath = stored.RelativePath,
+
             ContentType = stored.ContentType,
+
             SizeBytes = stored.SizeBytes,
+
             Description = description
+
         };
 
+
+
         if (docType.Equals("PO", StringComparison.OrdinalIgnoreCase))
+
         {
+
             project.PoStatus = "PO Received";
+
         }
+
+
 
         db.ProjectDocuments.Add(doc);
+
         await db.SaveChangesAsync(ct);
+
+
 
         return MapToDocumentDto(doc);
+
     }
+
+
 
     public async Task<(Stream Stream, string ContentType, string DownloadFileName)> DownloadProjectDocumentAsync(Guid projectId, Guid documentId, CancellationToken ct = default)
+
     {
+
         var doc = await db.ProjectDocuments.FirstOrDefaultAsync(d => d.ProjectId == projectId && d.Id == documentId, ct)
+
             ?? throw new NotFoundException($"Project Document with ID '{documentId}' was not found.");
 
+
+
         var fileResult = fileStorage.GetProjectFileStream(doc.FilePath);
+
         if (fileResult == null)
+
         {
+
             throw new NotFoundException($"Document file '{doc.FileName}' was not found in storage.");
+
         }
 
+
+
         return (fileResult.Value.Stream, fileResult.Value.ContentType, doc.OriginalFileName);
+
     }
+
+
 
     public async Task<bool> DeleteProjectDocumentAsync(Guid projectId, Guid documentId, CancellationToken ct = default)
+
     {
+
         var doc = await db.ProjectDocuments.FirstOrDefaultAsync(d => d.ProjectId == projectId && d.Id == documentId, ct);
+
         if (doc == null) return false;
 
+
+
         fileStorage.DeleteProjectFile(doc.FilePath);
+
         db.ProjectDocuments.Remove(doc);
+
         await db.SaveChangesAsync(ct);
+
         return true;
+
     }
+
+
 
     private async Task RecalculateProjectInvoiceRollupAsync(Guid projectId, CancellationToken ct)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
         if (project == null) return;
 
+
+
         var totalInvoiced = await db.ProjectInvoices
+
             .Where(i => i.ProjectId == projectId)
+
             .SumAsync(i => (decimal?)i.TotalAmount, ct) ?? 0m;
 
+
+
         project.InvoiceValue = totalInvoiced;
+
         await db.SaveChangesAsync(ct);
+
     }
 
+
+
     public async Task<ProjectDto> RenewProjectAsync(Guid id, RenewProjectRequest request, CancellationToken ct = default)
+
     {
+
         var orig = await db.Projects
+
             .Include(p => p.Client)
+
             .Include(p => p.SubVenture)
+
             .FirstOrDefaultAsync(p => p.Id == id, ct)
+
             ?? throw new NotFoundException($"Project with ID '{id}' was not found.");
+
+
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
+
+
         await db.Database.ExecuteSqlRawAsync(
+
             "SELECT pg_advisory_xact_lock(hashtext('project_seq_' || {0}));",
+
             orig.ClientId.ToString());
+
+
 
         var nextCodeDto = await CalculateNextCodesInternalAsync(orig.ClientId, orig.Client?.Name ?? string.Empty, orig.SubVentureId, ct);
 
+
+
         var subDeptNames = await db.ProjectServices
+
             .Where(s => s.ProjectId == id && !string.IsNullOrWhiteSpace(s.SubDepartment))
+
             .Select(s => s.SubDepartment!)
+
             .Distinct()
+
             .ToListAsync(ct);
 
+
+
         var resolvedName = !string.IsNullOrWhiteSpace(request.Name)
+
             ? request.Name.Trim()
+
             : BuildProjectName(orig.Client?.Name ?? string.Empty, orig.SubVenture?.Name, subDeptNames, nextCodeDto.ClientProjectCount);
 
+
+
         var renewedProject = new Project
+
         {
+
             ProjectCode = nextCodeDto.ProjectSeqId,
+
             WbsId = nextCodeDto.WbsId,
+
             Name = resolvedName,
+
             Description = orig.Description,
+
             ClientId = orig.ClientId,
+
             SubVentureId = orig.SubVentureId,
+
             Status = "ongoing",
+
             Health = "green",
+
             ContractType = orig.ContractType,
+
             ProjectType = orig.ProjectType,
+
             Currency = orig.Currency,
+
             TaxPercent = orig.TaxPercent,
+
             StartDate = request.StartDate ?? orig.StartDate,
+
             EndDate = request.EndDate ?? orig.EndDate,
+
             Budget = orig.Budget,
+
             Spent = 0m,
+
             TotalHours = orig.TotalHours,
+
             TotalDays = orig.TotalDays,
+
             InvoiceValue = orig.InvoiceValue,
+
             ProjectManagerId = orig.ProjectManagerId,
+
             TeamLeadId = orig.TeamLeadId,
+
             EngagementManager = orig.EngagementManager,
+
             EngagementManagerId = orig.EngagementManagerId,
+
             SalesPerson = orig.SalesPerson,
+
             SalesPersonId = orig.SalesPersonId,
+
             ProjectIssuedDate = DateOnly.FromDateTime(DateTime.UtcNow),
+
             SectionAComments = orig.SectionAComments,
+
             SectionBComments = orig.SectionBComments,
+
             WbsStatus = "draft",
+
             WbsSubStatus = "Draft",
+
             RenewedFromProjectId = orig.Id,
+
             PoStatus = request.PoNumber != null ? "received" : "pending",
+
             PoNumber = request.PoNumber,
+
             PoDate = request.PoDate,
+
             BillingModel = orig.BillingModel,
+
             PaymentTerms = orig.PaymentTerms,
+
             TargetDate = orig.TargetDate,
+
             AccountContactName = orig.AccountContactName,
+
             AccountContactPhone = orig.AccountContactPhone,
+
             AccountContactEmail = orig.AccountContactEmail
+
         };
 
+
+
         db.Projects.Add(renewedProject);
+
         await db.SaveChangesAsync(ct);
+
+
 
         var serviceIdMapping = new Dictionary<Guid, Guid>();
 
+
+
         if (request.CloneServices)
+
         {
+
             var origServices = await db.ProjectServices
+
                 .Where(s => s.ProjectId == id)
+
                 .OrderBy(s => s.SortOrder)
+
                 .ToListAsync(ct);
+
+
 
             foreach (var os in origServices)
+
             {
+
                 var newService = new ProjectServiceEntity
+
                 {
+
                     ProjectId = renewedProject.Id,
+
                     ServiceCatalogId = os.ServiceCatalogId,
+
                     TaskId = os.TaskId,
+
                     Department = os.Department,
+
                     SubDepartment = os.SubDepartment,
+
                     ServiceName = os.ServiceName,
+
                     Qty = os.Qty,
+
                     Description = os.Description,
+
                     ResourceLevel = os.ResourceLevel,
+
                     Frequency = os.Frequency,
+
                     Location = os.Location,
+
                     LocationText = os.LocationText,
+
                     ServiceModel = os.ServiceModel,
+
                     DeliveryModel = os.DeliveryModel,
+
                     FinalDeliveryFormat = os.FinalDeliveryFormat,
+
                     BillingModel = os.BillingModel,
+
                     Tools = os.Tools,
+
                     StartDate = renewedProject.StartDate,
+
                     EndDate = renewedProject.EndDate,
+
                     DurationDays = os.DurationDays,
+
                     DurationHours = os.DurationHours,
+
                     TotalDays = os.TotalDays,
+
                     TotalHours = os.TotalHours,
+
                     UnitPrice = os.UnitPrice,
+
                     Total = os.Total,
+
                     SortOrder = os.SortOrder,
+
                     ServiceAbbreviation = os.ServiceAbbreviation
+
                 };
+
+
 
                 db.ProjectServices.Add(newService);
+
                 await db.SaveChangesAsync(ct);
+
                 serviceIdMapping[os.Id] = newService.Id;
+
             }
+
         }
+
+
 
         if (request.CloneTasks)
+
         {
+
             var origTasks = await db.ProjectTasks
+
                 .Where(t => t.ProjectId == id)
+
                 .OrderBy(t => t.SortOrder)
+
                 .ToListAsync(ct);
 
+
+
             foreach (var ot in origTasks)
+
             {
+
                 Guid? newServiceId = null;
+
                 if (ot.ProjectServiceId.HasValue && serviceIdMapping.TryGetValue(ot.ProjectServiceId.Value, out var mappedId))
+
                 {
+
                     newServiceId = mappedId;
+
                 }
 
+
+
                 var newTask = new ProjectTask
+
                 {
+
                     ProjectId = renewedProject.Id,
+
                     ProjectServiceId = newServiceId,
+
                     Title = ot.Title,
+
                     Description = ot.Description,
+
                     Period = ot.Period,
+
                     Phase = ot.Phase,
+
                     Stage = "Ready to Start",
+
                     Priority = ot.Priority,
+
                     PlannedStartDate = renewedProject.StartDate,
+
                     PlannedEndDate = renewedProject.EndDate,
+
                     EstimatedHours = ot.EstimatedHours,
+
                     UtilizedHours = 0m,
+
                     Progress = 0,
+
                     SortOrder = ot.SortOrder
+
                 };
 
+
+
                 db.ProjectTasks.Add(newTask);
+
             }
 
+
+
             await db.SaveChangesAsync(ct);
+
         }
+
+
 
         await tx.CommitAsync(ct);
 
+
+
         return (await GetProjectByIdAsync(renewedProject.Id, ct))!;
+
     }
+
+
 
     public async Task<ProjectDto> SaveWbsDraftAsync(Guid id, SaveWbsDraftRequest request, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, ct)
+
             ?? throw new NotFoundException($"Project with ID '{id}' was not found.");
+
+
 
         project.WbsStatus = "draft";
+
         project.WbsSubStatus = request.WbsSubStatus ?? "Draft";
+
         if (request.SectionAComments != null) project.SectionAComments = request.SectionAComments;
+
         if (request.SectionBComments != null) project.SectionBComments = request.SectionBComments;
 
+
+
         if (request.Services != null)
+
         {
+
             var existingServices = await db.ProjectServices.Where(s => s.ProjectId == id).ToListAsync(ct);
+
             db.ProjectServices.RemoveRange(existingServices);
+
             await db.SaveChangesAsync(ct);
+
+
 
             foreach (var sReq in request.Services)
+
             {
+
                 await AddProjectServiceAsync(id, sReq, ct);
+
             }
+
         }
+
+
 
         if (request.Tasks != null)
+
         {
+
             var existingTasks = await db.ProjectTasks.Where(t => t.ProjectId == id).ToListAsync(ct);
+
             db.ProjectTasks.RemoveRange(existingTasks);
+
             await db.SaveChangesAsync(ct);
 
+
+
             foreach (var tReq in request.Tasks)
+
             {
+
                 await CreateProjectTaskAsync(id, tReq, ct);
+
             }
+
         }
+
+
 
         await db.SaveChangesAsync(ct);
+
         await RecalculateProjectRollupsAsync(id, ct);
 
+
+
         return (await GetProjectByIdAsync(id, ct))!;
+
     }
 
+
+
     public async Task<WbsPublishResultDto> PublishWbsAsync(Guid id, PublishWbsRequest? request = null, CancellationToken ct = default)
+
     {
+
         var project = await db.Projects.Include(p => p.Client).FirstOrDefaultAsync(p => p.Id == id, ct)
+
             ?? throw new NotFoundException($"Project with ID '{id}' was not found.");
 
+
+
         var services = await db.ProjectServices.Where(s => s.ProjectId == id).ToListAsync(ct);
+
         if (services.Count == 0)
+
         {
+
             throw new ConflictException("Cannot publish WBS: At least one Project Service must be configured in Section A.");
+
         }
+
+
 
         var tasks = await db.ProjectTasks.Where(t => t.ProjectId == id).ToListAsync(ct);
 
+
+
         project.WbsStatus = "published";
+
         project.WbsSubStatus = "Published";
 
+
+
         if (!string.IsNullOrWhiteSpace(request?.PublishComments))
+
         {
+
             project.SectionAComments = string.IsNullOrWhiteSpace(project.SectionAComments)
+
                 ? request.PublishComments
+
                 : $"{project.SectionAComments}\n[Published]: {request.PublishComments}";
+
         }
+
+
 
         await db.SaveChangesAsync(ct);
 
+
+
         return new WbsPublishResultDto(
+
             project.Id,
+
             project.WbsId ?? project.ProjectCode,
+
             project.WbsStatus,
+
             project.WbsSubStatus,
+
             services.Count,
+
             tasks.Count,
+
             project.Budget ?? 0m,
+
             project.TotalHours ?? 0m,
+
             DateTime.UtcNow);
+
     }
+
+
 
     private async Task<Dictionary<Guid, List<ProjectAssigneeDto>>> LoadTeamLeadsAsync(
+
         IReadOnlyList<Guid> projectIds,
+
         CancellationToken ct)
+
     {
+
         var result = projectIds.ToDictionary(id => id, _ => new List<ProjectAssigneeDto>());
+
         if (projectIds.Count == 0) return result;
 
+
+
         var rows = await db.ProjectTeamMembers
+
             .AsNoTracking()
+
             .Include(m => m.Employee)
+
             .Where(m => projectIds.Contains(m.ProjectId)
+
                 && m.IsTeamLead
+
                 && m.MemberRole == ProjectMemberRoles.ProjectTeam
+
                 && m.Employee != null)
+
             .ToListAsync(ct);
 
+
+
         foreach (var row in rows.OrderBy(m => m.Employee!.FirstName).ThenBy(m => m.Employee!.LastName))
+
         {
+
             if (!result.TryGetValue(row.ProjectId, out var leads)) continue;
+
             leads.Add(new ProjectAssigneeDto(
+
                 row.EmployeeId,
+
                 $"{row.Employee!.FirstName} {row.Employee.LastName}".Trim()));
+
         }
 
+
+
         return result;
+
     }
+
+
 
     private static ProjectDto WithTeamLeads(
+
         ProjectDto dto,
+
         Dictionary<Guid, List<ProjectAssigneeDto>> teamLeadsByProject)
+
     {
+
         var leads = teamLeadsByProject.TryGetValue(dto.Id, out var found)
+
             ? found
+
             : new List<ProjectAssigneeDto>();
 
+
+
         if (dto.TeamLeadId.HasValue
+
             && !string.IsNullOrWhiteSpace(dto.TeamLeadName)
+
             && leads.All(lead => lead.EmployeeId != dto.TeamLeadId.Value))
+
         {
+
             leads.Insert(0, new ProjectAssigneeDto(dto.TeamLeadId.Value, dto.TeamLeadName.Trim()));
+
         }
+
+
 
         var first = leads.FirstOrDefault();
+
         return dto with
+
         {
+
             TeamLeads = leads,
+
             TeamLeadId = first?.EmployeeId ?? dto.TeamLeadId,
+
             TeamLeadName = first?.Name ?? dto.TeamLeadName,
+
         };
+
     }
+
+
 
     private async Task<Dictionary<Guid, (List<ProjectAssigneeDto> ProjectManagers, List<ProjectAssigneeDto> SeniorProjectManagers)>> LoadProjectManagersAsync(
+
         IReadOnlyList<Guid> projectIds,
+
         CancellationToken ct)
+
     {
+
         var result = projectIds.ToDictionary(
+
             id => id,
+
             _ => (ProjectManagers: new List<ProjectAssigneeDto>(), SeniorProjectManagers: new List<ProjectAssigneeDto>()));
+
         if (projectIds.Count == 0) return result;
 
+
+
         var rows = await db.ProjectTeamMembers
+
             .AsNoTracking()
+
             .Include(m => m.Employee)
+
             .Where(m => projectIds.Contains(m.ProjectId)
+
                 && m.Employee != null
+
                 && (m.MemberRole == ProjectMemberRoles.ProjectManager
+
                     || m.MemberRole == ProjectMemberRoles.SeniorProjectManager))
+
             .ToListAsync(ct);
+
+
 
         foreach (var row in rows.OrderBy(m => m.Employee!.FirstName).ThenBy(m => m.Employee!.LastName))
+
         {
+
             if (!result.TryGetValue(row.ProjectId, out var pair)) continue;
+
             var assignee = new ProjectAssigneeDto(
+
                 row.EmployeeId,
+
                 $"{row.Employee!.FirstName} {row.Employee.LastName}".Trim());
+
             if (row.MemberRole == ProjectMemberRoles.SeniorProjectManager)
+
                 pair.SeniorProjectManagers.Add(assignee);
+
             else
+
                 pair.ProjectManagers.Add(assignee);
+
         }
+
+
 
         return result;
+
     }
+
+
 
     private static ProjectDto WithProjectManagers(
+
         ProjectDto dto,
+
         Dictionary<Guid, (List<ProjectAssigneeDto> ProjectManagers, List<ProjectAssigneeDto> SeniorProjectManagers)> managersByProject)
+
     {
+
         if (!managersByProject.TryGetValue(dto.Id, out var pair))
+
         {
+
             return dto with
+
             {
+
                 ProjectManagers = [],
+
                 SeniorProjectManagers = [],
+
             };
+
         }
+
+
 
         var projectManagers = pair.ProjectManagers;
+
         if (dto.ProjectManagerId.HasValue
+
             && !string.IsNullOrWhiteSpace(dto.ProjectManagerName)
+
             && projectManagers.All(m => m.EmployeeId != dto.ProjectManagerId.Value))
+
         {
+
             projectManagers.Insert(0, new ProjectAssigneeDto(dto.ProjectManagerId.Value, dto.ProjectManagerName.Trim()));
+
         }
+
+
 
         return dto with
+
         {
+
             ProjectManagers = projectManagers,
+
             SeniorProjectManagers = pair.SeniorProjectManagers,
+
         };
+
     }
+
+
 
     private static ProjectDto MapToDto(Project p)
+
     {
+
         return new ProjectDto(
+
             p.Id,
+
             p.ProjectCode,
+
             p.WbsId,
+
             p.Name,
+
             p.Description,
+
             p.ClientId,
+
             p.Client?.Name ?? string.Empty,
+
             p.Client?.Logo,
+
             p.SubVentureId,
+
             p.SubVenture?.Name,
+
             p.Status,
+
             p.Health,
+
             p.Progress,
+
             p.ContractType,
+
             p.ProjectType,
+
             p.Currency,
+
             p.TaxPercent,
+
             p.StartDate,
+
             p.EndDate,
+
             p.Budget,
+
             p.Spent,
+
             p.TotalHours,
+
             p.TotalDays,
+
             p.InvoiceValue,
+
             p.ProjectManagerId,
+
             p.ProjectManager != null ? $"{p.ProjectManager.FirstName} {p.ProjectManager.LastName}".Trim() : null,
+
             p.TeamLeadId,
+
             p.TeamLead != null ? $"{p.TeamLead.FirstName} {p.TeamLead.LastName}".Trim() : null,
+
             p.EngagementManagerRef != null
+
                 ? $"{p.EngagementManagerRef.FirstName} {p.EngagementManagerRef.LastName}".Trim()
+
                 : p.EngagementManager,
+
             p.EngagementManagerId,
+
             p.SalesPerson,
+
             p.SalesPersonId,
+
             p.ProjectIssuedDate,
+
             p.SectionAComments,
+
             p.SectionBComments,
+
             p.WbsStatus,
+
             p.WbsSubStatus,
+
             p.RenewedFromProjectId,
+
             p.RenewedFromProject?.WbsId,
+
             p.PoStatus,
+
             p.PoNumber,
+
             p.PoDate,
+
             p.BillingModel,
+
             p.PaymentTerms,
+
             p.TargetDate,
+
             p.AccountContactName,
+
             p.AccountContactPhone,
+
             p.AccountContactEmail,
+
             p.CreatedAtUtc,
+
             p.UpdatedAtUtc);
+
     }
+
+
 
     private static ProjectServiceDto MapToServiceDto(ProjectServiceEntity s)
+
     {
+
         return new ProjectServiceDto(
+
             s.Id,
+
             s.ProjectId,
+
             s.ServiceCatalogId,
+
             s.TaskId,
+
             s.Department,
+
             s.SubDepartment,
+
             s.ServiceName,
+
             s.Qty,
+
             s.Description,
+
             s.ResourceLevel,
+
             s.Frequency,
+
             s.Location,
+
             s.LocationText,
+
             s.ServiceModel,
+
             s.DeliveryModel,
+
             s.FinalDeliveryFormat,
+
             s.BillingModel,
+
             s.Tools,
+
             s.StartDate,
+
             s.EndDate,
+
             s.DurationDays,
+
             s.DurationHours,
+
             s.TotalDays,
+
             s.TotalHours,
+
             s.UnitPrice,
+
             s.Total,
+
             s.SortOrder,
+
             s.CreatedAtUtc,
+
             s.UpdatedAtUtc,
+
             s.CollectionStatus,
+
             s.ValidationStatus,
+
             s.BillingStatus,
+
             s.IsReady,
+
             s.ChangeStatus ?? "Active",
+
             s.OriginalQty,
+
             s.PendingQty,
+
             s.PendingResourceLevel,
+
             s.PendingUnitPrice,
+
             s.ModCollectionStatus,
+
             s.ModValidationStatus,
+
             s.ModBillingStatus,
+
             s.ModIsReady,
+
             s.DeletedAtUtc,
+
             s.DeletedAtUtc != null,
+
             s.ServiceAbbreviation ?? s.ServiceCatalog?.Abbreviation);
+
     }
+
+
 
     private async Task<HashSet<Guid>> LoadProjectTeamIdsAsync(Guid projectId, CancellationToken ct)
+
     {
+
         var ids = await db.ProjectTeamMembers
+
             .Where(m => m.ProjectId == projectId && m.MemberRole == ProjectMemberRoles.ProjectTeam)
+
             .Select(m => m.EmployeeId)
+
             .ToListAsync(ct);
+
         return ids.ToHashSet();
+
     }
+
+
 
     /// <summary>
+
     /// Keeps a leaf task's utilized hours on the Project Team split when people are assigned.
+
     /// Otherwise the existing completed-stage rule still applies.
+
     /// </summary>
+
     private async Task ReapplyProjectTeamHourSplitAsync(Guid projectId, ProjectTask task, CancellationToken ct)
+
     {
+
         var assignments = await db.ProjectTaskAssignments
+
             .Where(a => a.TaskId == task.Id && a.IsActive)
+
             .ToListAsync(ct);
+
         var projectTeamIds = await LoadProjectTeamIdsAsync(projectId, ct);
+
         ProjectTaskService.ApplyProjectTeamHourSplit(task, assignments, projectTeamIds);
+
     }
+
+
 
     private static ProjectTaskDto MapToTaskDto(ProjectTask t, IReadOnlyList<ProjectTaskAssignment>? assignments = null)
+
     {
+
         var mapped = (assignments ?? [])
+
             .Where(a => a.IsActive)
+
             .Select(MapToAssignmentDto)
+
             .ToList();
 
+
+
         return new ProjectTaskDto(
+
             t.Id,
+
             t.ProjectId,
+
             t.ProjectServiceId,
+
             t.ProjectService?.ServiceName,
+
             t.Title,
+
             t.Description,
+
             t.Period,
+
             t.Phase,
+
             t.Stage,
+
             t.Priority,
+
             t.PlannedStartDate,
+
             t.PlannedEndDate,
+
             t.ActualStartDate,
+
             t.ActualEndDate,
+
             t.EstimatedHours,
+
             t.UtilizedHours,
+
             t.Progress,
+
             t.SortOrder,
+
             t.CreatedAtUtc,
+
             t.UpdatedAtUtc,
+
             mapped,
+
             t.DeletedAtUtc,
+
             t.DeletedAtUtc != null,
+
             t.TaskType);
+
     }
+
+
 
     private static ProjectTaskAssignmentDto MapToAssignmentDto(ProjectTaskAssignment a)
+
     {
+
         var currentAccumulated = a.TimerAccumulatedSeconds;
+
         if (a.TimerStartedAtUtc.HasValue)
+
         {
+
             var activeSecs = (long)(DateTime.UtcNow - a.TimerStartedAtUtc.Value).TotalSeconds;
+
             currentAccumulated += Math.Max(0, activeSecs);
+
         }
 
+
+
         var employeeName = a.Employee != null
+
             ? $"{a.Employee.FirstName} {a.Employee.LastName}".Trim()
+
             : string.Empty;
 
+
+
         return new ProjectTaskAssignmentDto(
+
             a.Id,
+
             a.TaskId,
+
             a.EmployeeId,
+
             employeeName,
+
             a.Employee?.EmployeeCode ?? string.Empty,
+
             a.Employee?.WorkEmail,
+
             a.Role,
+
             a.AllocatedHours,
+
             a.UtilizedHours,
+
             a.TimerStartedAtUtc,
+
             currentAccumulated,
+
             a.IsActive,
+
             a.TimerStartedAtUtc.HasValue,
+
             a.CreatedAtUtc,
+
             a.UpdatedAtUtc);
+
     }
+
+
 
     private static ProjectInvoiceDto MapToInvoiceDto(ProjectInvoice i, string? fallbackServiceName = null)
+
     {
+
         return new ProjectInvoiceDto(
+
             i.Id,
+
             i.ProjectId,
+
             i.MilestoneName,
+
             i.Percentage,
+
             i.Amount,
+
             i.TaxAmount,
+
             i.TotalAmount,
+
             i.Status,
+
             i.InvoiceNumber,
+
             i.InvoiceDate,
+
             i.DueDate,
+
             i.PaymentDate,
+
             i.Remarks,
+
             i.SortOrder,
+
             i.CreatedAtUtc,
+
             i.UpdatedAtUtc,
+
             !string.IsNullOrWhiteSpace(i.ServiceName) ? i.ServiceName : fallbackServiceName,
+
             i.Qty,
+
             i.UnitPrice,
+
             i.Currency,
+
             i.ResourceLevel,
+
             i.PaymentStatus,
+
             i.ProjectServiceId,
+
             i.DeletedAtUtc,
+
             i.DeletedAtUtc != null);
+
     }
+
+
 
     private static string ResolvePaymentStatus(string? status, string? paymentStatus)
+
     {
+
         if (!string.IsNullOrWhiteSpace(paymentStatus))
+
             return paymentStatus.Trim();
+
         return string.Equals(status, "Paid", StringComparison.OrdinalIgnoreCase)
+
             ? "Received"
+
             : "Not Received";
+
     }
 
+
+
     private static ProjectDocumentDto MapToDocumentDto(ProjectDocument d)
+
     {
+
         return new ProjectDocumentDto(
+
             d.Id,
+
             d.ProjectId,
+
             d.DocumentType,
+
             d.FileName,
+
             d.OriginalFileName,
+
             d.FilePath,
+
             d.ContentType,
+
             d.SizeBytes,
+
             d.Description,
+
             d.CreatedAtUtc,
+
             d.UpdatedAtUtc);
+
     }
+
 }
+
+
+
+
+
+
+
 
 
 

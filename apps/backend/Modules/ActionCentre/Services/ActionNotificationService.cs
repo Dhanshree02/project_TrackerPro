@@ -1570,6 +1570,102 @@ public sealed class ActionNotificationService(
     }
 
 
+    public async Task NotifyCustomerManagerChangedAsync(
+        Guid clientId,
+        string clientName,
+        string? clientCode,
+        string managerRole,
+        string managerName,
+        Guid? managerEmployeeId,
+        string? performerName,
+        CancellationToken ct = default)
+    {
+        var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        // 1. The selected Resource (newly assigned manager)
+        if (managerEmployeeId.HasValue)
+        {
+            var mgr = await db.Employees
+                .FirstOrDefaultAsync(e => e.Id == managerEmployeeId.Value && e.DeletedAtUtc == null, ct);
+            if (mgr != null) recipients.Add(mgr);
+        }
+        else if (!string.IsNullOrWhiteSpace(managerName))
+        {
+            var normName = managerName.Trim().ToLowerInvariant();
+            var mgr = await db.Employees
+                .FirstOrDefaultAsync(e => e.DeletedAtUtc == null &&
+                    (e.FirstName + " " + e.LastName).Trim().ToLower() == normName, ct);
+            if (mgr != null) recipients.Add(mgr);
+        }
+
+        // 2. Resources whose On Floor Role is `Head Of Department`
+        var hodDesignationIds = await db.OnFloorRoles
+            .Where(r => r.DeletedAtUtc == null && (
+                r.Name.ToLower() == "head of department" ||
+                r.Name.ToLower() == "hod" ||
+                r.Name.ToLower().Contains("head of department")
+            ))
+            .Select(r => r.DesignationId)
+            .ToListAsync(ct);
+
+        var hodCandidates = await db.Employees
+            .Include(e => e.SubDepartmentRef)
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
+            .Where(e =>
+                (e.DesignationId.HasValue && hodDesignationIds.Contains(e.DesignationId.Value))
+                || (e.Role != null && (
+                    e.Role.ToLower() == "head of department" ||
+                    e.Role.ToLower() == "hod" ||
+                    e.Role.ToLower().Contains("head of department") ||
+                    e.Role.ToLower().Contains("-hod")
+                ))
+            )
+            .ToListAsync(ct);
+
+        foreach (var hod in hodCandidates)
+        {
+            if (!recipients.Any(r => r.Id == hod.Id))
+            {
+                recipients.Add(hod);
+            }
+        }
+
+        if (recipients.Count == 0) return;
+
+        var title = $"{managerRole} Assigned: {clientName}";
+        var addedList = new List<ActionNotification>();
+        foreach (var recipient in recipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                Title = title,
+                Type = $"{managerRole} Assigned",
+                Priority = "Low",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = performerName ?? currentUser.Name ?? "System",
+                RelatedTask = clientCode ?? clientName,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = "Pending",
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = $"{managerName} has been assigned as the {managerRole} for customer '{clientName}'."
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(addedList);
+    }
+
     private static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications)
 
     {

@@ -2,6 +2,7 @@ import { getRouteApi, Link, Navigate, useNavigate } from "@tanstack/react-router
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronRight,
+  ChevronDown,
   Mail,
   Building2,
   Phone,
@@ -19,6 +20,8 @@ import {
   Briefcase,
   MapPin,
   Tag,
+  UserCheck,
+  Loader2,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
@@ -26,7 +29,14 @@ import { usePermissions } from "@/lib/permissions";
 import { HealthPill, ProgressBar } from "@/components/pills";
 import { KycDocPreviewModal } from "@/modules/customers/components/kyc-preview-modal";
 import { fetchClient, mapApiClient, updateClient, formatCustomerId, getSubVentureKycUrl } from "@/modules/customers/api/clients";
-import { NewClientModal } from "@/modules/customers/pages/customers-list-page";
+import { EditCustomerInfoModal } from "@/modules/customers/components/edit-customer-info-modal";
+import { EditSubVentureModal } from "@/modules/customers/components/edit-sub-venture-modal";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { fetchSalesManagers, filterSalesManagers } from "@/lib/sales-managers";
 import { fetchEngagementManagers, filterEngagementManagers } from "@/lib/engagement-managers";
 import { fetchClientForRoute } from "@/lib/client-route-id";
@@ -95,7 +105,8 @@ export function CustomerDetailPage() {
   const [selectedSpoc, setSelectedSpoc] = useState<number | null>(null);
   const [svFilter, setSvFilter] = useState<string>("all");
   const [kycPreviewOpen, setKycPreviewOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [editSubVentureOpen, setEditSubVentureOpen] = useState(false);
 
   useEffect(() => {
     if (searchParams.status) {
@@ -200,22 +211,72 @@ export function CustomerDetailPage() {
     void loadEngagementManagers();
   };
 
-  const changeEngagementManager = async (employee: ApiEmployeeListItem) => {
-    if (!client || emSaving || !canManageCustomerDetail) return;
-    setEmSaving(true);
-    try {
-      const updated = await updateClient(client.id, {
-        engagementManager: employee.fullName,
-      });
-      setClient(mapApiClient(updated));
-      setEmName(updated.engagementManager?.trim() || employee.fullName);
+  interface ManagerChangeConfirmation {
+    role: "Engagement Manager" | "Sales Manager";
+    employee: ApiEmployeeListItem;
+  }
+  const [confirmManagerChange, setConfirmManagerChange] = useState<ManagerChangeConfirmation | null>(null);
+
+  const handleSelectEm = (employee: ApiEmployeeListItem) => {
+    if (emName === employee.fullName) {
       setShowEMPicker(false);
-      setEmSearch("");
-      toast.success(`Engagement Manager set to ${employee.fullName}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not update Engagement Manager");
-    } finally {
-      setEmSaving(false);
+      return;
+    }
+    setConfirmManagerChange({
+      role: "Engagement Manager",
+      employee,
+    });
+  };
+
+  const handleSelectSm = (employee: ApiEmployeeListItem) => {
+    if (smName === employee.fullName) {
+      setShowSMPicker(false);
+      return;
+    }
+    setConfirmManagerChange({
+      role: "Sales Manager",
+      employee,
+    });
+  };
+
+  const executeManagerChange = async () => {
+    if (!client || !confirmManagerChange || !canManageCustomerDetail) return;
+    const { role, employee } = confirmManagerChange;
+
+    if (role === "Engagement Manager") {
+      setEmSaving(true);
+      try {
+        const updated = await updateClient(client.id, {
+          engagementManager: employee.fullName,
+        });
+        setClient(mapApiClient(updated));
+        setEmName(updated.engagementManager?.trim() || employee.fullName);
+        setConfirmManagerChange(null);
+        setShowEMPicker(false);
+        setEmSearch("");
+        toast.success(`Engagement Manager changed to ${employee.fullName}`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not update Engagement Manager");
+      } finally {
+        setEmSaving(false);
+      }
+    } else {
+      setSmSaving(true);
+      try {
+        const updated = await updateClient(client.id, {
+          salesManager: employee.fullName,
+        });
+        setClient(mapApiClient(updated));
+        setSmName(updated.salesManager?.trim() || employee.fullName);
+        setConfirmManagerChange(null);
+        setShowSMPicker(false);
+        setSmSearch("");
+        toast.success(`Sales Manager changed to ${employee.fullName}`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not update Sales Manager");
+      } finally {
+        setSmSaving(false);
+      }
     }
   };
 
@@ -293,24 +354,7 @@ export function CustomerDetailPage() {
     void loadSalesManagers();
   };
 
-  const changeSalesManager = async (employee: ApiEmployeeListItem) => {
-    if (!client || smSaving || !canManageCustomerDetail) return;
-    setSmSaving(true);
-    try {
-      const updated = await updateClient(client.id, {
-        salesManager: employee.fullName,
-      });
-      setClient(mapApiClient(updated));
-      setSmName(updated.salesManager?.trim() || employee.fullName);
-      setShowSMPicker(false);
-      setSmSearch("");
-      toast.success(`Sales Manager set to ${employee.fullName}`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not update Sales Manager");
-    } finally {
-      setSmSaving(false);
-    }
-  };
+
 
   const allProj = clientProjects;
 
@@ -318,6 +362,7 @@ export function CustomerDetailPage() {
     return <Navigate to="/access-denied" replace />;
   }
 
+  // Loading / not-found states (after all hooks).
   // Loading / not-found states (after all hooks).
   if (clientLoading) {
     return (
@@ -360,6 +405,43 @@ export function CustomerDetailPage() {
   const clientSinceDate = client.customerSince
     ? new Date(`${client.customerSince}T00:00:00`).toLocaleDateString()
     : "—";
+
+  // "New Customer" tag: shows when customer was onboarded within the last 6 months.
+  // After 6 months from onboarding, the tag disappears from the customer profile.
+  const isNewCustomer = useMemo(() => {
+    if (client.clientType === "OLD") return false;
+    const dateStr = client.customerSince || client.createdAtUtc;
+    if (!dateStr) return false;
+    const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+    if (isNaN(d.getTime())) return false;
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    return d >= sixMonthsAgo;
+  }, [client.clientType, client.customerSince, client.createdAtUtc]);
+
+  // "Active" vs "Inactive" tag:
+  // If the client does not have any project onboarded in the last 6 months, the Active tag
+  // changes to Inactive. Once a new project is onboarded for the client, it changes back to Active.
+  const isClientActive = useMemo(() => {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const hasRecentProject = allProj.some((p) => {
+      const dateStr = (p as any).createdAtUtc || p.startDate;
+      if (!dateStr) return false;
+      const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+      return !isNaN(d.getTime()) && d >= sixMonthsAgo;
+    });
+
+    if (hasRecentProject) return true;
+    if (allProj.length > 0) return false;
+
+    // If client has 0 projects, check if client itself was onboarded within 6 months
+    const dateStr = client.customerSince || client.createdAtUtc;
+    if (!dateStr) return false;
+    const cd = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+    return !isNaN(cd.getTime()) && cd >= sixMonthsAgo;
+  }, [allProj, client.customerSince, client.createdAtUtc]);
   const allDates = allProj
     .map((p) => p.startDate)
     .filter(Boolean)
@@ -474,22 +556,31 @@ export function CustomerDetailPage() {
                   {formatCustomerId(client.id)}
                 </span>
 
-                {/* Customer Type Badge */}
+                {/* Customer Type Badge: Shows when onboarded, disappears after 6 months */}
+                {isNewCustomer && (
+                  <span
+                    className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary"
+                  >
+                    New Customer
+                  </span>
+                )}
+
+                {/* Active / Inactive Status */}
                 <span
                   className={cn(
-                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
-                    client.clientType === "NEW"
-                      ? "border border-primary/30 bg-primary/10 text-primary"
-                      : "border border-slate-200 dark:border-border bg-white/80 dark:bg-muted/60 text-muted-foreground",
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-semibold",
+                    isClientActive
+                      ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
                   )}
                 >
-                  {client.clientType === "NEW" ? "New Customer" : "Existing Customer"}
-                </span>
-
-                {/* Active Status */}
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Active
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      isClientActive ? "bg-emerald-500 animate-pulse" : "bg-amber-500",
+                    )}
+                  />
+                  {isClientActive ? "Active" : "Inactive"}
                 </span>
               </div>
 
@@ -985,13 +1076,33 @@ export function CustomerDetailPage() {
                 <Building2 className="h-3.5 w-3.5" /> Customer Information
               </h2>
               {canManageCustomerDetail && (
-                <button
-                  type="button"
-                  onClick={() => setEditOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2 py-1 text-[11px] font-medium text-foreground hover:bg-accent cursor-pointer"
-                >
-                  <Pencil className="h-3 w-3" /> Edit
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-accent cursor-pointer shadow-2xs transition-colors"
+                    >
+                      <Pencil className="h-3 w-3" /> Edit
+                      <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem
+                      onClick={() => setEditCustomerOpen(true)}
+                      className="cursor-pointer gap-2 py-2 text-xs"
+                    >
+                      <Building2 className="h-3.5 w-3.5 text-primary" />
+                      <span>Edit Customer Information</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setEditSubVentureOpen(true)}
+                      className="cursor-pointer gap-2 py-2 text-xs"
+                    >
+                      <Layers className="h-3.5 w-3.5 text-primary" />
+                      <span>Edit Sub-venture Information</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
             <dl className="divide-y divide-border">
@@ -1005,8 +1116,9 @@ export function CustomerDetailPage() {
                 { label: "Billing Medium", value: client.billingMedium || "—" },
                 {
                   label: "Customer Type",
-                  value: client.clientType === "NEW" ? "New Customer" : "Existing Customer",
+                  value: isNewCustomer ? "New Customer" : "Existing Customer",
                 },
+                { label: "Status", value: isClientActive ? "Active" : "Inactive" },
                 { label: "Customer Since", value: clientSinceDate },
                 { label: "Engagement Manager", value: emName !== "—" ? emName : "—" },
                 { label: "Sales Manager", value: smName !== "—" ? smName : "—" },
@@ -1152,7 +1264,7 @@ export function CustomerDetailPage() {
                       <button
                         type="button"
                         disabled={emSaving}
-                        onClick={() => void changeEngagementManager(p)}
+                        onClick={() => handleSelectEm(p)}
                         className={cn(
                           "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/50 disabled:opacity-50",
                           selected && "bg-primary/5",
@@ -1253,7 +1365,7 @@ export function CustomerDetailPage() {
                       <button
                         type="button"
                         disabled={smSaving}
-                        onClick={() => void changeSalesManager(p)}
+                        onClick={() => handleSelectSm(p)}
                         className={cn(
                           "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/50 disabled:opacity-50",
                           selected && "bg-emerald-500/10",
@@ -1278,22 +1390,36 @@ export function CustomerDetailPage() {
         </div>
       )}
 
-      {client && editOpen && canManageCustomerDetail && (
-        <NewClientModal
-          apiClients={[client]}
-          editing={{ client, subVentureId: activeSubVenture?.id ?? null }}
-          onClose={() => setEditOpen(false)}
-          onCreated={() => {
-            const editedId = activeSubVenture?.id;
-            setEditOpen(false);
+      {client && editCustomerOpen && canManageCustomerDetail && (
+        <EditCustomerInfoModal
+          client={client}
+          onClose={() => setEditCustomerOpen(false)}
+          onSaved={() => {
+            setEditCustomerOpen(false);
+            fetchClient(client.id)
+              .then((fresh) => {
+                if (fresh) setClient(mapApiClient(fresh));
+              })
+              .catch(() => {
+                toast.error("Saved, but the profile could not be refreshed.");
+              });
+          }}
+        />
+      )}
+
+      {client && editSubVentureOpen && canManageCustomerDetail && (
+        <EditSubVentureModal
+          client={client}
+          onClose={() => setEditSubVentureOpen(false)}
+          onSaved={(editedSubVentureName) => {
+            setEditSubVentureOpen(false);
             fetchClient(client.id)
               .then((fresh) => {
                 if (!fresh) return;
                 const mapped = mapApiClient(fresh);
                 setClient(mapped);
-                if (editedId) {
-                  const sv = mapped.subVentures?.find((item) => item.id === editedId);
-                  if (sv?.name) setSvFilter(sv.name);
+                if (editedSubVentureName) {
+                  setSvFilter(editedSubVentureName);
                 }
               })
               .catch(() => {
@@ -1312,6 +1438,85 @@ export function CustomerDetailPage() {
           clientName={activeSubVenture ? `${client.name} — ${activeSubVenture.name}` : client.name}
           uploadDate={clientSinceDate}
         />
+      )}
+      {/* Confirmation Window for Changing EM or SM */}
+      {confirmManagerChange && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border px-5 py-3.5 bg-muted/20">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-primary" />
+                Confirm {confirmManagerChange.role} Change
+              </h3>
+              <button
+                type="button"
+                disabled={emSaving || smSaving}
+                onClick={() => setConfirmManagerChange(null)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-accent disabled:opacity-50 cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-xs text-foreground leading-relaxed">
+                Are you sure you want to change the <strong>{confirmManagerChange.role}</strong> for{" "}
+                <strong>{client.name}</strong>?
+              </p>
+
+              <div className="rounded-lg border border-border/80 bg-muted/30 p-3.5 space-y-2.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Current {confirmManagerChange.role}:</span>
+                  <span className="font-medium text-foreground">
+                    {confirmManagerChange.role === "Engagement Manager" ? emName : smName}
+                  </span>
+                </div>
+                <div className="h-px bg-border/60" />
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">New {confirmManagerChange.role}:</span>
+                  <span className="font-semibold text-primary flex items-center gap-1.5">
+                    <AvatarBubble name={confirmManagerChange.employee.fullName} size={20} />
+                    {confirmManagerChange.employee.fullName}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-md bg-info/10 border border-info/20 p-2.5 text-[11px] text-muted-foreground flex items-start gap-2">
+                <Info className="h-4 w-4 text-info shrink-0 mt-0.5" />
+                <span>
+                  After clicking <strong>OK</strong>, the {confirmManagerChange.role} will change and a notification will be sent to{" "}
+                  <strong className="text-foreground">{confirmManagerChange.employee.fullName}</strong> and Resources whose On Floor Role is{" "}
+                  <strong className="text-foreground">Head Of Department</strong>.
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3 bg-muted/10">
+              <button
+                type="button"
+                disabled={emSaving || smSaving}
+                onClick={() => setConfirmManagerChange(null)}
+                className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-50 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={emSaving || smSaving}
+                onClick={() => void executeManagerChange()}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer shadow-sm"
+              >
+                {(emSaving || smSaving) && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AppShell>
   );

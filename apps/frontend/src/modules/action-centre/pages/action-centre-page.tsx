@@ -137,6 +137,10 @@ import {
   takeProjectExtensionRequestAction,
 
 } from "@/modules/projects/api/project-extension-requests";
+import {
+  fetchPendingAllocationApprovals,
+  takeResourceAllocationAction,
+} from "@/modules/projects/api/project-team-members";
 
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 
@@ -370,6 +374,10 @@ function BucketListRow({
 
   const [localTimerStartedAt, setLocalTimerStartedAt] = useState<string | null>(r.timerStartedAtUtc ?? null);
 
+  const [showStopModal, setShowStopModal] = useState<boolean>(false);
+
+  const [isStopping, setIsStopping] = useState<boolean>(false);
+
 
 
   useEffect(() => {
@@ -548,6 +556,8 @@ function BucketListRow({
 
     try {
 
+      setIsStopping(true);
+
       const currentSeconds = workingTimeSeconds;
 
       setLocalStatus("Stopped");
@@ -560,7 +570,7 @@ function BucketListRow({
 
       const updated = await stopBucketTaskTimer(r.id);
 
-      toast.warning("Timer stopped", { description: r.taskTitle });
+      toast.warning("Task stopped", { description: r.taskTitle });
 
       onUpdateRow?.(updated);
 
@@ -577,6 +587,12 @@ function BucketListRow({
       setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
 
       toast.error(err.message || "Failed to stop timer");
+
+    } finally {
+
+      setIsStopping(false);
+
+      setShowStopModal(false);
 
     }
 
@@ -647,23 +663,21 @@ function BucketListRow({
     <tr className="hover:bg-accent/30 border-b border-border">
 
       <td className="px-3 py-2.5">
-
-        <Link
-
-          to="/projects/$projectId"
-
-          params={{ projectId: r.projectId }}
-
-          hash={r.taskId}
-
-          className="font-semibold text-gray-800 hover:text-primary transition-colors"
-
-        >
-
-          {r.taskTitle}
-
-        </Link>
-
+        <div className="flex flex-col gap-0.5">
+          <Link
+            to="/projects/$projectId"
+            params={{ projectId: r.projectId }}
+            hash={r.taskId}
+            className="font-semibold text-gray-800 hover:text-primary transition-colors"
+          >
+            {r.taskTitle}
+          </Link>
+          {r.employeeName && (
+            <span className="text-[11px] text-muted-foreground font-normal">
+              Assigned to: <span className="font-medium text-foreground">{r.employeeName}</span>
+            </span>
+          )}
+        </div>
       </td>
 
       <td className="px-3 py-2.5 text-muted-foreground font-medium">{r.projectName}</td>
@@ -990,11 +1004,13 @@ function BucketListRow({
 
                 <button
 
-                  onClick={handleStop}
+                  type="button"
+
+                  onClick={() => setShowStopModal(true)}
 
                   className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
 
-                  title="Stop Timer"
+                  title="Stop Task"
 
                 >
 
@@ -1008,9 +1024,27 @@ function BucketListRow({
 
 
 
-            {/* If timer is paused or stopped (not running, but was started or has accumulated time) */}
+            {/* If task is Stopped: User CANNOT resume or pause that task */}
 
-            {!localTimerRunning && displayStatus !== "Completed" && displayStatus !== "On Hold" && displayStatus !== "Cancelled" && (displayStatus === "Paused" || displayStatus === "Stopped" || workingTimeSeconds > 0) && (
+            {displayStatus === "Stopped" && (
+
+              <div className="flex items-center gap-1.5 py-1">
+
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 shadow-2xs select-none">
+
+                  <Square className="h-3 w-3 fill-current text-rose-600" /> Task Stopped
+
+                </span>
+
+              </div>
+
+            )}
+
+
+
+            {/* If timer is paused (not running, not stopped, but was started or has accumulated time) */}
+
+            {!localTimerRunning && displayStatus !== "Completed" && displayStatus !== "On Hold" && displayStatus !== "Cancelled" && displayStatus !== "Stopped" && (displayStatus === "Paused" || workingTimeSeconds > 0) && (
 
               <>
 
@@ -1028,39 +1062,21 @@ function BucketListRow({
 
                 </button>
 
-                {displayStatus === "Stopped" ? (
+                <button
 
-                  <button
+                  type="button"
 
-                    disabled
+                  onClick={() => setShowStopModal(true)}
 
-                    className="inline-flex items-center justify-center gap-1.5 rounded-md bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground border border-border cursor-not-allowed select-none"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
 
-                    title="Timer is stopped"
+                  title="Stop Task"
 
-                  >
+                >
 
-                    <Square className="h-3 w-3 fill-current" /> Stopped
+                  <Square className="h-3 w-3 fill-current" /> Stop
 
-                  </button>
-
-                ) : (
-
-                  <button
-
-                    onClick={handleStop}
-
-                    className="inline-flex items-center justify-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 transition-all shadow-sm cursor-pointer"
-
-                    title="Stop Timer"
-
-                  >
-
-                    <Square className="h-3 w-3 fill-current" /> Stop
-
-                  </button>
-
-                )}
+                </button>
 
               </>
 
@@ -1072,6 +1088,87 @@ function BucketListRow({
 
       </td>
 
+      {showStopModal && (
+        <td className="p-0">
+          <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="w-full max-w-md rounded-xl border border-border bg-card shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-left font-normal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-border px-5 py-3.5 bg-muted/20">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Square className="h-4 w-4 text-rose-600 fill-current" />
+                  Confirm Stop Task
+                </h3>
+                <button
+                  type="button"
+                  disabled={isStopping}
+                  onClick={() => setShowStopModal(false)}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-accent disabled:opacity-50 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4">
+                <p className="text-xs text-foreground leading-relaxed">
+                  Are you sure you want to stop this task?
+                </p>
+
+                <div className="rounded-lg border border-border/80 bg-muted/30 p-3.5 space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Task:</span>
+                    <span className="font-semibold text-foreground text-right max-w-[240px] truncate" title={r.taskTitle}>
+                      {r.taskTitle}
+                    </span>
+                  </div>
+                  <div className="h-px bg-border/60" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Project:</span>
+                    <span className="font-medium text-foreground text-right max-w-[240px] truncate" title={r.projectName}>
+                      {r.projectName}
+                    </span>
+                  </div>
+                  <div className="h-px bg-border/60" />
+                  <div className="flex items-center justify-between font-mono font-bold">
+                    <span className="text-muted-foreground font-sans font-normal">Working Time:</span>
+                    <span className="text-primary">{formatTimer(workingTimeSeconds)}</span>
+                  </div>
+                </div>
+
+                <div className="rounded-md bg-amber-500/10 border border-amber-500/20 p-2.5 text-[11px] text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <span className="leading-normal">
+                    After clicking <strong>OK</strong>, you cannot resume or pause this task, and the timer will stop permanently.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3 bg-muted/10">
+                <button
+                  type="button"
+                  disabled={isStopping}
+                  onClick={() => setShowStopModal(false)}
+                  className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isStopping}
+                  onClick={() => void handleStop()}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-4 py-1.5 text-xs font-medium text-white hover:bg-rose-700 disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {isStopping && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </td>
+      )}
     </tr>
 
   );
@@ -1079,6 +1176,29 @@ function BucketListRow({
 }
 
 
+
+function sortBucketTasks(tasks: ApiBucketTask[]): ApiBucketTask[] {
+  return [...tasks].sort((a, b) => {
+    // 1. Running timer first
+    if (a.timerRunning && !b.timerRunning) return -1;
+    if (!a.timerRunning && b.timerRunning) return 1;
+
+    // 2. Early / recent project task (that we start, stop, or created) comes 1st not last
+    const timeA = Math.max(
+      a.updatedAtUtc ? new Date(a.updatedAtUtc).getTime() : 0,
+      a.createdAtUtc ? new Date(a.createdAtUtc).getTime() : 0,
+      a.timerStartedAtUtc ? new Date(a.timerStartedAtUtc).getTime() : 0
+    );
+    const timeB = Math.max(
+      b.updatedAtUtc ? new Date(b.updatedAtUtc).getTime() : 0,
+      b.createdAtUtc ? new Date(b.createdAtUtc).getTime() : 0,
+      b.timerStartedAtUtc ? new Date(b.timerStartedAtUtc).getTime() : 0
+    );
+    if (timeA !== timeB) return timeB - timeA;
+
+    return 0;
+  });
+}
 
 function BucketList() {
 
@@ -1233,13 +1353,10 @@ function BucketList() {
 
 
   const handleUpdateRow = useCallback((updated: ApiBucketTask) => {
-
-    setApiTasks((prev) =>
-
-      prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
-
-    );
-
+    setApiTasks((prev) => {
+      const next = prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t));
+      return sortBucketTasks(next);
+    });
   }, []);
 
 
@@ -1264,7 +1381,7 @@ function BucketList() {
 
       });
 
-      setApiTasks(res.items || []);
+      setApiTasks(sortBucketTasks(res.items || []));
 
     } catch (err: any) {
 
@@ -1714,13 +1831,17 @@ function ApprovalsTab() {
   const loadApprovals = useCallback(async () => {
     setIsLoadingApprovals(true);
     try {
-      const [reqItems, extItems] = await Promise.all([
+      const [reqItems, extItems, allocItems] = await Promise.all([
         fetchPendingApprovals().catch((err) => {
           console.error("Error loading approvals:", err);
           return [];
         }),
         fetchPendingExtensionApprovals().catch((err) => {
           console.error("Error loading extension approvals:", err);
+          return [];
+        }),
+        fetchPendingAllocationApprovals().catch((err) => {
+          console.error("Error loading allocation approvals:", err);
           return [];
         }),
       ]);
@@ -1843,8 +1964,71 @@ function ApprovalsTab() {
       }
 
       // Preserve any non-API local approvals in store, replace API approvals with freshly fetched items
-      const nonApiApprovals = (store.approvals || []).filter(
-        (a) => !a.id.startsWith("APP-REQ-") && !a.id.startsWith("APP-EXT-")
+            if (Array.isArray(allocItems)) {
+        allocItems.forEach((item) => {
+          let parsedComments: DhComment[] = [];
+          if (item.commentsJson) {
+            try {
+              const rawParsed = JSON.parse(item.commentsJson);
+              if (Array.isArray(rawParsed)) {
+                parsedComments = rawParsed.map((c: any, idx: number) => ({
+                  id: c.id || `c-${idx}`,
+                  authorName: c.authorName || "Manager",
+                  authorEmail: c.authorEmail || "",
+                  text: c.text || "",
+                  at: c.at || new Date().toISOString(),
+                }));
+              }
+            } catch {}
+          }
+          let parsedHistory: any[] = [];
+          if ((item as any).historyJson) {
+            try {
+              const rawH = JSON.parse((item as any).historyJson);
+              if (Array.isArray(rawH)) {
+                parsedHistory = rawH;
+              }
+            } catch {}
+          }
+          const normStatus = (item.status || "").toLowerCase();
+          const mappedStatus: DhCentralApproval["status"] = normStatus === "approved" ? "Approved"
+            : normStatus === "rejected" ? "Rejected"
+            : normStatus === "hold" ? "Hold"
+            : normStatus === "request changes" ? "Request Changes"
+            : "Pending";
+
+          const desc = [
+            `Resource: ${item.employeeName}${item.employeeCode ? ` (${item.employeeCode})` : ""}`,
+            `Allocation Duration: ${formatToDayMonthYear(item.allocationStartDate)} → ${formatToDayMonthYear(item.allocationEndDate)}`,
+            `Billability: ${item.billability}`,
+            `Resource Type: ${item.resourceType}`,
+            `Role: ${item.isTeamLead ? "Team Lead" : "Team Member"}`,
+          ].join("\n");
+
+          toMerge.push({
+            id: `APP-ALLOC-${item.id}`,
+            projectId: item.projectId,
+            projectName: item.projectName || "Project",
+            requestType: "Resource Allocation Approval",
+            requestedBy: item.requestedByName || "Project Manager",
+            requestedById: item.requestedByEmployeeId || "",
+            requestedDate: item.createdAtUtc ? item.createdAtUtc.slice(0, 10) : "",
+            status: mappedStatus,
+            description: desc,
+            comments: parsedComments,
+            history: parsedHistory.length > 0 ? parsedHistory : [
+              {
+                status: mappedStatus,
+                at: item.createdAtUtc || new Date().toISOString(),
+                updatedBy: item.requestedByName || "Requester",
+                details: `Requested allocation for ${item.employeeName}`,
+              },
+            ],
+          });
+        });
+      }
+const nonApiApprovals = (store.approvals || []).filter(
+        (a) => !a.id.startsWith("APP-REQ-") && !a.id.startsWith("APP-EXT-") && !a.id.startsWith("APP-ALLOC-")
       );
       dhStore.setApprovals([...toMerge, ...nonApiApprovals]);
     } finally {
@@ -1926,6 +2110,17 @@ function ApprovalsTab() {
         handledByApi = true;
       } catch (err: any) {
         console.error("Failed to update additional requirement approval on backend:", err);
+      }
+    }
+
+    if (currentApp && currentApp.requestType === "Resource Allocation Approval") {
+      try {
+        const rawAllocId = currentApp.id.replace(/^APP-ALLOC-/, "");
+        await takeResourceAllocationAction(currentApp.projectId, rawAllocId, status, appComment);
+        await loadApprovals();
+        handledByApi = true;
+      } catch (err: any) {
+        console.error("Failed to update resource allocation approval on backend:", err);
       }
     }
 
@@ -4381,6 +4576,48 @@ function NotificationsTab() {
 
   };
 
+  // Status styles & icon helpers
+  const getNotifStatusStyles = (status: string) => {
+    const s = (status || "").toLowerCase().trim();
+    if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    }
+    if (s === "hold" || s === "on hold" || s === "postponed") {
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    }
+    if (s === "rejected" || s === "cancelled") {
+      return "bg-red-50 text-red-700 border-red-200";
+    }
+    if (s === "request changes" || s === "requested changes") {
+      return "bg-purple-50 text-purple-700 border-purple-200";
+    }
+    return "bg-orange-50 text-orange-700 border-orange-200";
+  };
+
+  const renderNotifStatusIcon = (status: string) => {
+    const s = (status || "").toLowerCase().trim();
+    if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
+      return <Check className="h-2.5 w-2.5" />;
+    }
+    if (s === "hold" || s === "on hold" || s === "postponed") {
+      return <Pause className="h-2.5 w-2.5" />;
+    }
+    if (s === "rejected" || s === "cancelled") {
+      return <X className="h-2.5 w-2.5" />;
+    }
+    return <Clock className="h-2.5 w-2.5" />;
+  };
+
+  const availableStatuses = useMemo(() => {
+    const defaultStatuses = ["Pending", "Selected", "Approved", "Hold", "Postponed", "Request Changes", "Rejected", "Acknowledged"];
+    const found = new Set(defaultStatuses);
+    notifications.forEach((n) => {
+      if (n.status && n.status.trim()) found.add(n.status.trim());
+    });
+    return Array.from(found);
+  }, [notifications]);
+
+
 
 
   // Filter & Search Logic
@@ -4393,13 +4630,13 @@ function NotificationsTab() {
 
       if (subTab === "Current") {
 
-        const isCurrent = n.status === "Pending" || n.unread;
+        const isCurrent = (n.status || "").toLowerCase() !== "acknowledged";
 
         if (!isCurrent) return false;
 
       } else {
 
-        const isArchived = n.status === "Acknowledged";
+        const isArchived = (n.status || "").toLowerCase() === "acknowledged";
 
         if (!isArchived) return false;
 
@@ -4727,9 +4964,11 @@ function NotificationsTab() {
 
               <option value="all">All Statuses</option>
 
-              <option value="pending">Pending</option>
+              {availableStatuses.map((st) => (
 
-              <option value="acknowledged">Acknowledged</option>
+                <option key={st} value={st.toLowerCase()}>{st}</option>
+
+              ))}
 
             </select>
 
@@ -4749,11 +4988,11 @@ function NotificationsTab() {
 
               if (st === "Current") {
 
-                return n.status === "Pending" || n.unread;
+                return (n.status || "").toLowerCase() !== "acknowledged";
 
               } else {
 
-                return n.status === "Acknowledged";
+                return (n.status || "").toLowerCase() === "acknowledged";
 
               }
 
@@ -4985,37 +5224,15 @@ function NotificationsTab() {
 
                           "inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
 
-                          n.status === "Acknowledged"
-
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-
-                            : "bg-orange-50 text-orange-700 border-orange-200",
+                          getNotifStatusStyles(n.status),
 
                         )}
 
                       >
 
-                        {n.status === "Acknowledged" ? (
+                        {renderNotifStatusIcon(n.status)}
 
-                          <>
-
-                            <Check className="h-2.5 w-2.5" />
-
-                            <span>Acknowledged</span>
-
-                          </>
-
-                        ) : (
-
-                          <>
-
-                            <Clock className="h-2.5 w-2.5" />
-
-                            <span>Pending</span>
-
-                          </>
-
-                        )}
+                        <span>{n.status}</span>
 
                       </span>
 
@@ -5113,25 +5330,13 @@ function NotificationsTab() {
 
                     "inline-flex rounded-full border px-2.5 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
 
-                    selectedNotification.status === "Acknowledged"
-
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-
-                      : "bg-orange-50 text-orange-700 border-orange-200",
+                    getNotifStatusStyles(selectedNotification.status),
 
                   )}
 
                 >
 
-                  {selectedNotification.status === "Acknowledged" ? (
-
-                    <Check className="h-2.5 w-2.5" />
-
-                  ) : (
-
-                    <Clock className="h-2.5 w-2.5" />
-
-                  )}
+                  {renderNotifStatusIcon(selectedNotification.status)}
 
                   {selectedNotification.status}
 

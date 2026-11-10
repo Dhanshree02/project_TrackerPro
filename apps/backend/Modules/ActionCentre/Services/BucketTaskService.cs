@@ -119,13 +119,20 @@ public class BucketTaskService : IBucketTaskService
         var pageSize = query.PageSize > 0 ? query.PageSize : 50;
 
         var items = await q
-            .OrderBy(b => b.DueDate)
+            .OrderByDescending(b => b.TimerRunning)
+            .ThenByDescending(b => b.UpdatedAtUtc ?? b.CreatedAtUtc)
             .ThenByDescending(b => b.CreatedAtUtc)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
 
-        var dtos = items.Select(MapToDto).ToList();
+        var empIds = items.Select(b => b.EmployeeId).Distinct().ToList();
+        var empNames = await _db.Employees
+            .AsNoTracking()
+            .Where(e => empIds.Contains(e.Id))
+            .ToDictionaryAsync(e => e.Id, e => $"{e.FirstName} {e.LastName}".Trim(), ct);
+
+        var dtos = items.Select(b => MapToDto(b, empNames.TryGetValue(b.EmployeeId, out var name) ? name : null)).ToList();
 
         return new PagedResult<BucketTaskDto>(dtos, page, pageSize, total);
     }
@@ -136,7 +143,7 @@ public class BucketTaskService : IBucketTaskService
             .AsNoTracking()
             .FirstOrDefaultAsync(b => b.Id == id && b.DeletedAtUtc == null, ct);
 
-        return item == null ? null : MapToDto(item);
+        return item == null ? null : MapToDto(item, await GetEmployeeNameAsync(item.EmployeeId, ct));
     }
 
     public async Task<BucketTaskDto> StartBucketTaskTimerAsync(Guid id, CancellationToken ct = default)
@@ -148,6 +155,11 @@ public class BucketTaskService : IBucketTaskService
         if (bucketTask.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
         {
             throw new BadRequestException("A completed task cannot be started or restarted.");
+        }
+
+        if (bucketTask.Status.Equals("Stopped", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException("A stopped task cannot be resumed or restarted.");
         }
 
         if (bucketTask.Status.Equals("On Hold", StringComparison.OrdinalIgnoreCase) || bucketTask.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
@@ -195,7 +207,7 @@ public class BucketTaskService : IBucketTaskService
         bucketTask.TimerStartedAtUtc = nowUtc;
         bucketTask.ActualStartDate ??= today;
 
-        if (bucketTask.Status is "Not Started" or "Ready to Start" or "To Do" or "Paused" or "Stopped")
+        if (bucketTask.Status is "Not Started" or "Ready to Start" or "To Do" or "Paused")
         {
             bucketTask.Status = "Ongoing";
         }
@@ -228,7 +240,7 @@ public class BucketTaskService : IBucketTaskService
 
         await _db.SaveChangesAsync(ct);
 
-        return MapToDto(bucketTask);
+        return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
     public async Task<BucketTaskDto> PauseBucketTaskTimerAsync(Guid id, CancellationToken ct = default)
@@ -240,6 +252,11 @@ public class BucketTaskService : IBucketTaskService
         if (bucketTask.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
         {
             throw new BadRequestException("A completed task cannot be paused.");
+        }
+
+        if (bucketTask.Status.Equals("Stopped", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException("A stopped task cannot be paused.");
         }
 
         if (bucketTask.Status.Equals("On Hold", StringComparison.OrdinalIgnoreCase) || bucketTask.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
@@ -273,14 +290,22 @@ public class BucketTaskService : IBucketTaskService
                 assignment.UtilizedHours = bucketTask.UtilizedHours;
                 assignment.UpdatedAtUtc = nowUtc;
 
-                // Update task total utilized hours
+                // Update task stage and total utilized hours
                 var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
                 if (task != null)
                 {
-                    var otherHours = await _db.ProjectTaskAssignments
-                        .Where(a => a.TaskId == bucketTask.TaskId && a.Id != assignment.Id && a.DeletedAtUtc == null)
-                        .SumAsync(a => a.UtilizedHours, ct);
-                    task.UtilizedHours = otherHours + assignment.UtilizedHours;
+                    var anyOtherRunning = await _db.BucketTasks
+                        .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
+                    if (!anyOtherRunning)
+                    {
+                        task.Stage = "Paused";
+                    }
+                    var assignments = await _db.ProjectTaskAssignments
+                        .Where(a => a.TaskId == bucketTask.TaskId && a.DeletedAtUtc == null)
+                        .ToListAsync(ct);
+                    task.UtilizedHours = assignments.Sum(a => a.Id == assignment.Id
+                        ? assignment.UtilizedHours
+                        : (a.TimerAccumulatedSeconds > 0 ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2) : a.UtilizedHours));
                     task.UpdatedAtUtc = nowUtc;
                 }
             }
@@ -288,7 +313,7 @@ public class BucketTaskService : IBucketTaskService
 
         await _db.SaveChangesAsync(ct);
 
-        return MapToDto(bucketTask);
+        return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
     public async Task<BucketTaskDto> StopBucketTaskTimerAsync(Guid id, CancellationToken ct = default)
@@ -336,10 +361,23 @@ public class BucketTaskService : IBucketTaskService
                 var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
                 if (task != null)
                 {
-                    var otherHours = await _db.ProjectTaskAssignments
-                        .Where(a => a.TaskId == bucketTask.TaskId && a.Id != assignment.Id && a.DeletedAtUtc == null)
-                        .SumAsync(a => a.UtilizedHours, ct);
-                    task.UtilizedHours = otherHours + assignment.UtilizedHours;
+                    var anyOtherRunning = await _db.BucketTasks
+                        .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
+                    if (!anyOtherRunning)
+                    {
+                        var anyOtherActive = await _db.BucketTasks
+                            .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.Status != "Stopped" && b.Status != "Completed" && b.DeletedAtUtc == null, ct);
+                        if (!anyOtherActive)
+                        {
+                            task.Stage = "Stopped";
+                        }
+                    }
+                    var assignments = await _db.ProjectTaskAssignments
+                        .Where(a => a.TaskId == bucketTask.TaskId && a.DeletedAtUtc == null)
+                        .ToListAsync(ct);
+                    task.UtilizedHours = assignments.Sum(a => a.Id == assignment.Id
+                        ? assignment.UtilizedHours
+                        : (a.TimerAccumulatedSeconds > 0 ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2) : a.UtilizedHours));
                     task.UpdatedAtUtc = nowUtc;
                 }
             }
@@ -347,7 +385,7 @@ public class BucketTaskService : IBucketTaskService
 
         await _db.SaveChangesAsync(ct);
 
-        return MapToDto(bucketTask);
+        return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
     public async Task<BucketTaskDto> CompleteBucketTaskAsync(Guid id, CancellationToken ct = default)
@@ -372,17 +410,7 @@ public class BucketTaskService : IBucketTaskService
         bucketTask.ActualEndDate ??= today;
         bucketTask.UpdatedAtUtc = nowUtc;
 
-        // Sync to Task
-        var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
-        if (task != null)
-        {
-            task.Stage = "Completed";
-            task.ActualEndDate ??= today;
-            task.Progress = 100;
-            task.UpdatedAtUtc = nowUtc;
-        }
-
-        // Sync to Assignment
+        // Sync to Assignment first
         if (bucketTask.AssignmentId.HasValue)
         {
             var assignment = await _db.ProjectTaskAssignments
@@ -396,9 +424,34 @@ public class BucketTaskService : IBucketTaskService
             }
         }
 
+        // Sync to Task
+        var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
+        if (task != null)
+        {
+            var anyOtherRunning = await _db.BucketTasks
+                .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
+            var anyOtherNotDone = await _db.BucketTasks
+                .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.Status != "Completed" && b.Status != "Stopped" && b.DeletedAtUtc == null, ct);
+
+            if (!anyOtherRunning && !anyOtherNotDone)
+            {
+                task.Stage = "Completed";
+                task.ActualEndDate ??= today;
+                task.Progress = 100;
+            }
+
+            var assignments = await _db.ProjectTaskAssignments
+                .Where(a => a.TaskId == bucketTask.TaskId && a.DeletedAtUtc == null)
+                .ToListAsync(ct);
+            task.UtilizedHours = assignments.Sum(a => a.TimerAccumulatedSeconds > 0
+                ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2)
+                : a.UtilizedHours);
+            task.UpdatedAtUtc = nowUtc;
+        }
+
         await _db.SaveChangesAsync(ct);
 
-        return MapToDto(bucketTask);
+        return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
     public async Task<BucketTaskDto> UpdateBucketTaskStatusAsync(Guid id, string status, CancellationToken ct = default)
@@ -410,6 +463,11 @@ public class BucketTaskService : IBucketTaskService
         if (bucketTask.Status.Equals("Completed", StringComparison.OrdinalIgnoreCase) && !status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
         {
             throw new BadRequestException("A completed task cannot be changed to another stage.");
+        }
+
+        if (bucketTask.Status.Equals("Stopped", StringComparison.OrdinalIgnoreCase) && !status.Equals("Stopped", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new BadRequestException("A stopped task cannot be changed to another stage.");
         }
 
         var nowUtc = DateTime.UtcNow;
@@ -453,13 +511,24 @@ public class BucketTaskService : IBucketTaskService
         var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
         if (task != null)
         {
-            task.Stage = bucketTask.Status;
-            if (status.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+            var anyOtherRunning = await _db.BucketTasks
+                .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
+
+            if (anyOtherRunning)
+            {
+                task.Stage = "Ongoing";
+            }
+            else
+            {
+                task.Stage = bucketTask.Status;
+            }
+
+            if (task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
             {
                 task.ActualEndDate ??= today;
                 task.Progress = 100;
             }
-            else if (isRunningStage)
+            else if (isRunningStage || anyOtherRunning)
             {
                 task.ActualStartDate ??= today;
             }
@@ -482,7 +551,7 @@ public class BucketTaskService : IBucketTaskService
 
         await _db.SaveChangesAsync(ct);
 
-        return MapToDto(bucketTask);
+        return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
     public async Task SyncBucketTasksFromAssignmentsAsync(Guid? projectId = null, Guid? taskId = null, CancellationToken ct = default)
@@ -598,7 +667,7 @@ public class BucketTaskService : IBucketTaskService
                 // Overriding stages (Completed, On Hold, Cancelled) always cascade to bucket task
                 if (task.Stage is "Completed" or "On Hold" or "Cancelled")
                 {
-                    if (bucketTask.Status != task.Stage)
+                    if (bucketTask.Status != task.Stage && bucketTask.Status != "Stopped")
                     {
                         bucketTask.Status = task.Stage;
                         changed = true;
@@ -648,15 +717,23 @@ public class BucketTaskService : IBucketTaskService
                                      task.Stage.Equals("In Progress", StringComparison.OrdinalIgnoreCase);
                 if (!isRunningStage && bucketTask.TimerRunning)
                 {
-                    if (bucketTask.TimerStartedAtUtc.HasValue)
+                    if (task.Stage is not "On Hold" and not "Cancelled")
                     {
-                        var el = (long)(nowUtc - bucketTask.TimerStartedAtUtc.Value).TotalSeconds;
-                        bucketTask.TimerAccumulatedSeconds += Math.Max(0, el);
-                        bucketTask.UtilizedHours = Math.Round((decimal)bucketTask.TimerAccumulatedSeconds / 3600m, 2);
+                        task.Stage = "Ongoing";
+                        task.UpdatedAtUtc = nowUtc;
                     }
-                    bucketTask.TimerRunning = false;
-                    bucketTask.TimerStartedAtUtc = null;
-                    changed = true;
+                    else
+                    {
+                        if (bucketTask.TimerStartedAtUtc.HasValue)
+                        {
+                            var el = (long)(nowUtc - bucketTask.TimerStartedAtUtc.Value).TotalSeconds;
+                            bucketTask.TimerAccumulatedSeconds += Math.Max(0, el);
+                            bucketTask.UtilizedHours = Math.Round((decimal)bucketTask.TimerAccumulatedSeconds / 3600m, 2);
+                        }
+                        bucketTask.TimerRunning = false;
+                        bucketTask.TimerStartedAtUtc = null;
+                        changed = true;
+                    }
                 }
 
                 if (changed)
@@ -707,7 +784,13 @@ public class BucketTaskService : IBucketTaskService
         }
     }
 
-    private static BucketTaskDto MapToDto(BucketTask b)
+    private async Task<string?> GetEmployeeNameAsync(Guid employeeId, CancellationToken ct)
+    {
+        var emp = await _db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == employeeId, ct);
+        return emp != null ? $"{emp.FirstName} {emp.LastName}".Trim() : null;
+    }
+
+    private static BucketTaskDto MapToDto(BucketTask b, string? employeeName = null)
     {
         var elapsed = b.TimerAccumulatedSeconds;
         if (b.TimerRunning && b.TimerStartedAtUtc.HasValue)
@@ -736,7 +819,9 @@ public class BucketTaskService : IBucketTaskService
             b.TimerAccumulatedSeconds,
             elapsed,
             b.UtilizedHours,
-            b.CreatedAtUtc
+            b.CreatedAtUtc,
+            b.UpdatedAtUtc,
+            employeeName
         );
     }
 

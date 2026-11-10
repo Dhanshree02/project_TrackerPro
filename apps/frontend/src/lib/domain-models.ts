@@ -223,6 +223,7 @@ export interface Project {
   teamLeadId?: string;
   teamLeadName?: string;
   seniorProjectManager?: string;
+  createdAtUtc?: string;
 }
 
 export interface ClientContact {
@@ -284,6 +285,8 @@ export interface Client {
   createdByName?: string;
   clientCode?: string;
   contacts?: ClientContact[];
+  status?: string;
+  createdAtUtc?: string;
 }
 
 export interface IssueComment {

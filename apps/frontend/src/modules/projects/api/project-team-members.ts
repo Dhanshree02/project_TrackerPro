@@ -60,6 +60,33 @@ export interface UpdateProjectTeamMemberPayload {
   resourceType?: string;
 }
 
+export interface ProjectResourceAllocationRequestDto {
+  id: string;
+  projectId: string;
+  projectName?: string | null;
+  employeeId: string;
+  employeeName: string;
+  employeeCode?: string | null;
+  employeeEmail?: string | null;
+  departmentId?: string | null;
+  department?: string | null;
+  subDepartment?: string | null;
+  allocationStartDate: string;
+  allocationEndDate: string;
+  billability: string;
+  isTeamLead: boolean;
+  resourceType: string;
+  isShadowTeam: boolean;
+  status: string;
+  requestedByEmployeeId?: string | null;
+  requestedByName?: string | null;
+  approverEmployeeId?: string | null;
+  approverName?: string | null;
+  commentsJson?: string | null;
+  createdAtUtc: string;
+  updatedAtUtc?: string | null;
+}
+
 export async function fetchProjectTeamMembers(
   projectId: string,
   options?: { shadow?: boolean },
@@ -106,6 +133,50 @@ export async function addProjectTeamMember(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function requestProjectTeamMemberAllocation(
+  projectId: string,
+  payload: CreateProjectTeamMemberPayload,
+): Promise<ProjectResourceAllocationRequestDto> {
+  return apiFetch<ProjectResourceAllocationRequestDto>(
+    `/api/v1/projects/${projectId}/allocation-requests`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function fetchPendingAllocationApprovals(): Promise<ProjectResourceAllocationRequestDto[]> {
+  const res = await apiFetch<ProjectResourceAllocationRequestDto[]>(
+    `/api/v1/action-centre/allocation-approvals`,
+  );
+  return res ?? [];
+}
+
+export async function fetchProjectAllocationRequests(
+  projectId: string,
+): Promise<ProjectResourceAllocationRequestDto[]> {
+  const res = await apiFetch<ProjectResourceAllocationRequestDto[]>(
+    `/api/v1/projects/${projectId}/allocation-requests`,
+  );
+  return res ?? [];
+}
+
+export async function takeResourceAllocationAction(
+  projectId: string,
+  requestId: string,
+  status: "Approved" | "Rejected" | "Hold" | "Request Changes",
+  comment?: string,
+): Promise<ProjectResourceAllocationRequestDto> {
+  return apiFetch<ProjectResourceAllocationRequestDto>(
+    `/api/v1/projects/${projectId}/allocation-requests/${requestId}/action`,
+    {
+      method: "POST",
+      body: JSON.stringify({ status, comment }),
+    },
+  );
 }
 
 export async function updateProjectTeamMember(
@@ -187,4 +258,50 @@ export function formatAllocationDuration(start: string, end: string): string {
     return `${m[3]}/${m[2]}/${m[1]}`;
   };
   return `${fmt(start)} → ${fmt(end)}`;
+}
+
+
+export interface EmployeeAssignedTaskDto {
+  taskId: string;
+  taskTitle: string;
+  projectId: string;
+  projectName: string;
+  stage: string;
+  progress: number;
+  priority: string;
+  role?: string | null;
+  plannedStartDate?: string | null;
+  plannedEndDate?: string | null;
+  dueDate?: string | null;
+}
+
+export interface EmployeeAssignedProjectDto {
+  projectId: string;
+  projectName: string;
+  projectStatus: string;
+  role: string;
+  allocationStartDate?: string | null;
+  allocationEndDate?: string | null;
+  billability?: string | null;
+  resourceType?: string | null;
+}
+
+export interface EmployeeWorkloadDto {
+  employeeId: string;
+  employeeName: string;
+  employeeCode?: string | null;
+  role?: string | null;
+  email?: string | null;
+  assignedTasks: EmployeeAssignedTaskDto[];
+  assignedProjects: EmployeeAssignedProjectDto[];
+}
+
+export async function fetchEmployeeWorkload(
+  employeeId: string,
+  projectId?: string,
+): Promise<EmployeeWorkloadDto> {
+  const url = projectId
+    ? `/api/v1/projects/${projectId}/team-members/${employeeId}/workload`
+    : `/api/v1/projects/resources/${employeeId}/workload`;
+  return apiFetch<EmployeeWorkloadDto>(url);
 }

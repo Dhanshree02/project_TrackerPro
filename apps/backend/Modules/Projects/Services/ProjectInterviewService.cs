@@ -61,6 +61,11 @@ public sealed class ProjectInterviewService(
 
         db.ProjectInterviews.Add(row);
         await db.SaveChangesAsync(ct);
+
+        // When we schedule interview: selected Resource and their Reporting Manager get notification with Pending status & Low priority
+        await DispatchInterviewScheduledNotificationsAsync(projectId, row, ct);
+        await db.SaveChangesAsync(ct);
+
         return Map(row);
     }
 
@@ -105,13 +110,104 @@ public sealed class ProjectInterviewService(
 
         row.UpdatedAtUtc = DateTime.UtcNow;
 
-        if (resultChanged)
+        if (resultChanged || request.Result is not null)
         {
             await DispatchInterviewResultNotificationsAsync(projectId, row, oldResult, ct);
         }
 
         await db.SaveChangesAsync(ct);
         return Map(row);
+    }
+
+    private async Task DispatchInterviewScheduledNotificationsAsync(
+        Guid projectId,
+        ProjectInterview interview,
+        CancellationToken ct)
+    {
+        var project = await db.Projects
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
+        var projectName = project?.Name ?? "Project";
+        var projectCode = project?.ProjectCode;
+
+        var candidate = await db.Employees
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == interview.EmployeeId && e.DeletedAtUtc == null, ct);
+
+        var candidateName = candidate is not null
+            ? $"{candidate.FirstName} {candidate.LastName}".Trim()
+            : interview.ResourceName;
+
+        var updater = await FindUpdaterAsync(ct);
+        var updaterName = updater is not null
+            ? $"{updater.FirstName} {updater.LastName}".Trim()
+            : (!string.IsNullOrWhiteSpace(currentUser.Name)
+                ? currentUser.Name
+                : (!string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email : "Engagement Manager"));
+
+        var now = DateTime.UtcNow;
+        var dateStr = now.ToString("yyyy-MM-dd");
+        var timeStr = now.ToString("HH:mm:ss");
+
+        var interviewTaskCode = $"INT-{interview.Id.ToString()[..8].ToUpper()}";
+        var scheduleDetail = $"Interview scheduled on {interview.InterviewDate:yyyy-MM-dd} at {interview.InterviewTime:HH:mm}";
+
+        var historyJson = JsonSerializer.Serialize(new[]
+        {
+            new
+            {
+                action = $"{scheduleDetail} by {updaterName}",
+                date = dateStr,
+                time = timeStr,
+                by = updaterName,
+                status = "Pending"
+            }
+        });
+
+        var recipientEmployeeIds = new HashSet<Guid>();
+        if (interview.EmployeeId != Guid.Empty)
+        {
+            recipientEmployeeIds.Add(interview.EmployeeId);
+        }
+
+        if (candidate?.ReportingManagerId is Guid mgrId && mgrId != Guid.Empty)
+        {
+            recipientEmployeeIds.Add(mgrId);
+        }
+
+        var createdNotifs = new List<ActionNotification>();
+        foreach (var recipientId in recipientEmployeeIds)
+        {
+            var isRecipientCandidate = recipientId == interview.EmployeeId;
+            var title = isRecipientCandidate
+                ? $"Customer Interview Scheduled — {projectName}"
+                : $"Customer Interview Scheduled: {candidateName} — {projectName}";
+
+            var notification = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipientId,
+                ProjectId = projectId,
+                ProjectCode = projectCode,
+                ProjectName = projectName,
+                Title = title,
+                Type = "Customer Interview Scheduled",
+                Priority = "Low",
+                Status = "Pending",
+                Unread = true,
+                RaisedByEmployeeId = updater?.Id,
+                RaisedByName = updaterName,
+                RelatedTask = interviewTaskCode,
+                HistoryJson = historyJson,
+                CreatedAtUtc = now,
+            };
+
+            db.ActionNotifications.Add(notification);
+            createdNotifs.Add(notification);
+        }
+
+        TrySyncNotificationsToOtherDatabase(createdNotifs, interviewTaskCode, "Pending");
     }
 
     private async Task DispatchInterviewResultNotificationsAsync(
@@ -152,13 +248,8 @@ public sealed class ProjectInterviewService(
             _ => $"Customer Interview {interview.Result}"
         };
 
-        var priority = interview.Result switch
-        {
-            "Rejected" => "High",
-            "Selected" => "Medium",
-            "Postponed" => "Medium",
-            _ => "Medium"
-        };
+        // User requirement: "And the priority for this will always shows as Low into thire action center notification tab..."
+        var priority = "Low";
 
         var now = DateTime.UtcNow;
         var dateStr = now.ToString("yyyy-MM-dd");
@@ -176,12 +267,26 @@ public sealed class ProjectInterviewService(
                 date = dateStr,
                 time = timeStr,
                 by = updaterName,
+                status = interview.Result
             }
         });
 
-        var relatedTask = !string.IsNullOrWhiteSpace(interview.Comments)
-            ? interview.Comments.Trim()
-            : $"Interview date: {interview.InterviewDate:yyyy-MM-dd} at {interview.InterviewTime:HH:mm}";
+        var interviewTaskCode = $"INT-{interview.Id.ToString()[..8].ToUpper()}";
+
+        // Update all prior notifications for this interview so they show the updated status as well
+        var existingNotifs = await db.ActionNotifications
+            .Where(n => (n.RelatedTask == interviewTaskCode || (n.ProjectId == projectId && n.Type.Contains("Interview") && (n.RecipientEmployeeId == interview.EmployeeId || (candidate != null && n.RecipientEmployeeId == candidate.ReportingManagerId)))) && n.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        foreach (var ex in existingNotifs)
+        {
+            ex.Status = interview.Result;
+            ex.Priority = "Low";
+            if (string.IsNullOrWhiteSpace(ex.RelatedTask) || !ex.RelatedTask.StartsWith("INT-"))
+            {
+                ex.RelatedTask = interviewTaskCode;
+            }
+        }
 
         // Collect recipient IDs: Candidate Resource + Candidate's Reporting Manager
         var recipientEmployeeIds = new HashSet<Guid>();
@@ -195,6 +300,7 @@ public sealed class ProjectInterviewService(
             recipientEmployeeIds.Add(mgrId);
         }
 
+        var createdNotifs = new List<ActionNotification>();
         foreach (var recipientId in recipientEmployeeIds)
         {
             var isRecipientCandidate = recipientId == interview.EmployeeId;
@@ -213,16 +319,70 @@ public sealed class ProjectInterviewService(
                 Title = title,
                 Type = notifType,
                 Priority = priority,
-                Status = "Pending",
+                Status = interview.Result, // Status matches the edited result!
                 Unread = true,
                 RaisedByEmployeeId = updater?.Id,
                 RaisedByName = updaterName,
-                RelatedTask = relatedTask,
+                RelatedTask = interviewTaskCode,
                 HistoryJson = historyJson,
                 CreatedAtUtc = now,
             };
 
             db.ActionNotifications.Add(notification);
+            createdNotifs.Add(notification);
+        }
+
+        TrySyncNotificationsToOtherDatabase(createdNotifs, interviewTaskCode, interview.Result);
+    }
+
+    private static void TrySyncNotificationsToOtherDatabase(
+        IReadOnlyList<ActionNotification> notifications,
+        string? relatedTask = null,
+        string? newStatus = null)
+    {
+        try
+        {
+            using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");
+            conn.Open();
+
+            if (!string.IsNullOrWhiteSpace(relatedTask) && !string.IsNullOrWhiteSpace(newStatus))
+            {
+                using var updateCmd = conn.CreateCommand();
+                updateCmd.CommandText = "UPDATE action.tbl_notifications SET \"Status\" = @stat, \"Priority\" = 'Low' WHERE \"RelatedTask\" = @task AND \"DeletedAtUtc\" IS NULL";
+                updateCmd.Parameters.AddWithValue("stat", newStatus);
+                updateCmd.Parameters.AddWithValue("task", relatedTask);
+                updateCmd.ExecuteNonQuery();
+            }
+
+            foreach (var n in notifications)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    INSERT INTO action.tbl_notifications 
+                    (""Id"", ""RecipientEmployeeId"", ""ProjectId"", ""ProjectCode"", ""ProjectName"", ""Title"", ""Type"", ""Priority"", ""Status"", ""Unread"", ""RaisedByName"", ""RelatedTask"", ""HistoryJson"", ""CreatedAtUtc"")
+                    VALUES (@id, @recip, @pid, @pcode, @pname, @title, @type, @pri, @stat, @unread, @raised, @task, @hist, @created)
+                    ON CONFLICT (""Id"") DO UPDATE SET ""Status"" = EXCLUDED.""Status"", ""Priority"" = EXCLUDED.""Priority"", ""HistoryJson"" = EXCLUDED.""HistoryJson""";
+
+                cmd.Parameters.AddWithValue("id", n.Id);
+                cmd.Parameters.AddWithValue("recip", n.RecipientEmployeeId);
+                cmd.Parameters.AddWithValue("pid", (object?)n.ProjectId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("pcode", (object?)n.ProjectCode ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("pname", (object?)n.ProjectName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("title", n.Title);
+                cmd.Parameters.AddWithValue("type", n.Type);
+                cmd.Parameters.AddWithValue("pri", n.Priority);
+                cmd.Parameters.AddWithValue("stat", n.Status);
+                cmd.Parameters.AddWithValue("unread", n.Unread);
+                cmd.Parameters.AddWithValue("raised", (object?)n.RaisedByName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("task", (object?)n.RelatedTask ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("hist", n.HistoryJson);
+                cmd.Parameters.AddWithValue("created", n.CreatedAtUtc);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        catch
+        {
+            // Best effort sync
         }
     }
 

@@ -67,3 +67,35 @@ public sealed record UpdateProjectTeamMemberRequest(
 public sealed record SetProjectLeadershipRequest(
     IReadOnlyList<Guid>? ProjectManagerIds = null,
     IReadOnlyList<Guid>? SeniorProjectManagerIds = null);
+
+public sealed record EmployeeWorkloadDto(
+    Guid EmployeeId,
+    string EmployeeName,
+    string? EmployeeCode,
+    string? Role,
+    string? Email,
+    IReadOnlyList<EmployeeAssignedTaskDto> AssignedTasks,
+    IReadOnlyList<EmployeeAssignedProjectDto> AssignedProjects);
+
+public sealed record EmployeeAssignedTaskDto(
+    Guid TaskId,
+    string TaskTitle,
+    Guid ProjectId,
+    string ProjectName,
+    string Stage,
+    int Progress,
+    string Priority,
+    string? Role,
+    DateOnly? PlannedStartDate,
+    DateOnly? PlannedEndDate,
+    DateOnly? DueDate);
+
+public sealed record EmployeeAssignedProjectDto(
+    Guid ProjectId,
+    string ProjectName,
+    string ProjectStatus,
+    string Role,
+    DateOnly? AllocationStartDate,
+    DateOnly? AllocationEndDate,
+    string? Billability,
+    string? ResourceType);

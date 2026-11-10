@@ -191,15 +191,30 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
         {
             client.Status = status;
         }
+        var previousEm = client.EngagementManager;
+        var previousSm = client.SalesManager;
+        var emChanged = false;
+        var smChanged = false;
+
         if (request.EngagementManager is not null)
         {
-            client.EngagementManager = NormalizeManagerName(request.EngagementManager);
-            client.EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct);
+            var normalizedEm = NormalizeManagerName(request.EngagementManager);
+            if (!string.Equals(previousEm, normalizedEm, StringComparison.OrdinalIgnoreCase))
+            {
+                client.EngagementManager = normalizedEm;
+                client.EngagementManagerId = await ResolveEngagementManagerIdAsync(request.EngagementManager, ct);
+                emChanged = true;
+            }
         }
         if (request.SalesManager is not null)
         {
-            client.SalesManager = NormalizeManagerName(request.SalesManager);
-            client.SalesManagerId = await ResolveSalesManagerIdAsync(request.SalesManager, ct);
+            var normalizedSm = NormalizeManagerName(request.SalesManager);
+            if (!string.Equals(previousSm, normalizedSm, StringComparison.OrdinalIgnoreCase))
+            {
+                client.SalesManager = normalizedSm;
+                client.SalesManagerId = await ResolveSalesManagerIdAsync(request.SalesManager, ct);
+                smChanged = true;
+            }
         }
         if (request.ContactName is not null) client.ContactName = request.ContactName;
         if (request.ContactPhone is not null) client.ContactPhone = request.ContactPhone;
@@ -298,6 +313,32 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
         var updated = await LoadClientGraphAsync(client.Id, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
+
+        if (emChanged && !string.IsNullOrWhiteSpace(updated.EngagementManager))
+        {
+            await notificationService.NotifyCustomerManagerChangedAsync(
+                updated.Id,
+                updated.Name,
+                clientCodes.GetValueOrDefault(updated.Id),
+                "Engagement Manager",
+                updated.EngagementManager,
+                updated.EngagementManagerId,
+                currentUser.Name,
+                ct);
+        }
+
+        if (smChanged && !string.IsNullOrWhiteSpace(updated.SalesManager))
+        {
+            await notificationService.NotifyCustomerManagerChangedAsync(
+                updated.Id,
+                updated.Name,
+                clientCodes.GetValueOrDefault(updated.Id),
+                "Sales Manager",
+                updated.SalesManager,
+                updated.SalesManagerId,
+                currentUser.Name,
+                ct);
+        }
 
         foreach (var sv in newlyAddedSubVentures)
         {

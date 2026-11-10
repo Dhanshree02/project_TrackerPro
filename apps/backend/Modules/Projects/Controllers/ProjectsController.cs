@@ -1460,7 +1460,17 @@ public class ProjectsController(
 
 
 
-    [HttpGet("{projectId:guid}/team-members/{memberId:guid}")]
+        [HttpGet("{projectId:guid}/team-members/{employeeId:guid}/workload")]
+    [HttpGet("resources/{employeeId:guid}/workload")]
+    public async Task<ActionResult<ApiResponse<EmployeeWorkloadDto>>> GetEmployeeWorkload(
+        Guid employeeId,
+        CancellationToken ct)
+    {
+        var workload = await teamMemberService.GetEmployeeWorkloadAsync(employeeId, ct);
+        return Ok(ApiResponse<EmployeeWorkloadDto>.Ok(workload));
+    }
+
+[HttpGet("{projectId:guid}/team-members/{memberId:guid}")]
 
     public async Task<ActionResult<ApiResponse<ProjectTeamMemberDto>>> GetTeamMember(
 
@@ -1829,6 +1839,37 @@ public class ProjectsController(
     {
         var result = await additionalRequirementService.AddCommentAsync(projectId, requirementId, request, ct);
         return Ok(ApiResponse<ProjectAdditionalRequirementDto>.Ok(result));
+    }
+
+
+    [HttpPost("{projectId:guid}/allocation-requests")]
+    public async Task<ActionResult<ApiResponse<ProjectResourceAllocationRequestDto>>> RequestAllocation(
+        Guid projectId,
+        [FromBody] CreateResourceAllocationRequest request,
+        CancellationToken ct)
+    {
+        var result = await teamMemberService.RequestAllocationAsync(projectId, request, ct);
+        return Ok(ApiResponse<ProjectResourceAllocationRequestDto>.Ok(result));
+    }
+
+    [HttpGet("{projectId:guid}/allocation-requests")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectResourceAllocationRequestDto>>>> GetProjectAllocationRequests(
+        Guid projectId,
+        CancellationToken ct)
+    {
+        var items = await teamMemberService.ListProjectAllocationRequestsAsync(projectId, ct);
+        return Ok(ApiResponse<IReadOnlyList<ProjectResourceAllocationRequestDto>>.Ok(items));
+    }
+
+    [HttpPost("{projectId:guid}/allocation-requests/{requestId:guid}/action")]
+    public async Task<ActionResult<ApiResponse<ProjectResourceAllocationRequestDto>>> TakeAllocationAction(
+        Guid projectId,
+        Guid requestId,
+        [FromBody] ResourceAllocationActionRequest request,
+        CancellationToken ct)
+    {
+        var result = await teamMemberService.TakeAllocationActionAsync(projectId, requestId, request, ct);
+        return Ok(ApiResponse<ProjectResourceAllocationRequestDto>.Ok(result));
     }
 
 }

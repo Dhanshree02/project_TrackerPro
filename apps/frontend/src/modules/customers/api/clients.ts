@@ -107,6 +107,8 @@ export function mapApiClient(c: ApiClient): Client {
     kycDocumentPath: c.kycDocumentPath ?? undefined,
     customerSince: c.customerSince ? c.customerSince.slice(0, 10) : c.createdAtUtc?.slice(0, 10),
     clientCode: c.clientCode ?? undefined,
+    status: c.status,
+    createdAtUtc: c.createdAtUtc,
     subVentures: (c.subVentures ?? []).map((sv) => ({
       id: sv.id,
       name: sv.name,

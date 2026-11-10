@@ -15,4 +15,5 @@ public interface IActionNotificationService
     Task NotifySubVentureOnboardedAsync(Guid clientId, string clientName, Guid subVentureId, string subVentureName, string? subVentureCode, string? createdByName, CancellationToken ct = default);
     Task NotifyWbsCreatedAsync(Guid projectId, string projectName, string? wbsId, string? projectCode, string? createdByName, CancellationToken ct = default);
     Task NotifyResourceOnboardedAsync(Guid employeeId, string employeeName, string employeeCode, Guid? reportingManagerId, string? performerName, CancellationToken ct = default);
+    Task NotifyCustomerManagerChangedAsync(Guid clientId, string clientName, string? clientCode, string managerRole, string managerName, Guid? managerEmployeeId, string? performerName, CancellationToken ct = default);
 }

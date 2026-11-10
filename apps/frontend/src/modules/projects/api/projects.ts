@@ -620,6 +620,7 @@ export function mapApiProjectToProject(
     teamLeads: ap.teamLeads ?? [],
     teamLeadId: ap.teamLeadId ?? undefined,
     teamLeadName: ap.teamLeadName ?? undefined,
+    createdAtUtc: ap.createdAtUtc,
   };
 }
 

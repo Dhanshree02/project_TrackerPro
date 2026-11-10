@@ -121,6 +121,7 @@ public sealed class ProjectAdditionalRequirementService(
         if (engagementManager != null && !notifyRecipients.Any(r => r.Id == engagementManager.Id)) notifyRecipients.Add(engagementManager);
 
         var notifTitle = $"Customer Requirement: {finalTitle} — {project.Name}";
+        var createdNotifs = new List<ActionNotification>();
         foreach (var recipient in notifyRecipients)
         {
             var notif = new ActionNotification
@@ -150,7 +151,10 @@ public sealed class ProjectAdditionalRequirementService(
                 })
             };
             db.ActionNotifications.Add(notif);
+            createdNotifs.Add(notif);
         }
+
+        TrySyncNotificationsToOtherDatabase(createdNotifs);
 
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Logged Additional Customer Requirement {ReqId} for project {ProjectId}. Notified {Count} stakeholders.",
@@ -332,6 +336,84 @@ public sealed class ProjectAdditionalRequirementService(
 
         requirement.CommentsJson = AppendComment(requirement.CommentsJson, request.Text, authorId, authorName);
 
+        var project = requirement.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
+        if (project != null)
+        {
+            var salesPerson = await ResolveSalesPersonAsync(project, ct);
+            var isAuthorSalesPerson = salesPerson != null && performer != null && salesPerson.Id == performer.Id;
+
+            var recipients = new List<Employee>();
+            if (!isAuthorSalesPerson && salesPerson != null)
+            {
+                // Message posted from project team / modal: notify the Sales Person / Sales Manager
+                recipients.Add(salesPerson);
+            }
+            else
+            {
+                // Message posted by Sales Person: notify TL, PM, SPM, EM, PMO Team
+                var tl = await ResolveTeamLeadAsync(project, ct);
+                if (tl != null) recipients.Add(tl);
+
+                var pm = await ResolveProjectManagerAsync(project, ct);
+                if (pm != null && !recipients.Any(r => r.Id == pm.Id)) recipients.Add(pm);
+
+                var spm = await ResolveSeniorProjectManagerAsync(project, ct);
+                if (spm != null && !recipients.Any(r => r.Id == spm.Id)) recipients.Add(spm);
+
+                var em = await ResolveEngagementManagerAsync(project, ct);
+                if (em != null && !recipients.Any(r => r.Id == em.Id)) recipients.Add(em);
+
+                var pmoTeam = await GetPmoTeamEmployeesAsync(ct);
+                foreach (var pmo in pmoTeam)
+                {
+                    if (!recipients.Any(r => r.Id == pmo.Id)) recipients.Add(pmo);
+                }
+            }
+
+            if (recipients.Count > 0)
+            {
+                var commentSnippet = request.Text.Length > 80 ? request.Text.Substring(0, 77) + "..." : request.Text;
+                var notifTitle = $"New Message on Requirement {requirement.RequirementId}: {requirement.Title} — {project.Name}";
+                var createdNotifs = new List<ActionNotification>();
+
+                foreach (var recipient in recipients)
+                {
+                    if (performer != null && recipient.Id == performer.Id) continue;
+
+                    var notif = new ActionNotification
+                    {
+                        Id = Guid.NewGuid(),
+                        RecipientEmployeeId = recipient.Id,
+                        ProjectId = project.Id,
+                        ProjectCode = project.ProjectCode,
+                        ProjectName = project.Name,
+                        Title = notifTitle,
+                        Type = "Additional Customer Requirement",
+                        Priority = requirement.Priority ?? "Medium",
+                        Status = requirement.Status ?? "Pending",
+                        Unread = true,
+                        RaisedByEmployeeId = performer?.Id,
+                        RaisedByName = authorName,
+                        RelatedTask = requirement.RequirementId,
+                        HistoryJson = JsonSerializer.Serialize(new[]
+                        {
+                            new
+                            {
+                                status = requirement.Status ?? "Pending",
+                                at = DateTime.UtcNow.ToString("o"),
+                                updatedBy = authorName,
+                                details = $"New message from {authorName}: \"{commentSnippet}\""
+                            }
+                        })
+                    };
+                    db.ActionNotifications.Add(notif);
+                    createdNotifs.Add(notif);
+                }
+
+                TrySyncNotificationsToOtherDatabase(createdNotifs);
+            }
+        }
+
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Comment added to requirement {ReqId} by {AuthorName}.", requirement.RequirementId, authorName);
         return MapToDto(requirement);
@@ -412,14 +494,30 @@ public sealed class ProjectAdditionalRequirementService(
         string? comment,
         CancellationToken ct)
     {
-        var projectManager = await ResolveProjectManagerAsync(project, ct);
-        var seniorProjectManager = await ResolveSeniorProjectManagerAsync(project, ct);
-        var engagementManager = await ResolveEngagementManagerAsync(project, ct);
+        var tl = await ResolveTeamLeadAsync(project, ct);
+        var pm = await ResolveProjectManagerAsync(project, ct);
+        var spm = await ResolveSeniorProjectManagerAsync(project, ct);
+        var em = await ResolveEngagementManagerAsync(project, ct);
+        var pmoTeam = await GetPmoTeamEmployeesAsync(ct);
 
         var notifyRecipients = new List<Employee>();
-        if (projectManager != null) notifyRecipients.Add(projectManager);
-        if (seniorProjectManager != null && !notifyRecipients.Any(r => r.Id == seniorProjectManager.Id)) notifyRecipients.Add(seniorProjectManager);
-        if (engagementManager != null && !notifyRecipients.Any(r => r.Id == engagementManager.Id)) notifyRecipients.Add(engagementManager);
+        if (tl != null) notifyRecipients.Add(tl);
+        if (pm != null && !notifyRecipients.Any(r => r.Id == pm.Id)) notifyRecipients.Add(pm);
+        if (spm != null && !notifyRecipients.Any(r => r.Id == spm.Id)) notifyRecipients.Add(spm);
+        if (em != null && !notifyRecipients.Any(r => r.Id == em.Id)) notifyRecipients.Add(em);
+        foreach (var pmo in pmoTeam)
+        {
+            if (!notifyRecipients.Any(r => r.Id == pmo.Id)) notifyRecipients.Add(pmo);
+        }
+
+        // Update all prior notifications for this requirement so old records in DB don't stay "Pending"
+        var existingNotifs = await db.ActionNotifications
+            .Where(n => n.RelatedTask == requirement.RequirementId && n.DeletedAtUtc == null)
+            .ToListAsync(ct);
+        foreach (var existing in existingNotifs)
+        {
+            existing.Status = status;
+        }
 
         if (notifyRecipients.Count == 0) return;
 
@@ -436,6 +534,7 @@ public sealed class ProjectAdditionalRequirementService(
         var notifTitle = $"Requirement {actionVerb}: {requirement.Title} — {project.Name}";
         var commentDetail = !string.IsNullOrWhiteSpace(comment) ? $". Comment: {comment.Trim()}" : string.Empty;
 
+        var createdNotifs = new List<ActionNotification>();
         foreach (var recipient in notifyRecipients)
         {
             var notif = new ActionNotification
@@ -465,7 +564,10 @@ public sealed class ProjectAdditionalRequirementService(
                 })
             };
             db.ActionNotifications.Add(notif);
+            createdNotifs.Add(notif);
         }
+
+        TrySyncNotificationsToOtherDatabase(createdNotifs, requirement.RequirementId, status);
     }
 
     private async Task<Employee?> ResolveSalesPersonAsync(Project project, CancellationToken ct)
@@ -490,6 +592,95 @@ public sealed class ProjectAdditionalRequirementService(
         // Fallback: any sales manager or sales member
         return await db.Employees.AsNoTracking()
             .FirstOrDefaultAsync(e => e.DeletedAtUtc == null && e.Role != null && e.Role.Contains("Sales"), ct);
+    }
+
+    private const string PmoSubDepartment = "PMO (Project Management Office)";
+
+    private async Task<Employee?> ResolveTeamLeadAsync(Project project, CancellationToken ct)
+    {
+        if (project.TeamLeadId is Guid tlId)
+        {
+            var emp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == tlId && e.DeletedAtUtc == null, ct);
+            if (emp != null) return emp;
+        }
+
+        var tm = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(m => m.ProjectId == project.Id && m.IsTeamLead && m.DeletedAtUtc == null)
+            .OrderBy(m => m.CreatedAtUtc)
+            .FirstOrDefaultAsync(ct);
+
+        if (tm != null)
+        {
+            return await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == tm.EmployeeId && e.DeletedAtUtc == null, ct);
+        }
+
+
+
+        return null;
+    }
+
+    private IQueryable<Employee> PmoEmployeesQuery()
+    {
+        var key = PmoSubDepartment.ToLowerInvariant();
+        return db.Employees.AsNoTracking().Where(e =>
+            ((e.SubDepartment != null && e.SubDepartment.Trim().ToLower() == key)
+             || (e.SubDepartmentRef != null && e.SubDepartmentRef.Name.Trim().ToLower() == key))
+            && (e.Status == null || e.Status.ToLower().StartsWith("active"))
+            && e.DeletedAtUtc == null);
+    }
+
+    private async Task<List<Employee>> GetPmoTeamEmployeesAsync(CancellationToken ct)
+    {
+        return await PmoEmployeesQuery().ToListAsync(ct);
+    }
+
+    private static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications, string? relatedTask = null, string? newStatus = null)
+    {
+        try
+        {
+            using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");
+            conn.Open();
+
+            if (!string.IsNullOrWhiteSpace(relatedTask) && !string.IsNullOrWhiteSpace(newStatus))
+            {
+                using var updateCmd = conn.CreateCommand();
+                updateCmd.CommandText = "UPDATE action.tbl_notifications SET \"Status\" = @stat WHERE \"RelatedTask\" = @task AND \"DeletedAtUtc\" IS NULL";
+                updateCmd.Parameters.AddWithValue("stat", newStatus);
+                updateCmd.Parameters.AddWithValue("task", relatedTask);
+                updateCmd.ExecuteNonQuery();
+            }
+
+            foreach (var n in notifications)
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    INSERT INTO action.tbl_notifications 
+                    (""Id"", ""RecipientEmployeeId"", ""ProjectId"", ""ProjectCode"", ""ProjectName"", ""Title"", ""Type"", ""Priority"", ""Status"", ""Unread"", ""RaisedByName"", ""RelatedTask"", ""HistoryJson"", ""CreatedAtUtc"")
+                    VALUES (@id, @recip, @pid, @pcode, @pname, @title, @type, @pri, @stat, @unread, @raised, @task, @hist, @created)
+                    ON CONFLICT (""Id"") DO UPDATE SET ""Status"" = EXCLUDED.""Status"", ""HistoryJson"" = EXCLUDED.""HistoryJson""";
+
+                cmd.Parameters.AddWithValue("id", n.Id);
+                cmd.Parameters.AddWithValue("recip", n.RecipientEmployeeId);
+                cmd.Parameters.AddWithValue("pid", (object?)n.ProjectId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("pcode", (object?)n.ProjectCode ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("pname", (object?)n.ProjectName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("title", n.Title);
+                cmd.Parameters.AddWithValue("type", n.Type);
+                cmd.Parameters.AddWithValue("pri", n.Priority);
+                cmd.Parameters.AddWithValue("stat", n.Status);
+                cmd.Parameters.AddWithValue("unread", n.Unread);
+                cmd.Parameters.AddWithValue("raised", (object?)n.RaisedByName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("task", (object?)n.RelatedTask ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("hist", n.HistoryJson);
+                cmd.Parameters.AddWithValue("created", n.CreatedAtUtc);
+                cmd.ExecuteNonQuery();
+            }
+        }
+        catch
+        {
+            // Best effort sync
+        }
     }
 
     private async Task<Employee?> ResolveProjectManagerAsync(Project project, CancellationToken ct)

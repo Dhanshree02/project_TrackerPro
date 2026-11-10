@@ -21,7 +21,9 @@ public record BucketTaskDto(
     long TimerAccumulatedSeconds,
     long ElapsedTimeSeconds,
     decimal UtilizedHours,
-    DateTime CreatedAtUtc
+    DateTime CreatedAtUtc,
+    DateTime? UpdatedAtUtc = null,
+    string? EmployeeName = null
 );
 
 public class BucketTaskQueryParameters

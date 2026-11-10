@@ -37,4 +37,26 @@ public interface IProjectTeamMemberService
         Guid projectId,
         SetProjectLeadershipRequest request,
         CancellationToken ct = default);
+
+    Task<ProjectResourceAllocationRequestDto> RequestAllocationAsync(
+        Guid projectId,
+        CreateResourceAllocationRequest request,
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<ProjectResourceAllocationRequestDto>> ListPendingAllocationsAsync(
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<ProjectResourceAllocationRequestDto>> ListProjectAllocationRequestsAsync(
+        Guid projectId,
+        CancellationToken ct = default);
+
+    Task<ProjectResourceAllocationRequestDto> TakeAllocationActionAsync(
+        Guid projectId,
+        Guid requestId,
+        ResourceAllocationActionRequest request,
+        CancellationToken ct = default);
+
+    Task<EmployeeWorkloadDto> GetEmployeeWorkloadAsync(
+        Guid employeeId,
+        CancellationToken ct = default);
 }

@@ -170,7 +170,7 @@ function compareCustomerListRows(a: CustomerListRow, b: CustomerListRow, key: Cu
       case "salesManager":
         return row.client.salesManager ?? "";
       case "status":
-        return "Active";
+        return row.isClientActive ? "Active" : "Inactive";
     }
   };
   return sortBlank(textFor(a)).localeCompare(sortBlank(textFor(b)), undefined, {
@@ -312,9 +312,28 @@ export function CustomersListPage() {
   );
 
   const enriched = useMemo(() => {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
     return clients.map((c) => {
       const projs = projects.filter((p) => p.clientId === c.id);
       const buckets = categorizeClientProjects(projs);
+
+      const hasRecentProject = projs.some((p) => {
+        const dateStr = (p as any).createdAtUtc || p.startDate;
+        if (!dateStr) return false;
+        const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+        return !isNaN(d.getTime()) && d >= sixMonthsAgo;
+      });
+
+      const customerDateStr = c.customerSince || c.createdAtUtc;
+      const cd = customerDateStr
+        ? new Date(customerDateStr.includes("T") ? customerDateStr : `${customerDateStr}T00:00:00`)
+        : null;
+      const isClientFresh = cd !== null && !isNaN(cd.getTime()) && cd >= sixMonthsAgo;
+
+      const isClientActive = hasRecentProject || (projs.length === 0 && isClientFresh);
+
       return {
         client: c,
         total: buckets.total,
@@ -324,6 +343,7 @@ export function CustomersListPage() {
         onHold: buckets.onHold.length,
         archived: buckets.archived.length,
         active: buckets.new.length + buckets.ongoing.length,
+        isClientActive,
       };
     });
   }, [clients, projects]);
@@ -977,8 +997,21 @@ export function CustomersListPage() {
 
                       {/* Status */}
                       <td className="px-3 py-2.5">
-                        <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
-                          Active
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                            isClientActive
+                              ? "border border-success/30 bg-success/10 text-success"
+                              : "border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "h-1.5 w-1.5 rounded-full",
+                              isClientActive ? "bg-emerald-500 animate-pulse" : "bg-amber-500",
+                            )}
+                          />
+                          {isClientActive ? "Active" : "Inactive"}
                         </span>
                       </td>
                     </tr>
