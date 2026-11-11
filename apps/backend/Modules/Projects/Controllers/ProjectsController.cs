@@ -38,6 +38,8 @@ public class ProjectsController(
 
     IProjectAppreciationService appreciationService,
 
+    IProjectFeedbackService feedbackService,
+
     IProjectAdditionalRequirementService additionalRequirementService) : ControllerBase
 
 {
@@ -1460,13 +1462,14 @@ public class ProjectsController(
 
 
 
-        [HttpGet("{projectId:guid}/team-members/{employeeId:guid}/workload")]
+    [HttpGet("{projectId:guid}/team-members/{employeeId:guid}/workload")]
     [HttpGet("resources/{employeeId:guid}/workload")]
     public async Task<ActionResult<ApiResponse<EmployeeWorkloadDto>>> GetEmployeeWorkload(
         Guid employeeId,
+        [FromRoute] Guid? projectId,
         CancellationToken ct)
     {
-        var workload = await teamMemberService.GetEmployeeWorkloadAsync(employeeId, ct);
+        var workload = await teamMemberService.GetEmployeeWorkloadAsync(employeeId, projectId, ct);
         return Ok(ApiResponse<EmployeeWorkloadDto>.Ok(workload));
     }
 
@@ -1727,6 +1730,50 @@ public class ProjectsController(
         var created = await appreciationService.CreateAsync(projectId, request, ct);
 
         return Ok(ApiResponse<ProjectAppreciationDto>.Ok(created));
+
+    }
+
+
+
+    // ── Project Feedbacks & Feedback Requests ──
+
+
+
+    [HttpGet("{projectId:guid}/feedbacks")]
+
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectFeedbackDto>>>> GetFeedbacks(
+
+        Guid projectId,
+
+        [FromQuery] Guid? employeeId,
+
+        CancellationToken ct)
+
+    {
+
+        var items = await feedbackService.ListByProjectAsync(projectId, employeeId, ct);
+
+        return Ok(ApiResponse<IReadOnlyList<ProjectFeedbackDto>>.Ok(items));
+
+    }
+
+
+
+    [HttpPost("{projectId:guid}/feedbacks")]
+
+    public async Task<ActionResult<ApiResponse<ProjectFeedbackDto>>> CreateFeedback(
+
+        Guid projectId,
+
+        [FromBody] CreateProjectFeedbackRequest request,
+
+        CancellationToken ct)
+
+    {
+
+        var created = await feedbackService.CreateAsync(projectId, request, ct);
+
+        return Ok(ApiResponse<ProjectFeedbackDto>.Ok(created));
 
     }
 

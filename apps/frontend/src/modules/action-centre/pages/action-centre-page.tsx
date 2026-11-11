@@ -2,6 +2,8 @@ import { Link, Navigate } from "@tanstack/react-router";
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 
+import { NotificationDetailModal } from "@/components/notification-detail-modal";
+
 import {
 
   Search,
@@ -141,6 +143,10 @@ import {
   fetchPendingAllocationApprovals,
   takeResourceAllocationAction,
 } from "@/modules/projects/api/project-team-members";
+import {
+  fetchPendingFeedbackApprovals,
+  takeFeedbackApprovalAction,
+} from "@/modules/projects/api/project-feedbacks";
 
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 
@@ -222,7 +228,43 @@ export function ActionCentrePage() {
 
   const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
 
-  const [tabCode, setTabCode] = useState("");
+  const [tabCode, setTabCode] = useState(() => {
+
+    if (typeof window !== "undefined") {
+
+      const p = new URLSearchParams(window.location.search).get("tab");
+
+      if (p) return p;
+
+    }
+
+    return "";
+
+  });
+
+
+
+  useEffect(() => {
+
+    if (typeof window !== "undefined") {
+
+      const syncFromUrl = () => {
+
+        const p = new URLSearchParams(window.location.search).get("tab");
+
+        if (p && p !== tabCode) setTabCode(p);
+
+      };
+
+      syncFromUrl();
+
+      window.addEventListener("popstate", syncFromUrl);
+
+      return () => window.removeEventListener("popstate", syncFromUrl);
+
+    }
+
+  }, [tabCode]);
 
 
 
@@ -1831,7 +1873,7 @@ function ApprovalsTab() {
   const loadApprovals = useCallback(async () => {
     setIsLoadingApprovals(true);
     try {
-      const [reqItems, extItems, allocItems] = await Promise.all([
+      const [reqItems, extItems, allocItems, fdbkItems] = await Promise.all([
         fetchPendingApprovals().catch((err) => {
           console.error("Error loading approvals:", err);
           return [];
@@ -1842,6 +1884,10 @@ function ApprovalsTab() {
         }),
         fetchPendingAllocationApprovals().catch((err) => {
           console.error("Error loading allocation approvals:", err);
+          return [];
+        }),
+        fetchPendingFeedbackApprovals().catch((err) => {
+          console.error("Error loading feedback approvals:", err);
           return [];
         }),
       ]);
@@ -2027,8 +2073,71 @@ function ApprovalsTab() {
           });
         });
       }
-const nonApiApprovals = (store.approvals || []).filter(
-        (a) => !a.id.startsWith("APP-REQ-") && !a.id.startsWith("APP-EXT-") && !a.id.startsWith("APP-ALLOC-")
+
+      if (Array.isArray(fdbkItems)) {
+        fdbkItems.forEach((item) => {
+          let parsedComments: DhComment[] = [];
+          if (item.commentsJson) {
+            try {
+              const rawParsed = JSON.parse(item.commentsJson);
+              if (Array.isArray(rawParsed)) {
+                parsedComments = rawParsed.map((c: any, idx: number) => ({
+                  id: c.id || `c-${idx}`,
+                  authorName: c.authorName || "Reporting Manager",
+                  authorEmail: c.authorEmail || "",
+                  text: c.text || "",
+                  at: c.at || new Date().toISOString(),
+                }));
+              }
+            } catch {}
+          }
+          let parsedHistory: any[] = [];
+          if (item.historyJson) {
+            try {
+              const rawH = JSON.parse(item.historyJson);
+              if (Array.isArray(rawH)) {
+                parsedHistory = rawH;
+              }
+            } catch {}
+          }
+          const normStatus = (item.status || "").toLowerCase();
+          const mappedStatus: DhCentralApproval["status"] = normStatus === "approved" ? "Approved"
+            : normStatus === "rejected" ? "Rejected"
+            : normStatus === "hold" ? "Hold"
+            : normStatus === "request changes" ? "Request Changes"
+            : "Pending";
+
+          const desc = [
+            `Resource: ${item.employeeName}${item.employeeCode ? ` (${item.employeeCode})` : ""}`,
+            `Request Type: Feedback Request`,
+            `Note: ${item.requestNote || "No note provided"}`,
+          ].join("\n");
+
+          toMerge.push({
+            id: `APP-FDBK-${item.id}`,
+            projectId: item.projectId,
+            projectName: item.projectName || "Project",
+            requestType: "Feedback Request Approval",
+            requestedBy: item.submittedByName || "Project Manager",
+            requestedById: item.submittedByEmployeeId || "",
+            requestedDate: item.createdAtUtc ? item.createdAtUtc.slice(0, 10) : "",
+            status: mappedStatus,
+            description: desc,
+            comments: parsedComments,
+            history: parsedHistory.length > 0 ? parsedHistory : [
+              {
+                status: mappedStatus,
+                at: item.createdAtUtc || new Date().toISOString(),
+                updatedBy: item.submittedByName || "Requester",
+                details: `Requested feedback for ${item.employeeName}`,
+              },
+            ],
+          });
+        });
+      }
+
+      const nonApiApprovals = (store.approvals || []).filter(
+        (a) => !a.id.startsWith("APP-REQ-") && !a.id.startsWith("APP-EXT-") && !a.id.startsWith("APP-ALLOC-") && !a.id.startsWith("APP-FDBK-")
       );
       dhStore.setApprovals([...toMerge, ...nonApiApprovals]);
     } finally {
@@ -2065,6 +2174,8 @@ const nonApiApprovals = (store.approvals || []).filter(
     "Customer Requirement Approval",
 
     "Timeline Extension Approval",
+
+    "Feedback Request Approval",
 
   ];
 
@@ -2135,6 +2246,17 @@ const nonApiApprovals = (store.approvals || []).filter(
         handledByApi = true;
       } catch (err: any) {
         console.error("Failed to update extension request approval on backend:", err);
+      }
+    }
+
+    if (currentApp && currentApp.requestType === "Feedback Request Approval") {
+      try {
+        const rawFdbkId = currentApp.id.replace(/^APP-FDBK-/, "");
+        await takeFeedbackApprovalAction(rawFdbkId, { status, comment: appComment });
+        await loadApprovals();
+        handledByApi = true;
+      } catch (err: any) {
+        console.error("Failed to update feedback request approval on backend:", err);
       }
     }
 
@@ -4378,7 +4500,39 @@ function NotificationsTab() {
 
   // Modal details state
 
-  const [selectedNotifId, setSelectedNotifId] = useState<string | null>(null);
+  const [selectedNotifId, setSelectedNotifId] = useState<string | null>(() => {
+
+    if (typeof window !== "undefined") {
+
+      return new URLSearchParams(window.location.search).get("notifId");
+
+    }
+
+    return null;
+
+  });
+
+
+
+  useEffect(() => {
+
+    if (typeof window !== "undefined") {
+
+      const paramId = new URLSearchParams(window.location.search).get("notifId");
+
+      if (paramId) {
+
+        setSelectedNotifId(paramId);
+
+        apiFetch(`/api/v1/action-centre/notifications/${paramId}/read`, { method: "PUT" }).catch(() => {});
+
+        dhStore.markNotificationAsRead(paramId);
+
+      }
+
+    }
+
+  }, []);
 
   const notifications = store.notifications || [];
 
@@ -4434,7 +4588,9 @@ function NotificationsTab() {
 
   ).length;
 
-  const archivedCount = notifications.filter((n) => n.status === "Acknowledged").length;
+  const currentCount = notifications.filter((n) => (n.status || "").toLowerCase() !== "acknowledged").length;
+
+  const archivedCount = notifications.filter((n) => (n.status || "").toLowerCase() === "acknowledged").length;
 
 
 
@@ -4552,7 +4708,7 @@ function NotificationsTab() {
 
       return "bg-amber-50 text-amber-700 border border-amber-200";
 
-    } else if (t.includes("appreciation")) {
+    } else if (t.includes("appreciation") || t.includes("feedback")) {
 
       return "bg-purple-50 text-purple-700 border border-purple-200";
 
@@ -4719,8 +4875,20 @@ function NotificationsTab() {
     setSelectedNotifId(id);
   };
 
+  const handleArchiveNotification = async (id: string) => {
+    try {
+      await apiFetch(`/api/v1/action-centre/notifications/${id}/archive`, {
+        method: "PUT",
+        body: JSON.stringify({ comment: "Moved to archive by user" }),
+      });
+    } catch (e) {
+      console.error("Failed to archive notification:", e);
+    }
+    dhStore.archiveNotification(id, user?.name || "Current User");
+    setSelectedNotifId(null);
+  };
 
-  const totalSubtabCount = subTab === "Current" ? pendingCount : archivedCount;
+  const totalSubtabCount = subTab === "Current" ? currentCount : archivedCount;
 
 
 
@@ -5244,7 +5412,15 @@ function NotificationsTab() {
 
                     <td className="px-3 py-2.5 whitespace-nowrap">
 
-                      <PriorityPill priority={n.priority.toLowerCase() as any} />
+                      {n.priority === "-" ? (
+
+                        <span className="text-muted-foreground font-semibold px-2">-</span>
+
+                      ) : (
+
+                        <PriorityPill priority={n.priority.toLowerCase() as any} />
+
+                      )}
 
                     </td>
 
@@ -5285,327 +5461,11 @@ function NotificationsTab() {
 
 
       {/* Details & Interactive Comment Modal */}
-
-      {selectedNotification && (
-
-        <Modal
-
-          title={`Notification Details — ${selectedNotification.id}`}
-
-          onClose={() => setSelectedNotifId(null)}
-
-          wide
-
-        >
-
-          <div className="space-y-4 text-xs">
-
-            {/* Top pill badges and Large Title */}
-
-            <div className="space-y-2">
-
-              <div className="flex flex-wrap gap-2">
-
-                <span
-
-                  className={cn(
-
-                    "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
-
-                    getTypeStyles(selectedNotification.type),
-
-                  )}
-
-                >
-
-                  {selectedNotification.type}
-
-                </span>
-
-                <PriorityPill priority={selectedNotification.priority.toLowerCase() as any} />
-
-                <span
-
-                  className={cn(
-
-                    "inline-flex rounded-full border px-2.5 py-0.5 text-[9px] font-bold capitalize items-center gap-1",
-
-                    getNotifStatusStyles(selectedNotification.status),
-
-                  )}
-
-                >
-
-                  {renderNotifStatusIcon(selectedNotification.status)}
-
-                  {selectedNotification.status}
-
-                </span>
-
-              </div>
-
-              <h3 className="text-base font-bold text-gray-800 leading-snug">
-
-                {selectedNotification.title}
-
-              </h3>
-
-            </div>
-
-
-
-            {/* Metadata Grid */}
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3.5 gap-x-6 border border-border rounded-xl p-4 bg-muted/5">
-
-              <div>
-
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
-
-                  Related Project
-
-                </span>
-
-                <span className="font-semibold text-gray-800">
-
-                  {selectedNotification.relatedProject}
-
-                </span>
-
-              </div>
-
-              <div>
-
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
-
-                  Related Task
-
-                </span>
-
-                <span className="font-semibold text-gray-800">
-
-                  {selectedNotification.relatedTask || "—"}
-
-                </span>
-
-              </div>
-
-              <div>
-
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
-
-                  Raised By
-
-                </span>
-
-                <div className="flex items-center gap-1.5 mt-0.5">
-
-                  <Avatar name={selectedNotification.raisedBy} size={18} />
-
-                  <span className="font-semibold text-gray-700">
-
-                    {selectedNotification.raisedBy}
-
-                  </span>
-
-                </div>
-
-              </div>
-
-              <div>
-
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
-
-                  Date
-
-                </span>
-
-                <span className="font-medium text-gray-800">
-
-                  {formatNotifDate(selectedNotification.createdAt)}
-
-                </span>
-
-              </div>
-
-              <div>
-
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
-
-                  Time
-
-                </span>
-
-                <span className="font-medium text-gray-800 font-mono">
-
-                  {formatNotifTime(selectedNotification.createdAt)}
-
-                </span>
-
-              </div>
-
-              <div>
-
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
-
-                  Notification ID
-
-                </span>
-
-                <span className="font-bold text-gray-800">{selectedNotification.id}</span>
-
-              </div>
-
-            </div>
-
-
-
-
-            {/* Audit History Card */}
-
-            <div className="border border-border rounded-xl p-4 bg-card space-y-3 shadow-xs">
-
-              <span className="font-bold text-muted-foreground uppercase text-[10px] tracking-wider block border-b border-border/50 pb-1">
-
-                Audit History
-
-              </span>
-
-              <div className="grid grid-cols-3 gap-4 text-[11px] leading-relaxed">
-
-                <div>
-
-                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
-
-                    Created By
-
-                  </span>
-
-                  <span className="font-semibold text-gray-700">
-
-                    {selectedNotification.createdBy}
-
-                  </span>
-
-                </div>
-
-                <div>
-
-                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
-
-                    Created Date
-
-                  </span>
-
-                  <span className="font-medium text-gray-755">
-
-                    {formatNotifDate(selectedNotification.createdAt)}
-
-                  </span>
-
-                </div>
-
-                <div>
-
-                  <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
-
-                    Created Time
-
-                  </span>
-
-                  <span className="font-medium text-gray-755 font-mono">
-
-                    {formatNotifTime(selectedNotification.createdAt)}
-
-                  </span>
-
-                </div>
-
-
-              </div>
-
-
-
-              {/* Chronological Timeline History Log */}
-
-              <div className="relative pl-4 border-l border-border/60 space-y-3 mt-4">
-
-                {selectedNotification.history.map((h, idx) => (
-
-                  <div key={idx} className="relative flex items-start gap-2">
-
-                    <span className="absolute -left-[20.5px] top-1.5 h-2 w-2 rounded-full border border-primary bg-card" />
-
-                    <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
-
-                      <div className="flex items-center gap-2">
-
-                        <span className="text-muted-foreground font-mono text-[10px]">
-
-                          {formatNotifDate(h.date)} {h.time}
-
-                        </span>
-
-                        <span className="font-semibold text-gray-700">
-
-                          {h.action.includes("Remarks:") ? (
-
-                            <>
-
-                              Notification acknowledged by <strong>{h.by}</strong>
-
-                              <span className="block text-muted-foreground font-normal mt-0.5 italic">
-
-                                Remarks: {h.action.split("Remarks:")[1]?.replace(/"/g, "")}
-
-                              </span>
-
-                            </>
-
-                          ) : (
-
-                            `${h.action} by ${h.by}`
-
-                          )}
-
-                        </span>
-
-                      </div>
-
-                    </div>
-
-                  </div>
-
-                ))}
-
-              </div>
-
-            </div>
-
-
-
-            {/* Modal Footer Controls */}
-
-            <div className="flex justify-end gap-2 border-t border-border pt-3">
-
-              <button
-
-                onClick={() => setSelectedNotifId(null)}
-
-                className="rounded-md border border-input bg-card px-4 py-2 font-medium hover:bg-accent text-xs cursor-pointer"
-
-              >
-
-                Close
-
-              </button>
-            </div>
-
-          </div>
-
-        </Modal>
-
-      )}
+      <NotificationDetailModal
+        notification={selectedNotification}
+        onClose={() => setSelectedNotifId(null)}
+        onArchive={handleArchiveNotification}
+      />
 
     </>
 
@@ -5632,6 +5492,8 @@ const NOTIFICATION_TYPES = [
   "Shadow Team Assignment",
 
   "Appreciation Received",
+
+  "Feedback Received",
 
   "Issue Raised",
 

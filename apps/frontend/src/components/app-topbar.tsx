@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, Bell, ChevronDown, Check } from "lucide-react";
+import { Search, ChevronDown, Check } from "lucide-react";
+import { GlobalNotificationBell } from "./global-notification-bell";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/user-personas";
@@ -142,17 +143,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
 
       {/* Right: Notifications & Profile */}
       <div className="flex items-center gap-3 shrink-0">
-        <button
-          className="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-card hover:bg-accent transition-colors shadow-2xs"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4 w-4" />
-          {notifCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
-              {notifCount}
-            </span>
-          )}
-        </button>
+        <GlobalNotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

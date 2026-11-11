@@ -38,6 +38,8 @@ public class ActionNotification : BaseEntity
 
     public string HistoryJson { get; set; } = "[]";
 
+    public string CommentsJson { get; set; } = "[]";
+
     // Navigation properties
     public virtual Employee? RecipientEmployee { get; set; }
 

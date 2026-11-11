@@ -6,6 +6,7 @@ public interface IActionNotificationService
 {
     Task<IReadOnlyList<ActionNotificationDto>> GetNotificationsAsync(NotificationQueryParameters query, CancellationToken ct = default);
     Task<ActionNotificationDto> MarkNotificationAsReadAsync(Guid id, CancellationToken ct = default);
+    Task<ActionNotificationDto> ArchiveNotificationAsync(Guid id, string? comment = null, CancellationToken ct = default);
 
     Task<IReadOnlyList<ActionAlertDto>> GetAlertsAsync(NotificationQueryParameters query, CancellationToken ct = default);
     Task<ActionAlertDto> UpdateAlertGovernanceAsync(Guid id, UpdateAlertGovernanceRequest request, CancellationToken ct = default);

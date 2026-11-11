@@ -58,5 +58,6 @@ public interface IProjectTeamMemberService
 
     Task<EmployeeWorkloadDto> GetEmployeeWorkloadAsync(
         Guid employeeId,
+        Guid? projectId = null,
         CancellationToken ct = default);
 }

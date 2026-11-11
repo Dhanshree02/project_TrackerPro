@@ -159,7 +159,9 @@ public class AppDbContext(
 
     public DbSet<ProjectIssue> ProjectIssues => Set<ProjectIssue>();
 
-    public DbSet<ProjectAppreciation> ProjectAppreciations => Set<ProjectAppreciation>();
+    public DbSet<ProjectAppreciation> ProjectAppreciations => Set<ProjectAppreciation>();
+
+    public DbSet<ProjectFeedback> ProjectFeedbacks => Set<ProjectFeedback>();
 
     public DbSet<ProjectAdditionalRequirement> ProjectAdditionalRequirements => Set<ProjectAdditionalRequirement>();
 

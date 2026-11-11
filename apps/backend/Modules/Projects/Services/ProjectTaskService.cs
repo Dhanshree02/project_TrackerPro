@@ -540,7 +540,60 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
         await AddAssignmentHistoryAsync(taskId, removedIds, "Unassign", team, ct);
 
+        await db.SaveChangesAsync(ct);
+
         await SyncBucketTasksForTaskAsync(projectId, taskId, addedIds, removedIds, ct);
+
+        if (addedIds.Count > 0)
+        {
+            var taskInfo = await db.ProjectTasks
+                .Include(t => t.Project)
+                .FirstOrDefaultAsync(t => t.Id == taskId, ct);
+
+            if (taskInfo != null)
+            {
+                var nowUtc = DateTime.UtcNow;
+                string assigner = taskInfo.Project?.EngagementManager ?? "Project Manager";
+                if (taskInfo.Project?.ProjectManagerId.HasValue == true)
+                {
+                    var pm = await db.Employees.FirstOrDefaultAsync(e => e.Id == taskInfo.Project.ProjectManagerId.Value, ct);
+                    if (pm != null)
+                    {
+                        assigner = $"{pm.FirstName} {pm.LastName}".Trim();
+                    }
+                }
+
+                foreach (var empId in addedIds)
+                {
+                    db.ActionNotifications.Add(new ActionNotification
+                    {
+                        Id = Guid.NewGuid(),
+                        RecipientEmployeeId = empId,
+                        ProjectId = projectId,
+                        ProjectCode = taskInfo.Project?.ProjectCode,
+                        ProjectName = taskInfo.Project?.Name ?? "Project",
+                        Title = $"Task Assigned: {taskInfo.Title}",
+                        Type = "Task Assignment",
+                        Priority = string.IsNullOrWhiteSpace(taskInfo.Priority) ? "Medium" : taskInfo.Priority,
+                        Status = "Assigned",
+                        Unread = true,
+                        RaisedByName = assigner,
+                        RelatedTask = taskInfo.Title,
+                        CreatedAtUtc = nowUtc,
+                        HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                        {
+                            new
+                            {
+                                status = "Assigned",
+                                at = nowUtc.ToString("O"),
+                                by = assigner,
+                                comment = $"Assigned to task '{taskInfo.Title}'"
+                            }
+                        })
+                    });
+                }
+            }
+        }
 
 
 
@@ -630,9 +683,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
     {
 
-        if (!IsGeneratedLeaf(task))
-
-            return;
+        
 
 
 
@@ -642,22 +693,37 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
             var valid = activeAssignments.Where(a => a.IsActive && a.DeletedAtUtc == null).ToList();
 
-            decimal totalHours = 0m;
+            long totalSeconds = 0;
+
+            decimal totalDirectHours = 0m;
 
             foreach (var a in valid)
 
             {
 
-                totalHours += a.TimerAccumulatedSeconds > 0
+                if (a.TimerAccumulatedSeconds > 0)
 
-                    ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2)
+                {
 
-                    : a.UtilizedHours;
+                    totalSeconds += a.TimerAccumulatedSeconds;
+
+                }
+
+                else
+
+                {
+
+                    totalDirectHours += a.UtilizedHours;
+
+                }
 
             }
 
-            task.UtilizedHours = totalHours;
+            task.UtilizedHours = totalSeconds > 0
 
+                ? Math.Round((decimal)totalSeconds / 3600m, 2) + totalDirectHours
+
+                : totalDirectHours;
 
         }
 
@@ -1371,7 +1437,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
 
 
-    private async Task SyncBucketTasksForTaskAsync(
+    public async Task SyncBucketTasksForTaskAsync(
 
         Guid projectId,
 
@@ -1486,6 +1552,18 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
                 .Where(a => a.TaskId == taskId && addedIds.Contains(a.EmployeeId) && a.DeletedAtUtc == null && a.IsActive)
 
                 .ToListAsync(ct);
+
+            if (assignments.Count == 0)
+
+            {
+
+                assignments = db.ProjectTaskAssignments.Local
+
+                    .Where(a => a.TaskId == taskId && addedIds.Contains(a.EmployeeId) && a.DeletedAtUtc == null && a.IsActive)
+
+                    .ToList();
+
+            }
 
 
 

@@ -64,6 +64,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectExtensionRequestService, ProjectExtensionRequestService>();
         services.AddScoped<IProjectServiceEscalationService, ProjectServiceEscalationService>();
         services.AddScoped<IProjectAppreciationService, ProjectAppreciationService>();
+        services.AddScoped<IProjectFeedbackService, ProjectFeedbackService>();
         services.AddScoped<IProjectAdditionalRequirementService, ProjectAdditionalRequirementService>();
         services.AddScoped<IProjectIssueService, ProjectIssueService>();
         services.AddScoped<IProjectTaskService, ProjectTaskService>();

@@ -2048,9 +2048,35 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
             .ToListAsync(ct);
 
-        var projectTeamIds = await LoadProjectTeamIdsAsync(projectId, ct);
+        var allBucketTasks = await db.BucketTasks
+
+            .Where(b => taskIds.Contains(b.TaskId) && b.DeletedAtUtc == null)
+
+            .ToListAsync(ct);
 
         var hoursChanged = false;
+
+        foreach (var a in assignments)
+
+        {
+
+            var bt = allBucketTasks.FirstOrDefault(b => (b.TaskId == a.TaskId && b.EmployeeId == a.EmployeeId) || (b.AssignmentId.HasValue && b.AssignmentId.Value == a.Id));
+
+            if (bt != null && bt.TimerAccumulatedSeconds > a.TimerAccumulatedSeconds)
+
+            {
+
+                a.TimerAccumulatedSeconds = bt.TimerAccumulatedSeconds;
+
+                a.UtilizedHours = bt.UtilizedHours;
+
+                hoursChanged = true;
+
+            }
+
+        }
+
+        var projectTeamIds = await LoadProjectTeamIdsAsync(projectId, ct);
 
         foreach (var task in tasks)
 
@@ -2822,9 +2848,87 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
         db.ProjectTaskAssignments.Add(assignment);
 
+        var pts = new ProjectTaskService(db);
+
+        await pts.SyncBucketTasksForTaskAsync(projectId, taskId, [request.EmployeeId], [], ct);
+
+        var taskInfo = await db.ProjectTasks.Include(t => t.Project).FirstOrDefaultAsync(t => t.Id == taskId, ct);
+
+        if (taskInfo != null)
+
+        {
+
+            var nowUtc = DateTime.UtcNow;
+
+            string assigner = taskInfo.Project?.EngagementManager ?? "Project Manager";
+
+            if (taskInfo.Project?.ProjectManagerId.HasValue == true)
+
+            {
+
+                var pm = await db.Employees.FirstOrDefaultAsync(e => e.Id == taskInfo.Project.ProjectManagerId.Value, ct);
+
+                if (pm != null) assigner = $"{pm.FirstName} {pm.LastName}".Trim();
+
+            }
+
+            db.ActionNotifications.Add(new ActionNotification
+
+            {
+
+                Id = Guid.NewGuid(),
+
+                RecipientEmployeeId = request.EmployeeId,
+
+                ProjectId = projectId,
+
+                ProjectCode = taskInfo.Project?.ProjectCode,
+
+                ProjectName = taskInfo.Project?.Name ?? "Project",
+
+                Title = $"Task Assigned: {taskInfo.Title}",
+
+                Type = "Task Assignment",
+
+                Priority = string.IsNullOrWhiteSpace(taskInfo.Priority) ? "Medium" : taskInfo.Priority,
+
+                Status = "Assigned",
+
+                Unread = true,
+
+                RaisedByName = assigner,
+
+                RelatedTask = taskInfo.Title,
+
+                CreatedAtUtc = nowUtc,
+
+                HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+
+                {
+
+                    new
+
+                    {
+
+                        status = "Assigned",
+
+                        at = nowUtc.ToString("O"),
+
+                        by = assigner,
+
+                        comment = $"Assigned to task '{taskInfo.Title}'"
+
+                    }
+
+                })
+
+            });
+
+        }
+
         await db.SaveChangesAsync(ct);
 
-        await new ProjectTaskService(db).DistributeProjectTeamHoursAsync(projectId, taskId, ct);
+        await pts.DistributeProjectTeamHoursAsync(projectId, taskId, ct);
 
 
 
@@ -5013,6 +5117,30 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
             .Where(a => a.TaskId == task.Id && a.IsActive)
 
             .ToListAsync(ct);
+
+        var bucketTasks = await db.BucketTasks
+
+            .Where(b => b.TaskId == task.Id && b.DeletedAtUtc == null)
+
+            .ToListAsync(ct);
+
+        foreach (var a in assignments)
+
+        {
+
+            var bt = bucketTasks.FirstOrDefault(b => (b.TaskId == a.TaskId && b.EmployeeId == a.EmployeeId) || (b.AssignmentId.HasValue && b.AssignmentId.Value == a.Id));
+
+            if (bt != null && bt.TimerAccumulatedSeconds > a.TimerAccumulatedSeconds)
+
+            {
+
+                a.TimerAccumulatedSeconds = bt.TimerAccumulatedSeconds;
+
+                a.UtilizedHours = bt.UtilizedHours;
+
+            }
+
+        }
 
         var projectTeamIds = await LoadProjectTeamIdsAsync(projectId, ct);
 
