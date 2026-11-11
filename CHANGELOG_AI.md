@@ -25,10 +25,15 @@
 - Rounding: All display values are rounded to the nearest integer using `Math.round`.
 - Cross-tab consistency: Project tasks and services are fetched and subscribed at the `ProjectDetailPage` level, ensuring the calculated overall progress remains synchronized and persisted across all tabs (Overview, WBS, Team, Tasks, Health) without requiring a full page refresh.
 - Preserved existing functionality: Service-level task weighting (Completed = 1.0, Ongoing = 0.5, Cancelled = excluded) and Tasks/WBS views remain completely unaltered.
+14. Synchronized `database/pms_uat.sql` with Live PostgreSQL Database:
+- Extracted full database schema and current table data from active PostgreSQL database `pms_uat` (`localhost:5432`).
+- Reconciled table counts: brought `database/pms_uat.sql` from 78 tables to 80 database objects (79 BASE TABLEs + 1 VIEW), adding `project.tbl_project_feedbacks` and `resource.tbl_onfloorrole_subdepartment`.
+- Ensured complete schema parity across all 9 custom schemas (`action`, `auth`, `customer`, `master`, `project`, `public`, `repository`, `resource`, `timesheet`) including `"CommentsJson"` column in `action.tbl_notifications`, feedback indexes/foreign keys, and up-to-date table rows.
 
 ---
 
 ### Affected Files
+- `database/pms_uat.sql`
 - `apps/frontend/src/lib/project-progress.ts`
 - `apps/frontend/src/lib/project-progress.test.ts`
 - `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
