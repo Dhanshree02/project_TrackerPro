@@ -9,7 +9,9 @@ public sealed record TeamCalendarDto(
     IReadOnlyList<TeamMemberDto> Members,
     IReadOnlyList<TeamDayEntryDto> Entries,
     IReadOnlyList<TeamMemberScheduleDto> Schedules,
-    IReadOnlyList<TeamCompanyHolidayDto>? CompanyHolidays = null);
+    IReadOnlyList<TeamCompanyHolidayDto>? CompanyHolidays = null,
+    bool IsPeerTeam = false,
+    bool HasDirectReports = false);
 
 public sealed record TeamMemberDto(
     Guid Id,

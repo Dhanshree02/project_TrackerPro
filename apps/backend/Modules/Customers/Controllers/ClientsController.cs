@@ -15,6 +15,7 @@ namespace PMS.API.Modules.Customers.Controllers;
 public class ClientsController(IClientService clients, ICatalogService catalogs, IFileStorageService storage) : ControllerBase
 {
     [HttpGet]
+    [RequireRbac("customers", RbacAccessType.View, "projects", "project-detail")]
     public async Task<ActionResult<ApiResponse<PagedResult<ClientDto>>>> List(
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 20,
@@ -42,6 +43,7 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpGet("{id:guid}")]
+    [RequireRbac("customer-detail", RbacAccessType.View, "customers", "projects", "project-detail")]
     public async Task<ActionResult<ApiResponse<ClientDto>>> Get(Guid id, CancellationToken ct)
     {
         var client = await clients.GetClientAsync(id, ct);
@@ -50,6 +52,7 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpPost]
+    [RequireRbac("customers", RbacAccessType.Manage)]
     public async Task<ActionResult<ApiResponse<ClientDto>>> Create(CreateClientRequest request, CancellationToken ct)
     {
         var client = await clients.CreateClientAsync(request, ct);
@@ -57,6 +60,7 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpPut("{id:guid}")]
+    [RequireRbac("customer-detail", RbacAccessType.Manage, "customers")]
     public async Task<ActionResult<ApiResponse<ClientDto>>> Update(Guid id, UpdateClientRequest request, CancellationToken ct)
     {
         var client = await clients.UpdateClientAsync(id, request, ct);
@@ -65,6 +69,7 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireRbac("customers", RbacAccessType.Manage)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var deleted = await clients.SoftDeleteClientAsync(id, ct);
@@ -74,6 +79,7 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     /// <summary>Uploads the client's KYC document into the Documents/KYC folder and stores its reference.</summary>
     [HttpPost("{id:guid}/kyc")]
     [Consumes("multipart/form-data")]
+    [RequireRbac("customer-detail", RbacAccessType.Manage, "customers")]
     public async Task<ActionResult<ApiResponse<ClientDto>>> UploadKyc(Guid id, IFormFile file, CancellationToken ct)
     {
         if (file is null || file.Length == 0)
@@ -134,6 +140,7 @@ public class ClientsController(IClientService clients, ICatalogService catalogs,
     /// <summary>Uploads a sub-venture's KYC document into Documents/KYC and stores its reference.</summary>
     [HttpPost("{clientId:guid}/subventures/{subVentureId:guid}/kyc")]
     [Consumes("multipart/form-data")]
+    [RequireRbac("customer-detail", RbacAccessType.Manage, "customers")]
     public async Task<ActionResult<ApiResponse<ClientDto>>> UploadSubVentureKyc(Guid clientId, Guid subVentureId, IFormFile file, CancellationToken ct)
     {
         if (file is null || file.Length == 0)

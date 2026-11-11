@@ -9,6 +9,7 @@ namespace PMS.API.Modules.Projects.Controllers;
 
 [ApiController]
 [Route("api/v1/project-drafts")]
+[RequireRbac("projects", RbacAccessType.Manage)]
 public class ProjectDraftsController(IProjectDraftService draftService) : ControllerBase
 {
     [HttpGet]

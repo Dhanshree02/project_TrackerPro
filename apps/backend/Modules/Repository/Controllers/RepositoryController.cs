@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Storage;
 using PMS.API.Modules.Repository.DTOs;
 using PMS.API.Modules.Repository.Services;
@@ -8,6 +9,7 @@ namespace PMS.API.Modules.Repository.Controllers;
 
 [ApiController]
 [Route("api/v1/repository")]
+[RequireRbac("repository", RbacAccessType.View)]
 public class RepositoryController(
     IRepositoryService repositoryService,
     IFileStorageService storageService,
@@ -37,6 +39,7 @@ public class RepositoryController(
 
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
+    [RequireRbac("repository", RbacAccessType.Manage)]
     public async Task<ActionResult<ApiResponse<RepositoryItemDto>>> UploadDocument(
         [FromForm] UploadRepositoryDocumentRequest request,
         CancellationToken ct = default)
@@ -186,6 +189,7 @@ public class RepositoryController(
     }
 
     [HttpDelete("{id:guid}")]
+    [RequireRbac("repository", RbacAccessType.Manage)]
     public async Task<ActionResult<ApiResponse<bool>>> Delete(
         Guid id,
         [FromQuery] string? deletedBy,

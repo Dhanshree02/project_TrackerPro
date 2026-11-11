@@ -3468,6 +3468,7 @@ COPY master.mst_tabs ("Id", "Code", "Name", "SortOrder", "IsActive", "ModuleId",
 69e5bbc5-3f28-494e-a9c7-e4cff3c3dccc	notifications	Notifications	40	t	5a049953-8170-4ef4-a59e-43dc19e12de5	\N	2026-10-21 17:48:58.656708+05:30	\N	\N	\N	\N	\N
 a7bd6c40-4e96-4abb-be93-4ed4e4211978	approvals	Approvals	20	t	5a049953-8170-4ef4-a59e-43dc19e12de5	\N	2026-10-21 17:48:58.656708+05:30	\N	\N	\N	\N	\N
 db9aa2d2-1876-4d81-9ff6-6b55be19fb7a	bucket-list	Bucket List	10	t	5a049953-8170-4ef4-a59e-43dc19e12de5	\N	2026-10-21 17:48:58.656708+05:30	\N	\N	\N	\N	\N
+9854b7f3-0001-4000-8000-000000000001	my-team	My Team	5	t	\N	\N	2026-10-21 18:02:30.731666+05:30	\N	\N	\N	\N	9854b7f3-8e7e-4ecb-864f-f2533ff295f9
 552f9f86-4eb0-473a-8e39-9863cfefcea4	all-employees	All Employees	20	t	\N	\N	2026-10-21 18:02:30.731666+05:30	\N	\N	\N	\N	9854b7f3-8e7e-4ecb-864f-f2533ff295f9
 b1e81c2a-34de-4dd4-b1f3-47387b8ed52b	my-reportees	My Reportees	10	t	\N	\N	2026-10-21 18:02:30.731666+05:30	\N	\N	\N	\N	9854b7f3-8e7e-4ecb-864f-f2533ff295f9
 c1a11111-0001-4000-8000-000000000001	project-overview	Overview	10	t	\N	\N	2026-10-27 10:52:34.415461+05:30	\N	\N	\N	\N	b8f7c125-0e5b-4e3d-98e3-542638fa0b21

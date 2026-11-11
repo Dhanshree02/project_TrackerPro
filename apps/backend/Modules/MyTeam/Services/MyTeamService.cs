@@ -10,7 +10,10 @@ using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.MyTeam.Services;
 
-public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUser) : IMyTeamService
+public sealed class MyTeamService(
+    AppDbContext db,
+    ICurrentUserService currentUser,
+    IRbacAuthorizationService rbacService) : IMyTeamService
 {
     private static readonly short[] DefaultWorkingDays = [1, 2, 3, 4, 5];
 
@@ -18,16 +21,25 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
         DateOnly from,
         DateOnly to,
         bool allEmployees = false,
+        string? scope = null,
         CancellationToken ct = default)
     {
         EnsureRange(from, to);
         var caller = await CallerEmployeeAsync(ct);
-        if (caller is null)
+        var isAdmin = string.Equals(currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+        var isAll = allEmployees || string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase);
+
+        var hasDirectReports = caller != null && await db.Employees.AnyAsync(
+            e => e.DeletedAtUtc == null && e.ReportingManagerId == caller.Id, ct);
+
+        if (caller is null && !isAll && !isAdmin)
         {
-            return new TeamCalendarDto([], [], []);
+            return new TeamCalendarDto([], [], [], null, false, false);
         }
 
-        var members = await TeamQuery(caller.Id, allEmployees)
+        var (teamQuery, isPeerTeam) = await ResolveTeamQueryAsync(caller, isAll, scope, hasDirectReports, ct);
+
+        var members = await teamQuery
             .Include(e => e.Department)
             .Include(e => e.Designation)
             .Include(e => e.ReportingManager)
@@ -37,7 +49,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
 
         if (members.Count == 0)
         {
-            return new TeamCalendarDto([], [], []);
+            return new TeamCalendarDto([], [], [], null, isPeerTeam, hasDirectReports);
         }
 
         var today = TodayInIst();
@@ -119,7 +131,7 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
                     floorByDesignation.TryGetValue(designationId, out floor);
                 return MapMember(
                     m,
-                    m.ReportingManagerId == caller.Id,
+                    caller != null && m.ReportingManagerId == caller.Id,
                     today,
                     todayAttendanceByEmp.GetValueOrDefault(m.Id),
                     allocationsByEmployee.GetValueOrDefault(m.Id),
@@ -130,7 +142,9 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
                 m.Id,
                 scheduleByEmployee.GetValueOrDefault(m.Id),
                 holidaysByEmployee.GetValueOrDefault(m.Id))).ToList(),
-            companyHolidays);
+            companyHolidays,
+            isPeerTeam,
+            hasDirectReports);
     }
 
     public async Task UpsertDaysAsync(UpsertTeamDaysRequest request, CancellationToken ct = default)
@@ -283,28 +297,90 @@ public sealed class MyTeamService(AppDbContext db, ICurrentUserService currentUs
     }
 
     /// <summary>
-    /// Direct reports of the signed-in employee, or every employee when the All Employees tab is open.
+    /// Direct reports of the signed-in manager, or the peer group under the same reporting manager
+    /// if the caller has no direct reports, or every employee when the All Employees tab is open.
     /// </summary>
-    private IQueryable<Employee> TeamQuery(Guid callerId, bool allEmployees) =>
-        allEmployees
-            ? db.Employees
-            : db.Employees.Where(e => e.ReportingManagerId == callerId);
+    private async Task<(IQueryable<Employee> Query, bool IsPeerTeam)> ResolveTeamQueryAsync(
+        Employee? caller,
+        bool allEmployees,
+        string? scope,
+        bool hasDirectReports,
+        CancellationToken ct)
+    {
+        if (allEmployees || string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase) || caller is null)
+        {
+            return (db.Employees.Where(e => e.DeletedAtUtc == null), false);
+        }
+
+        var normalizedScope = scope?.Trim().ToLowerInvariant();
+
+        // 1. Explicit "team" scope: show caller's squad / peers under the same reporting manager
+        if (normalizedScope == "team")
+        {
+            if (caller.ReportingManagerId.HasValue)
+            {
+                return (db.Employees.Where(e => e.DeletedAtUtc == null && e.ReportingManagerId == caller.ReportingManagerId.Value), true);
+            }
+            return (db.Employees.Where(e => e.DeletedAtUtc == null && e.Id == caller.Id), true);
+        }
+
+        // 2. Explicit "reportees" scope: show only employees directly reporting to caller
+        if (normalizedScope == "reportees")
+        {
+            return (db.Employees.Where(e => e.DeletedAtUtc == null && e.ReportingManagerId == caller.Id), false);
+        }
+
+        // 3. Fallback when scope is not explicitly provided:
+        if (hasDirectReports)
+        {
+            return (db.Employees.Where(e => e.DeletedAtUtc == null && e.ReportingManagerId == caller.Id), false);
+        }
+
+        if (caller.ReportingManagerId.HasValue)
+        {
+            return (db.Employees.Where(e => e.DeletedAtUtc == null && e.ReportingManagerId == caller.ReportingManagerId.Value), true);
+        }
+
+        return (db.Employees.Where(e => e.DeletedAtUtc == null && e.Id == caller.Id), false);
+    }
 
     private async Task<Employee> RequireTeamMemberAsync(Guid employeeId, CancellationToken ct)
     {
-        var caller = await CallerEmployeeAsync(ct)
-            ?? throw new ForbiddenException("Your user is not linked to an employee.");
-
         var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == employeeId, ct)
             ?? throw new NotFoundException("Employee not found.");
 
-        var onTeam = await TeamQuery(caller.Id, allEmployees: false).AnyAsync(e => e.Id == employee.Id, ct);
-        if (!onTeam)
+        var role = currentUser.Role;
+        var isAdmin = string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase);
+        if (isAdmin)
         {
-            throw new ForbiddenException("This employee is not on your team.");
+            return employee;
         }
 
-        return employee;
+        var caller = await CallerEmployeeAsync(ct)
+            ?? throw new ForbiddenException("Your user is not linked to an employee.");
+
+        var canManageAll = !string.IsNullOrWhiteSpace(role) &&
+            (await rbacService.HasRoleAccessAsync(role, RbacCatalogCodes.AllEmployees, RbacAccessType.Manage, ct) ||
+             await rbacService.HasRoleAccessAsync(role, RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, ct));
+
+        if (canManageAll)
+        {
+            return employee;
+        }
+
+        var canManageReportees = !string.IsNullOrWhiteSpace(role) &&
+            (await rbacService.HasRoleAccessAsync(role, RbacCatalogCodes.MyReportees, RbacAccessType.Manage, ct) ||
+             await rbacService.HasRoleAccessAsync(role, RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, ct));
+
+        var isDirectReport = await db.Employees.AnyAsync(
+            e => e.DeletedAtUtc == null && e.Id == employee.Id && e.ReportingManagerId == caller.Id, ct);
+
+        if (canManageReportees && isDirectReport)
+        {
+            return employee;
+        }
+
+        throw new ForbiddenException("You do not have permission to manage this employee's schedule.");
     }
 
     private async Task<Employee?> CallerEmployeeAsync(CancellationToken ct)

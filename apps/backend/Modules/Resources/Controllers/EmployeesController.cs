@@ -12,6 +12,7 @@ namespace PMS.API.Modules.Resources.Controllers;
 public class EmployeesController(IEmployeeService employees) : ControllerBase
 {
     [HttpGet]
+    [RequireRbac("employee-directory", RbacAccessType.View, "resources", "projects", "project-detail", "team-dashboard", "my-reportees", "all-employees", "timesheets", "action-centre", "action-center", RbacCatalogCodes.MyTeamTab, "6055ce3c-b466-4354-ba9a-b4c309111e9d")]
     public async Task<ActionResult<ApiResponse<PagedResult<EmployeeListItemDto>>>> List(
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 20,
@@ -36,6 +37,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("exited")]
+    [RequireRbac("exit-summary", RbacAccessType.View, "resources")]
     public async Task<ActionResult<ApiResponse<PagedResult<ExitedEmployeeDto>>>> Exited(
         [FromQuery] int page = 1,
         [FromQuery] int perPage = 20,
@@ -274,6 +276,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     [HttpPost("bulk")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(5 * 1024 * 1024)]
+    [RequireRbac("employee-directory", RbacAccessType.Manage, "resources")]
     public async Task<ActionResult<ApiResponse<EmployeeBulkUploadResult>>> BulkUpload(
         [FromForm] EmployeeBulkUploadRequest request,
         CancellationToken ct)
@@ -298,6 +301,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPost]
+    [RequireRbac("employee-directory", RbacAccessType.Manage, "resources")]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Create(CreateEmployeeRequest request, CancellationToken ct)
     {
         var employee = await employees.CreateEmployeeAsync(request, ct);
@@ -305,6 +309,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpGet("{idOrCode}")]
+    [RequireRbac("employee-detail", RbacAccessType.View, "employee-directory", "resources", "projects", "project-detail", "team-dashboard", "my-reportees", "all-employees", RbacCatalogCodes.MyTeamTab, "6055ce3c-b466-4354-ba9a-b4c309111e9d")]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Get(string idOrCode, CancellationToken ct)
     {
         var employee = await employees.GetEmployeeAsync(idOrCode, ct);
@@ -314,6 +319,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPut("{idOrCode}")]
+    [RequireRbac("employee-detail", RbacAccessType.Manage, "employee-directory", "resources")]
     public async Task<ActionResult<ApiResponse<EmployeeDetailDto>>> Update(string idOrCode, UpdateEmployeeRequest request, CancellationToken ct)
     {
         var employee = await employees.UpdateEmployeeAsync(idOrCode, request, ct);
@@ -323,6 +329,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
     }
 
     [HttpPost("{idOrCode}/offboard")]
+    [RequireRbac("employee-detail", RbacAccessType.Manage, "employee-directory", "resources")]
     public async Task<ActionResult<ApiResponse<ExitedEmployeeDto>>> Offboard(string idOrCode, OffboardEmployeeRequest request, CancellationToken ct)
     {
         var exited = await employees.OffboardEmployeeAsync(idOrCode, request, ct);

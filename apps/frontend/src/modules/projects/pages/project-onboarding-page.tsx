@@ -287,12 +287,13 @@ interface InvoiceRow {
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function ProjectOnboardingPage() {
-  const { isDhanshree, user, role } = useRoleContext();
-  const { hasPermission } = usePermissions();
+  const { isAdmin, isDhanshree, user, role } = useRoleContext();
+  const { canManage } = usePermissions();
   const navigate = useNavigate();
   const extraCount = useDhStore((s) => s.extraClients.length + s.extraProjects.length);
 
-  if (!isDhanshree && !hasPermission("projects.create")) return <Navigate to="/" />;
+  const canManageProjects = isAdmin || isDhanshree || canManage("projects");
+  if (!canManageProjects) return <Navigate to="/projects" />;
 
   // ── Working-day calculation helpers (Excludes Saturday & Sunday) ──
   function parseIsoDate(iso: string): Date | null {

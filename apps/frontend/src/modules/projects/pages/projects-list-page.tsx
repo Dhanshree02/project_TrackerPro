@@ -37,8 +37,10 @@ const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
 type Tab = (typeof tabs)[number];
 
 export function ProjectsListPage() {
-  const { isDhanshree, isEmployee, assignedProjects } = useRoleContext();
-  const { hasPermission } = usePermissions();
+  const { isAdmin, isDhanshree, isEmployee, assignedProjects } = useRoleContext();
+  const { canView, canManage, hasPermission } = usePermissions();
+  const canViewProjects = isAdmin || isDhanshree || canView("projects");
+  const canManageProjects = isAdmin || isDhanshree || canManage("projects");
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("Active Projects");
   const [view, setViewState] = useState<"card" | "list">(() => {
@@ -244,7 +246,7 @@ export function ProjectsListPage() {
     });
   }, [tab, q, projects, clients, assignedProjects, isDhanshree, dbProjects.length]);
 
-  if (!isDhanshree && !hasPermission("projects.view")) return <Navigate to="/" />;
+  if (!canViewProjects) return <Navigate to="/" />;
 
   const priorities: Array<"low" | "medium" | "high" | "critical"> = [
     "high",
@@ -287,8 +289,8 @@ export function ProjectsListPage() {
           />
         </div>
         <div className="ml-auto flex items-center gap-2">
-          {/* Drafts button — hidden for Employees (no project creation) */}
-          {!isEmployee && (
+          {/* Drafts button — requires Manage Projects access, hidden for Employees */}
+          {canManageProjects && !isEmployee && (
             <button
               onClick={() => setDraftsOpen(true)}
               className={cn(
@@ -331,7 +333,7 @@ export function ProjectsListPage() {
               <List className="h-3.5 w-3.5" /> List
             </button>
           </div>
-          {hasPermission("projects.create") && (
+          {canManageProjects && (
             <button
               onClick={() => navigate({ to: "/projects/new" })}
               className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-all"

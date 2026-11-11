@@ -4,7 +4,12 @@ namespace PMS.API.Modules.MyTeam.Services;
 
 public interface IMyTeamService
 {
-    Task<TeamCalendarDto> GetCalendarAsync(DateOnly from, DateOnly to, bool allEmployees = false, CancellationToken ct = default);
+    Task<TeamCalendarDto> GetCalendarAsync(
+        DateOnly from,
+        DateOnly to,
+        bool allEmployees = false,
+        string? scope = null,
+        CancellationToken ct = default);
 
     Task UpsertDaysAsync(UpsertTeamDaysRequest request, CancellationToken ct = default);
 

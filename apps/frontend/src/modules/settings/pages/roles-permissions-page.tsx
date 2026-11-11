@@ -107,7 +107,10 @@ function isViewOnlyRow(row?: AccessRow | null, parent?: AccessRow | null | strin
   const pName = typeof parent === "string" ? parent : parent?.name ?? "";
   const isEmployeeDetailTab = row.kind === "tab" && pName.toLowerCase() === "employee detail";
   const isExitSummary = row.kind === "submodule" && row.name.toLowerCase() === "exit summary";
-  return isEmployeeDetailTab || isExitSummary;
+  const isHealthAlerts = pName.toLowerCase() === "health" && row.name.toLowerCase() === "alerts";
+  const isHealthEscalations = pName.toLowerCase() === "health" && (row.name.toLowerCase() === "escalations" || row.name.toLowerCase() === "escalation");
+  const isMyTeamTab = row.kind === "tab" && pName.toLowerCase() === "team dashboard" && row.name.toLowerCase() === "my team";
+  return isEmployeeDetailTab || isExitSummary || isHealthAlerts || isHealthEscalations || isMyTeamTab;
 }
 
 function isViewManageOnlyRow(row?: AccessRow | null, parent?: AccessRow | null | string): boolean {

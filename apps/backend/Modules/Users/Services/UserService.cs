@@ -12,7 +12,11 @@ using PMS.API.Infrastructure.Authentication;
 
 namespace PMS.API.Modules.Users.Services;
 
-public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurrentUserService currentUser) : IUserService
+public sealed class UserService(
+    AppDbContext db,
+    IPasswordHasher hasher,
+    ICurrentUserService currentUser,
+    IRbacAuthorizationService rbacAuthService) : IUserService
 {
     /// <summary>Temporary password handed to new/reset users — must be changed on first login.</summary>
     public const string TempPassword = "Temp@12345";
@@ -279,6 +283,7 @@ public sealed class UserService(AppDbContext db, IPasswordHasher hasher, ICurren
         }
 
         await db.SaveChangesAsync(ct);
+        rbacAuthService.InvalidateRoleCache(roleId);
         return true;
     }
 

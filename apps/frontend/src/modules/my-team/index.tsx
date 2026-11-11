@@ -14,6 +14,8 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { usePermissions } from "@/lib/permissions";
+import { useRoleContext } from "@/lib/role-context";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import { normalizeOnFloorRole } from "@/lib/on-floor-role";
@@ -63,9 +65,10 @@ import { Legend, ShiftChipLegend } from "./components/Legend";
 import { PresenceCard, type ActiveFilter } from "./components/PresenceCard";
 import { ShiftCoverageCard } from "./components/ShiftCoverageCard";
 
-type Roster = "reportees" | "all";
+type Roster = "team" | "reportees" | "all";
 
 const rosterTabs = [
+  { code: "my-team", name: "My Team", scope: "team" },
   { code: "my-reportees", name: "My Reportees", scope: "reportees" },
   { code: "all-employees", name: "All Employees", scope: "all" },
 ] as const satisfies ReadonlyArray<{ code: string; name: string; scope: Roster }>;
@@ -564,13 +567,72 @@ function TeamRequestAllocationModal({
 }
 
 export function MyTeamPage() {
-  const [roster, setRoster] = useState<Roster>("reportees");
+  const { permissions, canView, canManage } = usePermissions();
+  const { user, isDhanshree } = useRoleContext();
+  const isAdmin = user.role.toLowerCase() === "admin";
+
+  const [roster, setRoster] = useState<Roster>(() => {
+    try {
+      const saved = sessionStorage.getItem("pms_active_roster") as Roster | null;
+      if (saved && (saved === "team" || saved === "reportees" || saved === "all")) return saved;
+    } catch {
+      // ignore
+    }
+    return "team";
+  });
+  const [hasDirectReports, setHasDirectReports] = useState<boolean | null>(null);
+  const userHasPickedRoster = useRef(false);
+
+  const hasChildRosterConfig = useMemo(() => {
+    return permissions.some((p) => {
+      const id = p.itemId?.toLowerCase();
+      return (
+        id === "b1e81c2a-34de-4dd4-b1f3-47387b8ed52b" ||
+        id === "552f9f86-4eb0-473a-8e39-9863cfefcea4" ||
+        id === "9854b7f3-0001-4000-8000-000000000001"
+      );
+    });
+  }, [permissions]);
+
+  const isPeerTeamView = roster === "team";
+  const activeRosterCode =
+    roster === "all" ? "all-employees" : roster === "team" ? "9854b7f3-0001-4000-8000-000000000001" : "my-reportees";
+
+  const canManageActiveRoster =
+    !isPeerTeamView &&
+    (isAdmin ||
+      isDhanshree ||
+      (hasChildRosterConfig
+        ? canManage(activeRosterCode)
+        : canManage(activeRosterCode) || canManage("team-dashboard")));
+
+  const visibleRosterTabs = useMemo(() => {
+    return rosterTabs.filter((tab) => {
+      if (isAdmin || isDhanshree) return true;
+      if (tab.scope === "team") {
+        return (
+          canView("9854b7f3-0001-4000-8000-000000000001") ||
+          canView("my-team-tab") ||
+          canView("team-roster") ||
+          canView("team-dashboard") ||
+          canView("my-team") ||
+          canView("my-reportees")
+        );
+      }
+      if (tab.scope === "reportees") {
+        return canView("my-reportees") || canView("team-dashboard");
+      }
+      return canView(tab.code) || canView("team-dashboard");
+    });
+  }, [isAdmin, isDhanshree, canView]);
+
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamSchedule, setTeamSchedule] = useState<TeamSchedule>({});
   const [memberConfigs, setMemberConfigs] = useState<Record<string, MemberScheduleConfig>>({});
   const [companyHolidays, setCompanyHolidays] = useState<CompanyHoliday[]>([]);
+  const [isPeerTeam, setIsPeerTeam] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // ── UI state ─────────────────────────────────────────────────────────────────
@@ -811,6 +873,10 @@ export function MyTeamPage() {
     if (data.companyHolidays) {
       setCompanyHolidays(data.companyHolidays);
     }
+    setIsPeerTeam(Boolean(data.isPeerTeam));
+    if (data.hasDirectReports !== undefined) {
+      setHasDirectReports(data.hasDirectReports);
+    }
   }, []);
 
   const fetchRoster = useCallback((month: Date, scope: Roster) => {
@@ -825,7 +891,7 @@ export function MyTeamPage() {
     let to = makeDateKeyFromDate(end);
     if (todayKey < from) from = todayKey;
     if (todayKey > to) to = todayKey;
-    const request = teamDataService.getCalendar(from, to, scope === "all").then((data) => {
+    const request = teamDataService.getCalendar(from, to, scope, scope === "all").then((data) => {
       rosterCache.current.set(key, data);
       rosterInflight.current.delete(key);
       return data;
@@ -854,6 +920,12 @@ export function MyTeamPage() {
   }, [fetchRoster, showRoster]);
 
   const selectRoster = (next: Roster) => {
+    userHasPickedRoster.current = true;
+    try {
+      sessionStorage.setItem("pms_active_roster", next);
+    } catch {
+      // ignore
+    }
     if (next === roster) return;
     rememberLiveRoster();
     const cached = rosterCache.current.get(rosterCacheKey(selectedMonth, next));
@@ -861,6 +933,26 @@ export function MyTeamPage() {
     setPage(1);
     if (cached) showRoster(cached);
   };
+
+  useEffect(() => {
+    if (hasDirectReports === true && !userHasPickedRoster.current && roster === "team") {
+      let saved: string | null = null;
+      try {
+        saved = sessionStorage.getItem("pms_active_roster");
+      } catch {
+        // ignore
+      }
+      if (!saved) {
+        setRoster("reportees");
+      }
+    }
+  }, [hasDirectReports, roster]);
+
+  useEffect(() => {
+    if (visibleRosterTabs.length > 0 && !visibleRosterTabs.some((t) => t.scope === roster)) {
+      selectRoster(visibleRosterTabs[0].scope);
+    }
+  }, [visibleRosterTabs, roster]);
 
   useEffect(() => {
     let cancelled = false;
@@ -913,6 +1005,7 @@ export function MyTeamPage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const isLockedMemberKey = (memberId: string, dateKey: string) => {
+    if (!canManageActiveRoster) return true;
     const memberConfig = memberConfigs[memberId] || DEFAULT_MEMBER_SCHEDULE_CONFIG;
     const isHoliday = memberConfig.holidays.some((h) => h.date === dateKey) || companyHolidaysMap.has(dateKey);
     const date = parseDateKey(dateKey);
@@ -921,6 +1014,10 @@ export function MyTeamPage() {
   };
 
   const handleSaveMemberSchedule = (memberId: string, updatedConfig: MemberScheduleConfig) => {
+    if (roster === "team" || !canManageActiveRoster) {
+      toast.error("You don't have permission to modify schedules");
+      return;
+    }
     setMemberConfigs((prev) => ({
       ...prev,
       [memberId]: updatedConfig,
@@ -982,6 +1079,7 @@ export function MyTeamPage() {
   };
 
   const writeShift = (memberId: string, dateKeys: string[], shift: ShiftType | undefined) => {
+    if (roster === "team" || !canManageActiveRoster) return;
     setTeamSchedule((current) =>
       applyShiftToMemberDates(current, memberId, dateKeys, shift, (dateKey) =>
         isLockedMemberKey(memberId, dateKey),
@@ -994,6 +1092,7 @@ export function MyTeamPage() {
   };
 
   const handleCellToggle = (memberId: string, date: Date, shiftKey: boolean) => {
+    if (roster === "team" || !canManageActiveRoster) return;
     const dateKey = makeDateKeyFromDate(date);
     if (isLockedMemberKey(memberId, dateKey)) return;
 
@@ -1019,6 +1118,7 @@ export function MyTeamPage() {
     date: Date,
     type: SelectableAttendanceType,
   ) => {
+    if (roster === "team" || !canManageActiveRoster) return;
     const dateKey = makeDateKeyFromDate(date);
     const existing = teamSchedule[memberId]?.[dateKey];
     setTeamSchedule((current) => {
@@ -1072,6 +1172,7 @@ export function MyTeamPage() {
     date: Date,
     shift: ShiftType | "clear",
   ) => {
+    if (roster === "team" || !canManageActiveRoster) return;
     const dateKey = makeDateKeyFromDate(date);
     const currentEvent = teamSchedule[memberId]?.[dateKey];
     // If user assigns a shift to a day that was on leave, clear leave so it becomes active
@@ -1099,6 +1200,7 @@ export function MyTeamPage() {
   };
 
   const handleApplyWeek = (memberId: string, date: Date) => {
+    if (roster === "team" || !canManageActiveRoster) return;
     const keys = getMonFriKeys(date);
     const existingShift = teamSchedule[memberId]?.[makeDateKeyFromDate(date)]?.shift;
     const shift = existingShift ?? lastUsedShift ?? DEFAULT_SHIFT;
@@ -1189,6 +1291,20 @@ export function MyTeamPage() {
     );
 
   // ── Render ────────────────────────────────────────────────────────────────────
+  if (!isAdmin && !isDhanshree && visibleRosterTabs.length === 0) {
+    return (
+      <AppShell
+        title="Team Dashboard"
+        subtitle="Reporting team, availability, and leave visibility"
+      >
+        <div className="flex h-96 flex-col items-center justify-center p-8 text-center text-muted-foreground">
+          <p className="text-base font-semibold text-foreground">Access Restricted</p>
+          <p className="mt-1 text-sm">You do not have permission to view the team dashboard or rosters.</p>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell
       title="Team Dashboard"
@@ -1196,7 +1312,7 @@ export function MyTeamPage() {
     >
       <div className="space-y-4">
         <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner w-fit">
-          {rosterTabs.map((tab) => {
+          {visibleRosterTabs.map((tab) => {
             const Icon = tab.scope === "all" ? UsersRound : Users;
             return (
               <button
@@ -1223,7 +1339,9 @@ export function MyTeamPage() {
           <p className="text-sm text-muted-foreground">
             {roster === "all"
               ? "No employees are in the database yet."
-              : "No employees report to you yet."}
+              : roster === "team"
+                ? "No team members found under your manager."
+                : "No employees report to you yet."}
           </p>
         )}
         {/* Consolidated Minimalist Command Cards (Presence & Shift Coverage) */}
@@ -1429,7 +1547,12 @@ export function MyTeamPage() {
                     style={{ height: CALENDAR_HEADER_PX }}
                   />
                   {visibleMembers.map((member, memberIdx) => {
-                    const viewOnly = roster === "all" && member.directReport === false;
+                    const viewOnly =
+                      roster === "team" ||
+                      (!isAdmin &&
+                        (!canManageActiveRoster ||
+                          (roster === "reportees" && member.directReport === false) ||
+                          (roster === "all" && member.directReport === false && !canManage("all-employees"))));
                     const liveStatus = getMemberLiveAllocationStatus(member, teamSchedule, todayKey);
                     const isNameRowActive = openCell?.memberId === member.id;
                     const suppressNativeTitle = Boolean(openCell);
@@ -1456,15 +1579,17 @@ export function MyTeamPage() {
                             {member.name}
                           </p>
                           <div className="flex shrink-0 items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => setAllocRequestMember(member)}
-                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 transition-colors"
-                              title={`Request Allocation for ${member.name}`}
-                              aria-label={`Request allocation for ${member.name}`}
-                            >
-                              <UserPlus className="h-3.5 w-3.5" />
-                            </button>
+                            {!viewOnly && (
+                              <button
+                                type="button"
+                                onClick={() => setAllocRequestMember(member)}
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/5 text-primary hover:bg-primary/15 transition-colors"
+                                title={`Request Allocation for ${member.name}`}
+                                aria-label={`Request allocation for ${member.name}`}
+                              >
+                                <UserPlus className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => setWorkloadMember(member)}
@@ -1556,7 +1681,12 @@ export function MyTeamPage() {
                   </div>
 
                   {visibleMembers.map((member, memberIdx) => {
-                    const viewOnly = roster === "all" && member.directReport === false;
+                    const viewOnly =
+                      roster === "team" ||
+                      (!isAdmin &&
+                        (!canManageActiveRoster ||
+                          (roster === "reportees" && member.directReport === false) ||
+                          (roster === "all" && member.directReport === false && !canManage("all-employees"))));
                     const isLastRow = memberIdx === visibleMembers.length - 1;
                     const isRowActive = openCell?.memberId === member.id;
                     const memberConfig = memberConfigs[member.id] || DEFAULT_MEMBER_SCHEDULE_CONFIG;

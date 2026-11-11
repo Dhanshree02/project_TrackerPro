@@ -213,109 +213,71 @@ const pmoTabCodes = ["approvals", "alerts", "notifications"];
 
 
 export function ActionCentrePage() {
-
-  const { isDhanshree, user, isEmployee, isPmoFamily, isSales } = useRoleContext();
-
-  const { hasPermission } = usePermissions();
-
+  const { isDhanshree, user } = useRoleContext();
+  const { canView, hasPermission } = usePermissions();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
   const store = useDhStore((s) => s);
-
   const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
-
   const [tabCode, setTabCode] = useState("");
 
-
-
   const visibleTabs = useMemo(() => {
-
-    const allowed = isEmployee ? employeeTabCodes : isSales ? salesTabCodes : isPmoFamily ? pmoTabCodes : null;
-
-    return actionTabs.filter((tab) => allowed === null || allowed.includes(tab.code));
-
-  }, [isEmployee, isPmoFamily, isSales]);
-
-
+    return actionTabs.filter((tab) => {
+      if (isAdmin || isDhanshree) return true;
+      return canView(tab.code);
+    });
+  }, [isAdmin, isDhanshree, canView]);
 
   const activeTab = visibleTabs.find((tab) => tab.code === tabCode) ?? visibleTabs[0];
 
-
-
-  if (!isDhanshree && !hasPermission("action-center.view")) return <Navigate to="/" />;
-
-
+  if (!isAdmin && !isDhanshree && !canView("action-centre") && !canView("action-center") && !hasPermission("action-center.view")) {
+    return <Navigate to="/" />;
+  }
 
   return (
-
     <AppShell
-
       title="Action Centre"
-
       subtitle="Bucket list, timesheets, approvals and alerts in one place"
-
     >
+      {visibleTabs.length === 0 ? (
+        <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground shadow-2xs">
+          <p className="text-sm font-semibold text-foreground">No Access to Action Center Tabs</p>
+          <p className="mt-1 text-xs text-muted-foreground">You do not have permission to view any Action Center tabs. Contact your administrator to request access.</p>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
+            {visibleTabs.map((tab) => {
+              const isNotif = tab.code === "notifications";
+              return (
+                <button
+                  key={tab.code}
+                  onClick={() => setTabCode(tab.code)}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+                    activeTab?.code === tab.code
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <span>{tab.name}</span>
+                  {isNotif && pendingCount > 0 && (
+                    <span className="rounded-full bg-destructive text-destructive-foreground px-2 py-0.5 text-xs font-semibold leading-none">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
-      <div className="mb-4 inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
-
-        {visibleTabs.map((tab) => {
-
-          const isNotif = tab.code === "notifications";
-
-          return (
-
-            <button
-
-              key={tab.code}
-
-              onClick={() => setTabCode(tab.code)}
-
-              className={cn(
-
-                "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
-
-                activeTab?.code === tab.code
-
-                  ? "bg-primary text-primary-foreground"
-
-                  : "text-muted-foreground hover:text-foreground",
-
-              )}
-
-            >
-
-              <span>{tab.name}</span>
-
-              {isNotif && pendingCount > 0 && (
-
-                <span className="rounded-full bg-destructive text-destructive-foreground px-2 py-0.5 text-xs font-semibold leading-none">
-
-                  {pendingCount}
-
-                </span>
-
-              )}
-
-            </button>
-
-          );
-
-        })}
-
-      </div>
-
-
-
-      {activeTab?.code === "bucket-list" && <BucketList />}
-
-      {activeTab?.code === "approvals" && <ApprovalsTab />}
-
-      {activeTab?.code === "alerts" && <AlertsTab />}
-
-      {activeTab?.code === "notifications" && <NotificationsTab />}
-
+          {activeTab?.code === "bucket-list" && <BucketList />}
+          {activeTab?.code === "approvals" && <ApprovalsTab />}
+          {activeTab?.code === "alerts" && <AlertsTab />}
+          {activeTab?.code === "notifications" && <NotificationsTab />}
+        </>
+      )}
     </AppShell>
-
   );
-
 }
 
 
@@ -1821,7 +1783,10 @@ function ApprovalsTab() {
 
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { user, isBO, assignedProjects } = useRoleContext();
+  const { user, isBO, assignedProjects, isDhanshree } = useRoleContext();
+  const { canManage } = usePermissions();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const canManageApprovals = isAdmin || isDhanshree || canManage("approvals");
 
 
 
@@ -2318,7 +2283,9 @@ const nonApiApprovals = (store.approvals || []).filter(
 
               <th className="px-3 py-2 font-medium">Status</th>
 
-              <th className="px-3 py-2 font-medium text-right">Actions</th>
+              {canManageApprovals && (
+                <th className="px-3 py-2 font-medium text-right">Actions</th>
+              )}
 
             </tr>
 
@@ -2393,14 +2360,16 @@ const nonApiApprovals = (store.approvals || []).filter(
                   </span>
 
                 </td>
-                <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
-                  <button
-                    onClick={() => setSelectedAppId(app.id)}
-                    className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
-                  >
-                    View
-                  </button>
-                </td>
+                {canManageApprovals && (
+                  <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
+                    <button
+                      onClick={() => setSelectedAppId(app.id)}
+                      className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
+                    >
+                      View
+                    </button>
+                  </td>
+                )}
 
               </tr>
 
@@ -2408,7 +2377,7 @@ const nonApiApprovals = (store.approvals || []).filter(
 
             {isLoadingApprovals && filteredApprovals.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canManageApprovals ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <span>Loading approvals...</span>
@@ -2417,7 +2386,7 @@ const nonApiApprovals = (store.approvals || []).filter(
               </tr>
             ) : filteredApprovals.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canManageApprovals ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No approvals found
                 </td>
               </tr>
@@ -2571,27 +2540,29 @@ const nonApiApprovals = (store.approvals || []).filter(
 
             )}
             {/* Action Comments box: enabled when not Approved; locked when Approved */}
-            {selectedApproval.status !== "Approved" ? (
-              <div className="space-y-2 border-t border-border pt-3">
-                <label className="text-xs font-semibold text-gray-700 block">
-                  Action Comments / Clarifications / Instructions{" "}
-                  <span className="text-destructive font-bold">*Mandatory</span>
-                </label>
-                <textarea
-                  value={appComment}
-                  onChange={(e) => setAppComment(e.target.value)}
-                  placeholder="Provide detailed instructions, clarification request, or reasons..."
-                  rows={3}
-                  className="w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
-                />
-              </div>
-            ) : (
-              <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
-                <span>
-                  This request has been <strong>Approved</strong>. Further action comments cannot be added.
-                </span>
-              </div>
+            {canManageApprovals && (
+              selectedApproval.status !== "Approved" ? (
+                <div className="space-y-2 border-t border-border pt-3">
+                  <label className="text-xs font-semibold text-gray-700 block">
+                    Action Comments / Clarifications / Instructions{" "}
+                    <span className="text-destructive font-bold">*Mandatory</span>
+                  </label>
+                  <textarea
+                    value={appComment}
+                    onChange={(e) => setAppComment(e.target.value)}
+                    placeholder="Provide detailed instructions, clarification request, or reasons..."
+                    rows={3}
+                    className="w-full rounded-md border border-input bg-card p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
+                  />
+                </div>
+              ) : (
+                <div className="rounded-lg border border-success/30 bg-success/10 p-3 text-xs text-success flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>
+                    This request has been <strong>Approved</strong>. Further action comments cannot be added.
+                  </span>
+                </div>
+              )
             )}
 
             {/* Audit Log History */}
@@ -2628,7 +2599,7 @@ const nonApiApprovals = (store.approvals || []).filter(
               >
                 Close
               </button>
-              {selectedApproval.status !== "Approved" && !isBO && (
+              {canManageApprovals && selectedApproval.status !== "Approved" && !isBO && (
                 <>
                   <button
                     onClick={() => handleAction("Hold")}
@@ -2738,7 +2709,10 @@ function AlertsTab() {
 
   const [approved, setApproved] = useState(false);
 
-  const { user, assignedProjects: projectsList, assignedClients: clientsList } = useRoleContext();
+  const { user, assignedProjects: projectsList, assignedClients: clientsList, isDhanshree } = useRoleContext();
+  const { canManage } = usePermissions();
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const canManageAlerts = isAdmin || isDhanshree || canManage("alerts") || canManage("action-alerts");
 
 
 
@@ -3392,7 +3366,9 @@ function AlertsTab() {
 
                   <th className="px-3 py-2 font-medium">Status</th>
 
-                  <th className="px-3 py-2 font-medium text-right">Actions</th>
+                  {canManageAlerts && (
+                    <th className="px-3 py-2 font-medium text-right">Actions</th>
+                  )}
 
                 </tr>
 
@@ -3490,21 +3466,16 @@ function AlertsTab() {
 
                       </td>
 
-                      <td className="px-3 py-2.5 text-right">
-
-                        <button
-
-                          onClick={() => openDetails(alert.id)}
-
-                          className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
-
-                        >
-
-                          Review details
-
-                        </button>
-
-                      </td>
+                      {canManageAlerts && (
+                        <td className="px-3 py-2.5 text-right">
+                          <button
+                            onClick={() => openDetails(alert.id)}
+                            className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
+                          >
+                            Review details
+                          </button>
+                        </td>
+                      )}
 
                     </tr>
 
@@ -4219,117 +4190,67 @@ function AlertsTab() {
 
 
               <div className="flex justify-end gap-2 border-t border-border pt-3">
-
-                {isRequirementAlert ? (
-
+                {!canManageAlerts ? (
+                  <button
+                    onClick={() => setSelectedAlertId(null)}
+                    className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent"
+                  >
+                    Close
+                  </button>
+                ) : isRequirementAlert ? (
                   <>
-
                     <button
-
                       onClick={() => {
-
                         setApproved(true);
-
                         toast.success("Requirement approved — click Update to save");
-
                       }}
-
                       className={cn(
-
                         "rounded-md border px-3.5 py-1.5 text-xs font-medium transition-colors",
-
                         approved
-
                           ? "border-emerald-600 bg-emerald-600 text-white"
-
                           : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
-
                       )}
-
                     >
-
                       {approved ? "Approved ✓" : "Approve"}
-
                     </button>
-
                     <button
-
                       onClick={() => {
-
-                        // TODO: notify the manager assigned to this project on reject (to be wired later)
-
                         toast("Requirement rejected — manager notification will be enabled later");
-
                         setSelectedAlertId(null);
-
                       }}
-
                       className="rounded-md border border-red-300 bg-red-50 px-3.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
-
                     >
-
                       Reject
-
                     </button>
-
                     <button
-
                       onClick={handleUpdateAlert}
-
                       disabled={!approved}
-
                       className={cn(
-
                         "rounded-md px-3.5 py-1.5 text-xs font-medium transition-colors",
-
                         approved
-
                           ? "bg-primary text-primary-foreground hover:bg-primary/90"
-
                           : "border border-border bg-muted text-muted-foreground cursor-not-allowed",
-
                       )}
-
                     >
-
                       Update
-
                     </button>
-
                   </>
-
                 ) : (
-
                   <>
-
                     <button
-
                       onClick={() => setSelectedAlertId(null)}
-
                       className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent"
-
                     >
-
                       Cancel
-
                     </button>
-
                     <button
-
                       onClick={handleUpdateAlert}
-
                       className="rounded-md bg-primary px-3.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-
                     >
-
                       Save Governance Changes
-
                     </button>
-
                   </>
-
                 )}
-
               </div>
 
             </div>

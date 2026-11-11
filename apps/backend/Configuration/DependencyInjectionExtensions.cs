@@ -43,8 +43,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 
         // ---- Authorization ----
+        services.AddMemoryCache();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IRbacAuthorizationService, RbacAuthorizationService>();
 
         // ---- Features (modules) ----
         services.AddScoped<IClientService, ClientService>();

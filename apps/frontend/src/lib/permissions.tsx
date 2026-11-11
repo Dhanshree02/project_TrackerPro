@@ -38,10 +38,45 @@ const DEFAULT_CODE_TO_ID: Record<string, string> = {
   "project-detail": "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
   "employee-detail": "e8f7c125-0e5b-4e3d-98e3-542638fa0b23",
 
+  // Team Dashboard Tabs
+  "my-team-tab": "9854b7f3-0001-4000-8000-000000000001",
+  "team-roster": "9854b7f3-0001-4000-8000-000000000001",
+  "my-reportees": "b1e81c2a-34de-4dd4-b1f3-47387b8ed52b",
+  "all-employees": "552f9f86-4eb0-473a-8e39-9863cfefcea4",
+
+  // Action Centre Tabs
+  "bucket-list": "db9aa2d2-1876-4d81-9ff6-6b55be19fb7a",
+  "approvals": "a7bd6c40-4e96-4abb-be93-4ed4e4211978",
+  "alerts": "5b828ae3-0b45-4a1c-a1cb-78b29e882cf3",
+  "action-alerts": "5b828ae3-0b45-4a1c-a1cb-78b29e882cf3",
+  "notifications": "69e5bbc5-3f28-494e-a9c7-e4cff3c3dccc",
+
   // Timesheets Tabs
   "my-timesheet": "d67426d3-0001-4000-8000-000000000001",
   "timesheet-history": "d67426d3-0001-4000-8000-000000000002",
   "timesheet-approval": "d67426d3-0001-4000-8000-000000000003",
+
+  // Project Detail Tabs
+  "project-overview": "c1a11111-0001-4000-8000-000000000001",
+  "project-wbs": "c1a11111-0001-4000-8000-000000000002",
+  "project-team": "c1a11111-0001-4000-8000-000000000003",
+  "project-tasks": "c1a11111-0001-4000-8000-000000000004",
+  "project-health": "c1a11111-0001-4000-8000-000000000005",
+  "project-invoices": "c1a11111-0001-4000-8000-000000000006",
+
+  // Project Overview Subtabs
+  "overview-budget": "c1a11111-0003-4000-8000-000000000001",
+  "overview-senior-project-managers": "c1a11111-0003-4000-8000-000000000002",
+  "overview-project-managers": "c1a11111-0003-4000-8000-000000000003",
+  "overview-team-leads": "c1a11111-0003-4000-8000-000000000004",
+
+  // Project Health Subtabs
+  "health-issues": "c1a11111-0002-4000-8000-000000000001",
+  "health-alerts": "c1a11111-0002-4000-8000-000000000002",
+  "health-escalations": "c1a11111-0002-4000-8000-000000000003",
+  "health-appreciation": "c1a11111-0002-4000-8000-000000000004",
+  "health-customer-engagement": "c1a11111-0002-4000-8000-000000000005",
+  "health-extension-request": "c1a11111-0002-4000-8000-000000000006",
 
   // Dashboard Widgets
   "total-team-size": "682f26ec-e31d-43a0-82de-e915bab54b59",
@@ -72,6 +107,13 @@ const DEFAULT_PARENT_MAP: Record<string, string> = {
   // My Team submodules & Timesheets tabs
   "9854b7f3-8e7e-4ecb-864f-f2533ff295f9": "6055ce3c-b466-4354-ba9a-b4c309111e9d",
   "team-dashboard": "my-team",
+  "9854b7f3-0001-4000-8000-000000000001": "9854b7f3-8e7e-4ecb-864f-f2533ff295f9",
+  "my-team-tab": "team-dashboard",
+  "team-roster": "team-dashboard",
+  "b1e81c2a-34de-4dd4-b1f3-47387b8ed52b": "9854b7f3-8e7e-4ecb-864f-f2533ff295f9",
+  "my-reportees": "team-dashboard",
+  "552f9f86-4eb0-473a-8e39-9863cfefcea4": "9854b7f3-8e7e-4ecb-864f-f2533ff295f9",
+  "all-employees": "team-dashboard",
   "d67426d3-05df-4608-b8cf-c0ecfe698dc3": "6055ce3c-b466-4354-ba9a-b4c309111e9d",
   timesheets: "my-team",
   "d67426d3-0001-4000-8000-000000000001": "d67426d3-05df-4608-b8cf-c0ecfe698dc3",
@@ -80,6 +122,17 @@ const DEFAULT_PARENT_MAP: Record<string, string> = {
   "timesheet-history": "timesheets",
   "d67426d3-0001-4000-8000-000000000003": "d67426d3-05df-4608-b8cf-c0ecfe698dc3",
   "timesheet-approval": "timesheets",
+
+  // Action Centre Tabs
+  "db9aa2d2-1876-4d81-9ff6-6b55be19fb7a": "5a049953-8170-4ef4-a59e-43dc19e12de5",
+  "bucket-list": "action-centre",
+  "a7bd6c40-4e96-4abb-be93-4ed4e4211978": "5a049953-8170-4ef4-a59e-43dc19e12de5",
+  "approvals": "action-centre",
+  "5b828ae3-0b45-4a1c-a1cb-78b29e882cf3": "5a049953-8170-4ef4-a59e-43dc19e12de5",
+  "alerts": "action-centre",
+  "action-alerts": "action-centre",
+  "69e5bbc5-3f28-494e-a9c7-e4cff3c3dccc": "5a049953-8170-4ef4-a59e-43dc19e12de5",
+  "notifications": "action-centre",
 
   // Detail pages
   "a7e6b014-9f4a-4d2c-87d2-431527ef9a10": "4e57fd71-b53e-43c0-862e-5698e09c0922",
@@ -106,6 +159,44 @@ const DEFAULT_PARENT_MAP: Record<string, string> = {
   "team-resignation-count": "dashboard",
   "d6dea306-2e8f-41a0-89c8-857cb96f5558": "471bc977-be2e-449d-91e7-5c11cb9c4ec0",
   "team-capacity-offsite": "dashboard",
+
+  // Project detail tabs
+  "c1a11111-0001-4000-8000-000000000001": "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
+  "project-overview": "project-detail",
+  "c1a11111-0001-4000-8000-000000000002": "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
+  "project-wbs": "project-detail",
+  "c1a11111-0001-4000-8000-000000000003": "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
+  "project-team": "project-detail",
+  "c1a11111-0001-4000-8000-000000000004": "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
+  "project-tasks": "project-detail",
+  "c1a11111-0001-4000-8000-000000000005": "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
+  "project-health": "project-detail",
+  "c1a11111-0001-4000-8000-000000000006": "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
+  "project-invoices": "project-detail",
+
+  // Overview subtabs
+  "c1a11111-0003-4000-8000-000000000001": "c1a11111-0001-4000-8000-000000000001",
+  "overview-budget": "project-overview",
+  "c1a11111-0003-4000-8000-000000000002": "c1a11111-0001-4000-8000-000000000001",
+  "overview-senior-project-managers": "project-overview",
+  "c1a11111-0003-4000-8000-000000000003": "c1a11111-0001-4000-8000-000000000001",
+  "overview-project-managers": "project-overview",
+  "c1a11111-0003-4000-8000-000000000004": "c1a11111-0001-4000-8000-000000000001",
+  "overview-team-leads": "project-overview",
+
+  // Health subtabs
+  "c1a11111-0002-4000-8000-000000000001": "c1a11111-0001-4000-8000-000000000005",
+  "health-issues": "project-health",
+  "c1a11111-0002-4000-8000-000000000002": "c1a11111-0001-4000-8000-000000000005",
+  "health-alerts": "project-health",
+  "c1a11111-0002-4000-8000-000000000003": "c1a11111-0001-4000-8000-000000000005",
+  "health-escalations": "project-health",
+  "c1a11111-0002-4000-8000-000000000004": "c1a11111-0001-4000-8000-000000000005",
+  "health-appreciation": "project-health",
+  "c1a11111-0002-4000-8000-000000000005": "c1a11111-0001-4000-8000-000000000005",
+  "health-customer-engagement": "project-health",
+  "c1a11111-0002-4000-8000-000000000006": "c1a11111-0001-4000-8000-000000000005",
+  "health-extension-request": "project-health",
 
   // Employee detail tabs
   "e1a11111-0001-4000-8000-000000000001": "e8f7c125-0e5b-4e3d-98e3-542638fa0b23",
@@ -150,7 +241,16 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         };
 
         const registerTab = (t: SidebarTab, parentId?: string, parentCode?: string) => {
-          registerItem(t.code, t.id, parentId, parentCode);
+          const lCode = t.code.toLowerCase();
+          const lId = t.id.toLowerCase();
+          if (lCode === "my-team") {
+            mapping["my-team-tab"] = lId;
+            mapping["team-roster"] = lId;
+            if (parentId) parents[lId] = parentId.toLowerCase();
+            if (parentCode) parents["my-team-tab"] = parentCode.toLowerCase();
+          } else {
+            registerItem(t.code, t.id, parentId, parentCode);
+          }
           for (const child of t.children ?? []) {
             registerTab(child, t.id, t.code);
           }
@@ -381,9 +481,28 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     // 0. Super-admin default fallback: if no explicit permissions configured for admin, full access
     if (activeRoleName === "admin" && permissionMap.size === 0) return true;
 
-    // If item is a child, it cannot have manage access if its parent does not have manage access
+    // If item is a child, it cannot have manage access if its parent does not have manage access,
+    // EXCEPT for Project Detail and Team Dashboard child tabs/submodules whose manage access is configured independently
     const parent = parentMap[itemId] || parentMap[lower];
-    if (parent && !canManage(parent)) {
+    const independentContainers = new Set([
+      "project-detail",
+      "b8f7c125-0e5b-4e3d-98e3-542638fa0b21",
+      "project-overview",
+      "c1a11111-0001-4000-8000-000000000001",
+      "project-health",
+      "c1a11111-0001-4000-8000-000000000005",
+      "my-team",
+      "6055ce3c-b466-4354-ba9a-b4c309111e9d",
+      "team-dashboard",
+      "9854b7f3-8e7e-4ecb-864f-f2533ff295f9",
+      "action-centre",
+      "action-center",
+      "5a049953-8170-4ef4-a59e-43dc19e12de5",
+    ]);
+    const isIndependentDescendant =
+      parent && (independentContainers.has(parent) || independentContainers.has(parentMap[parent]));
+
+    if (parent && !isIndependentDescendant && !canManage(parent)) {
       return false;
     }
 

@@ -22,21 +22,26 @@ public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
         if (context.User.Identity?.IsAuthenticated != true)
         {
             var email = context.Request.Headers["X-User-Email"].FirstOrDefault();
-            var role = context.Request.Headers["X-User-Role"].FirstOrDefault();
+            var roleHeader = context.Request.Headers["X-User-Role"].FirstOrDefault();
             var userIdStr = context.Request.Headers["X-User-Id"].FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(email)) email = "admin@talakunchi.com";
-            if (string.IsNullOrWhiteSpace(role)) role = nameof(UserRole.Admin);
 
-            // User Role Access stores a temporary access role on the login account.
-            // That role decides what they can open. It is not their resource profile.
-            var db = context.RequestServices.GetRequiredService<AppDbContext>();
-            var normalized = email.Trim().ToLowerInvariant();
-            var accessRole = await db.Users.AsNoTracking()
-                .Where(u => u.Email.ToLower() == normalized && u.Role != null)
-                .Select(u => u.Role!.Name)
-                .FirstOrDefaultAsync();
-            if (!string.IsNullOrWhiteSpace(accessRole)) role = accessRole;
+            string role = roleHeader ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(role))
+            {
+                // User Role Access stores a temporary access role on the login account.
+                // That role decides what they can open. It is not their resource profile.
+                var db = context.RequestServices.GetRequiredService<AppDbContext>();
+                var normalized = email.Trim().ToLowerInvariant();
+                var accessRole = await db.Users.AsNoTracking()
+                    .Where(u => u.Email.ToLower() == normalized && u.Role != null)
+                    .Select(u => u.Role!.Name)
+                    .FirstOrDefaultAsync();
+                if (!string.IsNullOrWhiteSpace(accessRole)) role = accessRole;
+            }
+
+            if (string.IsNullOrWhiteSpace(role)) role = nameof(UserRole.Admin);
 
             Guid userId = Guid.TryParse(userIdStr, out var parsedId)
                 ? parsedId

@@ -23,9 +23,13 @@ export interface TeamCalendarPayload {
   schedule: TeamSchedule;
   configs: Record<string, MemberScheduleConfig>;
   companyHolidays: CompanyHoliday[];
+  isPeerTeam?: boolean;
+  hasDirectReports?: boolean;
 }
 
 interface CalendarResponse {
+  isPeerTeam?: boolean;
+  hasDirectReports?: boolean;
   members: Array<{
     id: string;
     name: string;
@@ -163,10 +167,16 @@ export const teamDataService = {
     return uniqueOnFloorRoleLabels(catalog.map((row) => row.name));
   },
 
-  async getCalendar(from: string, to: string, allEmployees = false): Promise<TeamCalendarPayload> {
-    const scope = allEmployees ? "&all=true" : "";
+  async getCalendar(
+    from: string,
+    to: string,
+    scope: "team" | "reportees" | "all" = "reportees",
+    allEmployees = false,
+  ): Promise<TeamCalendarPayload> {
+    const scopeParam = scope ? `&scope=${encodeURIComponent(scope)}` : "";
+    const allParam = allEmployees || scope === "all" ? "&all=true" : "";
     const data = await apiFetch<CalendarResponse>(
-      `/api/v1/my-team/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${scope}`,
+      `/api/v1/my-team/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${scopeParam}${allParam}`,
     );
 
     const members: TeamMember[] = data.members.map((member) => {
@@ -256,7 +266,14 @@ export const teamDataService = {
       }
     }
 
-    return { members: membersWithRoles, schedule, configs, companyHolidays };
+    return {
+      members: membersWithRoles,
+      schedule,
+      configs,
+      companyHolidays,
+      isPeerTeam: data.isPeerTeam,
+      hasDirectReports: data.hasDirectReports,
+    };
   },
 
   upsertDays(body: {
