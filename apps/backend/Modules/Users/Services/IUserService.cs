@@ -55,5 +55,7 @@ public interface IUserService
 
     Task<UserRoleAccessDto?> ResetUserRoleAccessAsync(Guid employeeId, CancellationToken ct = default);
 
+    Task<int> ResetAllUserRoleAccessAsync(CancellationToken ct = default);
+
     Task<IReadOnlyDictionary<string, IReadOnlyList<RoleDto>>> GetDepartmentRolesAsync(CancellationToken ct = default);
 }

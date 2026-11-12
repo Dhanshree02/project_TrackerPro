@@ -138,9 +138,9 @@ public class RolesController(IUserService users) : ControllerBase
         CancellationToken ct = default)
     {
         page = Math.Max(1, page);
-        perPage = Math.Clamp(perPage, 1, 100);
+        var effectivePerPage = perPage <= 0 ? 1000 : Math.Clamp(perPage, 1, 1000);
 
-        var result = await users.GetUserRoleAccessListAsync(page, perPage, search, department, ct);
+        var result = await users.GetUserRoleAccessListAsync(page, effectivePerPage, search, department, ct);
         return Ok(ApiResponse<PagedResult<UserRoleAccessDto>>.Ok(result, new ApiMeta
         {
             Total = result.Total,
@@ -171,6 +171,13 @@ public class RolesController(IUserService users) : ControllerBase
         return result is null
             ? NotFound(ApiResponse<UserRoleAccessDto>.Fail("NOT_FOUND", "Employee not found."))
             : Ok(ApiResponse<UserRoleAccessDto>.Ok(result));
+    }
+
+    [HttpPost("user-access/reset-all")]
+    public async Task<ActionResult<ApiResponse<int>>> ResetAllUserAccess(CancellationToken ct = default)
+    {
+        var count = await users.ResetAllUserRoleAccessAsync(ct);
+        return Ok(ApiResponse<int>.Ok(count));
     }
 
     [HttpGet("department-roles")]

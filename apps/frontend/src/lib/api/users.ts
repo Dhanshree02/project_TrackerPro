@@ -222,8 +222,8 @@ export async function fetchUserRoleAccessList(params: {
   department?: string;
 } = {}): Promise<PagedEnvelope<ApiUserRoleAccess>> {
   const query = new URLSearchParams();
-  if (params.page) query.set("page", String(params.page));
-  if (params.perPage) query.set("perPage", String(params.perPage));
+  if (params.page !== undefined) query.set("page", String(params.page));
+  if (params.perPage !== undefined) query.set("perPage", String(params.perPage));
   if (params.search) query.set("search", params.search);
   if (params.department && params.department !== "All") query.set("department", params.department);
 
@@ -241,6 +241,13 @@ export async function resetUserRoleAccess(employeeId: string): Promise<ApiUserRo
   return apiFetch<ApiUserRoleAccess>(`/api/v1/roles/user-access/${employeeId}/reset`, {
     method: "POST",
   });
+}
+
+export async function resetAllUserRoleAccess(): Promise<number> {
+  const res = await apiFetch<number>("/api/v1/roles/user-access/reset-all", {
+    method: "POST",
+  });
+  return typeof res === "number" ? res : 0;
 }
 
 export async function fetchDepartmentRoles(): Promise<Record<string, ApiRole[]>> {

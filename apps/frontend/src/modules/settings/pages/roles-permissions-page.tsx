@@ -1,11 +1,27 @@
 import { Fragment, useEffect, useMemo, useState, useCallback } from "react";
-import { ChevronRight, ChevronLeft, ChevronUp, ChevronDown, RotateCcw, Save, Check, Loader2, Info, Search, X } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  ChevronUp,
+  ChevronDown,
+  RotateCcw,
+  Save,
+  Check,
+  Loader2,
+  Info,
+  Search,
+  X,
+  ShieldCheck,
+  Users,
+  ArrowRight,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { Avatar } from "@/components/pills";
-import { paginationRange } from "@/lib/pagination";
+import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import { loadEmployeePersonas } from "@/lib/employee-personas";
 import { fetchSidebarModules, type SidebarModule, type SidebarSubModule, type SidebarTab, type SidebarWidget } from "@/lib/api/catalogs";
 import {
@@ -16,6 +32,7 @@ import {
   fetchUserRoleAccessList,
   updateUserRoleAccess,
   resetUserRoleAccess,
+  resetAllUserRoleAccess,
   type ApiRole,
   type ApiRolePermission,
   type ApiUserRoleAccess,
@@ -413,37 +430,32 @@ export function RolesPermissionsPage() {
     <AppShell title="Roles & Permissions" subtitle="Settings">
       <div className="space-y-6">
         {/* Internal Tabs Switcher: Rolewise Access vs Userwise Access */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-4">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">Roles & Permissions</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Configure system-wide RBAC access matrices or manage user-specific assigned roles.
-            </p>
-          </div>
-
-          <div className="inline-flex rounded-lg border border-border bg-muted/60 p-1 self-start sm:self-auto">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
             <button
               type="button"
               onClick={() => setActiveTab("rolewise")}
               className={cn(
-                "rounded-md px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer",
+                "inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
                 activeTab === "rolewise"
-                  ? "bg-background text-foreground shadow-xs font-semibold"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
+              <ShieldCheck className="h-3.5 w-3.5" />
               Rolewise Access
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("userwise")}
               className={cn(
-                "rounded-md px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer",
+                "inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
                 activeTab === "userwise"
-                  ? "bg-background text-foreground shadow-xs font-semibold"
+                  ? "bg-blue-600 text-white shadow-xs"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
+              <Users className="h-3.5 w-3.5" />
               Userwise Access
             </button>
           </div>
@@ -829,51 +841,70 @@ function UserwiseAccessView() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [department, setDepartment] = useState("All");
   const [rowUpdating, setRowUpdating] = useState<Record<string, boolean>>({});
   const [sortKey, setSortKey] = useState<UserwiseSortKey>("name");
   const [sortDir, setSortDir] = useState<UserwiseSortDir>("asc");
 
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
+  // Confirmation dialogs
+  const [pendingRoleChange, setPendingRoleChange] = useState<{
+    employee: ApiUserRoleAccess;
+    newRole: ApiRole;
+  } | null>(null);
 
-  // Load data from backend
+  const [confirmResetAll, setConfirmResetAll] = useState(false);
+  const [resettingAll, setResettingAll] = useState(false);
+
+  const [pendingResetSingle, setPendingResetSingle] = useState<ApiUserRoleAccess | null>(null);
+
+  // Load all data from backend (perPage: 0 requests all records)
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetchUserRoleAccessList({
-        page,
-        perPage: pageSize,
-        search: debouncedSearch.trim() || undefined,
-        department: department !== "All" ? department : undefined,
+        perPage: 0,
       });
       setData(res.items);
-      setTotal(res.total);
-      setTotalPages(res.totalPages);
     } catch {
       toast.error("Failed to load user access list.");
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, debouncedSearch, department]);
+  }, []);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
-  // Sort rows client-side for active page
+  // Total count of employees with switched roles
+  const switchedCount = useMemo(() => data.filter((e) => e.isSwitched).length, [data]);
+
+  // Filter rows by department and search query
+  const filteredRows = useMemo(() => {
+    let list = data;
+    if (department !== "All") {
+      const d = department.toLowerCase();
+      list = list.filter((e) => e.departmentName.toLowerCase() === d);
+    }
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (e) =>
+          e.fullName.toLowerCase().includes(q) ||
+          e.employeeCode.toLowerCase().includes(q) ||
+          e.workEmail.toLowerCase().includes(q) ||
+          e.departmentName.toLowerCase().includes(q) ||
+          (e.originalRoleDisplayName || e.originalRoleName).toLowerCase().includes(q) ||
+          (e.currentRoleDisplayName || e.currentRoleName).toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [data, department, search]);
+
+  // Sort filtered rows
   const sortedRows = useMemo(() => {
-    const sorted = [...data];
+    const sorted = [...filteredRows];
     sorted.sort((a, b) => {
       let diff = 0;
       if (sortKey === "name") {
@@ -892,8 +923,16 @@ function UserwiseAccessView() {
       return sortDir === "asc" ? diff : -diff;
     });
     return sorted;
-  }, [data, sortKey, sortDir]);
+  }, [filteredRows, sortKey, sortDir]);
 
+  // Client-side pagination over filtered and sorted list
+  const totalItems = sortedRows.length;
+  const totalPages = totalPageCount(totalItems, pageSize);
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const pageRows = paginateSlice(sortedRows, currentPage, pageSize);
+  const pageRange = paginationRange(currentPage, pageSize, totalItems);
+
+  // Role change executor
   const handleRoleChange = async (employeeId: string, newRoleId: string) => {
     if (!newRoleId) return;
     setRowUpdating((prev) => ({ ...prev, [employeeId]: true }));
@@ -909,10 +948,12 @@ function UserwiseAccessView() {
       toast.error(err?.message || "Failed to update employee role.");
     } finally {
       setRowUpdating((prev) => ({ ...prev, [employeeId]: false }));
+      setPendingRoleChange(null);
     }
   };
 
-  const handleReset = async (employeeId: string) => {
+  // Single Reset executor
+  const handleResetSingle = async (employeeId: string) => {
     setRowUpdating((prev) => ({ ...prev, [employeeId]: true }));
     try {
       const updated = await resetUserRoleAccess(employeeId);
@@ -926,6 +967,26 @@ function UserwiseAccessView() {
       toast.error(err?.message || "Failed to reset employee role.");
     } finally {
       setRowUpdating((prev) => ({ ...prev, [employeeId]: false }));
+      setPendingResetSingle(null);
+    }
+  };
+
+  // Overall Reset executor
+  const handleResetAll = async () => {
+    setResettingAll(true);
+    try {
+      const count = await resetAllUserRoleAccess();
+      toast.success(`Successfully reset ${count} employee role${count === 1 ? "" : "s"} to original.`);
+      await loadData();
+      void loadEmployeePersonas(true);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("permissions-updated", { detail: { resetAll: true } }));
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to reset all roles.");
+    } finally {
+      setResettingAll(false);
+      setConfirmResetAll(false);
     }
   };
 
@@ -933,16 +994,13 @@ function UserwiseAccessView() {
 
   const clearAllFilters = () => {
     setSearch("");
-    setDebouncedSearch("");
     setDepartment("All");
     setPage(1);
   };
 
-  const pageRange = paginationRange(page, pageSize, total);
-
   return (
     <div className="w-full space-y-4">
-      {/* Filter and Search Bar (matching Employee Directory card design) */}
+      {/* Filter, Search, and Action Bar (matching Employee Directory card design) */}
       <div className="rounded-xl border border-border bg-card p-3.5 shadow-xs">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
           {/* Search input */}
@@ -951,14 +1009,20 @@ function UserwiseAccessView() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="Search by employee name, code, email, role..."
               className="h-9 w-full rounded-md border border-input bg-background pl-9 pr-8 text-xs font-normal text-foreground placeholder:text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary transition-all"
             />
             {search && (
               <button
                 type="button"
-                onClick={() => setSearch("")}
+                onClick={() => {
+                  setSearch("");
+                  setPage(1);
+                }}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 cursor-pointer"
                 title="Clear search"
               >
@@ -998,6 +1062,34 @@ function UserwiseAccessView() {
               </button>
             </div>
           )}
+
+          {/* Overall Reset Button */}
+          <div className="shrink-0 flex items-center">
+            <button
+              type="button"
+              onClick={() => setConfirmResetAll(true)}
+              disabled={switchedCount === 0 || resettingAll}
+              title={
+                switchedCount > 0
+                  ? `Reset all ${switchedCount} switched employees back to original role`
+                  : "No switched employee roles to reset"
+              }
+              className={cn(
+                "h-9 inline-flex items-center justify-center gap-1.5 rounded-md px-3 text-xs font-semibold transition-colors shadow-2xs",
+                switchedCount > 0
+                  ? "border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/60 cursor-pointer"
+                  : "border border-border/40 bg-muted/20 text-muted-foreground/40 cursor-not-allowed"
+              )}
+            >
+              <RotateCcw className={cn("h-3.5 w-3.5", resettingAll && "animate-spin")} />
+              <span>Overall Reset</span>
+              {switchedCount > 0 && (
+                <span className="inline-flex items-center justify-center rounded-full bg-amber-600 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none">
+                  {switchedCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1078,14 +1170,14 @@ function UserwiseAccessView() {
                     </div>
                   </td>
                 </tr>
-              ) : sortedRows.length === 0 ? (
+              ) : pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-16 text-center text-sm text-muted-foreground">
                     No employees match your search or filter criteria.
                   </td>
                 </tr>
               ) : (
-                sortedRows.map((row) => {
+                pageRows.map((row) => {
                   const isUpdating = !!rowUpdating[row.id];
                   return (
                     <tr
@@ -1130,7 +1222,13 @@ function UserwiseAccessView() {
                         <div className="flex flex-col gap-1 max-w-[230px]">
                           <select
                             value={row.currentRoleId ?? ""}
-                            onChange={(e) => handleRoleChange(row.id, e.target.value)}
+                            onChange={(e) => {
+                              const newRoleId = e.target.value;
+                              if (!newRoleId || newRoleId === row.currentRoleId) return;
+                              const targetRole = row.departmentRoles.find((r) => r.id === newRoleId);
+                              if (!targetRole) return;
+                              setPendingRoleChange({ employee: row, newRole: targetRole });
+                            }}
                             disabled={row.isSuperAdmin || isUpdating}
                             title={row.isSuperAdmin ? "Super Admin role is locked" : `Choose role from ${row.departmentName}`}
                             className={cn(
@@ -1160,7 +1258,7 @@ function UserwiseAccessView() {
                       <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5 text-right">
                         <button
                           type="button"
-                          onClick={() => handleReset(row.id)}
+                          onClick={() => setPendingResetSingle(row)}
                           disabled={!row.isSwitched || isUpdating}
                           title={
                             row.isSwitched
@@ -1194,7 +1292,7 @@ function UserwiseAccessView() {
         <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
           <div className="flex items-center gap-3">
             <span>
-              Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong> - <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.to}</strong> of <strong className="font-semibold text-blue-950 dark:text-blue-100">{total}</strong> employees
+              Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong> - <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.to}</strong> of <strong className="font-semibold text-blue-950 dark:text-blue-100">{totalItems}</strong> employees
             </span>
             <span className="text-slate-300 dark:text-slate-600">|</span>
             <div className="flex items-center gap-1.5">
@@ -1214,18 +1312,18 @@ function UserwiseAccessView() {
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
+              disabled={currentPage <= 1}
               className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors cursor-pointer"
             >
               <ChevronLeft className="h-3.5 w-3.5" /> Previous
             </button>
             <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
-              {page} / {totalPages}
+              {currentPage} / {totalPages}
             </span>
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
+              disabled={currentPage >= totalPages}
               className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors cursor-pointer"
             >
               Next <ChevronRight className="h-3.5 w-3.5" />
@@ -1233,6 +1331,266 @@ function UserwiseAccessView() {
           </div>
         </div>
       </div>
+
+      {/* ─── Confirmation Modal: Dropdown Role Change ─── */}
+      {pendingRoleChange && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-role-switch-title"
+            className="relative w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl space-y-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
+                  <ShieldCheck className="size-5" />
+                </div>
+                <div>
+                  <h3 id="confirm-role-switch-title" className="text-sm font-bold text-foreground">
+                    Confirm Role Switch
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Verify the RBAC role update for this employee
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingRoleChange(null)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+                title="Close dialog"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {/* Employee preview */}
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center gap-2.5">
+                <Avatar name={pendingRoleChange.employee.fullName} size={36} />
+                <div className="min-w-0 flex flex-col">
+                  <span className="font-semibold text-xs text-foreground truncate">
+                    {pendingRoleChange.employee.fullName}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-mono truncate">
+                    {pendingRoleChange.employee.employeeCode} · {pendingRoleChange.employee.workEmail}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border/60">
+                <span className="text-muted-foreground">Department:</span>
+                <span className="font-medium text-foreground">{pendingRoleChange.employee.departmentName}</span>
+              </div>
+            </div>
+
+            {/* Role transition box */}
+            <div className="rounded-lg border border-blue-200/80 dark:border-blue-900 bg-blue-50/50 dark:bg-blue-950/30 p-3">
+              <span className="text-[11px] font-medium text-muted-foreground block mb-1.5">
+                Role Transition:
+              </span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0 rounded-md border border-slate-200 dark:border-slate-800 bg-background px-2.5 py-1.5 text-center">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground block font-mono">Current</span>
+                  <span className="text-xs font-semibold text-foreground truncate block" title={pendingRoleChange.employee.currentRoleDisplayName || pendingRoleChange.employee.currentRoleName}>
+                    {pendingRoleChange.employee.currentRoleDisplayName || pendingRoleChange.employee.currentRoleName}
+                  </span>
+                </div>
+
+                <ArrowRight className="size-4 text-blue-600 dark:text-blue-400 shrink-0" />
+
+                <div className="flex-1 min-w-0 rounded-md border border-blue-300 dark:border-blue-700 bg-blue-100/60 dark:bg-blue-900/40 px-2.5 py-1.5 text-center">
+                  <span className="text-[10px] uppercase tracking-wider text-blue-700 dark:text-blue-300 block font-mono font-bold">New Role</span>
+                  <span className="text-xs font-bold text-blue-900 dark:text-blue-100 truncate block" title={pendingRoleChange.newRole.displayName || pendingRoleChange.newRole.name}>
+                    {pendingRoleChange.newRole.displayName || pendingRoleChange.newRole.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Switching to <strong className="text-foreground">{pendingRoleChange.newRole.displayName || pendingRoleChange.newRole.name}</strong> will update this employee's system permissions to match the chosen role.
+            </p>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setPendingRoleChange(null)}
+                className="rounded-lg border border-border px-3.5 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoleChange(pendingRoleChange.employee.id, pendingRoleChange.newRole.id)}
+                disabled={rowUpdating[pendingRoleChange.employee.id]}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer shadow-xs"
+              >
+                {rowUpdating[pendingRoleChange.employee.id] ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Check className="size-3.5" />
+                )}
+                <span>Confirm Switch</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Confirmation Modal: Overall Reset All ─── */}
+      {confirmResetAll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-reset-all-title"
+            className="relative w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl space-y-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                  <RotateCcw className="size-5" />
+                </div>
+                <div>
+                  <h3 id="confirm-reset-all-title" className="text-sm font-bold text-foreground">
+                    Reset All Switched Roles
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Revert all switched users to baseline original roles
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfirmResetAll(false)}
+                disabled={resettingAll}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+                title="Close dialog"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50/60 dark:bg-amber-950/30 p-3.5 space-y-2">
+              <div className="flex items-center gap-2 text-amber-800 dark:text-amber-200 font-semibold text-xs">
+                <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>{switchedCount} employee{switchedCount === 1 ? "" : "s"} currently switched</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                This action will reset the assigned RBAC role for all <strong className="text-foreground">{switchedCount}</strong> switched employees back to their original department baseline roles.
+              </p>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Are you sure you want to proceed with the overall reset?
+            </p>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmResetAll(false)}
+                disabled={resettingAll}
+                className="rounded-lg border border-border px-3.5 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleResetAll}
+                disabled={resettingAll}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50 transition-colors cursor-pointer shadow-xs"
+              >
+                {resettingAll ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="size-3.5" />
+                )}
+                <span>Confirm Reset All</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Confirmation Modal: Single Employee Reset ─── */}
+      {pendingResetSingle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-reset-single-title"
+            className="relative w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-2xl space-y-4"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                  <RotateCcw className="size-5" />
+                </div>
+                <div>
+                  <h3 id="confirm-reset-single-title" className="text-sm font-bold text-foreground">
+                    Reset Role to Original
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Revert this employee to original baseline role
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingResetSingle(null)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground cursor-pointer"
+                title="Close dialog"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center gap-2.5">
+                <Avatar name={pendingResetSingle.fullName} size={34} />
+                <div className="min-w-0 flex flex-col">
+                  <span className="font-semibold text-xs text-foreground truncate">
+                    {pendingResetSingle.fullName}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground font-mono truncate">
+                    {pendingResetSingle.employeeCode} · {pendingResetSingle.workEmail}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Reset role from <strong className="text-foreground">{pendingResetSingle.currentRoleDisplayName}</strong> back to original role <strong className="text-foreground">{pendingResetSingle.originalRoleDisplayName}</strong>?
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setPendingResetSingle(null)}
+                className="rounded-lg border border-border px-3.5 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResetSingle(pendingResetSingle.id)}
+                disabled={rowUpdating[pendingResetSingle.id]}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors cursor-pointer shadow-xs"
+              >
+                {rowUpdating[pendingResetSingle.id] ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <RotateCcw className="size-3.5" />
+                )}
+                <span>Confirm Reset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

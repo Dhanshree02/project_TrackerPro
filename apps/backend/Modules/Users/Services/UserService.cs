@@ -500,15 +500,14 @@ public sealed class UserService(
 
         var total = await query.CountAsync(ct);
 
-        var items = await query
-            .OrderBy(e => e.EmployeeCode)
-            .Skip((page - 1) * perPage)
-            .Take(perPage)
-            .ToListAsync(ct);
+        var queryOrdered = query.OrderBy(e => e.EmployeeCode);
+        var items = (perPage <= 0 || perPage >= 1000)
+            ? await queryOrdered.ToListAsync(ct)
+            : await queryOrdered.Skip((page - 1) * perPage).Take(perPage).ToListAsync(ct);
 
         var dtos = items.Select(e => BuildUserRoleAccessDto(e, allRoles, roleByName, roleById)).ToList();
 
-        return new PagedResult<UserRoleAccessDto>(dtos, page, perPage, total);
+        return new PagedResult<UserRoleAccessDto>(dtos, page, perPage <= 0 ? total : perPage, total);
     }
 
     public async Task<UserRoleAccessDto?> UpdateUserRoleAccessAsync(Guid employeeId, Guid roleId, CancellationToken ct = default)
@@ -620,6 +619,64 @@ public sealed class UserService(
         var roleByName = allRoles.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
         var roleById = allRoles.ToDictionary(r => r.Id);
         return BuildUserRoleAccessDto(employee, allRoles, roleByName, roleById);
+    }
+
+    public async Task<int> ResetAllUserRoleAccessAsync(CancellationToken ct = default)
+    {
+        var allRoles = await db.Roles.ToListAsync(ct);
+        var roleByName = allRoles.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
+
+        var employees = await db.Employees
+            .Where(e => e.DeletedAtUtc == null && !string.IsNullOrEmpty(e.OriginalRole) && e.Role != e.OriginalRole)
+            .ToListAsync(ct);
+
+        if (employees.Count == 0) return 0;
+
+        var employeeCodes = employees.Select(e => e.EmployeeCode).ToList();
+        var employeeEmails = employees.Select(e => e.WorkEmail.ToLower()).ToList();
+
+        var users = await db.Users
+            .Where(u => employeeCodes.Contains(u.EmployeeId) || (u.Email != null && employeeEmails.Contains(u.Email.ToLower())))
+            .ToListAsync(ct);
+
+        var usersByCode = users.Where(u => !string.IsNullOrEmpty(u.EmployeeId)).ToDictionary(u => u.EmployeeId, StringComparer.OrdinalIgnoreCase);
+        var usersByEmail = users.Where(u => !string.IsNullOrEmpty(u.Email)).ToDictionary(u => u.Email.ToLower(), StringComparer.OrdinalIgnoreCase);
+
+        var count = 0;
+        foreach (var emp in employees)
+        {
+            var isSuperAdmin = OrgRoleMatrix.IsSuperAdmin(emp.EmployeeCode, emp.WorkEmail);
+            if (isSuperAdmin) continue;
+
+            var origRoleName = emp.OriginalRole;
+            if (string.IsNullOrWhiteSpace(origRoleName)) continue;
+
+            if (!roleByName.TryGetValue(origRoleName, out var targetRole))
+            {
+                targetRole = allRoles.FirstOrDefault(r => r.DisplayName.Equals(origRoleName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (targetRole is null) continue;
+
+            emp.Role = targetRole.Name;
+            emp.UpdatedAtUtc = DateTime.UtcNow;
+            count++;
+
+            User? user = null;
+            if (!string.IsNullOrEmpty(emp.EmployeeCode) && usersByCode.TryGetValue(emp.EmployeeCode, out user))
+            {
+                user.RoleId = targetRole.Id;
+                user.UpdatedAtUtc = DateTime.UtcNow;
+            }
+            else if (!string.IsNullOrEmpty(emp.WorkEmail) && usersByEmail.TryGetValue(emp.WorkEmail.ToLower(), out user))
+            {
+                user.RoleId = targetRole.Id;
+                user.UpdatedAtUtc = DateTime.UtcNow;
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        return count;
     }
 
     public async Task<IReadOnlyDictionary<string, IReadOnlyList<RoleDto>>> GetDepartmentRolesAsync(CancellationToken ct = default)

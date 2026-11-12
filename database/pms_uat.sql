@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict c2CNKdfED3syW1Ycw5GoZSyDouM1yZAKPDDENwaJRnuru6mJbeycanNYZYIyeIa
+\restrict 0xFcKcptbifoCdnBPfCDGywS2teqFsva0FAABpgHYCkmBYKHO5KU9lOf2JRiIvg
 
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
@@ -18,463 +18,6 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheets DROP CONSTRAINT IF EXISTS "FK_tbl_timesheets_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheet_entry_days DROP CONSTRAINT IF EXISTS "FK_tbl_timesheet_entry_days_tbl_timesheet_entries_TimesheetEnt~";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheet_entries DROP CONSTRAINT IF EXISTS "FK_tbl_timesheet_entries_tbl_timesheets_TimesheetWeekId";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_member_schedules DROP CONSTRAINT IF EXISTS "FK_tbl_team_member_schedules_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_member_holidays DROP CONSTRAINT IF EXISTS "FK_tbl_team_member_holidays_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_day_entries DROP CONSTRAINT IF EXISTS "FK_tbl_team_day_entries_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_onfloorrole DROP CONSTRAINT IF EXISTS "FK_tbl_onfloorrole_tbl_roles_RbacRoleId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_onfloorrole DROP CONSTRAINT IF EXISTS "FK_tbl_onfloorrole_mst_designations_DesignationId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_onfloorrole DROP CONSTRAINT IF EXISTS "FK_tbl_onfloorrole_mst_departments_DepartmentId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_tbl_users_UserId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_tbl_employees_ReportingManagerId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_tbl_employees_ProjectManagerId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_tbl_employees_EngagementManagerEmployeeId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_sub_departments_SubDepartmentId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_salary_bands_SalaryBandId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_nationalities_NationalityId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_employee_statuses_EmployeeStatusId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_designations_DesignationId";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_departments_DepartmentId";
-ALTER TABLE IF EXISTS ONLY resource.log_employee_activity DROP CONSTRAINT IF EXISTS "FK_log_employee_activity_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY repository.tbl_repository_departments DROP CONSTRAINT IF EXISTS "FK_tbl_repository_departments_tbl_repository_items_RepositoryI~";
-ALTER TABLE IF EXISTS ONLY repository.tbl_repository_departments DROP CONSTRAINT IF EXISTS "FK_tbl_repository_departments_mst_departments_DepartmentId";
-ALTER TABLE IF EXISTS ONLY project.tbl_resource_allocation_requests DROP CONSTRAINT IF EXISTS "tbl_resource_allocation_requests_ProjectId_fkey";
-ALTER TABLE IF EXISTS ONLY project.tbl_resource_allocation_requests DROP CONSTRAINT IF EXISTS "tbl_resource_allocation_requests_EmployeeId_fkey";
-ALTER TABLE IF EXISTS ONLY project.tbl_resource_allocation_requests DROP CONSTRAINT IF EXISTS "tbl_resource_allocation_requests_DepartmentId_fkey";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_additional_requirements DROP CONSTRAINT IF EXISTS "tbl_project_additional_requirements_ProjectId_fkey";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_service_escalation_stakeholders DROP CONSTRAINT IF EXISTS "FK_tbl_svc_escalation_stakeholders_escalation";
-ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_sub_ventures_SubVentureId";
-ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_projects_RenewedFromProjectId";
-ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_employees_TeamLeadId";
-ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_employees_SalesPersonId";
-ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_employees_ProjectManagerId";
-ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_employees_EngagementManagerId";
-ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_clients_ClientId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_team_members DROP CONSTRAINT IF EXISTS "FK_tbl_project_team_members_tbl_projects_ProjectId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_team_members DROP CONSTRAINT IF EXISTS "FK_tbl_project_team_members_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_team_members DROP CONSTRAINT IF EXISTS "FK_tbl_project_team_members_mst_departments_DepartmentId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_project_tasks_tbl_projects_ProjectId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_project_tasks_tbl_project_services_ProjectServiceId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_task_assignments DROP CONSTRAINT IF EXISTS "FK_tbl_project_task_assignments_tbl_project_tasks_TaskId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_task_assignments DROP CONSTRAINT IF EXISTS "FK_tbl_project_task_assignments_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_services DROP CONSTRAINT IF EXISTS "FK_tbl_project_services_tbl_projects_ProjectId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_services DROP CONSTRAINT IF EXISTS "FK_tbl_project_services_mst_service_catalog_ServiceCatalogId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_service_escalations DROP CONSTRAINT IF EXISTS "FK_tbl_project_service_escalations_projects";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_issues DROP CONSTRAINT IF EXISTS "FK_tbl_project_issues_projects";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_issues DROP CONSTRAINT IF EXISTS "FK_tbl_project_issues_employees";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_invoices DROP CONSTRAINT IF EXISTS "FK_tbl_project_invoices_tbl_projects_ProjectId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_invoices DROP CONSTRAINT IF EXISTS "FK_tbl_project_invoices_tbl_project_services_ProjectServiceId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_interviews DROP CONSTRAINT IF EXISTS "FK_tbl_project_interviews_tbl_projects_ProjectId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_extension_requests DROP CONSTRAINT IF EXISTS "FK_tbl_project_extension_requests_tbl_projects_ProjectId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_extension_approvers DROP CONSTRAINT IF EXISTS "FK_tbl_project_extension_approvers_tbl_project_extension_reques";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_documents DROP CONSTRAINT IF EXISTS "FK_tbl_project_documents_tbl_projects_ProjectId";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_alerts DROP CONSTRAINT IF EXISTS "FK_tbl_project_alerts_projects";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_alerts DROP CONSTRAINT IF EXISTS "FK_tbl_project_alerts_issues";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_alerts DROP CONSTRAINT IF EXISTS "FK_tbl_project_alerts_employees";
-ALTER TABLE IF EXISTS ONLY project.log_project_task_assignments DROP CONSTRAINT IF EXISTS "FK_log_project_task_assignments_tbl_project_tasks_TaskId";
-ALTER TABLE IF EXISTS ONLY project.log_project_task_assignments DROP CONSTRAINT IF EXISTS "FK_log_project_task_assignments_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY master.mst_offices DROP CONSTRAINT IF EXISTS "mst_offices_WorkLocationId_fkey";
-ALTER TABLE IF EXISTS ONLY master.mst_widgets DROP CONSTRAINT IF EXISTS "FK_mst_widgets_mst_modules_ParentId";
-ALTER TABLE IF EXISTS ONLY master.mst_tabs DROP CONSTRAINT IF EXISTS "FK_mst_tabs_mst_tabs_TabId";
-ALTER TABLE IF EXISTS ONLY master.mst_tabs DROP CONSTRAINT IF EXISTS "FK_mst_tabs_mst_submodules_SubModuleId";
-ALTER TABLE IF EXISTS ONLY master.mst_tabs DROP CONSTRAINT IF EXISTS "FK_mst_tabs_mst_modules_ModuleId";
-ALTER TABLE IF EXISTS ONLY master.mst_submodules DROP CONSTRAINT IF EXISTS "FK_mst_submodules_mst_submodules_ParentId";
-ALTER TABLE IF EXISTS ONLY master.mst_submodules DROP CONSTRAINT IF EXISTS "FK_mst_submodules_mst_modules_ModuleId";
-ALTER TABLE IF EXISTS ONLY master.mst_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_sub_departments_mst_departments_DepartmentId";
-ALTER TABLE IF EXISTS ONLY master.mst_service_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_service_sub_departments_mst_service_departments_Departme";
-ALTER TABLE IF EXISTS ONLY master.mst_service_departments DROP CONSTRAINT IF EXISTS "FK_mst_service_departments_mst_service_groups_GroupId";
-ALTER TABLE IF EXISTS ONLY master.mst_service_catalog DROP CONSTRAINT IF EXISTS "FK_mst_service_catalog_mst_service_sub_departments_SubDepartmen";
-ALTER TABLE IF EXISTS ONLY master.mst_reporting_managers DROP CONSTRAINT IF EXISTS "FK_mst_reporting_managers_tbl_employees_EmployeeId";
-ALTER TABLE IF EXISTS ONLY master.mst_org_role_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_org_role_sub_departments_mst_sub_departments_SubDepartm~";
-ALTER TABLE IF EXISTS ONLY master.mst_org_role_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_org_role_sub_departments_mst_org_role_map_OrgRoleMapId";
-ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "FK_mst_org_role_map_mst_sub_departments_SubDepartmentId";
-ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "FK_mst_org_role_map_RbacRoleId";
-ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "FK_mst_org_role_map_DesignationId";
-ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "FK_mst_org_role_map_DepartmentId";
-ALTER TABLE IF EXISTS ONLY master.mst_onfloorrole_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_onfloorrole_sub_departments_tbl_onfloorrole_OnFloorRole~";
-ALTER TABLE IF EXISTS ONLY master.mst_onfloorrole_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_onfloorrole_sub_departments_mst_sub_departments_SubDepa~";
-ALTER TABLE IF EXISTS ONLY master.mst_designations DROP CONSTRAINT IF EXISTS "FK_mst_designations_tbl_roles_DefaultRoleId";
-ALTER TABLE IF EXISTS ONLY master.mst_designations DROP CONSTRAINT IF EXISTS "FK_mst_designations_mst_departments_DepartmentId";
-ALTER TABLE IF EXISTS ONLY master.mst_designation_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_designation_sub_departments_mst_sub_departments_SubDepa~";
-ALTER TABLE IF EXISTS ONLY master.mst_designation_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_designation_sub_departments_mst_designations_Designatio~";
-ALTER TABLE IF EXISTS ONLY master.mst_cities DROP CONSTRAINT IF EXISTS "FK_mst_cities_mst_countries_CountryId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_sub_ventures DROP CONSTRAINT IF EXISTS "FK_tbl_sub_ventures_tbl_clients_ClientId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_tbl_employees_SalesManagerId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_tbl_employees_EngagementManagerId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_mst_industries_IndustryId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_mst_countries_CountryId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_mst_cities_CityId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_client_contacts DROP CONSTRAINT IF EXISTS "FK_tbl_client_contacts_tbl_sub_ventures_SubVentureId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_client_contacts DROP CONSTRAINT IF EXISTS "FK_tbl_client_contacts_tbl_clients_ClientId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_client_assignments DROP CONSTRAINT IF EXISTS "FK_tbl_client_assignments_tbl_users_UserId";
-ALTER TABLE IF EXISTS ONLY customer.tbl_client_assignments DROP CONSTRAINT IF EXISTS "FK_tbl_client_assignments_tbl_clients_ClientId";
-ALTER TABLE IF EXISTS ONLY auth.tbl_role_permissions DROP CONSTRAINT IF EXISTS "tbl_role_permissions_RoleId_fkey";
-ALTER TABLE IF EXISTS ONLY auth.tbl_users DROP CONSTRAINT IF EXISTS "FK_tbl_users_tbl_roles_RoleId";
-ALTER TABLE IF EXISTS ONLY auth.tbl_refresh_tokens DROP CONSTRAINT IF EXISTS "FK_tbl_refresh_tokens_tbl_users_UserId";
-ALTER TABLE IF EXISTS ONLY auth.log_role_permission_audits DROP CONSTRAINT IF EXISTS "FK_log_role_permission_audits_tbl_roles_RoleId";
-ALTER TABLE IF EXISTS ONLY action.tbl_notifications DROP CONSTRAINT IF EXISTS fk_notifications_recipient_employee;
-ALTER TABLE IF EXISTS ONLY action.tbl_notifications DROP CONSTRAINT IF EXISTS fk_notifications_project;
-ALTER TABLE IF EXISTS ONLY action.tbl_notifications DROP CONSTRAINT IF EXISTS fk_notifications_issue;
-ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_projects_ProjectId";
-ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_project_tasks_TaskId";
-ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_project_task_assignments_AssignmentId";
-ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_project_services_ProjectServiceId";
-ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_employees_EmployeeId";
-DROP TRIGGER IF EXISTS trg_protect_default_permissions ON auth.tbl_role_permissions;
-DROP INDEX IF EXISTS timesheet."IX_tbl_timesheets_EmployeeId_WeekStart";
-DROP INDEX IF EXISTS timesheet."IX_tbl_timesheet_entry_days_TimesheetEntryId_DayIndex";
-DROP INDEX IF EXISTS timesheet."IX_tbl_timesheet_entries_TimesheetWeekId";
-DROP INDEX IF EXISTS timesheet."IX_tbl_team_member_schedules_EmployeeId";
-DROP INDEX IF EXISTS timesheet."IX_tbl_team_member_holidays_EmployeeId_HolidayDate";
-DROP INDEX IF EXISTS timesheet."IX_tbl_team_day_entries_EmployeeId_WorkDate";
-DROP INDEX IF EXISTS resource."IX_tbl_onfloorrole_RbacRoleId";
-DROP INDEX IF EXISTS resource."IX_tbl_onfloorrole_Name";
-DROP INDEX IF EXISTS resource."IX_tbl_onfloorrole_DesignationId";
-DROP INDEX IF EXISTS resource."IX_tbl_onfloorrole_DepartmentId";
-DROP INDEX IF EXISTS resource."IX_tbl_exited_employees_OriginalEmployeeId";
-DROP INDEX IF EXISTS resource."IX_tbl_exited_employees_EmployeeCode";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_WorkEmail";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_UserId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_SubDepartmentId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_SalaryBandId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_ReportingManagerId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_ProjectManagerId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_NationalityId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_EngagementManagerEmployeeId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_EmployeeStatusId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_EmployeeCode";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_DesignationId";
-DROP INDEX IF EXISTS resource."IX_tbl_employees_DepartmentId";
-DROP INDEX IF EXISTS resource."IX_log_employee_activity_EmployeeId";
-DROP INDEX IF EXISTS resource."IX_log_employee_activity_CreatedAtUtc";
-DROP INDEX IF EXISTS repository."IX_tbl_repository_items_DeletedAtUtc";
-DROP INDEX IF EXISTS repository."IX_tbl_repository_items_Category";
-DROP INDEX IF EXISTS repository."IX_tbl_repository_departments_DepartmentId";
-DROP INDEX IF EXISTS repository."IX_log_repository_activity_DeletedAtUtc";
-DROP INDEX IF EXISTS repository."IX_log_repository_activity_CreatedAtUtc";
-DROP INDEX IF EXISTS project.ix_tbl_project_appreciations_recipient_id;
-DROP INDEX IF EXISTS project.ix_tbl_project_appreciations_project_id;
-DROP INDEX IF EXISTS project.ix_resource_alloc_req_project;
-DROP INDEX IF EXISTS project.ix_resource_alloc_req_employee;
-DROP INDEX IF EXISTS project.ix_resource_alloc_req_approver;
-DROP INDEX IF EXISTS project."IX_tbl_svc_escalation_stakeholders_EscalationId";
-DROP INDEX IF EXISTS project."IX_tbl_svc_escalation_stakeholders_EmployeeId";
-DROP INDEX IF EXISTS project."IX_tbl_projects_WbsStatus";
-DROP INDEX IF EXISTS project."IX_tbl_projects_WbsId";
-DROP INDEX IF EXISTS project."IX_tbl_projects_TeamLeadId";
-DROP INDEX IF EXISTS project."IX_tbl_projects_SubVentureId";
-DROP INDEX IF EXISTS project."IX_tbl_projects_Status";
-DROP INDEX IF EXISTS project."IX_tbl_projects_SalesPersonId";
-DROP INDEX IF EXISTS project."IX_tbl_projects_RenewedFromProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_projects_ProjectManagerId";
-DROP INDEX IF EXISTS project."IX_tbl_projects_ProjectCode";
-DROP INDEX IF EXISTS project."IX_tbl_projects_EngagementManagerId";
-DROP INDEX IF EXISTS project."IX_tbl_projects_ClientId";
-DROP INDEX IF EXISTS project."IX_tbl_project_team_members_ProjectId_EmployeeId";
-DROP INDEX IF EXISTS project."IX_tbl_project_team_members_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_team_members_EmployeeId";
-DROP INDEX IF EXISTS project."IX_tbl_project_team_members_DepartmentId";
-DROP INDEX IF EXISTS project."IX_tbl_project_tasks_Stage";
-DROP INDEX IF EXISTS project."IX_tbl_project_tasks_ProjectServiceId";
-DROP INDEX IF EXISTS project."IX_tbl_project_tasks_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_tasks_Priority";
-DROP INDEX IF EXISTS project."IX_tbl_project_task_assignments_TaskId_EmployeeId";
-DROP INDEX IF EXISTS project."IX_tbl_project_task_assignments_TaskId";
-DROP INDEX IF EXISTS project."IX_tbl_project_task_assignments_EmployeeId";
-DROP INDEX IF EXISTS project."IX_tbl_project_services_ServiceCatalogId";
-DROP INDEX IF EXISTS project."IX_tbl_project_services_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_service_escalations_ProjectServiceId";
-DROP INDEX IF EXISTS project."IX_tbl_project_service_escalations_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_issues_RaisedByEmployeeId";
-DROP INDEX IF EXISTS project."IX_tbl_project_issues_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_invoices_Status";
-DROP INDEX IF EXISTS project."IX_tbl_project_invoices_ProjectServiceId";
-DROP INDEX IF EXISTS project."IX_tbl_project_invoices_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_invoices_InvoiceNumber";
-DROP INDEX IF EXISTS project."IX_tbl_project_interviews_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_interviews_EmployeeId";
-DROP INDEX IF EXISTS project."IX_tbl_project_extension_requests_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_extension_approvers_ExtensionRequestId";
-DROP INDEX IF EXISTS project."IX_tbl_project_extension_approvers_EmployeeId";
-DROP INDEX IF EXISTS project."IX_tbl_project_drafts_UpdatedAtUtc";
-DROP INDEX IF EXISTS project."IX_tbl_project_drafts_Status";
-DROP INDEX IF EXISTS project."IX_tbl_project_drafts_ClientId";
-DROP INDEX IF EXISTS project."IX_tbl_project_documents_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_documents_DocumentType";
-DROP INDEX IF EXISTS project."IX_tbl_project_alerts_ProjectId";
-DROP INDEX IF EXISTS project."IX_tbl_project_alerts_IssueId";
-DROP INDEX IF EXISTS project."IX_project_tasks_LeafIdentity";
-DROP INDEX IF EXISTS project."IX_log_project_task_assignments_TaskId_OccurredAtUtc";
-DROP INDEX IF EXISTS project."IX_log_project_task_assignments_TaskId";
-DROP INDEX IF EXISTS project."IX_log_project_task_assignments_EmployeeId";
-DROP INDEX IF EXISTS master."IX_mst_work_locations_Code";
-DROP INDEX IF EXISTS master."IX_mst_widgets_ParentId";
-DROP INDEX IF EXISTS master."IX_mst_widgets_Code";
-DROP INDEX IF EXISTS master."IX_mst_tabs_TabId";
-DROP INDEX IF EXISTS master."IX_mst_tabs_SubModuleId";
-DROP INDEX IF EXISTS master."IX_mst_tabs_ModuleId";
-DROP INDEX IF EXISTS master."IX_mst_tabs_Code";
-DROP INDEX IF EXISTS master."IX_mst_submodules_ParentId";
-DROP INDEX IF EXISTS master."IX_mst_submodules_ModuleId";
-DROP INDEX IF EXISTS master."IX_mst_submodules_Code";
-DROP INDEX IF EXISTS master."IX_mst_sub_departments_Name";
-DROP INDEX IF EXISTS master."IX_mst_sub_departments_DepartmentId";
-DROP INDEX IF EXISTS master."IX_mst_sub_departments_Code";
-DROP INDEX IF EXISTS master."IX_mst_service_sub_departments_DepartmentId_Name";
-DROP INDEX IF EXISTS master."IX_mst_service_sub_departments_Code";
-DROP INDEX IF EXISTS master."IX_mst_service_groups_Name";
-DROP INDEX IF EXISTS master."IX_mst_service_groups_Code";
-DROP INDEX IF EXISTS master."IX_mst_service_departments_GroupId_Name";
-DROP INDEX IF EXISTS master."IX_mst_service_departments_GroupId";
-DROP INDEX IF EXISTS master."IX_mst_service_departments_Code";
-DROP INDEX IF EXISTS master."IX_mst_service_catalog_SubDepartmentId_Name";
-DROP INDEX IF EXISTS master."IX_mst_service_catalog_Code";
-DROP INDEX IF EXISTS master."IX_mst_salary_bands_Name";
-DROP INDEX IF EXISTS master."IX_mst_salary_bands_Code";
-DROP INDEX IF EXISTS master."IX_mst_reporting_managers_EmployeeId";
-DROP INDEX IF EXISTS master."IX_mst_reporting_managers_Code";
-DROP INDEX IF EXISTS master."IX_mst_org_role_sub_departments_SubDepartmentId";
-DROP INDEX IF EXISTS master."IX_mst_org_role_sub_departments_OrgRoleMapId_SubDepartmentId";
-DROP INDEX IF EXISTS master."IX_mst_org_role_map_SubDepartmentId";
-DROP INDEX IF EXISTS master."IX_mst_org_role_map_RbacRoleId";
-DROP INDEX IF EXISTS master."IX_mst_org_role_map_DesignationId";
-DROP INDEX IF EXISTS master."IX_mst_org_role_map_DepartmentId";
-DROP INDEX IF EXISTS master."IX_mst_onfloorrole_sub_departments_SubDepartmentId";
-DROP INDEX IF EXISTS master."IX_mst_onfloorrole_sub_departments_OnFloorRoleId_SubDepartment~";
-DROP INDEX IF EXISTS master."IX_mst_offices_WorkLocationId";
-DROP INDEX IF EXISTS master."IX_mst_offices_Code";
-DROP INDEX IF EXISTS master."IX_mst_nationalities_Name";
-DROP INDEX IF EXISTS master."IX_mst_nationalities_Code";
-DROP INDEX IF EXISTS master."IX_mst_modules_Code";
-DROP INDEX IF EXISTS master."IX_mst_leave_calendar_Year";
-DROP INDEX IF EXISTS master."IX_mst_leave_calendar_HolidayDate";
-DROP INDEX IF EXISTS master."IX_mst_industries_Name";
-DROP INDEX IF EXISTS master."IX_mst_industries_Code";
-DROP INDEX IF EXISTS master."IX_mst_employee_statuses_Code";
-DROP INDEX IF EXISTS master."IX_mst_email_domains_DomainName";
-DROP INDEX IF EXISTS master."IX_mst_designations_DepartmentId_Name";
-DROP INDEX IF EXISTS master."IX_mst_designations_DefaultRoleId";
-DROP INDEX IF EXISTS master."IX_mst_designations_Code";
-DROP INDEX IF EXISTS master."IX_mst_designation_sub_departments_SubDepartmentId";
-DROP INDEX IF EXISTS master."IX_mst_designation_sub_departments_DesignationId_SubDepartment~";
-DROP INDEX IF EXISTS master."IX_mst_departments_Name";
-DROP INDEX IF EXISTS master."IX_mst_departments_Code";
-DROP INDEX IF EXISTS master."IX_mst_countries_Name";
-DROP INDEX IF EXISTS master."IX_mst_countries_Code";
-DROP INDEX IF EXISTS master."IX_mst_contact_types_Name";
-DROP INDEX IF EXISTS master."IX_mst_contact_types_Code";
-DROP INDEX IF EXISTS master."IX_mst_contact_designations_Name";
-DROP INDEX IF EXISTS master."IX_mst_contact_designations_Code";
-DROP INDEX IF EXISTS master."IX_mst_cities_CountryId_Name";
-DROP INDEX IF EXISTS master."IX_mst_cities_Code";
-DROP INDEX IF EXISTS master."IX_mst_business_units_Code";
-DROP INDEX IF EXISTS master."IX_mst_address_cities_Name";
-DROP INDEX IF EXISTS master."IX_mst_address_cities_Code";
-DROP INDEX IF EXISTS customer."IX_tbl_sub_ventures_SubVentureCode";
-DROP INDEX IF EXISTS customer."IX_tbl_sub_ventures_ClientId";
-DROP INDEX IF EXISTS customer."IX_tbl_clients_SalesManagerId";
-DROP INDEX IF EXISTS customer."IX_tbl_clients_Name";
-DROP INDEX IF EXISTS customer."IX_tbl_clients_IndustryId";
-DROP INDEX IF EXISTS customer."IX_tbl_clients_EngagementManagerId";
-DROP INDEX IF EXISTS customer."IX_tbl_clients_CountryId";
-DROP INDEX IF EXISTS customer."IX_tbl_clients_CityId";
-DROP INDEX IF EXISTS customer."IX_tbl_client_contacts_SubVentureId";
-DROP INDEX IF EXISTS customer."IX_tbl_client_contacts_ClientId";
-DROP INDEX IF EXISTS customer."IX_tbl_client_assignments_UserId";
-DROP INDEX IF EXISTS customer."IX_clients_ClientCode";
-DROP INDEX IF EXISTS auth."IX_users_MicrosoftOid";
-DROP INDEX IF EXISTS auth."IX_tbl_users_RoleId";
-DROP INDEX IF EXISTS auth."IX_tbl_users_EmployeeId";
-DROP INDEX IF EXISTS auth."IX_tbl_users_Email";
-DROP INDEX IF EXISTS auth."IX_tbl_roles_Name";
-DROP INDEX IF EXISTS auth."IX_tbl_refresh_tokens_UserId";
-DROP INDEX IF EXISTS auth."IX_tbl_refresh_tokens_TokenHash";
-DROP INDEX IF EXISTS auth."IX_role_permissions_RoleId";
-DROP INDEX IF EXISTS auth."IX_role_permissions_ItemId";
-DROP INDEX IF EXISTS auth."IX_log_role_permission_audits_RoleId";
-DROP INDEX IF EXISTS auth."IX_log_role_permission_audits_CreatedAtUtc";
-DROP INDEX IF EXISTS action.ix_tbl_notifications_status;
-DROP INDEX IF EXISTS action.ix_tbl_notifications_recipient_employee;
-DROP INDEX IF EXISTS action.ix_tbl_notifications_project;
-DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_TaskId_EmployeeId";
-DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_TaskId";
-DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_Status";
-DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_ProjectId";
-DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_Priority";
-DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_EmployeeId";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheets DROP CONSTRAINT IF EXISTS "PK_tbl_timesheets";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheet_entry_days DROP CONSTRAINT IF EXISTS "PK_tbl_timesheet_entry_days";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheet_entries DROP CONSTRAINT IF EXISTS "PK_tbl_timesheet_entries";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_member_schedules DROP CONSTRAINT IF EXISTS "PK_tbl_team_member_schedules";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_member_holidays DROP CONSTRAINT IF EXISTS "PK_tbl_team_member_holidays";
-ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_day_entries DROP CONSTRAINT IF EXISTS "PK_tbl_team_day_entries";
-ALTER TABLE IF EXISTS ONLY resource.tbl_onfloorrole DROP CONSTRAINT IF EXISTS "PK_tbl_onfloorrole";
-ALTER TABLE IF EXISTS ONLY resource.tbl_exited_employees DROP CONSTRAINT IF EXISTS "PK_tbl_exited_employees";
-ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "PK_tbl_employees";
-ALTER TABLE IF EXISTS ONLY resource.log_employee_activity DROP CONSTRAINT IF EXISTS "PK_log_employee_activity";
-ALTER TABLE IF EXISTS resource.tbl_employees DROP CONSTRAINT IF EXISTS "CK_employees_EmployeeCode_Format";
-ALTER TABLE IF EXISTS ONLY repository.tbl_repository_items DROP CONSTRAINT IF EXISTS "PK_tbl_repository_items";
-ALTER TABLE IF EXISTS ONLY repository.tbl_repository_departments DROP CONSTRAINT IF EXISTS "PK_tbl_repository_departments";
-ALTER TABLE IF EXISTS ONLY repository.log_repository_activity DROP CONSTRAINT IF EXISTS "PK_log_repository_activity";
-ALTER TABLE IF EXISTS ONLY public."__EFMigrationsHistory" DROP CONSTRAINT IF EXISTS "PK___EFMigrationsHistory";
-ALTER TABLE IF EXISTS ONLY project.tbl_resource_allocation_requests DROP CONSTRAINT IF EXISTS tbl_resource_allocation_requests_pkey;
-ALTER TABLE IF EXISTS ONLY project.tbl_project_appreciations DROP CONSTRAINT IF EXISTS tbl_project_appreciations_pkey;
-ALTER TABLE IF EXISTS ONLY project.tbl_project_additional_requirements DROP CONSTRAINT IF EXISTS tbl_project_additional_requirements_pkey;
-ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "PK_tbl_projects";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_team_members DROP CONSTRAINT IF EXISTS "PK_tbl_project_team_members";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_tasks DROP CONSTRAINT IF EXISTS "PK_tbl_project_tasks";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_task_assignments DROP CONSTRAINT IF EXISTS "PK_tbl_project_task_assignments";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_services DROP CONSTRAINT IF EXISTS "PK_tbl_project_services";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_service_escalations DROP CONSTRAINT IF EXISTS "PK_tbl_project_service_escalations";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_service_escalation_stakeholders DROP CONSTRAINT IF EXISTS "PK_tbl_project_service_escalation_stakeholders";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_issues DROP CONSTRAINT IF EXISTS "PK_tbl_project_issues";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_invoices DROP CONSTRAINT IF EXISTS "PK_tbl_project_invoices";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_interviews DROP CONSTRAINT IF EXISTS "PK_tbl_project_interviews";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_extension_requests DROP CONSTRAINT IF EXISTS "PK_tbl_project_extension_requests";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_extension_approvers DROP CONSTRAINT IF EXISTS "PK_tbl_project_extension_approvers";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_drafts DROP CONSTRAINT IF EXISTS "PK_tbl_project_drafts";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_documents DROP CONSTRAINT IF EXISTS "PK_tbl_project_documents";
-ALTER TABLE IF EXISTS ONLY project.tbl_project_alerts DROP CONSTRAINT IF EXISTS "PK_tbl_project_alerts";
-ALTER TABLE IF EXISTS ONLY project.log_project_task_assignments DROP CONSTRAINT IF EXISTS "PK_log_project_task_assignments";
-ALTER TABLE IF EXISTS ONLY master.mst_work_locations DROP CONSTRAINT IF EXISTS mst_work_locations_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_work_locations DROP CONSTRAINT IF EXISTS "mst_work_locations_Code_key";
-ALTER TABLE IF EXISTS ONLY master.mst_reporting_managers DROP CONSTRAINT IF EXISTS mst_reporting_managers_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_rbac_baseline DROP CONSTRAINT IF EXISTS mst_rbac_baseline_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_post_graduation_degrees DROP CONSTRAINT IF EXISTS mst_post_graduation_degrees_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_offices DROP CONSTRAINT IF EXISTS mst_offices_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_offices DROP CONSTRAINT IF EXISTS "mst_offices_Code_key";
-ALTER TABLE IF EXISTS ONLY master.mst_leave_calendar DROP CONSTRAINT IF EXISTS mst_leave_calendar_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_graduation_degrees DROP CONSTRAINT IF EXISTS mst_graduation_degrees_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_employee_statuses DROP CONSTRAINT IF EXISTS mst_employee_statuses_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_email_domains DROP CONSTRAINT IF EXISTS mst_email_domains_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_certifications DROP CONSTRAINT IF EXISTS mst_certifications_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_business_units DROP CONSTRAINT IF EXISTS mst_business_units_pkey;
-ALTER TABLE IF EXISTS ONLY master.mst_business_units DROP CONSTRAINT IF EXISTS "mst_business_units_Code_key";
-ALTER TABLE IF EXISTS ONLY master.mst_widgets DROP CONSTRAINT IF EXISTS "PK_mst_widgets";
-ALTER TABLE IF EXISTS ONLY master.mst_tabs DROP CONSTRAINT IF EXISTS "PK_mst_tabs";
-ALTER TABLE IF EXISTS ONLY master.mst_submodules DROP CONSTRAINT IF EXISTS "PK_mst_submodules";
-ALTER TABLE IF EXISTS ONLY master.mst_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_sub_departments";
-ALTER TABLE IF EXISTS ONLY master.mst_service_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_service_sub_departments";
-ALTER TABLE IF EXISTS ONLY master.mst_service_groups DROP CONSTRAINT IF EXISTS "PK_mst_service_groups";
-ALTER TABLE IF EXISTS ONLY master.mst_service_departments DROP CONSTRAINT IF EXISTS "PK_mst_service_departments";
-ALTER TABLE IF EXISTS ONLY master.mst_service_catalog DROP CONSTRAINT IF EXISTS "PK_mst_service_catalog";
-ALTER TABLE IF EXISTS ONLY master.mst_salary_bands DROP CONSTRAINT IF EXISTS "PK_mst_salary_bands";
-ALTER TABLE IF EXISTS ONLY master.mst_org_role_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_org_role_sub_departments";
-ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "PK_mst_org_role_map";
-ALTER TABLE IF EXISTS ONLY master.mst_onfloorrole_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_onfloorrole_sub_departments";
-ALTER TABLE IF EXISTS ONLY master.mst_nationalities DROP CONSTRAINT IF EXISTS "PK_mst_nationalities";
-ALTER TABLE IF EXISTS ONLY master.mst_modules DROP CONSTRAINT IF EXISTS "PK_mst_modules";
-ALTER TABLE IF EXISTS ONLY master.mst_industries DROP CONSTRAINT IF EXISTS "PK_mst_industries";
-ALTER TABLE IF EXISTS ONLY master.mst_designations DROP CONSTRAINT IF EXISTS "PK_mst_designations";
-ALTER TABLE IF EXISTS ONLY master.mst_designation_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_designation_sub_departments";
-ALTER TABLE IF EXISTS ONLY master.mst_departments DROP CONSTRAINT IF EXISTS "PK_mst_departments";
-ALTER TABLE IF EXISTS ONLY master.mst_countries DROP CONSTRAINT IF EXISTS "PK_mst_countries";
-ALTER TABLE IF EXISTS ONLY master.mst_contact_types DROP CONSTRAINT IF EXISTS "PK_mst_contact_types";
-ALTER TABLE IF EXISTS ONLY master.mst_contact_designations DROP CONSTRAINT IF EXISTS "PK_mst_contact_designations";
-ALTER TABLE IF EXISTS ONLY master.mst_cities DROP CONSTRAINT IF EXISTS "PK_mst_cities";
-ALTER TABLE IF EXISTS ONLY master.mst_address_cities DROP CONSTRAINT IF EXISTS "PK_mst_address_cities";
-ALTER TABLE IF EXISTS ONLY customer.tbl_sub_ventures DROP CONSTRAINT IF EXISTS "PK_tbl_sub_ventures";
-ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "PK_tbl_clients";
-ALTER TABLE IF EXISTS ONLY customer.tbl_client_contacts DROP CONSTRAINT IF EXISTS "PK_tbl_client_contacts";
-ALTER TABLE IF EXISTS ONLY customer.tbl_client_assignments DROP CONSTRAINT IF EXISTS "PK_tbl_client_assignments";
-ALTER TABLE IF EXISTS ONLY auth.tbl_role_permissions DROP CONSTRAINT IF EXISTS tbl_role_permissions_pkey;
-ALTER TABLE IF EXISTS ONLY auth.tbl_role_permissions DROP CONSTRAINT IF EXISTS "UQ_role_item_permissions";
-ALTER TABLE IF EXISTS ONLY auth.tbl_users DROP CONSTRAINT IF EXISTS "PK_tbl_users";
-ALTER TABLE IF EXISTS ONLY auth.tbl_roles DROP CONSTRAINT IF EXISTS "PK_tbl_roles";
-ALTER TABLE IF EXISTS ONLY auth.tbl_refresh_tokens DROP CONSTRAINT IF EXISTS "PK_tbl_refresh_tokens";
-ALTER TABLE IF EXISTS ONLY auth.log_role_permission_audits DROP CONSTRAINT IF EXISTS "PK_log_role_permission_audits";
-ALTER TABLE IF EXISTS ONLY action.tbl_notifications DROP CONSTRAINT IF EXISTS pk_tbl_notifications;
-ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "PK_tbl_bucket_tasks";
-DROP TABLE IF EXISTS timesheet.tbl_timesheets;
-DROP TABLE IF EXISTS timesheet.tbl_timesheet_entry_days;
-DROP TABLE IF EXISTS timesheet.tbl_timesheet_entries;
-DROP TABLE IF EXISTS timesheet.tbl_team_member_schedules;
-DROP TABLE IF EXISTS timesheet.tbl_team_member_holidays;
-DROP TABLE IF EXISTS timesheet.tbl_team_day_entries;
-DROP VIEW IF EXISTS resource.tbl_onfloorrole_subdepartment;
-DROP TABLE IF EXISTS resource.tbl_onfloorrole;
-DROP TABLE IF EXISTS resource.tbl_exited_employees;
-DROP TABLE IF EXISTS resource.tbl_employees;
-DROP TABLE IF EXISTS resource.log_employee_activity;
-DROP TABLE IF EXISTS repository.tbl_repository_items;
-DROP TABLE IF EXISTS repository.tbl_repository_departments;
-DROP TABLE IF EXISTS repository.log_repository_activity;
-DROP TABLE IF EXISTS public."__EFMigrationsHistory";
-DROP TABLE IF EXISTS project.tbl_resource_allocation_requests;
-DROP TABLE IF EXISTS project.tbl_projects;
-DROP TABLE IF EXISTS project.tbl_project_team_members;
-DROP TABLE IF EXISTS project.tbl_project_tasks;
-DROP TABLE IF EXISTS project.tbl_project_task_assignments;
-DROP TABLE IF EXISTS project.tbl_project_services;
-DROP TABLE IF EXISTS project.tbl_project_service_escalations;
-DROP TABLE IF EXISTS project.tbl_project_service_escalation_stakeholders;
-DROP TABLE IF EXISTS project.tbl_project_issues;
-DROP TABLE IF EXISTS project.tbl_project_invoices;
-DROP TABLE IF EXISTS project.tbl_project_interviews;
-DROP TABLE IF EXISTS project.tbl_project_extension_requests;
-DROP TABLE IF EXISTS project.tbl_project_extension_approvers;
-DROP TABLE IF EXISTS project.tbl_project_drafts;
-DROP TABLE IF EXISTS project.tbl_project_documents;
-DROP TABLE IF EXISTS project.tbl_project_appreciations;
-DROP TABLE IF EXISTS project.tbl_project_alerts;
-DROP TABLE IF EXISTS project.tbl_project_additional_requirements;
-DROP TABLE IF EXISTS project.log_project_task_assignments;
-DROP TABLE IF EXISTS master.mst_work_locations;
-DROP TABLE IF EXISTS master.mst_widgets;
-DROP TABLE IF EXISTS master.mst_tabs;
-DROP TABLE IF EXISTS master.mst_submodules;
-DROP TABLE IF EXISTS master.mst_sub_departments;
-DROP TABLE IF EXISTS master.mst_service_sub_departments;
-DROP TABLE IF EXISTS master.mst_service_groups;
-DROP TABLE IF EXISTS master.mst_service_departments;
-DROP TABLE IF EXISTS master.mst_service_catalog;
-DROP TABLE IF EXISTS master.mst_salary_bands;
-DROP TABLE IF EXISTS master.mst_reporting_managers;
-DROP TABLE IF EXISTS master.mst_rbac_baseline;
-DROP TABLE IF EXISTS master.mst_post_graduation_degrees;
-DROP TABLE IF EXISTS master.mst_org_role_sub_departments;
-DROP TABLE IF EXISTS master.mst_org_role_map;
-DROP TABLE IF EXISTS master.mst_onfloorrole_sub_departments;
-DROP TABLE IF EXISTS master.mst_offices;
-DROP TABLE IF EXISTS master.mst_nationalities;
-DROP TABLE IF EXISTS master.mst_modules;
-DROP TABLE IF EXISTS master.mst_leave_calendar;
-DROP TABLE IF EXISTS master.mst_industries;
-DROP TABLE IF EXISTS master.mst_graduation_degrees;
-DROP TABLE IF EXISTS master.mst_employee_statuses;
-DROP TABLE IF EXISTS master.mst_email_domains;
-DROP TABLE IF EXISTS master.mst_designations;
-DROP TABLE IF EXISTS master.mst_designation_sub_departments;
-DROP TABLE IF EXISTS master.mst_departments;
-DROP TABLE IF EXISTS master.mst_countries;
-DROP TABLE IF EXISTS master.mst_contact_types;
-DROP TABLE IF EXISTS master.mst_contact_designations;
-DROP TABLE IF EXISTS master.mst_cities;
-DROP TABLE IF EXISTS master.mst_certifications;
-DROP TABLE IF EXISTS master.mst_business_units;
-DROP TABLE IF EXISTS master.mst_address_cities;
-DROP TABLE IF EXISTS customer.tbl_sub_ventures;
-DROP TABLE IF EXISTS customer.tbl_clients;
-DROP TABLE IF EXISTS customer.tbl_client_contacts;
-DROP TABLE IF EXISTS customer.tbl_client_assignments;
-DROP TABLE IF EXISTS auth.tbl_users;
-DROP TABLE IF EXISTS auth.tbl_roles;
-DROP TABLE IF EXISTS auth.tbl_role_permissions;
-DROP TABLE IF EXISTS auth.tbl_refresh_tokens;
-DROP TABLE IF EXISTS auth.log_role_permission_audits;
-DROP TABLE IF EXISTS action.tbl_notifications;
-DROP TABLE IF EXISTS action.tbl_bucket_tasks;
-DROP FUNCTION IF EXISTS auth.fn_protect_default_permissions();
-DROP SCHEMA IF EXISTS timesheet;
-DROP SCHEMA IF EXISTS resource;
-DROP SCHEMA IF EXISTS repository;
-DROP SCHEMA IF EXISTS project;
-DROP SCHEMA IF EXISTS master;
-DROP SCHEMA IF EXISTS customer;
-DROP SCHEMA IF EXISTS auth;
-DROP SCHEMA IF EXISTS action;
 --
 -- Name: action; Type: SCHEMA; Schema: -; Owner: postgres
 --
@@ -4261,7 +3804,11 @@ COPY auth.tbl_users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Depar
 78470591-8a64-40a5-8bcd-f766cb7ae3ec	harsh.wardhan.tk-0016@talakunchi.com	$2a$12$Q1WXE.vXpkhmPqmIk.3xdOzAGJeWTy98V4E1H3n5KjTa7AFePazl.	Harsh Wardhan	TK-0016	Functional - IT Administration	\N	\N	Desktop Support Engineer - I	t	t	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-16 10:06:09.241746+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	0	\N	\N	\N	Local	\N
 a0b10742-1874-4390-a73d-122dd9db2859	pallavi.sawant.tk-0017@talakunchi.com	$2a$12$ESBGepF4cgho35rHk6ymUeVvWmOkUHHwf/rGQr8fE2FogdmbaMuLy	Pallavi Sawant	TK-0017	Functional - IT Administration	\N	\N	Desktop Support Engineer - II	t	t	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-16 10:06:09.503287+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	0	\N	\N	\N	Local	\N
 c9d183e1-5770-494a-a061-137a51001f53	harsh.pandey.tk-0018@talakunchi.com	$2a$12$WedigdLQFiPPL8dugTIwMed2zHP3gWMBQjnd1b6SEwmgi/ev2WgZe	Harsh Pandey	TK-0018	Functional - IT Administration	\N	\N	IT Admin	t	t	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-16 10:06:09.760432+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	0	\N	\N	\N	Local	\N
-92172235-83bb-41a1-a96e-60054a506818	vihaan.pillai.tk-0001@talakunchi.com	\N	Vihaan Pillai	TK-0001	Functional - Project Management	\N	\N	Associate PMO - I	t	f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-11-12 07:17:07.682368+00	2026-11-12 07:17:12.079393+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	0	\N	\N	\N	Local	\N
+08eecbb4-31fe-4ad4-8c0b-50e7d5bb0d4d	dev.reddy.tk-0003@talakunchi.com	\N	Dev Reddy	TK-0003	Core	\N	\N	Director and Chief Technology Officer	t	f	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	2026-11-12 07:26:12.327506+00	2026-11-12 07:26:21.251937+00	049ac489-bbd3-4153-b933-aec7b7baec89	049ac489-bbd3-4153-b933-aec7b7baec89	\N	0	\N	\N	\N	Local	\N
+92172235-83bb-41a1-a96e-60054a506818	vihaan.pillai.tk-0001@talakunchi.com	\N	Vihaan Pillai	TK-0001	Functional - Project Management	\N	\N	Associate PMO - I	t	f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-11-12 07:17:07.682368+00	2026-11-12 07:27:41.181643+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	0	\N	\N	\N	Local	\N
+ede658f4-1925-4db4-a5ed-62aba574ed3c	krishna.saxena.tk-0040@talakunchi.com	\N	Krishna Saxena	TK-0040	Services - Consulting	\N	\N	GRC Auditor - IV	t	f	768a11f9-ded7-4f6f-ba86-073e279255d9	2026-11-12 07:26:32.491035+00	2026-11-12 07:43:36.984764+00	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	0	\N	\N	\N	Local	\N
+45aee902-8221-4d8d-b6d9-7161658355c4	reyansh.chopra.tk-0027@talakunchi.com	\N	Reyansh Chopra	TK-0027	Functional - Sales	\N	\N	Associate Customer Success Representative - I	t	f	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325	2026-11-12 07:44:30.477835+00	2026-11-12 07:44:40.845792+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	0	\N	\N	\N	Local	\N
+1b737ed6-2ea2-4583-aba8-cbba9f63f3a0	kunal.iyer.tk-0059@talakunchi.com	\N	Kunal Iyer	TK-0059	Services - Testing	\N	\N	Associate AI Engineer - Contractual	t	f	92aa9169-28d9-4754-a570-553b067642ed	2026-11-12 07:44:20.535575+00	2026-11-12 07:45:02.435464+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	0	\N	\N	\N	Local	\N
 \.
 
 
@@ -4755,121 +4302,121 @@ be8e036d-ad13-4c79-89ec-294e490a6816	services_consulting	Services - Consulting	t
 --
 
 COPY master.mst_designation_sub_departments ("Id", "DesignationId", "SubDepartmentId") FROM stdin;
-009d2326-e842-415c-a6ec-42f48f59046a	73bd55bb-5d0e-4381-8ad2-2238377fca93	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-06aeb27a-f11e-44c0-981f-5a1b6f7b4f5c	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-07160d2b-a39b-4ba2-a195-c0caa172dbc2	bb7ccd5f-2f60-49fb-b984-f11fc47add22	7682acb3-561b-4951-801b-c1564adda131
-07798405-d072-4863-a87e-3fb977599c45	6d25ff6d-e13d-440f-b775-215547af7acb	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-0a61943c-d3a6-49d0-b341-b1eb1b3785a4	163d8c87-8f90-4295-a926-2e912c625a1c	682d36c0-4256-42ab-811e-054ab3a5b10f
-0a97f8f6-1a17-47d3-a2e3-45dd232423ce	157d001c-b056-45b1-96a3-3c05bcd8d99c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-10edaae4-6fb2-46d4-9c76-3e54ed60e6dd	3b7ea453-324e-40a0-bb41-77a0795d5af5	db0addff-605e-439f-917b-38016a398755
-115200ba-75bb-45f9-aba1-c03e4b339249	a697a798-caaf-4248-8e4e-7e89096a9c30	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-11eb8c0d-5420-42ca-bdc1-3001dfc6c861	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-1469ced9-70ef-4f4d-9c84-508a5dd9b947	4650d4e0-f73c-4688-ae5f-830a46348ff9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-18d26eda-0f6d-43f9-bb5c-69aea183092a	911f6d7f-8d43-40f2-897a-2f416abf8cf9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-1a45ae08-1dc4-4185-b402-b575222aa3e0	d8a2b9e5-f54d-4344-a78d-c6c840467543	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-1bd8cb5b-677d-45ab-be20-6e50195b0f1d	b3309eea-7374-4a8d-ac13-481b2a7fd492	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-1d60962a-45f5-4567-819d-0176730a7fff	9858c224-f97f-4ff8-908d-f46bd5e2243c	db0addff-605e-439f-917b-38016a398755
-24270ed5-942a-4c9c-be70-994bc42ea825	9858c224-f97f-4ff8-908d-f46bd5e2243c	682d36c0-4256-42ab-811e-054ab3a5b10f
-24291658-2644-4f1d-a4a6-71a6a1ef6767	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	b651aec8-5455-4329-8251-0ceb62cea798
-24838278-abfc-4c04-a37d-54d918058581	163d8c87-8f90-4295-a926-2e912c625a1c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-25c72280-b24b-4fc7-8c54-220810cb915f	778f1120-9633-4933-9160-ddaa46668838	a12ac80b-a665-4301-898e-e9ca3d44bb20
-29d992af-451d-4868-8032-8a786f84bf24	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-2b47168d-a73b-49e6-8786-1618e3a2eb6b	b5f39dd8-c305-489d-9f7d-9adfd010a134	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2b87fcf0-99f8-4036-852a-85fd6658e0f4	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	c88d783b-b628-4f3a-a972-aa56aeed5e77
-2cec84e5-2762-4e26-a317-b855f41862b8	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2dab9a28-e73e-4386-80d7-d1b46d9479a8	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-2e7cb752-9d48-4a46-97aa-33602efbe66d	e2b4be77-2b20-4064-974d-e6322e7240b4	88b29e0c-39b7-4169-ab5c-350075014a84
-2ecd8b9c-1e2e-4b7f-8002-96e7d78efedf	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-3010b5cf-ba8e-4c29-b17d-2f1b01826c0b	4ef1cb5b-9688-4ce2-95b3-6a0863200166	5d962383-f175-4dd8-af63-8a566a0d2255
-3099a0d4-0fdd-4cec-a9a2-c26dd6e2aaa2	e8c22eff-0daf-4690-a537-c8b0b6110a01	c88d783b-b628-4f3a-a972-aa56aeed5e77
-32f92c83-9d6b-4f7f-9952-90c56ea4661d	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	c88d783b-b628-4f3a-a972-aa56aeed5e77
-37a700f2-c515-4a1d-b935-8a5ab6ea702d	9dc69952-eae6-4ec0-a327-67392315f089	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-38f90efc-e40f-45fa-bb82-6a8f3f0d7237	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	682d36c0-4256-42ab-811e-054ab3a5b10f
-3b445292-45be-4714-a221-1658e41e5d63	e228c999-bf54-48b4-a373-d2bc9db88554	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-3e61415c-8278-4002-9611-3fefd8a59f59	3e60b693-d3dd-4481-95c4-9f02da21625c	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-41956ebf-96c3-4e33-8efe-0d49494d7667	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-4610f6db-001e-4f00-955f-c14a735c5227	7d542941-65b9-499b-81b3-239748d6da52	c88d783b-b628-4f3a-a972-aa56aeed5e77
-4ce61f8f-0694-4689-b548-b8523ff22b7b	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-4d3903d7-db31-4371-b9c2-00c8a60b2af2	f8502c44-b289-49e4-8401-3dcad4d5bbe0	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-4d46e2ed-ec7c-4661-ac8a-e7bd9fe052db	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-4d5b8261-90d5-4755-8a95-92b4db920154	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	88b29e0c-39b7-4169-ab5c-350075014a84
-503e0066-bb4d-469e-b9a8-2a9c8e1832fa	155642eb-a633-4460-b658-aca9fde2d817	5d962383-f175-4dd8-af63-8a566a0d2255
-50d8db1f-a2cd-44d7-90f9-548d6f22591f	4f972924-350a-47fb-a6b6-f2b34bb6b621	682d36c0-4256-42ab-811e-054ab3a5b10f
-51319366-5976-47f1-8911-e71b581b3070	4b680e29-b4fb-4689-9afb-67a7f089f52b	b651aec8-5455-4329-8251-0ceb62cea798
-528f1540-1c9e-4588-8a24-9392e05ff9f2	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	7682acb3-561b-4951-801b-c1564adda131
-549696b7-74cd-41c6-a9aa-f08f7df695c5	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-5d69a46e-d75f-48da-929f-24f46fa60e55	834c9e15-c70d-4a0b-bb12-5e55f23c181d	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-5d88bd01-6c17-44db-9824-f8cb255b68df	3b7ea453-324e-40a0-bb41-77a0795d5af5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-5e94cffd-161f-4571-96c2-6a2e46281863	138434a2-625f-4df5-836d-fcf0cfceef79	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-60651b04-441f-4628-bfc4-b3e294e1fe91	8b57cfd5-5d4e-44a3-9646-b36873c111c2	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-60acdbcf-8e6f-4ef7-aef6-a8749fab6b78	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-61e9dbd4-f074-4f6a-9016-1a49248f5a2e	e228c999-bf54-48b4-a373-d2bc9db88554	db0addff-605e-439f-917b-38016a398755
-6505d05d-8596-4eb5-84ab-b28fba712a09	ae255622-ddcc-45ea-a699-8ec416fe57ab	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-67fc1a4c-6ef6-4467-9143-233ac4129fad	168d11d7-ca26-4d61-b870-51779dc63023	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-6c09d6a6-113b-4189-9f0c-ace75d2dac59	e2b10def-c91d-45da-94c5-f5530e743aa2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-6c5628cd-c44f-4536-8779-4d7e0df1465a	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	db0addff-605e-439f-917b-38016a398755
-6d7e5fda-0604-42a5-a58c-df043922879a	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	c88d783b-b628-4f3a-a972-aa56aeed5e77
-6e6619fe-a7af-4faa-85e4-2e1c6489e794	3356f353-1566-4df6-9958-fa01d67d13c7	7682acb3-561b-4951-801b-c1564adda131
-6ffb874f-62e1-40b6-9695-b69ff67ef0e0	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	db0addff-605e-439f-917b-38016a398755
-7252c9f7-996f-4bca-89f8-294e9f80ecad	195d6a81-8457-4b60-9382-6a3a0664f0e9	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-7563b3b7-5742-4ea7-a86e-edb447ddf6c8	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	682d36c0-4256-42ab-811e-054ab3a5b10f
-7a6168b7-a8ed-4b6f-8e57-eae30c816186	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	db0addff-605e-439f-917b-38016a398755
-7d60bc6e-23a8-4074-84c8-3f7af69c8645	e2c675a7-92dc-4477-be75-9a304cbe4def	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-7d72c205-610d-438d-b2b0-b456174ad7e5	272973a6-c052-4aef-bf32-9e24f7eb6cc9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-807b4597-3672-4fee-83bd-cad1f3a9cab4	9050e021-7d84-4401-820e-c0e768abb1ab	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-833fd061-dc3d-4074-a368-1e6839ec2cbb	caa227a1-2dcf-4195-ab9c-8f76d1862daa	5d962383-f175-4dd8-af63-8a566a0d2255
-871db1bf-1302-43e6-a5b2-43228747e8a4	9858c224-f97f-4ff8-908d-f46bd5e2243c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-88acd0d0-7b4c-4ddc-8997-0c805b44ec91	da990f6e-3379-4cc4-89b7-0ead29da472b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-8baf787d-f401-430a-ad9b-614762dd20ee	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	682d36c0-4256-42ab-811e-054ab3a5b10f
-9009133e-5822-4899-9117-92ba12e4f8a0	0525d830-ead9-44a0-871f-91b7845fec26	61bbeadf-3044-4123-929c-4b1e6e2e613e
-91ba798f-8b4a-46bf-a941-2022d46b339c	e36018c5-bf48-4f93-bef7-93e8864a0b51	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-92ea0650-1a8a-40fd-8bbc-1c37ecc1602f	2a76927c-461a-48e4-8190-dea7361ef3db	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-97cafde9-be58-4395-b268-44e12b837a30	2b1558e3-158a-4a84-ae80-053129861a64	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-97f4e3f3-2f32-44ed-a1cb-bbdc46c86d66	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	88b29e0c-39b7-4169-ab5c-350075014a84
-9f47ff40-c8c1-4e19-81fe-dd19c4b049ff	3b7ea453-324e-40a0-bb41-77a0795d5af5	682d36c0-4256-42ab-811e-054ab3a5b10f
-a00addfd-3551-420f-b1f0-655fcc45b468	7c2380da-3ee6-46ad-93d6-a79ce3027f29	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-a110d741-17c1-4254-aeae-d62f721676b4	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	5d962383-f175-4dd8-af63-8a566a0d2255
-a37ce210-0c67-446b-a6a1-f3304aeba1fc	163d8c87-8f90-4295-a926-2e912c625a1c	db0addff-605e-439f-917b-38016a398755
-a66e4922-f6cb-4609-852f-6301a60c3116	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-a90b3d6b-c009-4f99-b5c4-397e97016f0f	767a00dd-6f09-4f64-a44e-8fbe901222af	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-ab9aebe4-0143-48d4-a27d-157dcb799d2f	c0f974c3-f49c-449a-9276-aa64ce501344	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-ad618445-7336-4f6c-ac8b-0160d8153aef	af8a1442-c5ee-409d-aa91-61c9dba852ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-adbc449c-1ed7-4408-9550-686f52cbe8cc	1f97b442-95c5-4b11-93a0-ea146534ae85	5d962383-f175-4dd8-af63-8a566a0d2255
-b415a334-9ca1-47de-abe3-f0b64041616a	a697a798-caaf-4248-8e4e-7e89096a9c30	db0addff-605e-439f-917b-38016a398755
-b45e691a-4029-495a-9fd0-12116609aee3	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-b5de981a-6fa6-4fc4-a315-9d501d410ad4	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	db0addff-605e-439f-917b-38016a398755
-b8bf20d4-48f0-42b6-bbd9-00d77d96fe4e	4f972924-350a-47fb-a6b6-f2b34bb6b621	db0addff-605e-439f-917b-38016a398755
-ba41be9a-c66e-499d-a4bc-d7a941de6bd2	485012d4-2c28-4bc4-92c7-3609e3e3749e	c88d783b-b628-4f3a-a972-aa56aeed5e77
-ba617e87-ce95-4f0a-84b2-db68ab3acde3	c1fa4328-a970-48a1-bc08-d50fe36bf44c	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-bbffbf55-f3b8-4938-8637-dcdd97c1a3c7	6193be76-40ad-4973-9ee7-246a4d8f4109	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-c18d9c49-28d4-45f2-8403-b97d5677314e	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-c32d79f2-7987-4cca-a55a-edf3f0d2e993	1e7faab8-273d-40df-9f9a-485160186c5a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-c340b73a-5a5a-411b-b8d4-671ade4555ea	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-ca9f43d9-705a-43c3-837b-9e2f12768568	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	45755b2a-741a-4990-ab78-8f65090f75b1
-caf18434-2fc9-4135-ba97-5156c0f4fe22	c0e1a001-0000-4000-8000-000000000001	63765624-d7d1-472d-abd4-627127646998
-cccec9ee-0275-488c-8786-1a2df1d4964d	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	682d36c0-4256-42ab-811e-054ab3a5b10f
-cd49757b-31ff-4705-a827-2cd0b3647d22	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	7682acb3-561b-4951-801b-c1564adda131
-cd6cae3d-f2d5-4893-848f-7fec7117463b	c6c6cd04-6df3-4593-b686-e4b9d362c96f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-d1a23b5e-7dc4-420d-bae9-58111f924fba	6e606c29-2ebf-4ab8-8006-aaedd5680009	5d962383-f175-4dd8-af63-8a566a0d2255
-d3c4f0d7-3d21-4453-8a5e-ca1cf3cfaf06	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	5d962383-f175-4dd8-af63-8a566a0d2255
-d540e4ba-a0c3-4064-a56f-7551c7f9c1f0	168d11d7-ca26-4d61-b870-51779dc63023	db0addff-605e-439f-917b-38016a398755
-d7d38e94-f9ed-4299-98c7-c7d063a4fd44	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-d991022f-4c5a-4fe1-a604-77b7b8ba4b44	c70b9832-841e-4864-9b85-eaba3c0a995f	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-df2c2736-7280-4ea2-95c3-1fda1b48ce46	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	b651aec8-5455-4329-8251-0ceb62cea798
-e456c1a6-79a2-45e7-af3e-8e897dc51960	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	682d36c0-4256-42ab-811e-054ab3a5b10f
-e530bb56-3f08-4d43-a451-5e78de132c1d	ea315f7d-d597-41b3-a999-4f3851bcd020	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-e6fe6116-e3e0-413e-9312-08283e7f143c	168d11d7-ca26-4d61-b870-51779dc63023	682d36c0-4256-42ab-811e-054ab3a5b10f
-ee0b5be1-c62c-46a5-8262-8379d50f9db6	e228c999-bf54-48b4-a373-d2bc9db88554	682d36c0-4256-42ab-811e-054ab3a5b10f
-ef0495af-69b1-49e1-a83b-4323542eb6cd	85cc9fbe-98a4-464d-a638-05f40529c6de	b651aec8-5455-4329-8251-0ceb62cea798
-efc28351-99f2-4ed0-921e-b6fa4eceabfb	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-f1774ba8-1bd8-435b-8d45-9030e2a4bef3	a697a798-caaf-4248-8e4e-7e89096a9c30	682d36c0-4256-42ab-811e-054ab3a5b10f
-f33f3851-1203-4761-ae11-d26544eb87e8	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-f562ca16-b706-4b01-b16b-fb4b7572bb40	4f972924-350a-47fb-a6b6-f2b34bb6b621	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-f57b35d0-ac0d-4917-bf6e-76b5bfc608e3	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	db0addff-605e-439f-917b-38016a398755
-f61ea466-26f2-456f-a459-a76d1e9ca885	48429bb5-c583-4684-b30a-7ed443b671ca	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-f6436bf9-a97b-4885-ae32-2e9f47d69a70	f20a7445-0b01-4f20-85a5-853101d864ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-fe8ba73d-81fa-441d-accf-1aef45089b04	444df30d-c195-42ad-b9a7-d80cdef69ccd	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-ffee5512-07da-465e-8b0a-6b82617e4f0e	2076a9b1-e432-46a9-99b1-36e732159856	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+0056d03d-5f10-408f-ba00-2868e4feb178	d8a2b9e5-f54d-4344-a78d-c6c840467543	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+01965742-2afd-4426-9a00-838a90525e38	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	db0addff-605e-439f-917b-38016a398755
+03cb412a-4f48-4759-8ca7-2db29cd6f0d9	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	db0addff-605e-439f-917b-38016a398755
+03ec7717-a587-4e1e-b963-e7c3fde84f94	168d11d7-ca26-4d61-b870-51779dc63023	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+04e8ab2d-6f1b-4481-82fe-bb5deee0f002	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	db0addff-605e-439f-917b-38016a398755
+052eb3a5-5756-44b3-b79e-630a53715730	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	88b29e0c-39b7-4169-ab5c-350075014a84
+07991ffa-6d53-4f46-9941-971eed80a6a0	4f972924-350a-47fb-a6b6-f2b34bb6b621	682d36c0-4256-42ab-811e-054ab3a5b10f
+0879171a-2ad9-4ad5-949d-e7851bbc028d	2a76927c-461a-48e4-8190-dea7361ef3db	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+0ab33109-32ae-43ee-baca-3c7d47853f3f	a697a798-caaf-4248-8e4e-7e89096a9c30	db0addff-605e-439f-917b-38016a398755
+0b549849-2d49-4e6d-8d5b-95e4bb266cd0	163d8c87-8f90-4295-a926-2e912c625a1c	db0addff-605e-439f-917b-38016a398755
+0c2dd72d-390f-4cd8-b651-182f90e81867	4ef1cb5b-9688-4ce2-95b3-6a0863200166	5d962383-f175-4dd8-af63-8a566a0d2255
+0d730e01-8346-41a3-94a0-033e4ca1f7d1	138434a2-625f-4df5-836d-fcf0cfceef79	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+0ed09aa2-2a42-43ab-8935-592d9b5e4485	85cc9fbe-98a4-464d-a638-05f40529c6de	b651aec8-5455-4329-8251-0ceb62cea798
+0f42559c-9a11-4376-981a-0783d3415db7	bb7ccd5f-2f60-49fb-b984-f11fc47add22	7682acb3-561b-4951-801b-c1564adda131
+118bbc82-7905-4dba-a0ed-86d46f2dba57	485012d4-2c28-4bc4-92c7-3609e3e3749e	c88d783b-b628-4f3a-a972-aa56aeed5e77
+11960475-4f2e-4702-8447-41abeb009731	272973a6-c052-4aef-bf32-9e24f7eb6cc9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+12ba499c-0e06-47c2-9520-0c9d1735ae50	c0f974c3-f49c-449a-9276-aa64ce501344	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+13d10c94-a78c-4961-bfa3-5b83f92a20c8	af8a1442-c5ee-409d-aa91-61c9dba852ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+1644fd43-4751-4e45-b7cf-d2ee675db37e	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+19205baa-e9b6-4556-bc87-46cec751e0cd	f20a7445-0b01-4f20-85a5-853101d864ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+1ef6c896-0fa0-4ba9-ba6d-5ab4e65fda91	c6c6cd04-6df3-4593-b686-e4b9d362c96f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+205bbc15-7b02-4e76-9897-1fae3901eecf	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	c88d783b-b628-4f3a-a972-aa56aeed5e77
+239daedb-53df-4a8e-981b-9e0f0ede14ee	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	c88d783b-b628-4f3a-a972-aa56aeed5e77
+259a5d6e-02c3-4614-911c-bc12542810cf	9858c224-f97f-4ff8-908d-f46bd5e2243c	682d36c0-4256-42ab-811e-054ab3a5b10f
+277e5325-09d3-4bd7-ae4f-dfa360c4308e	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+2da5f810-8178-4f87-8a3f-bdbec8f93a87	e2b10def-c91d-45da-94c5-f5530e743aa2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+2fb8a196-b296-4d4f-9809-893bebbb0fc2	4650d4e0-f73c-4688-ae5f-830a46348ff9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+37218073-3cc0-49db-9c8d-b6dc5eed2f11	163d8c87-8f90-4295-a926-2e912c625a1c	682d36c0-4256-42ab-811e-054ab3a5b10f
+38f99016-a028-4dbf-a81f-80886c062c99	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	682d36c0-4256-42ab-811e-054ab3a5b10f
+3d889a38-c4d1-4721-969d-3040a20281f3	7d542941-65b9-499b-81b3-239748d6da52	c88d783b-b628-4f3a-a972-aa56aeed5e77
+418467d2-29fb-4ead-8eef-4aec44bc2da2	3e60b693-d3dd-4481-95c4-9f02da21625c	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+41c48887-59da-447a-a275-a9dee80f16c7	168d11d7-ca26-4d61-b870-51779dc63023	db0addff-605e-439f-917b-38016a398755
+4282639d-fca7-4114-a7c7-1f34f5544f2d	3356f353-1566-4df6-9958-fa01d67d13c7	7682acb3-561b-4951-801b-c1564adda131
+44467af5-97e3-45cb-8643-e5d4f8360b84	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+48f988e8-b1a7-45e6-928c-09005d6b99ce	e2b4be77-2b20-4064-974d-e6322e7240b4	88b29e0c-39b7-4169-ab5c-350075014a84
+4a2b8b55-61a5-4ab5-b9fa-430e61cb25c1	6d25ff6d-e13d-440f-b775-215547af7acb	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+4bce68da-2e17-4036-8f5e-6ea53c97d414	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	45755b2a-741a-4990-ab78-8f65090f75b1
+4c767a41-926e-45e4-a792-04202c4a0e76	157d001c-b056-45b1-96a3-3c05bcd8d99c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+4d3fbab2-2960-4c8c-b6d9-c3418e6bef09	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	7682acb3-561b-4951-801b-c1564adda131
+4f2edb70-fbf7-48a2-a25c-95965a27460f	b5f39dd8-c305-489d-9f7d-9adfd010a134	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+5014a9f2-dcf5-473b-b2c7-8dbedd02243d	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+51c49570-d242-48b8-bbd3-f18375c1e35b	163d8c87-8f90-4295-a926-2e912c625a1c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+5322dae0-9cd7-44b5-862c-a723afc91bed	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	682d36c0-4256-42ab-811e-054ab3a5b10f
+53d4e661-7a93-4d73-9996-00d64dfc9ea6	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+5714e4a4-bd7c-4ac2-a902-26a49ade8616	2b1558e3-158a-4a84-ae80-053129861a64	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+58b3a0be-2d49-4b06-b1a5-02b4571323c6	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	682d36c0-4256-42ab-811e-054ab3a5b10f
+5c725d93-000a-4860-8fba-eb9b424249b7	9050e021-7d84-4401-820e-c0e768abb1ab	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+5e0bda4b-e131-4380-b7af-20543cd0a06a	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	5d962383-f175-4dd8-af63-8a566a0d2255
+61c7816c-2674-42af-a7cf-749e882da68b	e8c22eff-0daf-4690-a537-c8b0b6110a01	c88d783b-b628-4f3a-a972-aa56aeed5e77
+621daa56-013e-45eb-8af0-86438d80825d	e228c999-bf54-48b4-a373-d2bc9db88554	db0addff-605e-439f-917b-38016a398755
+62c6b6fe-01ff-488d-afda-a619706e8eba	1f97b442-95c5-4b11-93a0-ea146534ae85	5d962383-f175-4dd8-af63-8a566a0d2255
+6458d657-b59c-478e-89ca-989534085fef	a697a798-caaf-4248-8e4e-7e89096a9c30	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+678c51c2-3a70-4602-8a3e-dc091ca36506	911f6d7f-8d43-40f2-897a-2f416abf8cf9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+69eb5797-67d6-4a54-a6fc-1ac247fb08c7	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	88b29e0c-39b7-4169-ab5c-350075014a84
+6ae970a9-6399-4c57-9b4a-214ba8f3e87d	3b7ea453-324e-40a0-bb41-77a0795d5af5	db0addff-605e-439f-917b-38016a398755
+6b6b200b-d2a8-4b7d-a380-26f5ab776f47	e228c999-bf54-48b4-a373-d2bc9db88554	682d36c0-4256-42ab-811e-054ab3a5b10f
+6bcba78e-67f1-4dd7-a227-4998bea4aafd	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+72d524c7-3030-49de-8717-6628ec578dca	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+737b52a4-b5e2-41bd-b774-b281786a18f0	4f972924-350a-47fb-a6b6-f2b34bb6b621	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+73eaea1b-2f98-4645-adb9-85bc82d6e384	4f972924-350a-47fb-a6b6-f2b34bb6b621	db0addff-605e-439f-917b-38016a398755
+7897f1ce-5630-4de1-ba53-fc1d298c6f8d	767a00dd-6f09-4f64-a44e-8fbe901222af	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+79f6c107-ebaa-4976-914f-a3b761454e1a	9dc69952-eae6-4ec0-a327-67392315f089	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+7befc8f2-9b63-4840-ba37-46aeac4da3bf	caa227a1-2dcf-4195-ab9c-8f76d1862daa	5d962383-f175-4dd8-af63-8a566a0d2255
+7dd3e9e8-0bc2-4ab9-be1c-3353a03cf8d4	9858c224-f97f-4ff8-908d-f46bd5e2243c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+8362f94d-9ca2-4059-ad25-c5ad7f043daa	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	682d36c0-4256-42ab-811e-054ab3a5b10f
+84deb8f4-5a60-47d5-80bf-387ecdae0685	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	db0addff-605e-439f-917b-38016a398755
+85030e2a-4283-451d-b7f9-6448c7cc1848	e228c999-bf54-48b4-a373-d2bc9db88554	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+85249270-4f1e-4928-bf41-833f963a738d	e36018c5-bf48-4f93-bef7-93e8864a0b51	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+87f1c6ed-70d2-48cb-9b29-4e92dd021508	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+89533fda-75ce-4c02-9614-4b0eaa20a33e	73bd55bb-5d0e-4381-8ad2-2238377fca93	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+8de89bfe-2e5e-4298-b0aa-12532ef58def	1e7faab8-273d-40df-9f9a-485160186c5a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+900f780f-47dc-4ed6-bb5d-00521bd2d695	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	b651aec8-5455-4329-8251-0ceb62cea798
+91408a74-5e95-41c2-915c-3ba19c2f0b8e	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+966c14b1-dfcd-44f5-9d81-638bba1babd3	8b57cfd5-5d4e-44a3-9646-b36873c111c2	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+982b3faa-0b4a-4152-aa2d-a89e060508b6	2076a9b1-e432-46a9-99b1-36e732159856	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+9d391026-5718-4acb-a0a2-56a44e11374b	ea315f7d-d597-41b3-a999-4f3851bcd020	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+9d60d2de-a67d-490f-8ef6-350b10d7801a	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+9db416d2-132f-4ac1-8ac8-5694de9407ed	195d6a81-8457-4b60-9382-6a3a0664f0e9	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+9dfb9efd-08a9-4651-b170-3265cdc9750c	c1fa4328-a970-48a1-bc08-d50fe36bf44c	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+a3391489-e575-487f-b8e8-b126a18ec5bb	6193be76-40ad-4973-9ee7-246a4d8f4109	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+a4955831-3adc-40b0-b024-944f6359fc0c	a697a798-caaf-4248-8e4e-7e89096a9c30	682d36c0-4256-42ab-811e-054ab3a5b10f
+a9779124-5863-4705-b4e4-bb453bebd036	e2c675a7-92dc-4477-be75-9a304cbe4def	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+ad29863d-c090-43ad-8d66-0652bf455711	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+afebdb50-5553-4745-9276-02b688e4297e	f8502c44-b289-49e4-8401-3dcad4d5bbe0	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+b15a5055-cbdd-4cef-89fb-6878d68a4317	4b680e29-b4fb-4689-9afb-67a7f089f52b	b651aec8-5455-4329-8251-0ceb62cea798
+b1e32cf7-4e1d-46cf-90b3-de485e9a232b	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+b278a436-7703-44df-9a71-05c257f8152c	da990f6e-3379-4cc4-89b7-0ead29da472b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+b3c1790d-1780-45bd-a582-4094a8d5829b	b3309eea-7374-4a8d-ac13-481b2a7fd492	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+bb2a2ac3-ba2a-4751-afbe-e55321e1abc2	ae255622-ddcc-45ea-a699-8ec416fe57ab	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+bcb81f78-e77a-430b-9126-53853555a0da	168d11d7-ca26-4d61-b870-51779dc63023	682d36c0-4256-42ab-811e-054ab3a5b10f
+bd0795b5-7027-41dc-af2c-a76bb3a84eb9	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+c274252a-3ccd-41bc-ab86-c7b4d10cdc2f	7c2380da-3ee6-46ad-93d6-a79ce3027f29	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+c44e525b-1b9d-432d-ae8b-5dc0cc91e3df	834c9e15-c70d-4a0b-bb12-5e55f23c181d	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+c4d13830-dca5-48b0-a53f-331e78bacff1	9858c224-f97f-4ff8-908d-f46bd5e2243c	db0addff-605e-439f-917b-38016a398755
+c664566a-606a-40c7-b62e-51950f16fa8b	155642eb-a633-4460-b658-aca9fde2d817	5d962383-f175-4dd8-af63-8a566a0d2255
+c9428977-ba84-4e1f-9da6-3bf9a63564eb	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	5d962383-f175-4dd8-af63-8a566a0d2255
+cf62762c-d13f-4190-a3fc-b4850e69692a	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+d05bfce1-6bd2-47b8-a3e5-979153be5c1b	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+d129c3af-0b2a-4bff-9a01-f57627f0e9bb	48429bb5-c583-4684-b30a-7ed443b671ca	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+d40c4289-2212-4e4a-8e55-8ca4594fc3ed	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	682d36c0-4256-42ab-811e-054ab3a5b10f
+d4ceeaae-c185-4032-8276-39e283dd94f1	c0e1a001-0000-4000-8000-000000000001	63765624-d7d1-472d-abd4-627127646998
+d4e08c00-0caf-4667-9548-51f9bb3ace9d	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	db0addff-605e-439f-917b-38016a398755
+d7a7b623-c081-400d-9ca1-1bc56c5a5374	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	b651aec8-5455-4329-8251-0ceb62cea798
+d85c3d94-6b6e-4086-ae18-e6a195e9279f	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+dfaa4422-3df7-4800-a3bb-d3a0db1b70af	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+e0a98487-5cba-4266-bf26-2729490df288	778f1120-9633-4933-9160-ddaa46668838	a12ac80b-a665-4301-898e-e9ca3d44bb20
+e2cd8d15-dbdc-4ffe-b474-6c2f42889540	3b7ea453-324e-40a0-bb41-77a0795d5af5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+e8c6f944-1cc3-4a81-951c-23f88ff044d9	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e8f6d7ee-da36-4adc-938d-fa92aee388f3	0525d830-ead9-44a0-871f-91b7845fec26	61bbeadf-3044-4123-929c-4b1e6e2e613e
+e967e05f-a8bb-4b07-a424-780717691716	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	c88d783b-b628-4f3a-a972-aa56aeed5e77
+eee698fa-5f99-46a3-9119-d6718a4ef492	c70b9832-841e-4864-9b85-eaba3c0a995f	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+f298b704-9d59-472d-9115-55e3f2fb3700	444df30d-c195-42ad-b9a7-d80cdef69ccd	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f7c441bf-23e7-438d-8fe9-9e457e260b92	3b7ea453-324e-40a0-bb41-77a0795d5af5	682d36c0-4256-42ab-811e-054ab3a5b10f
+fcd98426-682a-48a4-8f60-fca9206a02e4	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	7682acb3-561b-4951-801b-c1564adda131
+fd68ecbc-74f9-4208-9c11-2acefb003d7d	6e606c29-2ebf-4ab8-8006-aaedd5680009	5d962383-f175-4dd8-af63-8a566a0d2255
 \.
 
 
@@ -5135,121 +4682,121 @@ COPY master.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "So
 --
 
 COPY master.mst_onfloorrole_sub_departments ("Id", "OnFloorRoleId", "SubDepartmentId") FROM stdin;
-012f5f5c-f795-41c3-934d-9119757e943b	b25515f1-974c-4b63-a8b6-ca6e7ab95393	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-0311e454-4ec9-4b5b-974b-7de0c3fb84f3	70480603-7eae-41f7-b659-052b7500ca91	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-03677d56-41c4-4cf0-8287-c234f1bf6f28	b5974e61-080c-4de2-a977-7f0bdee29949	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-043ba647-f81e-487e-8a71-bea2c69b7742	8765d1b0-e4fc-4686-91ea-f5ad4e929818	db0addff-605e-439f-917b-38016a398755
-05add783-ab13-4bb1-aafa-d34e794029df	1abc8fed-e830-4103-a5ab-c3402b166116	63765624-d7d1-472d-abd4-627127646998
-060c198f-3d98-44fd-909c-a1a39ce3747e	7fe8d8b6-c0fc-4015-a3ff-5bb8e95ea0d5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-0637bcf5-b2b1-4e5b-9ff4-f8c12b089e91	6eaffc67-3d6e-4bb6-9c90-0a604398090d	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-07c0665f-a531-43bc-91c8-a4db0653d2d6	8765d1b0-e4fc-4686-91ea-f5ad4e929818	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-0b32f0f2-4280-472e-9d53-59d0ca3b1e4a	8765d1b0-e4fc-4686-91ea-f5ad4e929818	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-0bc2a552-05a7-495b-987c-c4f5ff182d29	5814389a-4416-4e4d-96a7-58f4801e2757	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-0c617acb-cfcb-4517-b47b-36cd9bc329cb	ecc39c47-956d-49b9-8fbc-44a6433f3912	88b29e0c-39b7-4169-ab5c-350075014a84
-0ecffe58-8743-4176-ab20-7b99e61f7995	ec4a89e1-35a6-495a-83c9-b6a34ee00402	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-0ff49c9c-4822-4c09-9b67-228dc6264e3f	56ed9417-a9fd-40ff-a517-1e75bbf02d63	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-10dd130a-384f-408a-a696-adc4b7a84905	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-113ae9f3-0745-4d8d-a334-116f9ac6740d	21c47c58-0be4-41bb-8407-8df5fa4b8e9d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-164c5d8a-6ca1-4454-b276-ee712a538080	3091c873-f1f0-4632-ac1e-62d1a451c39d	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-191cd340-b417-4b11-afa5-8bdb58cdc651	87ea604f-b245-49c0-9172-3956f1d6eb75	db0addff-605e-439f-917b-38016a398755
-1a0f80a7-f39c-47c0-b4ab-5d4b89077485	bce667dd-cae2-404d-8013-49194e0f48d9	5d962383-f175-4dd8-af63-8a566a0d2255
-1a239736-f60d-48c0-82a6-ebc3cee00731	c4d57da3-eff2-4cd1-834f-e0d77b39f299	682d36c0-4256-42ab-811e-054ab3a5b10f
-1ad9cf58-0a6a-4299-90c9-9ce1eeda0b24	9ac666ca-eaa2-46a5-b489-66a8cc550b65	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-1dea8618-b8e7-476d-a546-5e69762b85e8	b7425734-5262-4802-9a10-5e3141b11d6c	c88d783b-b628-4f3a-a972-aa56aeed5e77
-1f449d4d-6e08-4e74-a1f9-d94b96ed884c	d8d41d59-fe4b-4c54-80d3-751a7bbf714c	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-21a10fe6-5222-46a4-bf55-939f1636f065	c4d57da3-eff2-4cd1-834f-e0d77b39f299	db0addff-605e-439f-917b-38016a398755
-25c3c2e2-def6-4853-b89d-f8a0f4b9c03a	ccf1432a-d667-4fff-8071-efbc9f841976	5d962383-f175-4dd8-af63-8a566a0d2255
-2631fbb4-0ec7-4d48-8777-97271b44e801	580f3fc7-ff2d-4881-a222-d91a7c00f491	c88d783b-b628-4f3a-a972-aa56aeed5e77
-27797f73-d23f-49af-9649-95649a866788	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-28c9ce6c-c748-43d1-abb9-310fd28769a4	54123afd-2783-4a41-b18f-328d024e8a22	5d962383-f175-4dd8-af63-8a566a0d2255
-2a312326-4102-4dd1-9243-45faf98288a2	bb6f610b-b2f5-4b01-9ea4-fb9ad074b768	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2ec02481-f614-4017-8a66-f5796c30958c	8211f0b1-d111-400b-94ab-fd663d50ec65	7682acb3-561b-4951-801b-c1564adda131
-33831396-676e-485f-8da3-24fcff8b9cfa	27d8ec30-01ad-45f2-a7d8-7a54c2d2c754	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-33f10cb4-9159-4ba9-8539-eb163aecba80	da608430-bf9a-4a87-9881-1c07e7f2974a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-36fa33d3-0dc6-404e-96a3-7197681d44c9	c4d57da3-eff2-4cd1-834f-e0d77b39f299	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-3917db12-49cc-4534-a7a8-4baf2f61d947	9326acb0-20c1-4d05-89b6-d85ee3425469	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-3c2b8c87-5a24-460a-a577-1657d4b638ac	0acaaceb-a951-4492-bdba-69d5e916f8b4	b651aec8-5455-4329-8251-0ceb62cea798
-3dd0714d-f306-4631-8fc0-e91f270db7a4	475cc74e-698a-4547-966a-823be44cfd15	7682acb3-561b-4951-801b-c1564adda131
-3e1f746e-393e-44f9-9826-f4679647379e	ce7509b0-415c-4d04-a2d8-43c3ee382a72	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-3e6f906a-56a2-4e3c-8927-906affde9ee8	01a26d31-4fcd-4ad3-b08e-1276a4620cb8	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-3eaa2244-c8ca-4c76-bc1a-69c61050f3e1	29119117-9aa3-4def-9db8-802f70f74e4b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-40e87274-3074-49a0-bbe2-2dd21ef486c6	e061fae9-2430-4025-ad39-ff79717301a5	db0addff-605e-439f-917b-38016a398755
-45523676-feb2-48d9-a2f2-453d6796142b	5814389a-4416-4e4d-96a7-58f4801e2757	682d36c0-4256-42ab-811e-054ab3a5b10f
-47507e7e-eb3e-43a8-ba10-f48812ec758a	d412d761-e42e-4ab2-8e58-1df17b290365	5d962383-f175-4dd8-af63-8a566a0d2255
-49f0f070-03e6-4de1-acc5-19dab08b5170	0837f524-0260-4283-a37f-6e1fb06d3dcd	b651aec8-5455-4329-8251-0ceb62cea798
-4b91fea6-36c1-4894-9969-1cf56357c404	99039771-cd5a-4878-a7b9-9cdaa02f5be6	5d962383-f175-4dd8-af63-8a566a0d2255
-4c9c6e75-647f-4c32-95f4-8c5f1cb11646	c5ea1ba3-9974-4cca-9320-362527502c6e	5d962383-f175-4dd8-af63-8a566a0d2255
-4dd75244-ffe3-483e-84d7-e97a0c94fbd2	22a8384f-6070-4554-89f1-ee327ae48f16	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-59e202b1-7a9d-411e-b9ec-d382519b0c69	734614d6-908f-4f24-8331-c515a6d70149	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-5a70d611-ca74-40ff-8a15-fa7083a08ed1	4cc83d93-7b2f-4c97-a4a7-e9ec47735e4b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-5ac77c3b-5286-48ad-836c-128006acee5d	87ea604f-b245-49c0-9172-3956f1d6eb75	682d36c0-4256-42ab-811e-054ab3a5b10f
-5c8b1bd4-4c7d-429d-90b0-10ff4a90e9ed	36339f27-5abf-4ffc-bca3-5a2333a94df2	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-5d00a07e-6a87-4860-9671-810c5cfba1ac	d862a290-2a0a-47f2-9c23-2baf830a37b9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-5f72cd93-8704-4274-80ca-70e8427a2543	4766e158-b2c1-44dd-a36d-18583c490193	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-603c207e-5f27-4cd7-b02c-aa35d39620d1	5814389a-4416-4e4d-96a7-58f4801e2757	db0addff-605e-439f-917b-38016a398755
-654cffd7-d25b-4f7c-b4cd-01d91a905d5a	746752f8-decb-46a0-a7e1-d07a0a68dbc3	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-65b5aaf6-3b3f-497d-888c-c641af932849	8765d1b0-e4fc-4686-91ea-f5ad4e929818	b651aec8-5455-4329-8251-0ceb62cea798
-6aabcaa5-ffd1-4338-a109-ebe074dd81bb	fec21974-29e7-4dcf-8438-efb813045170	45755b2a-741a-4990-ab78-8f65090f75b1
-6f903d2f-686e-408b-89d5-7ad05324b194	e3ede776-6573-4898-9195-fb2a398100b2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-716a3c73-9076-469b-8ac0-a912f9e517ae	9ed3ce2c-add0-4472-9da8-4cd5c0552867	5d962383-f175-4dd8-af63-8a566a0d2255
-73909aa2-a48f-4a18-9231-8875ba0a68ad	59cf62d4-7c2d-4e4c-b075-0db51d40ea4e	7682acb3-561b-4951-801b-c1564adda131
-75d5ea36-0184-4b77-a195-60059465cb72	9635b694-a552-42c0-9df3-a6090c9b1923	61bbeadf-3044-4123-929c-4b1e6e2e613e
-7f8b8651-727e-4fea-ba8e-e3b32a89fa40	b24b3d9d-7454-4657-bb24-3c4f0f40956e	7682acb3-561b-4951-801b-c1564adda131
-818b7189-c643-4cba-a895-3b913ad82f03	b4b2673b-fc1c-4484-8f2d-903a39dff2a9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-82472ae4-185d-4974-9ecd-2cec7dcbb5f8	e3c262a4-4108-4592-abb0-643085d6a305	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-83b126cf-5334-4887-b0dd-7215f18c2de3	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	db0addff-605e-439f-917b-38016a398755
-8516b135-253a-4183-b4cc-f5bdea3c26c8	9ad0a166-cde2-4817-9acd-363d217422d9	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-87aaf242-c9e4-421a-9718-ce5018b55dc0	f7a34722-94ab-4e14-ad50-5e5f0b44cca6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-8807e9d1-160e-4c86-84c4-d90284453acc	8765d1b0-e4fc-4686-91ea-f5ad4e929818	682d36c0-4256-42ab-811e-054ab3a5b10f
-88c21c65-ac87-44eb-860e-628795aeb37d	56779122-3301-4a2c-bc35-085f96ee714b	c88d783b-b628-4f3a-a972-aa56aeed5e77
-8b5c7f2b-433d-4479-868c-2718fe090b15	39c52128-53f4-4e39-8102-4b9ccc9f5584	db0addff-605e-439f-917b-38016a398755
-8cef33f7-5af0-46b5-bc75-9d020d7b142c	67306ff5-e313-43da-99bc-56b6a6ca65ee	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-8e452b95-cf4b-4b76-95fe-0dad471b3110	6eaffc67-3d6e-4bb6-9c90-0a604398090d	db0addff-605e-439f-917b-38016a398755
-92b8fad2-05fe-466d-837e-d7d0135714c0	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-9406913f-bf79-4d67-97a4-c2da92f0c7e6	f4e2358e-5ec0-4292-8377-438dabb72fbe	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-95c66d61-a006-4257-8979-11caa1c571ac	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	db0addff-605e-439f-917b-38016a398755
-95f26042-f4b4-42e8-841a-3df67512de95	e60fe13f-6f3e-4410-80c9-dcfbb88f0301	a12ac80b-a665-4301-898e-e9ca3d44bb20
-971a2b68-4dfa-42bd-b117-f283ed1b37a4	885809b5-843a-4ec9-bafe-da1472b73a03	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-9aca68b4-96e7-4e07-a6e7-670a5e6afafb	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	682d36c0-4256-42ab-811e-054ab3a5b10f
-9d19acd0-ff94-4d5e-9f01-fa4647c58012	2d4e6116-3ec3-4c5d-9d75-35517814a964	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-9d536268-7770-47a1-aeb6-dc334dfd2b33	39c52128-53f4-4e39-8102-4b9ccc9f5584	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-9e65eec0-8c58-4985-9711-4c911232ac6c	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	682d36c0-4256-42ab-811e-054ab3a5b10f
-9f3933ef-1a13-4d3b-9717-3ac4d44be929	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	db0addff-605e-439f-917b-38016a398755
-a4d479f0-0b86-4da0-8fac-1432305a08b5	a1826c58-197f-4c7e-9909-a8970491fe38	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-a6d7807f-420d-4ada-9026-f5eca36f67a4	67084a5d-02d0-4a73-a15f-45aca43adb58	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-a87e7769-da91-4626-bb4f-88e4181861fd	7d2b7826-2f63-4796-9032-5ffa35cd5b37	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-abb04249-d3e8-47d2-9dca-666a7debb6c1	36339f27-5abf-4ffc-bca3-5a2333a94df2	db0addff-605e-439f-917b-38016a398755
-adda2d42-7faa-414a-b321-fa6eaeb84c1c	b9232654-c160-4e84-bdc3-ad94a605dbe1	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-b4ec0600-4ac6-4436-8fdb-9a9d40e4da9c	39c52128-53f4-4e39-8102-4b9ccc9f5584	682d36c0-4256-42ab-811e-054ab3a5b10f
-b751eba7-800a-4178-acbf-2e380b262964	e061fae9-2430-4025-ad39-ff79717301a5	682d36c0-4256-42ab-811e-054ab3a5b10f
-b8ed1943-1649-49bd-8511-3871018fa83c	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	682d36c0-4256-42ab-811e-054ab3a5b10f
-b98acdeb-d123-4752-b3ba-e8efc9201540	e061fae9-2430-4025-ad39-ff79717301a5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-bc900612-27a7-4b50-a093-13f0bc9cace8	f39ba18d-6be5-4d23-a99f-f8d7a68c43dc	c88d783b-b628-4f3a-a972-aa56aeed5e77
-be42aabc-766a-4f81-ae98-d4d2389e78b2	d6002117-fdbb-437a-986f-dde6b5b5c162	88b29e0c-39b7-4169-ab5c-350075014a84
-bef9adf8-8f43-47a5-a837-1ea635c8e0df	87ea604f-b245-49c0-9172-3956f1d6eb75	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-c15d30ac-a3cb-4d31-b3cf-fd2752e5ad1b	67bdeca7-fe42-4b4e-b5b6-9e8e8d410413	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-c577eb60-eb6d-451d-8062-2d4ad6121a76	6890c399-940e-4c2a-9aba-0dd90a50e063	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-c85b65c4-4017-48ff-8f16-4782d972fe85	3d74762f-cfbc-4cb9-b172-c2aaffc64f30	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-cbb2cde0-5e67-4a5b-9f4e-c12d74133173	c637e1a2-5677-45fa-bbbf-f88fc60a9443	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-cd752263-5ae6-47a5-a331-3d0cdcf86a46	f51841ca-ffbc-4619-98be-201d736e4f48	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-ce3d6d91-43c0-4dbc-a198-f45e1e202e8f	9ad0a166-cde2-4817-9acd-363d217422d9	682d36c0-4256-42ab-811e-054ab3a5b10f
-d09fe2d5-32ba-4bba-b3df-ed5b0c6408d2	36339f27-5abf-4ffc-bca3-5a2333a94df2	682d36c0-4256-42ab-811e-054ab3a5b10f
-d3c87046-4461-470a-81e6-a247ba098b90	ae6e9e5b-7337-47a3-8fe5-bb02a9a7f374	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-d9fd7cf7-d706-4666-b1b5-41abeabb6e90	3101ee42-6788-4ae4-a80b-f7394720b740	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-dc748117-95d2-4d7d-8270-168c8645b1bd	eb9edaa3-2522-4d91-ab86-d786a7250f91	b651aec8-5455-4329-8251-0ceb62cea798
-dd225c57-5e8b-40cc-82d4-c44ae99e323b	03d492f0-4458-48e5-9ee8-06f09f660218	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-e267c62c-67b9-48d6-b5e0-54eb5ffc158a	b9f75ed9-10c6-4b61-ad05-b27ec89a8b3b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-e30bb6a4-5645-4c7f-9bb3-aa02598b1ba2	f6560080-4b30-4b4b-b8ba-90d5b0ead2da	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-e6ae736c-8ceb-4b19-a43c-e6ed477e5a11	acf26b08-e6ae-4343-9bf9-529b070835a3	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-e9da5d2a-a569-4df0-bcae-d9f61f45e6fd	4d8c99f7-b5c4-434a-ae7c-64419a5a1bcf	c88d783b-b628-4f3a-a972-aa56aeed5e77
-ec42a281-c064-4fc4-9650-a07d6d3937de	c4ef6b03-baa6-47ac-8d06-c8819ddbdaa7	c88d783b-b628-4f3a-a972-aa56aeed5e77
-f36f00e8-1e9f-4315-a470-471701f8325f	23f52e10-894f-4e50-970b-202a3127a1d9	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-f4e29c16-039c-414b-b07f-03fe802ea781	8765d1b0-e4fc-4686-91ea-f5ad4e929818	88b29e0c-39b7-4169-ab5c-350075014a84
-f4fbdc14-9a23-4c02-970b-b040b85b8682	5c9266d9-5a57-4b6c-aabc-18edce40ae96	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-f53a1d23-c482-4d29-8316-0083590a6cbd	acbe4f0d-8058-4a88-9255-08104f0037b6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-f6883bf9-3f74-4965-b030-266aaddb7407	6eaffc67-3d6e-4bb6-9c90-0a604398090d	682d36c0-4256-42ab-811e-054ab3a5b10f
-f6a19d3b-b2a0-4946-8241-02fc2e8015e5	9ad0a166-cde2-4817-9acd-363d217422d9	db0addff-605e-439f-917b-38016a398755
-ffc1f01d-2eab-4608-b497-d56cce927d47	e1f2260d-b878-4693-86db-2513390804aa	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+01226d73-8ebe-4ca4-b8bb-f1d716509e07	1abc8fed-e830-4103-a5ab-c3402b166116	63765624-d7d1-472d-abd4-627127646998
+038c5d2f-332d-4440-a2c7-cf3600ac2bcb	4cc83d93-7b2f-4c97-a4a7-e9ec47735e4b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+04686b80-f9dd-4a8c-b861-b329009e5fff	4766e158-b2c1-44dd-a36d-18583c490193	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+0524b067-f534-4406-b2b1-52972ba908d7	c4d57da3-eff2-4cd1-834f-e0d77b39f299	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+05ce1b7b-0ab0-49d1-862f-051f7bc8ccfa	746752f8-decb-46a0-a7e1-d07a0a68dbc3	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+08df62d1-dedf-4dfd-be5a-039139acfb64	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	682d36c0-4256-42ab-811e-054ab3a5b10f
+09771bf8-e221-4ecb-a514-28e367c46a2d	3101ee42-6788-4ae4-a80b-f7394720b740	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+0b1baebe-0db9-4008-b9a1-83c34b4160af	2d4e6116-3ec3-4c5d-9d75-35517814a964	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+0c85cefc-45d0-4e01-9f6e-8661ffbbdeae	0acaaceb-a951-4492-bdba-69d5e916f8b4	b651aec8-5455-4329-8251-0ceb62cea798
+0ceb321d-93a7-402b-a63b-2419d259cf92	9635b694-a552-42c0-9df3-a6090c9b1923	61bbeadf-3044-4123-929c-4b1e6e2e613e
+0f436ab4-8ab3-4249-90e0-cf42a52b86aa	87ea604f-b245-49c0-9172-3956f1d6eb75	682d36c0-4256-42ab-811e-054ab3a5b10f
+0fc59050-e70d-4422-af0d-31ceccdde25d	f4e2358e-5ec0-4292-8377-438dabb72fbe	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+133da02a-3e86-4a74-a36d-cfdd566f84b9	e061fae9-2430-4025-ad39-ff79717301a5	682d36c0-4256-42ab-811e-054ab3a5b10f
+136270e2-6b99-45fd-91f3-82ef4624238f	eb9edaa3-2522-4d91-ab86-d786a7250f91	b651aec8-5455-4329-8251-0ceb62cea798
+18647b49-0bb5-4f5e-9735-fa284198fa51	67306ff5-e313-43da-99bc-56b6a6ca65ee	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+1c54cef0-cbb9-4338-853c-72a7e9ee454d	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	682d36c0-4256-42ab-811e-054ab3a5b10f
+1f424b31-aed5-48d0-952e-d7ce47dc0978	f51841ca-ffbc-4619-98be-201d736e4f48	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+21311403-5e0c-4c0b-bc36-985451761354	01a26d31-4fcd-4ad3-b08e-1276a4620cb8	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+21b85a74-67e1-4260-bea2-7e28a1590891	b7425734-5262-4802-9a10-5e3141b11d6c	c88d783b-b628-4f3a-a972-aa56aeed5e77
+2370d5fd-fd60-4a5a-9d1f-e1eb9056a1c9	8765d1b0-e4fc-4686-91ea-f5ad4e929818	db0addff-605e-439f-917b-38016a398755
+26b8cbbf-7231-488a-ba44-40b422c40224	36339f27-5abf-4ffc-bca3-5a2333a94df2	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+2747e783-ae4f-4a34-989a-6edb6cf3f56f	c637e1a2-5677-45fa-bbbf-f88fc60a9443	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+28d960df-417f-4b9e-b2c5-a3df17df929b	21c47c58-0be4-41bb-8407-8df5fa4b8e9d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2a0cd2e2-4c16-462b-8ed9-0009bf38be2c	e60fe13f-6f3e-4410-80c9-dcfbb88f0301	a12ac80b-a665-4301-898e-e9ca3d44bb20
+2a537159-68d3-4773-a7a9-2e3fe2ea0533	580f3fc7-ff2d-4881-a222-d91a7c00f491	c88d783b-b628-4f3a-a972-aa56aeed5e77
+2bae39c9-7777-49c0-8c75-34365db7278a	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+2cb0c64c-db89-463a-96eb-0650f48bb1a1	6eaffc67-3d6e-4bb6-9c90-0a604398090d	db0addff-605e-439f-917b-38016a398755
+2dfb33aa-ae91-4ded-86a2-f0f5ecc548b4	3091c873-f1f0-4632-ac1e-62d1a451c39d	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+2e5a76e8-b711-4c6d-b692-1cee0341b068	d412d761-e42e-4ab2-8e58-1df17b290365	5d962383-f175-4dd8-af63-8a566a0d2255
+33e03621-c770-43ab-9bdb-eb5e45243875	9ad0a166-cde2-4817-9acd-363d217422d9	682d36c0-4256-42ab-811e-054ab3a5b10f
+3860d1f2-eb8a-4d3e-8a77-29fa71514e54	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	db0addff-605e-439f-917b-38016a398755
+397219e1-0f7f-4a93-a6c4-dde9fab041db	c5ea1ba3-9974-4cca-9320-362527502c6e	5d962383-f175-4dd8-af63-8a566a0d2255
+3b4dbc90-2662-43e8-a1ef-6bf71c1156a1	56779122-3301-4a2c-bc35-085f96ee714b	c88d783b-b628-4f3a-a972-aa56aeed5e77
+3d2c034e-b1d6-4d41-b75c-c38221abe7af	6eaffc67-3d6e-4bb6-9c90-0a604398090d	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+3e222499-2221-4601-b4f0-348590d44453	87ea604f-b245-49c0-9172-3956f1d6eb75	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+40a78442-b06b-4d82-8a9a-c539aaad25ba	39c52128-53f4-4e39-8102-4b9ccc9f5584	682d36c0-4256-42ab-811e-054ab3a5b10f
+4131a7e9-d203-404a-b37a-8f50c49ad625	36339f27-5abf-4ffc-bca3-5a2333a94df2	db0addff-605e-439f-917b-38016a398755
+446654dd-e66f-40a0-9835-eb80b92abf0c	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	682d36c0-4256-42ab-811e-054ab3a5b10f
+4cb50ed4-569a-42f3-bf83-280422e1d788	03d492f0-4458-48e5-9ee8-06f09f660218	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+4cccf989-5651-4d82-9a93-961fe8ab517a	ae6e9e5b-7337-47a3-8fe5-bb02a9a7f374	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+4cfedac2-c032-4310-b324-163cf3671dec	67bdeca7-fe42-4b4e-b5b6-9e8e8d410413	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+4dfb6f26-b758-4ce9-a04c-0adcea7dd4f1	23f52e10-894f-4e50-970b-202a3127a1d9	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+551377c3-02e4-45af-b80b-b3fc7b80b3e5	0837f524-0260-4283-a37f-6e1fb06d3dcd	b651aec8-5455-4329-8251-0ceb62cea798
+567f21fb-9f03-4141-b438-7442144a992e	b24b3d9d-7454-4657-bb24-3c4f0f40956e	7682acb3-561b-4951-801b-c1564adda131
+56a3aac7-6343-4798-9f9f-3c7ab5756aa8	b9232654-c160-4e84-bdc3-ad94a605dbe1	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+56d2e1bf-67c9-4ac4-966a-0f2829870086	4d8c99f7-b5c4-434a-ae7c-64419a5a1bcf	c88d783b-b628-4f3a-a972-aa56aeed5e77
+5993620f-2831-4249-8b48-a86ef27e3e1d	5c9266d9-5a57-4b6c-aabc-18edce40ae96	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+5a4d3aeb-a80f-4e43-9495-a0edecd48d49	e3ede776-6573-4898-9195-fb2a398100b2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+5b3941ff-a9f6-4a91-8bd9-1d6838151855	bce667dd-cae2-404d-8013-49194e0f48d9	5d962383-f175-4dd8-af63-8a566a0d2255
+6097fef2-6476-492d-8bd6-c8e9c265d617	734614d6-908f-4f24-8331-c515a6d70149	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+67b7bedd-8205-435f-a363-c411d8e23a4b	c4d57da3-eff2-4cd1-834f-e0d77b39f299	682d36c0-4256-42ab-811e-054ab3a5b10f
+6cc0d342-f309-44bf-bb8b-f80b80055475	7fe8d8b6-c0fc-4015-a3ff-5bb8e95ea0d5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+6d31e33b-14bf-46bd-b6c2-c62fa4a66a07	d8d41d59-fe4b-4c54-80d3-751a7bbf714c	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+6f60e3b7-1582-468c-a159-333a09dede7f	c4d57da3-eff2-4cd1-834f-e0d77b39f299	db0addff-605e-439f-917b-38016a398755
+70bff5f2-5438-4dfc-886c-e9eac49cfb06	ccf1432a-d667-4fff-8071-efbc9f841976	5d962383-f175-4dd8-af63-8a566a0d2255
+74760bd9-7c27-4e30-bd29-56014bf0ae15	9ed3ce2c-add0-4472-9da8-4cd5c0552867	5d962383-f175-4dd8-af63-8a566a0d2255
+7575a5f8-f28a-4a86-919a-872a1e273f60	7d2b7826-2f63-4796-9032-5ffa35cd5b37	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+75c24d42-ef18-4dff-a62f-5c3af075b15a	22a8384f-6070-4554-89f1-ee327ae48f16	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+764820d2-9a74-4464-9304-cc84a21d1cb7	8765d1b0-e4fc-4686-91ea-f5ad4e929818	682d36c0-4256-42ab-811e-054ab3a5b10f
+766fec0f-82d9-45f3-8f82-301102d1e3b2	5814389a-4416-4e4d-96a7-58f4801e2757	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+76f62aea-8a0e-41e0-857d-5712d2958bf7	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	db0addff-605e-439f-917b-38016a398755
+7c7d6edf-0fb1-4e1b-81e9-ca483e5c37d6	b25515f1-974c-4b63-a8b6-ca6e7ab95393	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+7f00a49b-8330-46fb-b206-4cdfb149de0e	a1826c58-197f-4c7e-9909-a8970491fe38	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+82ccf345-4419-408c-abc7-a7a3b1db1ef4	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+86297c62-85ea-460b-901d-52457b2d4a86	e061fae9-2430-4025-ad39-ff79717301a5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+87a76f18-d3d0-4580-bf12-d354fcf93ee2	9326acb0-20c1-4d05-89b6-d85ee3425469	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+87f1ab61-b687-4331-8371-6408131cc631	fec21974-29e7-4dcf-8438-efb813045170	45755b2a-741a-4990-ab78-8f65090f75b1
+8a428712-e5ea-4e4e-8ace-1471299645a5	b9f75ed9-10c6-4b61-ad05-b27ec89a8b3b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+8df59099-e49e-4006-9669-e067b293fac4	3d74762f-cfbc-4cb9-b172-c2aaffc64f30	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+8ed839a4-4634-4f18-82f4-38539e0b67ef	475cc74e-698a-4547-966a-823be44cfd15	7682acb3-561b-4951-801b-c1564adda131
+90a47152-d8be-4f67-9a13-cd6605e29517	f6560080-4b30-4b4b-b8ba-90d5b0ead2da	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+942dad14-c892-4d85-abda-3545d59a98f3	e1f2260d-b878-4693-86db-2513390804aa	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+96f428a0-5659-4fa6-b627-c17e8f1aaa84	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	db0addff-605e-439f-917b-38016a398755
+97a43d11-4245-4ec6-a7bc-a21681a18ff6	87ea604f-b245-49c0-9172-3956f1d6eb75	db0addff-605e-439f-917b-38016a398755
+9ad98529-b458-4786-9335-f0e571b35f85	8765d1b0-e4fc-4686-91ea-f5ad4e929818	88b29e0c-39b7-4169-ab5c-350075014a84
+9b299318-539a-46d3-9fa8-50887b548e03	885809b5-843a-4ec9-bafe-da1472b73a03	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+9d2181e1-cdea-4d7c-b78f-3c82e8a1e12a	99039771-cd5a-4878-a7b9-9cdaa02f5be6	5d962383-f175-4dd8-af63-8a566a0d2255
+9e2e3e00-3e23-4fdf-b845-e4622c3665d3	67084a5d-02d0-4a73-a15f-45aca43adb58	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+a237c363-1cb5-49be-a02a-c8d4b89dd894	8765d1b0-e4fc-4686-91ea-f5ad4e929818	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+a45b9baf-0473-41b1-869b-4e61f4489495	e061fae9-2430-4025-ad39-ff79717301a5	db0addff-605e-439f-917b-38016a398755
+a4b7044a-3755-40c9-8882-8e526711e41d	acbe4f0d-8058-4a88-9255-08104f0037b6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+a6811c24-e5f8-4fdf-ae1c-5040bd55cf0b	36339f27-5abf-4ffc-bca3-5a2333a94df2	682d36c0-4256-42ab-811e-054ab3a5b10f
+a7df0cd1-b55f-482e-8994-b04082e01b34	9ad0a166-cde2-4817-9acd-363d217422d9	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+a9311b3a-68ff-4d49-8cc6-fcf8c3de9f94	f39ba18d-6be5-4d23-a99f-f8d7a68c43dc	c88d783b-b628-4f3a-a972-aa56aeed5e77
+ab4fd845-9435-4b12-a0c2-837cd95f652d	8211f0b1-d111-400b-94ab-fd663d50ec65	7682acb3-561b-4951-801b-c1564adda131
+ab84a324-9b65-4db6-93dc-712e49165cb1	9ac666ca-eaa2-46a5-b489-66a8cc550b65	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+acf41193-26fd-412c-9f48-9a2eb268fb3a	ecc39c47-956d-49b9-8fbc-44a6433f3912	88b29e0c-39b7-4169-ab5c-350075014a84
+affbea36-59ef-4603-8cf7-bd317d09561a	acf26b08-e6ae-4343-9bf9-529b070835a3	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+b1ea8a7a-e7d1-4c59-a8a9-f98ce95cf819	ce7509b0-415c-4d04-a2d8-43c3ee382a72	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+b4c0f64e-663c-45ea-824e-dc45824120e0	5814389a-4416-4e4d-96a7-58f4801e2757	682d36c0-4256-42ab-811e-054ab3a5b10f
+b5652bd4-7a04-4507-9367-9014cac5a27e	d862a290-2a0a-47f2-9c23-2baf830a37b9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+b6db1301-f6bd-4cda-8c83-69adc53a6824	c4ef6b03-baa6-47ac-8d06-c8819ddbdaa7	c88d783b-b628-4f3a-a972-aa56aeed5e77
+b76d5c68-8c5e-4e7e-838c-ca16c81fde36	70480603-7eae-41f7-b659-052b7500ca91	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+b819119f-77cf-4f00-b02d-2b7c9d1fbdde	f7a34722-94ab-4e14-ad50-5e5f0b44cca6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+bbdf84a3-e4c4-4e81-96c0-e3ac28f0f7e5	8765d1b0-e4fc-4686-91ea-f5ad4e929818	b651aec8-5455-4329-8251-0ceb62cea798
+bfab3285-87fa-4a68-9968-3cc88f55081d	b4b2673b-fc1c-4484-8f2d-903a39dff2a9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+c50b65a4-8ca7-483b-82eb-0063907885f2	39c52128-53f4-4e39-8102-4b9ccc9f5584	db0addff-605e-439f-917b-38016a398755
+c606b1b1-e634-439c-bcad-0a585cb86155	27d8ec30-01ad-45f2-a7d8-7a54c2d2c754	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+c70116d0-1ad8-41da-9a79-b904ccde0e2c	54123afd-2783-4a41-b18f-328d024e8a22	5d962383-f175-4dd8-af63-8a566a0d2255
+cb27049c-8f6d-4d57-8d2f-001649d321f1	b5974e61-080c-4de2-a977-7f0bdee29949	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+d092e807-92c8-45fd-a8d7-faef14635202	ec4a89e1-35a6-495a-83c9-b6a34ee00402	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+d166698e-9ea5-422e-9197-d4ece784c615	29119117-9aa3-4def-9db8-802f70f74e4b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+d6f25578-54b5-4090-80e9-055f0a068f8c	d6002117-fdbb-437a-986f-dde6b5b5c162	88b29e0c-39b7-4169-ab5c-350075014a84
+db2a5811-66c3-4430-8b11-818d98b5ac48	6eaffc67-3d6e-4bb6-9c90-0a604398090d	682d36c0-4256-42ab-811e-054ab3a5b10f
+db2be8cd-7839-48d3-b001-a6f2787f9780	bb6f610b-b2f5-4b01-9ea4-fb9ad074b768	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+df6cdb49-b1ab-40e5-b577-59771d526164	e3c262a4-4108-4592-abb0-643085d6a305	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+e5a8f2b3-0883-4b4b-96cc-e516ad1bffd6	56ed9417-a9fd-40ff-a517-1e75bbf02d63	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e929eea2-88dd-41d9-ae37-57094e5b20e5	6890c399-940e-4c2a-9aba-0dd90a50e063	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+ea56c642-d8e9-4970-9c96-21d4b4dca214	da608430-bf9a-4a87-9881-1c07e7f2974a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+ed9b17bb-78d3-4f8d-aea6-5fa247cf38f2	8765d1b0-e4fc-4686-91ea-f5ad4e929818	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+ee65cd9a-3b52-4103-b94a-a33a3bff65d8	5814389a-4416-4e4d-96a7-58f4801e2757	db0addff-605e-439f-917b-38016a398755
+f22bd767-e090-46a9-91f4-c8b0022e6977	9ad0a166-cde2-4817-9acd-363d217422d9	db0addff-605e-439f-917b-38016a398755
+f9fb34cf-46dd-4c46-b989-25327c586b81	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+fd8a7708-4b33-4f9d-a9e7-777879c77272	39c52128-53f4-4e39-8102-4b9ccc9f5584	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+fef88626-6e7f-438d-836e-a6223ab9856d	59cf62d4-7c2d-4e4c-b075-0db51d40ea4e	7682acb3-561b-4951-801b-c1564adda131
 \.
 
 
@@ -5357,121 +4904,121 @@ fcd178d9-a936-4f02-a42a-ea9bdcf646a2	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9f
 --
 
 COPY master.mst_org_role_sub_departments ("Id", "OrgRoleMapId", "SubDepartmentId") FROM stdin;
-01ac67b4-047e-4091-89ff-7436d9849f11	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	db0addff-605e-439f-917b-38016a398755
-03138c4d-132e-48b9-a50a-33e59059a06d	8a92cbcd-7247-4f89-94a4-546013a78a29	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-0775a030-31a8-426b-ac74-fef89bb1d00c	5808fbe9-5fd4-4e3f-86b4-5a0ad69517bd	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-0a910949-8b8a-4b71-a37e-049045fdfb05	4f83891a-823a-406f-aa9f-5e23abeaba11	63765624-d7d1-472d-abd4-627127646998
-0c7bbf16-11e9-4875-9663-0bded3705875	3c8fda3c-c84a-4ef8-80ed-327dc87a3abc	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-0d11ffc5-024a-4b5a-ae39-a841333c43fc	4804833e-7bbf-4746-9e57-16542de6c3dc	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-0d464c1c-4001-4623-b432-d1d20420d6ad	fcd178d9-a936-4f02-a42a-ea9bdcf646a2	b651aec8-5455-4329-8251-0ceb62cea798
-0e451ea1-9614-4f04-90a5-f38bbaf041b2	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-0eb0b721-09c2-4a6e-b095-52c003f5a595	af28c045-efab-45db-83dc-c487bab9019f	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-13e6b3e8-0b74-4150-8da3-e4940f73aa93	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	682d36c0-4256-42ab-811e-054ab3a5b10f
-14fe3ac0-3ea5-411a-bdcb-c7e37541456f	999c4385-21ef-4a47-800f-1c08938edcee	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-1615c2b0-243d-4531-8fdf-ab0abeac89ef	76ad509e-ba7a-412e-a0cb-be0b8eeb8305	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-16515d7b-212d-40c5-ba56-3cd7e73884ec	128f2bec-ea83-4f7e-8115-9899a302d677	5d962383-f175-4dd8-af63-8a566a0d2255
-1e953b60-8000-4611-9a2a-289b2871134e	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-1e97ee9e-be98-4d3a-9fac-be1902eca02d	4192b456-ca31-4de0-a8ce-698c41732ec4	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-1f07f4c9-c74f-4739-9a2f-6509cdc69a68	0a1dda59-5a52-496e-8d30-5f082dbe343e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-1f19bd25-0722-4469-8a09-d987c7eedf31	bf03ad3b-c399-4afa-a0e2-682f1d475fe8	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-1fe953e7-a8f0-48c8-ad7c-6c963924d0f9	e323d911-96c9-4d01-be14-6ff9f00b5f68	682d36c0-4256-42ab-811e-054ab3a5b10f
-203dce21-6343-46da-9c0a-7192677460bc	a3451572-fefd-4cec-aa55-b28d3d3cac92	a12ac80b-a665-4301-898e-e9ca3d44bb20
-20c0ff27-d20c-44c5-bef7-cfdb18d37d3f	0717101c-438d-4f69-b0ef-a56fcaf47a45	682d36c0-4256-42ab-811e-054ab3a5b10f
-24c795c2-48ba-4c7a-8cb0-0be3b44e80cc	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-264e7cc6-1ae3-4a61-9e38-2b7ff3444aba	359026a0-80bd-4c27-99f3-f63fb1741c6d	c88d783b-b628-4f3a-a972-aa56aeed5e77
-29d9bc92-b69c-46a2-a7ae-e7e4a0744f07	e91d743d-70da-4bbe-92ce-8e9bf436acd9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2ac7ac04-bbc1-4d74-ba25-132190e7322e	159c2701-2318-4ba7-b809-fa07d078305e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-2b061c8d-7c40-4b15-9031-254a374d1dfe	8a351e0a-8631-4aca-9598-81b276dbc990	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-2c763cf3-1bec-4196-a9f4-0b0a0930b8bb	2d9893c2-a2b8-4a26-a41d-85061c629ec2	c88d783b-b628-4f3a-a972-aa56aeed5e77
-2e06655d-13f8-4b6c-93ff-0f952fa4f4d5	98b476d3-39f3-4af1-83df-00639379db5e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2e442b1f-0ac1-4a3f-90a4-ab6abdc2be69	50581768-4796-4731-b6e2-fc50e877f192	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2ec999de-37ee-4c61-a577-3517737ae780	b11be1e9-662a-4bc7-b06b-7f401c8b00b3	7682acb3-561b-4951-801b-c1564adda131
-33741b95-1c47-42a1-9e92-79a123aa7bfa	5d79d51f-fcd5-40a1-96e8-8a8ae7c76c00	b651aec8-5455-4329-8251-0ceb62cea798
-37801057-679d-460c-8ca9-0479f14a1e15	159c2701-2318-4ba7-b809-fa07d078305e	db0addff-605e-439f-917b-38016a398755
-3b66e727-69f9-4d78-b09f-4d4192536237	759ce52f-d3bf-414e-bd79-c33c038dfdf6	682d36c0-4256-42ab-811e-054ab3a5b10f
-41341107-cfcc-4294-80f7-8f3db4938225	759ce52f-d3bf-414e-bd79-c33c038dfdf6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-423c59cd-a1c1-43de-ac09-79a8e5ff97a9	766c6052-09ad-44e4-8746-ed4795e712f1	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-458bd2eb-4fd6-471e-b98f-aa54bb9b883e	5e1badcc-b621-4c3b-b729-4f3ddf5877a0	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-4825558d-42a8-4980-9d8b-ed42d01fe15f	45469efe-b575-417d-adb7-5c9ee591cb05	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-4c9d4e91-9aed-429b-9fae-893b93e15e4b	45469efe-b575-417d-adb7-5c9ee591cb05	682d36c0-4256-42ab-811e-054ab3a5b10f
-4cfbdff9-a3eb-44fa-b3b2-221dcd6be6c4	b79f5fee-71cf-4fe3-b61f-7e3811fedcea	c88d783b-b628-4f3a-a972-aa56aeed5e77
-4da20194-6d3b-422e-94be-018aa05239aa	c1010573-777c-45fa-8b66-c77e8e4cbc3f	c88d783b-b628-4f3a-a972-aa56aeed5e77
-4f23308a-15a9-4e23-9cd5-52e6c08ce0bc	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	db0addff-605e-439f-917b-38016a398755
-4f563fdb-77a8-4aab-bef9-4d91950dce1d	da6c7063-b8d6-47d9-8ad6-e5654b1a6190	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-543a5526-dab1-419c-a8b9-dde8709fe93b	e323d911-96c9-4d01-be14-6ff9f00b5f68	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-5614c6eb-bcac-405d-aa46-070c9813716f	36243b2d-d487-49db-87d4-a46216df15ae	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-57d18edd-9acf-44f3-b22b-316746c0b980	ab07d7c9-e503-4641-8db6-25ac3fc0993e	5d962383-f175-4dd8-af63-8a566a0d2255
-5d3b5eba-22bd-4913-a241-b81c76b02c6b	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	682d36c0-4256-42ab-811e-054ab3a5b10f
-5f32ffa0-ac0b-4fa2-af5a-349bfcd3912d	15e4938e-241c-4f53-b64e-56a4b2201981	c88d783b-b628-4f3a-a972-aa56aeed5e77
-5f742118-3816-49ac-8b51-72b09ffa1f8e	3bce413c-a323-4f80-a417-190414a3d56b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6519d34c-eb1b-4cc6-ad17-b015d97ab544	79d8ed54-9a91-4486-a19f-e5485de7b490	88b29e0c-39b7-4169-ab5c-350075014a84
-67a6f383-61fe-4695-9922-6378960511e3	ef3cba27-0a2a-4348-82e3-7d86feed3e31	5d962383-f175-4dd8-af63-8a566a0d2255
-69ae1029-90fd-4b52-913e-4e94771c922b	6df1609a-13f1-469d-96a1-253b2bc66b4f	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-6b6d75fa-9028-48ae-846a-a104566a4002	3f714252-8945-41a7-8520-1c1c8925854e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6ba8f89f-af3c-4d4d-a7bf-25c0433266a4	a7cb72a9-ec77-44e1-998a-a0638f8becc5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-6c8a8ed9-3e1d-4247-b378-eba1c83e62b5	872930ee-4d00-4d37-a2cb-dc57167f6973	682d36c0-4256-42ab-811e-054ab3a5b10f
-6e6348a4-709d-4453-8349-ff294e3609b5	378f0582-07ec-4a86-a0ff-56575cc28dd0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6f85b394-e87d-419a-9717-b78e772e6b9a	305ab402-2d28-4607-ad44-7b1031dea076	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-71aa7f01-fa10-4fab-a8fc-d5dc61eb5673	651dc356-0c28-457e-bc56-69fdf6ea321f	7682acb3-561b-4951-801b-c1564adda131
-71bb9705-0a40-41d4-9eb3-ad9c81abe544	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	db0addff-605e-439f-917b-38016a398755
-73440605-5967-4bf2-b7c3-08c545d41964	b2819c45-99c7-4306-9ffb-1d585f0a29d0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-747a2981-7408-4afa-85b3-05781078093e	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	682d36c0-4256-42ab-811e-054ab3a5b10f
-76bab265-c805-4c9c-a328-a3e0976fc804	cf705a0a-b654-4219-955c-a187d514a84f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-76cdc3cf-8c66-4b51-9b8a-5ead95536c79	0f8dfe0e-d5d5-4a23-b9dc-cff6d71ae84f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-782f8ada-9134-48cf-9c4a-824fc4d0b27a	872930ee-4d00-4d37-a2cb-dc57167f6973	db0addff-605e-439f-917b-38016a398755
-7860f09f-b737-4520-ab7d-8278b6c6eff8	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	b651aec8-5455-4329-8251-0ceb62cea798
-7fd2d8cd-48bf-4ee1-af0c-7823dd010c03	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	db0addff-605e-439f-917b-38016a398755
-7fdd715a-a847-41c1-a161-10ce7b72c4a1	a0c6147f-a977-4215-840a-60f95d2bd729	7682acb3-561b-4951-801b-c1564adda131
-845c95cb-aa6a-4ce5-a307-506bf43efd9f	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-867924e8-6d11-43a6-8db7-5e303aa0cb19	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	682d36c0-4256-42ab-811e-054ab3a5b10f
-8776f443-781f-49d2-b89c-583af0f5d9f5	047399e0-7821-4f80-be7a-78057c4c2f5f	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-8a4f987d-7e86-4119-ac13-78afeeb975a0	1c213096-46a8-48e1-b353-fdf2d25074ab	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-8f739426-7d27-4470-b401-c04fcf225203	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-90524e12-514a-4b47-89ce-c6ea38376ea1	2faf5d1b-751e-4a11-9b34-33bf797eef82	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-9082b5cd-73fe-490a-84ad-9dad9ef5c91b	7d7850cf-72da-411d-ba58-bd2d4a43ca28	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-91895177-4efc-4d34-9c09-6f11b9b5a02d	73687605-0927-471b-b8c2-ec61f4d5164e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-94007bae-a082-4321-a73c-d6caddbfbf44	8fbc1e25-42da-426a-be89-975dde3326bc	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-9739d110-9feb-45a4-a4b5-0b2e6adb4a8e	837d9855-e239-4046-83d9-ae224ecce6ef	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-98042280-9d3a-495d-880a-52deed7fdd50	73687605-0927-471b-b8c2-ec61f4d5164e	682d36c0-4256-42ab-811e-054ab3a5b10f
-98c03915-08c5-4b8b-af31-08dae74b033f	72fc796a-c5ba-4bf3-b93f-5b8f52491aed	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-a15495d1-ef78-4b54-962a-48ad7a11757d	2a21a67d-6020-4c2c-b06c-9e394c101fab	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-a1dba8e6-d617-4f3b-8e01-83bcc2557a7b	003fd050-8939-4d05-ac2b-29876038cb76	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-a3b43426-7898-4e04-9cd8-cc70e89b84e2	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	88b29e0c-39b7-4169-ab5c-350075014a84
-a78cfcd8-1884-46c5-946a-a3a1ef3690b5	222358f3-3516-49b6-b7db-60f936d4a8c9	61bbeadf-3044-4123-929c-4b1e6e2e613e
-a9c6b096-3d3a-4826-8055-cc7c1ce74187	3514262c-d7ec-4d76-81c8-20995e4d22f8	5d962383-f175-4dd8-af63-8a566a0d2255
-b405de79-8745-416f-ae17-bd20050db101	759ce52f-d3bf-414e-bd79-c33c038dfdf6	db0addff-605e-439f-917b-38016a398755
-b4119fbc-cb2e-4ec7-8836-1c6c45783ddf	81e65582-e98d-4ded-b699-ea7fcb82f071	5d962383-f175-4dd8-af63-8a566a0d2255
-b52ed320-ac1e-4bf8-a871-0432007f3241	6ccedaf4-671c-4375-8200-f860eb7d46d9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-b5454d9b-cf69-464b-933d-9c7f22e6c0c1	554562de-10b1-4365-9e6e-cf769630de75	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-bbc28cbc-335d-45d2-a3f7-6851fbade6a5	e064b573-153e-4f5c-bca0-37d89be9564a	5d962383-f175-4dd8-af63-8a566a0d2255
-bcfa987d-dd69-4bbb-9ec0-166e7e5cabdb	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	682d36c0-4256-42ab-811e-054ab3a5b10f
-c0eb1020-0374-42eb-89e7-26b35734e8cc	7428ebde-4c77-4358-bc21-6acef30a85a4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-c1db42e0-c525-41b6-b19c-73d2f7fefc3c	37fe770e-4c51-4e31-bbb6-0ca302286b91	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-c3adaa90-257a-4958-937b-0faa2cabdccb	a220a973-9f98-4654-8a57-ee6b44579be5	45755b2a-741a-4990-ab78-8f65090f75b1
-c7111b0a-2bd9-43ca-bedb-275e6f131a6b	6c3fcc16-3602-4bf5-9dd2-7e51fe23d336	b651aec8-5455-4329-8251-0ceb62cea798
-c8e15ed8-0dcc-4adb-92dc-b061a347255a	a77285b6-5266-4959-8399-f34dfbfcb44e	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-cac5344a-91a7-498d-b2ef-642251938cd7	e323d911-96c9-4d01-be14-6ff9f00b5f68	db0addff-605e-439f-917b-38016a398755
-cb47339f-8aa8-48df-bf22-25b14b829c13	159c2701-2318-4ba7-b809-fa07d078305e	682d36c0-4256-42ab-811e-054ab3a5b10f
-cb8bcf15-86a0-4f16-8515-cb83bcd36a94	b3eb1bdf-188b-4292-9cfd-f72381c366f0	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-cc06cd02-28ac-4eef-a314-6c392ae89d2a	872930ee-4d00-4d37-a2cb-dc57167f6973	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-cc4e9159-0dc4-48ff-8f6b-0dbeaa51686f	86237191-01ee-4aad-9a6b-e75600c375fc	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-cc589610-570c-4e07-b1ae-9991d8efbc41	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-cd6dfd81-e2e3-44cd-8c90-fc459568ca50	c034e919-e8b3-4bcc-8ee2-72f4fe2ad36f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-cd76e38b-7d07-4efd-89cb-c4babc7b913a	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	db0addff-605e-439f-917b-38016a398755
-cfa18e56-1aa0-4682-87fe-41ae6ce50001	81a34a8f-1fb9-431f-bc96-1bb95dab3fdb	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-d158cb86-447a-4755-81ea-c452f3cea499	38bd29af-b288-4b62-ae24-679d6b2713ac	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-d8879393-ba23-4190-b386-51348dd3fc2f	b823d89e-aab0-477f-8b85-7129d59dd202	7682acb3-561b-4951-801b-c1564adda131
-de36757f-9e1e-4ec0-9025-538ebe60a315	325fcf79-60ee-46bc-931d-612002282ff3	88b29e0c-39b7-4169-ab5c-350075014a84
-e1049725-55ec-4b83-b30c-3ac03facd969	85559f41-c8d4-44b1-8906-a5e1d064f78c	5d962383-f175-4dd8-af63-8a566a0d2255
-e219197b-755c-4d0f-8883-d3a62b2f6dc2	45469efe-b575-417d-adb7-5c9ee591cb05	db0addff-605e-439f-917b-38016a398755
-e388acfe-9486-45bc-ae74-f61021568624	73687605-0927-471b-b8c2-ec61f4d5164e	db0addff-605e-439f-917b-38016a398755
-e82ede21-365b-4524-b65c-cb92cf318b05	5f392507-7f0b-4614-9679-fcc103e3dbc7	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-f05d88d9-d712-459c-b1d1-7ecb94da4fe4	a2113157-8223-486e-a506-90ae7a3daa93	c88d783b-b628-4f3a-a972-aa56aeed5e77
-f1355d78-b242-4049-818c-b827c0882ce8	0717101c-438d-4f69-b0ef-a56fcaf47a45	db0addff-605e-439f-917b-38016a398755
-f1a3965e-a796-4397-a757-f377c1cfff71	caa92f5c-1925-436c-9bf0-b270d5ddb38d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-f4f82651-486a-4905-9740-a17a5d696da3	36732dd0-7171-4b3e-a7a6-48427a14f504	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-fe0bc6db-64e1-4e77-9888-fe6d72b873e0	ccff1a9e-10e0-43e8-9379-77811383a397	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-fe38aa3e-95c1-49c8-ad42-9dd0dc49d8bc	0717101c-438d-4f69-b0ef-a56fcaf47a45	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+04f7ccc5-36a6-46a9-9089-bf75026f56f5	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	db0addff-605e-439f-917b-38016a398755
+068050dc-7de7-4771-8aec-e244eae9c6fd	a220a973-9f98-4654-8a57-ee6b44579be5	45755b2a-741a-4990-ab78-8f65090f75b1
+06d04d4c-3e7f-4426-9dc7-183213875981	047399e0-7821-4f80-be7a-78057c4c2f5f	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+072b4f8a-5e74-4ad5-b4ee-756d08cdd308	caa92f5c-1925-436c-9bf0-b270d5ddb38d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+08586273-5dd8-481e-be09-fbbc64e97351	3c8fda3c-c84a-4ef8-80ed-327dc87a3abc	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+0af6de1a-ba41-4f38-bcb0-e1dc0fcd552c	af28c045-efab-45db-83dc-c487bab9019f	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+0ff897a9-42f4-4408-b286-9abbe3634896	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+1014d111-9fae-499e-a6dd-6767b6767a92	45469efe-b575-417d-adb7-5c9ee591cb05	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+103ad888-6d28-4faa-9871-9dc33b7fbcf2	73687605-0927-471b-b8c2-ec61f4d5164e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+14501d3f-cffa-4790-9b92-175d9b3d6fce	c034e919-e8b3-4bcc-8ee2-72f4fe2ad36f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+150ab71c-df53-42f7-aa95-c5eb80d69eac	7d7850cf-72da-411d-ba58-bd2d4a43ca28	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+150f286d-c3e4-4dbb-b751-4a9fe80127a0	159c2701-2318-4ba7-b809-fa07d078305e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+155fc3b2-e4ab-45fc-9754-a3a7d0db874a	4f83891a-823a-406f-aa9f-5e23abeaba11	63765624-d7d1-472d-abd4-627127646998
+1564d43b-94d1-496a-afcd-1d14ef9b90d4	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	db0addff-605e-439f-917b-38016a398755
+15f323a9-2444-479d-920e-541bbaf52b25	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	682d36c0-4256-42ab-811e-054ab3a5b10f
+15ff23f8-c579-4342-bb6c-ae3081d7cdda	872930ee-4d00-4d37-a2cb-dc57167f6973	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+1812af2d-3c9a-458a-a91b-338f0fffea36	b3eb1bdf-188b-4292-9cfd-f72381c366f0	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+1a50250d-1ef1-4723-a1a8-3badca08ebbf	36243b2d-d487-49db-87d4-a46216df15ae	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+1a914a5e-d743-4737-bb28-04bcf6b33681	76ad509e-ba7a-412e-a0cb-be0b8eeb8305	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+1fb74357-03b1-4999-8f08-6b4b056f8fec	e323d911-96c9-4d01-be14-6ff9f00b5f68	db0addff-605e-439f-917b-38016a398755
+23bc489d-0799-45a9-bd6f-6a106bccbd08	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	88b29e0c-39b7-4169-ab5c-350075014a84
+260c5d33-750b-4d1f-bcea-4610c220cee9	378f0582-07ec-4a86-a0ff-56575cc28dd0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+29f521a1-d2fe-40bb-a517-73afafa9786b	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	682d36c0-4256-42ab-811e-054ab3a5b10f
+2b6976ea-569c-4c5a-b5d6-d5db9ccbcc48	50581768-4796-4731-b6e2-fc50e877f192	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2d91e466-a194-4515-b17f-9a4245177df8	5e1badcc-b621-4c3b-b729-4f3ddf5877a0	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+30d1bd08-cddf-429f-af96-e9f9b268bbf5	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+3763ed60-ecf6-445b-973a-3286165a902f	837d9855-e239-4046-83d9-ae224ecce6ef	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+3781d17a-1ec5-4216-8b1d-67980752c6ff	cf705a0a-b654-4219-955c-a187d514a84f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+40692805-9713-469d-abd9-6c75f5f74c96	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+40958669-684a-4e18-9821-3117e316da00	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+440e31ca-455b-4feb-9506-2eb882f958fc	1c213096-46a8-48e1-b353-fdf2d25074ab	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+49334d5b-b4b6-48ed-87a1-956bbb4f8762	38bd29af-b288-4b62-ae24-679d6b2713ac	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+49b578c1-7367-49c5-a16d-600c16523764	81e65582-e98d-4ded-b699-ea7fcb82f071	5d962383-f175-4dd8-af63-8a566a0d2255
+4e8ad7bc-93f2-4566-b960-d5a9afbe05c6	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	db0addff-605e-439f-917b-38016a398755
+50fc7a30-b251-48c5-810b-fee86e57f892	da6c7063-b8d6-47d9-8ad6-e5654b1a6190	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+511859e5-534d-462c-8b96-c6a954695263	0717101c-438d-4f69-b0ef-a56fcaf47a45	db0addff-605e-439f-917b-38016a398755
+56bda035-1cea-433e-9c43-8f09893cf82b	a77285b6-5266-4959-8399-f34dfbfcb44e	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+57558f0a-beb6-489f-8fcb-e72027b5d0b1	0a1dda59-5a52-496e-8d30-5f082dbe343e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+58416e3f-0336-4a65-bd00-e79fe8c5ca01	fcd178d9-a936-4f02-a42a-ea9bdcf646a2	b651aec8-5455-4329-8251-0ceb62cea798
+58abc707-ed51-4508-8516-a399008a4872	ccff1a9e-10e0-43e8-9379-77811383a397	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+5adcdba6-5361-4c93-9d0d-0c8a85828204	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+5bf0e7a6-4f41-4130-aee9-5e593d0435bd	159c2701-2318-4ba7-b809-fa07d078305e	db0addff-605e-439f-917b-38016a398755
+60f2cbc3-ebe7-4099-b82f-d5d9cc8ef986	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	682d36c0-4256-42ab-811e-054ab3a5b10f
+625a440f-9cef-4ddc-bac9-d89e032bcf6e	6c3fcc16-3602-4bf5-9dd2-7e51fe23d336	b651aec8-5455-4329-8251-0ceb62cea798
+63be0d54-51cd-4eff-9e08-fe79e19fef38	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	db0addff-605e-439f-917b-38016a398755
+677eec35-e3c6-47c8-93f0-ad1ae707e4e5	0717101c-438d-4f69-b0ef-a56fcaf47a45	682d36c0-4256-42ab-811e-054ab3a5b10f
+6e170f6d-578b-4c78-aeea-a936c7320ea8	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+6f2729eb-7fbb-4bb5-9f7c-45cfdee0d872	a2113157-8223-486e-a506-90ae7a3daa93	c88d783b-b628-4f3a-a972-aa56aeed5e77
+6f678cf9-28cb-456e-b50d-88a1b05d4962	759ce52f-d3bf-414e-bd79-c33c038dfdf6	db0addff-605e-439f-917b-38016a398755
+71fb4767-54e1-4811-bf6e-7ee27d7d4f0c	85559f41-c8d4-44b1-8906-a5e1d064f78c	5d962383-f175-4dd8-af63-8a566a0d2255
+73b27934-54e4-487c-8c99-93f496df6d19	003fd050-8939-4d05-ac2b-29876038cb76	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+74694a7b-f9f2-426a-adab-d62c73bcee21	759ce52f-d3bf-414e-bd79-c33c038dfdf6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+7520cde3-9d10-4fa6-a715-a2541b61651d	15e4938e-241c-4f53-b64e-56a4b2201981	c88d783b-b628-4f3a-a972-aa56aeed5e77
+7614a972-1917-4bd2-9c4f-2d1586311d04	79d8ed54-9a91-4486-a19f-e5485de7b490	88b29e0c-39b7-4169-ab5c-350075014a84
+7c4cf514-1eec-4388-8004-f320b9850312	a0c6147f-a977-4215-840a-60f95d2bd729	7682acb3-561b-4951-801b-c1564adda131
+81b889a4-71c4-439f-bac3-0853021aafd0	45469efe-b575-417d-adb7-5c9ee591cb05	db0addff-605e-439f-917b-38016a398755
+824f98b8-02cb-498a-88f9-e5817f90ba46	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	682d36c0-4256-42ab-811e-054ab3a5b10f
+892669af-26b2-40de-b954-6af5bc04b0c6	b823d89e-aab0-477f-8b85-7129d59dd202	7682acb3-561b-4951-801b-c1564adda131
+8b1ca217-c1b0-4263-a61b-63134e39970a	e064b573-153e-4f5c-bca0-37d89be9564a	5d962383-f175-4dd8-af63-8a566a0d2255
+8c2fb140-2f52-4d7a-8303-0f5eccfedbfc	0f8dfe0e-d5d5-4a23-b9dc-cff6d71ae84f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+93b9fc34-f67f-427b-9dd2-e6a2497a8492	73687605-0927-471b-b8c2-ec61f4d5164e	682d36c0-4256-42ab-811e-054ab3a5b10f
+94d8127a-c963-41a8-9954-6e3dc913cfc5	222358f3-3516-49b6-b7db-60f936d4a8c9	61bbeadf-3044-4123-929c-4b1e6e2e613e
+9544f480-da5b-48e4-afd0-8c6a2e7c5558	3bce413c-a323-4f80-a417-190414a3d56b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+95538ff2-8fe9-4264-b1fb-f850b6ea398d	a7cb72a9-ec77-44e1-998a-a0638f8becc5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+95bc253e-08da-45ad-a779-5e7d9d3623ec	45469efe-b575-417d-adb7-5c9ee591cb05	682d36c0-4256-42ab-811e-054ab3a5b10f
+9a65e615-a86e-481d-ba73-eb0133859127	7428ebde-4c77-4358-bc21-6acef30a85a4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+9a6f9774-a9af-4d7b-9438-e86c3c33ed5d	999c4385-21ef-4a47-800f-1c08938edcee	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a0fcedc6-79d7-485b-bb9c-a8f1483e6f86	0717101c-438d-4f69-b0ef-a56fcaf47a45	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+a180d172-8129-4cbd-9f54-74b6e9797418	b2819c45-99c7-4306-9ffb-1d585f0a29d0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+a4d64403-0232-46f3-bfe7-1379635f329c	554562de-10b1-4365-9e6e-cf769630de75	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a52eb211-4ac8-435a-a9ed-15c4b3482b5a	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	682d36c0-4256-42ab-811e-054ab3a5b10f
+a6aef2c3-b861-4330-9f01-e821846b1261	ef3cba27-0a2a-4348-82e3-7d86feed3e31	5d962383-f175-4dd8-af63-8a566a0d2255
+a7b66c25-a7e8-4000-b8a1-79e83235f8ca	b79f5fee-71cf-4fe3-b61f-7e3811fedcea	c88d783b-b628-4f3a-a972-aa56aeed5e77
+a7cc6480-ab02-4539-b09c-656334aaad1c	5808fbe9-5fd4-4e3f-86b4-5a0ad69517bd	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+acd3f86f-ad36-48c3-8e0e-9599c576f835	5f392507-7f0b-4614-9679-fcc103e3dbc7	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+aefcdc92-fde1-4fdd-bd06-d26c73de053f	e91d743d-70da-4bbe-92ce-8e9bf436acd9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+af6a9e6a-9343-495c-904e-941a79d48f67	81a34a8f-1fb9-431f-bc96-1bb95dab3fdb	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+b06b9901-cf52-45e2-9dc7-b0533150e439	e323d911-96c9-4d01-be14-6ff9f00b5f68	682d36c0-4256-42ab-811e-054ab3a5b10f
+b33cb68e-4d84-4c1c-ab80-d0341a419e19	86237191-01ee-4aad-9a6b-e75600c375fc	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+ba652406-1256-40c0-a827-58ba0bce53f4	ab07d7c9-e503-4641-8db6-25ac3fc0993e	5d962383-f175-4dd8-af63-8a566a0d2255
+bce67944-a9e5-4ad0-b83d-600d32c88dff	3f714252-8945-41a7-8520-1c1c8925854e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+bfedf3b3-0e3e-4068-a502-541ee7e658f5	325fcf79-60ee-46bc-931d-612002282ff3	88b29e0c-39b7-4169-ab5c-350075014a84
+c2ae9dcc-7d32-4e98-a6df-54a0c76fc05f	651dc356-0c28-457e-bc56-69fdf6ea321f	7682acb3-561b-4951-801b-c1564adda131
+c6174b12-92ee-489e-8531-bc3a44df4b51	c1010573-777c-45fa-8b66-c77e8e4cbc3f	c88d783b-b628-4f3a-a972-aa56aeed5e77
+c84b0716-9736-4f79-bee9-36749e7157c2	766c6052-09ad-44e4-8746-ed4795e712f1	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+c90cb02a-94f8-4579-b8e2-811c91def333	872930ee-4d00-4d37-a2cb-dc57167f6973	682d36c0-4256-42ab-811e-054ab3a5b10f
+c9f88a9d-f447-45a7-9a49-e784c038c3c4	3514262c-d7ec-4d76-81c8-20995e4d22f8	5d962383-f175-4dd8-af63-8a566a0d2255
+ccf8cf01-62e4-411b-82f7-01f644817a71	98b476d3-39f3-4af1-83df-00639379db5e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+cd053d2c-9028-4582-929c-ae46282fe449	305ab402-2d28-4607-ad44-7b1031dea076	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+cea7fcce-fc2a-47b3-8635-07af6cf57e1c	bf03ad3b-c399-4afa-a0e2-682f1d475fe8	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+cee1d7aa-6df9-4918-ac3c-bd590d651610	37fe770e-4c51-4e31-bbb6-0ca302286b91	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+d07fbcb5-71c5-4732-b761-b155e7cd78a0	4804833e-7bbf-4746-9e57-16542de6c3dc	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+d23b0ce4-1b11-4265-8dc2-922c4eb38779	2faf5d1b-751e-4a11-9b34-33bf797eef82	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+d36a7867-b326-46fd-a01c-6ec3c5a652c5	6df1609a-13f1-469d-96a1-253b2bc66b4f	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+d3ac8ac7-c9d8-4594-adb0-f8e04a6cc3da	128f2bec-ea83-4f7e-8115-9899a302d677	5d962383-f175-4dd8-af63-8a566a0d2255
+d440213a-69b1-4e0f-a85f-2068a9252ca5	6ccedaf4-671c-4375-8200-f860eb7d46d9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+da46d934-fea8-43fa-b353-95d118d143cd	5d79d51f-fcd5-40a1-96e8-8a8ae7c76c00	b651aec8-5455-4329-8251-0ceb62cea798
+da77147c-b8d3-45d6-95e8-3d6a09aa6d7d	759ce52f-d3bf-414e-bd79-c33c038dfdf6	682d36c0-4256-42ab-811e-054ab3a5b10f
+daa3daec-4b5d-46de-987d-4960e8343c55	2a21a67d-6020-4c2c-b06c-9e394c101fab	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+dc1804cf-a0fd-4a2e-9915-5f809194379e	b11be1e9-662a-4bc7-b06b-7f401c8b00b3	7682acb3-561b-4951-801b-c1564adda131
+dcfd5e76-03f3-4b70-87d7-937387026851	4192b456-ca31-4de0-a8ce-698c41732ec4	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+dd1c2a26-5d6b-43c3-bca4-dc6bc0bf03c6	a3451572-fefd-4cec-aa55-b28d3d3cac92	a12ac80b-a665-4301-898e-e9ca3d44bb20
+e6a3a7d0-8797-4d45-b6f4-32d02f61500c	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	db0addff-605e-439f-917b-38016a398755
+ebbbff17-c822-400d-bace-f7c3c76b7f55	2d9893c2-a2b8-4a26-a41d-85061c629ec2	c88d783b-b628-4f3a-a972-aa56aeed5e77
+efcc6729-2522-4655-9bd1-996f1ceb7980	8a351e0a-8631-4aca-9598-81b276dbc990	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+f272bd60-aa3b-4769-b890-6d960eb70fe1	72fc796a-c5ba-4bf3-b93f-5b8f52491aed	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+f391f0dd-c938-46d3-b386-2d5f96b27756	73687605-0927-471b-b8c2-ec61f4d5164e	db0addff-605e-439f-917b-38016a398755
+f42a99ff-8c41-4d78-ae6d-b65990fc2c4f	8fbc1e25-42da-426a-be89-975dde3326bc	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+fa295214-7add-4102-a19a-d3b0f4522030	159c2701-2318-4ba7-b809-fa07d078305e	682d36c0-4256-42ab-811e-054ab3a5b10f
+fab719ad-88c2-493d-b9aa-b7b74b8b1ea0	36732dd0-7171-4b3e-a7a6-48427a14f504	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+fb4ab088-1a57-4e8c-a15c-01e7579e568e	872930ee-4d00-4d37-a2cb-dc57167f6973	db0addff-605e-439f-917b-38016a398755
+fd47fb6d-e4c9-4ab9-83bc-2489ac512f2b	8a92cbcd-7247-4f89-94a4-546013a78a29	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+fd50c08e-195e-42be-9386-75ba1ebd078b	e323d911-96c9-4d01-be14-6ff9f00b5f68	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+fe2f3950-f813-4b66-a909-1edb3aac2278	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	b651aec8-5455-4329-8251-0ceb62cea798
+feb06e3d-eb15-4bab-9f1d-0756b16cdfa8	359026a0-80bd-4c27-99f3-f63fb1741c6d	c88d783b-b628-4f3a-a972-aa56aeed5e77
 \.
 
 
@@ -6540,7 +6087,8 @@ f80aff3f-aa2b-40de-83db-d8fb77f31723	d94878fd-4650-46bc-b84c-753c841e7404	Update
 --
 
 COPY resource.tbl_employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "NationalityId", "ProbationPeriod", "SalaryBandId", "Aadhaar", "EmergencyContactName", "EmployeeStatusId", "BondDelivered", "BondDurationMonths", "BondExpiryDate", "GradDegree", "GradYear", "PostGradDegree", "PostGradYear", "ExpType", "PriorTotalExp", "PriorRelevantExp", "EmergencyContactRelation", "PmoDepartment", "SubDepartment", "BillableStatus", "ClientLocation", "ProjectType", "ProjectAllocated", "ClientEngManagerMapping", "ProjectSite", "EngagementManagerEmployeeId", "ProjectManagerId", "SubDepartmentId", "OriginalRole") FROM stdin;
-4aba0077-4d88-4e0c-8d18-9152eea3fbf9	TK-0001	Vihaan	Pillai	vihaan.pillai.tk-0001@talakunchi.com	\N	9820010001	\N	\N	\N	Andheri (Western Line)	9811000017	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2026-10-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	92172235-83bb-41a1-a96e-60054a506818	2026-10-16 09:25:32.636311+00	2026-11-12 07:17:12.079393+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	Nikhil Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	PMO (Project Management Office)	Billable	\N	Long Term	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd	PMO
+4aba0077-4d88-4e0c-8d18-9152eea3fbf9	TK-0001	Vihaan	Pillai	vihaan.pillai.tk-0001@talakunchi.com	\N	9820010001	\N	\N	\N	Andheri (Western Line)	9811000017	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2026-10-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	92172235-83bb-41a1-a96e-60054a506818	2026-10-16 09:25:32.636311+00	2026-11-12 07:27:41.181643+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Nikhil Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	PMO (Project Management Office)	Billable	\N	Long Term	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd	PMO
+74601727-6182-498f-ac57-4c02b9e56ca0	TK-0059	Kunal	Iyer	kunal.iyer.tk-0059@talakunchi.com	\N	9820010067	\N	\N	\N	Andheri (Western Line)	9811001139	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e2b4be77-2b20-4064-974d-e6322e7240b4	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-11-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1b737ed6-2ea2-4583-aba8-cbba9f63f3a0	2026-10-16 09:25:33.319145+00	2026-11-12 07:45:02.435464+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	Ishaan Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N	88b29e0c-39b7-4169-ab5c-350075014a84	Testing-Team Member
 62e81e6b-7247-4c3f-a8b8-db21e613d02a	TKI-0003	Aarav	Bose	aarav.bose.tki-0003@talakunchi.com	\N	9820010013	\N	\N	\N	Andheri (Western Line)	9811000221	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e8c22eff-0daf-4690-a537-c8b0b6110a01	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-09-17	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.782523+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kavya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
 049ac489-bbd3-4153-b933-aec7b7baec89	TK-0004	Admin	User	admin@talakunchi.com	\N	9820000004	\N	\N	\N	Andheri (Western Line)	\N	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	Admin	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	2018-06-01	Active	Active	Ongoing	0 (Relevant: 0)	\N	Permanent	\N	No bond	\N	\N	NA	NA	\N	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.5279+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	\N	\N	NA	NA	Experienced	0	0	\N	\N	Functional - IT Administration	Billable	\N	Long Term	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3	Admin
 f8b1a855-954d-4f8b-aad7-be5502a7413a	TK-0053	Sneha	Choudhary	sneha.choudhary.tk-0053@talakunchi.com	\N	9820010061	\N	\N	\N	Andheri (Western Line)	9811001037	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.259434+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
@@ -6550,7 +6098,6 @@ fb184814-7151-428d-87c3-f83814676aa5	TK-0065	Reyansh	Mathur	reyansh.mathur.tk-00
 ffcdc44f-996b-4ef6-90e6-db858823a4c4	TK-0055	Aditya	Menon	aditya.menon@talakunchi.com	\N	9820010063	\N	\N	\N	Andheri (Western Line)	9811001071	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	SOC-Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Without Bond	\N	2021-08-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.278641+00	2026-10-22 07:41:45.955014+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Kavya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Sibling	\N	Services - Operations	Billable	\N	Long Term	\N	\N	Thane	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Manager
 13428d48-c81e-4720-adba-f8490f27e535	TK-0009	Vihaan	Saxena	vihaan.saxena.tk-0009@talakunchi.com	\N	9820010010	\N	\N	\N	Andheri (Western Line)	9811000170	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-24	Resigned	Resigned	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	1 days	\N	Resigned	Personal	BE (2020)	[]	["Certified Ethical Hacker (CEH)"]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.747702+00	2026-10-30 05:08:24.621416+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	00000000-0000-4000-8000-000000000004	2026-10-30 05:08:24.621416+00	\N	\N	\N	\N	Harsh Wardhan	ce28b4c5-a343-493b-9404-96c983768850	Yes	24	2020-09-24	BE	2020	NA	NA	Experienced	2 Years	2 Years	Father	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
 d17be428-1602-4e09-a164-c3c2666fad73	TK-0002	Neha	Pillai	neha.pillai.tk-0002@talakunchi.com	\N	9820010002	\N	\N	\N	Andheri (Western Line)	9811000034	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	COO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-04-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.651331+00	2026-10-28 03:51:10.026204+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Vihaan Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-04-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Spouse	\N	Leading Delivery Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	45755b2a-741a-4990-ab78-8f65090f75b1	COO
-0a213b8b-1836-4660-9116-536fc9436639	TK-0040	Krishna	Saxena	krishna.saxena.tk-0040@talakunchi.com	\N	9820010046	\N	\N	\N	Andheri (Western Line)	9811000782	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	7c2380da-3ee6-46ad-93d6-a79ce3027f29	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.113491+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team member
 0a46bda6-6481-4bbe-8689-18fe959fa98a	TK-0060	Trisha	Pillai	trisha.pillai.tk-0060@talakunchi.com	\N	9820010068	\N	\N	\N	Andheri (Western Line)	9811001156	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-12-10	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.329721+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Leader
 159fb3d0-937c-4f81-ad37-aa1b4f023264	TK-0015	Rajesh	Sharma	rajesh.sharma.tk-0015@talakunchi.com	\N	9820010017	\N	\N	\N	Andheri (Western Line)	9811000289	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-02-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.827405+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
 1fa56f20-56ce-4461-ac66-c7d7b34f16d6	TK-0088	Siddharth	Deshpande	siddharth.deshpande.tk-0088@talakunchi.com	\N	9820010097	\N	\N	\N	Andheri (Western Line)	9811001649	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-09-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.639521+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vikram Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Member
@@ -6561,6 +6108,7 @@ d17be428-1602-4e09-a164-c3c2666fad73	TK-0002	Neha	Pillai	neha.pillai.tk-0002@tal
 246e0bb0-8a3b-4524-9d7b-3ac6d4ca7d8d	TK-0084	Manish	Malhotra	manish.malhotra.tk-0084@talakunchi.com	\N	9820010093	\N	\N	\N	Andheri (Western Line)	9811001581	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-06-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.596427+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Member
 26fd3209-693a-49d1-9224-8f7e2f3a1c58	TK-0067	Ishaan	Desai	ishaan.desai.tk-0067@talakunchi.com	\N	9820010075	\N	\N	\N	Andheri (Western Line)	9811001275	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-05-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.401399+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Leader
 2b245a46-a64c-440b-861d-24f712bd626e	TKI-0004	Kavya	Mathur	kavya.mathur.tki-0004@talakunchi.com	\N	9820010021	\N	\N	\N	Andheri (Western Line)	9811000357	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-10-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.870977+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3	IT Admin
+0a213b8b-1836-4660-9116-536fc9436639	TK-0040	Krishna	Saxena	krishna.saxena.tk-0040@talakunchi.com	\N	9820010046	\N	\N	\N	Andheri (Western Line)	9811000782	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	7c2380da-3ee6-46ad-93d6-a79ce3027f29	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	ede658f4-1925-4db4-a5ed-62aba574ed3c	2026-10-16 09:25:33.113491+00	2026-11-12 07:43:36.984764+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team member
 30913859-c8e8-4851-852f-28be97c74bb1	TK-0010	Sana	Pillai	sana.pillai.tk-0010@talakunchi.com	\N	9820010011	\N	\N	\N	Andheri (Western Line)	9811000187	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	1f97b442-95c5-4b11-93a0-ea146534ae85	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-10-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.759044+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Pallavi Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-10-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	BKC	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
 31057f6b-b1e5-46e3-a071-b6639b93a15c	TK-0051	Krishna	Bose	krishna.bose.tk-0051@talakunchi.com	\N	9820010059	\N	\N	\N	Andheri (Western Line)	9811001003	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	f20a7445-0b01-4f20-85a5-853101d864ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-05-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.239498+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kunal Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
 315ae0c9-ecdf-48ba-a662-f93c21ef31d2	TK-0056	Varun	Pandey	varun.pandey.tk-0056@talakunchi.com	\N	9820010064	\N	\N	\N	Andheri (Western Line)	9811001088	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	SOC-Senior Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-09-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.289299+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Senior Manager
@@ -6591,15 +6139,14 @@ d94878fd-4650-46bc-b84c-753c841e7404	TK-0008	Nikhil	Saxena	nikhil.saxena.tk-0008
 6b4e0847-6c40-471e-89ec-c5b63bb828f0	TK-0081	Arjun	Menon	arjun.menon.tk-0081@talakunchi.com	\N	9820010090	\N	\N	\N	Andheri (Western Line)	9811001530	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.563741+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Alok Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Member
 6d26e662-1e9f-4df8-a353-6be5ce9e5261	TK-0085	Lakshmi	Kadam	lakshmi.kadam.tk-0085@talakunchi.com	\N	9820010094	\N	\N	\N	Andheri (Western Line)	9811001598	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.606837+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Member
 70e01a7d-fd0b-4e2a-b086-d059423ca380	TK-0014	Vihaan	Kadam	vihaan.kadam.tk-0014@talakunchi.com	\N	9820010016	\N	\N	\N	Andheri (Western Line)	9811000272	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-01-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.816829+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
-74601727-6182-498f-ac57-4c02b9e56ca0	TK-0059	Kunal	Iyer	kunal.iyer.tk-0059@talakunchi.com	\N	9820010067	\N	\N	\N	Andheri (Western Line)	9811001139	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e2b4be77-2b20-4064-974d-e6322e7240b4	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-11-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.319145+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishaan Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N	88b29e0c-39b7-4169-ab5c-350075014a84	Testing-Team Member
 776f2cf7-c4cc-4299-b38f-afbcaff7703e	TK-0030	Omkar	Reddy	omkar.reddy.tk-0030@talakunchi.com	\N	9820010034	\N	\N	\N	Andheri (Western Line)	9811000578	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	157d001c-b056-45b1-96a3-3c05bcd8d99c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-01-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.99725+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales Manager
 777390a6-91b9-4d9e-806c-16e046568501	TK-0028	Krishna	Joshi	krishna.joshi.tk-0028@talakunchi.com	\N	9820010032	\N	\N	\N	Andheri (Western Line)	9811000544	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.978927+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Suresh Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
 7e3f1c8d-340c-47d7-b63d-fb047a9106aa	TKI-0002	Aarav	Mathur	aarav.mathur.tki-0002@talakunchi.com	\N	9820010008	\N	\N	\N	Andheri (Western Line)	9811000136	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	caa227a1-2dcf-4195-ab9c-8f76d1862daa	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.722404+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
 78b71d74-d255-4ac0-a75f-ead11a61427a	TK-0035	Aarav	Desai	aarav.desai.tk-0035@talakunchi.com	\N	9820010041	\N	\N	\N	Andheri (Western Line)	9811000697	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-05-14	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.066207+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2022-05-14	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	R&D (Research & Development)	Billable	\N	Long Term	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131	R&D - Team member
 78c932da-077a-4104-919c-386de88ed062	TK-0058	Meera	Joshi	meera.joshi.tk-0058@talakunchi.com	\N	9820010066	\N	\N	\N	Andheri (Western Line)	9811001122	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	c0f974c3-f49c-449a-9276-aa64ce501344	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.309385+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Nikhil Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Leader
-7d2b2c7a-254e-4605-9f79-3f42ac7f9735	TK-0027	Reyansh	Chopra	reyansh.chopra.tk-0027@talakunchi.com	\N	9820010031	\N	\N	\N	Andheri (Western Line)	9811000527	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-11-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.969016+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Yash Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
 804c8187-6f28-411f-8fa5-cc9baceba3e7	TK-0031	Arjun	Joshi	arjun.joshi.tk-0031@talakunchi.com	\N	9820010035	\N	\N	\N	Andheri (Western Line)	9811000595	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	6193be76-40ad-4973-9ee7-246a4d8f4109	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-02-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.006223+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ira Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
 818ae1ea-5842-4adb-b475-ac12dba9fd2a	TK-0044	Vihaan	Bose	vihaan.bose.tk-0044@talakunchi.com	\N	9820010052	\N	\N	\N	Andheri (Western Line)	9811000884	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	SOC-HOD	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.171436+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Anita Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-HOD
+7d2b2c7a-254e-4605-9f79-3f42ac7f9735	TK-0027	Reyansh	Chopra	reyansh.chopra.tk-0027@talakunchi.com	\N	9820010031	\N	\N	\N	Andheri (Western Line)	9811000527	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-11-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	45aee902-8221-4d8d-b6d9-7161658355c4	2026-10-16 09:25:32.969016+00	2026-11-12 07:44:40.845792+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	Yash Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
 86862bf8-c075-44ef-9f3e-f65d2cc1bb56	TK-0034	Suresh	Desai	suresh.desai.tk-0034@talakunchi.com	\N	9820010040	\N	\N	\N	Andheri (Western Line)	9811000680	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-04-21	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.057075+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Mehra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131	R&D - Team member
 8bf95b5f-0a1b-4512-9fc4-0e0fd9a4503c	TK-0018	Harsh	Pandey	harsh.pandey.tk-0018@talakunchi.com	\N	9820010020	\N	\N	\N	Andheri (Western Line)	9811000340	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-04-19	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.859733+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3	IT Admin
 849d2fb1-a4e4-4eb2-947b-f97057e4954b	TK-0005	Dev	Bose	dev.bose.tk-0005@talakunchi.com	\N	9820010005	\N	\N	\N	Andheri (Western Line)	9811000085	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	155642eb-a633-4460-b658-aca9fde2d817	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-06-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	30 days	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.683541+00	2026-10-28 05:17:44.884439+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	Aarav Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
@@ -6648,9 +6195,9 @@ e93a25e9-5347-49e1-b901-88271fdbdcf5	TK-0063	Kavya	Roy	kavya.roy.tk-0063@talakun
 e96df572-92a2-4aa3-a3b4-6f52cfcb5293	TK-0011	Aditya	Roy	aditya.roy.tk-0011@talakunchi.com	\N	9820010012	\N	\N	\N	Andheri (Western Line)	9811000204	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	HR	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-11-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.770263+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
 eba0b052-26bb-4216-ab6e-dff23c63bc57	TK-0022	Rahul	Mishra	rahul.mishra.tk-0022@talakunchi.com	\N	9820010025	\N	\N	\N	Andheri (Western Line)	9811000425	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	d8a2b9e5-f54d-4344-a78d-c6c840467543	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-07-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.910624+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa	EngagementManager
 ee7b555a-4400-4c03-8fe5-60fd908c0e58	TK-0042	Arjun	Mathur	arjun.mathur.tk-0042@talakunchi.com	\N	9820010049	\N	\N	\N	Andheri (Western Line)	9811000833	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	3e60b693-d3dd-4481-95c4-9f02da21625c	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-10-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.141853+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishita Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team Leader
-f01f614a-af85-4225-a3b4-3c463fb97bdf	TK-0003	Dev	Reddy	dev.reddy.tk-0003@talakunchi.com	\N	9820010003	\N	\N	\N	Andheri (Western Line)	9811000051	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	CTO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-05-09	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.662231+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sana Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-05-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Friend	\N	Leading Compliance & HR Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	61bbeadf-3044-4123-929c-4b1e6e2e613e	CTO
 f30d1ce8-8a1a-483d-ace2-419cd8672ecc	TK-0094	Manish	Bose	manish.bose.tk-0094@talakunchi.com	\N	9820010103	\N	\N	\N	Andheri (Western Line)	9811001751	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4b680e29-b4fb-4689-9afb-67a7f089f52b	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-31	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.704355+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Deshmukh	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798	Testing-Manager
 f39b20bb-8963-4917-aed5-0f1d86f0cbc3	TK-0007	Aarav	Roy	aarav.roy.tk-0007@talakunchi.com	\N	9820010007	\N	\N	\N	Andheri (Western Line)	9811000119	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	6e606c29-2ebf-4ab8-8006-aaedd5680009	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-08-09	Resigned	Resigned	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	10 days	\N	Resigned	BO	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.709153+00	2026-11-09 22:18:02.522381+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	2026-11-09 22:18:02.522381+00	\N	\N	\N	\N	Tanvi Gaikwad	ce28b4c5-a343-493b-9404-96c983768850	Yes	24	2020-08-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Spouse	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
+f01f614a-af85-4225-a3b4-3c463fb97bdf	TK-0003	Dev	Reddy	dev.reddy.tk-0003@talakunchi.com	\N	9820010003	\N	\N	\N	Andheri (Western Line)	9811000051	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	CTO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-05-09	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	08eecbb4-31fe-4ad4-8c0b-50e7d5bb0d4d	2026-10-16 09:25:32.662231+00	2026-11-12 07:26:21.251937+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Sana Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-05-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Friend	\N	Leading Compliance & HR Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	61bbeadf-3044-4123-929c-4b1e6e2e613e	CTO
 \.
 
 
@@ -16886,5 +16433,5 @@ ALTER TABLE ONLY timesheet.tbl_timesheets
 -- PostgreSQL database dump complete
 --
 
-\unrestrict c2CNKdfED3syW1Ycw5GoZSyDouM1yZAKPDDENwaJRnuru6mJbeycanNYZYIyeIa
+\unrestrict 0xFcKcptbifoCdnBPfCDGywS2teqFsva0FAABpgHYCkmBYKHO5KU9lOf2JRiIvg
 
