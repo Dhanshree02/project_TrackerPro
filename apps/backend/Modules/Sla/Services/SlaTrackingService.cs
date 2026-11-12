@@ -88,6 +88,28 @@ public sealed class SlaTrackingService(
                     SecondEscalationRolesJson = "[]"
                 };
             }
+            else if (string.Equals(request.ActivityType, "WBS Escalation", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(request.ActivityType, "Service Escalation", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = new SlaPolicy
+                {
+                    Module = request.Module,
+                    ActivityType = request.ActivityType,
+                    Stage = request.Stage,
+                    Name = "WBS Escalation SLA Policy",
+                    TatDurationMinutes = 1080, // 2 working days (2 * 540) to EOD
+                    CalculationMode = SlaCalculationMode.EndOfDay,
+                    WorkingHoursStart = new TimeSpan(9, 0, 0),
+                    WorkingHoursEnd = new TimeSpan(18, 0, 0),
+                    ExcludeWeekends = true,
+                    ExcludeHolidays = true,
+                    FirstEscalationAfterMinutes = 0, // Triggers at TargetDeadlineUtc (EOD of next 2 days)
+                    SecondEscalationAfterMinutes = null, // Dynamically scheduled on L1 execution (EOD of next 1 day)
+                    ResponsibleRolesJson = "[\"Select Stakeholders\"]",
+                    FirstEscalationRolesJson = "[\"Assigned Senior Project Manager\"]",
+                    SecondEscalationRolesJson = "[\"Head of Department\"]"
+                };
+            }
             else
             {
                 // Create a sensible fallback default policy if none configured yet
@@ -684,11 +706,13 @@ public sealed class SlaTrackingService(
             }
         }
 
-        // 4. Level 2 Escalation (Issues, Task Start, and Task Deadline dynamically schedule L2 upon actual L1 execution)
+        // 4. Level 2 Escalation (Issues, Task Start, Task Deadline, and WBS Escalation dynamically schedule L2 upon actual L1 execution)
         var isDynamicL2 = instance.ActivityType.Contains("Issue", StringComparison.OrdinalIgnoreCase)
                           || instance.ActivityType.Equals("Task Start After Assigning", StringComparison.OrdinalIgnoreCase)
                           || instance.ActivityType.Equals("Task Deadline", StringComparison.OrdinalIgnoreCase)
-                          || instance.ActivityType.Equals("Task Pause", StringComparison.OrdinalIgnoreCase);
+                          || instance.ActivityType.Equals("Task Pause", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Equals("WBS Escalation", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Equals("Service Escalation", StringComparison.OrdinalIgnoreCase);
 
         if (!isDynamicL2
             && policy.SecondEscalationAfterMinutes.HasValue

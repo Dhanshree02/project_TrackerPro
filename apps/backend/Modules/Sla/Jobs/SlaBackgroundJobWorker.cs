@@ -58,6 +58,11 @@ public sealed class SlaBackgroundJobWorker(
         {
             await ExecuteTaskDeadlineBreachCheckAsync(instance, eventRecord);
         }
+        else if (string.Equals(instance.ActivityType, "WBS Escalation", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Service Escalation", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteWbsBreachCheckAsync(instance, eventRecord);
+        }
         else
         {
             await ExecuteIssueBreachCheckAsync(instance, eventRecord);
@@ -78,6 +83,11 @@ public sealed class SlaBackgroundJobWorker(
         else if (string.Equals(instance.ActivityType, "Task Deadline", StringComparison.OrdinalIgnoreCase))
         {
             await ExecuteTaskDeadlineEscalationAsync(instance, eventRecord, level);
+        }
+        else if (string.Equals(instance.ActivityType, "WBS Escalation", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Service Escalation", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteWbsEscalationAsync(instance, eventRecord, level);
         }
         else
         {
@@ -349,6 +359,10 @@ public sealed class SlaBackgroundJobWorker(
             foreach (var rId in recipientIds)
             {
                 audienceSet.Add(rId.ToString());
+            }
+            foreach (var emp in recipientEmployees)
+            {
+                if (emp.UserId.HasValue) audienceSet.Add(emp.UserId.Value.ToString());
             }
             alert.AudienceUserIds = JsonSerializer.Serialize(audienceSet.ToList());
 
@@ -1152,6 +1166,312 @@ public sealed class SlaBackgroundJobWorker(
                 w => w.ExecuteReminderAsync(instance.Id, nextReminderEvent.Id),
                 delay);
             nextReminderEvent.HangfireJobId = jobId;
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    #endregion
+
+    #region Activity: WBS Escalation Handlers
+
+    private async Task ExecuteWbsBreachCheckAsync(SlaInstance instance, SlaEvent eventRecord)
+    {
+        var esc = await db.ProjectServiceEscalations
+            .FirstOrDefaultAsync(e => e.Id == instance.EntityId && e.DeletedAtUtc == null);
+
+        var alert = await db.ProjectAlerts
+            .FirstOrDefaultAsync(a => a.ServiceEscalationId == instance.EntityId && a.DeletedAtUtc == null);
+
+        if (esc == null || esc.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || esc.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase)
+            || (alert != null && (alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase))))
+        {
+            logger.LogInformation(
+                "[SLA Worker] WBS Escalation {EscalationId} is already {Status}. Completing SLA instance.",
+                instance.EntityId,
+                esc?.Status ?? alert?.Status ?? "not found");
+
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"WBS Escalation already {esc?.Status ?? alert?.Status ?? "not found"}. SLA completed.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        instance.Status = SlaInstanceStatus.Breached;
+        instance.BreachedAtUtc = DateTime.UtcNow;
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = DateTime.UtcNow;
+        eventRecord.ExecutionLog = $"WBS Escalation {esc.Id} breached SLA at {DateTime.UtcNow:u}. Initial stakeholders did not Resolve or Close within 2 days.";
+        await db.SaveChangesAsync();
+    }
+
+    private async Task ExecuteWbsEscalationAsync(SlaInstance instance, SlaEvent eventRecord, int level)
+    {
+        var esc = await db.ProjectServiceEscalations
+            .Include(e => e.Stakeholders)
+            .FirstOrDefaultAsync(e => e.Id == instance.EntityId && e.DeletedAtUtc == null);
+
+        var alert = await db.ProjectAlerts
+            .FirstOrDefaultAsync(a => a.ServiceEscalationId == instance.EntityId && a.DeletedAtUtc == null);
+
+        if (esc == null || esc.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || esc.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase)
+            || (alert != null && (alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase))))
+        {
+            logger.LogInformation(
+                "[SLA Worker] WBS Escalation {EscalationId} is already {Status}. Completing SLA instance.",
+                instance.EntityId,
+                esc?.Status ?? alert?.Status ?? "not found");
+
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"WBS Escalation already {esc?.Status ?? alert?.Status ?? "not found"}. Escalation skipped and SLA completed.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        var levelLabel = level == 1 ? "Level 1 Escalation" : "Level 2 Escalation";
+        var targetRoles = eventRecord.TargetRoles.Count > 0
+            ? eventRecord.TargetRoles
+            : (level == 1 ? ["Assigned Senior Project Manager"] : ["Head of Department"]);
+
+        var recipientIds = await recipientResolver.ResolveRecipientsAsync(instance, targetRoles);
+        eventRecord.TargetRecipientIds = recipientIds;
+
+        var recipientEmployees = await db.Employees
+            .AsNoTracking()
+            .Where(e => recipientIds.Contains(e.Id) && e.DeletedAtUtc == null)
+            .ToListAsync();
+
+        var targetRoleName = level == 1 ? "Assigned Senior Project Manager" : "Head of Department";
+        var recipientNamesList = recipientEmployees
+            .Select(e => $"{e.FirstName} {e.LastName}".Trim())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .ToList();
+        var recipientNamesStr = string.Join(", ", recipientNamesList);
+
+        var now = DateTime.UtcNow;
+        var dateStr = now.ToString("yyyy-MM-dd");
+        var timeStr = now.ToString("HH:mm:ss");
+
+        // 1. Dispatch ActionNotifications to recipients
+        var notifTitle = $"{levelLabel}: WBS Escalation - {esc.ServiceName} - {esc.Subject}";
+        if (notifTitle.Length > 255) notifTitle = notifTitle[..255];
+        var relatedTask = esc.ServiceName.Length > 255 ? esc.ServiceName[..255] : esc.ServiceName;
+
+        foreach (var recipientId in recipientIds)
+        {
+            var alreadyNotified = await db.ActionNotifications.AnyAsync(n =>
+                n.RecipientEmployeeId == recipientId &&
+                n.ProjectId == esc.ProjectId &&
+                n.Title == notifTitle &&
+                n.Type == "WBS Escalation" &&
+                n.DeletedAtUtc == null);
+
+            if (!alreadyNotified)
+            {
+                db.ActionNotifications.Add(new ActionNotification
+                {
+                    RecipientEmployeeId = recipientId,
+                    ProjectId = esc.ProjectId,
+                    ProjectCode = esc.ProjectCode,
+                    ProjectName = esc.ProjectName,
+                    Title = notifTitle,
+                    Type = "WBS Escalation",
+                    Priority = "Critical",
+                    Status = "Pending",
+                    Unread = true,
+                    RaisedByEmployeeId = esc.RaisedByEmployeeId,
+                    RaisedByName = "SLA Automation Engine",
+                    RelatedTask = relatedTask,
+                    ServiceEscalationId = esc.Id,
+                    HistoryJson = alert?.HistoryJson ?? "[]",
+                    CreatedAtUtc = now
+                });
+            }
+        }
+
+        // 2. Update ProjectAlert if available
+        if (alert != null)
+        {
+            // Add recipient IDs to AudienceUserIds so they receive the Alert request in their Alert tab
+            var audienceSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(alert.AudienceUserIds))
+            {
+                try
+                {
+                    var parsedList = JsonSerializer.Deserialize<List<string>>(alert.AudienceUserIds);
+                    if (parsedList != null)
+                    {
+                        foreach (var id in parsedList)
+                        {
+                            if (!string.IsNullOrWhiteSpace(id)) audienceSet.Add(id.Trim());
+                        }
+                    }
+                }
+                catch
+                {
+                    var parts = alert.AudienceUserIds.Split([',', ';', '[', ']', '"'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    foreach (var part in parts) audienceSet.Add(part);
+                }
+            }
+            foreach (var rId in recipientIds)
+            {
+                audienceSet.Add(rId.ToString());
+            }
+            foreach (var emp in recipientEmployees)
+            {
+                if (emp.UserId.HasValue) audienceSet.Add(emp.UserId.Value.ToString());
+            }
+            alert.AudienceUserIds = JsonSerializer.Serialize(audienceSet.ToList());
+
+            // Add recipient names to EscalatedTo
+            var escalatedToNames = new List<string>();
+            if (!string.IsNullOrWhiteSpace(alert.EscalatedTo))
+            {
+                try
+                {
+                    var parsedNames = JsonSerializer.Deserialize<List<string>>(alert.EscalatedTo);
+                    if (parsedNames != null) escalatedToNames.AddRange(parsedNames);
+                }
+                catch
+                {
+                    var parts = alert.EscalatedTo.Split([',', ';', '[', ']', '"'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    escalatedToNames.AddRange(parts);
+                }
+            }
+            foreach (var name in recipientNamesList)
+            {
+                if (!escalatedToNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    escalatedToNames.Add(name);
+                }
+            }
+            alert.EscalatedTo = JsonSerializer.Serialize(escalatedToNames);
+
+            // Append to HistoryJson
+            var history = string.IsNullOrWhiteSpace(alert.HistoryJson)
+                ? []
+                : (JsonSerializer.Deserialize<List<NotificationHistoryItemDto>>(alert.HistoryJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? []);
+
+            var actionDesc = !string.IsNullOrWhiteSpace(recipientNamesStr)
+                ? $"{levelLabel}: Alert assigned to {targetRoleName} ({recipientNamesStr})"
+                : levelLabel;
+
+            history.Add(new NotificationHistoryItemDto
+            {
+                Action = actionDesc,
+                Date = dateStr,
+                Time = timeStr,
+                By = "SLA Automation Engine"
+            });
+
+            alert.HistoryJson = JsonSerializer.Serialize(history);
+            alert.Priority = "Critical";
+            alert.UpdatedAtUtc = now;
+        }
+
+        // 3. Update ProjectServiceEscalation and add stakeholders
+        esc.Priority = "Critical";
+        esc.UpdatedAtUtc = now;
+
+        foreach (var emp in recipientEmployees)
+        {
+            if (!esc.Stakeholders.Any(s => s.EmployeeId == emp.Id))
+            {
+                var subDept = emp.SubDepartment?.Trim();
+                if (string.IsNullOrWhiteSpace(subDept))
+                {
+                    subDept = level == 1 ? "Senior Project Management" : "Department Head";
+                }
+
+                var newStakeholder = new ProjectServiceEscalationStakeholder
+                {
+                    EscalationId = esc.Id,
+                    EmployeeId = emp.Id,
+                    EmployeeName = $"{emp.FirstName} {emp.LastName}".Trim(),
+                    SubDepartment = subDept,
+                    Status = "Pending"
+                };
+                esc.Stakeholders.Add(newStakeholder);
+                db.ProjectServiceEscalationStakeholders.Add(newStakeholder);
+            }
+        }
+
+        // Sync ChatJson between alert and escalation
+        if (alert != null)
+        {
+            if (!string.IsNullOrWhiteSpace(alert.ChatJson) && string.IsNullOrWhiteSpace(esc.ChatJson))
+            {
+                esc.ChatJson = alert.ChatJson;
+            }
+            else if (!string.IsNullOrWhiteSpace(esc.ChatJson) && string.IsNullOrWhiteSpace(alert.ChatJson))
+            {
+                alert.ChatJson = esc.ChatJson;
+            }
+        }
+
+        // Sync notification HistoryJson
+        if (alert != null && !string.IsNullOrWhiteSpace(alert.HistoryJson))
+        {
+            var notifsToUpdate = await db.ActionNotifications
+                .Where(n => n.Type == "WBS Escalation" && n.ProjectId == esc.ProjectId && recipientIds.Contains(n.RecipientEmployeeId) && n.DeletedAtUtc == null)
+                .ToListAsync();
+            foreach (var n in notifsToUpdate)
+            {
+                n.HistoryJson = alert.HistoryJson;
+            }
+        }
+
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = now;
+        eventRecord.ExecutionLog = $"{levelLabel} executed at {now:u}. Dispatched Critical WBS escalation notification & alert request to {recipientIds.Count} recipients.";
+        instance.Status = SlaInstanceStatus.Breached;
+        instance.BreachedAtUtc = now;
+
+        // 4. If Level 1, schedule Level 2 by EOD of next 1 working day
+        if (level == 1)
+        {
+            var l2Key = $"sla:{instance.Id}:esc-l2";
+            var l2Exists = await db.SlaEvents
+                .AnyAsync(e => (e.IdempotencyKey == l2Key || (e.InstanceId == instance.Id && e.EventType == SlaEventType.EscalationL2))
+                               && e.Status != SlaEventStatus.Skipped
+                               && e.Status != SlaEventStatus.Cancelled
+                               && e.DeletedAtUtc == null);
+
+            if (!l2Exists)
+            {
+                var policy = instance.Policy ?? await db.SlaPolicies.FirstOrDefaultAsync(p => p.Id == instance.PolicyId);
+                var holidays = await db.LeaveCalendarHolidays
+                    .AsNoTracking()
+                    .Where(h => h.DeletedAtUtc == null)
+                    .Select(h => h.HolidayDate)
+                    .ToHashSetAsync();
+
+                var l2DeadlineUtc = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(now, holidays, policy?.WorkingHoursEnd);
+                var l2Delay = l2DeadlineUtc > now ? l2DeadlineUtc - now : TimeSpan.FromHours(24);
+
+                var l2Event = new SlaEvent
+                {
+                    InstanceId = instance.Id,
+                    EventType = SlaEventType.EscalationL2,
+                    ScheduledAtUtc = l2DeadlineUtc,
+                    StageAtExecution = instance.CurrentStage,
+                    TargetRoles = ["Head of Department"],
+                    Status = SlaEventStatus.Scheduled,
+                    IdempotencyKey = l2Key
+                };
+                db.SlaEvents.Add(l2Event);
+                await db.SaveChangesAsync();
+
+                var l2JobId = BackgroundJob.Schedule<SlaBackgroundJobWorker>(
+                    w => w.ExecuteEscalationAsync(instance.Id, l2Event.Id, 2),
+                    l2Delay);
+                l2Event.HangfireJobId = l2JobId;
+            }
         }
 
         await db.SaveChangesAsync();

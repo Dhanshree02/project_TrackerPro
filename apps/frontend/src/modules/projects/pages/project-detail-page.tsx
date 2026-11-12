@@ -32,6 +32,9 @@ import { Field } from "@/components/form-row";
 
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 
+import { TablePaginationFooter } from "@/components/table-pagination-footer";
+import { paginateSlice } from "@/lib/pagination";
+
 import { cn } from "@/lib/utils";
 
 import { deriveProjectDates } from "@/lib/project-dates";
@@ -6762,17 +6765,42 @@ const visibleApprovers = useMemo(() => {
                   <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">
                     Status Transitions Timeline
                   </span>
-                  <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 pl-1 max-h-36 overflow-y-auto pr-1">
                     {parsedHistory.map((h: any, idx: number) => {
                       const dateStr = formatToDayMonthYear(h.at || h.date);
                       const timeStr = h.at
                         ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
                         : (h.time || "");
-                      const text = h.details || h.action || `Status transitioned to ${h.status || ""}${h.updatedBy ? ` by ${h.updatedBy}` : ""}${h.comment ? ` — "${h.comment}"` : ""}`;
+                      const rawText = h.details || h.action || `Status transitioned to ${h.status || ""}${h.updatedBy ? ` by ${h.updatedBy}` : ""}${h.comment ? ` — "${h.comment}"` : ""}`;
+
+                      let action = rawText;
+                      let remark = "";
+                      if (rawText.includes(" — ")) {
+                        const parts = rawText.split(" — ");
+                        action = parts[0];
+                        remark = parts.slice(1).join(" — ").replace(/^["']|["']$/g, "").trim();
+                      } else if (rawText.includes(". Comment: ")) {
+                        const parts = rawText.split(". Comment: ");
+                        action = parts[0] + ".";
+                        remark = parts.slice(1).join(". Comment: ").replace(/^["']|["']$/g, "").trim();
+                      } else if (rawText.startsWith("Comment added: \"") && rawText.endsWith("\"")) {
+                        action = "Comment added:";
+                        remark = rawText.slice(15, -1).trim();
+                      }
+
                       return (
-                        <div key={idx} className="flex gap-2 text-[10px]">
-                          <span className="text-muted-foreground tabular-nums">{dateStr} {timeStr}:</span>
-                          <span>{text}</span>
+                        <div key={idx} className="flex items-start gap-2 text-[11px] leading-relaxed">
+                          <span className="shrink-0 font-medium text-muted-foreground tabular-nums whitespace-nowrap">{dateStr} {timeStr}:</span>
+                          <span className="min-w-0 flex-1 break-words text-foreground/90">
+                            {remark ? (
+                              <>
+                                <span className="font-semibold text-foreground">{action}</span>{" "}
+                                <span className="text-muted-foreground font-normal italic">"{remark}"</span>
+                              </>
+                            ) : (
+                              <span className="font-medium">{action}</span>
+                            )}
+                          </span>
                         </div>
                       );
                     })}
@@ -6902,84 +6930,49 @@ function PeopleBlock({ title, people, unassigned }: { title: string; people: Per
 // ---------- Leadership Block (Dhanshree only) — chips + Change Leader button ----------
 
 function LeadershipBlock({
-
   title, role, people, unassigned, project, viewOnly = false, hideChange = false, onLeadershipSaved,
-
 }: {
-
   title: string;
-
   role: LeadershipRole;
-
   people: Person[];
-
   unassigned?: boolean;
-
   project: Project;
-
   viewOnly?: boolean;
-
   hideChange?: boolean;
-
   onLeadershipSaved?: (items: ApiProjectTeamMember[]) => void;
-
 }) {
-
   const [showPanel, setShowPanel] = useState(false);
-
   return (
-
-    <div className="flex flex-col rounded-lg border border-border bg-card p-3 gap-2 min-h-[120px]">
-
-      {/* Fixed-height title — always 2 lines so all cards align */}
-
-      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground leading-tight min-h-[28px]">
-
-        {title}
-
+    <div className="flex flex-col rounded-lg border border-border bg-card p-3 gap-2 min-h-[90px] shadow-2xs">
+      {/* Header with Title and sleek compact Change button */}
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-1.5">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
+          {title}
+        </span>
+        {!viewOnly && !hideChange && (
+          <button
+            onClick={() => setShowPanel(true)}
+            className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/5 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/10 hover:border-primary/40 transition-colors shrink-0 shadow-2xs cursor-pointer"
+          >
+            <Pencil className="h-3 w-3" />
+            <span>Change</span>
+          </button>
+        )}
       </div>
 
       {/* People chips — grow to fill available space */}
-
-      <div className="flex-1 flex flex-wrap gap-1.5 content-start">
-
+      <div className="flex-1 flex flex-wrap gap-1.5 content-start pt-0.5">
         {unassigned || people.length === 0 ? (
-
           <span className="text-[11px] italic text-muted-foreground">Not yet assigned</span>
-
         ) : (
-
           people.map((p) => (
-
             <div key={p.id} className="flex items-center gap-1.5 rounded-full border border-border bg-accent/30 px-2 py-0.5 text-xs">
-
               <Avatar name={p.name} size={18} />
-
               <span>{p.name}</span>
-
             </div>
-
           ))
-
         )}
-
       </div>
-
-      {!viewOnly && !hideChange && (
-
-        <button
-
-          onClick={() => setShowPanel(true)}
-
-          className="mt-auto w-full min-h-7 rounded-md border border-primary/40 bg-primary/5 px-2 py-1 text-primary text-[11px] font-semibold leading-tight hover:bg-primary/10 transition-colors"
-
-        >
-
-          Change {role}
-
-        </button>
-
-      )}
 
       {showPanel && (
 
@@ -16381,25 +16374,26 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
     }
 
     if (activeFilter === "Critical") {
-
       return dbEscalations.filter(
-
         (e) => (e.priority || "").toLowerCase().trim() === "critical"
-
       );
-
     }
-
     return dbEscalations;
-
   }, [dbEscalations, activeFilter]);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
+  useEffect(() => {
+    setPage(1);
+  }, [activeFilter]);
+
+  const pagedEscalations = useMemo(() => {
+    return paginateSlice(filteredEscalations, page, pageSize);
+  }, [filteredEscalations, page, pageSize]);
 
   const selectedEsc = useMemo(() => {
-
     return dbEscalations.find((e) => e.id === selectedEscId);
-
   }, [dbEscalations, selectedEscId]);
 
 
@@ -16704,173 +16698,97 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
 
       {/* Escalations Table */}
-
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
-
-        <table className="w-full text-sm">
-
-          <thead className="bg-muted/40 text-left uppercase tracking-wide text-muted-foreground">
-
+      <div className="overflow-x-auto rounded-lg border border-slate-300 dark:border-slate-700 bg-card">
+        <table className="w-full text-xs">
+          <thead className="bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
             <tr>
-
-              <th className="px-3 py-2 font-bold">Escalation ID</th>
-
-              <th className="px-3 py-2 font-bold">Service</th>
-
-              <th className="px-3 py-2 font-bold">Subject</th>
-
-              <th className="px-3 py-2 font-bold">Type</th>
-
-              <th className="px-3 py-2 font-bold">Priority</th>
-
-              <th className="px-3 py-2 font-bold">Raised By</th>
-
-              <th className="px-3 py-2 font-bold">Expected Date</th>
-
-              <th className="px-3 py-2 font-bold">Status</th>
-
-              <th className="px-3 py-2 font-bold text-right">Actions</th>
-
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Escalation ID</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Service</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Subject</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Type</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Priority</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Raised By</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Expected Date</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 text-right">Actions</th>
             </tr>
-
           </thead>
-
           <tbody className="divide-y divide-border">
-
-            {filteredEscalations.map((esc) => {
-
+            {pagedEscalations.map((esc) => {
               const priority = esc.priority || "High";
-
               const severityTone =
-
                 priority === "Critical"
-
                   ? "bg-red-50 text-red-700 border-red-200"
-
                   : priority === "High"
-
                   ? "bg-amber-50 text-amber-700 border-amber-200"
-
                   : "bg-blue-50 text-blue-700 border-blue-200";
 
-
-
               const s = (esc.status || "").toLowerCase().trim();
-
               const statusTone =
-
                 s === "resolved" || s === "closed" || s === "solved"
-
                   ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-
                   : s === "waiting for customer" || s === "waiting customer"
-
                   ? "bg-purple-50 text-purple-700 border-purple-200"
-
                   : s === "in progress"
-
                   ? "bg-blue-50 text-blue-700 border-blue-200"
-
                   : s === "acknowledged"
-
                   ? "bg-sky-50 text-sky-700 border-sky-200"
-
                   : "bg-orange-50 text-orange-700 border-orange-200";
-
-
 
               const escalationIdDisplay = `ESC-${esc.id.slice(0, 8).toUpperCase()}`;
 
-
-
               return (
-
                 <tr key={esc.id} className="hover:bg-accent/30">
-
                   <td className="px-3 py-2.5 font-mono font-bold text-gray-800">{escalationIdDisplay}</td>
-
                   <td className="px-3 py-2.5 font-semibold text-gray-700">{esc.serviceName || "Core Project"}</td>
-
                   <td className="px-3 py-2.5 text-gray-800 font-medium">{esc.subject}</td>
-
                   <td className="px-3 py-2.5">
-
                     <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-gray-700">
-
                       {esc.escalationType || "General"}
-
                     </span>
-
                   </td>
-
                   <td className="px-3 py-2.5">
-
                     <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold", severityTone)}>
-
                       {esc.priority || "High"}
-
                     </span>
-
                   </td>
-
                   <td className="px-3 py-2.5 font-medium">{esc.raisedByName}</td>
-
                   <td className="px-3 py-2.5 text-muted-foreground">
-
                     {formatToDayMonthYear(esc.expectedResolutionDate) || "—"}
-
                   </td>
-
                   <td className="px-3 py-2.5">
-
                     <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[9px] font-bold", statusTone)}>
-
                       {esc.status}
-
                     </span>
-
                   </td>
-
                   <td className="px-3 py-2.5 text-right">
-
                     <button
-
                       onClick={() => setSelectedEscId(esc.id)}
-
                       className="rounded-md border border-input bg-card px-2.5 py-1 text-[10px] hover:bg-accent font-bold text-primary"
-
                     >
-
                       Review details
-
                     </button>
-
                   </td>
-
                 </tr>
-
               );
-
             })}
-
             {filteredEscalations.length === 0 && (
-
               <tr>
-
                 <td colSpan={9} className="px-3 py-8 text-center text-sm text-muted-foreground">
-
                   No escalations active for this project
-
                 </td>
-
               </tr>
-
             )}
-
           </tbody>
-
         </table>
-
+        <TablePaginationFooter
+          page={page}
+          pageSize={pageSize}
+          total={filteredEscalations.length}
+          itemLabel="escalations"
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
 
@@ -17073,7 +16991,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Status Transitions Timeline</span>
 
-                  <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 pl-1 max-h-36 overflow-y-auto pr-1">
 
                     {parsedHistory.map((h: any, idx: number) => {
 
@@ -17081,15 +16999,39 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                       const timeStr = h.at ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : (h.time || "");
 
-                      const text = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
+                      const rawText = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
+
+                      let action = rawText;
+                      let remark = "";
+                      if (rawText.includes(" — ")) {
+                        const parts = rawText.split(" — ");
+                        action = parts[0];
+                        remark = parts.slice(1).join(" — ").replace(/^["']|["']$/g, "").trim();
+                      } else if (rawText.includes(". Comment: ")) {
+                        const parts = rawText.split(". Comment: ");
+                        action = parts[0] + ".";
+                        remark = parts.slice(1).join(". Comment: ").replace(/^["']|["']$/g, "").trim();
+                      } else if (rawText.startsWith("Comment added: \"") && rawText.endsWith("\"")) {
+                        action = "Comment added:";
+                        remark = rawText.slice(15, -1).trim();
+                      }
 
                       return (
 
-                        <div key={idx} className="flex gap-2 text-[10px]">
+                        <div key={idx} className="flex items-start gap-2 text-[11px] leading-relaxed">
 
-                          <span className="text-muted-foreground tabular-nums">{dateStr} {timeStr}:</span>
+                          <span className="shrink-0 font-medium text-muted-foreground tabular-nums whitespace-nowrap">{dateStr} {timeStr}:</span>
 
-                          <span>{text}</span>
+                          <span className="min-w-0 flex-1 break-words text-foreground/90">
+                            {remark ? (
+                              <>
+                                <span className="font-semibold text-foreground">{action}</span>{" "}
+                                <span className="text-muted-foreground font-normal italic">"{remark}"</span>
+                              </>
+                            ) : (
+                              <span className="font-medium">{action}</span>
+                            )}
+                          </span>
 
                         </div>
 

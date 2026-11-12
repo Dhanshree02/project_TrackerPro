@@ -11,6 +11,7 @@ public sealed class ActionNotificationConfiguration : IEntityTypeConfiguration<A
         builder.ToTable("tbl_notifications", DbSchemas.Action);
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.NotificationNumber).ValueGeneratedOnAdd();
         builder.Property(x => x.ProjectCode).HasMaxLength(50);
         builder.Property(x => x.ProjectName).HasMaxLength(255);
         builder.Property(x => x.Title).HasMaxLength(255).IsRequired();
@@ -41,6 +42,11 @@ public sealed class ActionNotificationConfiguration : IEntityTypeConfiguration<A
         builder.HasOne(x => x.Issue)
             .WithMany()
             .HasForeignKey(x => x.IssueId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.ServiceEscalation)
+            .WithMany()
+            .HasForeignKey(x => x.ServiceEscalationId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

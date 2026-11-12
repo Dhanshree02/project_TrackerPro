@@ -58,6 +58,10 @@ import {
 
   ChevronDown,
 
+  ChevronLeft,
+
+  ChevronRight,
+
   Play,
 
   Square,
@@ -153,14 +157,12 @@ import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Field } from "@/components/form-row";
 
 import {
-
   createProjectIssue,
-
   fetchMyAssignedProjects,
-
   type AssignedProjectSummary,
-
 } from "@/modules/projects/api/project-issues";
+import { paginateSlice, totalPageCount } from "@/lib/pagination";
+import { TablePaginationFooter } from "@/components/table-pagination-footer";
 
 
 
@@ -223,7 +225,6 @@ export function ActionCentrePage() {
   const { canView, hasPermission } = usePermissions();
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const store = useDhStore((s) => s);
-  const pendingCount = (store.notifications || []).filter((n) => n.status === "Pending").length;
   const [tabCode, setTabCode] = useState(() => {
     if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search).get("tab");
@@ -270,28 +271,20 @@ export function ActionCentrePage() {
       ) : (
         <>
           <div className="mb-4 inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
-            {visibleTabs.map((tab) => {
-              const isNotif = tab.code === "notifications";
-              return (
-                <button
-                  key={tab.code}
-                  onClick={() => setTabCode(tab.code)}
-                  className={cn(
-                    "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
-                    activeTab?.code === tab.code
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <span>{tab.name}</span>
-                  {isNotif && pendingCount > 0 && (
-                    <span className="rounded-full bg-destructive text-destructive-foreground px-2 py-0.5 text-xs font-semibold leading-none">
-                      {pendingCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+            {visibleTabs.map((tab) => (
+              <button
+                key={tab.code}
+                onClick={() => setTabCode(tab.code)}
+                className={cn(
+                  "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
+                  activeTab?.code === tab.code
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span>{tab.name}</span>
+              </button>
+            ))}
           </div>
 
           {activeTab?.code === "bucket-list" && <BucketList />}
@@ -645,33 +638,20 @@ function BucketListRow({
 
 
   return (
-
     <tr className="hover:bg-accent/30 border-b border-border">
-
-      <td className="px-3 py-2.5">
-        <div className="flex flex-col gap-0.5">
-          <Link
-            to="/projects/$projectId"
-            params={{ projectId: r.projectId }}
-            hash={r.taskId}
-            className="font-semibold text-gray-800 hover:text-primary transition-colors"
-          >
-            {r.taskTitle}
-          </Link>
-          {r.employeeName && (
-            <span className="text-[11px] text-muted-foreground font-normal">
-              Assigned to: <span className="font-medium text-foreground">{r.employeeName}</span>
-            </span>
-          )}
-        </div>
+      <td className="px-3 py-2.5 truncate" title={r.taskTitle}>
+        <Link
+          to="/projects/$projectId"
+          params={{ projectId: r.projectId }}
+          hash={r.taskId}
+          className="font-semibold text-gray-800 hover:text-primary transition-colors block truncate"
+        >
+          {r.taskTitle}
+        </Link>
       </td>
-
-      <td className="px-3 py-2.5 text-muted-foreground font-medium">{r.projectName}</td>
-
+      <td className="px-3 py-2.5 text-muted-foreground font-medium truncate" title={r.projectName}>{r.projectName}</td>
       <td className="px-3 py-2.5">
-
         <PriorityPill priority={(r.priority?.toLowerCase() as any) || "medium"} />
-
       </td>
 
       <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground font-medium">
@@ -736,16 +716,11 @@ function BucketListRow({
 
       </td>
 
-      <td className="px-3 py-2.5">
-
-        <div className="flex items-center gap-2">
-
+      <td className="px-3 py-2.5 truncate">
+        <div className="flex items-center gap-2 truncate">
           <Avatar name={byName} size={24} />
-
-          <span className="text-xs font-semibold text-gray-700">{byName}</span>
-
+          <span className="text-xs font-semibold text-gray-700 truncate" title={byName}>{byName}</span>
         </div>
-
       </td>
 
       <td className="px-3 py-2.5">
@@ -1393,6 +1368,16 @@ function BucketList() {
 
   }, [loadData]);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, statusFilter, priorityFilter]);
+
+  const totalTasks = apiTasks.length;
+  const pageTasks = useMemo(() => paginateSlice(apiTasks, page, pageSize), [apiTasks, page, pageSize]);
+
 
 
 
@@ -1544,29 +1529,26 @@ function BucketList() {
 
 
       <div className="overflow-x-auto">
-
-        <table className="w-full text-sm">
-
-          <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border">
-
+        <table className="w-full text-sm min-w-[980px] table-fixed">
+          <colgroup>
+            <col className="w-[22%]" />
+            <col className="w-[16%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
+            <col className="w-[10%]" />
+            <col className="w-[12%]" />
+            <col className="w-[20%]" />
+          </colgroup>
+          <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
             <tr>
-
-              <th className="px-3 py-2 font-bold">Task</th>
-
-              <th className="px-3 py-2 font-bold">Project</th>
-
-              <th className="px-3 py-2 font-bold">Priority</th>
-
-              <th className="px-3 py-2 font-bold">Due Date</th>
-
-              <th className="px-3 py-2 font-bold">Status</th>
-
-              <th className="px-3 py-2 font-bold">Assigned By</th>
-
-              <th className="px-3 py-2 font-bold">Actions & Timer</th>
-
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Task</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Priority</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Due Date</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Assigned By</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Actions & Timer</th>
             </tr>
-
           </thead>
 
           <tbody className="divide-y divide-border">
@@ -1601,7 +1583,7 @@ function BucketList() {
 
             ) : (
 
-              apiTasks.map((r) => (
+              pageTasks.map((r) => (
 
                 <BucketListRow
 
@@ -1624,6 +1606,15 @@ function BucketList() {
         </table>
 
       </div>
+
+      <TablePaginationFooter
+        page={page}
+        pageSize={pageSize}
+        total={totalTasks}
+        itemLabel="tasks"
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
 
 
@@ -2144,6 +2135,16 @@ function ApprovalsTab() {
 
   }, [store.approvals, projectFilter, typeFilter, statusFilter]);
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  useEffect(() => {
+    setPage(1);
+  }, [projectFilter, typeFilter, statusFilter]);
+
+  const totalApprovals = filteredApprovals.length;
+  const pageApprovals = useMemo(() => paginateSlice(filteredApprovals, page, pageSize), [filteredApprovals, page, pageSize]);
+
 
 
   const handleAction = async (status: DhCentralApproval["status"]) => {
@@ -2371,98 +2372,51 @@ function ApprovalsTab() {
 
         <table className="w-full text-sm">
 
-          <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-
+          <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
             <tr>
-
-              <th className="px-3 py-2 font-medium">Approval ID</th>
-
-              <th className="px-3 py-2 font-medium">Project</th>
-
-              <th className="px-3 py-2 font-medium">Request Type</th>
-
-              <th className="px-3 py-2 font-medium">Requested By</th>
-
-              <th className="px-3 py-2 font-medium">Date</th>
-
-              <th className="px-3 py-2 font-medium">Status</th>
-
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Request Type</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Requested By</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Date</th>
+              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
               {canManageApprovals && (
-                <th className="px-3 py-2 font-medium text-right">Actions</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 text-right">Actions</th>
               )}
-
             </tr>
-
           </thead>
-
           <tbody className="divide-y divide-border">
-
-            {filteredApprovals.map((app) => (
-
+            {pageApprovals.map((app) => (
               <tr key={app.id} className="hover:bg-accent/30">
-
-                <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-800">{app.id}</td>
-
                 <td className="px-3 py-2.5 font-medium text-gray-700">{app.projectName}</td>
-
                 <td className="px-3 py-2.5 text-xs text-primary font-semibold">
-
                   {app.requestType}
-
                 </td>
-
                 <td className="px-3 py-2.5">
-
                   <div className="flex items-center gap-2">
-
                     <Avatar name={app.requestedBy} size={20} />
-
                     <span className="text-xs">{app.requestedBy}</span>
-
                   </div>
-
                 </td>
-
                 <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-
                   {formatToDayMonthYear(app.requestedDate)}
-
                 </td>
-
                 <td className="px-3 py-2.5">
-
                   <span
-
                     className={cn(
-
                       "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize",
-
                       app.status === "Approved"
-
                         ? "bg-success/10 text-success border-success/30"
-
                         : app.status === "Rejected"
-
                           ? "bg-destructive/10 text-destructive border-destructive/30"
-
                           : app.status === "Hold"
-
                             ? "bg-warning/15 text-warning-foreground border-warning/30"
-
                             : app.status === "Request Changes"
-
                               ? "bg-info/10 text-info border-info/30"
-
                               : "bg-muted text-muted-foreground border-border",
-
                     )}
-
                   >
-
                     {app.status}
-
                   </span>
-
                 </td>
                 {canManageApprovals && (
                   <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
@@ -2474,14 +2428,11 @@ function ApprovalsTab() {
                     </button>
                   </td>
                 )}
-
               </tr>
-
             ))}
-
             {isLoadingApprovals && filteredApprovals.length === 0 ? (
               <tr>
-                <td colSpan={canManageApprovals ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canManageApprovals ? 6 : 5} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <span>Loading approvals...</span>
@@ -2490,7 +2441,7 @@ function ApprovalsTab() {
               </tr>
             ) : filteredApprovals.length === 0 ? (
               <tr>
-                <td colSpan={canManageApprovals ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canManageApprovals ? 6 : 5} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No approvals found
                 </td>
               </tr>
@@ -2500,6 +2451,15 @@ function ApprovalsTab() {
         </table>
 
       </div>
+
+      <TablePaginationFooter
+        page={page}
+        pageSize={pageSize}
+        total={totalApprovals}
+        itemLabel="approvals"
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
 
 
 
@@ -2937,6 +2897,16 @@ function AlertsTab() {
     });
 
   }, [allAlerts, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, projectsList]);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  useEffect(() => {
+    setPage(1);
+  }, [projFilter, clientFilter, prioFilter, typeFilter, statusFilter]);
+
+  const totalAlerts = filtered.length;
+  const pageAlerts = useMemo(() => paginateSlice(filtered, page, pageSize), [filtered, page, pageSize]);
 
 
 
@@ -3457,64 +3427,32 @@ function AlertsTab() {
 
             <table className="w-full text-sm">
 
-              <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-
+              <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
                 <tr>
-
-                  <th className="px-3 py-2 font-medium">Alert ID</th>
-
-                  <th className="px-3 py-2 font-medium">Alert Title</th>
-
-                  <th className="px-3 py-2 font-medium">Project Name</th>
-
-                  <th className="px-3 py-2 font-medium">Customer Name</th>
-
-                  <th className="px-3 py-2 font-medium">Alert Type</th>
-
-                  <th className="px-3 py-2 font-medium">Priority</th>
-
-                  <th className="px-3 py-2 font-medium">Raised By</th>
-
-                  <th className="px-3 py-2 font-medium">Raised Date</th>
-
-                  <th className="px-3 py-2 font-medium">Status</th>
-
-                  <th className="px-3 py-2 font-medium text-right">Actions</th>
-
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Alert Title</th>
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project Name</th>
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Customer Name</th>
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Alert Type</th>
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Priority</th>
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Raised By</th>
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Raised Date</th>
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
+                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 text-right">Actions</th>
                 </tr>
-
               </thead>
-
               <tbody className="divide-y divide-border">
-
-                {filtered.map((alert) => {
-
+                {pageAlerts.map((alert) => {
                   const project = projectsList.find((p) => p.id === alert.projectId);
-
                   const client = clientsList.find((c) => c.id === project?.clientId);
 
                   return (
-
                     <tr key={alert.id} className="hover:bg-accent/30">
-
-                      <td className="px-3 py-2.5 font-mono text-xs font-bold text-gray-800">
-
-                        {alert.alertId || "ALT-GEN"}
-
-                      </td>
-
                       <td className="px-3 py-2.5 font-medium text-gray-700">{alert.title}</td>
-
                       <td className="px-3 py-2.5 text-xs text-muted-foreground font-semibold">
-
                         {project?.name || "—"}
-
                       </td>
-
                       <td className="px-3 py-2.5 text-xs text-muted-foreground">
-
                         {client?.name || "—"}
-
                       </td>
 
                       <td className="px-3 py-2.5">
@@ -3599,6 +3537,15 @@ function AlertsTab() {
           </div>
 
         )}
+
+        <TablePaginationFooter
+          page={page}
+          pageSize={pageSize}
+          total={totalAlerts}
+          itemLabel="alerts"
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
 
       </section>
 
@@ -3942,34 +3889,45 @@ function AlertsTab() {
 
                   </span>
 
-                  <div className="space-y-1.5 pl-1 max-h-32 overflow-y-auto">
-
+                  <div className="space-y-2 pl-1 max-h-36 overflow-y-auto pr-1">
                     {(selectedAlert.history || []).map((h: any, idx) => {
-
                       const dateStr = formatToDayMonthYear(h.at || h.date);
-
                       const timeStr = h.at ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : (h.time || "");
+                      const rawText = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
 
-                      const text = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — \"${h.details}\"` : ""}`;
+                      let action = rawText;
+                      let remark = "";
+                      if (rawText.includes(" — ")) {
+                        const parts = rawText.split(" — ");
+                        action = parts[0];
+                        remark = parts.slice(1).join(" — ").replace(/^["']|["']$/g, "").trim();
+                      } else if (rawText.includes(". Comment: ")) {
+                        const parts = rawText.split(". Comment: ");
+                        action = parts[0] + ".";
+                        remark = parts.slice(1).join(". Comment: ").replace(/^["']|["']$/g, "").trim();
+                      } else if (rawText.startsWith("Comment added: \"") && rawText.endsWith("\"")) {
+                        action = "Comment added:";
+                        remark = rawText.slice(15, -1).trim();
+                      }
 
                       return (
-
-                        <div key={idx} className="flex gap-2 text-[10px]">
-
-                          <span className="text-muted-foreground tabular-nums">
-
+                        <div key={idx} className="flex items-start gap-2 text-[11px] leading-relaxed">
+                          <span className="shrink-0 font-medium text-muted-foreground tabular-nums whitespace-nowrap">
                             {dateStr} {timeStr}:
-
                           </span>
-
-                          <span>{text}</span>
-
+                          <span className="min-w-0 flex-1 break-words text-foreground/90">
+                            {remark ? (
+                              <>
+                                <span className="font-semibold text-foreground">{action}</span>{" "}
+                                <span className="text-muted-foreground font-normal italic">"{remark}"</span>
+                              </>
+                            ) : (
+                              <span className="font-medium">{action}</span>
+                            )}
+                          </span>
                         </div>
-
                       );
-
                     })}
-
                   </div>
 
                 </div>
@@ -4708,30 +4666,20 @@ function NotificationsTab() {
 
 
 
-      // 2. Search query filter (Project, Task, Notification Type, Employee, Title)
-
+      // 2. Search query filter (ID, Project, Task, Notification Type, Employee, Title)
       if (searchQuery.trim()) {
-
         const query = searchQuery.toLowerCase();
-
+        const matchesCode = n.notificationCode ? n.notificationCode.toLowerCase().includes(query) : false;
+        const matchesId = n.id ? n.id.toLowerCase().includes(query) : false;
         const matchesProject = n.relatedProject.toLowerCase().includes(query);
-
         const matchesTask = n.relatedTask ? n.relatedTask.toLowerCase().includes(query) : false;
-
         const matchesType = n.type.toLowerCase().includes(query);
-
         const matchesEmployee = n.raisedBy.toLowerCase().includes(query);
-
         const matchesTitle = n.title.toLowerCase().includes(query);
 
-
-
-        if (!matchesProject && !matchesTask && !matchesType && !matchesEmployee && !matchesTitle) {
-
+        if (!matchesCode && !matchesId && !matchesProject && !matchesTask && !matchesType && !matchesEmployee && !matchesTitle) {
           return false;
-
         }
-
       }
 
 
@@ -4763,6 +4711,16 @@ function NotificationsTab() {
     });
 
   }, [notifications, subTab, searchQuery, typeFilter, priorityFilter, dateFilter, statusFilter]);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  useEffect(() => {
+    setPage(1);
+  }, [subTab, searchQuery, typeFilter, priorityFilter, dateFilter, statusFilter]);
+
+  const totalNotifications = filteredNotifications.length;
+  const pageNotifications = useMemo(() => paginateSlice(filteredNotifications, page, pageSize), [filteredNotifications, page, pageSize]);
 
 
 
@@ -4910,7 +4868,7 @@ function NotificationsTab() {
 
             onChange={(e) => setSearchQuery(e.target.value)}
 
-            placeholder="Search by project, task, type, employee..."
+            placeholder="Search by ID, project, task, type, employee..."
 
             className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
 
@@ -5132,29 +5090,27 @@ function NotificationsTab() {
 
           <table className="min-w-full divide-y divide-border text-sm leading-relaxed text-left">
 
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
 
               <tr>
 
-                <th className="px-3 py-2 font-medium min-w-[340px] w-[35%]">Notification Title</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 min-w-[340px] w-[35%]">Notification Title</th>
 
-                <th className="px-3 py-2 font-medium">Type</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Type</th>
 
-                <th className="px-3 py-2 font-medium max-w-[180px]">Related Project</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 max-w-[180px]">Related Project</th>
 
-                <th className="px-3 py-2 font-medium max-w-[150px]">Related Task</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Raised By</th>
 
-                <th className="px-3 py-2 font-medium">Raised By</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Date</th>
 
-                <th className="px-3 py-2 font-medium">Date</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Time</th>
 
-                <th className="px-3 py-2 font-medium">Time</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
 
-                <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Priority</th>
 
-                <th className="px-3 py-2 font-medium">Priority</th>
-
-                  <th className="px-3 py-2 font-medium text-right">Actions</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 text-right">Actions</th>
 
               </tr>
 
@@ -5166,7 +5122,7 @@ function NotificationsTab() {
 
                 <tr>
 
-                  <td colSpan={10} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
 
                     No notifications matching search and filters.
 
@@ -5176,7 +5132,7 @@ function NotificationsTab() {
 
               ) : (
 
-                filteredNotifications.map((n) => (
+                pageNotifications.map((n) => (
 
                   <tr key={n.id} className="hover:bg-muted/10 transition-colors">
 
@@ -5239,16 +5195,6 @@ function NotificationsTab() {
                     <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[180px] break-words">
 
                       {n.relatedProject}
-
-                    </td>
-
-
-
-                    {/* Related Task */}
-
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[150px] break-words">
-
-                      {n.relatedTask || "—"}
 
                     </td>
 
@@ -5361,6 +5307,15 @@ function NotificationsTab() {
             </tbody>
 
           </table>
+
+          <TablePaginationFooter
+            page={page}
+            pageSize={pageSize}
+            total={totalNotifications}
+            itemLabel="notifications"
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
 
         </div>
 

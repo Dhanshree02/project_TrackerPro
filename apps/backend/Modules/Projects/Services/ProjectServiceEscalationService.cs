@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Storage;
@@ -7,6 +8,9 @@ using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Resources.Models;
 using System.Text.Json;
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.Sla.DTOs;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Sla.Services;
 using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.Projects.Services;
@@ -14,7 +18,9 @@ namespace PMS.API.Modules.Projects.Services;
 public sealed class ProjectServiceEscalationService(
     AppDbContext db,
     ICurrentUserService currentUser,
-    IFileStorageService storage) : IProjectServiceEscalationService
+    IFileStorageService storage,
+    ISlaTrackingService slaTrackingService,
+    ILogger<ProjectServiceEscalationService> logger) : IProjectServiceEscalationService
 {
     public const string PmoSubDepartment = "PMO (Project Management Office)";
     public const string EmSubDepartment = "EM (Engagement Manager)";
@@ -301,6 +307,7 @@ public sealed class ProjectServiceEscalationService(
                 RaisedByEmployeeId = raiser?.Id,
                 RaisedByName = row.RaisedByName,
                 RelatedTask = relatedTask,
+                ServiceEscalationId = row.Id,
                 HistoryJson = defaultHistoryJson,
                 CreatedAtUtc = now
             });
@@ -340,6 +347,43 @@ public sealed class ProjectServiceEscalationService(
         db.ProjectAlerts.Add(alert);
 
         await db.SaveChangesAsync(ct);
+
+        // Start centralized TAT/SLA tracking for the WBS Escalation workflow (EOD of next 2 working days)
+        try
+        {
+            var slaPriority = priority.ToLowerInvariant() switch
+            {
+                "low" => SlaPriority.Low,
+                "high" => SlaPriority.High,
+                "critical" => SlaPriority.Critical,
+                _ => SlaPriority.Medium
+            };
+
+            await slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                Module: "Projects",
+                ActivityType: "WBS Escalation",
+                EntityId: row.Id,
+                EntityReference: $"WBS-{row.ServiceName}-{row.Subject}",
+                Stage: "Open",
+                Priority: slaPriority,
+                RecipientEmployeeId: null,
+                ProjectId: projectId,
+                CustomPayloadJson: JsonSerializer.Serialize(new
+                {
+                    serviceEscalationId = row.Id,
+                    alertId = alert.Id,
+                    serviceName = row.ServiceName,
+                    subject = row.Subject,
+                    raisedBy = row.RaisedByName
+                }),
+                CustomStartTimeUtc: row.CreatedAtUtc
+            ), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[WBS Escalation] Failed to start SLA tracking for Escalation {EscalationId}", row.Id);
+        }
+
         return Map(row);
     }
 

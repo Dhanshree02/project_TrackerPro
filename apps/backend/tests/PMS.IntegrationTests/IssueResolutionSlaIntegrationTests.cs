@@ -277,6 +277,19 @@ public class IssueResolutionSlaIntegrationTests : IClassFixture<WebApplicationFa
         Assert.Equal("Resolved", hodGovernanceUpdate.Status);
         Assert.Contains(hodGovernanceUpdate.Comments, c => c.Text.Contains("HOD: Infrastructure approved"));
 
+        // E. Verify status reflected on all notifications for this issue, plus NotificationCode and Issue details
+        var allIssueNotifs = await notifService.GetNotificationsAsync(new NotificationQueryParameters());
+        var matchedNotifs = allIssueNotifs.Where(n => n.IssueId == issueId).ToList();
+        Assert.NotEmpty(matchedNotifs);
+        foreach (var notif in matchedNotifs)
+        {
+            Assert.Equal("Resolved", notif.Status);
+            Assert.False(string.IsNullOrWhiteSpace(notif.NotificationCode));
+            Assert.Equal(issueSubject, notif.IssueTitle);
+            Assert.Equal("Testing L1 and L2 escalation alert request delivery and multi-party chat access.", notif.IssueDescription);
+            Assert.Equal("Technical Related Issues", notif.IssueType);
+        }
+
         // 9. Verify SLA Instance Completed
         var completedInstance = await db.SlaInstances
             .AsNoTracking()

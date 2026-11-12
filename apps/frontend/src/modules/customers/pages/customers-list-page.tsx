@@ -55,6 +55,8 @@ import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { dhStore, useDhStore } from "@/lib/workspace-store";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { cn } from "@/lib/utils";
+import { paginateSlice } from "@/lib/pagination";
+import { TablePaginationFooter } from "@/components/table-pagination-footer";
 import {
   FIELD_MAX,
   countryPhoneError,
@@ -422,6 +424,19 @@ export function CustomersListPage() {
     return rows;
   }, [filtered, sortKey, sortDir]);
 
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
+
+  useEffect(() => {
+    setTablePage(1);
+  }, [q, years, sortKey, sortDir]);
+
+  const totalCustomers = sorted.length;
+  const pagedCustomers = useMemo(
+    () => paginateSlice(sorted, tablePage, tablePageSize),
+    [sorted, tablePage, tablePageSize]
+  );
+
   const open = openId ? clients.find((c) => c.id === openId) : null;
 
   if (!permissionsLoading && !canViewCustomers) {
@@ -783,14 +798,14 @@ export function CustomersListPage() {
           })}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
           <table className="w-full min-w-[1280px] table-fixed border-separate border-spacing-0 text-sm">
             <colgroup>
               {CUSTOMER_LIST_COL_WIDTHS.map((width, idx) => (
                 <col key={CUSTOMER_LIST_COLUMNS[idx].key} style={{ width }} />
               ))}
             </colgroup>
-            <thead className="sticky top-0 z-10 bg-blue-100/80 text-center text-xs text-slate-700 shadow-[inset_0_-2px_0_0_#93c5fd] dark:bg-blue-950/55 dark:text-blue-100 dark:shadow-[inset_0_-2px_0_0_#1e3a8a]">
+            <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-center text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
               <tr>
                 {CUSTOMER_LIST_COLUMNS.map((col, idx, cols) => (
                   <SortableTh
@@ -812,7 +827,7 @@ export function CustomersListPage() {
               </tr>
             </thead>
             <tbody className="bg-card [&>tr>td]:border-b [&>tr>td]:border-slate-200 dark:[&>tr>td]:border-border">
-              {sorted.map(
+              {pagedCustomers.map(
                 ({ client: c, total, newCount, ongoing, completed, onHold, archived, isClientActive }) => {
                   const emName = c.engagementManager?.trim() || "Unassigned";
                   const smName = c.salesManager?.trim() || "Unassigned";
@@ -1035,6 +1050,15 @@ export function CustomersListPage() {
               )}
             </tbody>
           </table>
+
+          <TablePaginationFooter
+            page={tablePage}
+            pageSize={tablePageSize}
+            total={totalCustomers}
+            itemLabel="customers"
+            onPageChange={setTablePage}
+            onPageSizeChange={setTablePageSize}
+          />
         </div>
       )}
 

@@ -532,17 +532,62 @@ public sealed class ProjectIssueService(
             }
         }
 
+        // Synchronize status and history to all related notifications for this issue across all recipients
+        var targetIssueId = alert.IssueId ?? alert.Issue?.Id;
+        if (targetIssueId.HasValue)
+        {
+            var relatedNotifs = await db.ActionNotifications
+                .Where(n => n.IssueId == targetIssueId.Value && n.DeletedAtUtc == null)
+                .ToListAsync(ct);
+
+            foreach (var notif in relatedNotifs)
+            {
+                notif.Status = normalizedStatus;
+                notif.HistoryJson = alert.HistoryJson;
+                notif.UpdatedAtUtc = DateTime.UtcNow;
+            }
+        }
+
+        // Synchronize status and history to all related notifications for WBS Escalation across all recipients
+        if (alert.ServiceEscalationId.HasValue || alert.AlertType == "WBS Escalation" || (alert.Title != null && alert.Title.Contains("WBS Escalation")))
+        {
+            var relatedWbsNotifs = await db.ActionNotifications
+                .Where(n => (n.Type == "WBS Escalation" || n.Title.Contains("WBS Escalation"))
+                            && n.ProjectId == alert.ProjectId
+                            && n.DeletedAtUtc == null
+                            && (alert.ServiceEscalationId == null || n.ServiceEscalationId == null || n.ServiceEscalationId == alert.ServiceEscalationId.Value))
+                .ToListAsync(ct);
+
+            foreach (var notif in relatedWbsNotifs)
+            {
+                notif.Status = normalizedStatus;
+                notif.HistoryJson = alert.HistoryJson;
+                notif.UpdatedAtUtc = DateTime.UtcNow;
+            }
+        }
+
         await db.SaveChangesAsync(ct);
 
         // When resolved or closed, complete SLA tracking and cancel pending Hangfire jobs
         if (normalizedStatus.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || normalizedStatus.Equals("Closed", StringComparison.OrdinalIgnoreCase))
         {
-            var targetIssueId = alert.IssueId ?? alert.Issue?.Id;
             if (targetIssueId.HasValue)
             {
                 try
                 {
                     await slaTrackingService.CompleteTrackingAsync(targetIssueId.Value, "Resolution of Issues", ct);
+                }
+                catch
+                {
+                    // Non-fatal
+                }
+            }
+
+            if (alert.ServiceEscalationId.HasValue)
+            {
+                try
+                {
+                    await slaTrackingService.CompleteTrackingAsync(alert.ServiceEscalationId.Value, "WBS Escalation", ct);
                 }
                 catch
                 {

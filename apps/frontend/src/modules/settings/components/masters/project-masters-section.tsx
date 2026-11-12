@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { paginateSlice } from "@/lib/pagination";
+import { TablePaginationFooter } from "@/components/table-pagination-footer";
 import {
   FolderKanban,
   Plus,
@@ -273,6 +275,19 @@ export function ProjectMastersSection({
       return matchesSearch && matchesContractType;
     });
   }, [items, searchQuery, filterContractType]);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, filterContractType]);
+
+  const totalMasters = filteredItems.length;
+  const pagedItems = useMemo(
+    () => paginateSlice(filteredItems, page, pageSize),
+    [filteredItems, page, pageSize]
+  );
 
   // ── Cascading Change Handlers for Add Form ────────────────────────────────
   const handleContractTypeChange = (ct: string) => {
@@ -1095,20 +1110,20 @@ export function ProjectMastersSection({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto rounded-lg border border-border flex flex-col">
             <table className="w-full text-left text-xs">
-              <thead className="bg-muted/50 border-b border-border text-muted-foreground font-medium">
+              <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
                 <tr>
-                  <th className="py-2.5 px-3">Contract Type</th>
-                  <th className="py-2.5 px-3">Department & Service</th>
-                  <th className="py-2.5 px-3">Tools & Tech</th>
-                  <th className="py-2.5 px-3">Duration</th>
-                  <th className="py-2.5 px-3">Unit Price (₹)</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
+                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Contract Type</th>
+                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Department & Service</th>
+                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Tools & Tech</th>
+                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Duration</th>
+                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Unit Price (₹)</th>
+                  <th className="py-2.5 px-3 text-right font-semibold text-blue-950/85 dark:text-blue-100/85">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {filteredItems.map((item) => (
+                {pagedItems.map((item) => (
                   <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-3 align-top font-medium">
                       <Badge variant="outline" className="text-[11px] font-normal border-primary/20 bg-primary/5 text-primary">
@@ -1172,6 +1187,15 @@ export function ProjectMastersSection({
                 ))}
               </tbody>
             </table>
+
+            <TablePaginationFooter
+              page={page}
+              pageSize={pageSize}
+              total={totalMasters}
+              itemLabel="project masters"
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         )}
       </div>
