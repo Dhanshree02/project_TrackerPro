@@ -404,6 +404,7 @@ public sealed class ProjectIssueService(
         Guid projectId,
         Guid alertId,
         string status,
+        string? comment = null,
         CancellationToken ct = default)
     {
         var alert = await db.ProjectAlerts
@@ -435,6 +436,29 @@ public sealed class ProjectIssueService(
             ? []
             : (JsonSerializer.Deserialize<List<NotificationHistoryItemDto>>(alert.HistoryJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? []);
         var now = DateTime.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(comment))
+        {
+            var commentText = comment.Trim().Length > 50 ? comment.Trim()[..50] : comment.Trim();
+            var commentsList = ParseComments(alert.ChatJson);
+            commentsList.Add(new AlertCommentDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                AuthorName = userName,
+                AuthorEmail = currentUser.Email,
+                Text = commentText,
+                At = now.ToString("o")
+            });
+            alert.ChatJson = JsonSerializer.Serialize(commentsList);
+
+            history.Add(new NotificationHistoryItemDto
+            {
+                Action = $"Comment added: \"{commentText}\"",
+                Date = now.ToString("yyyy-MM-dd"),
+                Time = now.ToString("HH:mm:ss"),
+                By = userName
+            });
+        }
 
         var previousIssueStatus = alert.Issue?.Status;
         var wasClosedOrResolved = alert.Issue is not null &&
@@ -500,6 +524,10 @@ public sealed class ProjectIssueService(
             if (esc != null)
             {
                 esc.Status = normalizedStatus;
+                if (!string.IsNullOrWhiteSpace(alert.ChatJson))
+                {
+                    esc.ChatJson = alert.ChatJson;
+                }
                 esc.UpdatedAtUtc = DateTime.UtcNow;
             }
         }
@@ -524,6 +552,19 @@ public sealed class ProjectIssueService(
         }
 
         return MapAlert(alert);
+    }
+
+    private static List<AlertCommentDto> ParseComments(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<AlertCommentDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private async Task<Employee?> FindCurrentEmployeeAsync(CancellationToken ct)

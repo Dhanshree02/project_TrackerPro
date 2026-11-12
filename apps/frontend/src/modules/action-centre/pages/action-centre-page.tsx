@@ -2974,6 +2974,15 @@ function AlertsTab() {
 
   const isRequirementAlert = !!selectedAlert?.alertId?.startsWith("REQ-AL-");
 
+  const isAlertAudience = Boolean(
+    selectedAlert && user?.id && (
+      (Array.isArray(selectedAlert.audienceUserIds) && selectedAlert.audienceUserIds.includes(user.id)) ||
+      (selectedAlert.raisedByEmployeeId === user.id)
+    )
+  );
+
+  const canActOnAlert = canManageAlerts || isAlertAudience;
+
 
 
   const allDisplayComments = useMemo(() => {
@@ -3470,9 +3479,7 @@ function AlertsTab() {
 
                   <th className="px-3 py-2 font-medium">Status</th>
 
-                  {canManageAlerts && (
-                    <th className="px-3 py-2 font-medium text-right">Actions</th>
-                  )}
+                  <th className="px-3 py-2 font-medium text-right">Actions</th>
 
                 </tr>
 
@@ -3570,16 +3577,14 @@ function AlertsTab() {
 
                       </td>
 
-                      {canManageAlerts && (
-                        <td className="px-3 py-2.5 text-right">
-                          <button
-                            onClick={() => openDetails(alert.id)}
-                            className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
-                          >
-                            Review details
-                          </button>
-                        </td>
-                      )}
+                      <td className="px-3 py-2.5 text-right">
+                        <button
+                          onClick={() => openDetails(alert.id)}
+                          className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary cursor-pointer"
+                        >
+                          Review details
+                        </button>
+                      </td>
 
                     </tr>
 
@@ -4294,7 +4299,7 @@ function AlertsTab() {
 
 
               <div className="flex justify-end gap-2 border-t border-border pt-3">
-                {!canManageAlerts ? (
+                {!canActOnAlert ? (
                   <button
                     onClick={() => setSelectedAlertId(null)}
                     className="rounded-md border border-input bg-card px-3.5 py-1.5 text-xs font-medium hover:bg-accent"

@@ -261,6 +261,11 @@ public sealed class SlaBackgroundJobWorker(
         var levelLabel = level == 1 ? "Level 1 SLA Escalation (Assigned Senior Project Manager)" : "Level 2 SLA Escalation (Head of Department)";
         var notificationTitle = $"{levelLabel}: Issue Pending Resolution - {issue.Subject}";
 
+        var recipientEmployees = await db.Employees
+            .AsNoTracking()
+            .Where(e => recipientIds.Contains(e.Id))
+            .ToListAsync();
+
         foreach (var recipientId in recipientIds)
         {
             var alreadyNotified = await db.ActionNotifications.AnyAsync(n =>
@@ -282,25 +287,107 @@ public sealed class SlaBackgroundJobWorker(
                     Priority = "Critical",
                     Status = "Pending",
                     Unread = true,
+                    RaisedByName = string.IsNullOrWhiteSpace(issue.RaisedByName) ? "SLA Automation Engine" : issue.RaisedByName,
+                    RaisedByEmployeeId = issue.RaisedByEmployeeId,
                     RelatedTask = issue.IssueType,
+                    IssueId = issue.Id,
                     Issue = issue,
                     CreatedAtUtc = now
                 });
             }
         }
 
-        var alert = await db.ProjectAlerts
-            .FirstOrDefaultAsync(a => a.IssueId == issue.Id && a.DeletedAtUtc == null);
+        var alerts = await db.ProjectAlerts
+            .Where(a => a.IssueId == issue.Id && a.DeletedAtUtc == null)
+            .ToListAsync();
 
-        if (alert != null)
+        if (alerts.Count == 0 && !string.IsNullOrWhiteSpace(instance.CustomPayloadJson))
         {
+            try
+            {
+                using var doc = JsonDocument.Parse(instance.CustomPayloadJson);
+                if (doc.RootElement.TryGetProperty("alertId", out var alertIdProp) && alertIdProp.TryGetGuid(out var aId))
+                {
+                    var fallbackAlert = await db.ProjectAlerts.FirstOrDefaultAsync(a => a.Id == aId && a.DeletedAtUtc == null);
+                    if (fallbackAlert != null) alerts.Add(fallbackAlert);
+                }
+            }
+            catch { }
+        }
+
+        var targetRoleName = level == 1 ? "Assigned Senior Project Manager" : "Head of Department";
+        var recipientNamesList = recipientEmployees
+            .Select(e => $"{e.FirstName} {e.LastName}".Trim())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct()
+            .ToList();
+        var recipientNamesStr = string.Join(", ", recipientNamesList);
+
+        foreach (var alert in alerts)
+        {
+            // 1. Add recipient IDs to AudienceUserIds so they receive the Alert request in their Alert tab
+            var audienceSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(alert.AudienceUserIds))
+            {
+                try
+                {
+                    var parsedList = JsonSerializer.Deserialize<List<string>>(alert.AudienceUserIds);
+                    if (parsedList != null)
+                    {
+                        foreach (var id in parsedList)
+                        {
+                            if (!string.IsNullOrWhiteSpace(id)) audienceSet.Add(id.Trim());
+                        }
+                    }
+                }
+                catch
+                {
+                    var parts = alert.AudienceUserIds.Split([',', ';', '[', ']', '"'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    foreach (var part in parts) audienceSet.Add(part);
+                }
+            }
+            foreach (var rId in recipientIds)
+            {
+                audienceSet.Add(rId.ToString());
+            }
+            alert.AudienceUserIds = JsonSerializer.Serialize(audienceSet.ToList());
+
+            // 2. Add recipient names to EscalatedTo
+            var escalatedToNames = new List<string>();
+            if (!string.IsNullOrWhiteSpace(alert.EscalatedTo))
+            {
+                try
+                {
+                    var parsedNames = JsonSerializer.Deserialize<List<string>>(alert.EscalatedTo);
+                    if (parsedNames != null) escalatedToNames.AddRange(parsedNames);
+                }
+                catch
+                {
+                    var parts = alert.EscalatedTo.Split([',', ';', '[', ']', '"'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    escalatedToNames.AddRange(parts);
+                }
+            }
+            foreach (var name in recipientNamesList)
+            {
+                if (!escalatedToNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+                {
+                    escalatedToNames.Add(name);
+                }
+            }
+            alert.EscalatedTo = JsonSerializer.Serialize(escalatedToNames);
+
+            // 3. Append to HistoryJson
             var history = string.IsNullOrWhiteSpace(alert.HistoryJson)
                 ? []
                 : (JsonSerializer.Deserialize<List<NotificationHistoryItemDto>>(alert.HistoryJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? []);
 
+            var actionDesc = !string.IsNullOrWhiteSpace(recipientNamesStr)
+                ? $"{levelLabel}: Alert assigned to {targetRoleName} ({recipientNamesStr})"
+                : levelLabel;
+
             history.Add(new NotificationHistoryItemDto
             {
-                Action = levelLabel,
+                Action = actionDesc,
                 Date = dateStr,
                 Time = timeStr,
                 By = "SLA Automation Engine"
@@ -309,11 +396,77 @@ public sealed class SlaBackgroundJobWorker(
             alert.HistoryJson = JsonSerializer.Serialize(history);
             alert.Priority = "Critical";
             alert.UpdatedAtUtc = now;
+
+            // 4. Update linked ProjectServiceEscalation and add stakeholders
+            ProjectServiceEscalation? serviceEscalation = null;
+            if (alert.ServiceEscalationId.HasValue)
+            {
+                serviceEscalation = await db.ProjectServiceEscalations
+                    .Include(e => e.Stakeholders)
+                    .FirstOrDefaultAsync(e => e.Id == alert.ServiceEscalationId.Value);
+            }
+            if (serviceEscalation == null && instance.ProjectId.HasValue)
+            {
+                serviceEscalation = await db.ProjectServiceEscalations
+                    .Include(e => e.Stakeholders)
+                    .FirstOrDefaultAsync(e => e.ProjectId == instance.ProjectId.Value && e.Subject == issue.Subject);
+            }
+
+            if (serviceEscalation != null)
+            {
+                serviceEscalation.Priority = "Critical";
+                serviceEscalation.UpdatedAtUtc = now;
+
+                foreach (var emp in recipientEmployees)
+                {
+                    if (!serviceEscalation.Stakeholders.Any(s => s.EmployeeId == emp.Id))
+                    {
+                        var subDept = emp.SubDepartment?.Trim();
+                        if (string.IsNullOrWhiteSpace(subDept))
+                        {
+                            subDept = level == 1 ? "Senior Project Management" : "Department Head";
+                        }
+
+                        var newStakeholder = new ProjectServiceEscalationStakeholder
+                        {
+                            EscalationId = serviceEscalation.Id,
+                            EmployeeId = emp.Id,
+                            EmployeeName = $"{emp.FirstName} {emp.LastName}".Trim(),
+                            SubDepartment = subDept,
+                            Status = "Pending"
+                        };
+                        serviceEscalation.Stakeholders.Add(newStakeholder);
+                        db.ProjectServiceEscalationStakeholders.Add(newStakeholder);
+                    }
+                }
+
+                // Sync ChatJson between alert and serviceEscalation
+                if (!string.IsNullOrWhiteSpace(alert.ChatJson) && string.IsNullOrWhiteSpace(serviceEscalation.ChatJson))
+                {
+                    serviceEscalation.ChatJson = alert.ChatJson;
+                }
+                else if (!string.IsNullOrWhiteSpace(serviceEscalation.ChatJson) && string.IsNullOrWhiteSpace(alert.ChatJson))
+                {
+                    alert.ChatJson = serviceEscalation.ChatJson;
+                }
+            }
+        }
+
+        var firstAlertHistory = alerts.FirstOrDefault()?.HistoryJson;
+        if (!string.IsNullOrWhiteSpace(firstAlertHistory))
+        {
+            var notifsToUpdate = await db.ActionNotifications
+                .Where(n => n.IssueId == issue.Id && recipientIds.Contains(n.RecipientEmployeeId) && n.DeletedAtUtc == null)
+                .ToListAsync();
+            foreach (var n in notifsToUpdate)
+            {
+                n.HistoryJson = firstAlertHistory;
+            }
         }
 
         eventRecord.Status = SlaEventStatus.Executed;
         eventRecord.ExecutedAtUtc = now;
-        eventRecord.ExecutionLog = $"{levelLabel} executed at {now:u}. Dispatched Critical escalation notification to {recipientIds.Count} recipients.";
+        eventRecord.ExecutionLog = $"{levelLabel} executed at {now:u}. Dispatched Critical escalation notification & alert request to {recipientIds.Count} recipients.";
 
         if (level == 1)
         {

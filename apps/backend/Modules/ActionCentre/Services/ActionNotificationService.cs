@@ -640,6 +640,40 @@ public sealed class ActionNotificationService(
 
             : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : (currentUser.Email ?? "User"));
 
+        var role = (currentUser.Role ?? "").Trim();
+        var isSuperAdmin = role.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                           || role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+                           || role.Equals("PMO", StringComparison.OrdinalIgnoreCase)
+                           || role.Equals("CEO", StringComparison.OrdinalIgnoreCase)
+                           || role.Equals("COO", StringComparison.OrdinalIgnoreCase)
+                           || currentUser.Email == "admin@talakunchi.com";
+
+        if (!isSuperAdmin && employee != null)
+        {
+            var empId = employee.Id;
+            var empIdStr = empId.ToString();
+
+            var isAudience = !string.IsNullOrWhiteSpace(alert.AudienceUserIds) && alert.AudienceUserIds.Contains(empIdStr);
+            var isProjectManager = alert.Project != null && (
+                alert.Project.ProjectManagerId == empId ||
+                alert.Project.EngagementManagerId == empId ||
+                (alert.Project.Client != null && alert.Project.Client.EngagementManagerId == empId) ||
+                alert.Project.TeamLeadId == empId);
+            var isRaiser = alert.RaisedByEmployeeId == empId;
+
+            var isStakeholder = false;
+            if (alert.ServiceEscalationId.HasValue)
+            {
+                isStakeholder = await db.ProjectServiceEscalationStakeholders
+                    .AnyAsync(s => s.EscalationId == alert.ServiceEscalationId.Value && s.EmployeeId == empId, ct);
+            }
+
+            if (!isAudience && !isProjectManager && !isRaiser && !isStakeholder)
+            {
+                throw new ForbiddenException("You do not have permission to update this alert.");
+            }
+        }
+
 
 
         var now = DateTime.UtcNow;

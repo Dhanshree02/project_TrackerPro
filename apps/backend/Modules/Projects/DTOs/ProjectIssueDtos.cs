@@ -49,7 +49,7 @@ public sealed record ProjectAlertDto(
     string? ServiceName = null,
     string? EscalationType = null);
 
-public sealed record UpdateAlertStatusRequest(string Status);
+public sealed record UpdateAlertStatusRequest(string Status, string? Comment = null);
 
 public sealed record AssignedProjectSummaryDto(
     Guid Id,
