@@ -170,6 +170,8 @@ export interface ApiRolePermission {
   itemType: string;
   canView: number;
   canManage: number;
+  defaultCanView?: number;
+  defaultCanManage?: number;
 }
 
 export async function fetchRolePermissions(roleId: string): Promise<ApiRolePermission[]> {
@@ -180,6 +182,13 @@ export async function saveRolePermissions(roleId: string, permissions: ApiRolePe
   const result = await apiFetch<boolean>(`/api/v1/roles/${roleId}/permissions`, {
     method: "PUT",
     body: JSON.stringify({ permissions }),
+  });
+  return !!result;
+}
+
+export async function resetRolePermissionsToDefault(roleId: string): Promise<boolean> {
+  const result = await apiFetch<boolean>(`/api/v1/roles/${roleId}/permissions/reset-default`, {
+    method: "POST",
   });
   return !!result;
 }

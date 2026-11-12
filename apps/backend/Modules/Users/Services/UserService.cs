@@ -250,8 +250,8 @@ public sealed class UserService(
     {
         return await db.RolePermissions
             .AsNoTracking()
-            .Where(p => p.RoleId == roleId && (p.CanView == 1 || p.CanManage == 1))
-            .Select(p => new RolePermissionDto(p.ItemId, p.ItemType, p.CanView, p.CanManage))
+            .Where(p => p.RoleId == roleId && (p.CanView == 1 || p.CanManage == 1 || p.DefaultCanView == 1 || p.DefaultCanManage == 1))
+            .Select(p => new RolePermissionDto(p.ItemId, p.ItemType, p.CanView, p.CanManage, p.DefaultCanView, p.DefaultCanManage))
             .ToListAsync(ct);
     }
 
@@ -260,15 +260,40 @@ public sealed class UserService(
         var roleExists = await db.Roles.AnyAsync(r => r.Id == roleId, ct);
         if (!roleExists) return false;
 
-        // Hard-delete existing permissions for this role so revoked items are completely removed
-        await db.RolePermissions
+        var existing = await db.RolePermissions
             .IgnoreQueryFilters()
             .Where(p => p.RoleId == roleId)
-            .ExecuteDeleteAsync(ct);
+            .ToDictionaryAsync(p => p.ItemId, ct);
 
-        foreach (var p in permissions)
+        var incomingMap = permissions.ToDictionary(p => p.ItemId, p => p);
+
+        // Update existing rows or revoke access
+        foreach (var (itemId, row) in existing)
         {
-            if (p.CanView == 1 || p.CanManage == 1)
+            if (incomingMap.TryGetValue(itemId, out var p))
+            {
+                row.CanView = p.CanView;
+                row.CanManage = p.CanManage;
+                if (p.DefaultCanView != 0 || p.DefaultCanManage != 0)
+                {
+                    row.DefaultCanView = p.DefaultCanView;
+                    row.DefaultCanManage = p.DefaultCanManage;
+                }
+                row.UpdatedAtUtc = DateTime.UtcNow;
+            }
+            else
+            {
+                // Item omitted from save payload -> revoke active access while preserving defaults
+                row.CanView = 0;
+                row.CanManage = 0;
+                row.UpdatedAtUtc = DateTime.UtcNow;
+            }
+        }
+
+        // Add new rows for items not previously in DB
+        foreach (var (itemId, p) in incomingMap)
+        {
+            if (!existing.ContainsKey(itemId) && (p.CanView == 1 || p.CanManage == 1 || p.DefaultCanView == 1 || p.DefaultCanManage == 1))
             {
                 db.RolePermissions.Add(new RolePermission
                 {
@@ -277,9 +302,33 @@ public sealed class UserService(
                     ItemType = p.ItemType,
                     CanView = p.CanView,
                     CanManage = p.CanManage,
+                    DefaultCanView = p.DefaultCanView,
+                    DefaultCanManage = p.DefaultCanManage,
                     CreatedAtUtc = DateTime.UtcNow,
                 });
             }
+        }
+
+        await db.SaveChangesAsync(ct);
+        rbacAuthService.InvalidateRoleCache(roleId);
+        return true;
+    }
+
+    public async Task<bool> ResetRolePermissionsToDefaultAsync(Guid roleId, CancellationToken ct = default)
+    {
+        var roleExists = await db.Roles.AnyAsync(r => r.Id == roleId, ct);
+        if (!roleExists) return false;
+
+        var perms = await db.RolePermissions
+            .IgnoreQueryFilters()
+            .Where(p => p.RoleId == roleId)
+            .ToListAsync(ct);
+
+        foreach (var p in perms)
+        {
+            p.CanView = p.DefaultCanView;
+            p.CanManage = p.DefaultCanManage;
+            p.UpdatedAtUtc = DateTime.UtcNow;
         }
 
         await db.SaveChangesAsync(ct);

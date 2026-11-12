@@ -117,4 +117,13 @@ public class RolesController(IUserService users) : ControllerBase
             ? Ok(ApiResponse<bool>.Ok(true))
             : NotFound(ApiResponse<bool>.Fail("NOT_FOUND", "Role not found."));
     }
+
+    [HttpPost("{id:guid}/permissions/reset-default")]
+    public async Task<ActionResult<ApiResponse<bool>>> ResetDefaultPermissions(Guid id, CancellationToken ct)
+    {
+        var updated = await users.ResetRolePermissionsToDefaultAsync(id, ct);
+        return updated
+            ? Ok(ApiResponse<bool>.Ok(true))
+            : NotFound(ApiResponse<bool>.Fail("NOT_FOUND", "Role not found."));
+    }
 }

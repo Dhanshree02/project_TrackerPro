@@ -7,6 +7,7 @@ import {
   fetchRoles,
   fetchRolePermissions,
   saveRolePermissions,
+  resetRolePermissionsToDefault,
   type ApiRole,
   type ApiRolePermission,
 } from "@/lib/api/users";
@@ -301,6 +302,42 @@ export function RolesPermissionsPage() {
     setSaveSuccess(false);
   };
 
+  const handleResetToBaseline = async () => {
+    if (!roleId || saving) return;
+    setSaving(true);
+    setSaveSuccess(false);
+    setError("");
+
+    try {
+      await resetRolePermissionsToDefault(roleId);
+      const perms = await fetchRolePermissions(roleId);
+      const map: Record<string, ModuleAccess> = {};
+      for (const p of perms) {
+        const located = locateRow(rows, p.itemId);
+        const viewOnly = isViewOnlyRow(located?.row, located?.parent);
+        const manageOnly = isViewManageOnlyRow(located?.row, located?.parent);
+        if (manageOnly) {
+          if (p.canManage === 1 || p.canView === 1) map[p.itemId] = "view-manage";
+        } else if (p.canManage === 1 && !viewOnly) {
+          map[p.itemId] = "view-manage";
+        } else if (p.canView === 1 || p.canManage === 1) {
+          map[p.itemId] = "view";
+        }
+      }
+      setAccessByRole((prev) => ({ ...prev, [roleId]: map }));
+      setSavedAccessByRole((prev) => ({ ...prev, [roleId]: map }));
+      setSaveSuccess(true);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("permissions-updated", { detail: { roleId } }));
+      }
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch {
+      setError("Failed to reset role permissions to baseline defaults.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!roleId || saving) return;
     setSaving(true);
@@ -360,6 +397,16 @@ export function RolesPermissionsPage() {
                 Saved
               </span>
             )}
+            <button
+              type="button"
+              onClick={handleResetToBaseline}
+              disabled={!roleId || saving || permissionsLoading}
+              title="Reset all permissions for this role back to the default baseline"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3.5 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40 transition-colors shadow-2xs"
+            >
+              <RotateCcw className="size-3.5 text-muted-foreground" />
+              Reset to Baseline
+            </button>
             <button
               type="button"
               onClick={handleReset}

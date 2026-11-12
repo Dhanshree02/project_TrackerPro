@@ -16,4 +16,7 @@ public class RolePermission : BaseEntity
 
     public short CanView { get; set; }
     public short CanManage { get; set; }
+
+    public short DefaultCanView { get; set; }
+    public short DefaultCanManage { get; set; }
 }

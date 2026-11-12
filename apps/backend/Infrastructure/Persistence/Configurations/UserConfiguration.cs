@@ -100,6 +100,8 @@ public sealed class RolePermissionConfiguration : IEntityTypeConfiguration<RoleP
         builder.Property(p => p.ItemType).HasMaxLength(20).IsRequired();
         builder.Property(p => p.CanView).HasDefaultValue((short)0);
         builder.Property(p => p.CanManage).HasDefaultValue((short)0);
+        builder.Property(p => p.DefaultCanView).HasDefaultValue((short)0);
+        builder.Property(p => p.DefaultCanManage).HasDefaultValue((short)0);
 
         builder.HasOne(p => p.Role)
             .WithMany()

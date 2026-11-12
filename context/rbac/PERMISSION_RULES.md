@@ -43,3 +43,18 @@ Enforced across `ActionCentreController.cs` and `action-centre-page.tsx`:
 - **All Employees Tab (`scope=all`):**
   - Company-wide roster for HR, PMO, and Executive roles.
 
+---
+
+## 4. Default Baseline Locking & Reset
+- **Schema Columns in `auth.tbl_role_permissions`:**
+  - `DefaultCanView` (`smallint NOT NULL DEFAULT 0`): The locked baseline view access.
+  - `DefaultCanManage` (`smallint NOT NULL DEFAULT 0`): The locked baseline manage access.
+  - Check constraints ensure `DefaultCanManage <= DefaultCanView`.
+- **Seeded Baseline (1,512 rows across 28 non-admin roles x 54 items):**
+  - Executed via `scripts/seed_rbac_defaults.py`.
+  - Permanently preserves original baseline configuration even if customized by administrators.
+- **Reset to Baseline API & UI:**
+  - `POST /api/v1/roles/{id}/permissions/reset-default`: Restores `CanView = DefaultCanView` and `CanManage = DefaultCanManage`.
+  - UI Button "Reset to Baseline" in Roles & Permissions header triggers this reset with instant cache invalidation.
+
+

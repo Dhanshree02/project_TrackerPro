@@ -53,7 +53,9 @@ public sealed record RolePermissionDto(
     Guid ItemId,
     string ItemType,
     short CanView,
-    short CanManage);
+    short CanManage,
+    short DefaultCanView = 0,
+    short DefaultCanManage = 0);
 
 public sealed record UpdateRolePermissionsPayload(
     IReadOnlyList<RolePermissionDto> Permissions);

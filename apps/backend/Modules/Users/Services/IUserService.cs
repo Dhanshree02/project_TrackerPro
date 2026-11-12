@@ -39,4 +39,6 @@ public interface IUserService
     Task<IReadOnlyList<RolePermissionDto>> GetRolePermissionsAsync(Guid roleId, CancellationToken ct = default);
 
     Task<bool> UpdateRolePermissionsAsync(Guid roleId, IReadOnlyList<RolePermissionDto> permissions, CancellationToken ct = default);
+
+    Task<bool> ResetRolePermissionsToDefaultAsync(Guid roleId, CancellationToken ct = default);
 }

@@ -27,7 +27,7 @@ public class ActionCentreController : ControllerBase
     /// Supports searching by task/project and filtering by status and priority.
     /// </summary>
     [HttpGet("bucket-list")]
-    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<PagedResult<BucketTaskDto>>>> GetBucketList(
         [FromQuery] BucketTaskQueryParameters query,
         CancellationToken ct = default)
@@ -46,7 +46,7 @@ public class ActionCentreController : ControllerBase
     /// Gets a single bucket list task by ID.
     /// </summary>
     [HttpGet("bucket-list/{id:guid}")]
-    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<BucketTaskDto>>> GetBucketTaskById(
         Guid id,
         CancellationToken ct = default)
@@ -64,7 +64,7 @@ public class ActionCentreController : ControllerBase
     /// Starts the task timer and records the Actual Start date on the task.
     /// </summary>
     [HttpPost("bucket-list/{id:guid}/start-timer")]
-    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<BucketTaskDto>>> StartTimer(
         Guid id,
         CancellationToken ct = default)
@@ -77,7 +77,7 @@ public class ActionCentreController : ControllerBase
     /// Pauses the task timer and accumulates elapsed working time.
     /// </summary>
     [HttpPost("bucket-list/{id:guid}/pause-timer")]
-    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<BucketTaskDto>>> PauseTimer(
         Guid id,
         CancellationToken ct = default)
@@ -90,7 +90,7 @@ public class ActionCentreController : ControllerBase
     /// Stops the task timer and accumulates elapsed working time.
     /// </summary>
     [HttpPost("bucket-list/{id:guid}/stop-timer")]
-    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<BucketTaskDto>>> StopTimer(
         Guid id,
         CancellationToken ct = default)
@@ -103,7 +103,7 @@ public class ActionCentreController : ControllerBase
     /// Marks the task as Completed and records the Actual End date.
     /// </summary>
     [HttpPost("bucket-list/{id:guid}/complete")]
-    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<BucketTaskDto>>> CompleteTask(
         Guid id,
         CancellationToken ct = default)
@@ -116,7 +116,7 @@ public class ActionCentreController : ControllerBase
     /// Updates the status/stage of the bucket task and synchronizes the node task.
     /// </summary>
     [HttpPatch("bucket-list/{id:guid}/status")]
-    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<BucketTaskDto>>> UpdateStatus(
         Guid id,
         [FromBody] UpdateBucketTaskStatusRequest request,
@@ -130,7 +130,7 @@ public class ActionCentreController : ControllerBase
     /// Synchronizes project task assignments into the Action Center bucket list.
     /// </summary>
     [HttpPost("bucket-list/sync")]
-    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<bool>>> SyncAssignments(
         [FromQuery] Guid? projectId = null,
         [FromQuery] Guid? taskId = null,
@@ -146,7 +146,7 @@ public class ActionCentreController : ControllerBase
     /// Gets Action Centre notifications for the current authenticated employee / manager.
     /// </summary>
     [HttpGet("notifications")]
-    [RequireRbac(RbacCatalogCodes.ActionNotifications, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionNotifications, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ActionNotificationDto>>>> GetNotifications(
         [FromQuery] NotificationQueryParameters query,
         CancellationToken ct = default)
@@ -159,7 +159,7 @@ public class ActionCentreController : ControllerBase
     /// Marks an Action Centre notification as read.
     /// </summary>
     [HttpPut("notifications/{id:guid}/read")]
-    [RequireRbac(RbacCatalogCodes.ActionNotifications, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionNotifications, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<ActionNotificationDto>>> MarkNotificationAsRead(
         Guid id,
         CancellationToken ct = default)
@@ -174,7 +174,7 @@ public class ActionCentreController : ControllerBase
     /// Gets Action Centre governance and health alerts for the current authenticated employee / manager.
     /// </summary>
     [HttpGet("alerts")]
-    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts", "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ActionAlertDto>>>> GetAlerts(
         [FromQuery] NotificationQueryParameters query,
         CancellationToken ct = default)
@@ -201,7 +201,7 @@ public class ActionCentreController : ControllerBase
     /// Downloads the attachment file for a governance or escalation alert if present.
     /// </summary>
     [HttpGet("alerts/{id:guid}/attachment")]
-    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts", "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts")]
     public async Task<IActionResult> DownloadAlertAttachment(Guid id, CancellationToken ct = default)
     {
         var result = await _notificationService.DownloadAlertAttachmentAsync(id, ct);
@@ -218,7 +218,7 @@ public class ActionCentreController : ControllerBase
     /// Gets pending central approvals (e.g. Customer Requirements, etc.) for current user.
     /// </summary>
     [HttpGet("approvals")]
-    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>>>> GetApprovals(
         [FromServices] PMS.API.Modules.Projects.Services.IProjectAdditionalRequirementService requirementService,
         CancellationToken ct = default)
@@ -231,7 +231,7 @@ public class ActionCentreController : ControllerBase
     /// Gets pending resource allocation approvals for the current reporting manager.
     /// </summary>
     [HttpGet("allocation-approvals")]
-    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-centre", "action-center")]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectResourceAllocationRequestDto>>>> GetPendingAllocationApprovals(
         [FromServices] PMS.API.Modules.Projects.Services.IProjectTeamMemberService teamMemberService,
         CancellationToken ct = default)
