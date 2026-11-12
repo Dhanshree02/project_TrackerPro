@@ -484,6 +484,25 @@ export async function fetchProjects(params?: ProjectQueryParams): Promise<PagedR
   return res ?? { items: [], page: 1, perPage: 20, total: 0, totalPages: 0 };
 }
 
+export interface TaskSearchHit {
+  id: string;
+  projectId: string;
+  title: string;
+  projectName: string;
+  wbsId?: string | null;
+  projectCode?: string | null;
+  plannedStartDate?: string | null;
+  plannedEndDate?: string | null;
+  projectStartDate?: string | null;
+  projectEndDate?: string | null;
+}
+
+/** GET /api/v1/projects/task-search — tasks whose title, project, or WBS id matches. */
+export async function searchProjectTasks(search: string, limit = 5): Promise<TaskSearchHit[]> {
+  const params = new URLSearchParams({ search, limit: String(limit) });
+  return (await apiFetch<TaskSearchHit[]>(`/api/v1/projects/task-search?${params.toString()}`)) ?? [];
+}
+
 /** Map backend ApiProject to frontend Project model */
 export function mapApiProjectToProject(
   ap: ApiProject,

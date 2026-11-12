@@ -5,6 +5,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { usePermissions } from "@/lib/permissions";
+import { useFinancialYear } from "@/lib/financial-year";
 import {
   dashboardPeriodLabel,
   fetchTeamSummary,
@@ -71,6 +72,7 @@ const boardingChartConfig = {
 } satisfies ChartConfig;
 
 export function TeamMisSection() {
+  const { chartYear } = useFinancialYear();
   const { canView } = usePermissions();
   const [period, setPeriod] = useState<DashboardPeriod>("rolling");
   const [view, setView] = useState<MisDashboardView>("graph");
@@ -118,7 +120,7 @@ export function TeamMisSection() {
     setLoading(true);
     setError(null);
 
-    fetchTeamSummary(period, controller.signal)
+    fetchTeamSummary(period, controller.signal, chartYear)
       .then((data) => {
         if (!controller.signal.aborted) setSummary(data);
       })
@@ -132,7 +134,7 @@ export function TeamMisSection() {
       });
 
     return () => controller.abort();
-  }, [period, reloadKey]);
+  }, [period, reloadKey, chartYear]);
 
   const months = summary?.months ?? [];
   const fyLabel = summary

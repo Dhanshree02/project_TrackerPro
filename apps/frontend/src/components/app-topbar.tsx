@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Search, Bell, ChevronDown, Check } from "lucide-react";
+import { GlobalSearch } from "@/components/global-search";
+import { FinancialYearFilter } from "@/lib/financial-year";
 import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
 import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/user-personas";
@@ -128,16 +130,10 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
         {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 
-      {/* Center: Global Search Bar */}
-      <div className="hidden md:flex flex-1 max-w-md justify-center px-2">
-        <div className="relative w-full group">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" />
-          <input
-            type="search"
-            placeholder="Global search (projects, employees, customers)…"
-            className="h-9 w-full rounded-full border border-border/80 bg-muted/60 hover:bg-muted/90 pl-9 pr-3 text-xs outline-none transition-all focus-visible:border-primary focus-visible:bg-card focus-visible:ring-2 focus-visible:ring-primary/20 shadow-2xs text-foreground placeholder:text-muted-foreground"
-          />
-        </div>
+      {/* Center on desktop, icon on a narrow window */}
+      <div className="flex shrink-0 items-center justify-end gap-2 md:min-w-0 md:flex-1 md:justify-center md:px-2">
+        <GlobalSearch />
+        <FinancialYearFilter />
       </div>
 
       {/* Right: Notifications & Profile */}

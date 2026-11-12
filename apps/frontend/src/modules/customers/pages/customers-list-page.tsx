@@ -32,6 +32,7 @@ import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { type Client, type ClientSubVenture, type Project } from "@/lib/domain-models";
 import { fetchProjects, mapApiProjectToProject } from "@/modules/projects/api/projects";
+import { fyFromWbs, inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import {
   createClient,
   fetchClients,
@@ -241,6 +242,7 @@ function SortableTh<T extends string>({
 }
 
 export function CustomersListPage() {
+  const { years } = useFinancialYear();
   const { isAdmin, isDhanshree, can, assignedProjects } = useRoleContext();
   const navigate = useNavigate();
   const [view, setViewState] = useState<"card" | "list">(() => {
@@ -300,8 +302,8 @@ export function CustomersListPage() {
   const canCreateClient = canManageCustomers;
 
   // Customer and project records come exclusively from the API (Postgres). No mock fallback.
-  const clients = useMemo(() => apiClients ?? [], [apiClients]);
-  const projects = useMemo(
+  const allClients = useMemo(() => apiClients ?? [], [apiClients]);
+  const allProjects = useMemo(
     () =>
       isDhanshree
         ? apiProjects
@@ -310,6 +312,19 @@ export function CustomersListPage() {
           : apiProjects,
     [isDhanshree, assignedProjects, apiProjects],
   );
+  const projects = useMemo(
+    () => allProjects.filter((project) => inFinancialYears(project.startDate, project.endDate, years, fyFromWbs(project.wbsId))),
+    [allProjects, years],
+  );
+  const clients = useMemo(() => {
+    if (years.length === 0) return allClients;
+    const clientIds = new Set(projects.map((project) => project.clientId));
+    return allClients.filter(
+      (client) =>
+        clientIds.has(client.id) ||
+        inFinancialYears(client.customerSince || client.createdAtUtc, client.customerSince || client.createdAtUtc, years),
+    );
+  }, [allClients, projects, years]);
 
   const enriched = useMemo(() => {
     const sixMonthsAgo = new Date();
@@ -798,7 +813,7 @@ export function CustomersListPage() {
             </thead>
             <tbody className="bg-card [&>tr>td]:border-b [&>tr>td]:border-slate-200 dark:[&>tr>td]:border-border">
               {sorted.map(
-                ({ client: c, total, newCount, ongoing, completed, onHold, archived }) => {
+                ({ client: c, total, newCount, ongoing, completed, onHold, archived, isClientActive }) => {
                   const emName = c.engagementManager?.trim() || "Unassigned";
                   const smName = c.salesManager?.trim() || "Unassigned";
 

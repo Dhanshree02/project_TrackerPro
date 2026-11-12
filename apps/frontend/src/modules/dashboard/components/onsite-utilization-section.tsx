@@ -11,6 +11,7 @@ import {
   type MisDashboardView,
   type OnsiteUtilization,
 } from "@/modules/dashboard/api/dashboard";
+import { useFinancialYear } from "@/lib/financial-year";
 import { ColumnBarHoverScope, columnBarProps, useColumnBarHover } from "@/modules/dashboard/components/bar-emphasis";
 import {
   ConfigToggleLegend,
@@ -51,6 +52,7 @@ export function OnsiteUtilizationSection({
   period: DashboardPeriod;
   view: MisDashboardView;
 }) {
+  const { chartYear } = useFinancialYear();
   const [data, setData] = useState<OnsiteUtilization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export function OnsiteUtilizationSection({
     setError(null);
     setData(null);
 
-    fetchOnsiteUtilization(period, controller.signal)
+    fetchOnsiteUtilization(period, controller.signal, chartYear)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -76,7 +78,7 @@ export function OnsiteUtilizationSection({
       });
 
     return () => controller.abort();
-  }, [period, reloadKey]);
+  }, [period, reloadKey, chartYear]);
 
   const months = data?.months ?? [];
 

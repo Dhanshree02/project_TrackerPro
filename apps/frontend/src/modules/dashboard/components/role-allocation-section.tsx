@@ -11,6 +11,7 @@ import {
   type MisDashboardView,
   type RoleAllocation,
 } from "@/modules/dashboard/api/dashboard";
+import { useFinancialYear } from "@/lib/financial-year";
 import { ColumnBarHoverScope, columnBarProps, useColumnBarHover } from "@/modules/dashboard/components/bar-emphasis";
 import {
   ConfigToggleLegend,
@@ -50,6 +51,7 @@ export function RoleAllocationSection({
   period: DashboardPeriod;
   view: MisDashboardView;
 }) {
+  const { chartYear } = useFinancialYear();
   const [data, setData] = useState<RoleAllocation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export function RoleAllocationSection({
     setError(null);
     setData(null);
 
-    fetchRoleAllocation(period, controller.signal)
+    fetchRoleAllocation(period, controller.signal, chartYear)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -75,7 +77,7 @@ export function RoleAllocationSection({
       });
 
     return () => controller.abort();
-  }, [period, reloadKey]);
+  }, [period, reloadKey, chartYear]);
 
   const months = data?.months ?? [];
   const offsiteChartConfig = {

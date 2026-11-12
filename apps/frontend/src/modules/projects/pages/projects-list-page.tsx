@@ -24,6 +24,7 @@ import { usePermissions } from "@/lib/permissions";
 import { dhStore, useDhStore } from "@/lib/workspace-store";
 import { fetchProjectDrafts, deleteProjectDraft, type ProjectDraftListDto } from "@/modules/projects/api/project-drafts";
 import { fetchProjects, type ApiProject } from "@/modules/projects/api/projects";
+import { fyFromWbs, inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { fetchClients, mapApiClient, type ApiClient } from "@/modules/customers/api/clients";
 import { fetchEmployees } from "@/modules/employees/api/employees";
 import { type Project, type Client, people, type Person, getPerson } from "@/lib/domain-models";
@@ -37,6 +38,7 @@ const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
 type Tab = (typeof tabs)[number];
 
 export function ProjectsListPage() {
+  const { years } = useFinancialYear();
   const { isAdmin, isDhanshree, isEmployee, assignedProjects } = useRoleContext();
   const { canView, canManage, hasPermission } = usePermissions();
   const canViewProjects = isAdmin || isDhanshree || canView("projects");
@@ -226,8 +228,8 @@ export function ProjectsListPage() {
         teamLeadName: p.teamLeadName ?? undefined,
         seniorProjectManager: undefined,
       } as Project;
-    });
-  }, [dbProjects]);
+    }).filter((project) => inFinancialYears(project.startDate, project.endDate, years, fyFromWbs(project.wbsId)));
+  }, [dbProjects, years]);
 
   const visible = useMemo(() => {
     const assignedIds = new Set(assignedProjects.map((p) => p.id));

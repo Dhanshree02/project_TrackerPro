@@ -21,6 +21,7 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
+import { inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { Avatar, ProgressBar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
@@ -811,6 +812,7 @@ function RequestAllocationModal({
 
 // -- Main page ----------------------------------------
 export function EmployeeDirectoryPage() {
+  const { years } = useFinancialYear();
   const { status: authStatus } = useAuth();
   const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
     useRoleContext();
@@ -1013,14 +1015,15 @@ export function EmployeeDirectoryPage() {
         (!onFloorRole || normalizeOnFloorRole(e.jobRoleName) === normalizeOnFloorRole(onFloorRole)) &&
         (!status ||
           e.status === status ||
-          (status === "Active" && e.status === "Resignation Under Review"))
+          (status === "Active" && e.status === "Resignation Under Review")) &&
+        inFinancialYears(e.joiningDate, null, years)
       );
     });
     return [...filtered].sort((a, b) => {
       const cmp = compareEmployees(a, b, sortKey);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [dbEmployees, q, dept, desig, subDept, onFloorRole, status, sortKey, sortDir]);
+  }, [dbEmployees, q, dept, desig, subDept, onFloorRole, status, sortKey, sortDir, years]);
 
   // -- Pool Filtering ----------------------------------
   const poolRows = useMemo(() => {
@@ -1034,14 +1037,15 @@ export function EmployeeDirectoryPage() {
         (!onFloorRole || normalizeOnFloorRole(e.jobRoleName) === normalizeOnFloorRole(onFloorRole)) &&
         (!status ||
           e.status === status ||
-          (status === "Active" && e.status === "Resignation Under Review"))
+          (status === "Active" && e.status === "Resignation Under Review")) &&
+        inFinancialYears(e.joiningDate, null, years)
       );
     });
     return [...filtered].sort((a, b) => {
       const cmp = comparePoolEmployees(a, b, poolSortKey);
       return poolSortDir === "asc" ? cmp : -cmp;
     });
-  }, [dbEmployees, q, dept, desig, subDept, onFloorRole, status, poolSortKey, poolSortDir]);
+  }, [dbEmployees, q, dept, desig, subDept, onFloorRole, status, poolSortKey, poolSortDir, years]);
 
   // Determine active rows based on tab
   const activeRows = tab === "directory" ? directoryRows : poolRows;
@@ -1054,7 +1058,7 @@ export function EmployeeDirectoryPage() {
   // Reset page when filters, tab, or pageSize change
   useEffect(() => {
     setPage(1);
-  }, [q, dept, desig, subDept, onFloorRole, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize]);
+  }, [q, dept, desig, subDept, onFloorRole, status, tab, sortKey, sortDir, poolSortKey, poolSortDir, pageSize, years]);
 
   // Guard with dynamic RBAC: users with view access can view; users without access are redirected
   if (!permissionsLoading && !canViewDirectory) return <Navigate to="/access-denied" />;

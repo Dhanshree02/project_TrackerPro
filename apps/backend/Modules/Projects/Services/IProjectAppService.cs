@@ -39,6 +39,8 @@ public interface IProjectAppService
 
     Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default);
 
+    Task<IReadOnlyList<TaskSearchHitDto>> SearchTasksAsync(string? search, int limit, CancellationToken ct = default);
+
     Task<ProjectTaskDto?> GetProjectTaskByIdAsync(Guid projectId, Guid taskId, CancellationToken ct = default);
 
     Task<ProjectTaskDto> CreateProjectTaskAsync(Guid projectId, CreateProjectTaskRequest request, CancellationToken ct = default);

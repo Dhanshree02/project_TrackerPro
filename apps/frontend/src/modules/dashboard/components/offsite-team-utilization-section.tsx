@@ -6,6 +6,7 @@ import {
   type MisDashboardView,
   type OffsiteTeamUtilization,
 } from "@/modules/dashboard/api/dashboard";
+import { useFinancialYear } from "@/lib/financial-year";
 import { GraphZoom } from "@/modules/dashboard/components/graph-frame";
 import {
   misGroupEdge,
@@ -27,6 +28,7 @@ export function OffsiteTeamUtilizationSection({
   period: DashboardPeriod;
   view: MisDashboardView;
 }) {
+  const { chartYear } = useFinancialYear();
   const [data, setData] = useState<OffsiteTeamUtilization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function OffsiteTeamUtilizationSection({
     setError(null);
     setData(null);
 
-    fetchOffsiteTeamUtilization(period, controller.signal)
+    fetchOffsiteTeamUtilization(period, controller.signal, chartYear)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -52,7 +54,7 @@ export function OffsiteTeamUtilizationSection({
       });
 
     return () => controller.abort();
-  }, [period, reloadKey]);
+  }, [period, reloadKey, chartYear]);
 
   const months = data?.months ?? [];
   const chartRows = (data?.departments ?? []).map((row) => ({

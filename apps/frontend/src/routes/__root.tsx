@@ -13,6 +13,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { RoleProvider } from "@/lib/role-context";
 import { PermissionProvider } from "@/lib/permissions";
 import { Toaster } from "@/components/ui/sonner";
+import { FinancialYearProvider } from "@/lib/financial-year";
 
 function NotFoundComponent() {
   return (
@@ -139,8 +140,10 @@ function RootComponent() {
       <AuthProvider>
         <PermissionProvider>
           <RoleProvider>
-            <Outlet />
-            <Toaster />
+            <FinancialYearProvider>
+              <Outlet />
+              <Toaster />
+            </FinancialYearProvider>
           </RoleProvider>
         </PermissionProvider>
       </AuthProvider>

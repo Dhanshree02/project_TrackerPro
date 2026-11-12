@@ -9,8 +9,9 @@ export function dashboardPeriodLabel(period: DashboardPeriod): string {
   return period === "rolling" ? "Last 3 Months" : period;
 }
 
-function dashboardQuery(period: DashboardPeriod): string {
+function dashboardQuery(period: DashboardPeriod, financialYear?: number | null): string {
   const params = new URLSearchParams(period === "rolling" ? { period: "rolling" } : { quarter: period });
+  if (financialYear != null) params.set("financialYear", String(financialYear));
   return params.toString();
 }
 
@@ -61,8 +62,8 @@ export interface OnsiteUtilization {
   months: OnsiteUtilizationMonth[];
 }
 
-export function fetchTeamSummary(period: DashboardPeriod, signal?: AbortSignal): Promise<TeamSummary> {
-  return apiFetch<TeamSummary>(`/api/v1/dashboard/team-summary?${dashboardQuery(period)}`, { signal });
+export function fetchTeamSummary(period: DashboardPeriod, signal?: AbortSignal, financialYear?: number | null): Promise<TeamSummary> {
+  return apiFetch<TeamSummary>(`/api/v1/dashboard/team-summary?${dashboardQuery(period, financialYear)}`, { signal });
 }
 
 export interface RoleAllocationMonth {
@@ -103,8 +104,9 @@ export interface OnsiteProjectCounts {
 export function fetchOnsiteProjectCounts(
   period: DashboardPeriod,
   signal?: AbortSignal,
+  financialYear?: number | null,
 ): Promise<OnsiteProjectCounts> {
-  return apiFetch<OnsiteProjectCounts>(`/api/v1/dashboard/onsite-project-counts?${dashboardQuery(period)}`, { signal });
+  return apiFetch<OnsiteProjectCounts>(`/api/v1/dashboard/onsite-project-counts?${dashboardQuery(period, financialYear)}`, { signal });
 }
 
 export interface OffsiteTeamUtilizationMonth {
@@ -128,15 +130,17 @@ export interface OffsiteTeamUtilization {
 export function fetchOffsiteTeamUtilization(
   period: DashboardPeriod,
   signal?: AbortSignal,
+  financialYear?: number | null,
 ): Promise<OffsiteTeamUtilization> {
-  return apiFetch<OffsiteTeamUtilization>(`/api/v1/dashboard/offsite-utilization?${dashboardQuery(period)}`, { signal });
+  return apiFetch<OffsiteTeamUtilization>(`/api/v1/dashboard/offsite-utilization?${dashboardQuery(period, financialYear)}`, { signal });
 }
 
 export function fetchRoleAllocation(
   period: DashboardPeriod,
   signal?: AbortSignal,
+  financialYear?: number | null,
 ): Promise<RoleAllocation> {
-  return apiFetch<RoleAllocation>(`/api/v1/dashboard/role-allocation?${dashboardQuery(period)}`, { signal });
+  return apiFetch<RoleAllocation>(`/api/v1/dashboard/role-allocation?${dashboardQuery(period, financialYear)}`, { signal });
 }
 
 export interface ResignationCountRow {
@@ -156,8 +160,9 @@ export interface ResignationCounts {
 export function fetchResignationCounts(
   period: DashboardPeriod,
   signal?: AbortSignal,
+  financialYear?: number | null,
 ): Promise<ResignationCounts> {
-  return apiFetch<ResignationCounts>(`/api/v1/dashboard/resignation-counts?${dashboardQuery(period)}`, { signal });
+  return apiFetch<ResignationCounts>(`/api/v1/dashboard/resignation-counts?${dashboardQuery(period, financialYear)}`, { signal });
 }
 
 export interface OffsiteCapacityMonth {
@@ -185,13 +190,15 @@ export interface OffsiteCapacity {
 export function fetchOffsiteCapacity(
   period: DashboardPeriod,
   signal?: AbortSignal,
+  financialYear?: number | null,
 ): Promise<OffsiteCapacity> {
-  return apiFetch<OffsiteCapacity>(`/api/v1/dashboard/offsite-capacity?${dashboardQuery(period)}`, { signal });
+  return apiFetch<OffsiteCapacity>(`/api/v1/dashboard/offsite-capacity?${dashboardQuery(period, financialYear)}`, { signal });
 }
 
 export function fetchOnsiteUtilization(
   period: DashboardPeriod,
   signal?: AbortSignal,
+  financialYear?: number | null,
 ): Promise<OnsiteUtilization> {
-  return apiFetch<OnsiteUtilization>(`/api/v1/dashboard/onsite-utilization?${dashboardQuery(period)}`, { signal });
+  return apiFetch<OnsiteUtilization>(`/api/v1/dashboard/onsite-utilization?${dashboardQuery(period, financialYear)}`, { signal });
 }

@@ -1,4 +1,4 @@
-import { Navigate } from "@tanstack/react-router";
+import { Navigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   Upload,
@@ -38,6 +38,7 @@ import { toast } from "sonner";
 import { DocumentContentViewer } from "@/modules/repository/components/document-content-viewer";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { isAllPageSize, paginationRange } from "@/lib/pagination";
+import { inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { openDocumentInNewTab } from "@/lib/document-tab-viewer";
 import {
   fetchRepositoryDocuments,
@@ -1155,6 +1156,7 @@ function UploadAssignmentModal({
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
 function MyOrgPage() {
+  const { years } = useFinancialYear();
   const { user } = useRoleContext();
   const { canManage } = usePermissions();
   const canManageRepository = canManage("repository");
@@ -1166,7 +1168,19 @@ function MyOrgPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const locationHash = useRouterState({ select: (state) => state.location.hash });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    const hash = window.location.hash;
+    return hash.startsWith("#q=") ? decodeURIComponent(hash.slice(3)) : "";
+  });
+
+  useEffect(() => {
+    const raw = locationHash.startsWith("#") ? locationHash.slice(1) : locationHash;
+    if (!raw.startsWith("q=")) return;
+    setSearchQuery(decodeURIComponent(raw.slice(2)));
+    setPage(1);
+  }, [locationHash]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [, startTransition] = useTransition();
@@ -1222,7 +1236,7 @@ function MyOrgPage() {
         search: searchQuery,
       };
 
-      const res = isAllPageSize(pageSize)
+      const res = years.length > 0 || isAllPageSize(pageSize)
         ? await fetchAllRepositoryDocuments(query)
         : await fetchRepositoryDocuments({
             page,
@@ -1230,9 +1244,23 @@ function MyOrgPage() {
             ...query,
           });
 
-      setDocuments(res.items || []);
-      setTotalCount(res.total || 0);
-      setTotalPages(Math.max(1, res.totalPages || 1));
+      const matched = years.length > 0
+        ? (res.items || []).filter((doc) =>
+            inFinancialYears(doc.createdAtUtc || doc.lastUpdated, doc.createdAtUtc || doc.lastUpdated, years),
+          )
+        : res.items || [];
+
+      if (years.length > 0) {
+        const pages = isAllPageSize(pageSize) ? 1 : Math.max(1, Math.ceil(matched.length / pageSize) || 1);
+        const start = isAllPageSize(pageSize) ? 0 : (page - 1) * pageSize;
+        setDocuments(isAllPageSize(pageSize) ? matched : matched.slice(start, start + pageSize));
+        setTotalCount(matched.length);
+        setTotalPages(pages);
+      } else {
+        setDocuments(matched);
+        setTotalCount(res.total || 0);
+        setTotalPages(Math.max(1, res.totalPages || 1));
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load repository documents");
     } finally {
@@ -1246,7 +1274,7 @@ function MyOrgPage() {
 
   useEffect(() => {
     void loadDocuments();
-  }, [page, pageSize, activeCategoryId, searchQuery]);
+  }, [page, pageSize, activeCategoryId, searchQuery, years]);
 
   const docRange = paginationRange(page, pageSize, totalCount);
 

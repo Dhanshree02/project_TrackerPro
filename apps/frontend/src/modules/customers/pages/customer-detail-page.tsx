@@ -1,4 +1,4 @@
-import { getRouteApi, Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { getRouteApi, Link, Navigate, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronRight,
@@ -49,6 +49,7 @@ import {
 } from "@/modules/employees/api/employees";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { fetchProjects, mapApiProjectToProject } from "@/modules/projects/api/projects";
+import { fyFromWbs, inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { type Client, type Project } from "@/lib/domain-models";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -90,6 +91,7 @@ const fmtClientId = (id: string) => `CL-${id.replace(/\D/g, "").padStart(6, "0")
 const fmtProjectId = (id: string) => `PR-${id.replace(/\D/g, "").padStart(6, "0")}`;
 
 export function CustomerDetailPage() {
+  const { years } = useFinancialYear();
   const { client: routeClient } = customerDetailRoute.useLoaderData();
   const { clientId } = customerDetailRoute.useParams();
   const searchParams = customerDetailRoute.useSearch();
@@ -114,11 +116,17 @@ export function CustomerDetailPage() {
     }
   }, [searchParams.status]);
 
+  const locationHash = useRouterState({ select: (state) => state.location.hash });
+
   useEffect(() => {
-    setSvFilter("all");
     setSelectedSpoc(null);
     setHealthFilter("all");
   }, [clientId]);
+
+  useEffect(() => {
+    const raw = locationHash.startsWith("#") ? locationHash.slice(1) : locationHash;
+    setSvFilter(raw.startsWith("sv=") ? decodeURIComponent(raw.slice(3)) : "all");
+  }, [locationHash]);
 
   // Resolve API-backed clients (GUID ids) lazily on the
   // client so hard loads / refreshes work even when the loader couldn't fetch.
@@ -356,7 +364,10 @@ export function CustomerDetailPage() {
 
 
 
-  const allProj = clientProjects;
+  const allProj = useMemo(
+    () => clientProjects.filter((project) => inFinancialYears(project.startDate, project.endDate, years, fyFromWbs(project.wbsId))),
+    [clientProjects, years],
+  );
 
   if (!permissionsLoading && !canViewCustomerDetail) {
     return <Navigate to="/access-denied" replace />;

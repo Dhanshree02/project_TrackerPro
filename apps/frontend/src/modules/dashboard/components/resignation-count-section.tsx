@@ -12,6 +12,7 @@ import {
   type ResignationCountRow,
   type ResignationCounts,
 } from "@/modules/dashboard/api/dashboard";
+import { useFinancialYear } from "@/lib/financial-year";
 import { ColumnBarHoverScope, columnBarProps, useColumnBarHover } from "@/modules/dashboard/components/bar-emphasis";
 import {
   ConfigToggleLegend,
@@ -51,6 +52,7 @@ export function ResignationCountSection({
   period: DashboardPeriod;
   view: MisDashboardView;
 }) {
+  const { chartYear } = useFinancialYear();
   const [data, setData] = useState<ResignationCounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export function ResignationCountSection({
     setError(null);
     setData(null);
 
-    fetchResignationCounts(period, controller.signal)
+    fetchResignationCounts(period, controller.signal, chartYear)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -76,7 +78,7 @@ export function ResignationCountSection({
       });
 
     return () => controller.abort();
-  }, [period, reloadKey]);
+  }, [period, reloadKey, chartYear]);
 
   const showChart = view !== "list";
   const showTable = view !== "graph";

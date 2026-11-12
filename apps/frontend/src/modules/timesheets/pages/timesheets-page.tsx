@@ -23,6 +23,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { TimesheetStatusPill, Avatar } from "@/components/pills";
 import { fetchProjects, fetchProjectTasks } from "@/modules/projects/api/projects";
+import { fyFromWbs, inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
@@ -224,6 +225,7 @@ function TimesheetTab() {
 
 // ── MyTimesheetView ──────────────────────────────────────────────────────────
 function MyTimesheetView() {
+  const { years } = useFinancialYear();
   const { user: authUser } = useAuth();
   const { user, employeePersonId } = useRoleContext();
   const effectiveEmployeeId = authUser?.employeeId || employeePersonId || (user as any)?.employeeId;
@@ -233,12 +235,18 @@ function MyTimesheetView() {
   const [showDraft, setShowDraft] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [dbProjects, setDbProjects] = useState<Array<{ id: string; name: string; projectCode?: string }>>([]);
+  const [dbProjects, setDbProjects] = useState<Array<{ id: string; name: string; projectCode?: string; startDate?: string | null; endDate?: string | null; wbsId?: string | null }>>([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [tasksByProject, setTasksByProject] = useState<Record<string, Array<{ id: string; title: string; serviceName?: string; stage?: string; estimatedHours?: number }>>>({});
   const [loadingTasks, setLoadingTasks] = useState<Record<string, boolean>>({});
 
   const [rows, setRows] = useState<TsRow[]>(() => [emptyRow()]);
+  const projectOptions = useMemo(() => {
+    const chosen = new Set(rows.map((row) => row.projectId).filter(Boolean));
+    return dbProjects.filter(
+      (project) => chosen.has(project.id) || inFinancialYears(project.startDate, project.endDate, years, fyFromWbs(project.wbsId)),
+    );
+  }, [dbProjects, rows, years]);
   const [commentOpen, setCommentOpen] = useState<{ row: string; day: number } | null>(null);
 
   const dayTotals = days.map((_, di) => rows.reduce((s, r) => s + (Number(r.hours[di]) || 0), 0));
@@ -292,6 +300,9 @@ function MyTimesheetView() {
             id: p.id,
             name: p.name,
             projectCode: p.projectCode,
+            startDate: p.startDate,
+            endDate: p.endDate,
+            wbsId: p.wbsId,
           })));
         }
       } catch (err) {
@@ -536,7 +547,7 @@ function MyTimesheetView() {
                 <tr key={r.id}>
                   <td className="px-3 py-2 align-top">
                     <SearchableSelect
-                      options={dbProjects.map((p) => ({
+                      options={projectOptions.map((p) => ({
                         value: p.id,
                         label: p.name,
                         subLabel: p.projectCode,

@@ -146,11 +146,15 @@ export function mapApiClient(c: ApiClient): Client {
   };
 }
 
-/** GET /api/v1/clients?page=&perPage= — returns the client list (role-scoped). */
-export async function fetchClients(page = 1, perPage = 100): Promise<ApiClient[]> {
-  const data = await apiFetch<PagedEnvelope<ApiClient>>(
-    `/api/v1/clients?page=${page}&perPage=${perPage}`,
-  );
+/** GET /api/v1/clients?page=&perPage=&search= — returns the client list (role-scoped). */
+export async function fetchClients(page = 1, perPage = 100, search?: string): Promise<ApiClient[]> {
+  const params = new URLSearchParams({
+    page: String(page),
+    perPage: String(perPage),
+  });
+  const needle = search?.trim();
+  if (needle) params.set("search", needle);
+  const data = await apiFetch<PagedEnvelope<ApiClient>>(`/api/v1/clients?${params.toString()}`);
   const items = data?.items ?? [];
   registerClients(items);
   return items;

@@ -2109,6 +2109,12 @@ export function ProjectDetailPage() {
 
       }
 
+      if (h === "#tasks") {
+
+        return "Tasks";
+
+      }
+
       // Deep link from the Action Centre bucket list — land on the task list.
 
       if (isEmployee && h) {
@@ -2128,6 +2134,12 @@ export function ProjectDetailPage() {
       setTab(visibleTabs[0]);
     }
   }, [visibleTabs, tab]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#tasks") {
+      setTab("Tasks");
+    }
+  }, [project.id]);
 
 
 

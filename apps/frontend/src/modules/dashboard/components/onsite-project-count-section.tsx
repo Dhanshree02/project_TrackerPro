@@ -11,6 +11,7 @@ import {
   type MisDashboardView,
   type OnsiteProjectCounts,
 } from "@/modules/dashboard/api/dashboard";
+import { useFinancialYear } from "@/lib/financial-year";
 import { ColumnBarHoverScope, rowBarProps, useColumnBarHover } from "@/modules/dashboard/components/bar-emphasis";
 import {
   ConfigToggleLegend,
@@ -46,6 +47,7 @@ export function OnsiteProjectCountSection({
   period: DashboardPeriod;
   view: MisDashboardView;
 }) {
+  const { chartYear } = useFinancialYear();
   const [data, setData] = useState<OnsiteProjectCounts | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export function OnsiteProjectCountSection({
     setData(null);
     setPage(1);
 
-    fetchOnsiteProjectCounts(period, controller.signal)
+    fetchOnsiteProjectCounts(period, controller.signal, chartYear)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -75,7 +77,7 @@ export function OnsiteProjectCountSection({
       });
 
     return () => controller.abort();
-  }, [period, reloadKey]);
+  }, [period, reloadKey, chartYear]);
 
   const months = data?.months ?? [];
   const filtered = useMemo(() => {

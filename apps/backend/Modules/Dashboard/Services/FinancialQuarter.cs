@@ -61,7 +61,10 @@ public static class FinancialQuarter
             return (code, year, Months(code, year));
         }
 
-        var months = RollingMonths(today);
+        var anchor = today;
+        if (financialYear is int fy && fy != CurrentFinancialYearStart(today))
+            anchor = new DateOnly(fy + 1, 3, 31);
+        var months = RollingMonths(anchor);
         var end = months[^1];
         return ("ROLLING", CurrentFinancialYearStart(new DateOnly(end.Year, end.Month, 1)), months);
     }

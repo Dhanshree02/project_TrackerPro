@@ -7,6 +7,12 @@ alwaysApply: true
 
 **Last updated:** 2026-11-12
 
+- **`database/pms_uat.sql` matches `pms_uat_clean`.** Regenerated on 2026-11-12 with `pg_dump --no-owner --no-acl` from `pms_uat_db`. The step note is `GIT_Merge/step-backend-rbac-enforcement-and-leave-calendar-fix.md`.
+
+- **The header financial-year calendar filters the whole app.** It sits beside global search and is shared through `FinancialYearProvider` in `apps/frontend/src/lib/financial-year.tsx`. One year or several can be selected, and All years clears it. Projects, customers, the employee directory, exit summary, repository documents, and the timesheet project list follow every selected year. Dashboard graphs follow the latest selected year. Search stays independent of that calendar. A past year moves the dashboard’s rolling window to the last three months of that year. Rebuild `pms-backend:uat-clean` so `FinancialQuarter.Resolve` uses the selected year.
+
+- **Global search covers employees, TK IDs, customers, sub-ventures, projects, tasks, and repository documents.** The header control is `apps/frontend/src/components/global-search.tsx`. A task opens that project’s Tasks tab, a sub-venture opens the customer with that sub-venture selected, and a document opens Repository with that file name in the search. Task lookup is `GET /api/v1/projects/task-search`.
+
 - **Top-right toasts stay for 3 seconds.** `apps/frontend/src/components/ui/sonner.tsx` sets `toastOptions.duration` to `3000`. No individual toast overrides that timer.
 
 - **Working branch is `sahil-action-backend`, fast-forwarded to `origin/uat_clean` at `7e831e3`.** Local PostgreSQL 18 on `localhost:5432` database `trackerpro` was reloaded from `database/trackerpro-uat.sql`. The API connection is that local database. `Database__AutoMigrate` and `Database__Seed` stay false.

@@ -54,6 +54,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
                     (ct.Designation != null && ct.Designation.ToLower().Contains(needle))) ||
                 c.SubVentures.Any(sv =>
                     sv.Name.ToLower().Contains(needle) ||
+                    (sv.SubVentureCode != null && sv.SubVentureCode.ToLower().Contains(needle)) ||
                     (sv.Notes != null && sv.Notes.ToLower().Contains(needle)) ||
                     sv.Contacts.Any(sct =>
                         (sct.Name != null && sct.Name.ToLower().Contains(needle)) ||

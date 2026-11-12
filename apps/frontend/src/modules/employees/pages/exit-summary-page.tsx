@@ -23,6 +23,7 @@ import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
+import { inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
@@ -248,6 +249,7 @@ function FilterSelect({
 }
 
 export function ExitSummaryPage() {
+  const { years } = useFinancialYear();
   const { status: authStatus } = useAuth();
   const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
     useRoleContext();
@@ -361,19 +363,19 @@ export function ExitSummaryPage() {
         }
       }
 
-      return matchQ && matchDept && matchType && matchPeriod;
+      return matchQ && matchDept && matchType && matchPeriod && inFinancialYears(e.lastWorkingDay || e.exitedAtUtc, e.lastWorkingDay || e.exitedAtUtc, years);
     });
 
     return [...rows].sort((a, b) => {
       const cmp = compareExits(a, b, sortKey);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [exits, q, deptFilter, typeFilter, datePeriodFilter, sortKey, sortDir, now]);
+  }, [exits, q, deptFilter, typeFilter, datePeriodFilter, sortKey, sortDir, now, years]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [q, deptFilter, typeFilter, datePeriodFilter, pageSize]);
+  }, [q, deptFilter, typeFilter, datePeriodFilter, pageSize, years]);
 
   const totalPages = totalPageCount(filtered.length, pageSize);
   const currentPage = Math.min(page, totalPages);

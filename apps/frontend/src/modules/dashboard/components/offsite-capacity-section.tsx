@@ -7,6 +7,7 @@ import {
   type OffsiteCapacity,
   type OffsiteCapacityRow,
 } from "@/modules/dashboard/api/dashboard";
+import { useFinancialYear } from "@/lib/financial-year";
 import { GraphZoom } from "@/modules/dashboard/components/graph-frame";
 import {
   misHeadRow,
@@ -27,6 +28,7 @@ export function OffsiteCapacitySection({
   period: DashboardPeriod;
   view: MisDashboardView;
 }) {
+  const { chartYear } = useFinancialYear();
   const [data, setData] = useState<OffsiteCapacity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function OffsiteCapacitySection({
     setError(null);
     setData(null);
 
-    fetchOffsiteCapacity(period, controller.signal)
+    fetchOffsiteCapacity(period, controller.signal, chartYear)
       .then((result) => {
         if (!controller.signal.aborted) setData(result);
       })
@@ -52,7 +54,7 @@ export function OffsiteCapacitySection({
       });
 
     return () => controller.abort();
-  }, [period, reloadKey]);
+  }, [period, reloadKey, chartYear]);
 
   const showChart = view !== "list";
   const showTable = view !== "graph";

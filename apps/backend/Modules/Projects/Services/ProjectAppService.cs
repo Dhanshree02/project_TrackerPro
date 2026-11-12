@@ -2086,6 +2086,38 @@ public sealed partial class ProjectAppService(AppDbContext db, IFileStorageServi
 
 
 
+    public async Task<IReadOnlyList<TaskSearchHitDto>> SearchTasksAsync(string? search, int limit, CancellationToken ct = default)
+    {
+        var needle = (search ?? "").Trim().ToLowerInvariant();
+        if (needle.Length == 0) return [];
+
+        var take = Math.Clamp(limit, 1, 20);
+        return await db.ProjectTasks
+            .AsNoTracking()
+            .Where(t => t.Project != null && (
+                t.Title.ToLower().Contains(needle) ||
+                (t.Description != null && t.Description.ToLower().Contains(needle)) ||
+                t.Project.Name.ToLower().Contains(needle) ||
+                t.Project.ProjectCode.ToLower().Contains(needle) ||
+                (t.Project.WbsId != null && t.Project.WbsId.ToLower().Contains(needle))))
+            .OrderByDescending(t => t.UpdatedAtUtc ?? t.CreatedAtUtc)
+            .Take(take)
+            .Select(t => new TaskSearchHitDto(
+                t.Id,
+                t.ProjectId,
+                t.Title,
+                t.Project!.Name,
+                t.Project.WbsId,
+                t.Project.ProjectCode,
+                t.PlannedStartDate,
+                t.PlannedEndDate,
+                t.Project.StartDate,
+                t.Project.EndDate))
+            .ToListAsync(ct);
+    }
+
+
+
     public async Task<ProjectTaskDto?> GetProjectTaskByIdAsync(Guid projectId, Guid taskId, CancellationToken ct = default)
 
     {

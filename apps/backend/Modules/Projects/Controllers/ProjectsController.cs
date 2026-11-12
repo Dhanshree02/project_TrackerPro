@@ -410,6 +410,28 @@ public class ProjectsController(
 
 
 
+    [HttpGet("task-search")]
+
+    [RequireRbac("projects", RbacAccessType.View)]
+
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<TaskSearchHitDto>>>> SearchTasks(
+
+        [FromQuery] string? search,
+
+        [FromQuery] int limit = 8,
+
+        CancellationToken ct = default)
+
+    {
+
+        var items = await projectService.SearchTasksAsync(search, limit, ct);
+
+        return Ok(ApiResponse<IReadOnlyList<TaskSearchHitDto>>.Ok(items));
+
+    }
+
+
+
     [HttpGet("{projectId:guid}/tasks")]
 
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTaskDto>>>> GetProjectTasks(
