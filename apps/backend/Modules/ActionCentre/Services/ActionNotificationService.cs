@@ -14,6 +14,8 @@ using PMS.API.Modules.ActionCentre.Models;
 
 using PMS.API.Modules.Projects.Models;
 
+using PMS.API.Modules.Sla.Services;
+
 using PMS.API.Shared.Exceptions;
 
 
@@ -23,12 +25,10 @@ namespace PMS.API.Modules.ActionCentre.Services;
 
 
 public sealed class ActionNotificationService(
-
     AppDbContext db,
-
     ICurrentUserService currentUser,
-
-    IFileStorageService storage) : IActionNotificationService
+    IFileStorageService storage,
+    ISlaTrackingService slaTrackingService) : IActionNotificationService
 
 {
 
@@ -227,6 +227,86 @@ public sealed class ActionNotificationService(
         }
 
 
+
+        return MapDto(notification);
+
+    }
+
+
+
+    public async Task<ActionNotificationDto> ArchiveNotificationAsync(
+
+        Guid id,
+
+        string? comment = null,
+
+        CancellationToken ct = default)
+
+    {
+
+        var notification = await db.ActionNotifications
+
+            .FirstOrDefaultAsync(n => n.Id == id && n.DeletedAtUtc == null, ct)
+
+            ?? throw new NotFoundException($"Notification '{id}' was not found.");
+
+
+
+        var employee = await FindCurrentEmployeeAsync(ct);
+
+        var userName = employee is not null
+
+            ? $"{employee.FirstName} {employee.LastName}".Trim()
+
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : (currentUser.Email?.Split('@')[0] ?? "User"));
+
+
+
+        var now = DateTime.UtcNow;
+
+        var dateStr = now.ToString("yyyy-MM-dd");
+
+        var timeStr = now.ToString("HH:mm:ss");
+
+
+
+        var history = ParseHistory(notification.HistoryJson);
+
+        var actionText = string.IsNullOrWhiteSpace(comment)
+
+            ? "Notification moved to archive"
+
+            : $"Notification moved to archive (Remarks: \"{comment.Trim()}\")";
+
+
+
+        history.Add(new NotificationHistoryItemDto
+
+        {
+
+            Action = actionText,
+
+            Date = dateStr,
+
+            Time = timeStr,
+
+            By = userName
+
+        });
+
+
+
+        notification.Status = "Acknowledged";
+
+        notification.Unread = false;
+
+        notification.HistoryJson = JsonSerializer.Serialize(history);
+
+        notification.UpdatedAtUtc = now;
+
+
+
+        await db.SaveChangesAsync(ct);
 
         return MapDto(notification);
 
@@ -780,23 +860,38 @@ public sealed class ActionNotificationService(
 
 
 
-        // Synchronize linked issue if closed or resolved
-
-        if (alert.Issue != null && (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
-
-                                    alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase)))
-
+        // Synchronize linked issue
+        if (alert.Issue != null)
         {
-
-            alert.Issue.Status = alert.Status;
-
-            alert.Issue.UpdatedAtUtc = now;
-
+            if (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
+                alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
+            {
+                alert.Issue.Status = alert.Status;
+                alert.Issue.UpdatedAtUtc = now;
+            }
+            else if (alert.Status.Equals("In Progress", StringComparison.OrdinalIgnoreCase) ||
+                     alert.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                alert.Issue.Status = alert.Status;
+                alert.Issue.UpdatedAtUtc = now;
+            }
         }
 
-
-
         await db.SaveChangesAsync(ct);
+
+        // Complete SLA tracking if resolved or closed
+        if (alert.Issue != null && (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
+                                    alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                await slaTrackingService.CompleteTrackingAsync(alert.Issue.Id, "Resolution of Issues", ct);
+            }
+            catch
+            {
+                // Non-fatal
+            }
+        }
 
 
 
@@ -999,6 +1094,8 @@ public sealed class ActionNotificationService(
             CreatedDate = n.CreatedAtUtc.ToString("yyyy-MM-dd"),
 
             History = ParseHistory(n.HistoryJson),
+
+            Comments = ParseComments(n.CommentsJson),
 
             ProjectId = n.ProjectId,
 
@@ -1688,11 +1785,11 @@ public sealed class ActionNotificationService(
 
                     INSERT INTO action.tbl_notifications 
 
-                    (""Id"", ""RecipientEmployeeId"", ""ProjectId"", ""ProjectCode"", ""ProjectName"", ""Title"", ""Type"", ""Priority"", ""Status"", ""Unread"", ""RaisedByName"", ""RelatedTask"", ""HistoryJson"", ""CreatedAtUtc"")
+                    (""Id"", ""RecipientEmployeeId"", ""ProjectId"", ""ProjectCode"", ""ProjectName"", ""Title"", ""Type"", ""Priority"", ""Status"", ""Unread"", ""RaisedByName"", ""RelatedTask"", ""HistoryJson"", ""CommentsJson"", ""CreatedAtUtc"")
 
-                    VALUES (@id, @recip, @pid, @pcode, @pname, @title, @type, @pri, @stat, @unread, @raised, @task, @hist, @created)
+                    VALUES (@id, @recip, @pid, @pcode, @pname, @title, @type, @pri, @stat, @unread, @raised, @task, @hist, @comments, @created)
 
-                    ON CONFLICT (""Id"") DO NOTHING";
+                    ON CONFLICT (""Id"") DO UPDATE SET ""Status"" = EXCLUDED.""Status"", ""HistoryJson"" = EXCLUDED.""HistoryJson"", ""CommentsJson"" = EXCLUDED.""CommentsJson"";";
 
                 cmd.Parameters.AddWithValue("id", n.Id);
 
@@ -1719,6 +1816,8 @@ public sealed class ActionNotificationService(
                 cmd.Parameters.AddWithValue("task", (object?)n.RelatedTask ?? DBNull.Value);
 
                 cmd.Parameters.AddWithValue("hist", (object?)n.HistoryJson ?? DBNull.Value);
+
+                cmd.Parameters.AddWithValue("comments", (object?)n.CommentsJson ?? "[]");
 
                 cmd.Parameters.AddWithValue("created", n.CreatedAtUtc);
 

@@ -1,8 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.Sla.DTOs;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Sla.Services;
 using PMS.API.Shared.Common.Wrappers;
 using PMS.API.Shared.Exceptions;
 
@@ -12,11 +16,25 @@ public class BucketTaskService : IBucketTaskService
 {
     private readonly AppDbContext _db;
     private readonly ICurrentUserService _currentUser;
+    private readonly ISlaTrackingService _slaTrackingService;
+    private readonly ISlaRecipientResolver _slaRecipientResolver;
+    private readonly ISlaDeadlineCalculator _slaDeadlineCalculator;
+    private readonly ILogger<BucketTaskService>? _logger;
 
-    public BucketTaskService(AppDbContext db, ICurrentUserService currentUser)
+    public BucketTaskService(
+        AppDbContext db,
+        ICurrentUserService currentUser,
+        ISlaTrackingService slaTrackingService,
+        ISlaRecipientResolver slaRecipientResolver,
+        ISlaDeadlineCalculator slaDeadlineCalculator,
+        ILogger<BucketTaskService>? logger = null)
     {
         _db = db;
         _currentUser = currentUser;
+        _slaTrackingService = slaTrackingService;
+        _slaRecipientResolver = slaRecipientResolver;
+        _slaDeadlineCalculator = slaDeadlineCalculator;
+        _logger = logger;
     }
 
     public async Task<PagedResult<BucketTaskDto>> GetBucketTasksAsync(BucketTaskQueryParameters query, CancellationToken ct = default)
@@ -227,18 +245,36 @@ public class BucketTaskService : IBucketTaskService
         }
 
         // 3. Synchronize onto ProjectTaskAssignment
-        if (bucketTask.AssignmentId.HasValue)
+        var assignment = await _db.ProjectTaskAssignments
+            .FirstOrDefaultAsync(a => (bucketTask.AssignmentId.HasValue && a.Id == bucketTask.AssignmentId.Value) || (a.TaskId == bucketTask.TaskId && a.EmployeeId == bucketTask.EmployeeId), ct);
+        if (assignment != null)
         {
-            var assignment = await _db.ProjectTaskAssignments
-                .FirstOrDefaultAsync(a => a.Id == bucketTask.AssignmentId.Value, ct);
-            if (assignment != null)
-            {
-                assignment.TimerStartedAtUtc = nowUtc;
-                assignment.UpdatedAtUtc = nowUtc;
-            }
+            bucketTask.AssignmentId ??= assignment.Id;
+            assignment.TimerStartedAtUtc = nowUtc;
+            assignment.UpdatedAtUtc = nowUtc;
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Activity A: Task Start After Assigning & Task Pause - Complete resource-specific SLA tracking
+        if (bucketTask.AssignmentId.HasValue)
+        {
+            try
+            {
+                await _slaTrackingService.CompleteTrackingAsync(bucketTask.AssignmentId.Value, "Task Start After Assigning", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Failed to complete Task Start SLA for Assignment {AssignmentId}", bucketTask.AssignmentId.Value);
+            }
+
+            // Resume / complete any active pause tracking for this resource's assignment
+            try
+            {
+                await _slaTrackingService.CompleteTrackingAsync(bucketTask.AssignmentId.Value, "Task Pause", ct);
+            }
+            catch { }
+        }
 
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
@@ -279,39 +315,95 @@ public class BucketTaskService : IBucketTaskService
         bucketTask.UpdatedAtUtc = nowUtc;
 
         // Sync to Assignment
-        if (bucketTask.AssignmentId.HasValue)
+        var assignment = await _db.ProjectTaskAssignments
+            .FirstOrDefaultAsync(a => (bucketTask.AssignmentId.HasValue && a.Id == bucketTask.AssignmentId.Value) || (a.TaskId == bucketTask.TaskId && a.EmployeeId == bucketTask.EmployeeId), ct);
+        if (assignment != null)
         {
-            var assignment = await _db.ProjectTaskAssignments
-                .FirstOrDefaultAsync(a => a.Id == bucketTask.AssignmentId.Value, ct);
-            if (assignment != null)
-            {
-                assignment.TimerStartedAtUtc = null;
-                assignment.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
-                assignment.UtilizedHours = bucketTask.UtilizedHours;
-                assignment.UpdatedAtUtc = nowUtc;
+            bucketTask.AssignmentId ??= assignment.Id;
+            assignment.TimerStartedAtUtc = null;
+            assignment.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
+            assignment.UtilizedHours = bucketTask.UtilizedHours;
+            assignment.UpdatedAtUtc = nowUtc;
+        }
 
-                // Update task stage and total utilized hours
-                var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
-                if (task != null)
-                {
-                    var anyOtherRunning = await _db.BucketTasks
-                        .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
-                    if (!anyOtherRunning)
-                    {
-                        task.Stage = "Paused";
-                    }
-                    var assignments = await _db.ProjectTaskAssignments
-                        .Where(a => a.TaskId == bucketTask.TaskId && a.DeletedAtUtc == null)
-                        .ToListAsync(ct);
-                    task.UtilizedHours = assignments.Sum(a => a.Id == assignment.Id
-                        ? assignment.UtilizedHours
-                        : (a.TimerAccumulatedSeconds > 0 ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2) : a.UtilizedHours));
-                    task.UpdatedAtUtc = nowUtc;
-                }
+        // Update task stage and total utilized hours
+        var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
+        if (task != null)
+        {
+            var anyOtherRunning = await _db.BucketTasks
+                .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
+            if (!anyOtherRunning)
+            {
+                task.Stage = "Paused";
             }
+            var allBucketTasks = await _db.BucketTasks
+                .Where(b => b.TaskId == bucketTask.TaskId && b.DeletedAtUtc == null)
+                .ToListAsync(ct);
+            long totalSeconds = allBucketTasks.Sum(b => b.Id == bucketTask.Id ? bucketTask.TimerAccumulatedSeconds : b.TimerAccumulatedSeconds);
+            task.UtilizedHours = Math.Round((decimal)totalSeconds / 3600m, 2);
+            task.UpdatedAtUtc = nowUtc;
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Activity D: Task Pause - Notify Assigned Engagement Manager, Assigned Project Manager, Project Team Leader
+        try
+        {
+            var leadershipRecipients = await _slaRecipientResolver.ResolveLeadershipRecipientsAsync(
+                bucketTask.ProjectId,
+                ["Assigned Engagement Manager", "Assigned Project Manager", "Project Team Leader"],
+                ct);
+
+            var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct) ?? "Assigned Resource";
+            var pauseTitle = $"Task Paused: {bucketTask.TaskTitle}";
+            var pauseContent = $"Task '{bucketTask.TaskTitle}' has been paused by {empName} in project '{bucketTask.ProjectName}'.";
+
+            foreach (var recId in leadershipRecipients)
+            {
+                _db.ActionNotifications.Add(new ActionNotification
+                {
+                    RecipientEmployeeId = recId,
+                    ProjectId = bucketTask.ProjectId,
+                    ProjectName = bucketTask.ProjectName,
+                    Title = pauseTitle,
+                    Type = "Task Paused",
+                    Priority = bucketTask.Priority,
+                    Status = "Pending",
+                    Unread = true,
+                    RelatedTask = bucketTask.TaskTitle,
+                    RaisedByName = empName,
+                    CreatedAtUtc = nowUtc,
+                    CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                    {
+                        new { text = pauseContent, by = empName, at = nowUtc.ToString("o") }
+                    })
+                });
+            }
+            await _db.SaveChangesAsync(ct);
+
+            var pauseEntityId = bucketTask.AssignmentId ?? assignment?.Id ?? bucketTask.Id;
+
+            // Calculate first pause reminder based on the resource's assigned shift
+            var reminderUtc = await _slaDeadlineCalculator.CalculateNextPauseReminderForEmployeeAsync(nowUtc, bucketTask.EmployeeId, null, ct);
+
+            // Start Task Pause SLA tracking for daily recurring reminders isolated to this resource's assignment
+            await _slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                Module: "ActionCentre",
+                ActivityType: "Task Pause",
+                EntityId: pauseEntityId,
+                EntityReference: bucketTask.TaskTitle,
+                Stage: "Paused",
+                Priority: SlaPriority.Medium,
+                ProjectId: bucketTask.ProjectId,
+                RecipientEmployeeId: bucketTask.EmployeeId,
+                CustomDeadlineUtc: reminderUtc,
+                CustomStartTimeUtc: nowUtc
+            ), ct);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "[BucketTaskService] Error triggering Task Pause notifications or SLA tracking for Task {TaskId}", bucketTask.TaskId);
+        }
 
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
@@ -347,43 +439,80 @@ public class BucketTaskService : IBucketTaskService
         bucketTask.UpdatedAtUtc = nowUtc;
 
         // Sync to Assignment
-        if (bucketTask.AssignmentId.HasValue)
+        var assignment = await _db.ProjectTaskAssignments
+            .FirstOrDefaultAsync(a => (bucketTask.AssignmentId.HasValue && a.Id == bucketTask.AssignmentId.Value) || (a.TaskId == bucketTask.TaskId && a.EmployeeId == bucketTask.EmployeeId), ct);
+        if (assignment != null)
         {
-            var assignment = await _db.ProjectTaskAssignments
-                .FirstOrDefaultAsync(a => a.Id == bucketTask.AssignmentId.Value, ct);
-            if (assignment != null)
-            {
-                assignment.TimerStartedAtUtc = null;
-                assignment.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
-                assignment.UtilizedHours = bucketTask.UtilizedHours;
-                assignment.UpdatedAtUtc = nowUtc;
+            bucketTask.AssignmentId ??= assignment.Id;
+            assignment.TimerStartedAtUtc = null;
+            assignment.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
+            assignment.UtilizedHours = bucketTask.UtilizedHours;
+            assignment.UpdatedAtUtc = nowUtc;
+        }
 
-                var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
-                if (task != null)
+        var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
+        if (task != null)
+        {
+            var anyOtherRunning = await _db.BucketTasks
+                .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
+            if (!anyOtherRunning)
+            {
+                var anyOtherActive = await _db.BucketTasks
+                    .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.Status != "Stopped" && b.Status != "Completed" && b.DeletedAtUtc == null, ct);
+                if (!anyOtherActive)
                 {
-                    var anyOtherRunning = await _db.BucketTasks
-                        .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
-                    if (!anyOtherRunning)
-                    {
-                        var anyOtherActive = await _db.BucketTasks
-                            .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.Status != "Stopped" && b.Status != "Completed" && b.DeletedAtUtc == null, ct);
-                        if (!anyOtherActive)
-                        {
-                            task.Stage = "Stopped";
-                        }
-                    }
-                    var assignments = await _db.ProjectTaskAssignments
-                        .Where(a => a.TaskId == bucketTask.TaskId && a.DeletedAtUtc == null)
-                        .ToListAsync(ct);
-                    task.UtilizedHours = assignments.Sum(a => a.Id == assignment.Id
-                        ? assignment.UtilizedHours
-                        : (a.TimerAccumulatedSeconds > 0 ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2) : a.UtilizedHours));
-                    task.UpdatedAtUtc = nowUtc;
+                    task.Stage = "Stopped";
                 }
             }
+            var allBucketTasks = await _db.BucketTasks
+                .Where(b => b.TaskId == bucketTask.TaskId && b.DeletedAtUtc == null)
+                .ToListAsync(ct);
+            long totalSeconds = allBucketTasks.Sum(b => b.Id == bucketTask.Id ? bucketTask.TimerAccumulatedSeconds : b.TimerAccumulatedSeconds);
+            task.UtilizedHours = Math.Round((decimal)totalSeconds / 3600m, 2);
+            task.UpdatedAtUtc = nowUtc;
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Activity C: Task Stop - Immediately notify Assigned Engagement Manager, Assigned Project Manager, Project Team Leader
+        try
+        {
+            var leadershipRecipients = await _slaRecipientResolver.ResolveLeadershipRecipientsAsync(
+                bucketTask.ProjectId,
+                ["Assigned Engagement Manager", "Assigned Project Manager", "Project Team Leader"],
+                ct);
+
+            var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct) ?? "Assigned Resource";
+            var stopTitle = $"Task Stopped: {bucketTask.TaskTitle}";
+            var stopContent = $"Task '{bucketTask.TaskTitle}' has been stopped by {empName} in project '{bucketTask.ProjectName}'.";
+
+            foreach (var recId in leadershipRecipients)
+            {
+                _db.ActionNotifications.Add(new ActionNotification
+                {
+                    RecipientEmployeeId = recId,
+                    ProjectId = bucketTask.ProjectId,
+                    ProjectName = bucketTask.ProjectName,
+                    Title = stopTitle,
+                    Type = "Task Stopped",
+                    Priority = bucketTask.Priority,
+                    Status = "Pending",
+                    Unread = true,
+                    RelatedTask = bucketTask.TaskTitle,
+                    RaisedByName = empName,
+                    CreatedAtUtc = nowUtc,
+                    CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                    {
+                        new { text = stopContent, by = empName, at = nowUtc.ToString("o") }
+                    })
+                });
+            }
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "[BucketTaskService] Error triggering Task Stop notifications for Task {TaskId}", bucketTask.TaskId);
+        }
 
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
@@ -411,17 +540,15 @@ public class BucketTaskService : IBucketTaskService
         bucketTask.UpdatedAtUtc = nowUtc;
 
         // Sync to Assignment first
-        if (bucketTask.AssignmentId.HasValue)
+        var assignment = await _db.ProjectTaskAssignments
+            .FirstOrDefaultAsync(a => (bucketTask.AssignmentId.HasValue && a.Id == bucketTask.AssignmentId.Value) || (a.TaskId == bucketTask.TaskId && a.EmployeeId == bucketTask.EmployeeId), ct);
+        if (assignment != null)
         {
-            var assignment = await _db.ProjectTaskAssignments
-                .FirstOrDefaultAsync(a => a.Id == bucketTask.AssignmentId.Value, ct);
-            if (assignment != null)
-            {
-                assignment.TimerStartedAtUtc = null;
-                assignment.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
-                assignment.UtilizedHours = bucketTask.UtilizedHours;
-                assignment.UpdatedAtUtc = nowUtc;
-            }
+            bucketTask.AssignmentId ??= assignment.Id;
+            assignment.TimerStartedAtUtc = null;
+            assignment.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
+            assignment.UtilizedHours = bucketTask.UtilizedHours;
+            assignment.UpdatedAtUtc = nowUtc;
         }
 
         // Sync to Task
@@ -440,16 +567,39 @@ public class BucketTaskService : IBucketTaskService
                 task.Progress = 100;
             }
 
-            var assignments = await _db.ProjectTaskAssignments
-                .Where(a => a.TaskId == bucketTask.TaskId && a.DeletedAtUtc == null)
+            var allBucketTasks = await _db.BucketTasks
+                .Where(b => b.TaskId == bucketTask.TaskId && b.DeletedAtUtc == null)
                 .ToListAsync(ct);
-            task.UtilizedHours = assignments.Sum(a => a.TimerAccumulatedSeconds > 0
-                ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2)
-                : a.UtilizedHours);
+            long totalSeconds = allBucketTasks.Sum(b => b.Id == bucketTask.Id ? bucketTask.TimerAccumulatedSeconds : b.TimerAccumulatedSeconds);
+            task.UtilizedHours = Math.Round((decimal)totalSeconds / 3600m, 2);
             task.UpdatedAtUtc = nowUtc;
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Complete Task Deadline and Task Pause SLAs if task finished
+        if (task != null && task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await _slaTrackingService.CompleteTrackingAsync(task.Id, "Task Deadline", ct);
+
+                // Complete Task Pause tracking for all assignments of this task
+                var taskAssignments = await _db.ProjectTaskAssignments
+                    .Where(a => a.TaskId == task.Id)
+                    .Select(a => a.Id)
+                    .ToListAsync(ct);
+
+                foreach (var assignId in taskAssignments)
+                {
+                    await _slaTrackingService.CompleteTrackingAsync(assignId, "Task Pause", ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Error completing Task Deadline/Pause SLA for Task {TaskId}", task.Id);
+            }
+        }
 
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
@@ -667,10 +817,13 @@ public class BucketTaskService : IBucketTaskService
                 // Overriding stages (Completed, On Hold, Cancelled) always cascade to bucket task
                 if (task.Stage is "Completed" or "On Hold" or "Cancelled")
                 {
-                    if (bucketTask.Status != task.Stage && bucketTask.Status != "Stopped")
+                    if (task.Stage == "Completed" || bucketTask.Status != "Stopped")
                     {
-                        bucketTask.Status = task.Stage;
-                        changed = true;
+                        if (bucketTask.Status != task.Stage)
+                        {
+                            bucketTask.Status = task.Stage;
+                            changed = true;
+                        }
                     }
                 }
                 else if (task.Stage is "Ongoing" or "In Progress")
@@ -713,11 +866,24 @@ public class BucketTaskService : IBucketTaskService
                 if (bucketTask.AssignmentId != a.Id) { bucketTask.AssignmentId = a.Id; changed = true; }
                 if (string.IsNullOrWhiteSpace(bucketTask.AssignedByName) && !string.IsNullOrWhiteSpace(assignerName)) { bucketTask.AssignedByName = assignerName; changed = true; }
 
+                // Keep accumulated seconds in sync between assignment and bucket task
+                if (bucketTask.TimerAccumulatedSeconds > a.TimerAccumulatedSeconds)
+                {
+                    a.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
+                    a.UtilizedHours = bucketTask.UtilizedHours;
+                }
+                else if (a.TimerAccumulatedSeconds > bucketTask.TimerAccumulatedSeconds)
+                {
+                    bucketTask.TimerAccumulatedSeconds = a.TimerAccumulatedSeconds;
+                    bucketTask.UtilizedHours = a.UtilizedHours;
+                    changed = true;
+                }
+
                 var isRunningStage = task.Stage.Equals("Ongoing", StringComparison.OrdinalIgnoreCase) ||
                                      task.Stage.Equals("In Progress", StringComparison.OrdinalIgnoreCase);
                 if (!isRunningStage && bucketTask.TimerRunning)
                 {
-                    if (task.Stage is not "On Hold" and not "Cancelled")
+                    if (task.Stage is not "On Hold" and not "Cancelled" and not "Completed")
                     {
                         task.Stage = "Ongoing";
                         task.UpdatedAtUtc = nowUtc;
@@ -729,6 +895,8 @@ public class BucketTaskService : IBucketTaskService
                             var el = (long)(nowUtc - bucketTask.TimerStartedAtUtc.Value).TotalSeconds;
                             bucketTask.TimerAccumulatedSeconds += Math.Max(0, el);
                             bucketTask.UtilizedHours = Math.Round((decimal)bucketTask.TimerAccumulatedSeconds / 3600m, 2);
+                            a.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
+                            a.UtilizedHours = bucketTask.UtilizedHours;
                         }
                         bucketTask.TimerRunning = false;
                         bucketTask.TimerStartedAtUtc = null;

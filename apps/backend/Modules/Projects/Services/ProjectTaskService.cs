@@ -1,24 +1,23 @@
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Persistence;
-
 using PMS.API.Modules.ActionCentre.Models;
-
 using PMS.API.Modules.Projects.DTOs;
-
 using PMS.API.Modules.Projects.Models;
-
 using PMS.API.Modules.Resources.Models;
-
+using PMS.API.Modules.Sla.DTOs;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Sla.Services;
 using PMS.API.Shared.Exceptions;
-
-
 
 namespace PMS.API.Modules.Projects.Services;
 
-
-
-public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
+public sealed class ProjectTaskService(
+    AppDbContext db,
+    ISlaTrackingService? slaTrackingService = null,
+    ISlaRecipientResolver? slaRecipientResolver = null,
+    ISlaDeadlineCalculator? slaDeadlineCalculator = null,
+    ILogger<ProjectTaskService>? logger = null) : IProjectTaskService
 
 {
 
@@ -540,7 +539,60 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
         await AddAssignmentHistoryAsync(taskId, removedIds, "Unassign", team, ct);
 
+        await db.SaveChangesAsync(ct);
+
         await SyncBucketTasksForTaskAsync(projectId, taskId, addedIds, removedIds, ct);
+
+        if (addedIds.Count > 0)
+        {
+            var taskInfo = await db.ProjectTasks
+                .Include(t => t.Project)
+                .FirstOrDefaultAsync(t => t.Id == taskId, ct);
+
+            if (taskInfo != null)
+            {
+                var nowUtc = DateTime.UtcNow;
+                string assigner = taskInfo.Project?.EngagementManager ?? "Project Manager";
+                if (taskInfo.Project?.ProjectManagerId.HasValue == true)
+                {
+                    var pm = await db.Employees.FirstOrDefaultAsync(e => e.Id == taskInfo.Project.ProjectManagerId.Value, ct);
+                    if (pm != null)
+                    {
+                        assigner = $"{pm.FirstName} {pm.LastName}".Trim();
+                    }
+                }
+
+                foreach (var empId in addedIds)
+                {
+                    db.ActionNotifications.Add(new ActionNotification
+                    {
+                        Id = Guid.NewGuid(),
+                        RecipientEmployeeId = empId,
+                        ProjectId = projectId,
+                        ProjectCode = taskInfo.Project?.ProjectCode,
+                        ProjectName = taskInfo.Project?.Name ?? "Project",
+                        Title = $"Task Assigned: {taskInfo.Title}",
+                        Type = "Task Assignment",
+                        Priority = string.IsNullOrWhiteSpace(taskInfo.Priority) ? "Medium" : taskInfo.Priority,
+                        Status = "Assigned",
+                        Unread = true,
+                        RaisedByName = assigner,
+                        RelatedTask = taskInfo.Title,
+                        CreatedAtUtc = nowUtc,
+                        HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                        {
+                            new
+                            {
+                                status = "Assigned",
+                                at = nowUtc.ToString("O"),
+                                by = assigner,
+                                comment = $"Assigned to task '{taskInfo.Title}'"
+                            }
+                        })
+                    });
+                }
+            }
+        }
 
 
 
@@ -548,7 +600,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
         await DistributeProjectTeamHoursAsync(projectId, taskId, ct);
 
-
+        await TriggerTaskAssignmentSlaAsync(projectId, taskId, addedIds, removedIds, ct);
 
         var saved = await db.ProjectTaskAssignments
 
@@ -563,10 +615,191 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
 
         return saved.Select(MapAssignment).ToList();
-
     }
 
+    public async Task TriggerTaskAssignmentSlaAsync(
+        Guid projectId,
+        Guid taskId,
+        IReadOnlyList<Guid> addedEmployeeIds,
+        IReadOnlyList<Guid> removedEmployeeIds,
+        CancellationToken ct = default)
+    {
+        var task = await db.ProjectTasks
+            .Include(t => t.Project)
+            .FirstOrDefaultAsync(t => t.Id == taskId && t.ProjectId == projectId, ct);
 
+        if (task == null) return;
+
+        var nowUtc = DateTime.UtcNow;
+        var project = task.Project;
+
+        // 1. If resources were added, notify leadership and start Task Start + Task Deadline SLAs
+        if (addedEmployeeIds.Count > 0)
+        {
+            // Initial Notification to Assigned Engagement Manager, Assigned Project Manager, Project Team Leader
+            if (slaRecipientResolver != null)
+            {
+                try
+                {
+                    var leadershipRecipients = await slaRecipientResolver.ResolveLeadershipRecipientsAsync(
+                        projectId,
+                        ["Assigned Engagement Manager", "Assigned Project Manager", "Project Team Leader"],
+                        ct);
+
+                    var taskTitle = task.Title;
+                    var projectName = project?.Name ?? "Project";
+                    var projectCode = project?.ProjectCode;
+                    var priority = string.IsNullOrWhiteSpace(task.Priority) ? "Medium" : task.Priority;
+
+                    string assigner = project?.EngagementManager ?? "Project Leadership";
+                    if (project?.ProjectManagerId.HasValue == true)
+                    {
+                        var pm = await db.Employees.FirstOrDefaultAsync(e => e.Id == project.ProjectManagerId.Value, ct);
+                        if (pm != null)
+                        {
+                            assigner = $"{pm.FirstName} {pm.LastName}".Trim();
+                        }
+                    }
+
+                    var assignedEmployees = await db.Employees
+                        .Where(e => addedEmployeeIds.Contains(e.Id))
+                        .Select(e => $"{e.FirstName} {e.LastName}".Trim())
+                        .ToListAsync(ct);
+                    var empNamesStr = string.Join(", ", assignedEmployees);
+
+                    var leadershipTitle = $"Task Assigned: {taskTitle}";
+                    var leadershipContent = $"Task '{taskTitle}' in project '{projectName}' has been assigned to: {empNamesStr}.";
+
+                    foreach (var recId in leadershipRecipients)
+                    {
+                        var alreadyNotified = await db.ActionNotifications.AnyAsync(n =>
+                            n.RecipientEmployeeId == recId &&
+                            n.ProjectId == projectId &&
+                            n.Title == leadershipTitle &&
+                            n.RelatedTask == taskTitle &&
+                            n.CreatedAtUtc >= nowUtc.Date &&
+                            n.DeletedAtUtc == null, ct);
+
+                        if (!alreadyNotified)
+                        {
+                            db.ActionNotifications.Add(new ActionNotification
+                            {
+                                RecipientEmployeeId = recId,
+                                ProjectId = projectId,
+                                ProjectCode = projectCode,
+                                ProjectName = projectName,
+                                Title = leadershipTitle,
+                                Type = "Task Assignment",
+                                Priority = priority,
+                                Status = "Assigned",
+                                Unread = true,
+                                RelatedTask = taskTitle,
+                                RaisedByName = assigner,
+                                CreatedAtUtc = nowUtc,
+                                CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                                {
+                                    new { text = leadershipContent, by = assigner, at = nowUtc.ToString("o") }
+                                })
+                            });
+                        }
+                    }
+                    await db.SaveChangesAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogWarning(ex, "[ProjectTaskService] Failed to notify leadership of task assignment for Task {TaskId}", taskId);
+                }
+            }
+
+            // Start Activity 1: Task Start After Assigning SLA for each assigned resource
+            if (slaTrackingService != null && slaDeadlineCalculator != null)
+            {
+                var assignments = await db.ProjectTaskAssignments
+                    .Where(a => a.TaskId == taskId && addedEmployeeIds.Contains(a.EmployeeId) && a.IsActive && a.DeletedAtUtc == null)
+                    .ToListAsync(ct);
+
+                foreach (var assign in assignments)
+                {
+                    try
+                    {
+                        // Calculate same-day EOD (18:00 IST) based on employee's shift
+                        var shiftDeadlineUtc = await slaDeadlineCalculator.CalculateSameDayEndOfDayForEmployeeAsync(nowUtc, assign.EmployeeId, null, ct);
+
+                        await slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                            Module: "ActionCentre",
+                            ActivityType: "Task Start After Assigning",
+                            EntityId: assign.Id, // Assignment ID for per-resource isolation!
+                            EntityReference: task.Title,
+                            Stage: "Assigned",
+                            Priority: SlaPriority.Medium,
+                            ProjectId: projectId,
+                            RecipientEmployeeId: assign.EmployeeId,
+                            CustomDeadlineUtc: shiftDeadlineUtc,
+                            CustomStartTimeUtc: nowUtc
+                        ), ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger?.LogWarning(ex, "[ProjectTaskService] Failed to start Task Start SLA for Assignment {AssignmentId}, Employee {EmployeeId}", assign.Id, assign.EmployeeId);
+                    }
+                }
+            }
+
+            // Start Activity 2: Task Deadline SLA if not already tracked
+            if (slaTrackingService != null && task.PlannedEndDate.HasValue)
+            {
+                try
+                {
+                    var existingDeadline = await slaTrackingService.GetInstanceAsync(taskId, "Task Deadline", ct);
+                    if (existingDeadline == null || existingDeadline.Status == SlaInstanceStatus.Completed || existingDeadline.Status == SlaInstanceStatus.Cancelled)
+                    {
+                        // Convert PlannedEndDate to 18:00 IST on that date, then UTC
+                        var plannedDeadlineDt = DateTime.SpecifyKind(task.PlannedEndDate.Value.ToDateTime(new TimeOnly(18, 0)), DateTimeKind.Unspecified);
+                        var taskDeadlineUtc = TimeZoneInfo.ConvertTimeToUtc(plannedDeadlineDt, SlaDeadlineCalculator.IndianTimeZone);
+
+                        await slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                            Module: "ActionCentre",
+                            ActivityType: "Task Deadline",
+                            EntityId: taskId,
+                            EntityReference: task.Title,
+                            Stage: task.Stage ?? "Not Started",
+                            Priority: SlaPriority.Medium,
+                            ProjectId: projectId,
+                            RecipientEmployeeId: addedEmployeeIds.FirstOrDefault(),
+                            CustomDeadlineUtc: taskDeadlineUtc,
+                            CustomStartTimeUtc: nowUtc
+                        ), ct);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogWarning(ex, "[ProjectTaskService] Failed to start Task Deadline SLA for Task {TaskId}", taskId);
+                }
+            }
+        }
+
+        // 2. If resources were removed, cancel their Task Start After Assigning SLA
+        if (removedEmployeeIds.Count > 0 && slaTrackingService != null)
+        {
+            var unassigned = await db.ProjectTaskAssignments
+                .IgnoreQueryFilters()
+                .Where(a => a.TaskId == taskId && removedEmployeeIds.Contains(a.EmployeeId))
+                .ToListAsync(ct);
+
+            foreach (var assign in unassigned)
+            {
+                try
+                {
+                    await slaTrackingService.CancelTrackingAsync(assign.Id, "Task Start After Assigning", "Resource unassigned from task", ct);
+                    await slaTrackingService.CancelTrackingAsync(assign.Id, "Task Pause", "Resource unassigned from task", ct);
+                }
+                catch (Exception ex)
+                {
+                    logger?.LogWarning(ex, "[ProjectTaskService] Failed to cancel Task Start / Pause SLA for removed Assignment {AssignmentId}", assign.Id);
+                }
+            }
+        }
+    }
 
     public async Task<IReadOnlyList<ProjectTaskAssignmentHistoryDto>> GetAssignmentHistoryAsync(
 
@@ -630,9 +863,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
     {
 
-        if (!IsGeneratedLeaf(task))
-
-            return;
+        
 
 
 
@@ -642,22 +873,37 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
             var valid = activeAssignments.Where(a => a.IsActive && a.DeletedAtUtc == null).ToList();
 
-            decimal totalHours = 0m;
+            long totalSeconds = 0;
+
+            decimal totalDirectHours = 0m;
 
             foreach (var a in valid)
 
             {
 
-                totalHours += a.TimerAccumulatedSeconds > 0
+                if (a.TimerAccumulatedSeconds > 0)
 
-                    ? Math.Round((decimal)a.TimerAccumulatedSeconds / 3600m, 2)
+                {
 
-                    : a.UtilizedHours;
+                    totalSeconds += a.TimerAccumulatedSeconds;
+
+                }
+
+                else
+
+                {
+
+                    totalDirectHours += a.UtilizedHours;
+
+                }
 
             }
 
-            task.UtilizedHours = totalHours;
+            task.UtilizedHours = totalSeconds > 0
 
+                ? Math.Round((decimal)totalSeconds / 3600m, 2) + totalDirectHours
+
+                : totalDirectHours;
 
         }
 
@@ -1371,7 +1617,7 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
 
 
 
-    private async Task SyncBucketTasksForTaskAsync(
+    public async Task SyncBucketTasksForTaskAsync(
 
         Guid projectId,
 
@@ -1486,6 +1732,18 @@ public sealed class ProjectTaskService(AppDbContext db) : IProjectTaskService
                 .Where(a => a.TaskId == taskId && addedIds.Contains(a.EmployeeId) && a.DeletedAtUtc == null && a.IsActive)
 
                 .ToListAsync(ct);
+
+            if (assignments.Count == 0)
+
+            {
+
+                assignments = db.ProjectTaskAssignments.Local
+
+                    .Where(a => a.TaskId == taskId && addedIds.Contains(a.EmployeeId) && a.DeletedAtUtc == null && a.IsActive)
+
+                    .ToList();
+
+            }
 
 
 

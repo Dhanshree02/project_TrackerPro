@@ -60,6 +60,11 @@ public class NotificationQueryParameters
     public Guid? ProjectId { get; set; }
 }
 
+public class ArchiveNotificationRequest
+{
+    public string? Comment { get; set; }
+}
+
 public class ActionAlertDto
 {
     public string Id { get; set; } = string.Empty;

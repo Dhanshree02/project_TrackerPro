@@ -35,6 +35,7 @@ import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn } from "@/lib/utils";
 
 import { deriveProjectDates } from "@/lib/project-dates";
+import { computeOverallProjectProgress, calculateServiceProgressFromTasks, isActiveService, type ServiceProgressItem } from "@/lib/project-progress";
 
 import { fetchClients, mapApiClient, formatCustomerId } from "@/modules/customers/api/clients";
 import {
@@ -208,14 +209,16 @@ import {
 } from "@/modules/projects/api/project-service-escalations";
 
 import {
-
   fetchProjectAppreciations,
-
   createProjectAppreciation,
-
   type ProjectAppreciation,
-
 } from "@/modules/projects/api/project-appreciations";
+
+import {
+  createProjectFeedback,
+  fetchProjectFeedbacks,
+  type ProjectFeedbackDto,
+} from "@/modules/projects/api/project-feedbacks";
 
 import { resolveCustomerRouteId } from "@/lib/client-route-id";
 
@@ -1250,69 +1253,48 @@ function WbsItem({ node, depth = 0 }: { node: WBSNode; depth?: number }) {
 
 
 function isStoredManager(member: ApiProjectTeamMember): boolean {
-
-  return member.memberRole === "ProjectManager" || member.memberRole === "SeniorProjectManager";
-
+  if (!member.memberRole) return false;
+  const norm = member.memberRole.replace(/\s+/g, "").toLowerCase();
+  return norm === "projectmanager" || norm === "seniorprojectmanager";
 }
 
-
-
 /**
-
  * Assigned managers are placed by On Floor Role (mst_roles.Name).
-
  * Manager / Project Manager → Project Managers. Sr. Manager → Senior Project Managers.
-
  */
-
 async function managersFromTeamMembers(items: ApiProjectTeamMember[]) {
-
   const employees = await loadEmployeesWithOnFloorRole();
-
   const byId = new Map(employees.map((emp) => [emp.id.toLowerCase(), emp]));
-
   const projectManagers: { employeeId: string; name: string }[] = [];
-
   const seniorProjectManagers: { employeeId: string; name: string }[] = [];
 
   // Team Leads are Project Team rows marked Team Lead on the Team tab.
-
   const teamLeads = items
-
     .filter((member) => member.isTeamLead && (member.memberRole === "ProjectTeam" || (!member.memberRole && !member.isShadowTeam)))
-
     .map((member) => ({ employeeId: member.employeeId, name: (member.employeeName || "").trim() }))
-
     .filter((person) => person.employeeId && person.name);
 
   for (const member of items) {
-
     if (!isStoredManager(member)) continue;
-
     const name = (member.employeeName || "").trim();
-
     if (!member.employeeId || !name) continue;
-
     const employee = byId.get(member.employeeId.toLowerCase());
-
     const onFloorRole = employee?.jobRoleName || null;
-
     const person = { employeeId: member.employeeId, name };
 
-    if (isOnFloorProjectManager({ jobRoleName: onFloorRole })) {
-
-      projectManagers.push(person);
-
-    } else if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_SENIOR_MANAGER)) {
-
+    const normRole = (member.memberRole || "").replace(/\s+/g, "").toLowerCase();
+    if (normRole === "seniorprojectmanager") {
       seniorProjectManagers.push(person);
-
+    } else if (normRole === "projectmanager") {
+      projectManagers.push(person);
+    } else if (matchesOnFloorRole({ jobRoleName: onFloorRole }, ON_FLOOR_SENIOR_MANAGER)) {
+      seniorProjectManagers.push(person);
+    } else if (isOnFloorProjectManager({ jobRoleName: onFloorRole })) {
+      projectManagers.push(person);
     }
-
   }
 
   return { projectManagers, seniorProjectManagers, teamLeads };
-
 }
 
 
@@ -1425,7 +1407,37 @@ export function ProjectDetailPage() {
 
   const [dbInvoices, setDbInvoices] = useState<ApiProjectInvoice[] | null>(null);
 
+  const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
+
+  const [catalogAbbrMap, setCatalogAbbrMap] = useState<Record<string, string>>(() => ({ ...serviceCatalogAbbrCache }));
+
   const [projectRefreshKey, setProjectRefreshKey] = useState(0);
+
+  useEffect(() => {
+    loadCatalogAbbrMap().then(setCatalogAbbrMap);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const targetId = dbProject?.id || (isApiGuid(rawId) ? rawId : "");
+    if (!targetId) return;
+
+    (async () => {
+      try {
+        if (isApiGuid(targetId)) {
+          await generateProjectTasks(targetId);
+        }
+        const tasks = await fetchProjectTasks(targetId);
+        if (active) setDbTasks(tasks);
+      } catch {
+        if (active) setDbTasks([]);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [dbProject?.id, rawId, projectRefreshKey]);
 
 
 
@@ -1842,21 +1854,13 @@ export function ProjectDetailPage() {
       : base;
 
     const withLeaders = dbLeaders
-
       ? {
-
           ...withManagers,
-
-          projectManagers: dbLeaders.projectManagers,
-
-          seniorProjectManagers: dbLeaders.seniorProjectManagers,
-
+          projectManagers: dbLeaders.projectManagers?.length ? dbLeaders.projectManagers : withManagers.projectManagers,
+          seniorProjectManagers: dbLeaders.seniorProjectManagers?.length ? dbLeaders.seniorProjectManagers : withManagers.seniorProjectManagers,
           teamLeads: dbLeaders.teamLeads,
-
-          teamLeadId: dbLeaders.teamLeads[0]?.employeeId,
-
-          teamLeadName: dbLeaders.teamLeads[0]?.name,
-
+          teamLeadId: dbLeaders.teamLeads[0]?.employeeId ?? withManagers.teamLeadId,
+          teamLeadName: dbLeaders.teamLeads[0]?.name ?? withManagers.teamLeadName,
         }
 
       : dbProject
@@ -1922,6 +1926,19 @@ export function ProjectDetailPage() {
   }, [rawId, extraCount, poDocuments, dbProject, dbLeaders, liveServiceDates, dbServices, dbInvoices, savedPo, poLoaded, loaderData?.project]);
 
 
+
+  const treeTaskStates = useDhStore((s) => s.treeTaskStates[project?.id ?? ""]);
+  const overallProjectProgress = useMemo(() => {
+    if (!project) return 0;
+    const { overallProgress } = calculateOverallProjectProgress(
+      project,
+      dhStore,
+      dbServices,
+      catalogAbbrMap,
+      dbTasks,
+    );
+    return overallProgress;
+  }, [project, dhStore, dbServices, catalogAbbrMap, dbTasks, treeTaskStates]);
 
   const client: Client = useMemo(() => {
 
@@ -2729,9 +2746,9 @@ export function ProjectDetailPage() {
 
     const allBillingOk = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => s.billingStatus === "Advance Received" || s.billingStatus === "Advance Not Required") ?? false);
 
-    const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
+    const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0 || (project.projectManagers?.length ?? 0) > 0 || Boolean(project.projectManagerId);
 
-    const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
+    const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0 || (project.seniorProjectManagers?.length ?? 0) > 0 || Boolean((project as any).seniorProjectManagerId);
 
     let pmoSub = "Prerequisite Collection Pending";
 
@@ -2755,7 +2772,7 @@ export function ProjectDetailPage() {
 
     if (deliveryStatus === "Ongoing") {
 
-      const pct = project.progress;
+      const pct = overallProjectProgress;
 
       deliverySub = pct >= 80 ? `${pct}% — Near Completion` : pct >= 50 ? `${pct}% — In Progress` : `${pct}% — Early Stage`;
 
@@ -2787,7 +2804,7 @@ export function ProjectDetailPage() {
 
     return { Sales: salesSub, PMO: pmoSub, Delivery: deliverySub, Accounts: acctSub };
 
-  }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status, project.contractType]);
+  }, [isDhanshree, storePrereqs, storeProjectStages, overallProjectProgress, project.status, project.contractType]);
 
 
 
@@ -2867,9 +2884,9 @@ export function ProjectDetailPage() {
 
     // ---- PMO sub-stages: assignment + prerequisite workflow ----
 
-    const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0;
+    const hasSPM = (prereq?.assignedSpmIds?.length ?? 0) > 0 || (project.seniorProjectManagers?.length ?? 0) > 0 || Boolean((project as any).seniorProjectManagerId);
 
-    const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0;
+    const hasPM = (prereq?.assignedPmIds?.length ?? 0) > 0 || (project.projectManagers?.length ?? 0) > 0 || Boolean(project.projectManagerId);
 
     const allCollected = (prereq?.services?.length ?? 0) > 0 && (prereq?.services?.every(s => {
 
@@ -2971,7 +2988,7 @@ export function ProjectDetailPage() {
 
     } else {
 
-      const pct = project.progress;
+      const pct = overallProjectProgress;
 
       if (pct >= 80) deliveryActiveIdx = 3;       // Certification Released active
 
@@ -3085,7 +3102,7 @@ export function ProjectDetailPage() {
 
     };
 
-  }, [isDhanshree, storePrereqs, storeProjectStages, project.progress, project.status]);
+  }, [isDhanshree, storePrereqs, storeProjectStages, overallProjectProgress, project.status]);
 
 
 
@@ -3273,13 +3290,13 @@ export function ProjectDetailPage() {
 
                 <span>Progress</span>
 
-                <span className="tabular-nums text-foreground">{project.progress}%</span>
+                <span className="tabular-nums text-foreground">{overallProjectProgress}%</span>
 
               </div>
 
               <div className="mt-1.5">
 
-                <ProgressBar value={project.progress} className="w-full" />
+                <ProgressBar value={overallProjectProgress} className="w-full" />
 
               </div>
 
@@ -3423,7 +3440,7 @@ export function ProjectDetailPage() {
 
             (useDhWorkspace ? (
 
-              <DhTasksTab project={project} refreshKey={projectRefreshKey} readOnly={isViewOnly || isSales || !canManageTasks} />
+              <DhTasksTab project={project} refreshKey={projectRefreshKey} readOnly={isViewOnly || isSales || !canManageTasks} tasks={dbTasks} onTasksChange={setDbTasks} />
 
             ) : (
 
@@ -8724,6 +8741,35 @@ const defaultCatalogAbbrs: Record<string, string> = {
 
 let serviceCatalogAbbrCache: Record<string, string> = { ...defaultCatalogAbbrs };
 
+let serviceHierarchyPromise: Promise<Record<string, string>> | null = null;
+export function loadCatalogAbbrMap(): Promise<Record<string, string>> {
+  if (!serviceHierarchyPromise) {
+    serviceHierarchyPromise = fetchServiceHierarchy().then((groups) => {
+      const map: Record<string, string> = { ...defaultCatalogAbbrs };
+      for (const g of groups ?? []) {
+        for (const d of g?.departments ?? []) {
+          for (const sd of d?.subDepartments ?? []) {
+            for (const s of sd?.services ?? []) {
+              if (s?.name && s?.abbreviation) {
+                const k = s.name.toLowerCase().trim();
+                map[k] = s.abbreviation.trim();
+                serviceCatalogAbbrCache[k] = s.abbreviation.trim();
+              }
+              if (s?.id && s?.abbreviation) {
+                const idKey = s.id.toLowerCase().trim();
+                map[idKey] = s.abbreviation.trim();
+                serviceCatalogAbbrCache[idKey] = s.abbreviation.trim();
+              }
+            }
+          }
+        }
+      }
+      return map;
+    }).catch(() => ({ ...defaultCatalogAbbrs }));
+  }
+  return serviceHierarchyPromise;
+}
+
 
 
 function buildServiceTree(
@@ -8748,7 +8794,7 @@ function buildServiceTree(
 
   if (rawList.length === 0) return [];
 
-  const services = rawList.filter((s: any) => !(s.isDeleted || s.changeStatus === "Deleted"));
+  const services = rawList.filter((s: any) => isActiveService(s));
 
   const usingDummy = false;
 
@@ -9494,7 +9540,96 @@ function applyPersistedTasks(
 
 }
 
+export function calculateOverallProjectProgress(
+  project: Project,
+  store: any,
+  liveServices?: ApiProjectService[] | null,
+  catalogAbbrs?: Record<string, string>,
+  dbTasks?: ApiProjectTask[],
+): {
+  overallProgress: number;
+  totalActiveServices: number;
+  serviceProgresses: Array<{
+    serviceId: string;
+    serviceName: string;
+    progress: number;
+    totalTasks: number;
+    completedTasks: number;
+    ongoingTasks: number;
+  }>;
+} {
+  const rawList: any[] = (liveServices && liveServices.length > 0)
+    ? liveServices
+    : (project.wbsDetails?.services ?? []);
 
+  const activeServices = rawList.filter(isActiveService);
+
+  if (activeServices.length === 0) {
+    return {
+      overallProgress: 0,
+      totalActiveServices: 0,
+      serviceProgresses: [],
+    };
+  }
+
+  const built = buildServiceTree(project, store, activeServices, catalogAbbrs, dbTasks);
+  const keys = new Map<string, string>();
+  for (const service of activeServices) {
+    if (service.taskId?.trim()) keys.set(`code:${service.taskId.trim().toLowerCase()}`, service.id);
+    if (service.serviceName?.trim()) keys.set(`name:${service.serviceName.trim().toLowerCase()}`, service.id);
+  }
+
+  const tree = (dbTasks && dbTasks.length > 0)
+    ? applyPersistedTasks(built, dbTasks, keys)
+    : built;
+
+  const serviceProgresses = activeServices.map((svc: any) => {
+    const svcId = svc.id || "";
+    const svcName = (svc.serviceName || svc.name || "").trim().toLowerCase();
+
+    const folder = tree.find(
+      (f, idx) =>
+        (svcId && f.serviceId === svcId) ||
+        (f.serviceName && f.serviceName.trim().toLowerCase() === svcName) ||
+        idx === activeServices.indexOf(svc)
+    );
+
+    if (!folder) {
+      return {
+        serviceId: svcId,
+        serviceName: svc.serviceName || svc.name || "",
+        progress: 0,
+        totalTasks: 0,
+        completedTasks: 0,
+        ongoingTasks: 0,
+      };
+    }
+
+    const descendantTasks = folder.quarters
+      ? folder.quarters.flatMap((q) => q.aps.flatMap((ap) => ap.tasks))
+      : (folder.aps ? folder.aps.flatMap((ap) => ap.tasks) : []);
+
+    const { progress, totalTasks, completedTasks, ongoingTasks } =
+      calculateServiceProgressFromTasks(descendantTasks);
+
+    return {
+      serviceId: svcId || folder.serviceId || "",
+      serviceName: svc.serviceName || svc.name || folder.serviceName || "",
+      progress,
+      totalTasks,
+      completedTasks,
+      ongoingTasks,
+    };
+  });
+
+  const overallProgress = computeOverallProjectProgress(serviceProgresses);
+
+  return {
+    overallProgress,
+    totalActiveServices: activeServices.length,
+    serviceProgresses,
+  };
+}
 
 function DhTasksTab({
 
@@ -9504,6 +9639,10 @@ function DhTasksTab({
 
   refreshKey = 0,
 
+  tasks: propTasks,
+
+  onTasksChange,
+
 }: {
 
   project: Project;
@@ -9511,6 +9650,10 @@ function DhTasksTab({
   readOnly?: boolean;
 
   refreshKey?: number;
+
+  tasks?: ApiProjectTask[];
+
+  onTasksChange?: React.Dispatch<React.SetStateAction<ApiProjectTask[]>>;
 
 }) {
 
@@ -9522,7 +9665,18 @@ function DhTasksTab({
 
   const useApiTasks = isApiGuid(project.id);
 
-  const [dbTasks, setDbTasks] = useState<ApiProjectTask[]>([]);
+  const [internalTasks, setInternalTasks] = useState<ApiProjectTask[]>([]);
+  const dbTasks = propTasks ?? internalTasks;
+  const setDbTasks: React.Dispatch<React.SetStateAction<ApiProjectTask[]>> = useCallback(
+    (action) => {
+      if (onTasksChange) {
+        onTasksChange(action);
+      } else {
+        setInternalTasks(action);
+      }
+    },
+    [onTasksChange]
+  );
 
   const [apiServices, setApiServices] = useState<ApiProjectService[] | null>(useApiTasks ? null : []);
 
@@ -10156,6 +10310,15 @@ function DhTasksTab({
 
     useApiTasks ? Number(t.utilizedHours ?? 0) : (t.stage === "Completed" ? (t.estHoursPerTask || 0) : 0);
 
+  const formatHoursDisplay = (hours: number): string => {
+    if (!hours || hours === 0) return "0.0";
+    const rounded1 = Math.round(hours * 10) / 10;
+    if (Math.abs(hours - rounded1) < 0.001) {
+      return hours.toFixed(1);
+    }
+    return hours.toFixed(2);
+  };
+
   const liveAssignments = useDhStore((s) => s.taskAssignments);
 
 
@@ -10389,8 +10552,15 @@ function DhTasksTab({
 
 
                 const totalEstimatedHours = row.type === "service" ? row.service.estimatedHours : 0;
-
-                const totalUtilizedHours = descendantTasks.reduce((sum, t) => sum + utilizedOf(t), 0);
+                const rawDescendantUtilized = descendantTasks.reduce((sum, t) => sum + utilizedOf(t), 0);
+                const serviceApplicationsCount = row.type === "service"
+                  ? (row.service.quarters
+                      ? row.service.quarters.reduce((sum, q) => sum + (q.aps ? q.aps.length : 0), 0)
+                      : (row.service.aps?.length ?? 1))
+                  : 1;
+                const totalUtilizedHours = row.type === "service"
+                  ? rawDescendantUtilized / Math.max(1, serviceApplicationsCount)
+                  : rawDescendantUtilized;
 
 
 
@@ -10492,7 +10662,7 @@ function DhTasksTab({
 
                       <td className="px-3 py-3 text-center align-middle tabular-nums text-muted-foreground">
 
-                        {totalUtilizedHours.toFixed(1)} / {totalEstimatedHours.toFixed(1)} hrs
+                        {formatHoursDisplay(totalUtilizedHours)} / {totalEstimatedHours.toFixed(1)} hrs
 
                       </td>
 
@@ -10678,7 +10848,7 @@ function DhTasksTab({
 
                         <td className="px-3 py-2 text-center align-middle tabular-nums text-muted-foreground whitespace-nowrap">
 
-                          {apUtilizedHours.toFixed(1)} / {apEstimatedHours.toFixed(1)} hrs
+                          {formatHoursDisplay(apUtilizedHours)} / {apEstimatedHours.toFixed(1)} hrs
 
                         </td>
 
@@ -12821,6 +12991,24 @@ function DhTeamTab({
       setApiShadowRows(mappedShadow);
 
       publishTeamLeadsToOverview(project.id, mappedProject, onLeadershipSaved, projectItems);
+      const spmIds = projectItems
+        .filter((m) => (m.memberRole || "").replace(/\s+/g, "").toLowerCase() === "seniorprojectmanager")
+        .map((m) => m.employeeId);
+      const pmIds = projectItems
+        .filter((m) => (m.memberRole || "").replace(/\s+/g, "").toLowerCase() === "projectmanager")
+        .map((m) => m.employeeId);
+      if (spmIds.length > 0 || pmIds.length > 0) {
+        dhStore.assignPMsWithPeople(
+          project.id,
+          pmIds.length > 0 ? pmIds : (prereq?.assignedPmIds ?? []),
+          spmIds.length > 0 ? spmIds : (prereq?.assignedSpmIds ?? []),
+          projectItems.map((m) => ({
+            id: m.employeeId,
+            name: m.employeeName,
+            role: m.memberRole || m.employeeRole || "",
+          }))
+        );
+      }
 
       // Register people so names resolve after refresh
 
@@ -13248,17 +13436,25 @@ function DhTeamTab({
 
   // Access-blocked guard AFTER all hooks. API projects use the database rows.
 
-  const hasSPM = useApiTeam
+  const hasSPM =
+    (apiTeamRows ?? []).some((r) =>
+      r.memberRole === "SeniorProjectManager" ||
+      r.memberRole === "Senior Project Manager" ||
+      (r.person?.role && /senior.*manager/i.test(r.person.role))
+    ) ||
+    (project.seniorProjectManagers?.length ?? 0) > 0 ||
+    (prereq?.assignedSpmIds?.length ?? 0) > 0 ||
+    Boolean((project as any).seniorProjectManagerId || (project as any).spmId);
 
-    ? (apiTeamRows ?? []).some((r) => r.memberRole === "SeniorProjectManager")
-
-    : (prereq?.assignedSpmIds?.length ?? 0) > 0;
-
-  const hasPM = useApiTeam
-
-    ? (apiTeamRows ?? []).some((r) => r.memberRole === "ProjectManager")
-
-    : (prereq?.assignedPmIds?.length ?? 0) > 0;
+  const hasPM =
+    (apiTeamRows ?? []).some((r) =>
+      r.memberRole === "ProjectManager" ||
+      r.memberRole === "Project Manager" ||
+      (r.person?.role && /project.*manager/i.test(r.person.role) && !/senior/i.test(r.person.role))
+    ) ||
+    (project.projectManagers?.length ?? 0) > 0 ||
+    (prereq?.assignedPmIds?.length ?? 0) > 0 ||
+    Boolean(project.projectManagerId || (project as any).pmId);
 
   const isAssigned = hasPM && hasSPM;
 
@@ -13699,8 +13895,6 @@ function DhTeamTab({
                         )}
 
                         {[
-
-                          { k: "praise", label: "Give Praise", icon: Star },
 
                           { k: "feedback", label: "Give Feedback", icon: MessageSquare },
 
@@ -14152,7 +14346,7 @@ function TeamActionModal({
   }, [action, person.id, project.id]);
 
   if (action === "view") {
-    const displayTasks = workload?.assignedTasks ?? project.tasks.filter((t) => t.assigneeId === person.id).map((t) => ({
+    const allTasks = workload?.assignedTasks ?? project.tasks.filter((t) => t.assigneeId === person.id).map((t) => ({
       taskId: t.id,
       taskTitle: t.title,
       projectId: project.id,
@@ -14161,6 +14355,7 @@ function TeamActionModal({
       progress: t.progress,
       priority: "Medium",
     }));
+    const displayTasks = allTasks.filter((t: any) => t.projectId === project.id);
 
     const displayProjects = workload?.assignedProjects ?? projects.filter((p) => p.id !== project.id && (p.pmId === person.id || p.tlId === person.id || p.teamIds.includes(person.id))).map((p) => ({
       projectId: p.id,
@@ -14474,70 +14669,249 @@ function TeamActionModal({
 
 
 
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+
   if (action === "feedback") {
+    const isAlphanumericText = (val: string) => /^[a-zA-Z0-9\s]*$/.test(val);
+    const strengthsValid = isAlphanumericText(feedback.strengths) && feedback.strengths.length <= 100;
+    const improvementsValid = isAlphanumericText(feedback.improvements) && feedback.improvements.length <= 100;
+    const commentsValid = isAlphanumericText(feedback.comments) && feedback.comments.length <= 100;
+    const hasContent = feedback.strengths.trim().length > 0 || feedback.improvements.trim().length > 0 || feedback.comments.trim().length > 0;
+    const allValid = strengthsValid && improvementsValid && commentsValid && hasContent;
+
+    const handleSubmitFeedback = async () => {
+      if (!hasContent) {
+        toast.error("Add at least one section (Strengths, Areas of Improvement, or Comments)");
+        return;
+      }
+      if (!isAlphanumericText(feedback.strengths) || !isAlphanumericText(feedback.improvements) || !isAlphanumericText(feedback.comments)) {
+        toast.error("Validation error", { description: "Strengths, Areas of Improvement, and Comments can only contain text and numbers." });
+        return;
+      }
+      if (feedback.strengths.length > 100 || feedback.improvements.length > 100 || feedback.comments.length > 100) {
+        toast.error("Validation error", { description: "Each field cannot exceed 100 characters." });
+        return;
+      }
+      if (feedback.rating < 0 || feedback.rating > 5) {
+        toast.error("Rating must be between 0 and 5");
+        return;
+      }
+
+      setSubmittingFeedback(true);
+      try {
+        if (isApiGuid(project.id)) {
+          await createProjectFeedback(project.id, {
+            employeeId: person.id,
+            strengths: feedback.strengths.trim() || undefined,
+            areasOfImprovement: feedback.improvements.trim() || undefined,
+            comments: feedback.comments.trim() || undefined,
+            rating: feedback.rating,
+            feedbackType: "DirectFeedback",
+          });
+        }
+        toast.success("Feedback submitted successfully!", {
+          description: `Recorded for ${person.name}. Notifications sent to employee and reporting manager.`,
+        });
+        onClose();
+      } catch (err: any) {
+        toast.error("Failed to submit feedback", {
+          description: err?.message || "An unexpected error occurred",
+        });
+      } finally {
+        setSubmittingFeedback(false);
+      }
+    };
 
     return (
-
       <Modal title={`Give Feedback — ${person.name}`} onClose={onClose}>
-
         <div className="space-y-3">
+          <Field label="Strengths">
+            <div className="space-y-1">
+              <textarea
+                rows={2}
+                maxLength={100}
+                className={cn(
+                  "w-full rounded-md border bg-card px-3 py-2 text-sm",
+                  !strengthsValid ? "border-destructive focus:ring-destructive" : "border-input"
+                )}
+                value={feedback.strengths}
+                onChange={(e) => setFeedback((s) => ({ ...s, strengths: e.target.value }))}
+                placeholder="Highlight key strengths (letters & numbers only)…"
+              />
+              <div className="flex items-center justify-between text-[10px]">
+                <span className={!isAlphanumericText(feedback.strengths) ? "text-destructive font-medium" : "text-muted-foreground"}>
+                  {!isAlphanumericText(feedback.strengths) ? "Only text and numbers allowed" : "Max 100 characters"}
+                </span>
+                <span className={cn("tabular-nums", feedback.strengths.length >= 100 ? "text-amber-600 font-bold" : "text-muted-foreground")}>
+                  {feedback.strengths.length}/100
+                </span>
+              </div>
+            </div>
+          </Field>
 
-          <Field label="Strengths"><textarea rows={2} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={feedback.strengths} onChange={(e) => setFeedback((s) => ({ ...s, strengths: e.target.value }))} /></Field>
+          <Field label="Areas of Improvement">
+            <div className="space-y-1">
+              <textarea
+                rows={2}
+                maxLength={100}
+                className={cn(
+                  "w-full rounded-md border bg-card px-3 py-2 text-sm",
+                  !improvementsValid ? "border-destructive focus:ring-destructive" : "border-input"
+                )}
+                value={feedback.improvements}
+                onChange={(e) => setFeedback((s) => ({ ...s, improvements: e.target.value }))}
+                placeholder="Suggest constructive improvements (letters & numbers only)…"
+              />
+              <div className="flex items-center justify-between text-[10px]">
+                <span className={!isAlphanumericText(feedback.improvements) ? "text-destructive font-medium" : "text-muted-foreground"}>
+                  {!isAlphanumericText(feedback.improvements) ? "Only text and numbers allowed" : "Max 100 characters"}
+                </span>
+                <span className={cn("tabular-nums", feedback.improvements.length >= 100 ? "text-amber-600 font-bold" : "text-muted-foreground")}>
+                  {feedback.improvements.length}/100
+                </span>
+              </div>
+            </div>
+          </Field>
 
-          <Field label="Areas of Improvement"><textarea rows={2} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={feedback.improvements} onChange={(e) => setFeedback((s) => ({ ...s, improvements: e.target.value }))} /></Field>
-
-          <Field label="Comments"><textarea rows={2} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={feedback.comments} onChange={(e) => setFeedback((s) => ({ ...s, comments: e.target.value }))} /></Field>
+          <Field label="Comments">
+            <div className="space-y-1">
+              <textarea
+                rows={2}
+                maxLength={100}
+                className={cn(
+                  "w-full rounded-md border bg-card px-3 py-2 text-sm",
+                  !commentsValid ? "border-destructive focus:ring-destructive" : "border-input"
+                )}
+                value={feedback.comments}
+                onChange={(e) => setFeedback((s) => ({ ...s, comments: e.target.value }))}
+                placeholder="Additional notes or context (letters & numbers only)…"
+              />
+              <div className="flex items-center justify-between text-[10px]">
+                <span className={!isAlphanumericText(feedback.comments) ? "text-destructive font-medium" : "text-muted-foreground"}>
+                  {!isAlphanumericText(feedback.comments) ? "Only text and numbers allowed" : "Max 100 characters"}
+                </span>
+                <span className={cn("tabular-nums", feedback.comments.length >= 100 ? "text-amber-600 font-bold" : "text-muted-foreground")}>
+                  {feedback.comments.length}/100
+                </span>
+              </div>
+            </div>
+          </Field>
 
           <Field label={`Rating: ${feedback.rating}/5`}>
-
-            <input type="range" min={1} max={5} value={feedback.rating} onChange={(e) => setFeedback((s) => ({ ...s, rating: Number(e.target.value) }))} className="w-full" />
-
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={0}
+                max={5}
+                step={1}
+                value={feedback.rating}
+                onChange={(e) => setFeedback((s) => ({ ...s, rating: Number(e.target.value) }))}
+                className="flex-1 cursor-pointer accent-primary"
+              />
+              <div className="flex items-center gap-1 min-w-[70px] justify-end">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={cn(
+                      "h-4 w-4 cursor-pointer transition-colors",
+                      star <= feedback.rating
+                        ? "fill-amber-400 text-amber-500"
+                        : "text-muted-foreground/30 hover:text-amber-300"
+                    )}
+                    onClick={() => setFeedback((s) => ({ ...s, rating: star }))}
+                  />
+                ))}
+                <span className="ml-1 text-xs font-bold text-gray-700">{feedback.rating}/5</span>
+              </div>
+            </div>
           </Field>
 
           <div className="flex justify-end gap-2 border-t border-border pt-3">
-
-            <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-
-            <button onClick={() => { if (!feedback.strengths.trim() && !feedback.improvements.trim()) return toast.error("Add at least one section"); toast.success("Feedback submitted"); onClose(); }} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Submit Feedback</button>
-
+            <button
+              onClick={onClose}
+              disabled={submittingFeedback}
+              className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmitFeedback}
+              disabled={submittingFeedback || !allValid}
+              className={cn(
+                "rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors",
+                submittingFeedback || !allValid ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90"
+              )}
+            >
+              {submittingFeedback ? "Submitting…" : "Submit Feedback"}
+            </button>
           </div>
-
         </div>
-
       </Modal>
-
     );
-
   }
 
-
-
   if (action === "request") {
+    const handleSendRequest = async () => {
+      setSubmittingRequest(true);
+      try {
+        if (isApiGuid(project.id)) {
+          await createProjectFeedback(project.id, {
+            employeeId: person.id,
+            requestNote: requestNote.trim() || undefined,
+            feedbackType: "FeedbackRequest",
+          });
+        }
+        toast.success("Feedback request sent successfully!", {
+          description: `Approval request and notification dispatched to ${person.name}'s reporting manager.`,
+        });
+        onClose();
+      } catch (err: any) {
+        toast.error("Failed to send feedback request", {
+          description: err?.message || "An unexpected error occurred",
+        });
+      } finally {
+        setSubmittingRequest(false);
+      }
+    };
 
     return (
-
       <Modal title={`Request Feedback for ${person.name}`} onClose={onClose}>
-
         <div className="space-y-3">
-
-          <p className="text-xs text-muted-foreground">A request will be sent to the reporting manager. You'll be notified when feedback is submitted.</p>
-
-          <Field label="Note (optional)"><textarea rows={3} className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm" value={requestNote} onChange={(e) => setRequestNote(e.target.value)} placeholder="Add context for the manager…" /></Field>
-
+          <p className="text-xs text-muted-foreground">
+            A feedback request will be sent to the resource's reporting manager as an Approval Request in their Action Center, along with an instant notification.
+          </p>
+          <Field label="Note for Manager (optional)">
+            <textarea
+              rows={3}
+              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+              value={requestNote}
+              onChange={(e) => setRequestNote(e.target.value)}
+              placeholder="Why are you requesting feedback? (e.g. Completed milestone, performance review)…"
+            />
+          </Field>
           <div className="flex justify-end gap-2 border-t border-border pt-3">
-
-            <button onClick={onClose} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
-
-            <button onClick={() => { toast.success("Feedback request sent", { description: "Status: Pending" }); onClose(); }} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">Send Request</button>
-
+            <button
+              onClick={onClose}
+              disabled={submittingRequest}
+              className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSendRequest}
+              disabled={submittingRequest}
+              className={cn(
+                "rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors",
+                submittingRequest ? "opacity-50 cursor-not-allowed" : "hover:bg-primary/90"
+              )}
+            >
+              {submittingRequest ? "Sending…" : "Send Request"}
+            </button>
           </div>
-
         </div>
-
       </Modal>
-
     );
-
   }
 
 
@@ -16039,6 +16413,9 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
       (a) =>
 
         (a as any).serviceEscalationId === selectedEsc.id ||
+        (a as any).issueId === selectedEsc.id ||
+        (a.id === selectedEsc.id) ||
+        (a.title && selectedEsc.subject && (a.title.includes(selectedEsc.subject) || selectedEsc.subject.includes(a.title))) ||
 
         (a.title && selectedEsc.serviceName && a.title.includes(selectedEsc.serviceName))
 
@@ -19609,6 +19986,7 @@ function WbsPrerequisiteSection({
   const defaultPmIds = useMemo(() => {
 
     if (prereqData?.assignedPmIds?.length) return prereqData.assignedPmIds;
+    if (project.projectManagers?.length) return project.projectManagers.map((m) => m.employeeId).filter(Boolean);
 
     const pmId = (project as any).projectManagerId || project.pmId;
 
@@ -19631,8 +20009,9 @@ function WbsPrerequisiteSection({
   const defaultSpmIds = useMemo(() => {
 
     if (prereqData?.assignedSpmIds?.length) return prereqData.assignedSpmIds;
+    if (project.seniorProjectManagers?.length) return project.seniorProjectManagers.map((m) => m.employeeId).filter(Boolean);
 
-    const spmId = (project as any).seniorProjectManagerId;
+    const spmId = (project as any).seniorProjectManagerId || (project as any).spmId;
 
     if (spmId) return [spmId];
 

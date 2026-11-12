@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Authorization;
+using PMS.API.Infrastructure.Hangfire;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Infrastructure.Storage;
@@ -16,6 +17,8 @@ using PMS.API.Modules.Timesheets.Services;
 using PMS.API.Modules.Projects.Services;
 using PMS.API.Modules.Repository.Services;
 using PMS.API.Modules.Resources.Services;
+using PMS.API.Modules.Sla.Jobs;
+using PMS.API.Modules.Sla.Services;
 using PMS.API.Modules.Users.Services;
 
 namespace PMS.API.Configuration;
@@ -66,6 +69,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectExtensionRequestService, ProjectExtensionRequestService>();
         services.AddScoped<IProjectServiceEscalationService, ProjectServiceEscalationService>();
         services.AddScoped<IProjectAppreciationService, ProjectAppreciationService>();
+        services.AddScoped<IProjectFeedbackService, ProjectFeedbackService>();
         services.AddScoped<IProjectAdditionalRequirementService, ProjectAdditionalRequirementService>();
         services.AddScoped<IProjectIssueService, ProjectIssueService>();
         services.AddScoped<IProjectTaskService, ProjectTaskService>();
@@ -73,6 +77,16 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IBucketTaskService, BucketTaskService>();
         services.AddScoped<IActionNotificationService, ActionNotificationService>();
+
+        // ---- Background Jobs & Automation (Hangfire Infrastructure) ----
+        services.AddHangfireInfrastructure(configuration);
+
+        // ---- Centralized SLA / TAT Management Services ----
+        services.AddScoped<ISlaDeadlineCalculator, SlaDeadlineCalculator>();
+        services.AddScoped<ISlaRecipientResolver, SlaRecipientResolver>();
+        services.AddScoped<ISlaPolicyService, SlaPolicyService>();
+        services.AddScoped<ISlaTrackingService, SlaTrackingService>();
+        services.AddTransient<SlaBackgroundJobWorker>();
 
         // ---- FluentValidation validators (scanned from this assembly) ----
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);

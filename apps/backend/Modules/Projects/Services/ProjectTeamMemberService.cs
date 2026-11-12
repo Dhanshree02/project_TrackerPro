@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
@@ -892,6 +893,35 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
             p.Status = mappedStatus;
         }
 
+        var notifCommentsJson = "[]";
+        if (!string.IsNullOrWhiteSpace(request.Comment))
+        {
+            var commentObjs = new[]
+            {
+                new AlertCommentDto
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    AuthorName = actorName,
+                    AuthorEmail = actor?.WorkEmail ?? currentUser.Email ?? "",
+                    Text = request.Comment.Trim(),
+                    At = DateTime.UtcNow.ToString("o")
+                }
+            };
+            notifCommentsJson = JsonSerializer.Serialize(commentObjs);
+        }
+
+        var actionVerb = mappedStatus switch
+        {
+            "Approved" => "accepted",
+            "Rejected" => "rejected",
+            "Hold" => "on hold",
+            "Request Changes" => "on hold",
+            _ => mappedStatus.ToLowerInvariant()
+        };
+        var managerNotifTitle = $"{candidateName} is {actionVerb} for the {projectName}";
+
+        var project = entity.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
+
         if (mappedStatus == "Approved")
         {
             var alreadyInTeam = await db.ProjectTeamMembers
@@ -918,7 +948,6 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
 
                 if (entity.IsTeamLead)
                 {
-                    var project = entity.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
                     if (project != null)
                     {
                         project.TeamLeadId = entity.EmployeeId;
@@ -929,6 +958,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
                 TrySyncTeamMemberToOtherDatabase(teamMember);
             }
 
+            // Notification for the allocated resource
             var resNotif = new ActionNotification
             {
                 Id = Guid.NewGuid(),
@@ -944,6 +974,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
                 RaisedByEmployeeId = actor?.Id,
                 RaisedByName = actorName,
                 RelatedTask = allocTaskCode,
+                CommentsJson = notifCommentsJson,
                 HistoryJson = JsonSerializer.Serialize(new[]
                 {
                     new
@@ -958,75 +989,87 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
             };
             db.ActionNotifications.Add(resNotif);
             createdNotifs.Add(resNotif);
-
-            if (entity.RequestedByEmployeeId.HasValue && entity.RequestedByEmployeeId != actor?.Id)
-            {
-                var reqNotif = new ActionNotification
-                {
-                    Id = Guid.NewGuid(),
-                    RecipientEmployeeId = entity.RequestedByEmployeeId.Value,
-                    ProjectId = projectId,
-                    ProjectCode = entity.Project?.ProjectCode,
-                    ProjectName = projectName,
-                    Title = $"Resource Allocation Approved: {candidateName} for {projectName}",
-                    Type = "Resource Allocation Approval",
-                    Priority = "Low",
-                    Status = "Approved",
-                    Unread = true,
-                    RaisedByEmployeeId = actor?.Id,
-                    RaisedByName = actorName,
-                    RelatedTask = allocTaskCode,
-                    HistoryJson = JsonSerializer.Serialize(new[]
-                    {
-                        new
-                        {
-                            action = $"Allocation approved by {actorName}",
-                            date = DateTime.UtcNow.ToString("yyyy-MM-dd"),
-                            time = DateTime.UtcNow.ToString("HH:mm:ss"),
-                            by = actorName,
-                            status = "Approved"
-                        }
-                    })
-                };
-                db.ActionNotifications.Add(reqNotif);
-                createdNotifs.Add(reqNotif);
-            }
         }
-        else
+
+        // Notify Assigned Project Manager(s), Senior Project Manager(s), and Project Team Lead(s)
+        var projectMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(m => m.ProjectId == projectId && m.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        var managerRecipientIds = new HashSet<Guid>();
+
+        // 1. Project Manager(s)
+        if (project?.ProjectManagerId.HasValue == true)
         {
-            if (entity.RequestedByEmployeeId.HasValue && entity.RequestedByEmployeeId != actor?.Id)
+            managerRecipientIds.Add(project.ProjectManagerId.Value);
+        }
+        foreach (var pm in projectMembers.Where(m => m.MemberRole == ProjectMemberRoles.ProjectManager))
+        {
+            managerRecipientIds.Add(pm.EmployeeId);
+        }
+
+        // 2. Senior Project Manager(s)
+        foreach (var spm in projectMembers.Where(m => m.MemberRole == ProjectMemberRoles.SeniorProjectManager))
+        {
+            managerRecipientIds.Add(spm.EmployeeId);
+        }
+        if (project?.EngagementManagerId.HasValue == true)
+        {
+            managerRecipientIds.Add(project.EngagementManagerId.Value);
+        }
+
+        // 3. Project Team Lead(s)
+        if (project?.TeamLeadId.HasValue == true)
+        {
+            managerRecipientIds.Add(project.TeamLeadId.Value);
+        }
+        foreach (var tl in projectMembers.Where(m => m.IsTeamLead))
+        {
+            managerRecipientIds.Add(tl.EmployeeId);
+        }
+
+        // Also include the original requester if available
+        if (entity.RequestedByEmployeeId.HasValue)
+        {
+            managerRecipientIds.Add(entity.RequestedByEmployeeId.Value);
+        }
+
+        // Candidate resource receives their own specific assignment notification (resNotif above)
+        managerRecipientIds.Remove(entity.EmployeeId);
+
+        foreach (var managerId in managerRecipientIds)
+        {
+            var mgrNotif = new ActionNotification
             {
-                var commentSnippet = !string.IsNullOrWhiteSpace(request.Comment) ? $". Remarks: {request.Comment.Trim()}" : "";
-                var reqNotif = new ActionNotification
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = managerId,
+                ProjectId = projectId,
+                ProjectCode = entity.Project?.ProjectCode,
+                ProjectName = projectName,
+                Title = managerNotifTitle,
+                Type = "Resource Allocation Approval",
+                Priority = "-",
+                Status = mappedStatus,
+                Unread = true,
+                RaisedByEmployeeId = actor?.Id,
+                RaisedByName = actorName,
+                RelatedTask = allocTaskCode,
+                CommentsJson = notifCommentsJson,
+                HistoryJson = JsonSerializer.Serialize(new[]
                 {
-                    Id = Guid.NewGuid(),
-                    RecipientEmployeeId = entity.RequestedByEmployeeId.Value,
-                    ProjectId = projectId,
-                    ProjectCode = entity.Project?.ProjectCode,
-                    ProjectName = projectName,
-                    Title = $"Resource Allocation {mappedStatus}: {candidateName} for {projectName}",
-                    Type = "Resource Allocation Approval",
-                    Priority = "Low",
-                    Status = mappedStatus,
-                    Unread = true,
-                    RaisedByEmployeeId = actor?.Id,
-                    RaisedByName = actorName,
-                    RelatedTask = allocTaskCode,
-                    HistoryJson = JsonSerializer.Serialize(new[]
+                    new
                     {
-                        new
-                        {
-                            action = $"Allocation marked {mappedStatus} by {actorName}{commentSnippet}",
-                            date = DateTime.UtcNow.ToString("yyyy-MM-dd"),
-                            time = DateTime.UtcNow.ToString("HH:mm:ss"),
-                            by = actorName,
-                            status = mappedStatus
-                        }
-                    })
-                };
-                db.ActionNotifications.Add(reqNotif);
-                createdNotifs.Add(reqNotif);
-            }
+                        action = $"Allocation {actionVerb} by {actorName}",
+                        date = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                        time = DateTime.UtcNow.ToString("HH:mm:ss"),
+                        by = actorName,
+                        status = mappedStatus
+                    }
+                })
+            };
+            db.ActionNotifications.Add(mgrNotif);
+            createdNotifs.Add(mgrNotif);
         }
 
         await db.SaveChangesAsync(ct);
@@ -1188,9 +1231,9 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
                 using var cmd = conn.CreateCommand();
                 cmd.CommandText = @"
                     INSERT INTO action.tbl_notifications 
-                    (""Id"", ""RecipientEmployeeId"", ""ProjectId"", ""ProjectCode"", ""ProjectName"", ""Title"", ""Type"", ""Priority"", ""Status"", ""Unread"", ""RaisedByName"", ""RelatedTask"", ""HistoryJson"", ""CreatedAtUtc"")
-                    VALUES (@id, @recip, @pid, @pcode, @pname, @title, @type, @pri, @stat, @unread, @raised, @task, @hist, @created)
-                    ON CONFLICT (""Id"") DO UPDATE SET ""Status"" = EXCLUDED.""Status"", ""HistoryJson"" = EXCLUDED.""HistoryJson"";";
+                    (""Id"", ""RecipientEmployeeId"", ""ProjectId"", ""ProjectCode"", ""ProjectName"", ""Title"", ""Type"", ""Priority"", ""Status"", ""Unread"", ""RaisedByName"", ""RelatedTask"", ""HistoryJson"", ""CommentsJson"", ""CreatedAtUtc"")
+                    VALUES (@id, @recip, @pid, @pcode, @pname, @title, @type, @pri, @stat, @unread, @raised, @task, @hist, @comments, @created)
+                    ON CONFLICT (""Id"") DO UPDATE SET ""Status"" = EXCLUDED.""Status"", ""HistoryJson"" = EXCLUDED.""HistoryJson"", ""CommentsJson"" = EXCLUDED.""CommentsJson"";";
 
                 cmd.Parameters.AddWithValue("id", n.Id);
                 cmd.Parameters.AddWithValue("recip", n.RecipientEmployeeId);
@@ -1205,6 +1248,7 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
                 cmd.Parameters.AddWithValue("raised", (object?)n.RaisedByName ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("task", (object?)n.RelatedTask ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("hist", n.HistoryJson);
+                cmd.Parameters.AddWithValue("comments", (object?)n.CommentsJson ?? "[]");
                 cmd.Parameters.AddWithValue("created", n.CreatedAtUtc);
                 cmd.ExecuteNonQuery();
             }
@@ -1215,7 +1259,10 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
         }
     }
 
-    public async Task<EmployeeWorkloadDto> GetEmployeeWorkloadAsync(Guid employeeId, CancellationToken ct = default)
+    public async Task<EmployeeWorkloadDto> GetEmployeeWorkloadAsync(
+        Guid employeeId,
+        Guid? projectId = null,
+        CancellationToken ct = default)
     {
         var emp = await db.Employees
             .AsNoTracking()
@@ -1229,18 +1276,30 @@ public sealed class ProjectTeamMemberService(AppDbContext db, ICurrentUserServic
         var email = emp?.WorkEmail;
 
         // 1. Assigned Tasks from tbl_project_task_assignments
-        var taskAssignments = await db.ProjectTaskAssignments
+        var taskAssignmentsQuery = db.ProjectTaskAssignments
             .AsNoTracking()
             .Include(a => a.Task)
                 .ThenInclude(t => t!.Project)
-            .Where(a => a.EmployeeId == employeeId && a.IsActive && a.DeletedAtUtc == null && a.Task != null && a.Task.DeletedAtUtc == null)
-            .ToListAsync(ct);
+            .Where(a => a.EmployeeId == employeeId && a.IsActive && a.DeletedAtUtc == null && a.Task != null && a.Task.DeletedAtUtc == null);
+
+        if (projectId.HasValue)
+        {
+            taskAssignmentsQuery = taskAssignmentsQuery.Where(a => a.Task!.ProjectId == projectId.Value);
+        }
+
+        var taskAssignments = await taskAssignmentsQuery.ToListAsync(ct);
 
         // 2. Assigned Tasks from tbl_bucket_tasks
-        var bucketTasks = await db.BucketTasks
+        var bucketTasksQuery = db.BucketTasks
             .AsNoTracking()
-            .Where(b => b.EmployeeId == employeeId && b.DeletedAtUtc == null)
-            .ToListAsync(ct);
+            .Where(b => b.EmployeeId == employeeId && b.DeletedAtUtc == null);
+
+        if (projectId.HasValue)
+        {
+            bucketTasksQuery = bucketTasksQuery.Where(b => b.ProjectId == projectId.Value);
+        }
+
+        var bucketTasks = await bucketTasksQuery.ToListAsync(ct);
 
         var tasks = new List<EmployeeAssignedTaskDto>();
         var seenTaskIds = new HashSet<Guid>();

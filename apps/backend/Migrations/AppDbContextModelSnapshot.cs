@@ -22,6 +22,268 @@ namespace PMS.API.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PMS.API.Modules.ActionCentre.Models.ActionNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CommentsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HistoryJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]");
+
+                    b.Property<Guid?>("IssueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<string>("ProjectCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProjectName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("RaisedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RaisedByName")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasDefaultValue("System");
+
+                    b.Property<Guid>("RecipientEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RelatedTask")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("Issue Raised");
+
+                    b.Property<bool>("Unread")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IssueId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("ProjectId", "DeletedAtUtc");
+
+                    b.HasIndex("RecipientEmployeeId", "DeletedAtUtc");
+
+                    b.ToTable("tbl_notifications", "action");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.ActionCentre.Models.BucketTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("ActualEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("ActualStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("AssignedById")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AssignedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("AssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("DueDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProjectName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("ProjectServiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasDefaultValue("Not Started");
+
+                    b.Property<Guid>("TaskId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TaskTitle")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("TimerAccumulatedSeconds")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("TimerRunning")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("TimerStartedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("UtilizedHours")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssignmentId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("Priority");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ProjectServiceId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("TaskId", "EmployeeId");
+
+                    b.ToTable("tbl_bucket_tasks", "action");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Catalogs.Models.LeaveCalendarHoliday", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("HolidayDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HolidayDate")
+                        .IsUnique()
+                        .HasFilter("\"DeletedAtUtc\" IS NULL");
+
+                    b.HasIndex("Year")
+                        .HasFilter("\"DeletedAtUtc\" IS NULL");
+
+                    b.ToTable("mst_leave_calendar", "master");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Catalogs.Models.MstModule", b =>
                 {
                     b.Property<Guid>("Id")
@@ -689,6 +951,10 @@ namespace PMS.API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Abbreviation")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1104,6 +1370,320 @@ namespace PMS.API.Migrations
                     b.ToTable("tbl_projects", "project");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectAdditionalRequirement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovalComments")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ApprovedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApprovedByName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("AttachmentFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("AttachmentPath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ClientName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("CommentsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("HistoryJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Medium");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProjectName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("RequestedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestedByName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateOnly>("RequestedDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RequirementId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RequirementType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Add Service");
+
+                    b.Property<string>("ScopeCancellationService")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Open");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("tbl_project_additional_requirements", "project");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AlertType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("AttachmentFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("AttachmentPath")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AudienceUserIds")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ChatJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EscalatedTo")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EscalationOwner")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EscalationType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ExpectedResolutionDate")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("HistoryJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("IssueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Owner")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RaisedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RaisedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ResolutionDetails")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResolutionOwner")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("ServiceEscalationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ServiceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("StatusChangedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("StatusChangedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IssueId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RaisedByEmployeeId");
+
+                    b.ToTable("tbl_project_alerts", "project");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectAppreciation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Badge")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("Star Performer");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("GivenByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("GivenByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecipientEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("RecipientEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RecipientRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RecipientEmployeeId");
+
+                    b.ToTable("tbl_project_appreciations", "project");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectDocument", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1294,6 +1874,9 @@ namespace PMS.API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CommentsJson")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -1308,6 +1891,9 @@ namespace PMS.API.Migrations
 
                     b.Property<int>("ExtensionDays")
                         .HasColumnType("integer");
+
+                    b.Property<string>("HistoryJson")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
@@ -1343,6 +1929,108 @@ namespace PMS.API.Migrations
                     b.HasIndex("ProjectId");
 
                     b.ToTable("tbl_project_extension_requests", "project");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectFeedback", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AreasOfImprovement")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Comments")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CommentsJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EmployeeCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EmployeeName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("FeedbackType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("DirectFeedback");
+
+                    b.Property<string>("HistoryJson")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("ReportingManagerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReportingManagerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RequestNote")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Submitted");
+
+                    b.Property<string>("Strengths")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("SubmittedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SubmittedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("FeedbackType");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ReportingManagerId");
+
+                    b.ToTable("tbl_project_feedbacks", "project");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectInterview", b =>
@@ -1452,6 +2140,9 @@ namespace PMS.API.Migrations
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ProjectServiceId")
+                        .HasColumnType("uuid");
+
                     b.Property<int?>("Qty")
                         .HasColumnType("integer");
 
@@ -1498,9 +2189,177 @@ namespace PMS.API.Migrations
 
                     b.HasIndex("ProjectId");
 
+                    b.HasIndex("ProjectServiceId");
+
                     b.HasIndex("Status");
 
                     b.ToTable("tbl_project_invoices", "project");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectIssue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IssueType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ProjectCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProjectName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<Guid?>("RaisedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RaisedByName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RaisedByRole")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RaisedByEmployeeId");
+
+                    b.ToTable("tbl_project_issues", "project");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectResourceAllocationRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("AllocationEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("AllocationStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("ApproverEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApproverName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Billability")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CommentsJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("HistoryJson")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsShadowTeam")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTeamLead")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RequestedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestedByName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ResourceType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SubDepartment")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApproverEmployeeId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("tbl_resource_allocation_requests", "project");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectServiceEntity", b =>
@@ -1519,6 +2378,13 @@ namespace PMS.API.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasDefaultValue("Advance Pending");
+
+                    b.Property<string>("ChangeStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("Active");
 
                     b.Property<string>("CollectionStatus")
                         .IsRequired()
@@ -1578,6 +2444,35 @@ namespace PMS.API.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("ModBillingStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ModCollectionStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<bool?>("ModIsReady")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModValidationStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int?>("OriginalQty")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PendingQty")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PendingResourceLevel")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<decimal?>("PendingUnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uuid");
 
@@ -1587,6 +2482,10 @@ namespace PMS.API.Migrations
                     b.Property<string>("ResourceLevel")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
+
+                    b.Property<string>("ServiceAbbreviation")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid?>("ServiceCatalogId")
                         .HasColumnType("uuid");
@@ -1674,6 +2573,9 @@ namespace PMS.API.Migrations
 
                     b.Property<long?>("AttachmentSizeBytes")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("ChatJson")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -1872,6 +2774,9 @@ namespace PMS.API.Migrations
                         .IsRequired()
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)");
+
+                    b.Property<string>("TaskType")
+                        .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -3859,6 +4764,402 @@ namespace PMS.API.Migrations
                     b.ToTable("mst_onfloorrole_sub_departments", "master");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Sla.Models.SlaEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdatutc");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("createdby");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deletedatutc");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("eventtype");
+
+                    b.Property<DateTime?>("ExecutedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("executedatutc");
+
+                    b.Property<string>("ExecutionLog")
+                        .HasColumnType("text")
+                        .HasColumnName("executionlog");
+
+                    b.Property<string>("HangfireJobId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("hangfirejobid");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("idempotencykey");
+
+                    b.Property<Guid>("InstanceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("instanceid");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("retrycount");
+
+                    b.Property<DateTime?>("ScheduledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("scheduledatutc");
+
+                    b.Property<string>("StageAtExecution")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("Default")
+                        .HasColumnName("stageatexecution");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Scheduled")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TargetRecipientIdsJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]")
+                        .HasColumnName("targetrecipientidsjson");
+
+                    b.Property<string>("TargetRolesJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]")
+                        .HasColumnName("targetrolesjson");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedatutc");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updatedby");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HangfireJobId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("idempotencykey IS NOT NULL AND deletedatutc IS NULL");
+
+                    b.HasIndex("ScheduledAtUtc");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("InstanceId", "EventType");
+
+                    b.ToTable("tbl_sla_events", "sla");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Sla.Models.SlaInstance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActiveHangfireJobId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("activehangfirejobid");
+
+                    b.Property<string>("ActivityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("activitytype");
+
+                    b.Property<DateTime?>("BreachedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("breachedatutc");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelledatutc");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completedatutc");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdatutc");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("createdby");
+
+                    b.Property<string>("CurrentStage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("Default")
+                        .HasColumnName("currentstage");
+
+                    b.Property<string>("CustomPayloadJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("{}")
+                        .HasColumnName("custompayloadjson");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deletedatutc");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entityid");
+
+                    b.Property<string>("EntityReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("entityreference");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("module");
+
+                    b.Property<DateTime?>("PausedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("pausedatutc");
+
+                    b.Property<Guid>("PolicyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("policyid");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Medium")
+                        .HasColumnName("priority");
+
+                    b.Property<Guid?>("ProjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("projectid");
+
+                    b.Property<Guid?>("RecipientEmployeeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("recipientemployeeid");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("startedatutc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("Tracking")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("TargetDeadlineUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("targetdeadlineutc");
+
+                    b.Property<int>("TotalPausedSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("totalpausedseconds");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedatutc");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updatedby");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PolicyId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("RecipientEmployeeId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("TargetDeadlineUtc");
+
+                    b.HasIndex("EntityId", "ActivityType", "DeletedAtUtc");
+
+                    b.ToTable("tbl_sla_instances", "sla");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Sla.Models.SlaPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ActivityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("activitytype");
+
+                    b.Property<string>("CalculationMode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("WorkingHours")
+                        .HasColumnName("calculationmode");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdatutc");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("createdby");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deletedatutc");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<bool>("ExcludeHolidays")
+                        .HasColumnType("boolean")
+                        .HasColumnName("excludeholidays");
+
+                    b.Property<bool>("ExcludeWeekends")
+                        .HasColumnType("boolean")
+                        .HasColumnName("excludeweekends");
+
+                    b.Property<int?>("FirstEscalationAfterMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("firstescalationafterminutes");
+
+                    b.Property<string>("FirstEscalationRolesJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]")
+                        .HasColumnName("firstescalationrolesjson");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isactive");
+
+                    b.Property<string>("MetadataJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("{}")
+                        .HasColumnName("metadatajson");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("module");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("ReminderIntervalsMinutesJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]")
+                        .HasColumnName("reminderintervalsminutesjson");
+
+                    b.Property<string>("ResponsibleRolesJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]")
+                        .HasColumnName("responsiblerolesjson");
+
+                    b.Property<int?>("SecondEscalationAfterMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("secondescalationafterminutes");
+
+                    b.Property<string>("SecondEscalationRolesJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]")
+                        .HasColumnName("secondescalationrolesjson");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("Default")
+                        .HasColumnName("stage");
+
+                    b.Property<int>("TatDurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("tatdurationminutes");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedatutc");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("updatedby");
+
+                    b.Property<TimeSpan?>("WorkingHoursEnd")
+                        .HasColumnType("interval")
+                        .HasColumnName("workinghoursend");
+
+                    b.Property<TimeSpan?>("WorkingHoursStart")
+                        .HasColumnType("interval")
+                        .HasColumnName("workinghoursstart");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityType");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Module", "ActivityType", "Stage", "DeletedAtUtc")
+                        .IsUnique();
+
+                    b.ToTable("tbl_sla_policies", "sla");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Timesheets.Models.TimesheetEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4111,6 +5412,60 @@ namespace PMS.API.Migrations
                     b.ToTable("tbl_roles", "auth");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Users.Models.RolePermission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("CanManage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0);
+
+                    b.Property<short>("CanView")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0);
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ItemType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("RoleId", "ItemId")
+                        .IsUnique();
+
+                    b.ToTable("tbl_role_permissions", "auth");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Users.Models.RolePermissionAudit", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4283,6 +5638,72 @@ namespace PMS.API.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("tbl_users", "auth");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.ActionCentre.Models.ActionNotification", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectIssue", "Issue")
+                        .WithMany()
+                        .HasForeignKey("IssueId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "RecipientEmployee")
+                        .WithMany()
+                        .HasForeignKey("RecipientEmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Issue");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("RecipientEmployee");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.ActionCentre.Models.BucketTask", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectTaskAssignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectServiceEntity", "ProjectService")
+                        .WithMany()
+                        .HasForeignKey("ProjectServiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectTask", "Task")
+                        .WithMany()
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("ProjectService");
+
+                    b.Navigation("Task");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Catalogs.Models.MstSubModule", b =>
@@ -4541,6 +5962,53 @@ namespace PMS.API.Migrations
                     b.Navigation("TeamLead");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectAdditionalRequirement", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectAlert", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectIssue", "Issue")
+                        .WithMany("Alerts")
+                        .HasForeignKey("IssueId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "RaisedByEmployee")
+                        .WithMany()
+                        .HasForeignKey("RaisedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Issue");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("RaisedByEmployee");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectAppreciation", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectDocument", b =>
                 {
                     b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
@@ -4574,6 +6042,17 @@ namespace PMS.API.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectFeedback", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectInterview", b =>
                 {
                     b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
@@ -4592,6 +6071,56 @@ namespace PMS.API.Migrations
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectServiceEntity", "ProjectService")
+                        .WithMany()
+                        .HasForeignKey("ProjectServiceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Project");
+
+                    b.Navigation("ProjectService");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectIssue", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "RaisedByEmployee")
+                        .WithMany()
+                        .HasForeignKey("RaisedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Project");
+
+                    b.Navigation("RaisedByEmployee");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectResourceAllocationRequest", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Resources.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId");
+
+                    b.HasOne("PMS.API.Modules.Resources.Models.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMS.API.Modules.Projects.Models.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("Employee");
 
                     b.Navigation("Project");
                 });
@@ -4993,6 +6522,28 @@ namespace PMS.API.Migrations
                     b.Navigation("SubDepartment");
                 });
 
+            modelBuilder.Entity("PMS.API.Modules.Sla.Models.SlaEvent", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Sla.Models.SlaInstance", "Instance")
+                        .WithMany("Events")
+                        .HasForeignKey("InstanceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Instance");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Sla.Models.SlaInstance", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Sla.Models.SlaPolicy", "Policy")
+                        .WithMany("Instances")
+                        .HasForeignKey("PolicyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Policy");
+                });
+
             modelBuilder.Entity("PMS.API.Modules.Timesheets.Models.TimesheetEntry", b =>
                 {
                     b.HasOne("PMS.API.Modules.Timesheets.Models.TimesheetWeek", "TimesheetWeek")
@@ -5035,6 +6586,17 @@ namespace PMS.API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Users.Models.RolePermission", b =>
+                {
+                    b.HasOne("PMS.API.Modules.Users.Models.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Users.Models.RolePermissionAudit", b =>
@@ -5082,16 +6644,6 @@ namespace PMS.API.Migrations
                     b.Navigation("Contacts");
                 });
 
-            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectExtensionRequest", b =>
-                {
-                    b.Navigation("Approvers");
-                });
-
-            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectServiceEscalation", b =>
-                {
-                    b.Navigation("Stakeholders");
-                });
-
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.MstServiceDepartment", b =>
                 {
                     b.Navigation("SubDepartments");
@@ -5105,6 +6657,21 @@ namespace PMS.API.Migrations
             modelBuilder.Entity("PMS.API.Modules.Projects.Models.MstServiceSubDepartment", b =>
                 {
                     b.Navigation("Services");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectExtensionRequest", b =>
+                {
+                    b.Navigation("Approvers");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectIssue", b =>
+                {
+                    b.Navigation("Alerts");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Projects.Models.ProjectServiceEscalation", b =>
+                {
+                    b.Navigation("Stakeholders");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Repository.Models.RepositoryItem", b =>
@@ -5125,6 +6692,16 @@ namespace PMS.API.Migrations
             modelBuilder.Entity("PMS.API.Modules.Resources.Models.MstWorkLocation", b =>
                 {
                     b.Navigation("Offices");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Sla.Models.SlaInstance", b =>
+                {
+                    b.Navigation("Events");
+                });
+
+            modelBuilder.Entity("PMS.API.Modules.Sla.Models.SlaPolicy", b =>
+                {
+                    b.Navigation("Instances");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.Timesheets.Models.TimesheetEntry", b =>

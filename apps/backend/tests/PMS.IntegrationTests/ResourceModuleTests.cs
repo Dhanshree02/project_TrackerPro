@@ -15,7 +15,7 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
     public ResourceModuleTests(WebApplicationFactory<Program> factory)
     {
         factory = factory.WithWebHostBuilder(b =>
-            b.UseSetting("Database:AutoMigrate", "true"));
+            b.UseSetting("Database:AutoMigrate", "false"));
         _client = factory.CreateClient();
     }
 

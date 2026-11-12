@@ -168,6 +168,19 @@ public class ActionCentreController : ControllerBase
         return Ok(ApiResponse<ActionNotificationDto>.Ok(updated));
     }
 
+    /// <summary>
+    /// Archives an Action Centre notification (moves it to the Archive tab by setting its status to Acknowledged).
+    /// </summary>
+    [HttpPut("notifications/{id:guid}/archive")]
+    [RequireRbac(RbacCatalogCodes.ActionNotifications, RbacAccessType.View)]
+    public async Task<ActionResult<ApiResponse<ActionNotificationDto>>> ArchiveNotification(
+        Guid id,
+        [FromBody] ArchiveNotificationRequest? request,
+        CancellationToken ct = default)
+    {
+        var updated = await _notificationService.ArchiveNotificationAsync(id, request?.Comment, ct);
+        return Ok(ApiResponse<ActionNotificationDto>.Ok(updated));
+    }
     // ── Alerts ───────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -254,5 +267,30 @@ public class ActionCentreController : ControllerBase
     {
         var result = await teamMemberService.TakeAllocationActionAsync(projectId, id, request, ct);
         return Ok(ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectResourceAllocationRequestDto>.Ok(result));
+    }
+    /// <summary>
+    /// Gets pending feedback request approvals for the current reporting manager.
+    /// </summary>
+    [HttpGet("feedback-approvals")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectFeedbackDto>>>> GetPendingFeedbackApprovals(
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectFeedbackService feedbackService,
+        CancellationToken ct = default)
+    {
+        var items = await feedbackService.ListPendingApprovalsAsync(ct);
+        return Ok(ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectFeedbackDto>>.Ok(items));
+    }
+
+    /// <summary>
+    /// Takes action (Approve, Reject, Hold, Request Changes) on a feedback approval request.
+    /// </summary>
+    [HttpPost("feedback-approvals/{id:guid}/action")]
+    public async Task<ActionResult<ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectFeedbackDto>>> TakeFeedbackApprovalAction(
+        Guid id,
+        [FromBody] PMS.API.Modules.Projects.DTOs.FeedbackApprovalActionRequest request,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectFeedbackService feedbackService,
+        CancellationToken ct = default)
+    {
+        var result = await feedbackService.TakeApprovalActionAsync(id, request, ct);
+        return Ok(ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectFeedbackDto>.Ok(result));
     }
 }

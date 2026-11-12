@@ -14,7 +14,7 @@ public class CatalogModuleTests : IClassFixture<WebApplicationFactory<Program>>
     public CatalogModuleTests(WebApplicationFactory<Program> factory)
     {
         factory = factory.WithWebHostBuilder(b =>
-            b.UseSetting("Database:AutoMigrate", "true"));
+            b.UseSetting("Database:AutoMigrate", "false"));
         _client = factory.CreateClient();
     }
 

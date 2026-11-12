@@ -7,13 +7,17 @@ using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Resources.Models;
+using PMS.API.Modules.Sla.DTOs;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Sla.Services;
 using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.Projects.Services;
 
 public sealed class ProjectIssueService(
     AppDbContext db,
-    ICurrentUserService currentUser) : IProjectIssueService
+    ICurrentUserService currentUser,
+    ISlaTrackingService slaTrackingService) : IProjectIssueService
 {
     private static readonly string[] AllowedPriorities = ["Low", "Medium", "High", "Critical"];
 
@@ -249,21 +253,40 @@ public sealed class ProjectIssueService(
 
         var audienceIds = recipientEmpIds.Select(id => id.ToString()).Distinct().ToList();
 
-        var alert = new ProjectAlert
+        // Query stakeholder employee details for the escalation record
+        var stakeholderEmployees = await db.Employees
+            .AsNoTracking()
+            .Where(e => recipientEmpIds.Contains(e.Id))
+            .ToListAsync(ct);
+
+        var escalation = new ProjectServiceEscalation
         {
             ProjectId = projectId,
-            Issue = issue,
-            Title = subject,
-            Description = description,
-            AlertType = "Issue",
+            ProjectCode = project.ProjectCode,
+            ProjectName = project.Name,
+            CustomerName = project.Client?.Name,
+            ServiceName = !string.IsNullOrWhiteSpace(issueType) ? issueType : "Technical Related Issues",
+            EscalationType = !string.IsNullOrWhiteSpace(issueType) ? issueType : "Issue",
             Priority = priority,
+            Subject = subject,
+            Description = description,
             Status = "Open",
             RaisedByEmployeeId = employee?.Id,
             RaisedByName = raiserName,
-            AudienceUserIds = JsonSerializer.Serialize(audienceIds),
+            Stakeholders = stakeholderEmployees
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
+                .Select(e => new ProjectServiceEscalationStakeholder
+                {
+                    EmployeeId = e.Id,
+                    EmployeeName = $"{e.FirstName} {e.LastName}".Trim(),
+                    SubDepartment = e.SubDepartment?.Trim() ?? "Project Team",
+                    Status = "Pending"
+                })
+                .ToList()
         };
 
-        db.ProjectAlerts.Add(alert);
+        db.ProjectServiceEscalations.Add(escalation);
 
         var now = DateTime.UtcNow;
         var dateStr = now.ToString("yyyy-MM-dd");
@@ -278,6 +301,28 @@ public sealed class ProjectIssueService(
                 by = raiserName
             }
         });
+
+        var alert = new ProjectAlert
+        {
+            ProjectId = projectId,
+            Issue = issue,
+            ServiceEscalationId = escalation.Id,
+            ServiceName = escalation.ServiceName,
+            EscalationType = escalation.EscalationType,
+            Title = subject,
+            Description = description,
+            AlertType = "Issue",
+            Priority = priority,
+            Status = "Open",
+            RaisedByEmployeeId = employee?.Id,
+            RaisedByName = raiserName,
+            AudienceUserIds = JsonSerializer.Serialize(audienceIds),
+            HistoryJson = defaultHistoryJson,
+            CreatedAtUtc = now,
+            EscalatedTo = JsonSerializer.Serialize(stakeholderEmployees.Select(e => $"{e.FirstName} {e.LastName}".Trim()).ToList())
+        };
+
+        db.ProjectAlerts.Add(alert);
 
         foreach (var recipientId in recipientEmpIds)
         {
@@ -302,6 +347,42 @@ public sealed class ProjectIssueService(
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Start centralized TAT/SLA tracking for the Issue Resolution workflow
+        try
+        {
+            var slaPriority = issue.Priority?.ToLowerInvariant() switch
+            {
+                "low" => SlaPriority.Low,
+                "high" => SlaPriority.High,
+                "critical" => SlaPriority.Critical,
+                _ => SlaPriority.Medium
+            };
+
+            await slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                Module: "Projects",
+                ActivityType: "Resolution of Issues",
+                EntityId: issue.Id,
+                EntityReference: issue.Subject,
+                Stage: "Open",
+                Priority: slaPriority,
+                RecipientEmployeeId: null,
+                ProjectId: projectId,
+                CustomPayloadJson: JsonSerializer.Serialize(new
+                {
+                    issueId = issue.Id,
+                    alertId = alert.Id,
+                    serviceEscalationId = alert.ServiceEscalationId,
+                    issueType = issue.IssueType,
+                    raisedBy = raiserName
+                }),
+                CustomStartTimeUtc: issue.CreatedAtUtc
+            ), ct);
+        }
+        catch
+        {
+            // Logging or non-fatal fallback so SLA scheduling doesn't block issue creation
+        }
 
         return MapIssue(issue);
     }
@@ -354,19 +435,48 @@ public sealed class ProjectIssueService(
             ? []
             : (JsonSerializer.Deserialize<List<NotificationHistoryItemDto>>(alert.HistoryJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? []);
         var now = DateTime.UtcNow;
-        history.Add(new NotificationHistoryItemDto
+
+        var previousIssueStatus = alert.Issue?.Status;
+        var wasClosedOrResolved = alert.Issue is not null &&
+            (alert.Issue.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase) ||
+             alert.Issue.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase));
+
+        var isReopening = wasClosedOrResolved &&
+            (normalizedStatus.Equals("Open", StringComparison.OrdinalIgnoreCase) ||
+             normalizedStatus.Equals("Acknowledged", StringComparison.OrdinalIgnoreCase));
+
+        if (isReopening)
         {
-            Action = $"Status transitioned to {normalizedStatus}",
-            Date = now.ToString("yyyy-MM-dd"),
-            Time = now.ToString("HH:mm:ss"),
-            By = userName
-        });
+            history.Add(new NotificationHistoryItemDto
+            {
+                Action = $"Issue reopened (Status transitioned from '{previousIssueStatus}' to '{normalizedStatus}'). SLA history preserved (Audit Only).",
+                Date = now.ToString("yyyy-MM-dd"),
+                Time = now.ToString("HH:mm:ss"),
+                By = userName
+            });
+        }
+        else
+        {
+            history.Add(new NotificationHistoryItemDto
+            {
+                Action = $"Status transitioned to {normalizedStatus}",
+                Date = now.ToString("yyyy-MM-dd"),
+                Time = now.ToString("HH:mm:ss"),
+                By = userName
+            });
+        }
         alert.HistoryJson = JsonSerializer.Serialize(history);
 
-        // If alert is linked to an issue, and alert is resolved/closed, sync issue status
+        // Sync linked Issue status
         if (alert.Issue is not null)
         {
-            if (normalizedStatus.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
+            if (isReopening)
+            {
+                // Option C: Update existing issue status, record audit, do NOT start new SLA or reminders
+                alert.Issue.Status = normalizedStatus.Equals("Acknowledged", StringComparison.OrdinalIgnoreCase) ? "In Progress" : "Open";
+                alert.Issue.UpdatedAtUtc = DateTime.UtcNow;
+            }
+            else if (normalizedStatus.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
             {
                 alert.Issue.Status = "Resolved";
                 alert.Issue.UpdatedAtUtc = DateTime.UtcNow;
@@ -376,9 +486,43 @@ public sealed class ProjectIssueService(
                 alert.Issue.Status = "In Progress";
                 alert.Issue.UpdatedAtUtc = DateTime.UtcNow;
             }
+            else if (normalizedStatus.Equals("Closed", StringComparison.OrdinalIgnoreCase))
+            {
+                alert.Issue.Status = "Closed";
+                alert.Issue.UpdatedAtUtc = DateTime.UtcNow;
+            }
+        }
+
+        // If alert is linked to an escalation, sync escalation status
+        if (alert.ServiceEscalationId.HasValue)
+        {
+            var esc = await db.ProjectServiceEscalations.FirstOrDefaultAsync(e => e.Id == alert.ServiceEscalationId.Value, ct);
+            if (esc != null)
+            {
+                esc.Status = normalizedStatus;
+                esc.UpdatedAtUtc = DateTime.UtcNow;
+            }
         }
 
         await db.SaveChangesAsync(ct);
+
+        // When resolved or closed, complete SLA tracking and cancel pending Hangfire jobs
+        if (normalizedStatus.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || normalizedStatus.Equals("Closed", StringComparison.OrdinalIgnoreCase))
+        {
+            var targetIssueId = alert.IssueId ?? alert.Issue?.Id;
+            if (targetIssueId.HasValue)
+            {
+                try
+                {
+                    await slaTrackingService.CompleteTrackingAsync(targetIssueId.Value, "Resolution of Issues", ct);
+                }
+                catch
+                {
+                    // Non-fatal
+                }
+            }
+        }
+
         return MapAlert(alert);
     }
 
@@ -461,6 +605,11 @@ public sealed class ProjectIssueService(
             row.CreatedAtUtc,
             statusChangedBy,
             row.StatusChangedAtUtc ?? (row.Status != "Open" ? row.UpdatedAtUtc : null),
-            row.ResolutionOwner);
+            row.ResolutionOwner,
+            row.ServiceEscalationId,
+            row.ChatJson,
+            row.HistoryJson,
+            row.ServiceName,
+            row.EscalationType);
     }
 }
