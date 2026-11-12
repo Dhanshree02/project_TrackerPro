@@ -599,12 +599,12 @@ export function MyTeamPage() {
     roster === "all" ? "all-employees" : roster === "team" ? "9854b7f3-0001-4000-8000-000000000001" : "my-reportees";
 
   const canManageActiveRoster =
-    !isPeerTeamView &&
-    (isAdmin ||
-      isDhanshree ||
-      (hasChildRosterConfig
-        ? canManage(activeRosterCode)
-        : canManage(activeRosterCode) || canManage("team-dashboard")));
+    isAdmin ||
+    (!isPeerTeamView &&
+      (isDhanshree ||
+        (hasChildRosterConfig
+          ? canManage(activeRosterCode)
+          : canManage(activeRosterCode) || canManage("team-dashboard"))));
 
   const visibleRosterTabs = useMemo(() => {
     return rosterTabs.filter((tab) => {
@@ -1013,6 +1013,7 @@ export function MyTeamPage() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const isLockedMemberKey = (memberId: string, dateKey: string) => {
+    if (isAdmin) return false;
     if (!canManageActiveRoster) return true;
     const memberConfig = memberConfigs[memberId] || DEFAULT_MEMBER_SCHEDULE_CONFIG;
     const isHoliday = memberConfig.holidays.some((h) => h.date === dateKey) || companyHolidaysMap.has(dateKey);
@@ -1022,7 +1023,7 @@ export function MyTeamPage() {
   };
 
   const handleSaveMemberSchedule = (memberId: string, updatedConfig: MemberScheduleConfig) => {
-    if (roster === "team" || !canManageActiveRoster) {
+    if ((!isAdmin && roster === "team") || !canManageActiveRoster) {
       toast.error("You don't have permission to modify schedules");
       return;
     }
@@ -1087,7 +1088,7 @@ export function MyTeamPage() {
   };
 
   const writeShift = (memberId: string, dateKeys: string[], shift: ShiftType | undefined) => {
-    if (roster === "team" || !canManageActiveRoster) return;
+    if ((!isAdmin && roster === "team") || !canManageActiveRoster) return;
     setTeamSchedule((current) =>
       applyShiftToMemberDates(current, memberId, dateKeys, shift, (dateKey) =>
         isLockedMemberKey(memberId, dateKey),
@@ -1100,7 +1101,7 @@ export function MyTeamPage() {
   };
 
   const handleCellToggle = (memberId: string, date: Date, shiftKey: boolean) => {
-    if (roster === "team" || !canManageActiveRoster) return;
+    if ((!isAdmin && roster === "team") || !canManageActiveRoster) return;
     const dateKey = makeDateKeyFromDate(date);
     if (isLockedMemberKey(memberId, dateKey)) return;
 
@@ -1126,7 +1127,7 @@ export function MyTeamPage() {
     date: Date,
     type: SelectableAttendanceType,
   ) => {
-    if (roster === "team" || !canManageActiveRoster) return;
+    if ((!isAdmin && roster === "team") || !canManageActiveRoster) return;
     const dateKey = makeDateKeyFromDate(date);
     const existing = teamSchedule[memberId]?.[dateKey];
     setTeamSchedule((current) => {
@@ -1180,7 +1181,7 @@ export function MyTeamPage() {
     date: Date,
     shift: ShiftType | "clear",
   ) => {
-    if (roster === "team" || !canManageActiveRoster) return;
+    if ((!isAdmin && roster === "team") || !canManageActiveRoster) return;
     const dateKey = makeDateKeyFromDate(date);
     const currentEvent = teamSchedule[memberId]?.[dateKey];
     // If user assigns a shift to a day that was on leave, clear leave so it becomes active
@@ -1208,7 +1209,7 @@ export function MyTeamPage() {
   };
 
   const handleApplyWeek = (memberId: string, date: Date) => {
-    if (roster === "team" || !canManageActiveRoster) return;
+    if ((!isAdmin && roster === "team") || !canManageActiveRoster) return;
     const keys = getMonFriKeys(date);
     const existingShift = teamSchedule[memberId]?.[makeDateKeyFromDate(date)]?.shift;
     const shift = existingShift ?? lastUsedShift ?? DEFAULT_SHIFT;
@@ -1556,7 +1557,7 @@ export function MyTeamPage() {
                   />
                   {visibleMembers.map((member, memberIdx) => {
                     const viewOnly =
-                      roster === "team" ||
+                      (!isAdmin && roster === "team") ||
                       (!isAdmin &&
                         (!canManageActiveRoster ||
                           (roster === "reportees" && member.directReport === false) ||
@@ -1690,7 +1691,7 @@ export function MyTeamPage() {
 
                   {visibleMembers.map((member, memberIdx) => {
                     const viewOnly =
-                      roster === "team" ||
+                      (!isAdmin && roster === "team") ||
                       (!isAdmin &&
                         (!canManageActiveRoster ||
                           (roster === "reportees" && member.directReport === false) ||
@@ -1736,6 +1737,7 @@ export function MyTeamPage() {
                               isPast={date < today}
                               readOnly={viewOnly}
                               isHoliday={isHoliday}
+                              isAdmin={isAdmin}
                               isToday={dateKey === todayKey}
                               isLastRow={isLastRow}
                               holidayName={holidayName}

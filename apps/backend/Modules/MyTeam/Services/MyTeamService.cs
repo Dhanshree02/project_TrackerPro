@@ -152,7 +152,9 @@ public sealed class MyTeamService(
         var employee = await RequireTeamMemberAsync(request.EmployeeId, ct);
         var dates = request.Dates.Distinct().ToList();
         var today = TodayInIst();
-        if (dates.Any(d => d < today))
+        var isAdmin = string.Equals(currentUser.Role, "Admin", StringComparison.OrdinalIgnoreCase);
+
+        if (!isAdmin && dates.Any(d => d < today))
         {
             throw new ValidationException([new ValidationFailure("dates", "Past dates cannot be changed.")]);
         }
@@ -165,7 +167,7 @@ public sealed class MyTeamService(
             .Where(h => h.DeletedAtUtc == null && dates.Contains(h.HolidayDate))
             .Select(h => h.HolidayDate)
             .ToListAsync(ct);
-        if (holidayDates.Count > 0 || companyHolidayDates.Count > 0)
+        if (!isAdmin && (holidayDates.Count > 0 || companyHolidayDates.Count > 0))
         {
             throw new ValidationException([new ValidationFailure("dates", "Holiday dates cannot be changed.")]);
         }

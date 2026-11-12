@@ -40,6 +40,8 @@ interface CalendarDayCellProps {
   readOnly?: boolean;
   /** This date has been declared a holiday for this employee */
   isHoliday: boolean;
+  /** Admin role can freely edit any date, including past and holiday dates */
+  isAdmin?: boolean;
   /** Name of the holiday to show on hover */
   holidayName?: string;
   /** Optional comment or reason for this employee's holiday */
@@ -66,6 +68,7 @@ function buildTooltip(args: {
   holidayName?: string;
   holidayComment?: string;
   isPast: boolean;
+  isAdmin?: boolean;
   isWeeklyOff?: boolean;
   attendanceLabel?: string;
   shift?: ShiftType;
@@ -76,7 +79,7 @@ function buildTooltip(args: {
     ? ` · Blocked: ${args.dayAllocation.projectName} (${args.dayAllocation.allocationType}: ${formatDateDMY(args.dayAllocation.allocationStartDate)} → ${formatDateDMY(args.dayAllocation.allocationEndDate)})`
     : "";
 
-  if (args.isHoliday && args.holidayName) {
+  if (args.isHoliday && args.holidayName && !args.attendanceLabel) {
     const commentPart = args.holidayComment ? ` (${args.holidayComment})` : "";
     return `Holiday: ${args.holidayName}${commentPart} · ${dmy}${allocSuffix}`;
   }
@@ -92,7 +95,7 @@ function buildTooltip(args: {
         ? "Weekly Off"
         : "Available to schedule");
 
-  if (args.isPast && !args.attendanceLabel && !args.shift) {
+  if (!args.isAdmin && args.isPast && !args.attendanceLabel && !args.shift) {
     return `Past date (Read only) · ${dmy}${allocSuffix}`;
   }
 
@@ -109,6 +112,7 @@ export function CalendarDayCell({
   isPast,
   readOnly = false,
   isHoliday,
+  isAdmin = false,
   holidayName,
   holidayComment,
   isWeeklyOff,
@@ -128,20 +132,24 @@ export function CalendarDayCell({
   const isWeekend = isWeeklyOff !== undefined ? isWeeklyOff : isWeekendDate(date);
   const event = getEventByDate(schedule, memberId, date, isWeekend);
   const rawAttendanceType = event?.type;
-  const attendanceType =
-    isHoliday || rawAttendanceType === "holiday" ? undefined : rawAttendanceType;
+  const hasExplicitAttendance = Boolean(rawAttendanceType && rawAttendanceType !== "holiday");
+  const attendanceType = hasExplicitAttendance ? (rawAttendanceType as AttendanceType) : undefined;
   const isLeave = attendanceType === "leave" || rawAttendanceType === "leave";
-  // On leave or holiday, people have NO shift data ("G" is removed)
-  const displayShift = isLeave || isHoliday ? undefined : (event?.shift ?? DEFAULT_SHIFT);
-  const isLocked = isPast || isHoliday || readOnly;
+  // On leave or unassigned holiday, people have NO shift data ("G" is removed)
+  const displayShift = isLeave || (isHoliday && !hasExplicitAttendance && !event?.shift)
+    ? undefined
+    : (event?.shift ?? DEFAULT_SHIFT);
+  const isLocked = readOnly || (isAdmin ? false : isPast || isHoliday);
 
   const activeHolidayColor = attendanceMeta.holiday.solid;
 
-  const attendanceLabel = isHoliday
-    ? (holidayName ? `Holiday: ${holidayName}` : "Holiday")
-    : attendanceType
-      ? event?.title ?? attendanceMeta[attendanceType].label
-      : undefined;
+  const attendanceLabel = hasExplicitAttendance && attendanceType
+    ? event?.title ?? attendanceMeta[attendanceType].label
+    : isHoliday
+      ? (holidayName ? `Holiday: ${holidayName}` : "Holiday")
+      : attendanceType
+        ? event?.title ?? attendanceMeta[attendanceType].label
+        : undefined;
 
   const tooltipTitle = buildTooltip({
     memberName,
@@ -150,6 +158,7 @@ export function CalendarDayCell({
     holidayName,
     holidayComment,
     isPast,
+    isAdmin,
     isWeeklyOff: isWeekend,
     attendanceLabel,
     shift: displayShift,
@@ -209,26 +218,28 @@ export function CalendarDayCell({
                   ? "ring-2 ring-[#5a49b8]/50 ring-offset-1"
                   : "focus:ring-2 focus:ring-[#5a49b8]/40"
               } ${
-                isHoliday
-                  ? "cursor-not-allowed font-bold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
-                  : isLocked
-                    ? "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
-                    : attendanceType
-                      ? "text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)] font-bold"
+                isLocked
+                  ? isHoliday
+                    ? "cursor-not-allowed font-bold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
+                    : "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
+                  : attendanceType
+                    ? "text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)] font-bold cursor-pointer"
+                    : isHoliday
+                      ? "cursor-pointer font-bold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
                       : isToday
                         ? "text-primary font-bold cursor-pointer"
                         : "text-[#1e293b] dark:text-slate-100 font-bold cursor-pointer"
               }`}
               style={
-                isHoliday
+                attendanceType
                   ? {
-                      backgroundColor: activeHolidayColor,
-                      color: "#ffffff",
+                      backgroundColor: attendanceMeta[attendanceType]?.solid,
+                      color: attendanceMeta[attendanceType]?.textColor,
                     }
-                  : attendanceType
+                  : isHoliday
                     ? {
-                        backgroundColor: attendanceMeta[attendanceType]?.solid,
-                        color: attendanceMeta[attendanceType]?.textColor,
+                        backgroundColor: activeHolidayColor,
+                        color: "#ffffff",
                       }
                     : undefined
               }
@@ -283,7 +294,7 @@ export function CalendarDayCell({
       style={{
         width: "100%",
         height: CALENDAR_ROW_PX,
-        ...(isHoliday && activeHolidayColor ? { backgroundColor: `${activeHolidayColor}14` } : {}),
+        ...(isHoliday && !attendanceType && activeHolidayColor ? { backgroundColor: `${activeHolidayColor}14` } : {}),
       }}
       className={cellSurfaceClass}
     >
