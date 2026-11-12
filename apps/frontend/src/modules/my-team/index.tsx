@@ -608,23 +608,30 @@ export function MyTeamPage() {
 
   const visibleRosterTabs = useMemo(() => {
     return rosterTabs.filter((tab) => {
-      if (isAdmin || isDhanshree) return true;
       if (tab.scope === "team") {
+        if (isAdmin || isDhanshree) return true;
         return (
           canView("9854b7f3-0001-4000-8000-000000000001") ||
           canView("my-team-tab") ||
           canView("team-roster") ||
           canView("team-dashboard") ||
-          canView("my-team") ||
-          canView("my-reportees")
+          canView("my-team")
         );
       }
       if (tab.scope === "reportees") {
-        return canView("my-reportees") || canView("team-dashboard");
+        // If employee has no direct reportees, never show "My Reportees" tab
+        if (hasDirectReports === false) return false;
+        if (isAdmin || isDhanshree) return true;
+        // Strictly check RBAC permission: team member has no access by default unless admin granted
+        return canView("my-reportees") || canView("b1e81c2a-34de-4dd4-b1f3-47387b8ed52b");
       }
-      return canView(tab.code) || canView("team-dashboard");
+      if (tab.scope === "all") {
+        if (isAdmin || isDhanshree) return true;
+        return canView("all-employees") || canView("552f9f86-4eb0-473a-8e39-9863cfefcea4");
+      }
+      return false;
     });
-  }, [isAdmin, isDhanshree, canView]);
+  }, [isAdmin, isDhanshree, canView, hasDirectReports]);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -935,7 +942,8 @@ export function MyTeamPage() {
   };
 
   useEffect(() => {
-    if (hasDirectReports === true && !userHasPickedRoster.current && roster === "team") {
+    const canSeeReportees = isAdmin || isDhanshree || canView("my-reportees") || canView("b1e81c2a-34de-4dd4-b1f3-47387b8ed52b");
+    if (hasDirectReports === true && canSeeReportees && !userHasPickedRoster.current && roster === "team") {
       let saved: string | null = null;
       try {
         saved = sessionStorage.getItem("pms_active_roster");
@@ -946,7 +954,7 @@ export function MyTeamPage() {
         setRoster("reportees");
       }
     }
-  }, [hasDirectReports, roster]);
+  }, [hasDirectReports, roster, isAdmin, isDhanshree, canView]);
 
   useEffect(() => {
     if (visibleRosterTabs.length > 0 && !visibleRosterTabs.some((t) => t.scope === roster)) {
