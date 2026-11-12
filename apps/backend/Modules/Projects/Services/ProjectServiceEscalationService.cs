@@ -53,14 +53,15 @@ public sealed class ProjectServiceEscalationService(
 
         var alerts = await db.ProjectAlerts
             .AsNoTracking()
-            .Where(a => a.ProjectId == projectId && a.ServiceEscalationId != null && a.DeletedAtUtc == null)
+            .Where(a => a.ProjectId == projectId && a.DeletedAtUtc == null)
             .ToListAsync(ct);
 
         var alertMap = alerts
+            .Where(a => a.ServiceEscalationId != null)
             .GroupBy(a => a.ServiceEscalationId!.Value)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.UpdatedAtUtc ?? x.CreatedAtUtc).First());
 
-        return rows.Select(r =>
+        var result = rows.Select(r =>
         {
             alertMap.TryGetValue(r.Id, out var linkedAlert);
             var status = linkedAlert != null && !string.IsNullOrWhiteSpace(linkedAlert.Status) ? linkedAlert.Status : r.Status;
@@ -70,6 +71,62 @@ public sealed class ProjectServiceEscalationService(
             var resDetails = linkedAlert?.ResolutionDetails;
             return Map(r, status, changedBy, changedAt, chatJson, resDetails);
         }).ToList();
+
+        // Check for any ProjectIssues that do not already have a ProjectServiceEscalation row
+        var existingEscalationIds = new HashSet<Guid>(rows.Select(r => r.Id));
+        var issues = await db.ProjectIssues
+            .AsNoTracking()
+            .Where(x => x.ProjectId == projectId && x.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        var issueAlertMap = alerts
+            .Where(a => a.IssueId != null)
+            .GroupBy(a => a.IssueId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.UpdatedAtUtc ?? x.CreatedAtUtc).First());
+
+        foreach (var issue in issues)
+        {
+            issueAlertMap.TryGetValue(issue.Id, out var linkedAlert);
+            if (linkedAlert?.ServiceEscalationId != null && existingEscalationIds.Contains(linkedAlert.ServiceEscalationId.Value))
+            {
+                continue;
+            }
+            if (existingEscalationIds.Contains(issue.Id))
+            {
+                continue;
+            }
+
+            var status = linkedAlert != null && !string.IsNullOrWhiteSpace(linkedAlert.Status) ? linkedAlert.Status : issue.Status;
+            var changedBy = linkedAlert?.StatusChangedBy ?? linkedAlert?.ResolutionOwner;
+            var changedAt = linkedAlert?.StatusChangedAtUtc ?? (status != "Open" ? (linkedAlert?.UpdatedAtUtc ?? issue.UpdatedAtUtc) : null);
+            var chatJson = linkedAlert?.ChatJson;
+
+            result.Add(new ProjectServiceEscalationDto(
+                issue.Id,
+                issue.ProjectId,
+                null,
+                issue.ProjectCode,
+                issue.ProjectName,
+                null,
+                !string.IsNullOrWhiteSpace(issue.IssueType) ? issue.IssueType : "Technical Related Issues",
+                !string.IsNullOrWhiteSpace(issue.IssueType) ? issue.IssueType : "Issue",
+                issue.Priority,
+                issue.Subject,
+                issue.Description,
+                null,
+                null,
+                null,
+                status,
+                issue.RaisedByName,
+                issue.CreatedAtUtc,
+                Array.Empty<ServiceEscalationStakeholderDto>(),
+                changedBy,
+                changedAt,
+                chatJson,
+                null));
+        }
+
+        return result.OrderByDescending(x => x.CreatedAtUtc).ToList();
     }
 
     public async Task<(Stream Stream, string ContentType, string FileName)?> DownloadAttachmentAsync(

@@ -1,8 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.Sla.DTOs;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Sla.Services;
 using PMS.API.Shared.Common.Wrappers;
 using PMS.API.Shared.Exceptions;
 
@@ -12,11 +16,25 @@ public class BucketTaskService : IBucketTaskService
 {
     private readonly AppDbContext _db;
     private readonly ICurrentUserService _currentUser;
+    private readonly ISlaTrackingService _slaTrackingService;
+    private readonly ISlaRecipientResolver _slaRecipientResolver;
+    private readonly ISlaDeadlineCalculator _slaDeadlineCalculator;
+    private readonly ILogger<BucketTaskService>? _logger;
 
-    public BucketTaskService(AppDbContext db, ICurrentUserService currentUser)
+    public BucketTaskService(
+        AppDbContext db,
+        ICurrentUserService currentUser,
+        ISlaTrackingService slaTrackingService,
+        ISlaRecipientResolver slaRecipientResolver,
+        ISlaDeadlineCalculator slaDeadlineCalculator,
+        ILogger<BucketTaskService>? logger = null)
     {
         _db = db;
         _currentUser = currentUser;
+        _slaTrackingService = slaTrackingService;
+        _slaRecipientResolver = slaRecipientResolver;
+        _slaDeadlineCalculator = slaDeadlineCalculator;
+        _logger = logger;
     }
 
     public async Task<PagedResult<BucketTaskDto>> GetBucketTasksAsync(BucketTaskQueryParameters query, CancellationToken ct = default)
@@ -238,6 +256,26 @@ public class BucketTaskService : IBucketTaskService
 
         await _db.SaveChangesAsync(ct);
 
+        // Activity A: Task Start After Assigning & Task Pause - Complete resource-specific SLA tracking
+        if (bucketTask.AssignmentId.HasValue)
+        {
+            try
+            {
+                await _slaTrackingService.CompleteTrackingAsync(bucketTask.AssignmentId.Value, "Task Start After Assigning", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Failed to complete Task Start SLA for Assignment {AssignmentId}", bucketTask.AssignmentId.Value);
+            }
+
+            // Resume / complete any active pause tracking for this resource's assignment
+            try
+            {
+                await _slaTrackingService.CompleteTrackingAsync(bucketTask.AssignmentId.Value, "Task Pause", ct);
+            }
+            catch { }
+        }
+
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
@@ -308,6 +346,65 @@ public class BucketTaskService : IBucketTaskService
 
         await _db.SaveChangesAsync(ct);
 
+        // Activity D: Task Pause - Notify Assigned Engagement Manager, Assigned Project Manager, Project Team Leader
+        try
+        {
+            var leadershipRecipients = await _slaRecipientResolver.ResolveLeadershipRecipientsAsync(
+                bucketTask.ProjectId,
+                ["Assigned Engagement Manager", "Assigned Project Manager", "Project Team Leader"],
+                ct);
+
+            var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct) ?? "Assigned Resource";
+            var pauseTitle = $"Task Paused: {bucketTask.TaskTitle}";
+            var pauseContent = $"Task '{bucketTask.TaskTitle}' has been paused by {empName} in project '{bucketTask.ProjectName}'.";
+
+            foreach (var recId in leadershipRecipients)
+            {
+                _db.ActionNotifications.Add(new ActionNotification
+                {
+                    RecipientEmployeeId = recId,
+                    ProjectId = bucketTask.ProjectId,
+                    ProjectName = bucketTask.ProjectName,
+                    Title = pauseTitle,
+                    Type = "Task Paused",
+                    Priority = bucketTask.Priority,
+                    Status = "Pending",
+                    Unread = true,
+                    RelatedTask = bucketTask.TaskTitle,
+                    RaisedByName = empName,
+                    CreatedAtUtc = nowUtc,
+                    CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                    {
+                        new { text = pauseContent, by = empName, at = nowUtc.ToString("o") }
+                    })
+                });
+            }
+            await _db.SaveChangesAsync(ct);
+
+            var pauseEntityId = bucketTask.AssignmentId ?? assignment?.Id ?? bucketTask.Id;
+
+            // Calculate first pause reminder based on the resource's assigned shift
+            var reminderUtc = await _slaDeadlineCalculator.CalculateNextPauseReminderForEmployeeAsync(nowUtc, bucketTask.EmployeeId, null, ct);
+
+            // Start Task Pause SLA tracking for daily recurring reminders isolated to this resource's assignment
+            await _slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                Module: "ActionCentre",
+                ActivityType: "Task Pause",
+                EntityId: pauseEntityId,
+                EntityReference: bucketTask.TaskTitle,
+                Stage: "Paused",
+                Priority: SlaPriority.Medium,
+                ProjectId: bucketTask.ProjectId,
+                RecipientEmployeeId: bucketTask.EmployeeId,
+                CustomDeadlineUtc: reminderUtc,
+                CustomStartTimeUtc: nowUtc
+            ), ct);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "[BucketTaskService] Error triggering Task Pause notifications or SLA tracking for Task {TaskId}", bucketTask.TaskId);
+        }
+
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
@@ -377,6 +474,46 @@ public class BucketTaskService : IBucketTaskService
 
         await _db.SaveChangesAsync(ct);
 
+        // Activity C: Task Stop - Immediately notify Assigned Engagement Manager, Assigned Project Manager, Project Team Leader
+        try
+        {
+            var leadershipRecipients = await _slaRecipientResolver.ResolveLeadershipRecipientsAsync(
+                bucketTask.ProjectId,
+                ["Assigned Engagement Manager", "Assigned Project Manager", "Project Team Leader"],
+                ct);
+
+            var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct) ?? "Assigned Resource";
+            var stopTitle = $"Task Stopped: {bucketTask.TaskTitle}";
+            var stopContent = $"Task '{bucketTask.TaskTitle}' has been stopped by {empName} in project '{bucketTask.ProjectName}'.";
+
+            foreach (var recId in leadershipRecipients)
+            {
+                _db.ActionNotifications.Add(new ActionNotification
+                {
+                    RecipientEmployeeId = recId,
+                    ProjectId = bucketTask.ProjectId,
+                    ProjectName = bucketTask.ProjectName,
+                    Title = stopTitle,
+                    Type = "Task Stopped",
+                    Priority = bucketTask.Priority,
+                    Status = "Pending",
+                    Unread = true,
+                    RelatedTask = bucketTask.TaskTitle,
+                    RaisedByName = empName,
+                    CreatedAtUtc = nowUtc,
+                    CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                    {
+                        new { text = stopContent, by = empName, at = nowUtc.ToString("o") }
+                    })
+                });
+            }
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "[BucketTaskService] Error triggering Task Stop notifications for Task {TaskId}", bucketTask.TaskId);
+        }
+
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
@@ -439,6 +576,30 @@ public class BucketTaskService : IBucketTaskService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // Complete Task Deadline and Task Pause SLAs if task finished
+        if (task != null && task.Stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await _slaTrackingService.CompleteTrackingAsync(task.Id, "Task Deadline", ct);
+
+                // Complete Task Pause tracking for all assignments of this task
+                var taskAssignments = await _db.ProjectTaskAssignments
+                    .Where(a => a.TaskId == task.Id)
+                    .Select(a => a.Id)
+                    .ToListAsync(ct);
+
+                foreach (var assignId in taskAssignments)
+                {
+                    await _slaTrackingService.CompleteTrackingAsync(assignId, "Task Pause", ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Error completing Task Deadline/Pause SLA for Task {TaskId}", task.Id);
+            }
+        }
 
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }

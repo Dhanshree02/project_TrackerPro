@@ -16436,7 +16436,10 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
       (a) =>
 
-        (a as any).serviceEscalationId === selectedEsc.id ||
+        (a as any).serviceEscalationId === selectedEsc.id ||
+        (a as any).issueId === selectedEsc.id ||
+        (a.id === selectedEsc.id) ||
+        (a.title && selectedEsc.subject && (a.title.includes(selectedEsc.subject) || selectedEsc.subject.includes(a.title))) ||
 
         (a.title && selectedEsc.serviceName && a.title.includes(selectedEsc.serviceName))
 

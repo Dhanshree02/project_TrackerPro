@@ -20,7 +20,7 @@ public class MyTeamModuleTests : IClassFixture<WebApplicationFactory<Program>>
     public MyTeamModuleTests(WebApplicationFactory<Program> factory)
     {
         _factory = factory.WithWebHostBuilder(b =>
-            b.UseSetting("Database:AutoMigrate", "true"));
+            b.UseSetting("Database:AutoMigrate", "false"));
         _client = _factory.CreateClient();
     }
 

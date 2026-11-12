@@ -34,4 +34,11 @@ public interface IProjectTaskService
         Guid serviceId,
         int keepQty,
         CancellationToken ct = default);
+
+    Task TriggerTaskAssignmentSlaAsync(
+        Guid projectId,
+        Guid taskId,
+        IReadOnlyList<Guid> addedEmployeeIds,
+        IReadOnlyList<Guid> removedEmployeeIds,
+        CancellationToken ct = default);
 }

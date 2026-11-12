@@ -42,7 +42,12 @@ public sealed record ProjectAlertDto(
     DateTime CreatedAtUtc,
     string? StatusChangedBy = null,
     DateTime? StatusChangedAtUtc = null,
-    string? ResolutionOwner = null);
+    string? ResolutionOwner = null,
+    Guid? ServiceEscalationId = null,
+    string? ChatJson = null,
+    string? HistoryJson = null,
+    string? ServiceName = null,
+    string? EscalationType = null);
 
 public sealed record UpdateAlertStatusRequest(string Status);
 

@@ -28,6 +28,7 @@ export interface ProjectAlert {
   id: string;
   projectId: string;
   issueId?: string | null;
+  serviceEscalationId?: string | null;
   title: string;
   description?: string | null;
   alertType: string;
@@ -39,6 +40,10 @@ export interface ProjectAlert {
   statusChangedBy?: string | null;
   statusChangedAtUtc?: string | null;
   resolutionOwner?: string | null;
+  chatJson?: string | null;
+  historyJson?: string | null;
+  serviceName?: string | null;
+  escalationType?: string | null;
 }
 
 export interface AssignedProjectSummary {

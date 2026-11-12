@@ -3,7 +3,9 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Hangfire;
 using PMS.API.Configuration;
+using PMS.API.Infrastructure.Hangfire;
 using PMS.API.Infrastructure.Swagger;
 using PMS.API.Middleware;
 using Serilog;
@@ -108,6 +110,14 @@ app.UseAuthentication();
 if (app.Environment.IsDevelopment())
     app.UseMiddleware<DevelopmentAuthBypassMiddleware>();
 app.UseAuthorization();
+
+// ---- Background Job Dashboard (Hangfire) ----
+var hangfireOptions = app.Configuration.GetSection(HangfireOptions.SectionName).Get<HangfireOptions>() ?? new HangfireOptions();
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    DashboardTitle = "Project Compass - Job Monitor",
+    Authorization = [new HangfireDashboardAuthFilter(app.Environment, hangfireOptions)]
+});
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();

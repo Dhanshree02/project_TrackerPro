@@ -14,6 +14,8 @@ using PMS.API.Modules.ActionCentre.Models;
 
 using PMS.API.Modules.Projects.Models;
 
+using PMS.API.Modules.Sla.Services;
+
 using PMS.API.Shared.Exceptions;
 
 
@@ -23,12 +25,10 @@ namespace PMS.API.Modules.ActionCentre.Services;
 
 
 public sealed class ActionNotificationService(
-
     AppDbContext db,
-
     ICurrentUserService currentUser,
-
-    IFileStorageService storage) : IActionNotificationService
+    IFileStorageService storage,
+    ISlaTrackingService slaTrackingService) : IActionNotificationService
 
 {
 
@@ -860,23 +860,38 @@ public sealed class ActionNotificationService(
 
 
 
-        // Synchronize linked issue if closed or resolved
-
-        if (alert.Issue != null && (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
-
-                                    alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase)))
-
+        // Synchronize linked issue
+        if (alert.Issue != null)
         {
-
-            alert.Issue.Status = alert.Status;
-
-            alert.Issue.UpdatedAtUtc = now;
-
+            if (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
+                alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase))
+            {
+                alert.Issue.Status = alert.Status;
+                alert.Issue.UpdatedAtUtc = now;
+            }
+            else if (alert.Status.Equals("In Progress", StringComparison.OrdinalIgnoreCase) ||
+                     alert.Status.Equals("Open", StringComparison.OrdinalIgnoreCase))
+            {
+                alert.Issue.Status = alert.Status;
+                alert.Issue.UpdatedAtUtc = now;
+            }
         }
 
-
-
         await db.SaveChangesAsync(ct);
+
+        // Complete SLA tracking if resolved or closed
+        if (alert.Issue != null && (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
+                                    alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                await slaTrackingService.CompleteTrackingAsync(alert.Issue.Id, "Resolution of Issues", ct);
+            }
+            catch
+            {
+                // Non-fatal
+            }
+        }
 
 
 

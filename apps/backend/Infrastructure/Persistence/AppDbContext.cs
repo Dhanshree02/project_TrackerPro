@@ -1,224 +1,231 @@
-using Microsoft.EntityFrameworkCore;
-using PMS.API.Infrastructure.Authorization;
-using PMS.API.Shared.Common.Models;
-using PMS.API.Modules.ActionCentre.Models;
-using PMS.API.Modules.Catalogs.Models;
-using PMS.API.Modules.Customers.Models;
-using PMS.API.Modules.MyTeam.Models;
-using PMS.API.Modules.Timesheets.Models;
-using PMS.API.Modules.Projects.Models;
-using PMS.API.Modules.Repository.Models;
-using PMS.API.Modules.Resources.Models;
-using PMS.API.Modules.Users.Models;
-
-namespace PMS.API.Infrastructure.Persistence;
-
-public class AppDbContext(
-    DbContextOptions<AppDbContext> options,
-    ICurrentUserService currentUser) : DbContext(options)
-{
-    public DbSet<User> Users => Set<User>();
-
-    public DbSet<Role> Roles => Set<Role>();
-
-    public DbSet<RolePermissionAudit> RolePermissionAudits => Set<RolePermissionAudit>();
-
-    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
-
-    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-
-    public DbSet<Client> Clients => Set<Client>();
-
-    public DbSet<SubVenture> SubVentures => Set<SubVenture>();
-
-    public DbSet<ClientAssignment> ClientAssignments => Set<ClientAssignment>();
-
-    public DbSet<ClientContactEntity> ClientContacts => Set<ClientContactEntity>();
-
-    public DbSet<MstModule> Modules => Set<MstModule>();
-
-    public DbSet<MstSubModule> SubModules => Set<MstSubModule>();
-
-    public DbSet<MstWidget> Widgets => Set<MstWidget>();
-
-    public DbSet<MstTab> Tabs => Set<MstTab>();
-
-    public DbSet<MstDepartment> Departments => Set<MstDepartment>();
-
-    public DbSet<MstDesignation> Designations => Set<MstDesignation>();
-
-    public DbSet<MstContactDesignation> ContactDesignations => Set<MstContactDesignation>();
-
-    public DbSet<MstContactType> ContactTypes => Set<MstContactType>();
-
-    public DbSet<MstAddressCity> AddressCities => Set<MstAddressCity>();
-
-    public DbSet<MstIndustry> Industries => Set<MstIndustry>();
-
-    public DbSet<MstCountry> Countries => Set<MstCountry>();
-
-    public DbSet<MstCity> Cities => Set<MstCity>();
-
-    public DbSet<MstNationality> Nationalities => Set<MstNationality>();
-
-    public DbSet<MstOrgRoleMap> OrgRoleMaps => Set<MstOrgRoleMap>();
-
-    public DbSet<OnFloorRole> OnFloorRoles => Set<OnFloorRole>();
-
-    public DbSet<MstSubDepartment> SubDepartments => Set<MstSubDepartment>();
-
-    public DbSet<MstDesignationSubDepartment> DesignationSubDepartments => Set<MstDesignationSubDepartment>();
-
-    public DbSet<MstOrgRoleSubDepartment> OrgRoleSubDepartments => Set<MstOrgRoleSubDepartment>();
-
-    public DbSet<OnFloorRoleSubDepartment> OnFloorRoleSubDepartments => Set<OnFloorRoleSubDepartment>();
-
-    public DbSet<MstSalaryBand> SalaryBands => Set<MstSalaryBand>();
-
-    public DbSet<MstEmailDomain> EmailDomains => Set<MstEmailDomain>();
-
-    public DbSet<MstReportingManager> ReportingManagers => Set<MstReportingManager>();
-
-    public DbSet<MstBusinessUnit> BusinessUnits => Set<MstBusinessUnit>();
-
-    public DbSet<MstWorkLocation> WorkLocations => Set<MstWorkLocation>();
-
-    public DbSet<MstOffice> Offices => Set<MstOffice>();
-
-    public DbSet<MstEmployeeStatus> EmployeeStatuses => Set<MstEmployeeStatus>();
-
-    public DbSet<MstCertification> Certifications => Set<MstCertification>();
-
-    public DbSet<MstGraduationDegree> GraduationDegrees => Set<MstGraduationDegree>();
-
-    public DbSet<MstPostGraduationDegree> PostGraduationDegrees => Set<MstPostGraduationDegree>();
-
-    public DbSet<Employee> Employees => Set<Employee>();
-
-    public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();
-
-    public DbSet<EmployeeActivityLog> EmployeeActivityLogs => Set<EmployeeActivityLog>();
-
-    public DbSet<RepositoryItem> RepositoryItems => Set<RepositoryItem>();
-
-    public DbSet<RepositoryActivityLog> RepositoryActivityLogs => Set<RepositoryActivityLog>();
-
-    public DbSet<RepositoryDepartment> RepositoryDepartments => Set<RepositoryDepartment>();
-
-    public DbSet<TeamDayEntry> TeamDayEntries => Set<TeamDayEntry>();
-
-    public DbSet<TeamMemberSchedule> TeamMemberSchedules => Set<TeamMemberSchedule>();
-
+using Microsoft.EntityFrameworkCore;
+using PMS.API.Infrastructure.Authorization;
+using PMS.API.Shared.Common.Models;
+using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.Catalogs.Models;
+using PMS.API.Modules.Customers.Models;
+using PMS.API.Modules.MyTeam.Models;
+using PMS.API.Modules.Timesheets.Models;
+using PMS.API.Modules.Projects.Models;
+using PMS.API.Modules.Repository.Models;
+using PMS.API.Modules.Resources.Models;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Users.Models;
+
+namespace PMS.API.Infrastructure.Persistence;
+
+public class AppDbContext(
+    DbContextOptions<AppDbContext> options,
+    ICurrentUserService currentUser) : DbContext(options)
+{
+    public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
+
+    public DbSet<SlaInstance> SlaInstances => Set<SlaInstance>();
+
+    public DbSet<SlaEvent> SlaEvents => Set<SlaEvent>();
+
+    public DbSet<User> Users => Set<User>();
+
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<RolePermissionAudit> RolePermissionAudits => Set<RolePermissionAudit>();
+
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    public DbSet<Client> Clients => Set<Client>();
+
+    public DbSet<SubVenture> SubVentures => Set<SubVenture>();
+
+    public DbSet<ClientAssignment> ClientAssignments => Set<ClientAssignment>();
+
+    public DbSet<ClientContactEntity> ClientContacts => Set<ClientContactEntity>();
+
+    public DbSet<MstModule> Modules => Set<MstModule>();
+
+    public DbSet<MstSubModule> SubModules => Set<MstSubModule>();
+
+    public DbSet<MstWidget> Widgets => Set<MstWidget>();
+
+    public DbSet<MstTab> Tabs => Set<MstTab>();
+
+    public DbSet<MstDepartment> Departments => Set<MstDepartment>();
+
+    public DbSet<MstDesignation> Designations => Set<MstDesignation>();
+
+    public DbSet<MstContactDesignation> ContactDesignations => Set<MstContactDesignation>();
+
+    public DbSet<MstContactType> ContactTypes => Set<MstContactType>();
+
+    public DbSet<MstAddressCity> AddressCities => Set<MstAddressCity>();
+
+    public DbSet<MstIndustry> Industries => Set<MstIndustry>();
+
+    public DbSet<MstCountry> Countries => Set<MstCountry>();
+
+    public DbSet<MstCity> Cities => Set<MstCity>();
+
+    public DbSet<MstNationality> Nationalities => Set<MstNationality>();
+
+    public DbSet<MstOrgRoleMap> OrgRoleMaps => Set<MstOrgRoleMap>();
+
+    public DbSet<OnFloorRole> OnFloorRoles => Set<OnFloorRole>();
+
+    public DbSet<MstSubDepartment> SubDepartments => Set<MstSubDepartment>();
+
+    public DbSet<MstDesignationSubDepartment> DesignationSubDepartments => Set<MstDesignationSubDepartment>();
+
+    public DbSet<MstOrgRoleSubDepartment> OrgRoleSubDepartments => Set<MstOrgRoleSubDepartment>();
+
+    public DbSet<OnFloorRoleSubDepartment> OnFloorRoleSubDepartments => Set<OnFloorRoleSubDepartment>();
+
+    public DbSet<MstSalaryBand> SalaryBands => Set<MstSalaryBand>();
+
+    public DbSet<MstEmailDomain> EmailDomains => Set<MstEmailDomain>();
+
+    public DbSet<MstReportingManager> ReportingManagers => Set<MstReportingManager>();
+
+    public DbSet<MstBusinessUnit> BusinessUnits => Set<MstBusinessUnit>();
+
+    public DbSet<MstWorkLocation> WorkLocations => Set<MstWorkLocation>();
+
+    public DbSet<MstOffice> Offices => Set<MstOffice>();
+
+    public DbSet<MstEmployeeStatus> EmployeeStatuses => Set<MstEmployeeStatus>();
+
+    public DbSet<MstCertification> Certifications => Set<MstCertification>();
+
+    public DbSet<MstGraduationDegree> GraduationDegrees => Set<MstGraduationDegree>();
+
+    public DbSet<MstPostGraduationDegree> PostGraduationDegrees => Set<MstPostGraduationDegree>();
+
+    public DbSet<Employee> Employees => Set<Employee>();
+
+    public DbSet<ExitedEmployee> ExitedEmployees => Set<ExitedEmployee>();
+
+    public DbSet<EmployeeActivityLog> EmployeeActivityLogs => Set<EmployeeActivityLog>();
+
+    public DbSet<RepositoryItem> RepositoryItems => Set<RepositoryItem>();
+
+    public DbSet<RepositoryActivityLog> RepositoryActivityLogs => Set<RepositoryActivityLog>();
+
+    public DbSet<RepositoryDepartment> RepositoryDepartments => Set<RepositoryDepartment>();
+
+    public DbSet<TeamDayEntry> TeamDayEntries => Set<TeamDayEntry>();
+
+    public DbSet<TeamMemberSchedule> TeamMemberSchedules => Set<TeamMemberSchedule>();
+
     public DbSet<TeamMemberHoliday> TeamMemberHolidays => Set<TeamMemberHoliday>();
 
-    public DbSet<LeaveCalendarHoliday> LeaveCalendarHolidays => Set<LeaveCalendarHoliday>();
-
-    public DbSet<TimesheetWeek> TimesheetWeeks => Set<TimesheetWeek>();
-
-    public DbSet<TimesheetEntry> TimesheetEntries => Set<TimesheetEntry>();
-
-    public DbSet<TimesheetEntryDay> TimesheetEntryDays => Set<TimesheetEntryDay>();
-
-    public DbSet<MstServiceGroup> ServiceGroups => Set<MstServiceGroup>();
-
-    public DbSet<MstServiceDepartment> ServiceDepartments => Set<MstServiceDepartment>();
-
-    public DbSet<MstServiceSubDepartment> ServiceSubDepartments => Set<MstServiceSubDepartment>();
-
-    public DbSet<MstServiceCatalog> ServiceCatalogs => Set<MstServiceCatalog>();
-
-    public DbSet<Project> Projects => Set<Project>();
-
-    public DbSet<ProjectServiceEntity> ProjectServices => Set<ProjectServiceEntity>();
-
-    public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
-
-    public DbSet<ProjectTaskAssignment> ProjectTaskAssignments => Set<ProjectTaskAssignment>();
-
-    public DbSet<ProjectTaskAssignmentHistory> ProjectTaskAssignmentHistories => Set<ProjectTaskAssignmentHistory>();
-
-    public DbSet<ProjectInvoice> ProjectInvoices => Set<ProjectInvoice>();
-
-    public DbSet<ProjectDocument> ProjectDocuments => Set<ProjectDocument>();
-
-    public DbSet<ProjectDraft> ProjectDrafts => Set<ProjectDraft>();
-
+    public DbSet<LeaveCalendarHoliday> LeaveCalendarHolidays => Set<LeaveCalendarHoliday>();
+
+    public DbSet<TimesheetWeek> TimesheetWeeks => Set<TimesheetWeek>();
+
+    public DbSet<TimesheetEntry> TimesheetEntries => Set<TimesheetEntry>();
+
+    public DbSet<TimesheetEntryDay> TimesheetEntryDays => Set<TimesheetEntryDay>();
+
+    public DbSet<MstServiceGroup> ServiceGroups => Set<MstServiceGroup>();
+
+    public DbSet<MstServiceDepartment> ServiceDepartments => Set<MstServiceDepartment>();
+
+    public DbSet<MstServiceSubDepartment> ServiceSubDepartments => Set<MstServiceSubDepartment>();
+
+    public DbSet<MstServiceCatalog> ServiceCatalogs => Set<MstServiceCatalog>();
+
+    public DbSet<Project> Projects => Set<Project>();
+
+    public DbSet<ProjectServiceEntity> ProjectServices => Set<ProjectServiceEntity>();
+
+    public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
+
+    public DbSet<ProjectTaskAssignment> ProjectTaskAssignments => Set<ProjectTaskAssignment>();
+
+    public DbSet<ProjectTaskAssignmentHistory> ProjectTaskAssignmentHistories => Set<ProjectTaskAssignmentHistory>();
+
+    public DbSet<ProjectInvoice> ProjectInvoices => Set<ProjectInvoice>();
+
+    public DbSet<ProjectDocument> ProjectDocuments => Set<ProjectDocument>();
+
+    public DbSet<ProjectDraft> ProjectDrafts => Set<ProjectDraft>();
+
     public DbSet<ProjectTeamMember> ProjectTeamMembers => Set<ProjectTeamMember>();
 
-    public DbSet<ProjectResourceAllocationRequest> ProjectResourceAllocationRequests => Set<ProjectResourceAllocationRequest>();
-
-    public DbSet<ProjectInterview> ProjectInterviews => Set<ProjectInterview>();
-
-    public DbSet<ProjectExtensionRequest> ProjectExtensionRequests => Set<ProjectExtensionRequest>();
-
-    public DbSet<ProjectExtensionApprover> ProjectExtensionApprovers => Set<ProjectExtensionApprover>();
-
-    public DbSet<ProjectServiceEscalation> ProjectServiceEscalations => Set<ProjectServiceEscalation>();
-
-    public DbSet<ProjectServiceEscalationStakeholder> ProjectServiceEscalationStakeholders => Set<ProjectServiceEscalationStakeholder>();
-
-    public DbSet<ProjectIssue> ProjectIssues => Set<ProjectIssue>();
-
+    public DbSet<ProjectResourceAllocationRequest> ProjectResourceAllocationRequests => Set<ProjectResourceAllocationRequest>();
+
+    public DbSet<ProjectInterview> ProjectInterviews => Set<ProjectInterview>();
+
+    public DbSet<ProjectExtensionRequest> ProjectExtensionRequests => Set<ProjectExtensionRequest>();
+
+    public DbSet<ProjectExtensionApprover> ProjectExtensionApprovers => Set<ProjectExtensionApprover>();
+
+    public DbSet<ProjectServiceEscalation> ProjectServiceEscalations => Set<ProjectServiceEscalation>();
+
+    public DbSet<ProjectServiceEscalationStakeholder> ProjectServiceEscalationStakeholders => Set<ProjectServiceEscalationStakeholder>();
+
+    public DbSet<ProjectIssue> ProjectIssues => Set<ProjectIssue>();
+
     public DbSet<ProjectAppreciation> ProjectAppreciations => Set<ProjectAppreciation>();
 
-    public DbSet<ProjectFeedback> ProjectFeedbacks => Set<ProjectFeedback>();
-
-    public DbSet<ProjectAdditionalRequirement> ProjectAdditionalRequirements => Set<ProjectAdditionalRequirement>();
-
-    public DbSet<ProjectAlert> ProjectAlerts => Set<ProjectAlert>();
-
-    public DbSet<BucketTask> BucketTasks => Set<BucketTask>();
-
-    public DbSet<ActionNotification> ActionNotifications => Set<ActionNotification>();
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-        base.OnConfiguring(optionsBuilder);
-    }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-
-        // Global soft-delete filter — rows marked DeletedAtUtc are hidden everywhere.
-        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-        {
-            entityType.AddSoftDeleteFilter();
-        }
-
-        base.OnModelCreating(modelBuilder);
-    }
-
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        var userId = currentUser.UserId;
-        var now = DateTime.UtcNow;
-
-        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
-        {
-            switch (entry.State)
-            {
-                case EntityState.Added:
-                    entry.Entity.CreatedAtUtc = now;
-                    entry.Entity.CreatedBy ??= userId;
-                    break;
-
-                case EntityState.Modified:
-                    entry.Entity.UpdatedAtUtc = now;
-                    entry.Entity.UpdatedBy = userId;
-                    break;
-
-                // Soft delete: calling Remove() marks DeletedAtUtc instead of issuing a hard DELETE.
-                case EntityState.Deleted:
-                    entry.State = EntityState.Modified;
-                    entry.Entity.DeletedAtUtc = now;
-                    entry.Entity.UpdatedAtUtc = now;
-                    entry.Entity.UpdatedBy = userId;
-                    break;
-            }
-        }
-
-        return base.SaveChangesAsync(cancellationToken);
-    }
-}
+    public DbSet<ProjectFeedback> ProjectFeedbacks => Set<ProjectFeedback>();
+
+    public DbSet<ProjectAdditionalRequirement> ProjectAdditionalRequirements => Set<ProjectAdditionalRequirement>();
+
+    public DbSet<ProjectAlert> ProjectAlerts => Set<ProjectAlert>();
+
+    public DbSet<BucketTask> BucketTasks => Set<BucketTask>();
+
+    public DbSet<ActionNotification> ActionNotifications => Set<ActionNotification>();
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        base.OnConfiguring(optionsBuilder);
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // Global soft-delete filter — rows marked DeletedAtUtc are hidden everywhere.
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            entityType.AddSoftDeleteFilter();
+        }
+
+        base.OnModelCreating(modelBuilder);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = currentUser.UserId;
+        var now = DateTime.UtcNow;
+
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedAtUtc = now;
+                    entry.Entity.CreatedBy ??= userId;
+                    break;
+
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAtUtc = now;
+                    entry.Entity.UpdatedBy = userId;
+                    break;
+
+                // Soft delete: calling Remove() marks DeletedAtUtc instead of issuing a hard DELETE.
+                case EntityState.Deleted:
+                    entry.State = EntityState.Modified;
+                    entry.Entity.DeletedAtUtc = now;
+                    entry.Entity.UpdatedAtUtc = now;
+                    entry.Entity.UpdatedBy = userId;
+                    break;
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+}
