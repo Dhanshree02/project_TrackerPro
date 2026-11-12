@@ -219,9 +219,15 @@ export function CalendarDayCell({
                   : "focus:ring-2 focus:ring-[#5a49b8]/40"
               } ${
                 isLocked
-                  ? isHoliday
-                    ? "cursor-not-allowed font-bold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
-                    : "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
+                  ? attendanceType
+                    ? "cursor-default text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)] font-bold"
+                    : isHoliday
+                      ? "cursor-default font-bold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
+                      : readOnly
+                        ? isToday
+                          ? "text-primary font-bold cursor-default"
+                          : "text-[#1e293b] dark:text-slate-100 font-bold cursor-default"
+                        : "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
                   : attendanceType
                     ? "text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)] font-bold cursor-pointer"
                     : isHoliday
