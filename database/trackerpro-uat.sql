@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict OOc9jvMI1N6FsJICAmksWge0WCNHDhp3B5ggnxJUVInWfOPZeE2vIfqRD0AYKhK
+\restrict mr01qh13i7wHeALHuqKGNN4KEzZKkMhsepHYedzvxFih0fZqjZc4FrRwCDkejfM
 
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
@@ -72,6 +72,31 @@ CREATE SCHEMA resource;
 --
 
 CREATE SCHEMA timesheet;
+
+
+--
+-- Name: fn_protect_default_permissions(); Type: FUNCTION; Schema: auth; Owner: -
+--
+
+CREATE FUNCTION auth.fn_protect_default_permissions() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF NEW."DefaultCanView" IS DISTINCT FROM OLD."DefaultCanView" OR
+       NEW."DefaultCanManage" IS DISTINCT FROM OLD."DefaultCanManage" THEN
+
+        -- Allow postgres superuser to change defaults (for UAT fixes / developer corrections)
+        IF current_user = 'postgres' THEN
+            RETURN NEW;
+        END IF;
+
+        RAISE EXCEPTION
+            'DefaultCanView and DefaultCanManage are protected baselines. '
+            'Only a developer with direct DB access (postgres) can modify them.';
+    END IF;
+    RETURN NEW;
+END;
+$$;
 
 
 SET default_tablespace = '';
@@ -204,6 +229,9 @@ CREATE TABLE auth.tbl_role_permissions (
     "DefaultCanManage" smallint DEFAULT 0 NOT NULL,
     CONSTRAINT "CHK_role_perm_can_manage" CHECK (("CanManage" = ANY (ARRAY[0, 1]))),
     CONSTRAINT "CHK_role_perm_can_view" CHECK (("CanView" = ANY (ARRAY[0, 1]))),
+    CONSTRAINT "CHK_role_perm_default_can_manage" CHECK (("DefaultCanManage" = ANY (ARRAY[0, 1]))),
+    CONSTRAINT "CHK_role_perm_default_can_view" CHECK (("DefaultCanView" = ANY (ARRAY[0, 1]))),
+    CONSTRAINT "CHK_role_perm_default_manage_requires_view" CHECK ((("DefaultCanManage" = 0) OR ("DefaultCanView" = 1))),
     CONSTRAINT "CHK_role_perm_manage_requires_view" CHECK ((("CanManage" = 0) OR ("CanView" = 1)))
 );
 
@@ -15381,6 +15409,13 @@ CREATE UNIQUE INDEX "IX_tbl_timesheets_EmployeeId_WeekStart" ON timesheet.tbl_ti
 
 
 --
+-- Name: tbl_role_permissions trg_protect_default_permissions; Type: TRIGGER; Schema: auth; Owner: -
+--
+
+CREATE TRIGGER trg_protect_default_permissions BEFORE UPDATE ON auth.tbl_role_permissions FOR EACH ROW EXECUTE FUNCTION auth.fn_protect_default_permissions();
+
+
+--
 -- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: action; Owner: -
 --
 
@@ -16216,5 +16251,5 @@ ALTER TABLE ONLY timesheet.tbl_timesheets
 -- PostgreSQL database dump complete
 --
 
-\unrestrict OOc9jvMI1N6FsJICAmksWge0WCNHDhp3B5ggnxJUVInWfOPZeE2vIfqRD0AYKhK
+\unrestrict mr01qh13i7wHeALHuqKGNN4KEzZKkMhsepHYedzvxFih0fZqjZc4FrRwCDkejfM
 

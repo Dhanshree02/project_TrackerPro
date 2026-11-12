@@ -799,16 +799,18 @@ export function MyTeamPage() {
 
     const q = searchQuery.trim().toLowerCase();
     return base.filter((m) => {
-      if (deptFilter && m.department !== deptFilter) return false;
-      if (
-        onFloorRoleFilter &&
-        normalizeOnFloorRole(m.jobRoleName) !== normalizeOnFloorRole(onFloorRoleFilter)
-      ) {
-        return false;
+      if (roster !== "team") {
+        if (deptFilter && m.department !== deptFilter) return false;
+        if (
+          onFloorRoleFilter &&
+          normalizeOnFloorRole(m.jobRoleName) !== normalizeOnFloorRole(onFloorRoleFilter)
+        ) {
+          return false;
+        }
+        const liveStatus = getMemberLiveAllocationStatus(m, teamSchedule, todayKey);
+        if (allocStatusFilter && liveStatus !== allocStatusFilter) return false;
+        if (allocTypeFilter && m.allocationType !== allocTypeFilter) return false;
       }
-      const liveStatus = getMemberLiveAllocationStatus(m, teamSchedule, todayKey);
-      if (allocStatusFilter && liveStatus !== allocStatusFilter) return false;
-      if (allocTypeFilter && m.allocationType !== allocTypeFilter) return false;
       if (q) {
         const hay = [
           m.name,
@@ -932,6 +934,12 @@ export function MyTeamPage() {
       sessionStorage.setItem("pms_active_roster", next);
     } catch {
       // ignore
+    }
+    if (next === "team") {
+      setDeptFilter("");
+      setOnFloorRoleFilter("");
+      setAllocStatusFilter("");
+      setAllocTypeFilter("");
     }
     if (next === roster) return;
     rememberLiveRoster();
@@ -1275,10 +1283,11 @@ export function MyTeamPage() {
 
   const hasActiveToolbarFilters = Boolean(
     searchQuery.trim() ||
-      deptFilter ||
-      onFloorRoleFilter ||
-      allocStatusFilter ||
-      allocTypeFilter ||
+      (roster !== "team" &&
+        (deptFilter ||
+          onFloorRoleFilter ||
+          allocStatusFilter ||
+          allocTypeFilter)) ||
       activeFilter.kind !== "all",
   );
 
@@ -1413,7 +1422,7 @@ export function MyTeamPage() {
           {/* Team calendar & resource pool filters (matches Employee Directory bar) */}
           <div className="mb-3 rounded-xl border border-border bg-card p-3.5 shadow-xs">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
-              <div className="relative flex-1 min-w-[220px]">
+              <div className={cn("relative flex-1 min-w-[220px]", roster === "team" && "max-w-md")}>
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
@@ -1434,77 +1443,81 @@ export function MyTeamPage() {
                 )}
               </div>
 
-              <div className="w-full md:w-44 shrink-0">
-                <select
-                  value={deptFilter}
-                  onChange={(e) => setDeptFilter(e.target.value)}
-                  aria-label="Filter by Department"
-                  className={filterSelectClass(Boolean(deptFilter))}
-                >
-                  <option value="">All Departments</option>
-                  {departmentOptions.map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {roster !== "team" && (
+                <>
+                  <div className="w-full md:w-44 shrink-0">
+                    <select
+                      value={deptFilter}
+                      onChange={(e) => setDeptFilter(e.target.value)}
+                      aria-label="Filter by Department"
+                      className={filterSelectClass(Boolean(deptFilter))}
+                    >
+                      <option value="">All Departments</option>
+                      {departmentOptions.map((dept) => (
+                        <option key={dept} value={dept}>
+                          {dept}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="w-full md:w-48 shrink-0">
-                <select
-                  value={onFloorRoleFilter}
-                  onChange={(e) => setOnFloorRoleFilter(e.target.value)}
-                  aria-label="Filter by On Floor Role"
-                  className={filterSelectClass(Boolean(onFloorRoleFilter))}
-                >
-                  <option value="">All On Floor Roles</option>
-                  {onFloorRoleOptions.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                  <div className="w-full md:w-48 shrink-0">
+                    <select
+                      value={onFloorRoleFilter}
+                      onChange={(e) => setOnFloorRoleFilter(e.target.value)}
+                      aria-label="Filter by On Floor Role"
+                      className={filterSelectClass(Boolean(onFloorRoleFilter))}
+                    >
+                      <option value="">All On Floor Roles</option>
+                      {onFloorRoleOptions.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="w-full md:w-48 shrink-0">
-                <select
-                  value={allocStatusFilter}
-                  onChange={(e) => setAllocStatusFilter(e.target.value as "" | PoolAllocationStatus)}
-                  aria-label="Filter by Allocation Status"
-                  className={filterSelectClass(Boolean(allocStatusFilter))}
-                >
-                  <option value="">All Allocation Statuses</option>
-                  <option value="Free">Free</option>
-                  <option value="Occupied">Occupied</option>
-                  <option value="On Leave">On Leave</option>
-                </select>
-              </div>
+                  <div className="w-full md:w-48 shrink-0">
+                    <select
+                      value={allocStatusFilter}
+                      onChange={(e) => setAllocStatusFilter(e.target.value as "" | PoolAllocationStatus)}
+                      aria-label="Filter by Allocation Status"
+                      className={filterSelectClass(Boolean(allocStatusFilter))}
+                    >
+                      <option value="">All Allocation Statuses</option>
+                      <option value="Free">Free</option>
+                      <option value="Occupied">Occupied</option>
+                      <option value="On Leave">On Leave</option>
+                    </select>
+                  </div>
 
-              <div className="w-full md:w-44 shrink-0">
-                <select
-                  value={allocTypeFilter}
-                  onChange={(e) => setAllocTypeFilter(e.target.value as "" | PoolAllocationType)}
-                  aria-label="Filter by Allocation Type"
-                  className={filterSelectClass(Boolean(allocTypeFilter))}
-                >
-                  <option value="">All Allocation Types</option>
-                  <option value="Dedicated">Dedicated</option>
-                  <option value="Shared">Shared</option>
-                </select>
-              </div>
+                  <div className="w-full md:w-44 shrink-0">
+                    <select
+                      value={allocTypeFilter}
+                      onChange={(e) => setAllocTypeFilter(e.target.value as "" | PoolAllocationType)}
+                      aria-label="Filter by Allocation Type"
+                      className={filterSelectClass(Boolean(allocTypeFilter))}
+                    >
+                      <option value="">All Allocation Types</option>
+                      <option value="Dedicated">Dedicated</option>
+                      <option value="Shared">Shared</option>
+                    </select>
+                  </div>
 
-              <div className="w-20 shrink-0 flex items-center">
-                {hasActiveToolbarFilters && (
-                  <button
-                    type="button"
-                    onClick={clearToolbarFilters}
-                    className="h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    <span>Reset</span>
-                  </button>
-                )}
-              </div>
+                  <div className="w-20 shrink-0 flex items-center">
+                    {hasActiveToolbarFilters && (
+                      <button
+                        type="button"
+                        onClick={clearToolbarFilters}
+                        className="h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        <span>Reset</span>
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
