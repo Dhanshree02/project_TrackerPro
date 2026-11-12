@@ -220,7 +220,12 @@ public sealed class DbInitializerHostedService(
                     ADD COLUMN IF NOT EXISTS "ClientLocation" text,
                     ADD COLUMN IF NOT EXISTS "ProjectType" text,
                     ADD COLUMN IF NOT EXISTS "ProjectAllocated" text,
-                    ADD COLUMN IF NOT EXISTS "ClientEngManagerMapping" text;
+                    ADD COLUMN IF NOT EXISTS "ClientEngManagerMapping" text,
+                    ADD COLUMN IF NOT EXISTS "OriginalRole" character varying(80);
+
+                UPDATE {employees}
+                    SET "OriginalRole" = "Role"
+                    WHERE "OriginalRole" IS NULL AND "Role" IS NOT NULL;
 
                 CREATE TABLE IF NOT EXISTS {employeeActivityLogs} (
                     "Id" uuid NOT NULL PRIMARY KEY,

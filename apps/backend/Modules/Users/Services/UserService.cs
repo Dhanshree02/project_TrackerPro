@@ -6,6 +6,7 @@ using PMS.API.Modules.Users.Services;
 using PMS.API.Modules.Users.DTOs;
 using PMS.API.Shared.Common.Wrappers;
 using PMS.API.Modules.Users.Models;
+using PMS.API.Modules.Resources.Models;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Shared.Validation;
 using PMS.API.Infrastructure.Authentication;
@@ -386,4 +387,311 @@ public sealed class UserService(
         u.MustChangePassword,
         u.LastLoginAtUtc,
         u.CreatedAtUtc);
+
+    // ---- Userwise Role Access Management ----
+
+    private static readonly Dictionary<string, string[]> CanonicalDepartmentRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Services - Testing"] = [
+            "Testing HOD",
+            "Testing Senior Manager",
+            "Testing-Manager",
+            "Testing-Team Leader",
+            "Testing-Team Member",
+        ],
+        ["Services - Consulting"] = [
+            "Consulting-HOD",
+            "Consulting-Senior Manager",
+            "Consulting-Manager",
+            "Consulting-Team Leader",
+            "Consulting-Team member",
+        ],
+        ["Services - Operations"] = [
+            "SOC-HOD",
+            "SOC-Senior Manager",
+            "SOC-Manager",
+            "SOC-Team Leader",
+            "SOC-Team Member",
+        ],
+        ["Functional - Project Management"] = [
+            "PMO",
+            "EngagementManager",
+            "PM - Team Member",
+        ],
+        ["Functional - Sales"] = [
+            "Sales Manager",
+            "Sales team member",
+        ],
+        ["Functional - Accounts"] = [
+            "Accounts",
+        ],
+        ["Functional - HR"] = [
+            "HR",
+        ],
+        ["Functional - IT Administration"] = [
+            "IT Admin",
+        ],
+        ["R&D (Research & Development)"] = [
+            "R&D - Team member",
+        ],
+        ["Core"] = [
+            "CEO",
+            "COO",
+            "CTO",
+            "Intern",
+        ],
+    };
+
+    private static string NormalizeDepartment(string? dept)
+    {
+        if (string.IsNullOrWhiteSpace(dept)) return "Other";
+        var raw = dept.Trim();
+        if (CanonicalDepartmentRoles.ContainsKey(raw)) return raw;
+
+        var lower = raw.ToLowerInvariant();
+        if (lower.Contains("testing")) return "Services - Testing";
+        if (lower.Contains("consulting")) return "Services - Consulting";
+        if (lower.Contains("operation") || lower.Contains("soc")) return "Services - Operations";
+        if (lower.Contains("project management") || lower.Contains("pmo")) return "Functional - Project Management";
+        if (lower.Contains("sales")) return "Functional - Sales";
+        if (lower.Contains("account")) return "Functional - Accounts";
+        if (lower.Contains("hr") || lower.Contains("human resource")) return "Functional - HR";
+        if (lower.Contains("it admin") || lower.Contains("information technology") || lower.Contains("administration")) return "Functional - IT Administration";
+        if (lower.Contains("r&d") || lower.Contains("research")) return "R&D (Research & Development)";
+        if (lower.Contains("core")) return "Core";
+
+        return raw;
+    }
+
+    public async Task<PagedResult<UserRoleAccessDto>> GetUserRoleAccessListAsync(
+        int page,
+        int perPage,
+        string? search,
+        string? department,
+        CancellationToken ct = default)
+    {
+        var allRoles = await db.Roles.AsNoTracking().ToListAsync(ct);
+        var roleByName = allRoles.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
+        var roleById = allRoles.ToDictionary(r => r.Id);
+
+        var query = db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.Designation)
+            .Where(e => e.DeletedAtUtc == null);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var needle = search.Trim().ToLower();
+            query = query.Where(e =>
+                e.EmployeeCode.ToLower().Contains(needle) ||
+                (e.FirstName + " " + e.LastName).ToLower().Contains(needle) ||
+                e.WorkEmail.ToLower().Contains(needle) ||
+                (e.Department != null && e.Department.Name.ToLower().Contains(needle)) ||
+                (e.Designation != null && e.Designation.Name.ToLower().Contains(needle)) ||
+                (e.Role != null && e.Role.ToLower().Contains(needle)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(department) && !department.Equals("All", StringComparison.OrdinalIgnoreCase))
+        {
+            var deptNeedle = department.Trim().ToLower();
+            query = query.Where(e => e.Department != null && e.Department.Name.ToLower() == deptNeedle);
+        }
+
+        var total = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderBy(e => e.EmployeeCode)
+            .Skip((page - 1) * perPage)
+            .Take(perPage)
+            .ToListAsync(ct);
+
+        var dtos = items.Select(e => BuildUserRoleAccessDto(e, allRoles, roleByName, roleById)).ToList();
+
+        return new PagedResult<UserRoleAccessDto>(dtos, page, perPage, total);
+    }
+
+    public async Task<UserRoleAccessDto?> UpdateUserRoleAccessAsync(Guid employeeId, Guid roleId, CancellationToken ct = default)
+    {
+        var employee = await db.Employees
+            .Include(e => e.Department)
+            .Include(e => e.Designation)
+            .FirstOrDefaultAsync(e => e.Id == employeeId, ct);
+
+        if (employee is null) return null;
+
+        var allRoles = await db.Roles.ToListAsync(ct);
+        var targetRole = allRoles.FirstOrDefault(r => r.Id == roleId);
+        if (targetRole is null) throw new NotFoundException("Role not found.");
+
+        var deptName = employee.Department?.Name ?? "Other";
+        var normDept = NormalizeDepartment(deptName);
+        var isSuperAdmin = OrgRoleMatrix.IsSuperAdmin(employee.EmployeeCode, employee.WorkEmail);
+
+        var allowedNames = CanonicalDepartmentRoles.TryGetValue(normDept, out var names) ? names : [];
+        var allowed = allowedNames.Contains(targetRole.Name, StringComparer.OrdinalIgnoreCase)
+            || (isSuperAdmin && targetRole.Name == "Admin");
+
+        if (!allowed)
+        {
+            throw new ConflictException($"Role '{targetRole.DisplayName}' does not belong to department '{deptName}'.");
+        }
+
+        if (string.IsNullOrWhiteSpace(employee.OriginalRole))
+        {
+            employee.OriginalRole = employee.Role;
+        }
+
+        employee.Role = targetRole.Name;
+        employee.UpdatedAtUtc = DateTime.UtcNow;
+
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.EmployeeId == employee.EmployeeCode || u.Email.ToLower() == employee.WorkEmail.ToLower(), ct);
+        if (user is not null)
+        {
+            user.RoleId = targetRole.Id;
+            user.UpdatedAtUtc = DateTime.UtcNow;
+        }
+        else
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = employee.WorkEmail.Trim().ToLowerInvariant(),
+                Name = $"{employee.FirstName} {employee.LastName}".Trim(),
+                EmployeeId = employee.EmployeeCode.Trim(),
+                Department = employee.Department?.Name,
+                Designation = employee.Designation?.Name,
+                RoleId = targetRole.Id,
+                IsActive = true,
+                MustChangePassword = false,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            db.Users.Add(user);
+            employee.UserId = user.Id;
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        var roleByName = allRoles.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
+        var roleById = allRoles.ToDictionary(r => r.Id);
+        return BuildUserRoleAccessDto(employee, allRoles, roleByName, roleById);
+    }
+
+    public async Task<UserRoleAccessDto?> ResetUserRoleAccessAsync(Guid employeeId, CancellationToken ct = default)
+    {
+        var employee = await db.Employees
+            .Include(e => e.Department)
+            .Include(e => e.Designation)
+            .FirstOrDefaultAsync(e => e.Id == employeeId, ct);
+
+        if (employee is null) return null;
+
+        var allRoles = await db.Roles.ToListAsync(ct);
+        var isSuperAdmin = OrgRoleMatrix.IsSuperAdmin(employee.EmployeeCode, employee.WorkEmail);
+
+        var originalRoleName = !string.IsNullOrWhiteSpace(employee.OriginalRole)
+            ? employee.OriginalRole
+            : (isSuperAdmin ? "Admin" : employee.Role);
+
+        if (string.IsNullOrWhiteSpace(originalRoleName))
+            throw new ConflictException("Original role is not defined for this employee.");
+
+        var originalRole = allRoles.FirstOrDefault(r =>
+            r.Name.Equals(originalRoleName, StringComparison.OrdinalIgnoreCase) ||
+            r.DisplayName.Equals(originalRoleName, StringComparison.OrdinalIgnoreCase));
+
+        if (originalRole is null)
+            throw new NotFoundException($"Role '{originalRoleName}' does not exist in role catalog.");
+
+        employee.Role = originalRole.Name;
+        employee.UpdatedAtUtc = DateTime.UtcNow;
+
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.EmployeeId == employee.EmployeeCode || u.Email.ToLower() == employee.WorkEmail.ToLower(), ct);
+        if (user is not null)
+        {
+            user.RoleId = originalRole.Id;
+            user.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+
+        var roleByName = allRoles.ToDictionary(r => r.Name, StringComparer.OrdinalIgnoreCase);
+        var roleById = allRoles.ToDictionary(r => r.Id);
+        return BuildUserRoleAccessDto(employee, allRoles, roleByName, roleById);
+    }
+
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<RoleDto>>> GetDepartmentRolesAsync(CancellationToken ct = default)
+    {
+        var allRoles = await db.Roles.AsNoTracking().ToListAsync(ct);
+        var result = new Dictionary<string, IReadOnlyList<RoleDto>>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (dept, roleNames) in CanonicalDepartmentRoles)
+        {
+            var dtos = allRoles
+                .Where(r => roleNames.Contains(r.Name, StringComparer.OrdinalIgnoreCase))
+                .OrderBy(r => Array.IndexOf(roleNames, r.Name))
+                .Select(r => MapToRoleDto(r, 0))
+                .ToList();
+            result[dept] = dtos;
+        }
+
+        return result;
+    }
+
+    private static UserRoleAccessDto BuildUserRoleAccessDto(
+        Employee employee,
+        IReadOnlyList<Role> allRoles,
+        Dictionary<string, Role> roleByName,
+        Dictionary<Guid, Role> roleById)
+    {
+        var deptName = employee.Department?.Name ?? "Other";
+        var normDept = NormalizeDepartment(deptName);
+        var isSuperAdmin = OrgRoleMatrix.IsSuperAdmin(employee.EmployeeCode, employee.WorkEmail);
+
+        var originalRoleName = !string.IsNullOrWhiteSpace(employee.OriginalRole)
+            ? employee.OriginalRole
+            : (!string.IsNullOrWhiteSpace(employee.Role) ? employee.Role : (isSuperAdmin ? "Admin" : "Testing-Team Member"));
+
+        var currentRoleName = !string.IsNullOrWhiteSpace(employee.Role)
+            ? employee.Role
+            : originalRoleName;
+
+        roleByName.TryGetValue(originalRoleName, out var origRole);
+        roleByName.TryGetValue(currentRoleName, out var currRole);
+
+        var allowedNames = CanonicalDepartmentRoles.TryGetValue(normDept, out var names) ? names : [];
+        var deptRoleDtos = allRoles
+            .Where(r => allowedNames.Contains(r.Name, StringComparer.OrdinalIgnoreCase) || (isSuperAdmin && r.Name == "Admin"))
+            .OrderBy(r => Array.IndexOf(allowedNames, r.Name))
+            .Select(r => MapToRoleDto(r, 0))
+            .ToList();
+
+        var origRoleId = origRole?.Id;
+        var currRoleId = currRole?.Id;
+        var isSwitched = origRoleId.HasValue && currRoleId.HasValue && origRoleId.Value != currRoleId.Value;
+
+        var fullName = $"{employee.FirstName} {employee.LastName}".Trim();
+        var initials = string.Join("", fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(s => s[0])).ToUpperInvariant();
+
+        return new UserRoleAccessDto(
+            employee.Id,
+            employee.EmployeeCode,
+            fullName,
+            employee.WorkEmail,
+            initials,
+            employee.DepartmentId,
+            deptName,
+            employee.Designation?.Name,
+            origRoleId,
+            origRole?.Name ?? originalRoleName,
+            origRole?.DisplayName ?? originalRoleName,
+            currRoleId,
+            currRole?.Name ?? currentRoleName,
+            currRole?.DisplayName ?? currentRoleName,
+            isSwitched,
+            isSuperAdmin,
+            deptRoleDtos);
+    }
 }

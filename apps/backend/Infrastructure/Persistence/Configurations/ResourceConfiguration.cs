@@ -312,6 +312,7 @@ public sealed class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.Property(x => x.AltPhone).HasMaxLength(40);
         builder.Property(x => x.EmergencyContactRelation).HasMaxLength(80);
         builder.Property(x => x.Role).HasMaxLength(80);
+        builder.Property(x => x.OriginalRole).HasMaxLength(80);
         builder.Property(x => x.BusinessUnit).HasMaxLength(120);
         builder.Property(x => x.WorkLocation).HasMaxLength(120);
         builder.Property(x => x.OfficeBranch).HasMaxLength(120);

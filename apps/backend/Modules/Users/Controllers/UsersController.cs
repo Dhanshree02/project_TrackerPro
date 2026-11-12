@@ -126,4 +126,58 @@ public class RolesController(IUserService users) : ControllerBase
             ? Ok(ApiResponse<bool>.Ok(true))
             : NotFound(ApiResponse<bool>.Fail("NOT_FOUND", "Role not found."));
     }
+
+    // ---- Userwise Role Access ----
+
+    [HttpGet("user-access")]
+    public async Task<ActionResult<ApiResponse<PagedResult<UserRoleAccessDto>>>> GetUserAccess(
+        [FromQuery] int page = 1,
+        [FromQuery] int perPage = 15,
+        [FromQuery] string? search = null,
+        [FromQuery] string? department = null,
+        CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        perPage = Math.Clamp(perPage, 1, 100);
+
+        var result = await users.GetUserRoleAccessListAsync(page, perPage, search, department, ct);
+        return Ok(ApiResponse<PagedResult<UserRoleAccessDto>>.Ok(result, new ApiMeta
+        {
+            Total = result.Total,
+            Page = result.Page,
+            PerPage = result.PerPage,
+            TotalPages = result.TotalPages,
+        }));
+    }
+
+    [HttpPut("user-access/{employeeId:guid}")]
+    public async Task<ActionResult<ApiResponse<UserRoleAccessDto>>> UpdateUserAccess(
+        Guid employeeId,
+        UpdateUserRoleAccessRequest request,
+        CancellationToken ct = default)
+    {
+        var result = await users.UpdateUserRoleAccessAsync(employeeId, request.RoleId, ct);
+        return result is null
+            ? NotFound(ApiResponse<UserRoleAccessDto>.Fail("NOT_FOUND", "Employee not found."))
+            : Ok(ApiResponse<UserRoleAccessDto>.Ok(result));
+    }
+
+    [HttpPost("user-access/{employeeId:guid}/reset")]
+    public async Task<ActionResult<ApiResponse<UserRoleAccessDto>>> ResetUserAccess(
+        Guid employeeId,
+        CancellationToken ct = default)
+    {
+        var result = await users.ResetUserRoleAccessAsync(employeeId, ct);
+        return result is null
+            ? NotFound(ApiResponse<UserRoleAccessDto>.Fail("NOT_FOUND", "Employee not found."))
+            : Ok(ApiResponse<UserRoleAccessDto>.Ok(result));
+    }
+
+    [HttpGet("department-roles")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyDictionary<string, IReadOnlyList<RoleDto>>>>> GetDepartmentRoles(
+        CancellationToken ct = default)
+    {
+        var roles = await users.GetDepartmentRolesAsync(ct);
+        return Ok(ApiResponse<IReadOnlyDictionary<string, IReadOnlyList<RoleDto>>>.Ok(roles));
+    }
 }

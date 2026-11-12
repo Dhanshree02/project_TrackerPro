@@ -115,3 +115,26 @@ public sealed record PermissionAuditDto(
     string NewValue,
     string? ChangedByName,
     DateTime CreatedAtUtc);
+
+// ---- Userwise Role Access Management ----
+
+public sealed record UserRoleAccessDto(
+    Guid Id,
+    string EmployeeCode,
+    string FullName,
+    string WorkEmail,
+    string? Avatar,
+    Guid? DepartmentId,
+    string DepartmentName,
+    string? Designation,
+    Guid? OriginalRoleId,
+    string OriginalRoleName,
+    string OriginalRoleDisplayName,
+    Guid? CurrentRoleId,
+    string CurrentRoleName,
+    string CurrentRoleDisplayName,
+    bool IsSwitched,
+    bool IsSuperAdmin,
+    IReadOnlyList<RoleDto> DepartmentRoles);
+
+public sealed record UpdateUserRoleAccessRequest(Guid RoleId);

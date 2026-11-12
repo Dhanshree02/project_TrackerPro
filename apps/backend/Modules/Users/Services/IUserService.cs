@@ -41,4 +41,19 @@ public interface IUserService
     Task<bool> UpdateRolePermissionsAsync(Guid roleId, IReadOnlyList<RolePermissionDto> permissions, CancellationToken ct = default);
 
     Task<bool> ResetRolePermissionsToDefaultAsync(Guid roleId, CancellationToken ct = default);
+
+    // ---- Userwise Role Access ----
+
+    Task<PagedResult<UserRoleAccessDto>> GetUserRoleAccessListAsync(
+        int page,
+        int perPage,
+        string? search,
+        string? department,
+        CancellationToken ct = default);
+
+    Task<UserRoleAccessDto?> UpdateUserRoleAccessAsync(Guid employeeId, Guid roleId, CancellationToken ct = default);
+
+    Task<UserRoleAccessDto?> ResetUserRoleAccessAsync(Guid employeeId, CancellationToken ct = default);
+
+    Task<IReadOnlyDictionary<string, IReadOnlyList<RoleDto>>> GetDepartmentRolesAsync(CancellationToken ct = default);
 }

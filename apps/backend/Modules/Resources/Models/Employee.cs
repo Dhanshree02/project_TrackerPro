@@ -26,6 +26,7 @@ public class Employee : BaseEntity
     public Guid? DepartmentId { get; set; }
     public Guid? DesignationId { get; set; }
     public string? Role { get; set; }
+    public string? OriginalRole { get; set; }
     public Guid? ReportingManagerId { get; set; }
 
     /// <summary>This person's Engagement Manager. Not the customer EM on clients.</summary>

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict oWRkykgQFXHGIRWrGvkKT5vfz2INSajuUKhv0P1AniSHWhJFc2lzJSqEhSwD2D0
+\restrict c2CNKdfED3syW1Ycw5GoZSyDouM1yZAKPDDENwaJRnuru6mJbeycanNYZYIyeIa
 
 -- Dumped from database version 16.15
 -- Dumped by pg_dump version 16.15
@@ -18,64 +18,537 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheets DROP CONSTRAINT IF EXISTS "FK_tbl_timesheets_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheet_entry_days DROP CONSTRAINT IF EXISTS "FK_tbl_timesheet_entry_days_tbl_timesheet_entries_TimesheetEnt~";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheet_entries DROP CONSTRAINT IF EXISTS "FK_tbl_timesheet_entries_tbl_timesheets_TimesheetWeekId";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_member_schedules DROP CONSTRAINT IF EXISTS "FK_tbl_team_member_schedules_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_member_holidays DROP CONSTRAINT IF EXISTS "FK_tbl_team_member_holidays_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_day_entries DROP CONSTRAINT IF EXISTS "FK_tbl_team_day_entries_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_onfloorrole DROP CONSTRAINT IF EXISTS "FK_tbl_onfloorrole_tbl_roles_RbacRoleId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_onfloorrole DROP CONSTRAINT IF EXISTS "FK_tbl_onfloorrole_mst_designations_DesignationId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_onfloorrole DROP CONSTRAINT IF EXISTS "FK_tbl_onfloorrole_mst_departments_DepartmentId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_tbl_users_UserId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_tbl_employees_ReportingManagerId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_tbl_employees_ProjectManagerId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_tbl_employees_EngagementManagerEmployeeId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_sub_departments_SubDepartmentId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_salary_bands_SalaryBandId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_nationalities_NationalityId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_employee_statuses_EmployeeStatusId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_designations_DesignationId";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "FK_tbl_employees_mst_departments_DepartmentId";
+ALTER TABLE IF EXISTS ONLY resource.log_employee_activity DROP CONSTRAINT IF EXISTS "FK_log_employee_activity_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY repository.tbl_repository_departments DROP CONSTRAINT IF EXISTS "FK_tbl_repository_departments_tbl_repository_items_RepositoryI~";
+ALTER TABLE IF EXISTS ONLY repository.tbl_repository_departments DROP CONSTRAINT IF EXISTS "FK_tbl_repository_departments_mst_departments_DepartmentId";
+ALTER TABLE IF EXISTS ONLY project.tbl_resource_allocation_requests DROP CONSTRAINT IF EXISTS "tbl_resource_allocation_requests_ProjectId_fkey";
+ALTER TABLE IF EXISTS ONLY project.tbl_resource_allocation_requests DROP CONSTRAINT IF EXISTS "tbl_resource_allocation_requests_EmployeeId_fkey";
+ALTER TABLE IF EXISTS ONLY project.tbl_resource_allocation_requests DROP CONSTRAINT IF EXISTS "tbl_resource_allocation_requests_DepartmentId_fkey";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_additional_requirements DROP CONSTRAINT IF EXISTS "tbl_project_additional_requirements_ProjectId_fkey";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_service_escalation_stakeholders DROP CONSTRAINT IF EXISTS "FK_tbl_svc_escalation_stakeholders_escalation";
+ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_sub_ventures_SubVentureId";
+ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_projects_RenewedFromProjectId";
+ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_employees_TeamLeadId";
+ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_employees_SalesPersonId";
+ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_employees_ProjectManagerId";
+ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_employees_EngagementManagerId";
+ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "FK_tbl_projects_tbl_clients_ClientId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_team_members DROP CONSTRAINT IF EXISTS "FK_tbl_project_team_members_tbl_projects_ProjectId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_team_members DROP CONSTRAINT IF EXISTS "FK_tbl_project_team_members_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_team_members DROP CONSTRAINT IF EXISTS "FK_tbl_project_team_members_mst_departments_DepartmentId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_project_tasks_tbl_projects_ProjectId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_project_tasks_tbl_project_services_ProjectServiceId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_task_assignments DROP CONSTRAINT IF EXISTS "FK_tbl_project_task_assignments_tbl_project_tasks_TaskId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_task_assignments DROP CONSTRAINT IF EXISTS "FK_tbl_project_task_assignments_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_services DROP CONSTRAINT IF EXISTS "FK_tbl_project_services_tbl_projects_ProjectId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_services DROP CONSTRAINT IF EXISTS "FK_tbl_project_services_mst_service_catalog_ServiceCatalogId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_service_escalations DROP CONSTRAINT IF EXISTS "FK_tbl_project_service_escalations_projects";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_issues DROP CONSTRAINT IF EXISTS "FK_tbl_project_issues_projects";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_issues DROP CONSTRAINT IF EXISTS "FK_tbl_project_issues_employees";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_invoices DROP CONSTRAINT IF EXISTS "FK_tbl_project_invoices_tbl_projects_ProjectId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_invoices DROP CONSTRAINT IF EXISTS "FK_tbl_project_invoices_tbl_project_services_ProjectServiceId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_interviews DROP CONSTRAINT IF EXISTS "FK_tbl_project_interviews_tbl_projects_ProjectId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_extension_requests DROP CONSTRAINT IF EXISTS "FK_tbl_project_extension_requests_tbl_projects_ProjectId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_extension_approvers DROP CONSTRAINT IF EXISTS "FK_tbl_project_extension_approvers_tbl_project_extension_reques";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_documents DROP CONSTRAINT IF EXISTS "FK_tbl_project_documents_tbl_projects_ProjectId";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_alerts DROP CONSTRAINT IF EXISTS "FK_tbl_project_alerts_projects";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_alerts DROP CONSTRAINT IF EXISTS "FK_tbl_project_alerts_issues";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_alerts DROP CONSTRAINT IF EXISTS "FK_tbl_project_alerts_employees";
+ALTER TABLE IF EXISTS ONLY project.log_project_task_assignments DROP CONSTRAINT IF EXISTS "FK_log_project_task_assignments_tbl_project_tasks_TaskId";
+ALTER TABLE IF EXISTS ONLY project.log_project_task_assignments DROP CONSTRAINT IF EXISTS "FK_log_project_task_assignments_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY master.mst_offices DROP CONSTRAINT IF EXISTS "mst_offices_WorkLocationId_fkey";
+ALTER TABLE IF EXISTS ONLY master.mst_widgets DROP CONSTRAINT IF EXISTS "FK_mst_widgets_mst_modules_ParentId";
+ALTER TABLE IF EXISTS ONLY master.mst_tabs DROP CONSTRAINT IF EXISTS "FK_mst_tabs_mst_tabs_TabId";
+ALTER TABLE IF EXISTS ONLY master.mst_tabs DROP CONSTRAINT IF EXISTS "FK_mst_tabs_mst_submodules_SubModuleId";
+ALTER TABLE IF EXISTS ONLY master.mst_tabs DROP CONSTRAINT IF EXISTS "FK_mst_tabs_mst_modules_ModuleId";
+ALTER TABLE IF EXISTS ONLY master.mst_submodules DROP CONSTRAINT IF EXISTS "FK_mst_submodules_mst_submodules_ParentId";
+ALTER TABLE IF EXISTS ONLY master.mst_submodules DROP CONSTRAINT IF EXISTS "FK_mst_submodules_mst_modules_ModuleId";
+ALTER TABLE IF EXISTS ONLY master.mst_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_sub_departments_mst_departments_DepartmentId";
+ALTER TABLE IF EXISTS ONLY master.mst_service_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_service_sub_departments_mst_service_departments_Departme";
+ALTER TABLE IF EXISTS ONLY master.mst_service_departments DROP CONSTRAINT IF EXISTS "FK_mst_service_departments_mst_service_groups_GroupId";
+ALTER TABLE IF EXISTS ONLY master.mst_service_catalog DROP CONSTRAINT IF EXISTS "FK_mst_service_catalog_mst_service_sub_departments_SubDepartmen";
+ALTER TABLE IF EXISTS ONLY master.mst_reporting_managers DROP CONSTRAINT IF EXISTS "FK_mst_reporting_managers_tbl_employees_EmployeeId";
+ALTER TABLE IF EXISTS ONLY master.mst_org_role_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_org_role_sub_departments_mst_sub_departments_SubDepartm~";
+ALTER TABLE IF EXISTS ONLY master.mst_org_role_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_org_role_sub_departments_mst_org_role_map_OrgRoleMapId";
+ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "FK_mst_org_role_map_mst_sub_departments_SubDepartmentId";
+ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "FK_mst_org_role_map_RbacRoleId";
+ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "FK_mst_org_role_map_DesignationId";
+ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "FK_mst_org_role_map_DepartmentId";
+ALTER TABLE IF EXISTS ONLY master.mst_onfloorrole_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_onfloorrole_sub_departments_tbl_onfloorrole_OnFloorRole~";
+ALTER TABLE IF EXISTS ONLY master.mst_onfloorrole_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_onfloorrole_sub_departments_mst_sub_departments_SubDepa~";
+ALTER TABLE IF EXISTS ONLY master.mst_designations DROP CONSTRAINT IF EXISTS "FK_mst_designations_tbl_roles_DefaultRoleId";
+ALTER TABLE IF EXISTS ONLY master.mst_designations DROP CONSTRAINT IF EXISTS "FK_mst_designations_mst_departments_DepartmentId";
+ALTER TABLE IF EXISTS ONLY master.mst_designation_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_designation_sub_departments_mst_sub_departments_SubDepa~";
+ALTER TABLE IF EXISTS ONLY master.mst_designation_sub_departments DROP CONSTRAINT IF EXISTS "FK_mst_designation_sub_departments_mst_designations_Designatio~";
+ALTER TABLE IF EXISTS ONLY master.mst_cities DROP CONSTRAINT IF EXISTS "FK_mst_cities_mst_countries_CountryId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_sub_ventures DROP CONSTRAINT IF EXISTS "FK_tbl_sub_ventures_tbl_clients_ClientId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_tbl_employees_SalesManagerId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_tbl_employees_EngagementManagerId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_mst_industries_IndustryId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_mst_countries_CountryId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "FK_tbl_clients_mst_cities_CityId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_client_contacts DROP CONSTRAINT IF EXISTS "FK_tbl_client_contacts_tbl_sub_ventures_SubVentureId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_client_contacts DROP CONSTRAINT IF EXISTS "FK_tbl_client_contacts_tbl_clients_ClientId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_client_assignments DROP CONSTRAINT IF EXISTS "FK_tbl_client_assignments_tbl_users_UserId";
+ALTER TABLE IF EXISTS ONLY customer.tbl_client_assignments DROP CONSTRAINT IF EXISTS "FK_tbl_client_assignments_tbl_clients_ClientId";
+ALTER TABLE IF EXISTS ONLY auth.tbl_role_permissions DROP CONSTRAINT IF EXISTS "tbl_role_permissions_RoleId_fkey";
+ALTER TABLE IF EXISTS ONLY auth.tbl_users DROP CONSTRAINT IF EXISTS "FK_tbl_users_tbl_roles_RoleId";
+ALTER TABLE IF EXISTS ONLY auth.tbl_refresh_tokens DROP CONSTRAINT IF EXISTS "FK_tbl_refresh_tokens_tbl_users_UserId";
+ALTER TABLE IF EXISTS ONLY auth.log_role_permission_audits DROP CONSTRAINT IF EXISTS "FK_log_role_permission_audits_tbl_roles_RoleId";
+ALTER TABLE IF EXISTS ONLY action.tbl_notifications DROP CONSTRAINT IF EXISTS fk_notifications_recipient_employee;
+ALTER TABLE IF EXISTS ONLY action.tbl_notifications DROP CONSTRAINT IF EXISTS fk_notifications_project;
+ALTER TABLE IF EXISTS ONLY action.tbl_notifications DROP CONSTRAINT IF EXISTS fk_notifications_issue;
+ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_projects_ProjectId";
+ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_project_tasks_TaskId";
+ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_project_task_assignments_AssignmentId";
+ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_project_services_ProjectServiceId";
+ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "FK_tbl_bucket_tasks_tbl_employees_EmployeeId";
+DROP TRIGGER IF EXISTS trg_protect_default_permissions ON auth.tbl_role_permissions;
+DROP INDEX IF EXISTS timesheet."IX_tbl_timesheets_EmployeeId_WeekStart";
+DROP INDEX IF EXISTS timesheet."IX_tbl_timesheet_entry_days_TimesheetEntryId_DayIndex";
+DROP INDEX IF EXISTS timesheet."IX_tbl_timesheet_entries_TimesheetWeekId";
+DROP INDEX IF EXISTS timesheet."IX_tbl_team_member_schedules_EmployeeId";
+DROP INDEX IF EXISTS timesheet."IX_tbl_team_member_holidays_EmployeeId_HolidayDate";
+DROP INDEX IF EXISTS timesheet."IX_tbl_team_day_entries_EmployeeId_WorkDate";
+DROP INDEX IF EXISTS resource."IX_tbl_onfloorrole_RbacRoleId";
+DROP INDEX IF EXISTS resource."IX_tbl_onfloorrole_Name";
+DROP INDEX IF EXISTS resource."IX_tbl_onfloorrole_DesignationId";
+DROP INDEX IF EXISTS resource."IX_tbl_onfloorrole_DepartmentId";
+DROP INDEX IF EXISTS resource."IX_tbl_exited_employees_OriginalEmployeeId";
+DROP INDEX IF EXISTS resource."IX_tbl_exited_employees_EmployeeCode";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_WorkEmail";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_UserId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_SubDepartmentId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_SalaryBandId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_ReportingManagerId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_ProjectManagerId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_NationalityId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_EngagementManagerEmployeeId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_EmployeeStatusId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_EmployeeCode";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_DesignationId";
+DROP INDEX IF EXISTS resource."IX_tbl_employees_DepartmentId";
+DROP INDEX IF EXISTS resource."IX_log_employee_activity_EmployeeId";
+DROP INDEX IF EXISTS resource."IX_log_employee_activity_CreatedAtUtc";
+DROP INDEX IF EXISTS repository."IX_tbl_repository_items_DeletedAtUtc";
+DROP INDEX IF EXISTS repository."IX_tbl_repository_items_Category";
+DROP INDEX IF EXISTS repository."IX_tbl_repository_departments_DepartmentId";
+DROP INDEX IF EXISTS repository."IX_log_repository_activity_DeletedAtUtc";
+DROP INDEX IF EXISTS repository."IX_log_repository_activity_CreatedAtUtc";
+DROP INDEX IF EXISTS project.ix_tbl_project_appreciations_recipient_id;
+DROP INDEX IF EXISTS project.ix_tbl_project_appreciations_project_id;
+DROP INDEX IF EXISTS project.ix_resource_alloc_req_project;
+DROP INDEX IF EXISTS project.ix_resource_alloc_req_employee;
+DROP INDEX IF EXISTS project.ix_resource_alloc_req_approver;
+DROP INDEX IF EXISTS project."IX_tbl_svc_escalation_stakeholders_EscalationId";
+DROP INDEX IF EXISTS project."IX_tbl_svc_escalation_stakeholders_EmployeeId";
+DROP INDEX IF EXISTS project."IX_tbl_projects_WbsStatus";
+DROP INDEX IF EXISTS project."IX_tbl_projects_WbsId";
+DROP INDEX IF EXISTS project."IX_tbl_projects_TeamLeadId";
+DROP INDEX IF EXISTS project."IX_tbl_projects_SubVentureId";
+DROP INDEX IF EXISTS project."IX_tbl_projects_Status";
+DROP INDEX IF EXISTS project."IX_tbl_projects_SalesPersonId";
+DROP INDEX IF EXISTS project."IX_tbl_projects_RenewedFromProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_projects_ProjectManagerId";
+DROP INDEX IF EXISTS project."IX_tbl_projects_ProjectCode";
+DROP INDEX IF EXISTS project."IX_tbl_projects_EngagementManagerId";
+DROP INDEX IF EXISTS project."IX_tbl_projects_ClientId";
+DROP INDEX IF EXISTS project."IX_tbl_project_team_members_ProjectId_EmployeeId";
+DROP INDEX IF EXISTS project."IX_tbl_project_team_members_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_team_members_EmployeeId";
+DROP INDEX IF EXISTS project."IX_tbl_project_team_members_DepartmentId";
+DROP INDEX IF EXISTS project."IX_tbl_project_tasks_Stage";
+DROP INDEX IF EXISTS project."IX_tbl_project_tasks_ProjectServiceId";
+DROP INDEX IF EXISTS project."IX_tbl_project_tasks_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_tasks_Priority";
+DROP INDEX IF EXISTS project."IX_tbl_project_task_assignments_TaskId_EmployeeId";
+DROP INDEX IF EXISTS project."IX_tbl_project_task_assignments_TaskId";
+DROP INDEX IF EXISTS project."IX_tbl_project_task_assignments_EmployeeId";
+DROP INDEX IF EXISTS project."IX_tbl_project_services_ServiceCatalogId";
+DROP INDEX IF EXISTS project."IX_tbl_project_services_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_service_escalations_ProjectServiceId";
+DROP INDEX IF EXISTS project."IX_tbl_project_service_escalations_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_issues_RaisedByEmployeeId";
+DROP INDEX IF EXISTS project."IX_tbl_project_issues_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_invoices_Status";
+DROP INDEX IF EXISTS project."IX_tbl_project_invoices_ProjectServiceId";
+DROP INDEX IF EXISTS project."IX_tbl_project_invoices_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_invoices_InvoiceNumber";
+DROP INDEX IF EXISTS project."IX_tbl_project_interviews_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_interviews_EmployeeId";
+DROP INDEX IF EXISTS project."IX_tbl_project_extension_requests_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_extension_approvers_ExtensionRequestId";
+DROP INDEX IF EXISTS project."IX_tbl_project_extension_approvers_EmployeeId";
+DROP INDEX IF EXISTS project."IX_tbl_project_drafts_UpdatedAtUtc";
+DROP INDEX IF EXISTS project."IX_tbl_project_drafts_Status";
+DROP INDEX IF EXISTS project."IX_tbl_project_drafts_ClientId";
+DROP INDEX IF EXISTS project."IX_tbl_project_documents_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_documents_DocumentType";
+DROP INDEX IF EXISTS project."IX_tbl_project_alerts_ProjectId";
+DROP INDEX IF EXISTS project."IX_tbl_project_alerts_IssueId";
+DROP INDEX IF EXISTS project."IX_project_tasks_LeafIdentity";
+DROP INDEX IF EXISTS project."IX_log_project_task_assignments_TaskId_OccurredAtUtc";
+DROP INDEX IF EXISTS project."IX_log_project_task_assignments_TaskId";
+DROP INDEX IF EXISTS project."IX_log_project_task_assignments_EmployeeId";
+DROP INDEX IF EXISTS master."IX_mst_work_locations_Code";
+DROP INDEX IF EXISTS master."IX_mst_widgets_ParentId";
+DROP INDEX IF EXISTS master."IX_mst_widgets_Code";
+DROP INDEX IF EXISTS master."IX_mst_tabs_TabId";
+DROP INDEX IF EXISTS master."IX_mst_tabs_SubModuleId";
+DROP INDEX IF EXISTS master."IX_mst_tabs_ModuleId";
+DROP INDEX IF EXISTS master."IX_mst_tabs_Code";
+DROP INDEX IF EXISTS master."IX_mst_submodules_ParentId";
+DROP INDEX IF EXISTS master."IX_mst_submodules_ModuleId";
+DROP INDEX IF EXISTS master."IX_mst_submodules_Code";
+DROP INDEX IF EXISTS master."IX_mst_sub_departments_Name";
+DROP INDEX IF EXISTS master."IX_mst_sub_departments_DepartmentId";
+DROP INDEX IF EXISTS master."IX_mst_sub_departments_Code";
+DROP INDEX IF EXISTS master."IX_mst_service_sub_departments_DepartmentId_Name";
+DROP INDEX IF EXISTS master."IX_mst_service_sub_departments_Code";
+DROP INDEX IF EXISTS master."IX_mst_service_groups_Name";
+DROP INDEX IF EXISTS master."IX_mst_service_groups_Code";
+DROP INDEX IF EXISTS master."IX_mst_service_departments_GroupId_Name";
+DROP INDEX IF EXISTS master."IX_mst_service_departments_GroupId";
+DROP INDEX IF EXISTS master."IX_mst_service_departments_Code";
+DROP INDEX IF EXISTS master."IX_mst_service_catalog_SubDepartmentId_Name";
+DROP INDEX IF EXISTS master."IX_mst_service_catalog_Code";
+DROP INDEX IF EXISTS master."IX_mst_salary_bands_Name";
+DROP INDEX IF EXISTS master."IX_mst_salary_bands_Code";
+DROP INDEX IF EXISTS master."IX_mst_reporting_managers_EmployeeId";
+DROP INDEX IF EXISTS master."IX_mst_reporting_managers_Code";
+DROP INDEX IF EXISTS master."IX_mst_org_role_sub_departments_SubDepartmentId";
+DROP INDEX IF EXISTS master."IX_mst_org_role_sub_departments_OrgRoleMapId_SubDepartmentId";
+DROP INDEX IF EXISTS master."IX_mst_org_role_map_SubDepartmentId";
+DROP INDEX IF EXISTS master."IX_mst_org_role_map_RbacRoleId";
+DROP INDEX IF EXISTS master."IX_mst_org_role_map_DesignationId";
+DROP INDEX IF EXISTS master."IX_mst_org_role_map_DepartmentId";
+DROP INDEX IF EXISTS master."IX_mst_onfloorrole_sub_departments_SubDepartmentId";
+DROP INDEX IF EXISTS master."IX_mst_onfloorrole_sub_departments_OnFloorRoleId_SubDepartment~";
+DROP INDEX IF EXISTS master."IX_mst_offices_WorkLocationId";
+DROP INDEX IF EXISTS master."IX_mst_offices_Code";
+DROP INDEX IF EXISTS master."IX_mst_nationalities_Name";
+DROP INDEX IF EXISTS master."IX_mst_nationalities_Code";
+DROP INDEX IF EXISTS master."IX_mst_modules_Code";
+DROP INDEX IF EXISTS master."IX_mst_leave_calendar_Year";
+DROP INDEX IF EXISTS master."IX_mst_leave_calendar_HolidayDate";
+DROP INDEX IF EXISTS master."IX_mst_industries_Name";
+DROP INDEX IF EXISTS master."IX_mst_industries_Code";
+DROP INDEX IF EXISTS master."IX_mst_employee_statuses_Code";
+DROP INDEX IF EXISTS master."IX_mst_email_domains_DomainName";
+DROP INDEX IF EXISTS master."IX_mst_designations_DepartmentId_Name";
+DROP INDEX IF EXISTS master."IX_mst_designations_DefaultRoleId";
+DROP INDEX IF EXISTS master."IX_mst_designations_Code";
+DROP INDEX IF EXISTS master."IX_mst_designation_sub_departments_SubDepartmentId";
+DROP INDEX IF EXISTS master."IX_mst_designation_sub_departments_DesignationId_SubDepartment~";
+DROP INDEX IF EXISTS master."IX_mst_departments_Name";
+DROP INDEX IF EXISTS master."IX_mst_departments_Code";
+DROP INDEX IF EXISTS master."IX_mst_countries_Name";
+DROP INDEX IF EXISTS master."IX_mst_countries_Code";
+DROP INDEX IF EXISTS master."IX_mst_contact_types_Name";
+DROP INDEX IF EXISTS master."IX_mst_contact_types_Code";
+DROP INDEX IF EXISTS master."IX_mst_contact_designations_Name";
+DROP INDEX IF EXISTS master."IX_mst_contact_designations_Code";
+DROP INDEX IF EXISTS master."IX_mst_cities_CountryId_Name";
+DROP INDEX IF EXISTS master."IX_mst_cities_Code";
+DROP INDEX IF EXISTS master."IX_mst_business_units_Code";
+DROP INDEX IF EXISTS master."IX_mst_address_cities_Name";
+DROP INDEX IF EXISTS master."IX_mst_address_cities_Code";
+DROP INDEX IF EXISTS customer."IX_tbl_sub_ventures_SubVentureCode";
+DROP INDEX IF EXISTS customer."IX_tbl_sub_ventures_ClientId";
+DROP INDEX IF EXISTS customer."IX_tbl_clients_SalesManagerId";
+DROP INDEX IF EXISTS customer."IX_tbl_clients_Name";
+DROP INDEX IF EXISTS customer."IX_tbl_clients_IndustryId";
+DROP INDEX IF EXISTS customer."IX_tbl_clients_EngagementManagerId";
+DROP INDEX IF EXISTS customer."IX_tbl_clients_CountryId";
+DROP INDEX IF EXISTS customer."IX_tbl_clients_CityId";
+DROP INDEX IF EXISTS customer."IX_tbl_client_contacts_SubVentureId";
+DROP INDEX IF EXISTS customer."IX_tbl_client_contacts_ClientId";
+DROP INDEX IF EXISTS customer."IX_tbl_client_assignments_UserId";
+DROP INDEX IF EXISTS customer."IX_clients_ClientCode";
+DROP INDEX IF EXISTS auth."IX_users_MicrosoftOid";
+DROP INDEX IF EXISTS auth."IX_tbl_users_RoleId";
+DROP INDEX IF EXISTS auth."IX_tbl_users_EmployeeId";
+DROP INDEX IF EXISTS auth."IX_tbl_users_Email";
+DROP INDEX IF EXISTS auth."IX_tbl_roles_Name";
+DROP INDEX IF EXISTS auth."IX_tbl_refresh_tokens_UserId";
+DROP INDEX IF EXISTS auth."IX_tbl_refresh_tokens_TokenHash";
+DROP INDEX IF EXISTS auth."IX_role_permissions_RoleId";
+DROP INDEX IF EXISTS auth."IX_role_permissions_ItemId";
+DROP INDEX IF EXISTS auth."IX_log_role_permission_audits_RoleId";
+DROP INDEX IF EXISTS auth."IX_log_role_permission_audits_CreatedAtUtc";
+DROP INDEX IF EXISTS action.ix_tbl_notifications_status;
+DROP INDEX IF EXISTS action.ix_tbl_notifications_recipient_employee;
+DROP INDEX IF EXISTS action.ix_tbl_notifications_project;
+DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_TaskId_EmployeeId";
+DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_TaskId";
+DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_Status";
+DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_ProjectId";
+DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_Priority";
+DROP INDEX IF EXISTS action."IX_tbl_bucket_tasks_EmployeeId";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheets DROP CONSTRAINT IF EXISTS "PK_tbl_timesheets";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheet_entry_days DROP CONSTRAINT IF EXISTS "PK_tbl_timesheet_entry_days";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_timesheet_entries DROP CONSTRAINT IF EXISTS "PK_tbl_timesheet_entries";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_member_schedules DROP CONSTRAINT IF EXISTS "PK_tbl_team_member_schedules";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_member_holidays DROP CONSTRAINT IF EXISTS "PK_tbl_team_member_holidays";
+ALTER TABLE IF EXISTS ONLY timesheet.tbl_team_day_entries DROP CONSTRAINT IF EXISTS "PK_tbl_team_day_entries";
+ALTER TABLE IF EXISTS ONLY resource.tbl_onfloorrole DROP CONSTRAINT IF EXISTS "PK_tbl_onfloorrole";
+ALTER TABLE IF EXISTS ONLY resource.tbl_exited_employees DROP CONSTRAINT IF EXISTS "PK_tbl_exited_employees";
+ALTER TABLE IF EXISTS ONLY resource.tbl_employees DROP CONSTRAINT IF EXISTS "PK_tbl_employees";
+ALTER TABLE IF EXISTS ONLY resource.log_employee_activity DROP CONSTRAINT IF EXISTS "PK_log_employee_activity";
+ALTER TABLE IF EXISTS resource.tbl_employees DROP CONSTRAINT IF EXISTS "CK_employees_EmployeeCode_Format";
+ALTER TABLE IF EXISTS ONLY repository.tbl_repository_items DROP CONSTRAINT IF EXISTS "PK_tbl_repository_items";
+ALTER TABLE IF EXISTS ONLY repository.tbl_repository_departments DROP CONSTRAINT IF EXISTS "PK_tbl_repository_departments";
+ALTER TABLE IF EXISTS ONLY repository.log_repository_activity DROP CONSTRAINT IF EXISTS "PK_log_repository_activity";
+ALTER TABLE IF EXISTS ONLY public."__EFMigrationsHistory" DROP CONSTRAINT IF EXISTS "PK___EFMigrationsHistory";
+ALTER TABLE IF EXISTS ONLY project.tbl_resource_allocation_requests DROP CONSTRAINT IF EXISTS tbl_resource_allocation_requests_pkey;
+ALTER TABLE IF EXISTS ONLY project.tbl_project_appreciations DROP CONSTRAINT IF EXISTS tbl_project_appreciations_pkey;
+ALTER TABLE IF EXISTS ONLY project.tbl_project_additional_requirements DROP CONSTRAINT IF EXISTS tbl_project_additional_requirements_pkey;
+ALTER TABLE IF EXISTS ONLY project.tbl_projects DROP CONSTRAINT IF EXISTS "PK_tbl_projects";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_team_members DROP CONSTRAINT IF EXISTS "PK_tbl_project_team_members";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_tasks DROP CONSTRAINT IF EXISTS "PK_tbl_project_tasks";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_task_assignments DROP CONSTRAINT IF EXISTS "PK_tbl_project_task_assignments";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_services DROP CONSTRAINT IF EXISTS "PK_tbl_project_services";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_service_escalations DROP CONSTRAINT IF EXISTS "PK_tbl_project_service_escalations";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_service_escalation_stakeholders DROP CONSTRAINT IF EXISTS "PK_tbl_project_service_escalation_stakeholders";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_issues DROP CONSTRAINT IF EXISTS "PK_tbl_project_issues";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_invoices DROP CONSTRAINT IF EXISTS "PK_tbl_project_invoices";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_interviews DROP CONSTRAINT IF EXISTS "PK_tbl_project_interviews";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_extension_requests DROP CONSTRAINT IF EXISTS "PK_tbl_project_extension_requests";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_extension_approvers DROP CONSTRAINT IF EXISTS "PK_tbl_project_extension_approvers";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_drafts DROP CONSTRAINT IF EXISTS "PK_tbl_project_drafts";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_documents DROP CONSTRAINT IF EXISTS "PK_tbl_project_documents";
+ALTER TABLE IF EXISTS ONLY project.tbl_project_alerts DROP CONSTRAINT IF EXISTS "PK_tbl_project_alerts";
+ALTER TABLE IF EXISTS ONLY project.log_project_task_assignments DROP CONSTRAINT IF EXISTS "PK_log_project_task_assignments";
+ALTER TABLE IF EXISTS ONLY master.mst_work_locations DROP CONSTRAINT IF EXISTS mst_work_locations_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_work_locations DROP CONSTRAINT IF EXISTS "mst_work_locations_Code_key";
+ALTER TABLE IF EXISTS ONLY master.mst_reporting_managers DROP CONSTRAINT IF EXISTS mst_reporting_managers_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_rbac_baseline DROP CONSTRAINT IF EXISTS mst_rbac_baseline_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_post_graduation_degrees DROP CONSTRAINT IF EXISTS mst_post_graduation_degrees_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_offices DROP CONSTRAINT IF EXISTS mst_offices_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_offices DROP CONSTRAINT IF EXISTS "mst_offices_Code_key";
+ALTER TABLE IF EXISTS ONLY master.mst_leave_calendar DROP CONSTRAINT IF EXISTS mst_leave_calendar_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_graduation_degrees DROP CONSTRAINT IF EXISTS mst_graduation_degrees_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_employee_statuses DROP CONSTRAINT IF EXISTS mst_employee_statuses_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_email_domains DROP CONSTRAINT IF EXISTS mst_email_domains_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_certifications DROP CONSTRAINT IF EXISTS mst_certifications_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_business_units DROP CONSTRAINT IF EXISTS mst_business_units_pkey;
+ALTER TABLE IF EXISTS ONLY master.mst_business_units DROP CONSTRAINT IF EXISTS "mst_business_units_Code_key";
+ALTER TABLE IF EXISTS ONLY master.mst_widgets DROP CONSTRAINT IF EXISTS "PK_mst_widgets";
+ALTER TABLE IF EXISTS ONLY master.mst_tabs DROP CONSTRAINT IF EXISTS "PK_mst_tabs";
+ALTER TABLE IF EXISTS ONLY master.mst_submodules DROP CONSTRAINT IF EXISTS "PK_mst_submodules";
+ALTER TABLE IF EXISTS ONLY master.mst_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_sub_departments";
+ALTER TABLE IF EXISTS ONLY master.mst_service_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_service_sub_departments";
+ALTER TABLE IF EXISTS ONLY master.mst_service_groups DROP CONSTRAINT IF EXISTS "PK_mst_service_groups";
+ALTER TABLE IF EXISTS ONLY master.mst_service_departments DROP CONSTRAINT IF EXISTS "PK_mst_service_departments";
+ALTER TABLE IF EXISTS ONLY master.mst_service_catalog DROP CONSTRAINT IF EXISTS "PK_mst_service_catalog";
+ALTER TABLE IF EXISTS ONLY master.mst_salary_bands DROP CONSTRAINT IF EXISTS "PK_mst_salary_bands";
+ALTER TABLE IF EXISTS ONLY master.mst_org_role_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_org_role_sub_departments";
+ALTER TABLE IF EXISTS ONLY master.mst_org_role_map DROP CONSTRAINT IF EXISTS "PK_mst_org_role_map";
+ALTER TABLE IF EXISTS ONLY master.mst_onfloorrole_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_onfloorrole_sub_departments";
+ALTER TABLE IF EXISTS ONLY master.mst_nationalities DROP CONSTRAINT IF EXISTS "PK_mst_nationalities";
+ALTER TABLE IF EXISTS ONLY master.mst_modules DROP CONSTRAINT IF EXISTS "PK_mst_modules";
+ALTER TABLE IF EXISTS ONLY master.mst_industries DROP CONSTRAINT IF EXISTS "PK_mst_industries";
+ALTER TABLE IF EXISTS ONLY master.mst_designations DROP CONSTRAINT IF EXISTS "PK_mst_designations";
+ALTER TABLE IF EXISTS ONLY master.mst_designation_sub_departments DROP CONSTRAINT IF EXISTS "PK_mst_designation_sub_departments";
+ALTER TABLE IF EXISTS ONLY master.mst_departments DROP CONSTRAINT IF EXISTS "PK_mst_departments";
+ALTER TABLE IF EXISTS ONLY master.mst_countries DROP CONSTRAINT IF EXISTS "PK_mst_countries";
+ALTER TABLE IF EXISTS ONLY master.mst_contact_types DROP CONSTRAINT IF EXISTS "PK_mst_contact_types";
+ALTER TABLE IF EXISTS ONLY master.mst_contact_designations DROP CONSTRAINT IF EXISTS "PK_mst_contact_designations";
+ALTER TABLE IF EXISTS ONLY master.mst_cities DROP CONSTRAINT IF EXISTS "PK_mst_cities";
+ALTER TABLE IF EXISTS ONLY master.mst_address_cities DROP CONSTRAINT IF EXISTS "PK_mst_address_cities";
+ALTER TABLE IF EXISTS ONLY customer.tbl_sub_ventures DROP CONSTRAINT IF EXISTS "PK_tbl_sub_ventures";
+ALTER TABLE IF EXISTS ONLY customer.tbl_clients DROP CONSTRAINT IF EXISTS "PK_tbl_clients";
+ALTER TABLE IF EXISTS ONLY customer.tbl_client_contacts DROP CONSTRAINT IF EXISTS "PK_tbl_client_contacts";
+ALTER TABLE IF EXISTS ONLY customer.tbl_client_assignments DROP CONSTRAINT IF EXISTS "PK_tbl_client_assignments";
+ALTER TABLE IF EXISTS ONLY auth.tbl_role_permissions DROP CONSTRAINT IF EXISTS tbl_role_permissions_pkey;
+ALTER TABLE IF EXISTS ONLY auth.tbl_role_permissions DROP CONSTRAINT IF EXISTS "UQ_role_item_permissions";
+ALTER TABLE IF EXISTS ONLY auth.tbl_users DROP CONSTRAINT IF EXISTS "PK_tbl_users";
+ALTER TABLE IF EXISTS ONLY auth.tbl_roles DROP CONSTRAINT IF EXISTS "PK_tbl_roles";
+ALTER TABLE IF EXISTS ONLY auth.tbl_refresh_tokens DROP CONSTRAINT IF EXISTS "PK_tbl_refresh_tokens";
+ALTER TABLE IF EXISTS ONLY auth.log_role_permission_audits DROP CONSTRAINT IF EXISTS "PK_log_role_permission_audits";
+ALTER TABLE IF EXISTS ONLY action.tbl_notifications DROP CONSTRAINT IF EXISTS pk_tbl_notifications;
+ALTER TABLE IF EXISTS ONLY action.tbl_bucket_tasks DROP CONSTRAINT IF EXISTS "PK_tbl_bucket_tasks";
+DROP TABLE IF EXISTS timesheet.tbl_timesheets;
+DROP TABLE IF EXISTS timesheet.tbl_timesheet_entry_days;
+DROP TABLE IF EXISTS timesheet.tbl_timesheet_entries;
+DROP TABLE IF EXISTS timesheet.tbl_team_member_schedules;
+DROP TABLE IF EXISTS timesheet.tbl_team_member_holidays;
+DROP TABLE IF EXISTS timesheet.tbl_team_day_entries;
+DROP VIEW IF EXISTS resource.tbl_onfloorrole_subdepartment;
+DROP TABLE IF EXISTS resource.tbl_onfloorrole;
+DROP TABLE IF EXISTS resource.tbl_exited_employees;
+DROP TABLE IF EXISTS resource.tbl_employees;
+DROP TABLE IF EXISTS resource.log_employee_activity;
+DROP TABLE IF EXISTS repository.tbl_repository_items;
+DROP TABLE IF EXISTS repository.tbl_repository_departments;
+DROP TABLE IF EXISTS repository.log_repository_activity;
+DROP TABLE IF EXISTS public."__EFMigrationsHistory";
+DROP TABLE IF EXISTS project.tbl_resource_allocation_requests;
+DROP TABLE IF EXISTS project.tbl_projects;
+DROP TABLE IF EXISTS project.tbl_project_team_members;
+DROP TABLE IF EXISTS project.tbl_project_tasks;
+DROP TABLE IF EXISTS project.tbl_project_task_assignments;
+DROP TABLE IF EXISTS project.tbl_project_services;
+DROP TABLE IF EXISTS project.tbl_project_service_escalations;
+DROP TABLE IF EXISTS project.tbl_project_service_escalation_stakeholders;
+DROP TABLE IF EXISTS project.tbl_project_issues;
+DROP TABLE IF EXISTS project.tbl_project_invoices;
+DROP TABLE IF EXISTS project.tbl_project_interviews;
+DROP TABLE IF EXISTS project.tbl_project_extension_requests;
+DROP TABLE IF EXISTS project.tbl_project_extension_approvers;
+DROP TABLE IF EXISTS project.tbl_project_drafts;
+DROP TABLE IF EXISTS project.tbl_project_documents;
+DROP TABLE IF EXISTS project.tbl_project_appreciations;
+DROP TABLE IF EXISTS project.tbl_project_alerts;
+DROP TABLE IF EXISTS project.tbl_project_additional_requirements;
+DROP TABLE IF EXISTS project.log_project_task_assignments;
+DROP TABLE IF EXISTS master.mst_work_locations;
+DROP TABLE IF EXISTS master.mst_widgets;
+DROP TABLE IF EXISTS master.mst_tabs;
+DROP TABLE IF EXISTS master.mst_submodules;
+DROP TABLE IF EXISTS master.mst_sub_departments;
+DROP TABLE IF EXISTS master.mst_service_sub_departments;
+DROP TABLE IF EXISTS master.mst_service_groups;
+DROP TABLE IF EXISTS master.mst_service_departments;
+DROP TABLE IF EXISTS master.mst_service_catalog;
+DROP TABLE IF EXISTS master.mst_salary_bands;
+DROP TABLE IF EXISTS master.mst_reporting_managers;
+DROP TABLE IF EXISTS master.mst_rbac_baseline;
+DROP TABLE IF EXISTS master.mst_post_graduation_degrees;
+DROP TABLE IF EXISTS master.mst_org_role_sub_departments;
+DROP TABLE IF EXISTS master.mst_org_role_map;
+DROP TABLE IF EXISTS master.mst_onfloorrole_sub_departments;
+DROP TABLE IF EXISTS master.mst_offices;
+DROP TABLE IF EXISTS master.mst_nationalities;
+DROP TABLE IF EXISTS master.mst_modules;
+DROP TABLE IF EXISTS master.mst_leave_calendar;
+DROP TABLE IF EXISTS master.mst_industries;
+DROP TABLE IF EXISTS master.mst_graduation_degrees;
+DROP TABLE IF EXISTS master.mst_employee_statuses;
+DROP TABLE IF EXISTS master.mst_email_domains;
+DROP TABLE IF EXISTS master.mst_designations;
+DROP TABLE IF EXISTS master.mst_designation_sub_departments;
+DROP TABLE IF EXISTS master.mst_departments;
+DROP TABLE IF EXISTS master.mst_countries;
+DROP TABLE IF EXISTS master.mst_contact_types;
+DROP TABLE IF EXISTS master.mst_contact_designations;
+DROP TABLE IF EXISTS master.mst_cities;
+DROP TABLE IF EXISTS master.mst_certifications;
+DROP TABLE IF EXISTS master.mst_business_units;
+DROP TABLE IF EXISTS master.mst_address_cities;
+DROP TABLE IF EXISTS customer.tbl_sub_ventures;
+DROP TABLE IF EXISTS customer.tbl_clients;
+DROP TABLE IF EXISTS customer.tbl_client_contacts;
+DROP TABLE IF EXISTS customer.tbl_client_assignments;
+DROP TABLE IF EXISTS auth.tbl_users;
+DROP TABLE IF EXISTS auth.tbl_roles;
+DROP TABLE IF EXISTS auth.tbl_role_permissions;
+DROP TABLE IF EXISTS auth.tbl_refresh_tokens;
+DROP TABLE IF EXISTS auth.log_role_permission_audits;
+DROP TABLE IF EXISTS action.tbl_notifications;
+DROP TABLE IF EXISTS action.tbl_bucket_tasks;
+DROP FUNCTION IF EXISTS auth.fn_protect_default_permissions();
+DROP SCHEMA IF EXISTS timesheet;
+DROP SCHEMA IF EXISTS resource;
+DROP SCHEMA IF EXISTS repository;
+DROP SCHEMA IF EXISTS project;
+DROP SCHEMA IF EXISTS master;
+DROP SCHEMA IF EXISTS customer;
+DROP SCHEMA IF EXISTS auth;
+DROP SCHEMA IF EXISTS action;
 --
--- Name: action; Type: SCHEMA; Schema: -; Owner: -
+-- Name: action; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
 CREATE SCHEMA action;
 
 
+ALTER SCHEMA action OWNER TO postgres;
+
 --
--- Name: auth; Type: SCHEMA; Schema: -; Owner: -
+-- Name: auth; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
 CREATE SCHEMA auth;
 
 
+ALTER SCHEMA auth OWNER TO postgres;
+
 --
--- Name: customer; Type: SCHEMA; Schema: -; Owner: -
+-- Name: customer; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
 CREATE SCHEMA customer;
 
 
+ALTER SCHEMA customer OWNER TO postgres;
+
 --
--- Name: master; Type: SCHEMA; Schema: -; Owner: -
+-- Name: master; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
 CREATE SCHEMA master;
 
 
+ALTER SCHEMA master OWNER TO postgres;
+
 --
--- Name: project; Type: SCHEMA; Schema: -; Owner: -
+-- Name: project; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
 CREATE SCHEMA project;
 
 
+ALTER SCHEMA project OWNER TO postgres;
+
 --
--- Name: repository; Type: SCHEMA; Schema: -; Owner: -
+-- Name: repository; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
 CREATE SCHEMA repository;
 
 
+ALTER SCHEMA repository OWNER TO postgres;
+
 --
--- Name: resource; Type: SCHEMA; Schema: -; Owner: -
+-- Name: resource; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
 CREATE SCHEMA resource;
 
 
+ALTER SCHEMA resource OWNER TO postgres;
+
 --
--- Name: timesheet; Type: SCHEMA; Schema: -; Owner: -
+-- Name: timesheet; Type: SCHEMA; Schema: -; Owner: postgres
 --
 
 CREATE SCHEMA timesheet;
 
 
+ALTER SCHEMA timesheet OWNER TO postgres;
+
 --
--- Name: fn_protect_default_permissions(); Type: FUNCTION; Schema: auth; Owner: -
+-- Name: fn_protect_default_permissions(); Type: FUNCTION; Schema: auth; Owner: postgres
 --
 
 CREATE FUNCTION auth.fn_protect_default_permissions() RETURNS trigger
@@ -99,12 +572,14 @@ END;
 $$;
 
 
+ALTER FUNCTION auth.fn_protect_default_permissions() OWNER TO postgres;
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
 --
--- Name: tbl_bucket_tasks; Type: TABLE; Schema: action; Owner: -
+-- Name: tbl_bucket_tasks; Type: TABLE; Schema: action; Owner: postgres
 --
 
 CREATE TABLE action.tbl_bucket_tasks (
@@ -135,8 +610,10 @@ CREATE TABLE action.tbl_bucket_tasks (
 );
 
 
+ALTER TABLE action.tbl_bucket_tasks OWNER TO postgres;
+
 --
--- Name: tbl_notifications; Type: TABLE; Schema: action; Owner: -
+-- Name: tbl_notifications; Type: TABLE; Schema: action; Owner: postgres
 --
 
 CREATE TABLE action.tbl_notifications (
@@ -163,8 +640,10 @@ CREATE TABLE action.tbl_notifications (
 );
 
 
+ALTER TABLE action.tbl_notifications OWNER TO postgres;
+
 --
--- Name: log_role_permission_audits; Type: TABLE; Schema: auth; Owner: -
+-- Name: log_role_permission_audits; Type: TABLE; Schema: auth; Owner: postgres
 --
 
 CREATE TABLE auth.log_role_permission_audits (
@@ -190,8 +669,10 @@ CREATE TABLE auth.log_role_permission_audits (
 );
 
 
+ALTER TABLE auth.log_role_permission_audits OWNER TO postgres;
+
 --
--- Name: tbl_refresh_tokens; Type: TABLE; Schema: auth; Owner: -
+-- Name: tbl_refresh_tokens; Type: TABLE; Schema: auth; Owner: postgres
 --
 
 CREATE TABLE auth.tbl_refresh_tokens (
@@ -209,8 +690,10 @@ CREATE TABLE auth.tbl_refresh_tokens (
 );
 
 
+ALTER TABLE auth.tbl_refresh_tokens OWNER TO postgres;
+
 --
--- Name: tbl_role_permissions; Type: TABLE; Schema: auth; Owner: -
+-- Name: tbl_role_permissions; Type: TABLE; Schema: auth; Owner: postgres
 --
 
 CREATE TABLE auth.tbl_role_permissions (
@@ -236,8 +719,10 @@ CREATE TABLE auth.tbl_role_permissions (
 );
 
 
+ALTER TABLE auth.tbl_role_permissions OWNER TO postgres;
+
 --
--- Name: tbl_roles; Type: TABLE; Schema: auth; Owner: -
+-- Name: tbl_roles; Type: TABLE; Schema: auth; Owner: postgres
 --
 
 CREATE TABLE auth.tbl_roles (
@@ -255,8 +740,10 @@ CREATE TABLE auth.tbl_roles (
 );
 
 
+ALTER TABLE auth.tbl_roles OWNER TO postgres;
+
 --
--- Name: tbl_users; Type: TABLE; Schema: auth; Owner: -
+-- Name: tbl_users; Type: TABLE; Schema: auth; Owner: postgres
 --
 
 CREATE TABLE auth.tbl_users (
@@ -286,8 +773,10 @@ CREATE TABLE auth.tbl_users (
 );
 
 
+ALTER TABLE auth.tbl_users OWNER TO postgres;
+
 --
--- Name: tbl_client_assignments; Type: TABLE; Schema: customer; Owner: -
+-- Name: tbl_client_assignments; Type: TABLE; Schema: customer; Owner: postgres
 --
 
 CREATE TABLE customer.tbl_client_assignments (
@@ -296,8 +785,10 @@ CREATE TABLE customer.tbl_client_assignments (
 );
 
 
+ALTER TABLE customer.tbl_client_assignments OWNER TO postgres;
+
 --
--- Name: tbl_client_contacts; Type: TABLE; Schema: customer; Owner: -
+-- Name: tbl_client_contacts; Type: TABLE; Schema: customer; Owner: postgres
 --
 
 CREATE TABLE customer.tbl_client_contacts (
@@ -321,8 +812,10 @@ CREATE TABLE customer.tbl_client_contacts (
 );
 
 
+ALTER TABLE customer.tbl_client_contacts OWNER TO postgres;
+
 --
--- Name: tbl_clients; Type: TABLE; Schema: customer; Owner: -
+-- Name: tbl_clients; Type: TABLE; Schema: customer; Owner: postgres
 --
 
 CREATE TABLE customer.tbl_clients (
@@ -365,8 +858,10 @@ CREATE TABLE customer.tbl_clients (
 );
 
 
+ALTER TABLE customer.tbl_clients OWNER TO postgres;
+
 --
--- Name: tbl_sub_ventures; Type: TABLE; Schema: customer; Owner: -
+-- Name: tbl_sub_ventures; Type: TABLE; Schema: customer; Owner: postgres
 --
 
 CREATE TABLE customer.tbl_sub_ventures (
@@ -385,8 +880,10 @@ CREATE TABLE customer.tbl_sub_ventures (
 );
 
 
+ALTER TABLE customer.tbl_sub_ventures OWNER TO postgres;
+
 --
--- Name: mst_address_cities; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_address_cities; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_address_cities (
@@ -404,8 +901,10 @@ CREATE TABLE master.mst_address_cities (
 );
 
 
+ALTER TABLE master.mst_address_cities OWNER TO postgres;
+
 --
--- Name: mst_business_units; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_business_units; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_business_units (
@@ -422,8 +921,10 @@ CREATE TABLE master.mst_business_units (
 );
 
 
+ALTER TABLE master.mst_business_units OWNER TO postgres;
+
 --
--- Name: mst_certifications; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_certifications; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_certifications (
@@ -439,8 +940,10 @@ CREATE TABLE master.mst_certifications (
 );
 
 
+ALTER TABLE master.mst_certifications OWNER TO postgres;
+
 --
--- Name: mst_cities; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_cities; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_cities (
@@ -457,8 +960,10 @@ CREATE TABLE master.mst_cities (
 );
 
 
+ALTER TABLE master.mst_cities OWNER TO postgres;
+
 --
--- Name: mst_contact_designations; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_contact_designations; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_contact_designations (
@@ -475,8 +980,10 @@ CREATE TABLE master.mst_contact_designations (
 );
 
 
+ALTER TABLE master.mst_contact_designations OWNER TO postgres;
+
 --
--- Name: mst_contact_types; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_contact_types; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_contact_types (
@@ -493,8 +1000,10 @@ CREATE TABLE master.mst_contact_types (
 );
 
 
+ALTER TABLE master.mst_contact_types OWNER TO postgres;
+
 --
--- Name: mst_countries; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_countries; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_countries (
@@ -512,8 +1021,10 @@ CREATE TABLE master.mst_countries (
 );
 
 
+ALTER TABLE master.mst_countries OWNER TO postgres;
+
 --
--- Name: mst_departments; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_departments; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_departments (
@@ -529,8 +1040,10 @@ CREATE TABLE master.mst_departments (
 );
 
 
+ALTER TABLE master.mst_departments OWNER TO postgres;
+
 --
--- Name: mst_designation_sub_departments; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_designation_sub_departments; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_designation_sub_departments (
@@ -540,8 +1053,10 @@ CREATE TABLE master.mst_designation_sub_departments (
 );
 
 
+ALTER TABLE master.mst_designation_sub_departments OWNER TO postgres;
+
 --
--- Name: mst_designations; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_designations; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_designations (
@@ -560,8 +1075,10 @@ CREATE TABLE master.mst_designations (
 );
 
 
+ALTER TABLE master.mst_designations OWNER TO postgres;
+
 --
--- Name: mst_email_domains; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_email_domains; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_email_domains (
@@ -579,8 +1096,10 @@ CREATE TABLE master.mst_email_domains (
 );
 
 
+ALTER TABLE master.mst_email_domains OWNER TO postgres;
+
 --
--- Name: mst_employee_statuses; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_employee_statuses; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_employee_statuses (
@@ -598,8 +1117,10 @@ CREATE TABLE master.mst_employee_statuses (
 );
 
 
+ALTER TABLE master.mst_employee_statuses OWNER TO postgres;
+
 --
--- Name: mst_graduation_degrees; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_graduation_degrees; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_graduation_degrees (
@@ -615,8 +1136,10 @@ CREATE TABLE master.mst_graduation_degrees (
 );
 
 
+ALTER TABLE master.mst_graduation_degrees OWNER TO postgres;
+
 --
--- Name: mst_industries; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_industries; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_industries (
@@ -632,8 +1155,10 @@ CREATE TABLE master.mst_industries (
 );
 
 
+ALTER TABLE master.mst_industries OWNER TO postgres;
+
 --
--- Name: mst_leave_calendar; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_leave_calendar; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_leave_calendar (
@@ -652,8 +1177,10 @@ CREATE TABLE master.mst_leave_calendar (
 );
 
 
+ALTER TABLE master.mst_leave_calendar OWNER TO postgres;
+
 --
--- Name: mst_modules; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_modules; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_modules (
@@ -672,8 +1199,10 @@ CREATE TABLE master.mst_modules (
 );
 
 
+ALTER TABLE master.mst_modules OWNER TO postgres;
+
 --
--- Name: mst_nationalities; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_nationalities; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_nationalities (
@@ -689,8 +1218,10 @@ CREATE TABLE master.mst_nationalities (
 );
 
 
+ALTER TABLE master.mst_nationalities OWNER TO postgres;
+
 --
--- Name: mst_offices; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_offices; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_offices (
@@ -708,8 +1239,10 @@ CREATE TABLE master.mst_offices (
 );
 
 
+ALTER TABLE master.mst_offices OWNER TO postgres;
+
 --
--- Name: mst_onfloorrole_sub_departments; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_onfloorrole_sub_departments; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_onfloorrole_sub_departments (
@@ -719,8 +1252,10 @@ CREATE TABLE master.mst_onfloorrole_sub_departments (
 );
 
 
+ALTER TABLE master.mst_onfloorrole_sub_departments OWNER TO postgres;
+
 --
--- Name: mst_org_role_map; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_org_role_map; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_org_role_map (
@@ -738,8 +1273,10 @@ CREATE TABLE master.mst_org_role_map (
 );
 
 
+ALTER TABLE master.mst_org_role_map OWNER TO postgres;
+
 --
--- Name: mst_org_role_sub_departments; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_org_role_sub_departments; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_org_role_sub_departments (
@@ -749,8 +1286,10 @@ CREATE TABLE master.mst_org_role_sub_departments (
 );
 
 
+ALTER TABLE master.mst_org_role_sub_departments OWNER TO postgres;
+
 --
--- Name: mst_post_graduation_degrees; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_post_graduation_degrees; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_post_graduation_degrees (
@@ -766,8 +1305,10 @@ CREATE TABLE master.mst_post_graduation_degrees (
 );
 
 
+ALTER TABLE master.mst_post_graduation_degrees OWNER TO postgres;
+
 --
--- Name: mst_rbac_baseline; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_rbac_baseline; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_rbac_baseline (
@@ -776,8 +1317,10 @@ CREATE TABLE master.mst_rbac_baseline (
 );
 
 
+ALTER TABLE master.mst_rbac_baseline OWNER TO postgres;
+
 --
--- Name: mst_reporting_managers; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_reporting_managers; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_reporting_managers (
@@ -797,8 +1340,10 @@ CREATE TABLE master.mst_reporting_managers (
 );
 
 
+ALTER TABLE master.mst_reporting_managers OWNER TO postgres;
+
 --
--- Name: mst_salary_bands; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_salary_bands; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_salary_bands (
@@ -814,8 +1359,10 @@ CREATE TABLE master.mst_salary_bands (
 );
 
 
+ALTER TABLE master.mst_salary_bands OWNER TO postgres;
+
 --
--- Name: mst_service_catalog; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_service_catalog; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_service_catalog (
@@ -838,8 +1385,10 @@ CREATE TABLE master.mst_service_catalog (
 );
 
 
+ALTER TABLE master.mst_service_catalog OWNER TO postgres;
+
 --
--- Name: mst_service_departments; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_service_departments; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_service_departments (
@@ -857,8 +1406,10 @@ CREATE TABLE master.mst_service_departments (
 );
 
 
+ALTER TABLE master.mst_service_departments OWNER TO postgres;
+
 --
--- Name: mst_service_groups; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_service_groups; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_service_groups (
@@ -875,8 +1426,10 @@ CREATE TABLE master.mst_service_groups (
 );
 
 
+ALTER TABLE master.mst_service_groups OWNER TO postgres;
+
 --
--- Name: mst_service_sub_departments; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_service_sub_departments; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_service_sub_departments (
@@ -894,8 +1447,10 @@ CREATE TABLE master.mst_service_sub_departments (
 );
 
 
+ALTER TABLE master.mst_service_sub_departments OWNER TO postgres;
+
 --
--- Name: mst_sub_departments; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_sub_departments; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_sub_departments (
@@ -912,8 +1467,10 @@ CREATE TABLE master.mst_sub_departments (
 );
 
 
+ALTER TABLE master.mst_sub_departments OWNER TO postgres;
+
 --
--- Name: mst_submodules; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_submodules; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_submodules (
@@ -934,8 +1491,10 @@ CREATE TABLE master.mst_submodules (
 );
 
 
+ALTER TABLE master.mst_submodules OWNER TO postgres;
+
 --
--- Name: mst_tabs; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_tabs; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_tabs (
@@ -956,8 +1515,10 @@ CREATE TABLE master.mst_tabs (
 );
 
 
+ALTER TABLE master.mst_tabs OWNER TO postgres;
+
 --
--- Name: mst_widgets; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_widgets; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_widgets (
@@ -976,8 +1537,10 @@ CREATE TABLE master.mst_widgets (
 );
 
 
+ALTER TABLE master.mst_widgets OWNER TO postgres;
+
 --
--- Name: mst_work_locations; Type: TABLE; Schema: master; Owner: -
+-- Name: mst_work_locations; Type: TABLE; Schema: master; Owner: postgres
 --
 
 CREATE TABLE master.mst_work_locations (
@@ -994,8 +1557,10 @@ CREATE TABLE master.mst_work_locations (
 );
 
 
+ALTER TABLE master.mst_work_locations OWNER TO postgres;
+
 --
--- Name: log_project_task_assignments; Type: TABLE; Schema: project; Owner: -
+-- Name: log_project_task_assignments; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.log_project_task_assignments (
@@ -1014,8 +1579,10 @@ CREATE TABLE project.log_project_task_assignments (
 );
 
 
+ALTER TABLE project.log_project_task_assignments OWNER TO postgres;
+
 --
--- Name: tbl_project_additional_requirements; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_additional_requirements; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_additional_requirements (
@@ -1049,8 +1616,10 @@ CREATE TABLE project.tbl_project_additional_requirements (
 );
 
 
+ALTER TABLE project.tbl_project_additional_requirements OWNER TO postgres;
+
 --
--- Name: tbl_project_alerts; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_alerts; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_alerts (
@@ -1088,8 +1657,10 @@ CREATE TABLE project.tbl_project_alerts (
 );
 
 
+ALTER TABLE project.tbl_project_alerts OWNER TO postgres;
+
 --
--- Name: tbl_project_appreciations; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_appreciations; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_appreciations (
@@ -1111,8 +1682,10 @@ CREATE TABLE project.tbl_project_appreciations (
 );
 
 
+ALTER TABLE project.tbl_project_appreciations OWNER TO postgres;
+
 --
--- Name: tbl_project_documents; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_documents; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_documents (
@@ -1133,8 +1706,10 @@ CREATE TABLE project.tbl_project_documents (
 );
 
 
+ALTER TABLE project.tbl_project_documents OWNER TO postgres;
+
 --
--- Name: tbl_project_drafts; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_drafts; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_drafts (
@@ -1155,8 +1730,10 @@ CREATE TABLE project.tbl_project_drafts (
 );
 
 
+ALTER TABLE project.tbl_project_drafts OWNER TO postgres;
+
 --
--- Name: tbl_project_extension_approvers; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_extension_approvers; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_extension_approvers (
@@ -1173,8 +1750,10 @@ CREATE TABLE project.tbl_project_extension_approvers (
 );
 
 
+ALTER TABLE project.tbl_project_extension_approvers OWNER TO postgres;
+
 --
--- Name: tbl_project_extension_requests; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_extension_requests; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_extension_requests (
@@ -1197,8 +1776,10 @@ CREATE TABLE project.tbl_project_extension_requests (
 );
 
 
+ALTER TABLE project.tbl_project_extension_requests OWNER TO postgres;
+
 --
--- Name: tbl_project_interviews; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_interviews; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_interviews (
@@ -1218,8 +1799,10 @@ CREATE TABLE project.tbl_project_interviews (
 );
 
 
+ALTER TABLE project.tbl_project_interviews OWNER TO postgres;
+
 --
--- Name: tbl_project_invoices; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_invoices; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_invoices (
@@ -1252,8 +1835,10 @@ CREATE TABLE project.tbl_project_invoices (
 );
 
 
+ALTER TABLE project.tbl_project_invoices OWNER TO postgres;
+
 --
--- Name: tbl_project_issues; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_issues; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_issues (
@@ -1277,8 +1862,10 @@ CREATE TABLE project.tbl_project_issues (
 );
 
 
+ALTER TABLE project.tbl_project_issues OWNER TO postgres;
+
 --
--- Name: tbl_project_service_escalation_stakeholders; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_service_escalation_stakeholders; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_service_escalation_stakeholders (
@@ -1296,8 +1883,10 @@ CREATE TABLE project.tbl_project_service_escalation_stakeholders (
 );
 
 
+ALTER TABLE project.tbl_project_service_escalation_stakeholders OWNER TO postgres;
+
 --
--- Name: tbl_project_service_escalations; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_service_escalations; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_service_escalations (
@@ -1329,8 +1918,10 @@ CREATE TABLE project.tbl_project_service_escalations (
 );
 
 
+ALTER TABLE project.tbl_project_service_escalations OWNER TO postgres;
+
 --
--- Name: tbl_project_services; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_services; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_services (
@@ -1383,8 +1974,10 @@ CREATE TABLE project.tbl_project_services (
 );
 
 
+ALTER TABLE project.tbl_project_services OWNER TO postgres;
+
 --
--- Name: tbl_project_task_assignments; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_task_assignments; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_task_assignments (
@@ -1405,8 +1998,10 @@ CREATE TABLE project.tbl_project_task_assignments (
 );
 
 
+ALTER TABLE project.tbl_project_task_assignments OWNER TO postgres;
+
 --
--- Name: tbl_project_tasks; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_tasks; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_tasks (
@@ -1436,8 +2031,10 @@ CREATE TABLE project.tbl_project_tasks (
 );
 
 
+ALTER TABLE project.tbl_project_tasks OWNER TO postgres;
+
 --
--- Name: tbl_project_team_members; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_project_team_members; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_project_team_members (
@@ -1461,8 +2058,10 @@ CREATE TABLE project.tbl_project_team_members (
 );
 
 
+ALTER TABLE project.tbl_project_team_members OWNER TO postgres;
+
 --
--- Name: tbl_projects; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_projects; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_projects (
@@ -1516,8 +2115,10 @@ CREATE TABLE project.tbl_projects (
 );
 
 
+ALTER TABLE project.tbl_projects OWNER TO postgres;
+
 --
--- Name: tbl_resource_allocation_requests; Type: TABLE; Schema: project; Owner: -
+-- Name: tbl_resource_allocation_requests; Type: TABLE; Schema: project; Owner: postgres
 --
 
 CREATE TABLE project.tbl_resource_allocation_requests (
@@ -1547,8 +2148,10 @@ CREATE TABLE project.tbl_resource_allocation_requests (
 );
 
 
+ALTER TABLE project.tbl_resource_allocation_requests OWNER TO postgres;
+
 --
--- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: -
+-- Name: __EFMigrationsHistory; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public."__EFMigrationsHistory" (
@@ -1557,8 +2160,10 @@ CREATE TABLE public."__EFMigrationsHistory" (
 );
 
 
+ALTER TABLE public."__EFMigrationsHistory" OWNER TO postgres;
+
 --
--- Name: log_repository_activity; Type: TABLE; Schema: repository; Owner: -
+-- Name: log_repository_activity; Type: TABLE; Schema: repository; Owner: postgres
 --
 
 CREATE TABLE repository.log_repository_activity (
@@ -1577,8 +2182,10 @@ CREATE TABLE repository.log_repository_activity (
 );
 
 
+ALTER TABLE repository.log_repository_activity OWNER TO postgres;
+
 --
--- Name: tbl_repository_departments; Type: TABLE; Schema: repository; Owner: -
+-- Name: tbl_repository_departments; Type: TABLE; Schema: repository; Owner: postgres
 --
 
 CREATE TABLE repository.tbl_repository_departments (
@@ -1587,8 +2194,10 @@ CREATE TABLE repository.tbl_repository_departments (
 );
 
 
+ALTER TABLE repository.tbl_repository_departments OWNER TO postgres;
+
 --
--- Name: tbl_repository_items; Type: TABLE; Schema: repository; Owner: -
+-- Name: tbl_repository_items; Type: TABLE; Schema: repository; Owner: postgres
 --
 
 CREATE TABLE repository.tbl_repository_items (
@@ -1607,8 +2216,10 @@ CREATE TABLE repository.tbl_repository_items (
 );
 
 
+ALTER TABLE repository.tbl_repository_items OWNER TO postgres;
+
 --
--- Name: log_employee_activity; Type: TABLE; Schema: resource; Owner: -
+-- Name: log_employee_activity; Type: TABLE; Schema: resource; Owner: postgres
 --
 
 CREATE TABLE resource.log_employee_activity (
@@ -1626,8 +2237,10 @@ CREATE TABLE resource.log_employee_activity (
 );
 
 
+ALTER TABLE resource.log_employee_activity OWNER TO postgres;
+
 --
--- Name: tbl_employees; Type: TABLE; Schema: resource; Owner: -
+-- Name: tbl_employees; Type: TABLE; Schema: resource; Owner: postgres
 --
 
 CREATE TABLE resource.tbl_employees (
@@ -1718,12 +2331,15 @@ CREATE TABLE resource.tbl_employees (
     "ProjectSite" character varying(80),
     "EngagementManagerEmployeeId" uuid,
     "ProjectManagerId" uuid,
-    "SubDepartmentId" uuid
+    "SubDepartmentId" uuid,
+    "OriginalRole" character varying(80)
 );
 
 
+ALTER TABLE resource.tbl_employees OWNER TO postgres;
+
 --
--- Name: tbl_exited_employees; Type: TABLE; Schema: resource; Owner: -
+-- Name: tbl_exited_employees; Type: TABLE; Schema: resource; Owner: postgres
 --
 
 CREATE TABLE resource.tbl_exited_employees (
@@ -1758,8 +2374,10 @@ CREATE TABLE resource.tbl_exited_employees (
 );
 
 
+ALTER TABLE resource.tbl_exited_employees OWNER TO postgres;
+
 --
--- Name: tbl_onfloorrole; Type: TABLE; Schema: resource; Owner: -
+-- Name: tbl_onfloorrole; Type: TABLE; Schema: resource; Owner: postgres
 --
 
 CREATE TABLE resource.tbl_onfloorrole (
@@ -1777,8 +2395,10 @@ CREATE TABLE resource.tbl_onfloorrole (
 );
 
 
+ALTER TABLE resource.tbl_onfloorrole OWNER TO postgres;
+
 --
--- Name: tbl_onfloorrole_subdepartment; Type: VIEW; Schema: resource; Owner: -
+-- Name: tbl_onfloorrole_subdepartment; Type: VIEW; Schema: resource; Owner: postgres
 --
 
 CREATE VIEW resource.tbl_onfloorrole_subdepartment AS
@@ -1788,8 +2408,10 @@ CREATE VIEW resource.tbl_onfloorrole_subdepartment AS
    FROM master.mst_onfloorrole_sub_departments;
 
 
+ALTER VIEW resource.tbl_onfloorrole_subdepartment OWNER TO postgres;
+
 --
--- Name: tbl_team_day_entries; Type: TABLE; Schema: timesheet; Owner: -
+-- Name: tbl_team_day_entries; Type: TABLE; Schema: timesheet; Owner: postgres
 --
 
 CREATE TABLE timesheet.tbl_team_day_entries (
@@ -1806,8 +2428,10 @@ CREATE TABLE timesheet.tbl_team_day_entries (
 );
 
 
+ALTER TABLE timesheet.tbl_team_day_entries OWNER TO postgres;
+
 --
--- Name: tbl_team_member_holidays; Type: TABLE; Schema: timesheet; Owner: -
+-- Name: tbl_team_member_holidays; Type: TABLE; Schema: timesheet; Owner: postgres
 --
 
 CREATE TABLE timesheet.tbl_team_member_holidays (
@@ -1824,8 +2448,10 @@ CREATE TABLE timesheet.tbl_team_member_holidays (
 );
 
 
+ALTER TABLE timesheet.tbl_team_member_holidays OWNER TO postgres;
+
 --
--- Name: tbl_team_member_schedules; Type: TABLE; Schema: timesheet; Owner: -
+-- Name: tbl_team_member_schedules; Type: TABLE; Schema: timesheet; Owner: postgres
 --
 
 CREATE TABLE timesheet.tbl_team_member_schedules (
@@ -1841,8 +2467,10 @@ CREATE TABLE timesheet.tbl_team_member_schedules (
 );
 
 
+ALTER TABLE timesheet.tbl_team_member_schedules OWNER TO postgres;
+
 --
--- Name: tbl_timesheet_entries; Type: TABLE; Schema: timesheet; Owner: -
+-- Name: tbl_timesheet_entries; Type: TABLE; Schema: timesheet; Owner: postgres
 --
 
 CREATE TABLE timesheet.tbl_timesheet_entries (
@@ -1861,8 +2489,10 @@ CREATE TABLE timesheet.tbl_timesheet_entries (
 );
 
 
+ALTER TABLE timesheet.tbl_timesheet_entries OWNER TO postgres;
+
 --
--- Name: tbl_timesheet_entry_days; Type: TABLE; Schema: timesheet; Owner: -
+-- Name: tbl_timesheet_entry_days; Type: TABLE; Schema: timesheet; Owner: postgres
 --
 
 CREATE TABLE timesheet.tbl_timesheet_entry_days (
@@ -1879,8 +2509,10 @@ CREATE TABLE timesheet.tbl_timesheet_entry_days (
 );
 
 
+ALTER TABLE timesheet.tbl_timesheet_entry_days OWNER TO postgres;
+
 --
--- Name: tbl_timesheets; Type: TABLE; Schema: timesheet; Owner: -
+-- Name: tbl_timesheets; Type: TABLE; Schema: timesheet; Owner: postgres
 --
 
 CREATE TABLE timesheet.tbl_timesheets (
@@ -1901,8 +2533,10 @@ CREATE TABLE timesheet.tbl_timesheets (
 );
 
 
+ALTER TABLE timesheet.tbl_timesheets OWNER TO postgres;
+
 --
--- Data for Name: tbl_bucket_tasks; Type: TABLE DATA; Schema: action; Owner: -
+-- Data for Name: tbl_bucket_tasks; Type: TABLE DATA; Schema: action; Owner: postgres
 --
 
 COPY action.tbl_bucket_tasks ("Id", "TaskId", "ProjectId", "ProjectServiceId", "AssignmentId", "EmployeeId", "AssignedById", "AssignedByName", "TaskTitle", "ProjectName", "Priority", "DueDate", "Status", "ActualStartDate", "ActualEndDate", "TimerRunning", "TimerStartedAtUtc", "TimerAccumulatedSeconds", "UtilizedHours", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -1920,7 +2554,7 @@ f4a2357f-0246-4ffe-be72-3ee275a4cbb2	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	89744e
 
 
 --
--- Data for Name: tbl_notifications; Type: TABLE DATA; Schema: action; Owner: -
+-- Data for Name: tbl_notifications; Type: TABLE DATA; Schema: action; Owner: postgres
 --
 
 COPY action.tbl_notifications ("Id", "RecipientEmployeeId", "ProjectId", "ProjectCode", "ProjectName", "Title", "Type", "Priority", "Status", "Unread", "RaisedByEmployeeId", "RaisedByName", "RelatedTask", "IssueId", "HistoryJson", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2007,7 +2641,7 @@ f5cc9741-1e2d-4704-9679-121f910d0996	41708635-a60e-4fbd-a76b-91c0c23d18be	bc30f6
 
 
 --
--- Data for Name: log_role_permission_audits; Type: TABLE DATA; Schema: auth; Owner: -
+-- Data for Name: log_role_permission_audits; Type: TABLE DATA; Schema: auth; Owner: postgres
 --
 
 COPY auth.log_role_permission_audits ("Id", "RoleId", "RoleName", "ModuleKey", "ModuleLabel", "SubmoduleKey", "SubmoduleLabel", "PermissionKey", "ActionLabel", "ChangeType", "PreviousValue", "NewValue", "ChangedById", "ChangedByName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2054,7 +2688,7 @@ f50addee-19db-494b-a234-7fdb2413c8a4	bb568e26-548b-4ca5-9221-fefb9c9143b3	HR			\
 
 
 --
--- Data for Name: tbl_refresh_tokens; Type: TABLE DATA; Schema: auth; Owner: -
+-- Data for Name: tbl_refresh_tokens; Type: TABLE DATA; Schema: auth; Owner: postgres
 --
 
 COPY auth.tbl_refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "RevokedAtUtc", "ReplacedByTokenHash", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -2062,7 +2696,7 @@ COPY auth.tbl_refresh_tokens ("Id", "UserId", "TokenHash", "ExpiresAtUtc", "Revo
 
 
 --
--- Data for Name: tbl_role_permissions; Type: TABLE DATA; Schema: auth; Owner: -
+-- Data for Name: tbl_role_permissions; Type: TABLE DATA; Schema: auth; Owner: postgres
 --
 
 COPY auth.tbl_role_permissions ("Id", "RoleId", "ItemId", "ItemType", "CanView", "CanManage", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "DefaultCanView", "DefaultCanManage") FROM stdin;
@@ -3582,7 +4216,7 @@ ff2b10ad-0adb-4cfd-ac4a-1b0c5510f88e	66e48815-4d4f-41d0-9c5f-26a7b7ba296c	c1a111
 
 
 --
--- Data for Name: tbl_roles; Type: TABLE DATA; Schema: auth; Owner: -
+-- Data for Name: tbl_roles; Type: TABLE DATA; Schema: auth; Owner: postgres
 --
 
 COPY auth.tbl_roles ("Id", "DisplayName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Name", "Description", "IsActive", "IsSystemRole") FROM stdin;
@@ -3619,7 +4253,7 @@ f5c742d1-e0cc-4bf8-b860-a673ac407393	R&D - Team member	2026-09-24 12:13:06.78476
 
 
 --
--- Data for Name: tbl_users; Type: TABLE DATA; Schema: auth; Owner: -
+-- Data for Name: tbl_users; Type: TABLE DATA; Schema: auth; Owner: postgres
 --
 
 COPY auth.tbl_users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Department", "SubDepartment", "Avatar", "Designation", "IsActive", "MustChangePassword", "RoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "FailedLoginAttempts", "LastLoginAtUtc", "LockedUntilUtc", "PasswordChangedAtUtc", "AuthProvider", "MicrosoftOid") FROM stdin;
@@ -3627,11 +4261,12 @@ COPY auth.tbl_users ("Id", "Email", "PasswordHash", "Name", "EmployeeId", "Depar
 78470591-8a64-40a5-8bcd-f766cb7ae3ec	harsh.wardhan.tk-0016@talakunchi.com	$2a$12$Q1WXE.vXpkhmPqmIk.3xdOzAGJeWTy98V4E1H3n5KjTa7AFePazl.	Harsh Wardhan	TK-0016	Functional - IT Administration	\N	\N	Desktop Support Engineer - I	t	t	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-16 10:06:09.241746+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	0	\N	\N	\N	Local	\N
 a0b10742-1874-4390-a73d-122dd9db2859	pallavi.sawant.tk-0017@talakunchi.com	$2a$12$ESBGepF4cgho35rHk6ymUeVvWmOkUHHwf/rGQr8fE2FogdmbaMuLy	Pallavi Sawant	TK-0017	Functional - IT Administration	\N	\N	Desktop Support Engineer - II	t	t	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-16 10:06:09.503287+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	0	\N	\N	\N	Local	\N
 c9d183e1-5770-494a-a061-137a51001f53	harsh.pandey.tk-0018@talakunchi.com	$2a$12$WedigdLQFiPPL8dugTIwMed2zHP3gWMBQjnd1b6SEwmgi/ev2WgZe	Harsh Pandey	TK-0018	Functional - IT Administration	\N	\N	IT Admin	t	t	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-16 10:06:09.760432+00	\N	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	0	\N	\N	\N	Local	\N
+92172235-83bb-41a1-a96e-60054a506818	vihaan.pillai.tk-0001@talakunchi.com	\N	Vihaan Pillai	TK-0001	Functional - Project Management	\N	\N	Associate PMO - I	t	f	2acf8b94-0756-4db8-bb6f-8372ac04a2d1	2026-11-12 07:17:07.682368+00	2026-11-12 07:17:12.079393+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	0	\N	\N	\N	Local	\N
 \.
 
 
 --
--- Data for Name: tbl_client_assignments; Type: TABLE DATA; Schema: customer; Owner: -
+-- Data for Name: tbl_client_assignments; Type: TABLE DATA; Schema: customer; Owner: postgres
 --
 
 COPY customer.tbl_client_assignments ("ClientId", "UserId") FROM stdin;
@@ -3639,7 +4274,7 @@ COPY customer.tbl_client_assignments ("ClientId", "UserId") FROM stdin;
 
 
 --
--- Data for Name: tbl_client_contacts; Type: TABLE DATA; Schema: customer; Owner: -
+-- Data for Name: tbl_client_contacts; Type: TABLE DATA; Schema: customer; Owner: postgres
 --
 
 COPY customer.tbl_client_contacts ("Id", "ClientId", "SubVentureId", "Name", "Email", "Phone", "Designation", "ContactType", "IsPrimary", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Country", "PhoneCode") FROM stdin;
@@ -3660,7 +4295,7 @@ f09e8feb-04d5-4395-8e30-39aac648791b	\N	c005cbc3-03a8-4dec-b3d0-c44868e18f28	Abh
 
 
 --
--- Data for Name: tbl_clients; Type: TABLE DATA; Schema: customer; Owner: -
+-- Data for Name: tbl_clients; Type: TABLE DATA; Schema: customer; Owner: postgres
 --
 
 COPY customer.tbl_clients ("Id", "Name", "Industry", "Logo", "ContactEmail", "ClientType", "Status", "EngagementManager", "ContactName", "ContactPhone", "ContactDesignation", "ContactType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BusinessType", "City", "Country", "KycDocumentName", "Notes", "EngagementManagerId", "IndustryId", "CityId", "CountryId", "CustomerSince", "SalesManager", "SalesManagerId", "KycDocumentPath", "BillingMedium", "GroupSpocName", "GroupSpocContact", "ClientCode", "CreatedByName", "GroupSpocPhoneCode") FROM stdin;
@@ -3671,7 +4306,7 @@ bf01f81e-b09c-47c1-811c-40a58a56db12	Aditya Birla	Logistics	AB	\N	New	Active	Kar
 
 
 --
--- Data for Name: tbl_sub_ventures; Type: TABLE DATA; Schema: customer; Owner: -
+-- Data for Name: tbl_sub_ventures; Type: TABLE DATA; Schema: customer; Owner: postgres
 --
 
 COPY customer.tbl_sub_ventures ("Id", "ClientId", "Name", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Notes", "KycDocumentName", "KycDocumentPath", "SubVentureCode") FROM stdin;
@@ -3683,7 +4318,7 @@ a585a207-e23c-4694-9a6e-1dfea515c585	5a526476-8299-49a7-af85-4a322006bde9	sub te
 
 
 --
--- Data for Name: mst_address_cities; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_address_cities; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_address_cities ("Id", "Code", "Name", "Line", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -3820,7 +4455,7 @@ fa93d47b-4401-49d0-ac56-9640fae57c62	kopar_khairane_trans_harbour_line	Kopar Kha
 
 
 --
--- Data for Name: mst_business_units; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_business_units; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -3831,7 +4466,7 @@ COPY master.mst_business_units ("Id", "Code", "Name", "IsActive", "SortOrder", "
 
 
 --
--- Data for Name: mst_certifications; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_certifications; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_certifications ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -3869,7 +4504,7 @@ d20bc297-e08b-4694-aa66-2d2b9fb83c2c	zz_probe_cert	ZZ Probe Cert	f	2026-10-18 13
 
 
 --
--- Data for Name: mst_cities; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_cities; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_cities ("Id", "Code", "Name", "IsActive", "CountryId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4016,7 +4651,7 @@ fe6526bc-a57b-4c6e-8094-be6327614409	in_tiruchirappalli	Tiruchirappalli	t	f6f989
 
 
 --
--- Data for Name: mst_contact_designations; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_contact_designations; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_contact_designations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4031,7 +4666,7 @@ COPY master.mst_contact_designations ("Id", "Code", "Name", "IsActive", "SortOrd
 
 
 --
--- Data for Name: mst_contact_types; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_contact_types; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_contact_types ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4045,7 +4680,7 @@ fce7509c-4c38-4afb-b889-8ad5a6474f39	TESTCNT	Test cnt	t	6	2026-10-18 10:24:42.87
 
 
 --
--- Data for Name: mst_countries; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_countries; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_countries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "PhoneCode", "PhoneDigits") FROM stdin;
@@ -4095,7 +4730,7 @@ f20c0081-5dae-4dcd-b1b0-b40f46f10c48	TESTC	test country	t	2026-10-18 10:25:24.74
 
 
 --
--- Data for Name: mst_departments; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_departments; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_departments ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4116,130 +4751,130 @@ be8e036d-ad13-4c79-89ec-294e490a6816	services_consulting	Services - Consulting	t
 
 
 --
--- Data for Name: mst_designation_sub_departments; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_designation_sub_departments; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_designation_sub_departments ("Id", "DesignationId", "SubDepartmentId") FROM stdin;
-00dad5fb-af65-4cbb-a8ba-900fd1e28d56	2b1558e3-158a-4a84-ae80-053129861a64	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-01dee0ed-1252-4625-8ccf-857d391dd661	caa227a1-2dcf-4195-ab9c-8f76d1862daa	5d962383-f175-4dd8-af63-8a566a0d2255
-04710a19-9f8d-4d5a-8583-b01e2ef4e470	163d8c87-8f90-4295-a926-2e912c625a1c	682d36c0-4256-42ab-811e-054ab3a5b10f
-07d358a3-8241-4934-83a9-8672d09f3e3d	4f972924-350a-47fb-a6b6-f2b34bb6b621	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-0ba56b68-4791-4997-a877-f83565cf50f9	9858c224-f97f-4ff8-908d-f46bd5e2243c	db0addff-605e-439f-917b-38016a398755
-15a6cf23-7d78-4d3a-a697-4207454ab981	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	db0addff-605e-439f-917b-38016a398755
-181dcc0a-39c0-43ed-b4f9-118cdd0d0bcb	e228c999-bf54-48b4-a373-d2bc9db88554	db0addff-605e-439f-917b-38016a398755
-20c4ef61-1f4b-4b3c-9f1f-232573026310	a697a798-caaf-4248-8e4e-7e89096a9c30	db0addff-605e-439f-917b-38016a398755
-22043513-8a6b-458a-9cbb-0aee01b05e56	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-233cd70b-570a-4753-b9b2-47fe2a54697b	1f97b442-95c5-4b11-93a0-ea146534ae85	5d962383-f175-4dd8-af63-8a566a0d2255
-260158d5-ed74-4fd0-b91d-4ec20f132d64	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-28503bba-2687-4128-8571-ed5c963e6489	4f972924-350a-47fb-a6b6-f2b34bb6b621	682d36c0-4256-42ab-811e-054ab3a5b10f
-2dbaec48-9080-4c78-a94d-69c565803a61	c6c6cd04-6df3-4593-b686-e4b9d362c96f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-2e0d6cc0-6e65-4e85-a540-1708f184c51d	834c9e15-c70d-4a0b-bb12-5e55f23c181d	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-2e5a6274-b50d-40fd-b96f-7d28fb042a57	138434a2-625f-4df5-836d-fcf0cfceef79	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-3089f37a-a1cb-4969-88f0-c62605a3952b	8b57cfd5-5d4e-44a3-9646-b36873c111c2	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-35f11375-f8a7-4390-a85c-594420852f14	155642eb-a633-4460-b658-aca9fde2d817	5d962383-f175-4dd8-af63-8a566a0d2255
-3647b1aa-3b9f-4860-9d28-2a44cef33af6	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-389558cf-7526-4076-b702-27ed28fb65d7	e228c999-bf54-48b4-a373-d2bc9db88554	682d36c0-4256-42ab-811e-054ab3a5b10f
-3a9c2dad-c16b-4551-9d13-a16592584a5c	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-3c17eaaf-663b-411f-9579-4483153e160b	c0e1a001-0000-4000-8000-000000000001	63765624-d7d1-472d-abd4-627127646998
-3cf46cc5-c780-4784-83dc-d985bfe30cba	a697a798-caaf-4248-8e4e-7e89096a9c30	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-3e17ac60-2261-4a12-852b-cabb4c78abd2	3b7ea453-324e-40a0-bb41-77a0795d5af5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-3e9f875e-c194-44f9-9ea1-88d07d4a3a5d	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-3fbefa07-5c2c-455f-a38b-b87702bd26af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	b651aec8-5455-4329-8251-0ceb62cea798
-4237c963-fa88-42f1-903d-cb5d42ffb992	778f1120-9633-4933-9160-ddaa46668838	a12ac80b-a665-4301-898e-e9ca3d44bb20
-43fa79c3-03a9-4f85-afe7-c58d3b3ccf15	ea315f7d-d597-41b3-a999-4f3851bcd020	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-458e11db-7ebd-459d-8855-2129255ad48e	9858c224-f97f-4ff8-908d-f46bd5e2243c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-458e52bf-462c-4eba-ba3b-69fd0eb3dbf0	4ef1cb5b-9688-4ce2-95b3-6a0863200166	5d962383-f175-4dd8-af63-8a566a0d2255
-46a40b90-da90-40c8-a77a-98bc715d0eef	2a76927c-461a-48e4-8190-dea7361ef3db	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-46d83d31-c6d5-46a0-aa5f-a28e7c8063fc	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	682d36c0-4256-42ab-811e-054ab3a5b10f
-48dbd12c-f03c-451c-a126-5caaaf97df3a	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	b651aec8-5455-4329-8251-0ceb62cea798
-494e97e4-5296-40d5-ab1c-7308a6da98cf	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-4bb95943-554d-4a9e-9e71-62bd71227612	485012d4-2c28-4bc4-92c7-3609e3e3749e	c88d783b-b628-4f3a-a972-aa56aeed5e77
-4ef89de3-18b0-47be-81a8-c8106a0f22fa	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	682d36c0-4256-42ab-811e-054ab3a5b10f
-4f87b413-208d-4b97-950e-cf3d22a40db9	73bd55bb-5d0e-4381-8ad2-2238377fca93	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-4fc8f9ec-4dd4-42a1-ac34-6eb7dd1f58dd	f20a7445-0b01-4f20-85a5-853101d864ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-52547711-a5fe-45ba-9969-04b1bb0621a9	da990f6e-3379-4cc4-89b7-0ead29da472b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-53a997ce-63f7-4f2e-9108-44cda210ae04	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	682d36c0-4256-42ab-811e-054ab3a5b10f
-55bbfde5-5006-4de1-a20b-8711b00dbcf3	e2b4be77-2b20-4064-974d-e6322e7240b4	88b29e0c-39b7-4169-ab5c-350075014a84
-613b4c37-f99a-4e5a-9834-9fd6ae3fae93	272973a6-c052-4aef-bf32-9e24f7eb6cc9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-6220d786-1d57-46da-9433-a6021bc01165	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-678c2d2f-dcd2-4a27-8771-86911a7a1fcf	48429bb5-c583-4684-b30a-7ed443b671ca	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-69664653-975b-472b-b4b4-51a4070aebc2	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-6faec9b7-f9f0-4536-b454-783a91879616	163d8c87-8f90-4295-a926-2e912c625a1c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-71073e01-573e-4056-b4a8-0efbead7d613	911f6d7f-8d43-40f2-897a-2f416abf8cf9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-73a17e64-b462-462f-9079-dc31bdd1fe46	9dc69952-eae6-4ec0-a327-67392315f089	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-74a8d3e4-d4d6-45d8-a1c3-2c8ba234e071	0525d830-ead9-44a0-871f-91b7845fec26	61bbeadf-3044-4123-929c-4b1e6e2e613e
-7998bd75-86fa-48f9-bbb1-9acdb5fe5d00	444df30d-c195-42ad-b9a7-d80cdef69ccd	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-79a05d1d-417b-445a-91b1-bb791cad7425	767a00dd-6f09-4f64-a44e-8fbe901222af	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-807a5478-36dc-4be5-b5e6-bf1a1f5583cb	a697a798-caaf-4248-8e4e-7e89096a9c30	682d36c0-4256-42ab-811e-054ab3a5b10f
-819c5998-8b44-4438-aa79-9b374df6b05e	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	7682acb3-561b-4951-801b-c1564adda131
-8423eb71-5703-469f-b143-24028d75a439	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-924d4868-7b40-4637-ac2d-7df174328d2a	e2c675a7-92dc-4477-be75-9a304cbe4def	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-952e9f7b-13b2-4ef0-8360-4eba31c14e3a	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-955e5240-02f4-49be-aeca-2d6e05b2019e	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	88b29e0c-39b7-4169-ab5c-350075014a84
-9c359b3f-8e52-4ecd-b97f-8353a05649ee	6d25ff6d-e13d-440f-b775-215547af7acb	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-9c3e7122-3d20-403e-8ed2-45b91bbd95f4	ae255622-ddcc-45ea-a699-8ec416fe57ab	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-9ceab5f1-ea30-41d8-9706-a206a7a15423	2076a9b1-e432-46a9-99b1-36e732159856	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-9d505cb0-0130-49f4-9096-110f5be7794f	6193be76-40ad-4973-9ee7-246a4d8f4109	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-9eaf4567-7055-4ed6-887c-0b7f7ae00b2c	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	7682acb3-561b-4951-801b-c1564adda131
-ac8735e5-0c1b-4a9d-bdf5-d5c4b3bee708	bb7ccd5f-2f60-49fb-b984-f11fc47add22	7682acb3-561b-4951-801b-c1564adda131
-ae731aa4-5428-456e-ab49-442580b7d4fa	c1fa4328-a970-48a1-bc08-d50fe36bf44c	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-affc7320-398f-4ef6-a5a6-5c4f566be361	4f972924-350a-47fb-a6b6-f2b34bb6b621	db0addff-605e-439f-917b-38016a398755
-b1025003-23c8-4971-93b1-eb9289def7df	9050e021-7d84-4401-820e-c0e768abb1ab	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-b13ec218-63ee-439a-9576-0c6ffb668f37	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-b970c5f5-6593-4bff-a80e-aef8cd0d69de	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	c88d783b-b628-4f3a-a972-aa56aeed5e77
-c0e368a9-e52d-4f54-bc60-b1cac14e1e99	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-c0ecdfa6-c258-4b44-bb5e-c15475f233df	4650d4e0-f73c-4688-ae5f-830a46348ff9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-c2e4ff21-4ba7-4333-87b1-fad0bbfdb8cc	85cc9fbe-98a4-464d-a638-05f40529c6de	b651aec8-5455-4329-8251-0ceb62cea798
-c351c802-a719-4ff0-af75-addfcf978e69	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	c88d783b-b628-4f3a-a972-aa56aeed5e77
-c355c7cc-4bdf-466e-9396-2a03aa70bd3c	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	db0addff-605e-439f-917b-38016a398755
-c3f29db8-357c-40bd-b458-d47373607bad	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	45755b2a-741a-4990-ab78-8f65090f75b1
-c5cda110-a68c-43bf-9c6b-baa5e79fdd38	168d11d7-ca26-4d61-b870-51779dc63023	682d36c0-4256-42ab-811e-054ab3a5b10f
-c5d1a581-7d49-499c-b4f3-58f9f6301c89	1e7faab8-273d-40df-9f9a-485160186c5a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-c5e0632b-2750-4e58-97b1-f26f29a14717	e8c22eff-0daf-4690-a537-c8b0b6110a01	c88d783b-b628-4f3a-a972-aa56aeed5e77
-c60cc091-dfec-4dc8-b190-0f3829894772	4b680e29-b4fb-4689-9afb-67a7f089f52b	b651aec8-5455-4329-8251-0ceb62cea798
-c6170caa-5e54-466e-8f66-b5435e21c8b4	f8502c44-b289-49e4-8401-3dcad4d5bbe0	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-c68e07bb-4de7-4f4e-80d9-77b59ea010b7	7d542941-65b9-499b-81b3-239748d6da52	c88d783b-b628-4f3a-a972-aa56aeed5e77
-c8491ce6-a17b-46cf-8c95-10fbeca61e26	3e60b693-d3dd-4481-95c4-9f02da21625c	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-c9f123f4-a49b-4078-b88c-b12ab4470038	157d001c-b056-45b1-96a3-3c05bcd8d99c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-ca4f9598-9a1e-42fa-804f-a3143e043faf	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-ca5e2e58-6b35-4060-aff1-a629ae8c3343	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-cbb9a026-0a31-44a1-b5c4-2333e20e0cfb	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	88b29e0c-39b7-4169-ab5c-350075014a84
-cfa8c088-55c6-4c63-87cc-5b4a93d1b987	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	db0addff-605e-439f-917b-38016a398755
-d019fcce-492f-45be-a732-e32b66011fac	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	682d36c0-4256-42ab-811e-054ab3a5b10f
-d135915a-c486-4dcc-b6e2-f814bc8d181b	c70b9832-841e-4864-9b85-eaba3c0a995f	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-d2256385-3582-4f59-8fbd-39aa32d07f41	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	682d36c0-4256-42ab-811e-054ab3a5b10f
-d45ab121-b0ab-4422-8377-32c466228a9a	d8a2b9e5-f54d-4344-a78d-c6c840467543	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-d590a484-11e2-4ab8-92f8-c25ff1c0afa4	c0f974c3-f49c-449a-9276-aa64ce501344	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-d6e16521-f2bf-4f5f-bbf2-bdff1494002f	7c2380da-3ee6-46ad-93d6-a79ce3027f29	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-da5001aa-e2cd-4919-9452-dc711bd6a71c	b5f39dd8-c305-489d-9f7d-9adfd010a134	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-dcb37bb8-9baf-407f-ad6c-95fa307f13af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-df89b9bf-d773-46e1-8a69-3c774dd7b2ed	163d8c87-8f90-4295-a926-2e912c625a1c	db0addff-605e-439f-917b-38016a398755
-e05fe4f6-3ef7-4d85-b5f9-4f0a6b15dce0	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-e096b0b7-1311-46d9-aab9-7e8a11541d1c	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	c88d783b-b628-4f3a-a972-aa56aeed5e77
-e15de82a-0bf3-4878-9379-849bd5d9d9e2	9858c224-f97f-4ff8-908d-f46bd5e2243c	682d36c0-4256-42ab-811e-054ab3a5b10f
-e1618ae7-65ea-4ff6-82ad-2aefd3383a03	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	5d962383-f175-4dd8-af63-8a566a0d2255
-e1f0067b-e769-4cf7-9c42-1b7790ce0f6b	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	db0addff-605e-439f-917b-38016a398755
-e2571ead-c41c-4e25-9f60-4df00065e20e	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	5d962383-f175-4dd8-af63-8a566a0d2255
-e55c44f8-d2db-4a89-bfb3-ea2a86899573	e36018c5-bf48-4f93-bef7-93e8864a0b51	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-ea76a355-cf88-4eff-a453-d815cea154ec	168d11d7-ca26-4d61-b870-51779dc63023	db0addff-605e-439f-917b-38016a398755
-eae7a5e3-13aa-4071-abef-20c6db65f9df	e2b10def-c91d-45da-94c5-f5530e743aa2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-eb0495a2-0633-4ced-8522-881fc63a36e1	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	db0addff-605e-439f-917b-38016a398755
-ec7350dc-b95d-46cf-903c-2ea0b1cc314e	195d6a81-8457-4b60-9382-6a3a0664f0e9	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-ee660dbd-8c22-4fe1-bbf7-91d035a2574d	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-ee9343e3-8420-499f-933f-623dbbf43bfd	af8a1442-c5ee-409d-aa91-61c9dba852ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-eec533f0-e7c8-4a4c-9ae0-904e81c1cafd	b3309eea-7374-4a8d-ac13-481b2a7fd492	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-f1eb4037-4609-42c1-9fa7-3423fefe26c2	6e606c29-2ebf-4ab8-8006-aaedd5680009	5d962383-f175-4dd8-af63-8a566a0d2255
-f2341646-643d-419a-9b4b-ea01873e5ebe	3356f353-1566-4df6-9958-fa01d67d13c7	7682acb3-561b-4951-801b-c1564adda131
-f7915e76-2772-4c12-918c-bd072e7a3251	3b7ea453-324e-40a0-bb41-77a0795d5af5	682d36c0-4256-42ab-811e-054ab3a5b10f
-fc58744f-c4be-4baf-82d4-f0180b28bfce	3b7ea453-324e-40a0-bb41-77a0795d5af5	db0addff-605e-439f-917b-38016a398755
-fd3b24c1-6632-4726-86b6-164bf6194df6	e228c999-bf54-48b4-a373-d2bc9db88554	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-fd82f85f-8dc3-472d-a3f8-18a80228d2b1	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-febe9491-e8a8-46fa-b217-6d9d68acff89	168d11d7-ca26-4d61-b870-51779dc63023	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+009d2326-e842-415c-a6ec-42f48f59046a	73bd55bb-5d0e-4381-8ad2-2238377fca93	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+06aeb27a-f11e-44c0-981f-5a1b6f7b4f5c	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+07160d2b-a39b-4ba2-a195-c0caa172dbc2	bb7ccd5f-2f60-49fb-b984-f11fc47add22	7682acb3-561b-4951-801b-c1564adda131
+07798405-d072-4863-a87e-3fb977599c45	6d25ff6d-e13d-440f-b775-215547af7acb	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+0a61943c-d3a6-49d0-b341-b1eb1b3785a4	163d8c87-8f90-4295-a926-2e912c625a1c	682d36c0-4256-42ab-811e-054ab3a5b10f
+0a97f8f6-1a17-47d3-a2e3-45dd232423ce	157d001c-b056-45b1-96a3-3c05bcd8d99c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+10edaae4-6fb2-46d4-9c76-3e54ed60e6dd	3b7ea453-324e-40a0-bb41-77a0795d5af5	db0addff-605e-439f-917b-38016a398755
+115200ba-75bb-45f9-aba1-c03e4b339249	a697a798-caaf-4248-8e4e-7e89096a9c30	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+11eb8c0d-5420-42ca-bdc1-3001dfc6c861	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+1469ced9-70ef-4f4d-9c84-508a5dd9b947	4650d4e0-f73c-4688-ae5f-830a46348ff9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+18d26eda-0f6d-43f9-bb5c-69aea183092a	911f6d7f-8d43-40f2-897a-2f416abf8cf9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+1a45ae08-1dc4-4185-b402-b575222aa3e0	d8a2b9e5-f54d-4344-a78d-c6c840467543	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+1bd8cb5b-677d-45ab-be20-6e50195b0f1d	b3309eea-7374-4a8d-ac13-481b2a7fd492	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+1d60962a-45f5-4567-819d-0176730a7fff	9858c224-f97f-4ff8-908d-f46bd5e2243c	db0addff-605e-439f-917b-38016a398755
+24270ed5-942a-4c9c-be70-994bc42ea825	9858c224-f97f-4ff8-908d-f46bd5e2243c	682d36c0-4256-42ab-811e-054ab3a5b10f
+24291658-2644-4f1d-a4a6-71a6a1ef6767	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	b651aec8-5455-4329-8251-0ceb62cea798
+24838278-abfc-4c04-a37d-54d918058581	163d8c87-8f90-4295-a926-2e912c625a1c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+25c72280-b24b-4fc7-8c54-220810cb915f	778f1120-9633-4933-9160-ddaa46668838	a12ac80b-a665-4301-898e-e9ca3d44bb20
+29d992af-451d-4868-8032-8a786f84bf24	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+2b47168d-a73b-49e6-8786-1618e3a2eb6b	b5f39dd8-c305-489d-9f7d-9adfd010a134	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2b87fcf0-99f8-4036-852a-85fd6658e0f4	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	c88d783b-b628-4f3a-a972-aa56aeed5e77
+2cec84e5-2762-4e26-a317-b855f41862b8	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2dab9a28-e73e-4386-80d7-d1b46d9479a8	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+2e7cb752-9d48-4a46-97aa-33602efbe66d	e2b4be77-2b20-4064-974d-e6322e7240b4	88b29e0c-39b7-4169-ab5c-350075014a84
+2ecd8b9c-1e2e-4b7f-8002-96e7d78efedf	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+3010b5cf-ba8e-4c29-b17d-2f1b01826c0b	4ef1cb5b-9688-4ce2-95b3-6a0863200166	5d962383-f175-4dd8-af63-8a566a0d2255
+3099a0d4-0fdd-4cec-a9a2-c26dd6e2aaa2	e8c22eff-0daf-4690-a537-c8b0b6110a01	c88d783b-b628-4f3a-a972-aa56aeed5e77
+32f92c83-9d6b-4f7f-9952-90c56ea4661d	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	c88d783b-b628-4f3a-a972-aa56aeed5e77
+37a700f2-c515-4a1d-b935-8a5ab6ea702d	9dc69952-eae6-4ec0-a327-67392315f089	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+38f90efc-e40f-45fa-bb82-6a8f3f0d7237	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	682d36c0-4256-42ab-811e-054ab3a5b10f
+3b445292-45be-4714-a221-1658e41e5d63	e228c999-bf54-48b4-a373-d2bc9db88554	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+3e61415c-8278-4002-9611-3fefd8a59f59	3e60b693-d3dd-4481-95c4-9f02da21625c	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+41956ebf-96c3-4e33-8efe-0d49494d7667	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+4610f6db-001e-4f00-955f-c14a735c5227	7d542941-65b9-499b-81b3-239748d6da52	c88d783b-b628-4f3a-a972-aa56aeed5e77
+4ce61f8f-0694-4689-b548-b8523ff22b7b	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+4d3903d7-db31-4371-b9c2-00c8a60b2af2	f8502c44-b289-49e4-8401-3dcad4d5bbe0	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+4d46e2ed-ec7c-4661-ac8a-e7bd9fe052db	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+4d5b8261-90d5-4755-8a95-92b4db920154	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	88b29e0c-39b7-4169-ab5c-350075014a84
+503e0066-bb4d-469e-b9a8-2a9c8e1832fa	155642eb-a633-4460-b658-aca9fde2d817	5d962383-f175-4dd8-af63-8a566a0d2255
+50d8db1f-a2cd-44d7-90f9-548d6f22591f	4f972924-350a-47fb-a6b6-f2b34bb6b621	682d36c0-4256-42ab-811e-054ab3a5b10f
+51319366-5976-47f1-8911-e71b581b3070	4b680e29-b4fb-4689-9afb-67a7f089f52b	b651aec8-5455-4329-8251-0ceb62cea798
+528f1540-1c9e-4588-8a24-9392e05ff9f2	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	7682acb3-561b-4951-801b-c1564adda131
+549696b7-74cd-41c6-a9aa-f08f7df695c5	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+5d69a46e-d75f-48da-929f-24f46fa60e55	834c9e15-c70d-4a0b-bb12-5e55f23c181d	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+5d88bd01-6c17-44db-9824-f8cb255b68df	3b7ea453-324e-40a0-bb41-77a0795d5af5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+5e94cffd-161f-4571-96c2-6a2e46281863	138434a2-625f-4df5-836d-fcf0cfceef79	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+60651b04-441f-4628-bfc4-b3e294e1fe91	8b57cfd5-5d4e-44a3-9646-b36873c111c2	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+60acdbcf-8e6f-4ef7-aef6-a8749fab6b78	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+61e9dbd4-f074-4f6a-9016-1a49248f5a2e	e228c999-bf54-48b4-a373-d2bc9db88554	db0addff-605e-439f-917b-38016a398755
+6505d05d-8596-4eb5-84ab-b28fba712a09	ae255622-ddcc-45ea-a699-8ec416fe57ab	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+67fc1a4c-6ef6-4467-9143-233ac4129fad	168d11d7-ca26-4d61-b870-51779dc63023	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+6c09d6a6-113b-4189-9f0c-ace75d2dac59	e2b10def-c91d-45da-94c5-f5530e743aa2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+6c5628cd-c44f-4536-8779-4d7e0df1465a	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	db0addff-605e-439f-917b-38016a398755
+6d7e5fda-0604-42a5-a58c-df043922879a	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	c88d783b-b628-4f3a-a972-aa56aeed5e77
+6e6619fe-a7af-4faa-85e4-2e1c6489e794	3356f353-1566-4df6-9958-fa01d67d13c7	7682acb3-561b-4951-801b-c1564adda131
+6ffb874f-62e1-40b6-9695-b69ff67ef0e0	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	db0addff-605e-439f-917b-38016a398755
+7252c9f7-996f-4bca-89f8-294e9f80ecad	195d6a81-8457-4b60-9382-6a3a0664f0e9	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+7563b3b7-5742-4ea7-a86e-edb447ddf6c8	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	682d36c0-4256-42ab-811e-054ab3a5b10f
+7a6168b7-a8ed-4b6f-8e57-eae30c816186	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	db0addff-605e-439f-917b-38016a398755
+7d60bc6e-23a8-4074-84c8-3f7af69c8645	e2c675a7-92dc-4477-be75-9a304cbe4def	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+7d72c205-610d-438d-b2b0-b456174ad7e5	272973a6-c052-4aef-bf32-9e24f7eb6cc9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+807b4597-3672-4fee-83bd-cad1f3a9cab4	9050e021-7d84-4401-820e-c0e768abb1ab	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+833fd061-dc3d-4074-a368-1e6839ec2cbb	caa227a1-2dcf-4195-ab9c-8f76d1862daa	5d962383-f175-4dd8-af63-8a566a0d2255
+871db1bf-1302-43e6-a5b2-43228747e8a4	9858c224-f97f-4ff8-908d-f46bd5e2243c	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+88acd0d0-7b4c-4ddc-8997-0c805b44ec91	da990f6e-3379-4cc4-89b7-0ead29da472b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+8baf787d-f401-430a-ad9b-614762dd20ee	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	682d36c0-4256-42ab-811e-054ab3a5b10f
+9009133e-5822-4899-9117-92ba12e4f8a0	0525d830-ead9-44a0-871f-91b7845fec26	61bbeadf-3044-4123-929c-4b1e6e2e613e
+91ba798f-8b4a-46bf-a941-2022d46b339c	e36018c5-bf48-4f93-bef7-93e8864a0b51	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+92ea0650-1a8a-40fd-8bbc-1c37ecc1602f	2a76927c-461a-48e4-8190-dea7361ef3db	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+97cafde9-be58-4395-b268-44e12b837a30	2b1558e3-158a-4a84-ae80-053129861a64	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+97f4e3f3-2f32-44ed-a1cb-bbdc46c86d66	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	88b29e0c-39b7-4169-ab5c-350075014a84
+9f47ff40-c8c1-4e19-81fe-dd19c4b049ff	3b7ea453-324e-40a0-bb41-77a0795d5af5	682d36c0-4256-42ab-811e-054ab3a5b10f
+a00addfd-3551-420f-b1f0-655fcc45b468	7c2380da-3ee6-46ad-93d6-a79ce3027f29	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a110d741-17c1-4254-aeae-d62f721676b4	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	5d962383-f175-4dd8-af63-8a566a0d2255
+a37ce210-0c67-446b-a6a1-f3304aeba1fc	163d8c87-8f90-4295-a926-2e912c625a1c	db0addff-605e-439f-917b-38016a398755
+a66e4922-f6cb-4609-852f-6301a60c3116	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+a90b3d6b-c009-4f99-b5c4-397e97016f0f	767a00dd-6f09-4f64-a44e-8fbe901222af	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+ab9aebe4-0143-48d4-a27d-157dcb799d2f	c0f974c3-f49c-449a-9276-aa64ce501344	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+ad618445-7336-4f6c-ac8b-0160d8153aef	af8a1442-c5ee-409d-aa91-61c9dba852ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+adbc449c-1ed7-4408-9550-686f52cbe8cc	1f97b442-95c5-4b11-93a0-ea146534ae85	5d962383-f175-4dd8-af63-8a566a0d2255
+b415a334-9ca1-47de-abe3-f0b64041616a	a697a798-caaf-4248-8e4e-7e89096a9c30	db0addff-605e-439f-917b-38016a398755
+b45e691a-4029-495a-9fd0-12116609aee3	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+b5de981a-6fa6-4fc4-a315-9d501d410ad4	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	db0addff-605e-439f-917b-38016a398755
+b8bf20d4-48f0-42b6-bbd9-00d77d96fe4e	4f972924-350a-47fb-a6b6-f2b34bb6b621	db0addff-605e-439f-917b-38016a398755
+ba41be9a-c66e-499d-a4bc-d7a941de6bd2	485012d4-2c28-4bc4-92c7-3609e3e3749e	c88d783b-b628-4f3a-a972-aa56aeed5e77
+ba617e87-ce95-4f0a-84b2-db68ab3acde3	c1fa4328-a970-48a1-bc08-d50fe36bf44c	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+bbffbf55-f3b8-4938-8637-dcdd97c1a3c7	6193be76-40ad-4973-9ee7-246a4d8f4109	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+c18d9c49-28d4-45f2-8403-b97d5677314e	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+c32d79f2-7987-4cca-a55a-edf3f0d2e993	1e7faab8-273d-40df-9f9a-485160186c5a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+c340b73a-5a5a-411b-b8d4-671ade4555ea	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+ca9f43d9-705a-43c3-837b-9e2f12768568	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	45755b2a-741a-4990-ab78-8f65090f75b1
+caf18434-2fc9-4135-ba97-5156c0f4fe22	c0e1a001-0000-4000-8000-000000000001	63765624-d7d1-472d-abd4-627127646998
+cccec9ee-0275-488c-8786-1a2df1d4964d	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	682d36c0-4256-42ab-811e-054ab3a5b10f
+cd49757b-31ff-4705-a827-2cd0b3647d22	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	7682acb3-561b-4951-801b-c1564adda131
+cd6cae3d-f2d5-4893-848f-7fec7117463b	c6c6cd04-6df3-4593-b686-e4b9d362c96f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+d1a23b5e-7dc4-420d-bae9-58111f924fba	6e606c29-2ebf-4ab8-8006-aaedd5680009	5d962383-f175-4dd8-af63-8a566a0d2255
+d3c4f0d7-3d21-4453-8a5e-ca1cf3cfaf06	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	5d962383-f175-4dd8-af63-8a566a0d2255
+d540e4ba-a0c3-4064-a56f-7551c7f9c1f0	168d11d7-ca26-4d61-b870-51779dc63023	db0addff-605e-439f-917b-38016a398755
+d7d38e94-f9ed-4299-98c7-c7d063a4fd44	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+d991022f-4c5a-4fe1-a604-77b7b8ba4b44	c70b9832-841e-4864-9b85-eaba3c0a995f	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+df2c2736-7280-4ea2-95c3-1fda1b48ce46	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	b651aec8-5455-4329-8251-0ceb62cea798
+e456c1a6-79a2-45e7-af3e-8e897dc51960	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	682d36c0-4256-42ab-811e-054ab3a5b10f
+e530bb56-3f08-4d43-a451-5e78de132c1d	ea315f7d-d597-41b3-a999-4f3851bcd020	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e6fe6116-e3e0-413e-9312-08283e7f143c	168d11d7-ca26-4d61-b870-51779dc63023	682d36c0-4256-42ab-811e-054ab3a5b10f
+ee0b5be1-c62c-46a5-8262-8379d50f9db6	e228c999-bf54-48b4-a373-d2bc9db88554	682d36c0-4256-42ab-811e-054ab3a5b10f
+ef0495af-69b1-49e1-a83b-4323542eb6cd	85cc9fbe-98a4-464d-a638-05f40529c6de	b651aec8-5455-4329-8251-0ceb62cea798
+efc28351-99f2-4ed0-921e-b6fa4eceabfb	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f1774ba8-1bd8-435b-8d45-9030e2a4bef3	a697a798-caaf-4248-8e4e-7e89096a9c30	682d36c0-4256-42ab-811e-054ab3a5b10f
+f33f3851-1203-4761-ae11-d26544eb87e8	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+f562ca16-b706-4b01-b16b-fb4b7572bb40	4f972924-350a-47fb-a6b6-f2b34bb6b621	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+f57b35d0-ac0d-4917-bf6e-76b5bfc608e3	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	db0addff-605e-439f-917b-38016a398755
+f61ea466-26f2-456f-a459-a76d1e9ca885	48429bb5-c583-4684-b30a-7ed443b671ca	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f6436bf9-a97b-4885-ae32-2e9f47d69a70	f20a7445-0b01-4f20-85a5-853101d864ee	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+fe8ba73d-81fa-441d-accf-1aef45089b04	444df30d-c195-42ad-b9a7-d80cdef69ccd	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+ffee5512-07da-465e-8b0a-6b82617e4f0e	2076a9b1-e432-46a9-99b1-36e732159856	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
 \.
 
 
 --
--- Data for Name: mst_designations; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_designations; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "SubDepartment", "DefaultRoleId") FROM stdin;
@@ -4338,7 +4973,7 @@ f8502c44-b289-49e4-8401-3dcad4d5bbe0	functional_it_admini_intern	Intern	t	f7e882
 
 
 --
--- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_email_domains; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_email_domains ("Id", "Code", "DomainName", "DisplayName", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4350,7 +4985,7 @@ fb66fff9-7911-47de-bde7-ab5fb5ab0757	squad1_io	squad1.io	@squad1.io	t	3	2026-08-
 
 
 --
--- Data for Name: mst_employee_statuses; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_employee_statuses; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_employee_statuses ("Id", "Code", "Name", "IsActive", "AllowOnboarding", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4363,7 +4998,7 @@ e273e2ed-5fd3-4564-bb87-09a71cd4779a	active	Active	t	t	1	2026-09-07 06:03:13.270
 
 
 --
--- Data for Name: mst_graduation_degrees; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_graduation_degrees; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_graduation_degrees ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4382,7 +5017,7 @@ e89b166b-ebc0-4132-8170-92ea1e78e9d0	be	BE	t	2026-09-08 04:59:44.231454+00	\N	\N
 
 
 --
--- Data for Name: mst_industries; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_industries; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_industries ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4401,7 +5036,7 @@ dcb2b955-8d33-4b9b-b04a-64208dce1520	telecom	Telecom	t	2026-09-09 07:16:02.33270
 
 
 --
--- Data for Name: mst_leave_calendar; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_leave_calendar; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_leave_calendar ("Id", "HolidayDate", "Name", "Year", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Tag", "Color", "Description") FROM stdin;
@@ -4424,7 +5059,7 @@ COPY master.mst_leave_calendar ("Id", "HolidayDate", "Name", "Year", "CreatedAtU
 
 
 --
--- Data for Name: mst_modules; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_modules; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_modules ("Id", "Code", "Name", "Route", "IconKey", "SortOrder", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4440,7 +5075,7 @@ fcb69b3e-e5aa-49bb-921f-7793f0a8c90d	settings	Settings	\N	settings	80	t	2026-10-
 
 
 --
--- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_nationalities; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_nationalities ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4488,7 +5123,7 @@ fe29360e-bc38-4557-8653-98b749b34fe0	indonesian	Indonesian	t	2026-08-20 12:25:01
 
 
 --
--- Data for Name: mst_offices; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_offices; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4496,130 +5131,130 @@ COPY master.mst_offices ("Id", "Code", "Name", "WorkLocationId", "IsActive", "So
 
 
 --
--- Data for Name: mst_onfloorrole_sub_departments; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_onfloorrole_sub_departments; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_onfloorrole_sub_departments ("Id", "OnFloorRoleId", "SubDepartmentId") FROM stdin;
-001a095b-5bf9-4ef4-a13b-702e5ff41b74	9ad0a166-cde2-4817-9acd-363d217422d9	682d36c0-4256-42ab-811e-054ab3a5b10f
-0257943d-0fc5-4542-9950-4b9b1349e41a	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	682d36c0-4256-42ab-811e-054ab3a5b10f
-0538dd2f-ab7e-41d2-a03a-8773d5735675	580f3fc7-ff2d-4881-a222-d91a7c00f491	c88d783b-b628-4f3a-a972-aa56aeed5e77
-05cdec55-25ba-480c-8464-2a214e8326eb	4766e158-b2c1-44dd-a36d-18583c490193	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-05d76bc9-14ba-478e-8521-24ebef4890b3	99039771-cd5a-4878-a7b9-9cdaa02f5be6	5d962383-f175-4dd8-af63-8a566a0d2255
-064d865e-ed74-4aae-8308-4f8bcbc13353	0837f524-0260-4283-a37f-6e1fb06d3dcd	b651aec8-5455-4329-8251-0ceb62cea798
-08a75f48-6ba1-424c-8585-2b008253a7d9	9ad0a166-cde2-4817-9acd-363d217422d9	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-09f86cb2-6315-49ee-beec-272c29d9f117	01a26d31-4fcd-4ad3-b08e-1276a4620cb8	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-10cc4a28-f55c-4131-9f63-83ac1d531703	36339f27-5abf-4ffc-bca3-5a2333a94df2	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-1219add9-cd3d-4089-8cd2-81dd6da0818c	ecc39c47-956d-49b9-8fbc-44a6433f3912	88b29e0c-39b7-4169-ab5c-350075014a84
-12ca7d12-5edb-4b58-b5a0-7834b660d9fc	e1f2260d-b878-4693-86db-2513390804aa	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-15c3fdf3-4f1d-4680-9312-41f1ff588b9b	da608430-bf9a-4a87-9881-1c07e7f2974a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-18ce6f52-5fa3-4d20-80ef-7a1eac298b77	e061fae9-2430-4025-ad39-ff79717301a5	682d36c0-4256-42ab-811e-054ab3a5b10f
-25bb2c7c-a1db-4bc7-85e4-762333ab7da9	ae6e9e5b-7337-47a3-8fe5-bb02a9a7f374	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-268ee99e-7892-4131-9cbf-c77e174d3b6b	5c9266d9-5a57-4b6c-aabc-18edce40ae96	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-299207bb-1d25-4c97-9131-1f608f3e8ee0	acbe4f0d-8058-4a88-9255-08104f0037b6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-2c047d96-b4af-46fe-92e4-648783ec923e	5814389a-4416-4e4d-96a7-58f4801e2757	682d36c0-4256-42ab-811e-054ab3a5b10f
-2cbf04cf-8a5f-4105-9eab-15fd8b4ecd2c	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-304d9a1e-c1d8-4ee5-a3d5-2efa643591ff	70480603-7eae-41f7-b659-052b7500ca91	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-33661293-5260-4783-9549-8fd7b7725cae	e061fae9-2430-4025-ad39-ff79717301a5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-33cfffc9-7fb8-4ab1-a371-5b2dc3d258d9	b4b2673b-fc1c-4484-8f2d-903a39dff2a9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-37820b6d-b325-482a-b2fb-6b06776fb475	9635b694-a552-42c0-9df3-a6090c9b1923	61bbeadf-3044-4123-929c-4b1e6e2e613e
-3795bb00-6fc5-4025-bb8a-3fdb35a01cb6	c4d57da3-eff2-4cd1-834f-e0d77b39f299	db0addff-605e-439f-917b-38016a398755
-380d6053-5bde-448c-b7bc-9b0abd9e3a7e	22a8384f-6070-4554-89f1-ee327ae48f16	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-39f3a7bb-6298-49c9-b5b4-9408aa34389d	f7a34722-94ab-4e14-ad50-5e5f0b44cca6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-39f63cf8-e21c-477a-9768-d16095ad33c9	8765d1b0-e4fc-4686-91ea-f5ad4e929818	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-3b92967e-e2f5-46da-874b-238f01dba5b1	59cf62d4-7c2d-4e4c-b075-0db51d40ea4e	7682acb3-561b-4951-801b-c1564adda131
-3d1758c9-d2ae-495b-be99-429bccc74ed0	3d74762f-cfbc-4cb9-b172-c2aaffc64f30	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-3f899e15-da40-4df4-ab67-69396c86e730	87ea604f-b245-49c0-9172-3956f1d6eb75	db0addff-605e-439f-917b-38016a398755
-400f933a-a32a-4cc0-b054-2c2ce2f1867d	e061fae9-2430-4025-ad39-ff79717301a5	db0addff-605e-439f-917b-38016a398755
-42d04e48-b8de-45b9-bbf8-7301cd66d2c4	f6560080-4b30-4b4b-b8ba-90d5b0ead2da	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-4607f503-dcaf-4679-b705-7cbe2235d890	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-463789fd-d04f-4fcd-8833-e0806f77e148	eb9edaa3-2522-4d91-ab86-d786a7250f91	b651aec8-5455-4329-8251-0ceb62cea798
-4810d764-8008-4fdf-b236-2018a52a1f51	c4ef6b03-baa6-47ac-8d06-c8819ddbdaa7	c88d783b-b628-4f3a-a972-aa56aeed5e77
-4b4d5b21-68eb-414d-a3c1-27383a5082c2	ccf1432a-d667-4fff-8071-efbc9f841976	5d962383-f175-4dd8-af63-8a566a0d2255
-4e21e694-c5f9-4cc3-b49a-018323a21f1c	67084a5d-02d0-4a73-a15f-45aca43adb58	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-5072deab-08c2-4bf5-9fbf-8ecf1c6fe318	c637e1a2-5677-45fa-bbbf-f88fc60a9443	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-54d67162-5888-4b11-86f9-fa94db665b41	b9232654-c160-4e84-bdc3-ad94a605dbe1	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-56220b1c-3851-4557-ae04-b3b635040f6c	2d4e6116-3ec3-4c5d-9d75-35517814a964	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-565f71b4-40b3-4b06-803f-c09bf6fec066	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	682d36c0-4256-42ab-811e-054ab3a5b10f
-57c7a556-d361-473e-a3a1-a603b47aef31	746752f8-decb-46a0-a7e1-d07a0a68dbc3	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-58d87916-ed70-4f80-94cb-1d44cd6adb29	b5974e61-080c-4de2-a977-7f0bdee29949	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-5a084b5b-0c6d-428c-8424-b95ccd49768a	885809b5-843a-4ec9-bafe-da1472b73a03	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-5c7782fc-646f-46a1-9b0a-49162afcf2be	f39ba18d-6be5-4d23-a99f-f8d7a68c43dc	c88d783b-b628-4f3a-a972-aa56aeed5e77
-5da83b10-ac6a-4eab-81cf-53cd02b9ab30	23f52e10-894f-4e50-970b-202a3127a1d9	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-5fb178e4-be48-47c2-b76e-bbfb55179298	6eaffc67-3d6e-4bb6-9c90-0a604398090d	db0addff-605e-439f-917b-38016a398755
-61fc8e4a-9fa5-4995-bfc4-b5b82dc49d2f	ec4a89e1-35a6-495a-83c9-b6a34ee00402	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-63f1293d-8459-4403-a220-a1b3d200f817	c4d57da3-eff2-4cd1-834f-e0d77b39f299	682d36c0-4256-42ab-811e-054ab3a5b10f
-6573f06b-4423-4ce5-b01c-87af439991ed	6890c399-940e-4c2a-9aba-0dd90a50e063	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-6e9ac750-6d42-44f3-8443-b727f11edae6	b24b3d9d-7454-4657-bb24-3c4f0f40956e	7682acb3-561b-4951-801b-c1564adda131
-77b1f42d-6f7f-4aa8-8381-0d26df3d8746	4d8c99f7-b5c4-434a-ae7c-64419a5a1bcf	c88d783b-b628-4f3a-a972-aa56aeed5e77
-78de780a-55cf-40c3-95d8-63d8c96e0c00	c4d57da3-eff2-4cd1-834f-e0d77b39f299	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-7ac7ced7-d1c4-47f6-a8e4-e211263b2e79	bce667dd-cae2-404d-8013-49194e0f48d9	5d962383-f175-4dd8-af63-8a566a0d2255
-80ad9bf1-e5d4-4831-972e-26e8c58b49ec	8765d1b0-e4fc-4686-91ea-f5ad4e929818	682d36c0-4256-42ab-811e-054ab3a5b10f
-818bd700-45d0-4987-a8f8-332cc6b83259	39c52128-53f4-4e39-8102-4b9ccc9f5584	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-85b1eaa9-e186-46e2-a468-eb7e1f27ea70	67bdeca7-fe42-4b4e-b5b6-9e8e8d410413	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-86a20c22-11e8-4b08-9e68-2781de93ff9d	5814389a-4416-4e4d-96a7-58f4801e2757	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-888b6281-4d44-4455-b04f-63549ee46032	39c52128-53f4-4e39-8102-4b9ccc9f5584	682d36c0-4256-42ab-811e-054ab3a5b10f
-8c800263-6209-407b-b0ba-cf1df52eafa0	9ac666ca-eaa2-46a5-b489-66a8cc550b65	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-8fb2c248-faf8-4f62-b552-168c57b50726	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	db0addff-605e-439f-917b-38016a398755
-904fd3f5-bd22-4a9f-b2bd-0b7940bbe8bf	d6002117-fdbb-437a-986f-dde6b5b5c162	88b29e0c-39b7-4169-ab5c-350075014a84
-91113e23-fc8a-42f1-88a2-a1d26b33bb42	4cc83d93-7b2f-4c97-a4a7-e9ec47735e4b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-99dd6db8-a6d2-4e4c-9281-7ab15d148362	acf26b08-e6ae-4343-9bf9-529b070835a3	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-9ba5123d-3e39-474d-982c-3aa39be1c157	27d8ec30-01ad-45f2-a7d8-7a54c2d2c754	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-9c967a75-397f-42c0-86c0-90bc76a3a2f9	87ea604f-b245-49c0-9172-3956f1d6eb75	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-9e2bbdc8-8441-4a1d-98dc-81235a2f366c	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	db0addff-605e-439f-917b-38016a398755
-9eb96083-3bd8-4c5d-80f6-f24df2f4b919	56ed9417-a9fd-40ff-a517-1e75bbf02d63	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-9f4b91dd-2c41-4dbe-b909-11c6b334fbba	8765d1b0-e4fc-4686-91ea-f5ad4e929818	88b29e0c-39b7-4169-ab5c-350075014a84
-9fd04c0f-5e4e-4aa4-af73-087766bf7f02	b9f75ed9-10c6-4b61-ad05-b27ec89a8b3b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-a229d880-8ccc-4ee1-9209-a9aeb203bbf0	bb6f610b-b2f5-4b01-9ea4-fb9ad074b768	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-a458b0f2-04cd-411f-b69e-b3e81721498f	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-a55c4de5-171a-49f8-a903-c25e42e91fb4	b25515f1-974c-4b63-a8b6-ca6e7ab95393	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-aa4d2829-956c-4c31-adc9-f4539fc8bb76	36339f27-5abf-4ffc-bca3-5a2333a94df2	682d36c0-4256-42ab-811e-054ab3a5b10f
-aaa778c8-b911-4286-ad0b-7745dcc9bdd6	9ad0a166-cde2-4817-9acd-363d217422d9	db0addff-605e-439f-917b-38016a398755
-ac30f470-f92e-4192-bde8-4f5cc590130c	b7425734-5262-4802-9a10-5e3141b11d6c	c88d783b-b628-4f3a-a972-aa56aeed5e77
-ace1510e-98e8-4762-99d1-65bdfbf72636	734614d6-908f-4f24-8331-c515a6d70149	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-add9885c-a8ce-409d-b14c-709727a273d1	8211f0b1-d111-400b-94ab-fd663d50ec65	7682acb3-561b-4951-801b-c1564adda131
-b0e3cbe3-2331-4b5a-9d12-f271fdcc443a	6eaffc67-3d6e-4bb6-9c90-0a604398090d	682d36c0-4256-42ab-811e-054ab3a5b10f
-b2d0d936-99a1-4913-8249-a139d8274d7e	54123afd-2783-4a41-b18f-328d024e8a22	5d962383-f175-4dd8-af63-8a566a0d2255
-b794fef8-570e-4e93-83d1-566e0df09927	c5ea1ba3-9974-4cca-9320-362527502c6e	5d962383-f175-4dd8-af63-8a566a0d2255
-ba4ff81e-cd05-40a2-92dd-8fbb8b2d2757	3091c873-f1f0-4632-ac1e-62d1a451c39d	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-bb839197-8487-4499-9907-7f141bdbe058	0acaaceb-a951-4492-bdba-69d5e916f8b4	b651aec8-5455-4329-8251-0ceb62cea798
-bc5e6d07-e2a3-4b92-a582-21add73a9274	5814389a-4416-4e4d-96a7-58f4801e2757	db0addff-605e-439f-917b-38016a398755
-bdbfa1cf-cfbf-4a79-bbd8-2e38fb4ba8e4	9326acb0-20c1-4d05-89b6-d85ee3425469	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-c5146a25-badc-4e40-bb98-4360c423941c	3101ee42-6788-4ae4-a80b-f7394720b740	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-c79fba62-9067-4863-9e1b-8984c936f864	1abc8fed-e830-4103-a5ab-c3402b166116	63765624-d7d1-472d-abd4-627127646998
-c83e7923-7e6b-4ac4-b709-5d5970128876	f51841ca-ffbc-4619-98be-201d736e4f48	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-c8b2714b-bfe0-40c2-9cfe-d9e668632ec8	29119117-9aa3-4def-9db8-802f70f74e4b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-c8b5fa36-2478-449c-a0d0-925182af5e1a	e3c262a4-4108-4592-abb0-643085d6a305	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-cddbca7d-b342-4fe5-baa0-3af4bc660100	d8d41d59-fe4b-4c54-80d3-751a7bbf714c	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-d13ea3c1-b8fe-4590-a849-c8f49446f589	6eaffc67-3d6e-4bb6-9c90-0a604398090d	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-d3c704b1-a56f-4bf0-ae41-8a0615fc7ecb	36339f27-5abf-4ffc-bca3-5a2333a94df2	db0addff-605e-439f-917b-38016a398755
-d6a300ea-bd09-4932-a61b-f0e1d9fe37b9	56779122-3301-4a2c-bc35-085f96ee714b	c88d783b-b628-4f3a-a972-aa56aeed5e77
-d8b57cc8-dc93-4eb0-8f7e-6f51b800f68a	a1826c58-197f-4c7e-9909-a8970491fe38	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-da164822-5177-4e53-9d00-6c277ff18287	ce7509b0-415c-4d04-a2d8-43c3ee382a72	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-da637405-a173-429a-bc16-f661bc99ef56	87ea604f-b245-49c0-9172-3956f1d6eb75	682d36c0-4256-42ab-811e-054ab3a5b10f
-dc3eb6da-80b3-4cfd-b365-ee495ba302f6	8765d1b0-e4fc-4686-91ea-f5ad4e929818	db0addff-605e-439f-917b-38016a398755
-de9f1860-4195-49c0-9d56-7c4778980d1d	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	db0addff-605e-439f-917b-38016a398755
-df731757-879e-4fc1-9dcd-b21759681d7b	7d2b7826-2f63-4796-9032-5ffa35cd5b37	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-df73c578-2193-4dca-a6e1-57831320b7f4	e3ede776-6573-4898-9195-fb2a398100b2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-e07fa01e-71de-41b1-b40a-5083a44fd500	475cc74e-698a-4547-966a-823be44cfd15	7682acb3-561b-4951-801b-c1564adda131
-e3250a54-091a-4897-b342-55778b0d2cf1	7fe8d8b6-c0fc-4015-a3ff-5bb8e95ea0d5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-e3ea0012-5c00-4a13-bb95-853fde306530	8765d1b0-e4fc-4686-91ea-f5ad4e929818	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-e5041531-d209-43f7-8614-825feb2da461	9ed3ce2c-add0-4472-9da8-4cd5c0552867	5d962383-f175-4dd8-af63-8a566a0d2255
-e59aef8e-b452-4c87-b543-609710b8df00	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	682d36c0-4256-42ab-811e-054ab3a5b10f
-ea52d906-30f1-49b8-8a51-8a1a3453753b	8765d1b0-e4fc-4686-91ea-f5ad4e929818	b651aec8-5455-4329-8251-0ceb62cea798
-eb3c9793-0b4c-40a3-924b-df87c35fd057	d412d761-e42e-4ab2-8e58-1df17b290365	5d962383-f175-4dd8-af63-8a566a0d2255
-ecc90215-f27e-403b-906c-4745477322c2	21c47c58-0be4-41bb-8407-8df5fa4b8e9d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-edcdb483-2b5f-4bb9-ae21-4fe98229cdee	03d492f0-4458-48e5-9ee8-06f09f660218	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-efa5119a-119d-4f89-a3b2-49152122d262	fec21974-29e7-4dcf-8438-efb813045170	45755b2a-741a-4990-ab78-8f65090f75b1
-f02068c4-832c-4efc-ab54-6d0cb03a2441	39c52128-53f4-4e39-8102-4b9ccc9f5584	db0addff-605e-439f-917b-38016a398755
-f13d8319-fbe5-4eed-8d2a-f433929a7c0b	e60fe13f-6f3e-4410-80c9-dcfbb88f0301	a12ac80b-a665-4301-898e-e9ca3d44bb20
-f741ebe4-27a7-477d-bb0a-7178422b799c	67306ff5-e313-43da-99bc-56b6a6ca65ee	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-fce99a80-a0ee-42fc-ae2c-96132cbe8ee5	d862a290-2a0a-47f2-9c23-2baf830a37b9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-feba53e1-7b57-487f-b0d3-05699d4df4b6	f4e2358e-5ec0-4292-8377-438dabb72fbe	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+012f5f5c-f795-41c3-934d-9119757e943b	b25515f1-974c-4b63-a8b6-ca6e7ab95393	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+0311e454-4ec9-4b5b-974b-7de0c3fb84f3	70480603-7eae-41f7-b659-052b7500ca91	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+03677d56-41c4-4cf0-8287-c234f1bf6f28	b5974e61-080c-4de2-a977-7f0bdee29949	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+043ba647-f81e-487e-8a71-bea2c69b7742	8765d1b0-e4fc-4686-91ea-f5ad4e929818	db0addff-605e-439f-917b-38016a398755
+05add783-ab13-4bb1-aafa-d34e794029df	1abc8fed-e830-4103-a5ab-c3402b166116	63765624-d7d1-472d-abd4-627127646998
+060c198f-3d98-44fd-909c-a1a39ce3747e	7fe8d8b6-c0fc-4015-a3ff-5bb8e95ea0d5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+0637bcf5-b2b1-4e5b-9ff4-f8c12b089e91	6eaffc67-3d6e-4bb6-9c90-0a604398090d	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+07c0665f-a531-43bc-91c8-a4db0653d2d6	8765d1b0-e4fc-4686-91ea-f5ad4e929818	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+0b32f0f2-4280-472e-9d53-59d0ca3b1e4a	8765d1b0-e4fc-4686-91ea-f5ad4e929818	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+0bc2a552-05a7-495b-987c-c4f5ff182d29	5814389a-4416-4e4d-96a7-58f4801e2757	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+0c617acb-cfcb-4517-b47b-36cd9bc329cb	ecc39c47-956d-49b9-8fbc-44a6433f3912	88b29e0c-39b7-4169-ab5c-350075014a84
+0ecffe58-8743-4176-ab20-7b99e61f7995	ec4a89e1-35a6-495a-83c9-b6a34ee00402	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+0ff49c9c-4822-4c09-9b67-228dc6264e3f	56ed9417-a9fd-40ff-a517-1e75bbf02d63	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+10dd130a-384f-408a-a696-adc4b7a84905	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+113ae9f3-0745-4d8d-a334-116f9ac6740d	21c47c58-0be4-41bb-8407-8df5fa4b8e9d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+164c5d8a-6ca1-4454-b276-ee712a538080	3091c873-f1f0-4632-ac1e-62d1a451c39d	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+191cd340-b417-4b11-afa5-8bdb58cdc651	87ea604f-b245-49c0-9172-3956f1d6eb75	db0addff-605e-439f-917b-38016a398755
+1a0f80a7-f39c-47c0-b4ab-5d4b89077485	bce667dd-cae2-404d-8013-49194e0f48d9	5d962383-f175-4dd8-af63-8a566a0d2255
+1a239736-f60d-48c0-82a6-ebc3cee00731	c4d57da3-eff2-4cd1-834f-e0d77b39f299	682d36c0-4256-42ab-811e-054ab3a5b10f
+1ad9cf58-0a6a-4299-90c9-9ce1eeda0b24	9ac666ca-eaa2-46a5-b489-66a8cc550b65	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+1dea8618-b8e7-476d-a546-5e69762b85e8	b7425734-5262-4802-9a10-5e3141b11d6c	c88d783b-b628-4f3a-a972-aa56aeed5e77
+1f449d4d-6e08-4e74-a1f9-d94b96ed884c	d8d41d59-fe4b-4c54-80d3-751a7bbf714c	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+21a10fe6-5222-46a4-bf55-939f1636f065	c4d57da3-eff2-4cd1-834f-e0d77b39f299	db0addff-605e-439f-917b-38016a398755
+25c3c2e2-def6-4853-b89d-f8a0f4b9c03a	ccf1432a-d667-4fff-8071-efbc9f841976	5d962383-f175-4dd8-af63-8a566a0d2255
+2631fbb4-0ec7-4d48-8777-97271b44e801	580f3fc7-ff2d-4881-a222-d91a7c00f491	c88d783b-b628-4f3a-a972-aa56aeed5e77
+27797f73-d23f-49af-9649-95649a866788	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+28c9ce6c-c748-43d1-abb9-310fd28769a4	54123afd-2783-4a41-b18f-328d024e8a22	5d962383-f175-4dd8-af63-8a566a0d2255
+2a312326-4102-4dd1-9243-45faf98288a2	bb6f610b-b2f5-4b01-9ea4-fb9ad074b768	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2ec02481-f614-4017-8a66-f5796c30958c	8211f0b1-d111-400b-94ab-fd663d50ec65	7682acb3-561b-4951-801b-c1564adda131
+33831396-676e-485f-8da3-24fcff8b9cfa	27d8ec30-01ad-45f2-a7d8-7a54c2d2c754	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+33f10cb4-9159-4ba9-8539-eb163aecba80	da608430-bf9a-4a87-9881-1c07e7f2974a	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+36fa33d3-0dc6-404e-96a3-7197681d44c9	c4d57da3-eff2-4cd1-834f-e0d77b39f299	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+3917db12-49cc-4534-a7a8-4baf2f61d947	9326acb0-20c1-4d05-89b6-d85ee3425469	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+3c2b8c87-5a24-460a-a577-1657d4b638ac	0acaaceb-a951-4492-bdba-69d5e916f8b4	b651aec8-5455-4329-8251-0ceb62cea798
+3dd0714d-f306-4631-8fc0-e91f270db7a4	475cc74e-698a-4547-966a-823be44cfd15	7682acb3-561b-4951-801b-c1564adda131
+3e1f746e-393e-44f9-9826-f4679647379e	ce7509b0-415c-4d04-a2d8-43c3ee382a72	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+3e6f906a-56a2-4e3c-8927-906affde9ee8	01a26d31-4fcd-4ad3-b08e-1276a4620cb8	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+3eaa2244-c8ca-4c76-bc1a-69c61050f3e1	29119117-9aa3-4def-9db8-802f70f74e4b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+40e87274-3074-49a0-bbe2-2dd21ef486c6	e061fae9-2430-4025-ad39-ff79717301a5	db0addff-605e-439f-917b-38016a398755
+45523676-feb2-48d9-a2f2-453d6796142b	5814389a-4416-4e4d-96a7-58f4801e2757	682d36c0-4256-42ab-811e-054ab3a5b10f
+47507e7e-eb3e-43a8-ba10-f48812ec758a	d412d761-e42e-4ab2-8e58-1df17b290365	5d962383-f175-4dd8-af63-8a566a0d2255
+49f0f070-03e6-4de1-acc5-19dab08b5170	0837f524-0260-4283-a37f-6e1fb06d3dcd	b651aec8-5455-4329-8251-0ceb62cea798
+4b91fea6-36c1-4894-9969-1cf56357c404	99039771-cd5a-4878-a7b9-9cdaa02f5be6	5d962383-f175-4dd8-af63-8a566a0d2255
+4c9c6e75-647f-4c32-95f4-8c5f1cb11646	c5ea1ba3-9974-4cca-9320-362527502c6e	5d962383-f175-4dd8-af63-8a566a0d2255
+4dd75244-ffe3-483e-84d7-e97a0c94fbd2	22a8384f-6070-4554-89f1-ee327ae48f16	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+59e202b1-7a9d-411e-b9ec-d382519b0c69	734614d6-908f-4f24-8331-c515a6d70149	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+5a70d611-ca74-40ff-8a15-fa7083a08ed1	4cc83d93-7b2f-4c97-a4a7-e9ec47735e4b	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+5ac77c3b-5286-48ad-836c-128006acee5d	87ea604f-b245-49c0-9172-3956f1d6eb75	682d36c0-4256-42ab-811e-054ab3a5b10f
+5c8b1bd4-4c7d-429d-90b0-10ff4a90e9ed	36339f27-5abf-4ffc-bca3-5a2333a94df2	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+5d00a07e-6a87-4860-9671-810c5cfba1ac	d862a290-2a0a-47f2-9c23-2baf830a37b9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+5f72cd93-8704-4274-80ca-70e8427a2543	4766e158-b2c1-44dd-a36d-18583c490193	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+603c207e-5f27-4cd7-b02c-aa35d39620d1	5814389a-4416-4e4d-96a7-58f4801e2757	db0addff-605e-439f-917b-38016a398755
+654cffd7-d25b-4f7c-b4cd-01d91a905d5a	746752f8-decb-46a0-a7e1-d07a0a68dbc3	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+65b5aaf6-3b3f-497d-888c-c641af932849	8765d1b0-e4fc-4686-91ea-f5ad4e929818	b651aec8-5455-4329-8251-0ceb62cea798
+6aabcaa5-ffd1-4338-a109-ebe074dd81bb	fec21974-29e7-4dcf-8438-efb813045170	45755b2a-741a-4990-ab78-8f65090f75b1
+6f903d2f-686e-408b-89d5-7ad05324b194	e3ede776-6573-4898-9195-fb2a398100b2	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+716a3c73-9076-469b-8ac0-a912f9e517ae	9ed3ce2c-add0-4472-9da8-4cd5c0552867	5d962383-f175-4dd8-af63-8a566a0d2255
+73909aa2-a48f-4a18-9231-8875ba0a68ad	59cf62d4-7c2d-4e4c-b075-0db51d40ea4e	7682acb3-561b-4951-801b-c1564adda131
+75d5ea36-0184-4b77-a195-60059465cb72	9635b694-a552-42c0-9df3-a6090c9b1923	61bbeadf-3044-4123-929c-4b1e6e2e613e
+7f8b8651-727e-4fea-ba8e-e3b32a89fa40	b24b3d9d-7454-4657-bb24-3c4f0f40956e	7682acb3-561b-4951-801b-c1564adda131
+818b7189-c643-4cba-a895-3b913ad82f03	b4b2673b-fc1c-4484-8f2d-903a39dff2a9	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+82472ae4-185d-4974-9ecd-2cec7dcbb5f8	e3c262a4-4108-4592-abb0-643085d6a305	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+83b126cf-5334-4887-b0dd-7215f18c2de3	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	db0addff-605e-439f-917b-38016a398755
+8516b135-253a-4183-b4cc-f5bdea3c26c8	9ad0a166-cde2-4817-9acd-363d217422d9	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+87aaf242-c9e4-421a-9718-ce5018b55dc0	f7a34722-94ab-4e14-ad50-5e5f0b44cca6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+8807e9d1-160e-4c86-84c4-d90284453acc	8765d1b0-e4fc-4686-91ea-f5ad4e929818	682d36c0-4256-42ab-811e-054ab3a5b10f
+88c21c65-ac87-44eb-860e-628795aeb37d	56779122-3301-4a2c-bc35-085f96ee714b	c88d783b-b628-4f3a-a972-aa56aeed5e77
+8b5c7f2b-433d-4479-868c-2718fe090b15	39c52128-53f4-4e39-8102-4b9ccc9f5584	db0addff-605e-439f-917b-38016a398755
+8cef33f7-5af0-46b5-bc75-9d020d7b142c	67306ff5-e313-43da-99bc-56b6a6ca65ee	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+8e452b95-cf4b-4b76-95fe-0dad471b3110	6eaffc67-3d6e-4bb6-9c90-0a604398090d	db0addff-605e-439f-917b-38016a398755
+92b8fad2-05fe-466d-837e-d7d0135714c0	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+9406913f-bf79-4d67-97a4-c2da92f0c7e6	f4e2358e-5ec0-4292-8377-438dabb72fbe	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+95c66d61-a006-4257-8979-11caa1c571ac	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	db0addff-605e-439f-917b-38016a398755
+95f26042-f4b4-42e8-841a-3df67512de95	e60fe13f-6f3e-4410-80c9-dcfbb88f0301	a12ac80b-a665-4301-898e-e9ca3d44bb20
+971a2b68-4dfa-42bd-b117-f283ed1b37a4	885809b5-843a-4ec9-bafe-da1472b73a03	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+9aca68b4-96e7-4e07-a6e7-670a5e6afafb	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	682d36c0-4256-42ab-811e-054ab3a5b10f
+9d19acd0-ff94-4d5e-9f01-fa4647c58012	2d4e6116-3ec3-4c5d-9d75-35517814a964	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+9d536268-7770-47a1-aeb6-dc334dfd2b33	39c52128-53f4-4e39-8102-4b9ccc9f5584	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+9e65eec0-8c58-4985-9711-4c911232ac6c	a885d8fe-9ecc-4c4e-9b23-55c015ffd3e6	682d36c0-4256-42ab-811e-054ab3a5b10f
+9f3933ef-1a13-4d3b-9717-3ac4d44be929	dfa4b2c2-7d48-4ff7-b5aa-9b65fbde04e1	db0addff-605e-439f-917b-38016a398755
+a4d479f0-0b86-4da0-8fac-1432305a08b5	a1826c58-197f-4c7e-9909-a8970491fe38	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a6d7807f-420d-4ada-9026-f5eca36f67a4	67084a5d-02d0-4a73-a15f-45aca43adb58	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+a87e7769-da91-4626-bb4f-88e4181861fd	7d2b7826-2f63-4796-9032-5ffa35cd5b37	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+abb04249-d3e8-47d2-9dca-666a7debb6c1	36339f27-5abf-4ffc-bca3-5a2333a94df2	db0addff-605e-439f-917b-38016a398755
+adda2d42-7faa-414a-b321-fa6eaeb84c1c	b9232654-c160-4e84-bdc3-ad94a605dbe1	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+b4ec0600-4ac6-4436-8fdb-9a9d40e4da9c	39c52128-53f4-4e39-8102-4b9ccc9f5584	682d36c0-4256-42ab-811e-054ab3a5b10f
+b751eba7-800a-4178-acbf-2e380b262964	e061fae9-2430-4025-ad39-ff79717301a5	682d36c0-4256-42ab-811e-054ab3a5b10f
+b8ed1943-1649-49bd-8511-3871018fa83c	0c18f8ce-b9be-4ec0-a099-44b0fd29bdcd	682d36c0-4256-42ab-811e-054ab3a5b10f
+b98acdeb-d123-4752-b3ba-e8efc9201540	e061fae9-2430-4025-ad39-ff79717301a5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+bc900612-27a7-4b50-a093-13f0bc9cace8	f39ba18d-6be5-4d23-a99f-f8d7a68c43dc	c88d783b-b628-4f3a-a972-aa56aeed5e77
+be42aabc-766a-4f81-ae98-d4d2389e78b2	d6002117-fdbb-437a-986f-dde6b5b5c162	88b29e0c-39b7-4169-ab5c-350075014a84
+bef9adf8-8f43-47a5-a837-1ea635c8e0df	87ea604f-b245-49c0-9172-3956f1d6eb75	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+c15d30ac-a3cb-4d31-b3cf-fd2752e5ad1b	67bdeca7-fe42-4b4e-b5b6-9e8e8d410413	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+c577eb60-eb6d-451d-8062-2d4ad6121a76	6890c399-940e-4c2a-9aba-0dd90a50e063	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+c85b65c4-4017-48ff-8f16-4782d972fe85	3d74762f-cfbc-4cb9-b172-c2aaffc64f30	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+cbb2cde0-5e67-4a5b-9f4e-c12d74133173	c637e1a2-5677-45fa-bbbf-f88fc60a9443	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+cd752263-5ae6-47a5-a331-3d0cdcf86a46	f51841ca-ffbc-4619-98be-201d736e4f48	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+ce3d6d91-43c0-4dbc-a198-f45e1e202e8f	9ad0a166-cde2-4817-9acd-363d217422d9	682d36c0-4256-42ab-811e-054ab3a5b10f
+d09fe2d5-32ba-4bba-b3df-ed5b0c6408d2	36339f27-5abf-4ffc-bca3-5a2333a94df2	682d36c0-4256-42ab-811e-054ab3a5b10f
+d3c87046-4461-470a-81e6-a247ba098b90	ae6e9e5b-7337-47a3-8fe5-bb02a9a7f374	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+d9fd7cf7-d706-4666-b1b5-41abeabb6e90	3101ee42-6788-4ae4-a80b-f7394720b740	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+dc748117-95d2-4d7d-8270-168c8645b1bd	eb9edaa3-2522-4d91-ab86-d786a7250f91	b651aec8-5455-4329-8251-0ceb62cea798
+dd225c57-5e8b-40cc-82d4-c44ae99e323b	03d492f0-4458-48e5-9ee8-06f09f660218	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e267c62c-67b9-48d6-b5e0-54eb5ffc158a	b9f75ed9-10c6-4b61-ad05-b27ec89a8b3b	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+e30bb6a4-5645-4c7f-9bb3-aa02598b1ba2	f6560080-4b30-4b4b-b8ba-90d5b0ead2da	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+e6ae736c-8ceb-4b19-a43c-e6ed477e5a11	acf26b08-e6ae-4343-9bf9-529b070835a3	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+e9da5d2a-a569-4df0-bcae-d9f61f45e6fd	4d8c99f7-b5c4-434a-ae7c-64419a5a1bcf	c88d783b-b628-4f3a-a972-aa56aeed5e77
+ec42a281-c064-4fc4-9650-a07d6d3937de	c4ef6b03-baa6-47ac-8d06-c8819ddbdaa7	c88d783b-b628-4f3a-a972-aa56aeed5e77
+f36f00e8-1e9f-4315-a470-471701f8325f	23f52e10-894f-4e50-970b-202a3127a1d9	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+f4e29c16-039c-414b-b07f-03fe802ea781	8765d1b0-e4fc-4686-91ea-f5ad4e929818	88b29e0c-39b7-4169-ab5c-350075014a84
+f4fbdc14-9a23-4c02-970b-b040b85b8682	5c9266d9-5a57-4b6c-aabc-18edce40ae96	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f53a1d23-c482-4d29-8316-0083590a6cbd	acbe4f0d-8058-4a88-9255-08104f0037b6	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+f6883bf9-3f74-4965-b030-266aaddb7407	6eaffc67-3d6e-4bb6-9c90-0a604398090d	682d36c0-4256-42ab-811e-054ab3a5b10f
+f6a19d3b-b2a0-4946-8241-02fc2e8015e5	9ad0a166-cde2-4817-9acd-363d217422d9	db0addff-605e-439f-917b-38016a398755
+ffc1f01d-2eab-4608-b497-d56cce927d47	e1f2260d-b878-4693-86db-2513390804aa	cfdb2071-d50e-4ea3-b732-19eb08f1e629
 \.
 
 
 --
--- Data for Name: mst_org_role_map; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_org_role_map; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_org_role_map ("Id", "DepartmentId", "DesignationId", "RbacRoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "SubDepartmentId", "SubDepartment") FROM stdin;
@@ -4718,130 +5353,130 @@ fcd178d9-a936-4f02-a42a-ea9bdcf646a2	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9f
 
 
 --
--- Data for Name: mst_org_role_sub_departments; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_org_role_sub_departments; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_org_role_sub_departments ("Id", "OrgRoleMapId", "SubDepartmentId") FROM stdin;
-01c662cb-7204-47cc-8b82-d5bb5505cac7	159c2701-2318-4ba7-b809-fa07d078305e	db0addff-605e-439f-917b-38016a398755
-04c2282e-0c4b-4174-878b-193198863b4f	72fc796a-c5ba-4bf3-b93f-5b8f52491aed	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-052b6d4e-0ce1-49ae-9ef6-7e41babf8cb6	73687605-0927-471b-b8c2-ec61f4d5164e	db0addff-605e-439f-917b-38016a398755
-059d2058-8725-4dc5-9763-601620107b25	3f714252-8945-41a7-8520-1c1c8925854e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-0b340938-ce05-49b5-a272-59b2a813f448	999c4385-21ef-4a47-800f-1c08938edcee	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-0f02362d-29ef-4801-baf4-b0422f012d78	2faf5d1b-751e-4a11-9b34-33bf797eef82	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-111bc7b7-ec9c-49b1-8d05-67bfd6c00458	e323d911-96c9-4d01-be14-6ff9f00b5f68	db0addff-605e-439f-917b-38016a398755
-11c3397f-1f3d-48c0-834a-021134404dd2	fcd178d9-a936-4f02-a42a-ea9bdcf646a2	b651aec8-5455-4329-8251-0ceb62cea798
-14b65240-6776-4e8d-aaea-da27bc8e7737	2d9893c2-a2b8-4a26-a41d-85061c629ec2	c88d783b-b628-4f3a-a972-aa56aeed5e77
-1579fce5-eb37-48fb-a2f4-678d915205e6	4804833e-7bbf-4746-9e57-16542de6c3dc	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-17f4a52f-2cda-4448-b07d-30d1cd987032	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	682d36c0-4256-42ab-811e-054ab3a5b10f
-18d7c45e-1f5a-429f-a797-a906e201189e	6ccedaf4-671c-4375-8200-f860eb7d46d9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-1b6d385a-9b62-4550-a860-c75c50a7d915	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-1c93d785-7b5e-41ed-8a60-72bf6ac0851f	0717101c-438d-4f69-b0ef-a56fcaf47a45	682d36c0-4256-42ab-811e-054ab3a5b10f
-1d223ad1-4741-4e0d-88c3-c814084171ed	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	db0addff-605e-439f-917b-38016a398755
-22d193bc-48c7-4a07-93c1-a0b8f7411ca4	45469efe-b575-417d-adb7-5c9ee591cb05	682d36c0-4256-42ab-811e-054ab3a5b10f
-2369546e-be60-4048-95b9-81967b368da3	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	682d36c0-4256-42ab-811e-054ab3a5b10f
-29a0fcfa-5de2-4ed0-a0b4-13ea987707a8	b2819c45-99c7-4306-9ffb-1d585f0a29d0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-2dc45de6-5c5b-4f56-82dd-075d006b0dcc	a2113157-8223-486e-a506-90ae7a3daa93	c88d783b-b628-4f3a-a972-aa56aeed5e77
-2dec0ca0-e8f5-495e-ba52-6a6d80adb80d	37fe770e-4c51-4e31-bbb6-0ca302286b91	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-2f08d42f-0e1b-4758-a2c8-1bdc0c93c1c8	759ce52f-d3bf-414e-bd79-c33c038dfdf6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-310ad9a4-ec33-4865-b679-045764f89cfb	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	b651aec8-5455-4329-8251-0ceb62cea798
-3139f45b-2d55-4cf9-b1f0-c436bb73c9d3	8a92cbcd-7247-4f89-94a4-546013a78a29	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-35bdd950-0494-4695-9e66-3bfae83c8c58	325fcf79-60ee-46bc-931d-612002282ff3	88b29e0c-39b7-4169-ab5c-350075014a84
-362bf607-923f-4018-a50a-d69b99a95c03	b11be1e9-662a-4bc7-b06b-7f401c8b00b3	7682acb3-561b-4951-801b-c1564adda131
-372479c0-1828-4803-a410-4042fa0c7aa4	159c2701-2318-4ba7-b809-fa07d078305e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-376dcd76-ee5e-4129-a769-e74da53d3a7a	da6c7063-b8d6-47d9-8ad6-e5654b1a6190	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-3f7acaee-8f16-42ff-ad11-b7371cf03cba	6c3fcc16-3602-4bf5-9dd2-7e51fe23d336	b651aec8-5455-4329-8251-0ceb62cea798
-3f8cece2-e788-44e6-8ebb-f19489787853	554562de-10b1-4365-9e6e-cf769630de75	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-435f8383-edc6-4b82-8e8d-911ec8fd8619	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	db0addff-605e-439f-917b-38016a398755
-43844b2e-9c5f-498a-8d8a-f8c19401e911	759ce52f-d3bf-414e-bd79-c33c038dfdf6	db0addff-605e-439f-917b-38016a398755
-447f8a10-1276-4f83-8678-0afb7b62ea93	76ad509e-ba7a-412e-a0cb-be0b8eeb8305	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-468e6d27-2b7e-40b3-bc5e-e07551aa5771	ab07d7c9-e503-4641-8db6-25ac3fc0993e	5d962383-f175-4dd8-af63-8a566a0d2255
-49a8bde9-6686-42ec-a635-c2cdc04a5b8d	651dc356-0c28-457e-bc56-69fdf6ea321f	7682acb3-561b-4951-801b-c1564adda131
-4e3c7804-1139-4c4f-abf5-31cbb9fbf8aa	159c2701-2318-4ba7-b809-fa07d078305e	682d36c0-4256-42ab-811e-054ab3a5b10f
-4f299275-041a-4423-9666-6167c767837f	047399e0-7821-4f80-be7a-78057c4c2f5f	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-5170c761-b6cd-4a19-8b98-31f0fddc1fd8	98b476d3-39f3-4af1-83df-00639379db5e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-55f25c48-ced6-4840-ad57-eb09eaa24b61	caa92f5c-1925-436c-9bf0-b270d5ddb38d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-56748c5f-6949-4c8c-9150-7de0a9725f3a	0f8dfe0e-d5d5-4a23-b9dc-cff6d71ae84f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-591782cb-3f06-4c1a-a4fa-1ea08b97c379	ef3cba27-0a2a-4348-82e3-7d86feed3e31	5d962383-f175-4dd8-af63-8a566a0d2255
-5c9dcd97-3120-4881-a8a3-7a395a6fcd47	5d79d51f-fcd5-40a1-96e8-8a8ae7c76c00	b651aec8-5455-4329-8251-0ceb62cea798
-5d0ae38a-e150-4300-8b8a-ca5acf65e707	c1010573-777c-45fa-8b66-c77e8e4cbc3f	c88d783b-b628-4f3a-a972-aa56aeed5e77
-62c13c9c-269f-4f50-ad0d-13ef1e649505	45469efe-b575-417d-adb7-5c9ee591cb05	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-66d86f2f-ff85-4d83-b62a-2a7b0d1f15de	b3eb1bdf-188b-4292-9cfd-f72381c366f0	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-6e02f231-4d4e-42f3-aa0d-ee87a0c2b3d9	73687605-0927-471b-b8c2-ec61f4d5164e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-6e73f8aa-005f-4b8e-8c88-d3f766fecb67	4f83891a-823a-406f-aa9f-5e23abeaba11	63765624-d7d1-472d-abd4-627127646998
-7298b765-ff40-436a-b352-41ff70fbd5a5	e91d743d-70da-4bbe-92ce-8e9bf436acd9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-7bf4cc73-4683-43af-ab1c-55257718814d	0717101c-438d-4f69-b0ef-a56fcaf47a45	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-82a2d17f-696e-43d2-b83c-560ee69e3a05	872930ee-4d00-4d37-a2cb-dc57167f6973	682d36c0-4256-42ab-811e-054ab3a5b10f
-83d661b5-f73e-420c-8c43-ac2de34ef6d6	a7cb72a9-ec77-44e1-998a-a0638f8becc5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-85be1d65-00a4-4873-b8d5-25fdd9f89ad7	81a34a8f-1fb9-431f-bc96-1bb95dab3fdb	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-866e7ce0-c422-4d86-8466-eb320a1fadd9	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	88b29e0c-39b7-4169-ab5c-350075014a84
-8868fc05-ee78-499d-aaa9-f1ffb19f3ec0	79d8ed54-9a91-4486-a19f-e5485de7b490	88b29e0c-39b7-4169-ab5c-350075014a84
-887b95ff-a640-45c8-83f5-34f76e515f02	86237191-01ee-4aad-9a6b-e75600c375fc	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-88b5523d-da9a-49e6-aa9f-7366e4cdbb86	872930ee-4d00-4d37-a2cb-dc57167f6973	db0addff-605e-439f-917b-38016a398755
-89110970-28e8-414b-b4bf-3a2a69bfc03f	a220a973-9f98-4654-8a57-ee6b44579be5	45755b2a-741a-4990-ab78-8f65090f75b1
-893e9303-a08e-4027-8916-be08e3e10812	6df1609a-13f1-469d-96a1-253b2bc66b4f	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-8a9a9b00-7a3e-42fd-9ee4-fff96632e22e	3bce413c-a323-4f80-a417-190414a3d56b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-8c4cd31e-b4c9-43f2-b87c-e033d3ebfdc8	a77285b6-5266-4959-8399-f34dfbfcb44e	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-8c5d6c00-8570-46ce-916c-408287459c3d	50581768-4796-4731-b6e2-fc50e877f192	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-8e549a8e-1835-4ded-808e-5b0b617af7a9	7d7850cf-72da-411d-ba58-bd2d4a43ca28	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-8ee9bab4-9b16-405c-a335-2b43cbddb44c	1c213096-46a8-48e1-b353-fdf2d25074ab	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-919d728f-1b45-467d-b308-7b959beb5bb5	5e1badcc-b621-4c3b-b729-4f3ddf5877a0	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-9206d225-cd9a-4678-bfc5-bdd24e757b93	15e4938e-241c-4f53-b64e-56a4b2201981	c88d783b-b628-4f3a-a972-aa56aeed5e77
-930c2999-b655-40c9-80a7-e80baf52c77f	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	682d36c0-4256-42ab-811e-054ab3a5b10f
-93c2b9e7-0064-458d-93e9-9e38e09a6616	003fd050-8939-4d05-ac2b-29876038cb76	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-97ce1706-405a-43c7-8970-e24346d4301e	af28c045-efab-45db-83dc-c487bab9019f	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-99686eb7-207c-4224-b41c-99f3ee12a017	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-9aeceda9-0ee2-455f-87a1-8aaab549f9ad	36732dd0-7171-4b3e-a7a6-48427a14f504	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-9cc4ada1-7f77-491e-b29c-c82c4281ca07	e064b573-153e-4f5c-bca0-37d89be9564a	5d962383-f175-4dd8-af63-8a566a0d2255
-9e9ae893-fe12-477c-9a5f-06024f04ac51	4192b456-ca31-4de0-a8ce-698c41732ec4	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-a27897a9-f1e3-4fba-a6a0-a74afdc9e419	b823d89e-aab0-477f-8b85-7129d59dd202	7682acb3-561b-4951-801b-c1564adda131
-a8c8e374-bb1e-4b23-a2a8-756721db1187	b79f5fee-71cf-4fe3-b61f-7e3811fedcea	c88d783b-b628-4f3a-a972-aa56aeed5e77
-a9b9b2ee-3b0f-4ca8-9569-a55e9be2b2fb	5f392507-7f0b-4614-9679-fcc103e3dbc7	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-aa8f5042-3c6e-4965-8934-247a300cbe74	c034e919-e8b3-4bcc-8ee2-72f4fe2ad36f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-adcb3d9d-b497-452e-9deb-8a728af97516	8a351e0a-8631-4aca-9598-81b276dbc990	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-b1bec1ff-1dd2-46dd-a6d0-0eb2ad9b82eb	305ab402-2d28-4607-ad44-7b1031dea076	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-b4466d0f-2214-415f-8a2c-4fef62a13110	359026a0-80bd-4c27-99f3-f63fb1741c6d	c88d783b-b628-4f3a-a972-aa56aeed5e77
-b464f92c-d2a2-41fc-bc98-464176db4226	3514262c-d7ec-4d76-81c8-20995e4d22f8	5d962383-f175-4dd8-af63-8a566a0d2255
-b5fd4c7b-728f-401e-b6b7-05e82c6aacdf	e323d911-96c9-4d01-be14-6ff9f00b5f68	682d36c0-4256-42ab-811e-054ab3a5b10f
-b7d8053d-056d-49b9-9e87-56d79d565f88	5808fbe9-5fd4-4e3f-86b4-5a0ad69517bd	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-b907740d-1f7b-48da-8a82-184211e312c7	0717101c-438d-4f69-b0ef-a56fcaf47a45	db0addff-605e-439f-917b-38016a398755
-ba0c981f-b90b-4389-83ed-919491f9c83e	872930ee-4d00-4d37-a2cb-dc57167f6973	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-bb267853-0f97-4580-a58b-e63a413620ec	3c8fda3c-c84a-4ef8-80ed-327dc87a3abc	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-bd1576e3-8419-44c5-b979-3978eea734bd	8fbc1e25-42da-426a-be89-975dde3326bc	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-bd5a4fc8-0dd5-4d99-94d5-17443dab2ad3	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-bdf83a17-fd17-4abb-abf7-44d1815c75f2	73687605-0927-471b-b8c2-ec61f4d5164e	682d36c0-4256-42ab-811e-054ab3a5b10f
-c1f2e7d3-d170-49cd-a84d-a6c3281d336e	837d9855-e239-4046-83d9-ae224ecce6ef	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-c510b381-665c-4d4c-8ef2-cce6d3619719	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	db0addff-605e-439f-917b-38016a398755
-cad8e538-62b3-4b0d-beb1-23ecde0e4cd4	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-cb6d112b-e400-4950-9f95-8aca851dc608	85559f41-c8d4-44b1-8906-a5e1d064f78c	5d962383-f175-4dd8-af63-8a566a0d2255
-cc11219c-2f3f-489e-9d94-468f740b7583	81e65582-e98d-4ded-b699-ea7fcb82f071	5d962383-f175-4dd8-af63-8a566a0d2255
-d0199d37-3593-432a-963b-6cdc555a48d1	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-d511c06a-8853-463b-aef8-53a1bf9b6417	45469efe-b575-417d-adb7-5c9ee591cb05	db0addff-605e-439f-917b-38016a398755
-d54e8334-08e9-4f2a-9b7c-782a77abcd83	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-d92cec97-7367-4437-b706-b844c9585f3b	128f2bec-ea83-4f7e-8115-9899a302d677	5d962383-f175-4dd8-af63-8a566a0d2255
-d94e6e32-0d9e-4f07-82ef-a8b292750f1c	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	682d36c0-4256-42ab-811e-054ab3a5b10f
-d9fd2971-e67b-4b65-b7f5-180cce340eeb	ccff1a9e-10e0-43e8-9379-77811383a397	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-dc48cf0f-b160-4f21-ae78-413ea7c87ab9	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	db0addff-605e-439f-917b-38016a398755
-dcb55bfd-1b77-454f-9994-cc7e0c8b7a51	e323d911-96c9-4d01-be14-6ff9f00b5f68	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-dd5c167f-89c8-423e-a1ca-50244935ec8e	cf705a0a-b654-4219-955c-a187d514a84f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-dda258ad-e45e-4c35-9893-40a782edd986	36243b2d-d487-49db-87d4-a46216df15ae	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-e1f7bc09-a2f4-4548-8c2b-d7cd919c00db	bf03ad3b-c399-4afa-a0e2-682f1d475fe8	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-e4f58508-d7a6-49cb-8e0e-ff5d8ac2b836	766c6052-09ad-44e4-8746-ed4795e712f1	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-e6bf4024-4b4f-4a6c-b610-368ed41a5884	a0c6147f-a977-4215-840a-60f95d2bd729	7682acb3-561b-4951-801b-c1564adda131
-ea259bf6-4a60-4f57-a13e-4a0ee0d8ef77	378f0582-07ec-4a86-a0ff-56575cc28dd0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-eb46d20a-d49b-4bb1-a6af-86a5f9e1233e	222358f3-3516-49b6-b7db-60f936d4a8c9	61bbeadf-3044-4123-929c-4b1e6e2e613e
-eccf9bee-efd3-428e-b1ce-90eaa222864d	0a1dda59-5a52-496e-8d30-5f082dbe343e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-ed89419e-8f4b-4afb-acef-c8955c3ce8dc	759ce52f-d3bf-414e-bd79-c33c038dfdf6	682d36c0-4256-42ab-811e-054ab3a5b10f
-eea34317-29f6-4a37-9433-723bcf24b483	a3451572-fefd-4cec-aa55-b28d3d3cac92	a12ac80b-a665-4301-898e-e9ca3d44bb20
-f27093b3-32ff-49e9-ab87-0061aa6a9738	2a21a67d-6020-4c2c-b06c-9e394c101fab	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-f52c0aa9-ec86-4c0c-bbdf-bc5196570326	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	682d36c0-4256-42ab-811e-054ab3a5b10f
-f6ede600-12fa-426a-97f7-157a2288fbe3	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	db0addff-605e-439f-917b-38016a398755
-f88ecce3-3e97-4f91-bace-2415c3607ed0	7428ebde-4c77-4358-bc21-6acef30a85a4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-faebaa34-aecd-4a26-a997-d5cd8c3b8b79	38bd29af-b288-4b62-ae24-679d6b2713ac	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+01ac67b4-047e-4091-89ff-7436d9849f11	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	db0addff-605e-439f-917b-38016a398755
+03138c4d-132e-48b9-a50a-33e59059a06d	8a92cbcd-7247-4f89-94a4-546013a78a29	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+0775a030-31a8-426b-ac74-fef89bb1d00c	5808fbe9-5fd4-4e3f-86b4-5a0ad69517bd	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+0a910949-8b8a-4b71-a37e-049045fdfb05	4f83891a-823a-406f-aa9f-5e23abeaba11	63765624-d7d1-472d-abd4-627127646998
+0c7bbf16-11e9-4875-9663-0bded3705875	3c8fda3c-c84a-4ef8-80ed-327dc87a3abc	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+0d11ffc5-024a-4b5a-ae39-a841333c43fc	4804833e-7bbf-4746-9e57-16542de6c3dc	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+0d464c1c-4001-4623-b432-d1d20420d6ad	fcd178d9-a936-4f02-a42a-ea9bdcf646a2	b651aec8-5455-4329-8251-0ceb62cea798
+0e451ea1-9614-4f04-90a5-f38bbaf041b2	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+0eb0b721-09c2-4a6e-b095-52c003f5a595	af28c045-efab-45db-83dc-c487bab9019f	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+13e6b3e8-0b74-4150-8da3-e4940f73aa93	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	682d36c0-4256-42ab-811e-054ab3a5b10f
+14fe3ac0-3ea5-411a-bdcb-c7e37541456f	999c4385-21ef-4a47-800f-1c08938edcee	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+1615c2b0-243d-4531-8fdf-ab0abeac89ef	76ad509e-ba7a-412e-a0cb-be0b8eeb8305	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+16515d7b-212d-40c5-ba56-3cd7e73884ec	128f2bec-ea83-4f7e-8115-9899a302d677	5d962383-f175-4dd8-af63-8a566a0d2255
+1e953b60-8000-4611-9a2a-289b2871134e	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+1e97ee9e-be98-4d3a-9fac-be1902eca02d	4192b456-ca31-4de0-a8ce-698c41732ec4	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+1f07f4c9-c74f-4739-9a2f-6509cdc69a68	0a1dda59-5a52-496e-8d30-5f082dbe343e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+1f19bd25-0722-4469-8a09-d987c7eedf31	bf03ad3b-c399-4afa-a0e2-682f1d475fe8	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+1fe953e7-a8f0-48c8-ad7c-6c963924d0f9	e323d911-96c9-4d01-be14-6ff9f00b5f68	682d36c0-4256-42ab-811e-054ab3a5b10f
+203dce21-6343-46da-9c0a-7192677460bc	a3451572-fefd-4cec-aa55-b28d3d3cac92	a12ac80b-a665-4301-898e-e9ca3d44bb20
+20c0ff27-d20c-44c5-bef7-cfdb18d37d3f	0717101c-438d-4f69-b0ef-a56fcaf47a45	682d36c0-4256-42ab-811e-054ab3a5b10f
+24c795c2-48ba-4c7a-8cb0-0be3b44e80cc	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+264e7cc6-1ae3-4a61-9e38-2b7ff3444aba	359026a0-80bd-4c27-99f3-f63fb1741c6d	c88d783b-b628-4f3a-a972-aa56aeed5e77
+29d9bc92-b69c-46a2-a7ae-e7e4a0744f07	e91d743d-70da-4bbe-92ce-8e9bf436acd9	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2ac7ac04-bbc1-4d74-ba25-132190e7322e	159c2701-2318-4ba7-b809-fa07d078305e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+2b061c8d-7c40-4b15-9031-254a374d1dfe	8a351e0a-8631-4aca-9598-81b276dbc990	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+2c763cf3-1bec-4196-a9f4-0b0a0930b8bb	2d9893c2-a2b8-4a26-a41d-85061c629ec2	c88d783b-b628-4f3a-a972-aa56aeed5e77
+2e06655d-13f8-4b6c-93ff-0f952fa4f4d5	98b476d3-39f3-4af1-83df-00639379db5e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2e442b1f-0ac1-4a3f-90a4-ab6abdc2be69	50581768-4796-4731-b6e2-fc50e877f192	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+2ec999de-37ee-4c61-a577-3517737ae780	b11be1e9-662a-4bc7-b06b-7f401c8b00b3	7682acb3-561b-4951-801b-c1564adda131
+33741b95-1c47-42a1-9e92-79a123aa7bfa	5d79d51f-fcd5-40a1-96e8-8a8ae7c76c00	b651aec8-5455-4329-8251-0ceb62cea798
+37801057-679d-460c-8ca9-0479f14a1e15	159c2701-2318-4ba7-b809-fa07d078305e	db0addff-605e-439f-917b-38016a398755
+3b66e727-69f9-4d78-b09f-4d4192536237	759ce52f-d3bf-414e-bd79-c33c038dfdf6	682d36c0-4256-42ab-811e-054ab3a5b10f
+41341107-cfcc-4294-80f7-8f3db4938225	759ce52f-d3bf-414e-bd79-c33c038dfdf6	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+423c59cd-a1c1-43de-ac09-79a8e5ff97a9	766c6052-09ad-44e4-8746-ed4795e712f1	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+458bd2eb-4fd6-471e-b98f-aa54bb9b883e	5e1badcc-b621-4c3b-b729-4f3ddf5877a0	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+4825558d-42a8-4980-9d8b-ed42d01fe15f	45469efe-b575-417d-adb7-5c9ee591cb05	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+4c9d4e91-9aed-429b-9fae-893b93e15e4b	45469efe-b575-417d-adb7-5c9ee591cb05	682d36c0-4256-42ab-811e-054ab3a5b10f
+4cfbdff9-a3eb-44fa-b3b2-221dcd6be6c4	b79f5fee-71cf-4fe3-b61f-7e3811fedcea	c88d783b-b628-4f3a-a972-aa56aeed5e77
+4da20194-6d3b-422e-94be-018aa05239aa	c1010573-777c-45fa-8b66-c77e8e4cbc3f	c88d783b-b628-4f3a-a972-aa56aeed5e77
+4f23308a-15a9-4e23-9cd5-52e6c08ce0bc	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	db0addff-605e-439f-917b-38016a398755
+4f563fdb-77a8-4aab-bef9-4d91950dce1d	da6c7063-b8d6-47d9-8ad6-e5654b1a6190	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+543a5526-dab1-419c-a8b9-dde8709fe93b	e323d911-96c9-4d01-be14-6ff9f00b5f68	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+5614c6eb-bcac-405d-aa46-070c9813716f	36243b2d-d487-49db-87d4-a46216df15ae	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+57d18edd-9acf-44f3-b22b-316746c0b980	ab07d7c9-e503-4641-8db6-25ac3fc0993e	5d962383-f175-4dd8-af63-8a566a0d2255
+5d3b5eba-22bd-4913-a241-b81c76b02c6b	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	682d36c0-4256-42ab-811e-054ab3a5b10f
+5f32ffa0-ac0b-4fa2-af5a-349bfcd3912d	15e4938e-241c-4f53-b64e-56a4b2201981	c88d783b-b628-4f3a-a972-aa56aeed5e77
+5f742118-3816-49ac-8b51-72b09ffa1f8e	3bce413c-a323-4f80-a417-190414a3d56b	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+6519d34c-eb1b-4cc6-ad17-b015d97ab544	79d8ed54-9a91-4486-a19f-e5485de7b490	88b29e0c-39b7-4169-ab5c-350075014a84
+67a6f383-61fe-4695-9922-6378960511e3	ef3cba27-0a2a-4348-82e3-7d86feed3e31	5d962383-f175-4dd8-af63-8a566a0d2255
+69ae1029-90fd-4b52-913e-4e94771c922b	6df1609a-13f1-469d-96a1-253b2bc66b4f	a73eb36c-7d62-4aa8-901d-1c70b3876b69
+6b6d75fa-9028-48ae-846a-a104566a4002	3f714252-8945-41a7-8520-1c1c8925854e	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+6ba8f89f-af3c-4d4d-a7bf-25c0433266a4	a7cb72a9-ec77-44e1-998a-a0638f8becc5	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+6c8a8ed9-3e1d-4247-b378-eba1c83e62b5	872930ee-4d00-4d37-a2cb-dc57167f6973	682d36c0-4256-42ab-811e-054ab3a5b10f
+6e6348a4-709d-4453-8349-ff294e3609b5	378f0582-07ec-4a86-a0ff-56575cc28dd0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+6f85b394-e87d-419a-9717-b78e772e6b9a	305ab402-2d28-4607-ad44-7b1031dea076	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+71aa7f01-fa10-4fab-a8fc-d5dc61eb5673	651dc356-0c28-457e-bc56-69fdf6ea321f	7682acb3-561b-4951-801b-c1564adda131
+71bb9705-0a40-41d4-9eb3-ad9c81abe544	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	db0addff-605e-439f-917b-38016a398755
+73440605-5967-4bf2-b7c3-08c545d41964	b2819c45-99c7-4306-9ffb-1d585f0a29d0	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+747a2981-7408-4afa-85b3-05781078093e	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	682d36c0-4256-42ab-811e-054ab3a5b10f
+76bab265-c805-4c9c-a328-a3e0976fc804	cf705a0a-b654-4219-955c-a187d514a84f	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+76cdc3cf-8c66-4b51-9b8a-5ead95536c79	0f8dfe0e-d5d5-4a23-b9dc-cff6d71ae84f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+782f8ada-9134-48cf-9c4a-824fc4d0b27a	872930ee-4d00-4d37-a2cb-dc57167f6973	db0addff-605e-439f-917b-38016a398755
+7860f09f-b737-4520-ab7d-8278b6c6eff8	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	b651aec8-5455-4329-8251-0ceb62cea798
+7fd2d8cd-48bf-4ee1-af0c-7823dd010c03	f0a049a7-2bcd-4cf1-a57c-2b2a22cdd6de	db0addff-605e-439f-917b-38016a398755
+7fdd715a-a847-41c1-a161-10ce7b72c4a1	a0c6147f-a977-4215-840a-60f95d2bd729	7682acb3-561b-4951-801b-c1564adda131
+845c95cb-aa6a-4ce5-a307-506bf43efd9f	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+867924e8-6d11-43a6-8db7-5e303aa0cb19	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	682d36c0-4256-42ab-811e-054ab3a5b10f
+8776f443-781f-49d2-b89c-583af0f5d9f5	047399e0-7821-4f80-be7a-78057c4c2f5f	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+8a4f987d-7e86-4119-ac13-78afeeb975a0	1c213096-46a8-48e1-b353-fdf2d25074ab	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+8f739426-7d27-4470-b401-c04fcf225203	49b9c24a-e70e-4cf8-a8c4-e81a49af294b	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+90524e12-514a-4b47-89ce-c6ea38376ea1	2faf5d1b-751e-4a11-9b34-33bf797eef82	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+9082b5cd-73fe-490a-84ad-9dad9ef5c91b	7d7850cf-72da-411d-ba58-bd2d4a43ca28	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+91895177-4efc-4d34-9c09-6f11b9b5a02d	73687605-0927-471b-b8c2-ec61f4d5164e	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+94007bae-a082-4321-a73c-d6caddbfbf44	8fbc1e25-42da-426a-be89-975dde3326bc	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+9739d110-9feb-45a4-a4b5-0b2e6adb4a8e	837d9855-e239-4046-83d9-ae224ecce6ef	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+98042280-9d3a-495d-880a-52deed7fdd50	73687605-0927-471b-b8c2-ec61f4d5164e	682d36c0-4256-42ab-811e-054ab3a5b10f
+98c03915-08c5-4b8b-af31-08dae74b033f	72fc796a-c5ba-4bf3-b93f-5b8f52491aed	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a15495d1-ef78-4b54-962a-48ad7a11757d	2a21a67d-6020-4c2c-b06c-9e394c101fab	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a1dba8e6-d617-4f3b-8e01-83bcc2557a7b	003fd050-8939-4d05-ac2b-29876038cb76	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+a3b43426-7898-4e04-9cd8-cc70e89b84e2	eceb2bfe-e8ed-48d4-910e-f1d4e42d1be5	88b29e0c-39b7-4169-ab5c-350075014a84
+a78cfcd8-1884-46c5-946a-a3a1ef3690b5	222358f3-3516-49b6-b7db-60f936d4a8c9	61bbeadf-3044-4123-929c-4b1e6e2e613e
+a9c6b096-3d3a-4826-8055-cc7c1ce74187	3514262c-d7ec-4d76-81c8-20995e4d22f8	5d962383-f175-4dd8-af63-8a566a0d2255
+b405de79-8745-416f-ae17-bd20050db101	759ce52f-d3bf-414e-bd79-c33c038dfdf6	db0addff-605e-439f-917b-38016a398755
+b4119fbc-cb2e-4ec7-8836-1c6c45783ddf	81e65582-e98d-4ded-b699-ea7fcb82f071	5d962383-f175-4dd8-af63-8a566a0d2255
+b52ed320-ac1e-4bf8-a871-0432007f3241	6ccedaf4-671c-4375-8200-f860eb7d46d9	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+b5454d9b-cf69-464b-933d-9c7f22e6c0c1	554562de-10b1-4365-9e6e-cf769630de75	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+bbc28cbc-335d-45d2-a3f7-6851fbade6a5	e064b573-153e-4f5c-bca0-37d89be9564a	5d962383-f175-4dd8-af63-8a566a0d2255
+bcfa987d-dd69-4bbb-9ec0-166e7e5cabdb	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	682d36c0-4256-42ab-811e-054ab3a5b10f
+c0eb1020-0374-42eb-89e7-26b35734e8cc	7428ebde-4c77-4358-bc21-6acef30a85a4	fa773eb9-162f-4ea8-9fc4-9c54a3068582
+c1db42e0-c525-41b6-b19c-73d2f7fefc3c	37fe770e-4c51-4e31-bbb6-0ca302286b91	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+c3adaa90-257a-4958-937b-0faa2cabdccb	a220a973-9f98-4654-8a57-ee6b44579be5	45755b2a-741a-4990-ab78-8f65090f75b1
+c7111b0a-2bd9-43ca-bedb-275e6f131a6b	6c3fcc16-3602-4bf5-9dd2-7e51fe23d336	b651aec8-5455-4329-8251-0ceb62cea798
+c8e15ed8-0dcc-4adb-92dc-b061a347255a	a77285b6-5266-4959-8399-f34dfbfcb44e	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
+cac5344a-91a7-498d-b2ef-642251938cd7	e323d911-96c9-4d01-be14-6ff9f00b5f68	db0addff-605e-439f-917b-38016a398755
+cb47339f-8aa8-48df-bf22-25b14b829c13	159c2701-2318-4ba7-b809-fa07d078305e	682d36c0-4256-42ab-811e-054ab3a5b10f
+cb8bcf15-86a0-4f16-8515-cb83bcd36a94	b3eb1bdf-188b-4292-9cfd-f72381c366f0	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+cc06cd02-28ac-4eef-a314-6c392ae89d2a	872930ee-4d00-4d37-a2cb-dc57167f6973	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+cc4e9159-0dc4-48ff-8f6b-0dbeaa51686f	86237191-01ee-4aad-9a6b-e75600c375fc	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
+cc589610-570c-4e07-b1ae-9991d8efbc41	c6edab11-cbcb-4e05-aab3-d7d0b493c4fe	e99b7773-5d71-4dca-ad36-b896dcfb71c4
+cd6dfd81-e2e3-44cd-8c90-fc459568ca50	c034e919-e8b3-4bcc-8ee2-72f4fe2ad36f	fd84aa38-11ef-46af-ade7-241f2a2c08fd
+cd76e38b-7d07-4efd-89cb-c4babc7b913a	0a909d87-52c0-4ec8-b6f8-b8111cf7310e	db0addff-605e-439f-917b-38016a398755
+cfa18e56-1aa0-4682-87fe-41ae6ce50001	81a34a8f-1fb9-431f-bc96-1bb95dab3fdb	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+d158cb86-447a-4755-81ea-c452f3cea499	38bd29af-b288-4b62-ae24-679d6b2713ac	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
+d8879393-ba23-4190-b386-51348dd3fc2f	b823d89e-aab0-477f-8b85-7129d59dd202	7682acb3-561b-4951-801b-c1564adda131
+de36757f-9e1e-4ec0-9025-538ebe60a315	325fcf79-60ee-46bc-931d-612002282ff3	88b29e0c-39b7-4169-ab5c-350075014a84
+e1049725-55ec-4b83-b30c-3ac03facd969	85559f41-c8d4-44b1-8906-a5e1d064f78c	5d962383-f175-4dd8-af63-8a566a0d2255
+e219197b-755c-4d0f-8883-d3a62b2f6dc2	45469efe-b575-417d-adb7-5c9ee591cb05	db0addff-605e-439f-917b-38016a398755
+e388acfe-9486-45bc-ae74-f61021568624	73687605-0927-471b-b8c2-ec61f4d5164e	db0addff-605e-439f-917b-38016a398755
+e82ede21-365b-4524-b65c-cb92cf318b05	5f392507-7f0b-4614-9679-fcc103e3dbc7	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
+f05d88d9-d712-459c-b1d1-7ecb94da4fe4	a2113157-8223-486e-a506-90ae7a3daa93	c88d783b-b628-4f3a-a972-aa56aeed5e77
+f1355d78-b242-4049-818c-b827c0882ce8	0717101c-438d-4f69-b0ef-a56fcaf47a45	db0addff-605e-439f-917b-38016a398755
+f1a3965e-a796-4397-a757-f377c1cfff71	caa92f5c-1925-436c-9bf0-b270d5ddb38d	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+f4f82651-486a-4905-9740-a17a5d696da3	36732dd0-7171-4b3e-a7a6-48427a14f504	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+fe0bc6db-64e1-4e77-9888-fe6d72b873e0	ccff1a9e-10e0-43e8-9379-77811383a397	cfdb2071-d50e-4ea3-b732-19eb08f1e629
+fe38aa3e-95c1-49c8-ad42-9dd0dc49d8bc	0717101c-438d-4f69-b0ef-a56fcaf47a45	e99b7773-5d71-4dca-ad36-b896dcfb71c4
 \.
 
 
 --
--- Data for Name: mst_post_graduation_degrees; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_post_graduation_degrees; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_post_graduation_degrees ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4859,7 +5494,7 @@ ec8299cf-acb1-4a26-aed5-a03db0ff8bfe	ms	MS	t	2026-09-08 04:59:44.231454+00	\N	\N
 
 
 --
--- Data for Name: mst_rbac_baseline; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_rbac_baseline; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_rbac_baseline ("Version", "AppliedAtUtc") FROM stdin;
@@ -4867,7 +5502,7 @@ COPY master.mst_rbac_baseline ("Version", "AppliedAtUtc") FROM stdin;
 
 
 --
--- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_reporting_managers; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email", "EmployeeId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4875,7 +5510,7 @@ COPY master.mst_reporting_managers ("Id", "Code", "Name", "Designation", "Email"
 
 
 --
--- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_salary_bands; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_salary_bands ("Id", "Code", "Name", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4888,7 +5523,7 @@ ebed343e-301f-4984-b292-fa8d1cb1623c	l2	L2	t	2026-08-20 12:51:10.222702+00	\N	\N
 
 
 --
--- Data for Name: mst_service_catalog; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_service_catalog; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_service_catalog ("Id", "Code", "Name", "SubDepartmentId", "DefaultTools", "DefaultUnitPrice", "DefaultDurationDays", "Description", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Abbreviation") FROM stdin;
@@ -4932,7 +5567,7 @@ ff646bbe-4611-4d80-a733-2d6c8644ea84	FSF	fsf	d4fd66ae-afca-43c9-8eb9-dfb3d4797a7
 
 
 --
--- Data for Name: mst_service_departments; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_service_departments; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_service_departments ("Id", "Code", "Name", "GroupId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4956,7 +5591,7 @@ a18c1408-67e9-4715-ab16-c71f5ac91347	TESTINGDEPT1	Testing dept	a1111111-1111-111
 
 
 --
--- Data for Name: mst_service_groups; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_service_groups; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_service_groups ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -4966,7 +5601,7 @@ a2222222-2222-2222-2222-222222222222	SCOPE	Scope	t	2	2026-09-28 07:41:38.11983+0
 
 
 --
--- Data for Name: mst_service_sub_departments; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_service_sub_departments; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_service_sub_departments ("Id", "Code", "Name", "DepartmentId", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5010,7 +5645,7 @@ f9c3e149-e860-4669-bb23-23e539f289ce	SUBDEPTTEST	Sub dept test	9227f16e-6363-4fd
 
 
 --
--- Data for Name: mst_sub_departments; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_sub_departments; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_sub_departments ("Id", "Code", "Name", "IsActive", "DepartmentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5038,7 +5673,7 @@ a73eb36c-7d62-4aa8-901d-1c70b3876b69	functional_project_management	Functional - 
 
 
 --
--- Data for Name: mst_submodules; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_submodules; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_submodules ("Id", "Code", "Name", "Route", "SortOrder", "IsActive", "ModuleId", "ParentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5055,7 +5690,7 @@ e8f7c125-0e5b-4e3d-98e3-542638fa0b23	employee-detail	Employee Detail	/employee-d
 
 
 --
--- Data for Name: mst_tabs; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_tabs; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_tabs ("Id", "Code", "Name", "SortOrder", "IsActive", "ModuleId", "TabId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "SubModuleId") FROM stdin;
@@ -5095,7 +5730,7 @@ d67426d3-0001-4000-8000-000000000003	timesheet-approval	Timesheet Approval	30	t	
 
 
 --
--- Data for Name: mst_widgets; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_widgets; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_widgets ("Id", "Code", "Name", "SortOrder", "IsActive", "ParentId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "ParentWidgetId") FROM stdin;
@@ -5111,7 +5746,7 @@ d6dea306-2e8f-41a0-89c8-857cb96f5558	team-capacity-offsite	Team Capacity – Off
 
 
 --
--- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: master; Owner: -
+-- Data for Name: mst_work_locations; Type: TABLE DATA; Schema: master; Owner: postgres
 --
 
 COPY master.mst_work_locations ("Id", "Code", "Name", "IsActive", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5123,7 +5758,7 @@ bb1fb7b0-c12c-4dd0-86b8-f4461feb6306	zz_probe_location	ZZ Probe Location	f	4	202
 
 
 --
--- Data for Name: log_project_task_assignments; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: log_project_task_assignments; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.log_project_task_assignments ("Id", "TaskId", "EmployeeId", "Action", "ResourceName", "TeamType", "OccurredAtUtc", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5145,7 +5780,7 @@ d6a9fc07-69f6-465b-892a-98773a974df3	315f66e7-e091-4451-bee9-5209ffc9632e	6a1ac6
 
 
 --
--- Data for Name: tbl_project_additional_requirements; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_additional_requirements; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_additional_requirements ("Id", "RequirementId", "ProjectId", "ClientName", "ProjectName", "RequirementType", "Title", "Description", "Priority", "RequestedByEmployeeId", "RequestedByName", "RequestedDate", "AttachmentFileName", "AttachmentPath", "ScopeCancellationService", "Status", "ApprovedAtUtc", "ApprovedByEmployeeId", "ApprovedByName", "ApprovalComments", "CommentsJson", "HistoryJson", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5155,7 +5790,7 @@ cd58f1b9-cdce-42b0-b740-553088628071	REQ-20261110-649F	bc30f6f7-d3c5-46b6-9d3c-b
 
 
 --
--- Data for Name: tbl_project_alerts; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_alerts; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_alerts ("Id", "ProjectId", "IssueId", "Title", "Description", "AlertType", "Priority", "Status", "RaisedByEmployeeId", "RaisedByName", "AudienceUserIds", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "Owner", "ResolutionOwner", "EscalationOwner", "ResolutionDetails", "HistoryJson", "StatusChangedBy", "StatusChangedAtUtc", "AttachmentFileName", "AttachmentPath", "ExpectedResolutionDate", "ServiceName", "EscalationType", "EscalatedTo", "ServiceEscalationId", "ChatJson") FROM stdin;
@@ -5181,7 +5816,7 @@ d572b16e-3632-4257-8d35-1bf2de1e1ea3	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	\N	WBS
 
 
 --
--- Data for Name: tbl_project_appreciations; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_appreciations; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_appreciations ("Id", "ProjectId", "RecipientEmployeeId", "RecipientName", "RecipientEmail", "RecipientRole", "Badge", "Message", "GivenByEmployeeId", "GivenByName", "CreatedAtUtc", "UpdatedAtUtc", "DeletedAtUtc", "CreatedBy", "UpdatedBy") FROM stdin;
@@ -5189,7 +5824,7 @@ COPY project.tbl_project_appreciations ("Id", "ProjectId", "RecipientEmployeeId"
 
 
 --
--- Data for Name: tbl_project_documents; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_documents; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_documents ("Id", "ProjectId", "DocumentType", "FileName", "OriginalFileName", "FilePath", "ContentType", "SizeBytes", "Description", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5207,7 +5842,7 @@ b5a80423-e599-445d-b1fb-93082c0345d5	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	Escala
 
 
 --
--- Data for Name: tbl_project_drafts; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_drafts; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_drafts ("Id", "ProjectName", "ClientId", "ClientName", "SalesPerson", "FormSnapshotJson", "CreatedByName", "UpdatedByName", "Status", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5217,7 +5852,7 @@ d53cbbc1-d83c-437e-bf19-af4aca663b1c	Aditya Birla(Aditya Birla_Finance)_AWS Secu
 
 
 --
--- Data for Name: tbl_project_extension_approvers; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_extension_approvers; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_extension_approvers ("Id", "ExtensionRequestId", "EmployeeId", "EmployeeName", "Status", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5231,7 +5866,7 @@ a28045d7-dc3d-404e-9425-c6a6715bd1ae	3484d71e-c682-495c-8bd3-302e10fb2d64	be9f41
 
 
 --
--- Data for Name: tbl_project_extension_requests; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_extension_requests; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_extension_requests ("Id", "ProjectId", "CurrentEndDate", "RequestedEndDate", "ExtensionDays", "Reason", "Status", "RequestedByEmployeeId", "RequestedByName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "CommentsJson", "HistoryJson") FROM stdin;
@@ -5244,7 +5879,7 @@ f9eefc24-0507-447a-81cb-950f59c3f212	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	2028-0
 
 
 --
--- Data for Name: tbl_project_interviews; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_interviews; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_interviews ("Id", "ProjectId", "EmployeeId", "ResourceName", "InterviewDate", "InterviewTime", "Result", "Comments", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5256,7 +5891,7 @@ f95c0b35-3134-4314-83ed-2f5d1b8794a3	89744e80-08e3-4f7c-a4ba-78ff0ce54634	b9c0b8
 
 
 --
--- Data for Name: tbl_project_invoices; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_invoices; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_invoices ("Id", "ProjectId", "MilestoneName", "Percentage", "Amount", "TaxAmount", "TotalAmount", "Status", "InvoiceNumber", "InvoiceDate", "DueDate", "PaymentDate", "Remarks", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "ServiceName", "Qty", "UnitPrice", "Currency", "ResourceLevel", "PaymentStatus", "ProjectServiceId") FROM stdin;
@@ -5355,7 +5990,7 @@ e872fb59-70de-4034-a848-541c10a06a4e	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	Month 
 
 
 --
--- Data for Name: tbl_project_issues; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_issues; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_issues ("Id", "ProjectId", "ProjectCode", "ProjectName", "IssueType", "Priority", "Subject", "Description", "Status", "RaisedByEmployeeId", "RaisedByName", "RaisedByRole", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5373,7 +6008,7 @@ f99b9399-6351-4860-b18d-eb01835ff137	89744e80-08e3-4f7c-a4ba-78ff0ce54634	P001	A
 
 
 --
--- Data for Name: tbl_project_service_escalation_stakeholders; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_service_escalation_stakeholders; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_service_escalation_stakeholders ("Id", "EscalationId", "EmployeeId", "EmployeeName", "SubDepartment", "Status", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5398,7 +6033,7 @@ bb9dca28-6f65-4b72-9c2a-435493b7b419	abb505e6-94da-4ef6-a941-68e8f7af410f	696f99
 
 
 --
--- Data for Name: tbl_project_service_escalations; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_service_escalations; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_service_escalations ("Id", "ProjectId", "ProjectServiceId", "ProjectCode", "ProjectName", "CustomerName", "ServiceName", "EscalationType", "Priority", "Subject", "Description", "ExpectedResolutionDate", "AttachmentFileName", "AttachmentPath", "AttachmentContentType", "AttachmentSizeBytes", "Status", "RaisedByEmployeeId", "RaisedByName", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "ChatJson") FROM stdin;
@@ -5418,7 +6053,7 @@ abb505e6-94da-4ef6-a941-68e8f7af410f	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d90a77
 
 
 --
--- Data for Name: tbl_project_services; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_services; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_services ("Id", "ProjectId", "ServiceCatalogId", "TaskId", "Department", "SubDepartment", "ServiceName", "Qty", "Description", "ResourceLevel", "Frequency", "Location", "LocationText", "ServiceModel", "DeliveryModel", "FinalDeliveryFormat", "BillingModel", "Tools", "StartDate", "EndDate", "DurationDays", "DurationHours", "TotalDays", "TotalHours", "UnitPrice", "Total", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "BillingStatus", "CollectionStatus", "IsReady", "ValidationStatus", "ChangeStatus", "OriginalQty", "PendingQty", "PendingResourceLevel", "PendingUnitPrice", "ModCollectionStatus", "ModValidationStatus", "ModBillingStatus", "ModIsReady", "ServiceAbbreviation") FROM stdin;
@@ -5445,7 +6080,7 @@ d90a772b-b692-46f2-b7ba-ff9541e6ae70	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	d00000
 
 
 --
--- Data for Name: tbl_project_task_assignments; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_task_assignments; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_task_assignments ("Id", "TaskId", "EmployeeId", "Role", "AllocatedHours", "UtilizedHours", "TimerStartedAtUtc", "TimerAccumulatedSeconds", "IsActive", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5463,7 +6098,7 @@ b341b1be-e496-4490-a94c-d90401a8828c	08e951a4-6ec6-46c9-ba95-f0ed087d2b17	78b71d
 
 
 --
--- Data for Name: tbl_project_tasks; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_tasks; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_tasks ("Id", "ProjectId", "ProjectServiceId", "Title", "Description", "Period", "Phase", "Stage", "Priority", "PlannedStartDate", "PlannedEndDate", "ActualStartDate", "ActualEndDate", "EstimatedHours", "UtilizedHours", "Progress", "SortOrder", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "TaskType") FROM stdin;
@@ -5538,7 +6173,7 @@ b2f0840e-dc0d-45a6-932f-5f892ab2cd9a	96427433-d1b9-4089-bcee-e95f02d3154d	32c68c
 
 
 --
--- Data for Name: tbl_project_team_members; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_project_team_members; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_project_team_members ("Id", "ProjectId", "EmployeeId", "DepartmentId", "SubDepartment", "AllocationStartDate", "AllocationEndDate", "Billability", "IsTeamLead", "ResourceType", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "IsShadowTeam", "MemberRole") FROM stdin;
@@ -5570,7 +6205,7 @@ ed68b65b-d4e1-4b14-956c-4aa69b17091f	bc30f6f7-d3c5-46b6-9d3c-beb011067f30	42583b
 
 
 --
--- Data for Name: tbl_projects; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_projects; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_projects ("Id", "ProjectCode", "WbsId", "Name", "Description", "ClientId", "SubVentureId", "Status", "Health", "Progress", "ContractType", "ProjectType", "Currency", "TaxPercent", "StartDate", "EndDate", "Budget", "Spent", "TotalHours", "TotalDays", "InvoiceValue", "ProjectManagerId", "TeamLeadId", "EngagementManager", "EngagementManagerId", "SalesPerson", "SalesPersonId", "ProjectIssuedDate", "SectionAComments", "SectionBComments", "WbsStatus", "WbsSubStatus", "RenewedFromProjectId", "PoStatus", "PoNumber", "PoDate", "BillingModel", "PaymentTerms", "TargetDate", "AccountContactName", "AccountContactPhone", "AccountContactEmail", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5585,7 +6220,7 @@ bc30f6f7-d3c5-46b6-9d3c-beb011067f30	P007	IN-2026-27/C001-01/P007	Aditya Birla(A
 
 
 --
--- Data for Name: tbl_resource_allocation_requests; Type: TABLE DATA; Schema: project; Owner: -
+-- Data for Name: tbl_resource_allocation_requests; Type: TABLE DATA; Schema: project; Owner: postgres
 --
 
 COPY project.tbl_resource_allocation_requests ("Id", "ProjectId", "EmployeeId", "DepartmentId", "SubDepartment", "AllocationStartDate", "AllocationEndDate", "Billability", "IsTeamLead", "ResourceType", "IsShadowTeam", "Status", "RequestedByEmployeeId", "RequestedByName", "ApproverEmployeeId", "ApproverName", "CommentsJson", "HistoryJson", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5593,7 +6228,7 @@ COPY project.tbl_resource_allocation_requests ("Id", "ProjectId", "EmployeeId", 
 
 
 --
--- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: -
+-- Data for Name: __EFMigrationsHistory; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin;
@@ -5674,7 +6309,7 @@ COPY public."__EFMigrationsHistory" ("MigrationId", "ProductVersion") FROM stdin
 
 
 --
--- Data for Name: log_repository_activity; Type: TABLE DATA; Schema: repository; Owner: -
+-- Data for Name: log_repository_activity; Type: TABLE DATA; Schema: repository; Owner: postgres
 --
 
 COPY repository.log_repository_activity ("Id", "Action", "DocumentId", "FileName", "Category", "PerformedBy", "Details", "CreatedAtUtc", "DeletedAtUtc", "CreatedBy", "UpdatedBy", "UpdatedAtUtc") FROM stdin;
@@ -5711,7 +6346,7 @@ cb1e15eb-d3df-48b0-8012-14bd4ca6238a	Viewed	706ab2a8-2689-806b-7e25-e5c9752e8a0b
 
 
 --
--- Data for Name: tbl_repository_departments; Type: TABLE DATA; Schema: repository; Owner: -
+-- Data for Name: tbl_repository_departments; Type: TABLE DATA; Schema: repository; Owner: postgres
 --
 
 COPY repository.tbl_repository_departments ("RepositoryItemId", "DepartmentId") FROM stdin;
@@ -5719,7 +6354,7 @@ COPY repository.tbl_repository_departments ("RepositoryItemId", "DepartmentId") 
 
 
 --
--- Data for Name: tbl_repository_items; Type: TABLE DATA; Schema: repository; Owner: -
+-- Data for Name: tbl_repository_items; Type: TABLE DATA; Schema: repository; Owner: postgres
 --
 
 COPY repository.tbl_repository_items ("Id", "FileName", "Category", "Size", "LastUpdated", "UploadedBy", "FilePath", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5729,7 +6364,7 @@ COPY repository.tbl_repository_items ("Id", "FileName", "Category", "Size", "Las
 
 
 --
--- Data for Name: log_employee_activity; Type: TABLE DATA; Schema: resource; Owner: -
+-- Data for Name: log_employee_activity; Type: TABLE DATA; Schema: resource; Owner: postgres
 --
 
 COPY resource.log_employee_activity ("Id", "EmployeeId", "Action", "PerformedByEmail", "PerformedByName", "Details", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -5901,126 +6536,126 @@ f80aff3f-aa2b-40de-83db-d8fb77f31723	d94878fd-4650-46bc-b84c-753c841e7404	Update
 
 
 --
--- Data for Name: tbl_employees; Type: TABLE DATA; Schema: resource; Owner: -
+-- Data for Name: tbl_employees; Type: TABLE DATA; Schema: resource; Owner: postgres
 --
 
-COPY resource.tbl_employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "NationalityId", "ProbationPeriod", "SalaryBandId", "Aadhaar", "EmergencyContactName", "EmployeeStatusId", "BondDelivered", "BondDurationMonths", "BondExpiryDate", "GradDegree", "GradYear", "PostGradDegree", "PostGradYear", "ExpType", "PriorTotalExp", "PriorRelevantExp", "EmergencyContactRelation", "PmoDepartment", "SubDepartment", "BillableStatus", "ClientLocation", "ProjectType", "ProjectAllocated", "ClientEngManagerMapping", "ProjectSite", "EngagementManagerEmployeeId", "ProjectManagerId", "SubDepartmentId") FROM stdin;
-4aba0077-4d88-4e0c-8d18-9152eea3fbf9	TK-0001	Vihaan	Pillai	vihaan.pillai.tk-0001@talakunchi.com	\N	9820010001	\N	\N	\N	Andheri (Western Line)	9811000017	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2026-10-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.636311+00	2026-10-22 07:09:19.878078+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Nikhil Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	PMO (Project Management Office)	Billable	\N	Long Term	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-d17be428-1602-4e09-a164-c3c2666fad73	TK-0002	Neha	Pillai	neha.pillai.tk-0002@talakunchi.com	\N	9820010002	\N	\N	\N	Andheri (Western Line)	9811000034	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	COO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-04-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.651331+00	2026-10-28 03:51:10.026204+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Vihaan Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-04-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Spouse	\N	Leading Delivery Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	45755b2a-741a-4990-ab78-8f65090f75b1
-0a213b8b-1836-4660-9116-536fc9436639	TK-0040	Krishna	Saxena	krishna.saxena.tk-0040@talakunchi.com	\N	9820010046	\N	\N	\N	Andheri (Western Line)	9811000782	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	7c2380da-3ee6-46ad-93d6-a79ce3027f29	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.113491+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-0a46bda6-6481-4bbe-8689-18fe959fa98a	TK-0060	Trisha	Pillai	trisha.pillai.tk-0060@talakunchi.com	\N	9820010068	\N	\N	\N	Andheri (Western Line)	9811001156	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-12-10	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.329721+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-159fb3d0-937c-4f81-ad37-aa1b4f023264	TK-0015	Rajesh	Sharma	rajesh.sharma.tk-0015@talakunchi.com	\N	9820010017	\N	\N	\N	Andheri (Western Line)	9811000289	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-02-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.827405+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
-1fa56f20-56ce-4461-ac66-c7d7b34f16d6	TK-0088	Siddharth	Deshpande	siddharth.deshpande.tk-0088@talakunchi.com	\N	9820010097	\N	\N	\N	Andheri (Western Line)	9811001649	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-09-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.639521+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vikram Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-940ec7cd-058d-4f8f-912f-08ae55bac01c	TK-0097	Manish	Mathur	manish.mathur.tk-0097@talakunchi.com	\N	9820010106	\N	\N	\N	Andheri (Western Line)	9811001802	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-04-09	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.736486+00	2026-10-16 09:54:37.284411+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.284411+00	\N	\N	\N	\N	Advait Deshmukh	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	\N
-204776c8-efeb-480f-980b-a3f70be97f91	TK-0070	Divya	Deshmukh	divya.deshmukh.tk-0070@talakunchi.com	\N	9820010078	\N	\N	\N	Andheri (Western Line)	9811001326	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-07-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.43265+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Nidhi Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	TK-0025	Vihaan	Mathur	vihaan.mathur.tk-0025@talakunchi.com	\N	9820010029	\N	\N	\N	Andheri (Western Line)	9811000493	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-09-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.950815+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-238c3cb7-75cf-4478-a48e-fe47465d20b6	TK-0049	Ishita	Patel	ishita.patel.tk-0049@talakunchi.com	\N	9820010057	\N	\N	\N	Andheri (Western Line)	9811000969	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	6d25ff6d-e13d-440f-b775-215547af7acb	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-04-01	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.220166+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-246e0bb0-8a3b-4524-9d7b-3ac6d4ca7d8d	TK-0084	Manish	Malhotra	manish.malhotra.tk-0084@talakunchi.com	\N	9820010093	\N	\N	\N	Andheri (Western Line)	9811001581	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-06-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.596427+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-26fd3209-693a-49d1-9224-8f7e2f3a1c58	TK-0067	Ishaan	Desai	ishaan.desai.tk-0067@talakunchi.com	\N	9820010075	\N	\N	\N	Andheri (Western Line)	9811001275	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-05-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.401399+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-2b245a46-a64c-440b-861d-24f712bd626e	TKI-0004	Kavya	Mathur	kavya.mathur.tki-0004@talakunchi.com	\N	9820010021	\N	\N	\N	Andheri (Western Line)	9811000357	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-10-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.870977+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-30913859-c8e8-4851-852f-28be97c74bb1	TK-0010	Sana	Pillai	sana.pillai.tk-0010@talakunchi.com	\N	9820010011	\N	\N	\N	Andheri (Western Line)	9811000187	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	1f97b442-95c5-4b11-93a0-ea146534ae85	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-10-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.759044+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Pallavi Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-10-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	BKC	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
-31057f6b-b1e5-46e3-a071-b6639b93a15c	TK-0051	Krishna	Bose	krishna.bose.tk-0051@talakunchi.com	\N	9820010059	\N	\N	\N	Andheri (Western Line)	9811001003	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	f20a7445-0b01-4f20-85a5-853101d864ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-05-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.239498+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kunal Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-315ae0c9-ecdf-48ba-a662-f93c21ef31d2	TK-0056	Varun	Pandey	varun.pandey.tk-0056@talakunchi.com	\N	9820010064	\N	\N	\N	Andheri (Western Line)	9811001088	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	SOC-Senior Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-09-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.289299+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-31e49978-ac22-44bb-a535-11d20d8aeea3	TK-0083	Rahul	Pillai	rahul.pillai.tk-0083@talakunchi.com	\N	9820010092	\N	\N	\N	Andheri (Western Line)	9811001564	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-05-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.585583+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-3398777f-d384-48a2-8076-9c4fb06162bb	TK-0095	Karan	Joshi	karan.joshi.tk-0095@talakunchi.com	\N	9820010104	\N	\N	\N	Andheri (Western Line)	9811001768	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-02-23	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.715255+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Shaurya Pandey	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N	88b29e0c-39b7-4169-ab5c-350075014a84
-33e9644b-a618-47ed-b272-c078e19b36ef	TK-0080	Varun	Gaikwad	varun.gaikwad.tk-0080@talakunchi.com	\N	9820010089	\N	\N	\N	Andheri (Western Line)	9811001513	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-03-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.553584+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-d94878fd-4650-46bc-b84c-753c841e7404	TK-0008	Nikhil	Saxena	nikhil.saxena.tk-0008@talakunchi.com	\N	9820010009	\N	\N	\N	Andheri (Western Line)	9811000153	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	SOC-Senior Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-01	Resigned	Resigned	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	60 days	\N	Resigned	BO	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.734742+00	2026-10-28 04:22:01.064952+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Rajesh Sharma	ce28b4c5-a343-493b-9404-96c983768850	Yes	24	2020-09-01	BE	2020	NA	NA	Experienced	2 Years	2 Years	Guardian	\N	Services - Operations	Billable	\N	Long Term	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-13b14e34-f865-4c83-a6c0-3fdf7d196c1c	TK-0029	Reyansh	Sawant	reyansh.sawant.tk-0029@talakunchi.com	\N	9820010033	\N	\N	\N	Andheri (Western Line)	9811000561	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.988005+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	TK-0087	Harsh	Gupta	harsh.gupta.tk-0087@talakunchi.com	\N	9820010096	\N	\N	\N	Andheri (Western Line)	9811001632	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-08-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.628906+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-3a209908-397f-4c90-abf6-9fe52ab98b34	TK-0050	Vihaan	Wardhan	vihaan.wardhan.tk-0050@talakunchi.com	\N	9820010058	\N	\N	\N	Andheri (Western Line)	9811000986	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	48429bb5-c583-4684-b30a-7ed443b671ca	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-04-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.230016+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Meera Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-405610b0-c3bd-4725-a409-5f6dbffeacb4	TKI-0007	Arjun	Wardhan	arjun.wardhan.tki-0007@talakunchi.com	\N	9820010038	\N	\N	\N	Andheri (Western Line)	9811000646	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	bb7ccd5f-2f60-49fb-b984-f11fc47add22	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-12-18	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.03788+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131
-41708635-a60e-4fbd-a76b-91c0c23d18be	TK-0071	Advait	Gaikwad	advait.gaikwad.tk-0071@talakunchi.com	\N	9820010079	\N	\N	\N	Andheri (Western Line)	9811001343	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-08-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.443651+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-42583b6b-008c-45f6-b258-b08495712c7c	TK-0016	Harsh	Wardhan	harsh.wardhan.tk-0016@talakunchi.com	\N	9820010018	\N	\N	\N	Andheri (Western Line)	9811000306	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	c70b9832-841e-4864-9b85-eaba3c0a995f	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-03-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.838024+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kunal Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-450f16b6-e35c-4564-969d-6bf6ceec7ff3	TK-0082	Kabir	Sawant	kabir.sawant.tk-0082@talakunchi.com	\N	9820010091	\N	\N	\N	Andheri (Western Line)	9811001547	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-30	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.575322+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-46e3d71d-ea02-474f-b668-f836d91e059d	TK-0062	Siddharth	Iyer	siddharth.iyer.tk-0062@talakunchi.com	\N	9820010070	\N	\N	\N	Andheri (Western Line)	9811001190	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-01-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.350043+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Divya Deshmukh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-4d8e2104-d723-45a0-856f-594f80efd0f6	TK-0064	Amit	Pillai	amit.pillai.tk-0064@talakunchi.com	\N	9820010072	\N	\N	\N	Andheri (Western Line)	9811001224	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-03-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.370485+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-51015348-f872-4e18-b806-e44017e10e4b	TK-0076	Dev	Roy	dev.roy.tk-0076@talakunchi.com	\N	9820010084	\N	\N	\N	Andheri (Western Line)	9811001428	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	c1fa4328-a970-48a1-bc08-d50fe36bf44c	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-12-13	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.497879+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-51df4d23-9202-43b7-9e29-4a14a838a242	TK-0038	Vihaan	Gaikwad	vihaan.gaikwad.tk-0038@talakunchi.com	\N	9820010044	\N	\N	\N	Andheri (Western Line)	9811000748	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-07-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.094147+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-583e812b-e929-4e7c-9d76-33d3fc25cd7d	TK-0013	Tanvi	Gaikwad	tanvi.gaikwad.tk-0013@talakunchi.com	\N	9820010015	\N	\N	\N	Andheri (Western Line)	9811000255	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-12-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.806235+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Anita Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
-218f30c7-87bd-4410-99fc-4d10da3e8014	TK-0043	Yash	Sharma	yash.sharma.tk-0043@talakunchi.com	\N	9820010050	\N	\N	\N	Andheri (Western Line)	9811000850	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2b1558e3-158a-4a84-ae80-053129861a64	Consulting-HOD	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-11-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.151497+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-5e82125c-9ff8-4a97-a11b-65da79677d3c	TK-0074	Reyansh	Wardhan	reyansh.wardhan.tk-0074@talakunchi.com	\N	9820010082	\N	\N	\N	Andheri (Western Line)	9811001394	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-10-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.476912+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-5bf6d5c7-4358-49f1-bb6b-9d0b1b38d4ad	TKI-0009	Priya	Mathur	priya.mathur.tki-0009@talakunchi.com	\N	9820010051	\N	\N	\N	Andheri (Western Line)	9811000867	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-02-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.161403+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	TK-0068	Atharv	Malhotra	atharv.malhotra.tk-0068@talakunchi.com	\N	9820010076	\N	\N	\N	Andheri (Western Line)	9811001292	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-06-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.411718+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Dev Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-5ff0346b-75b8-4c62-afc7-afeb35b17a8e	TK-0090	Siddharth	Bose	siddharth.bose.tk-0090@talakunchi.com	\N	9820010099	\N	\N	\N	Andheri (Western Line)	9811001683	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-10-31	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.662063+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aisha Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-696f99d7-2380-443c-b90d-0e065642e1d4	TK-0019	Priya	Mishra	priya.mishra.tk-0019@talakunchi.com	\N	9820010022	\N	\N	\N	Andheri (Western Line)	9811000374	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-05-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.881525+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-6a1ac61a-89d6-4951-8246-621d4e1b071f	TK-0066	Nikhil	Joshi	nikhil.joshi.tk-0066@talakunchi.com	\N	9820010074	\N	\N	\N	Andheri (Western Line)	9811001258	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-04-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.39087+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-6b1f9737-c1f7-4201-8cd2-9b5e6274ebc8	TK-0086	Vihaan	Joshi	vihaan.joshi.tk-0086@talakunchi.com	\N	9820010095	\N	\N	\N	Andheri (Western Line)	9811001615	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-31	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.617282+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-6b4e0847-6c40-471e-89ec-c5b63bb828f0	TK-0081	Arjun	Menon	arjun.menon.tk-0081@talakunchi.com	\N	9820010090	\N	\N	\N	Andheri (Western Line)	9811001530	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.563741+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Alok Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-6d26e662-1e9f-4df8-a353-6be5ce9e5261	TK-0085	Lakshmi	Kadam	lakshmi.kadam.tk-0085@talakunchi.com	\N	9820010094	\N	\N	\N	Andheri (Western Line)	9811001598	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.606837+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-70e01a7d-fd0b-4e2a-b086-d059423ca380	TK-0014	Vihaan	Kadam	vihaan.kadam.tk-0014@talakunchi.com	\N	9820010016	\N	\N	\N	Andheri (Western Line)	9811000272	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-01-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.816829+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
-62e81e6b-7247-4c3f-a8b8-db21e613d02a	TKI-0003	Aarav	Bose	aarav.bose.tki-0003@talakunchi.com	\N	9820010013	\N	\N	\N	Andheri (Western Line)	9811000221	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e8c22eff-0daf-4690-a537-c8b0b6110a01	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-09-17	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.782523+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kavya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
-74601727-6182-498f-ac57-4c02b9e56ca0	TK-0059	Kunal	Iyer	kunal.iyer.tk-0059@talakunchi.com	\N	9820010067	\N	\N	\N	Andheri (Western Line)	9811001139	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e2b4be77-2b20-4064-974d-e6322e7240b4	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-11-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.319145+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishaan Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N	88b29e0c-39b7-4169-ab5c-350075014a84
-776f2cf7-c4cc-4299-b38f-afbcaff7703e	TK-0030	Omkar	Reddy	omkar.reddy.tk-0030@talakunchi.com	\N	9820010034	\N	\N	\N	Andheri (Western Line)	9811000578	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	157d001c-b056-45b1-96a3-3c05bcd8d99c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-01-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.99725+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-777390a6-91b9-4d9e-806c-16e046568501	TK-0028	Krishna	Joshi	krishna.joshi.tk-0028@talakunchi.com	\N	9820010032	\N	\N	\N	Andheri (Western Line)	9811000544	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.978927+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Suresh Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-7e3f1c8d-340c-47d7-b63d-fb047a9106aa	TKI-0002	Aarav	Mathur	aarav.mathur.tki-0002@talakunchi.com	\N	9820010008	\N	\N	\N	Andheri (Western Line)	9811000136	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	caa227a1-2dcf-4195-ab9c-8f76d1862daa	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.722404+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
-78b71d74-d255-4ac0-a75f-ead11a61427a	TK-0035	Aarav	Desai	aarav.desai.tk-0035@talakunchi.com	\N	9820010041	\N	\N	\N	Andheri (Western Line)	9811000697	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-05-14	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.066207+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2022-05-14	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	R&D (Research & Development)	Billable	\N	Long Term	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131
-78c932da-077a-4104-919c-386de88ed062	TK-0058	Meera	Joshi	meera.joshi.tk-0058@talakunchi.com	\N	9820010066	\N	\N	\N	Andheri (Western Line)	9811001122	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	c0f974c3-f49c-449a-9276-aa64ce501344	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.309385+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Nikhil Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-7d2b2c7a-254e-4605-9f79-3f42ac7f9735	TK-0027	Reyansh	Chopra	reyansh.chopra.tk-0027@talakunchi.com	\N	9820010031	\N	\N	\N	Andheri (Western Line)	9811000527	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-11-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.969016+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Yash Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-804c8187-6f28-411f-8fa5-cc9baceba3e7	TK-0031	Arjun	Joshi	arjun.joshi.tk-0031@talakunchi.com	\N	9820010035	\N	\N	\N	Andheri (Western Line)	9811000595	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	6193be76-40ad-4973-9ee7-246a4d8f4109	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-02-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.006223+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ira Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-818ae1ea-5842-4adb-b475-ac12dba9fd2a	TK-0044	Vihaan	Bose	vihaan.bose.tk-0044@talakunchi.com	\N	9820010052	\N	\N	\N	Andheri (Western Line)	9811000884	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	SOC-HOD	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.171436+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Anita Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-86862bf8-c075-44ef-9f3e-f65d2cc1bb56	TK-0034	Suresh	Desai	suresh.desai.tk-0034@talakunchi.com	\N	9820010040	\N	\N	\N	Andheri (Western Line)	9811000680	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-04-21	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.057075+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Mehra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131
-8bf95b5f-0a1b-4512-9fc4-0e0fd9a4503c	TK-0018	Harsh	Pandey	harsh.pandey.tk-0018@talakunchi.com	\N	9820010020	\N	\N	\N	Andheri (Western Line)	9811000340	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-04-19	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.859733+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-849d2fb1-a4e4-4eb2-947b-f97057e4954b	TK-0005	Dev	Bose	dev.bose.tk-0005@talakunchi.com	\N	9820010005	\N	\N	\N	Andheri (Western Line)	9811000085	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	155642eb-a633-4460-b658-aca9fde2d817	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-06-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	30 days	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.683541+00	2026-10-28 05:17:44.884439+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	Aarav Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
-8e0616db-48af-4b73-807f-6e250dba2072	TK-0020	Anita	Pandey	anita.pandey.tk-0020@talakunchi.com	\N	9820010023	\N	\N	\N	Andheri (Western Line)	9811000391	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	2a76927c-461a-48e4-8190-dea7361ef3db	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-06-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.891741+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Chopra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-8f3346d4-6f76-4575-af6d-a69527694680	TK-0079	Deepak	Singh	deepak.singh.tk-0079@talakunchi.com	\N	9820010088	\N	\N	\N	Andheri (Western Line)	9811001496	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-02-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.541706+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-900ed2a0-d8b3-439f-af86-7383cdebcd05	TK-0069	Ishaan	Pansare	ishaan.pansare.tk-0069@talakunchi.com	\N	9820010077	\N	\N	\N	Andheri (Western Line)	9811001309	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-07-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.421674+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Simran Deshmukh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-9b7f4410-6577-4ab4-9363-e75b9d4208e9	TK-0054	Sana	Rao	sana.rao.tk-0054@talakunchi.com	\N	9820010062	\N	\N	\N	Andheri (Western Line)	9811001054	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	911f6d7f-8d43-40f2-897a-2f416abf8cf9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.26888+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-9c4cf836-745e-4cf9-9a22-933d5e2638c3	TK-0091	Arjun	Sawant	arjun.sawant.tk-0091@talakunchi.com	\N	9820010100	\N	\N	\N	Andheri (Western Line)	9811001700	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-11-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.672237+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Mehta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-9d9bfa3a-8603-4de4-8eb7-76c3935e3014	TK-0012	Advait	Singh	advait.singh.tk-0012@talakunchi.com	\N	9820010014	\N	\N	\N	Andheri (Western Line)	9811000238	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	7d542941-65b9-499b-81b3-239748d6da52	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-12-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.794393+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Priya Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
-9eb64ade-203d-4e4a-aaed-8eaab7d3017d	TK-0033	Yash	Wardhan	yash.wardhan.tk-0033@talakunchi.com	\N	9820010039	\N	\N	\N	Andheri (Western Line)	9811000663	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-03-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.047613+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131
-9312226e-c7f8-4187-887e-67e2124098cd	TKI-0005	Kunal	Rao	kunal.rao.tki-0005@talakunchi.com	\N	9820010026	\N	\N	\N	Andheri (Western Line)	9811000442	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	9050e021-7d84-4401-820e-c0e768abb1ab	PM - Team Member	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-11-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.921408+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Omkar Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Functional - Project Management	\N	\N	\N	\N	\N	\N	\N	\N	a73eb36c-7d62-4aa8-901d-1c70b3876b69
-9ec115c7-5377-4f9d-b46a-2a3c97bea4de	TKI-0008	Aarav	Reddy	aarav.reddy.tki-0008@talakunchi.com	\N	9820010047	\N	\N	\N	Andheri (Western Line)	9811000799	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2076a9b1-e432-46a9-99b1-36e732159856	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-01-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.123207+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vikram Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Spouse	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-9f646393-8fea-4b38-9f35-d88a6ab6787e	TK-0023	Aarav	Rao	aarav.rao.tk-0023@talakunchi.com	\N	9820010027	\N	\N	\N	Andheri (Western Line)	9811000459	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	8b57cfd5-5d4e-44a3-9646-b36873c111c2	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-08-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.931379+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-8e139039-c490-436d-9af4-431d26334b34	TKI-0010	Simran	Deshmukh	simran.deshmukh.tki-0010@talakunchi.com	\N	9820010085	\N	\N	\N	Andheri (Western Line)	9811001445	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-02-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.50859+00	2026-10-22 07:51:07.636567+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Father	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-a73329ac-636f-475e-b566-321a5686fd66	TK-0017	Pallavi	Sawant	pallavi.sawant.tk-0017@talakunchi.com	\N	9820010019	\N	\N	\N	Andheri (Western Line)	9811000323	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	73bd55bb-5d0e-4381-8ad2-2238377fca93	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-03-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.848874+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-b9c0b8fc-4c96-42fb-8669-d68097cf5392	TK-0048	Aditi	Roy	aditi.roy.tk-0048@talakunchi.com	\N	9820010056	\N	\N	\N	Andheri (Western Line)	9811000952	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	e36018c5-bf48-4f93-bef7-93e8864a0b51	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-03-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.210593+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Varun Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-bbdc4c49-4262-4c1a-a270-1bfe3c550644	TK-0036	Amit	Wardhan	amit.wardhan.tk-0036@talakunchi.com	\N	9820010042	\N	\N	\N	Andheri (Western Line)	9811000714	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	195d6a81-8457-4b60-9382-6a3a0664f0e9	Consulting-Manager	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-06-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.075353+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Yash Sharma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-bbe8dd34-5945-4f0f-ab99-2cb2f7c99c95	TK-0061	Aditya	Pillai	aditya.pillai.tk-0061@talakunchi.com	\N	9820010069	\N	\N	\N	Andheri (Western Line)	9811001173	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-01-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.339329+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishaan Pansare	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-be9f417e-d40a-4c66-91e6-e7fde84b46d5	TK-0026	Krishna	Pandey	krishna.pandey.tk-0026@talakunchi.com	\N	9820010030	\N	\N	\N	Andheri (Western Line)	9811000510	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	138434a2-625f-4df5-836d-fcf0cfceef79	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-10-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.959922+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd
-bfb55863-c987-497b-9a1b-9a7bc56a9509	TK-0077	Nidhi	Bose	nidhi.bose.tk-0077@talakunchi.com	\N	9820010086	\N	\N	\N	Andheri (Western Line)	9811001462	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-01-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.519257+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Lakshmi Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-c5e35b7a-af12-4fd6-96af-e62225e715c6	TK-0041	Karan	Mehra	karan.mehra.tk-0041@talakunchi.com	\N	9820010048	\N	\N	\N	Andheri (Western Line)	9811000816	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.132457+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditi Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-ca209d5b-e1e0-42bf-9dbe-47cf5ed5530c	TK-0092	Harsh	Joshi	harsh.joshi.tk-0092@talakunchi.com	\N	9820010101	\N	\N	\N	Andheri (Western Line)	9811001717	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-12-16	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.683278+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ira Reddy	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798
-ca561f47-f73a-4401-8c6f-a1c776d88534	TK-0075	Vihaan	Iyer	vihaan.iyer.tk-0075@talakunchi.com	\N	9820010083	\N	\N	\N	Andheri (Western Line)	9811001411	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	767a00dd-6f09-4f64-a44e-8fbe901222af	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-11-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.48702+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kabir Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-cc295432-e771-4d6f-9cc3-079cc5d9b576	TK-0089	Alok	Deshpande	alok.deshpande.tk-0089@talakunchi.com	\N	9820010098	\N	\N	\N	Andheri (Western Line)	9811001666	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-10-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.651136+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-cef36bf2-c4fb-4040-b3ab-d033190ad3b4	TK-0096	Vikram	Joshi	vikram.joshi.tk-0096@talakunchi.com	\N	9820010105	\N	\N	\N	Andheri (Western Line)	9811001785	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-03-17	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.725971+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Sharma	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-d01c0ef5-731e-42de-b02a-7c996c545f15	TK-0045	Vivaan	Mathur	vivaan.mathur.tk-0045@talakunchi.com	\N	9820010053	\N	\N	\N	Andheri (Western Line)	9811000901	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea315f7d-d597-41b3-a999-4f3851bcd020	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-30	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.181143+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sneha Choudhary	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-d2010072-d612-48ab-9a8a-f137b87e6034	TK-0006	Amit	Deshmukh	amit.deshmukh.tk-0006@talakunchi.com	\N	9820010006	\N	\N	\N	Marine Lines (Western Line)	9811000102	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-07-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.698357+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-07-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	Pune	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
-d502bbdd-5186-490e-8f0a-5489d2737c6f	TKI-0001	Nikhil	Malhotra	nikhil.malhotra.tki-0001@talakunchi.com	\N	9820010004	\N	\N	\N	Andheri (Western Line)	9811000068	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	c0e1a001-0000-4000-8000-000000000001	Intern	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.672816+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Guardian	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998
-d6ea9f00-bf1b-4aa0-815f-89fe43b1c249	TK-0093	Aarav	Patel	aarav.patel.tk-0093@talakunchi.com	\N	9820010102	\N	\N	\N	Andheri (Western Line)	9811001734	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9fbe-98a4-464d-a638-05f40529c6de	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-08	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.693648+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Neha Choudhary	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798
-d73eac4c-d537-4d31-8e35-b55f8aff3e87	TK-0046	Arjun	Pillai	arjun.pillai.tk-0046@talakunchi.com	\N	9820010054	\N	\N	\N	Andheri (Western Line)	9811000918	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	4650d4e0-f73c-4688-ae5f-830a46348ff9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-01-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.190401+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sana Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	TK-0021	Karan	Wardhan	karan.wardhan.tk-0021@talakunchi.com	\N	9820010024	\N	\N	\N	Andheri (Western Line)	9811000408	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	834c9e15-c70d-4a0b-bb12-5e55f23c181d	EngagementManager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-06-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.901338+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-d9fd54d6-b11b-4969-a25d-8b8e3fcca417	TK-0032	Amit	Sawant	amit.sawant.tk-0032@talakunchi.com	\N	9820010037	\N	\N	\N	Andheri (Western Line)	9811000629	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	e2c675a7-92dc-4477-be75-9a304cbe4def	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-03-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.027123+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Pooja Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-dd200677-337b-440b-afcb-3a661406f98b	TK-0078	Reyansh	Patel	reyansh.patel.tk-0078@talakunchi.com	\N	9820010087	\N	\N	\N	Andheri (Western Line)	9811001479	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-01-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.531601+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4
-df8f375a-d0b0-40c0-8ada-264fc2275f4f	TK-0057	Advait	Gupta	advait.gupta.tk-0057@talakunchi.com	\N	9820010065	\N	\N	\N	Andheri (Western Line)	9811001105	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	444df30d-c195-42ad-b9a7-d80cdef69ccd	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.299121+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-e09daabd-8da2-4dc9-89b4-03f4b79583de	TK-0072	Amit	Gaikwad	amit.gaikwad.tk-0072@talakunchi.com	\N	9820010080	\N	\N	\N	Andheri (Western Line)	9811001360	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	c6c6cd04-6df3-4593-b686-e4b9d362c96f	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-09-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.453799+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Deepak Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-e131815f-331f-46d7-81f8-5d2bed793630	TK-0037	Ira	Bose	ira.bose.tk-0037@talakunchi.com	\N	9820010043	\N	\N	\N	Andheri (Western Line)	9811000731	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	1e7faab8-273d-40df-9f9a-485160186c5a	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-06-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.084626+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Priya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-87fd3345-a756-44df-a3e7-5f21fa6e50d3	TK-0098	Aisha	Mathur	aisha.mathur.tk-0098@talakunchi.com	\N	9820010107	\N	\N	\N	Andheri (Western Line)	9811001819	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-05-02	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.747534+00	2026-10-16 09:54:37.309719+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.309719+00	\N	\N	\N	\N	Divya Sawant	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	\N
-02814af4-08b4-42cc-92e1-ad0bba687378	TK-0039	Pooja	Bose	pooja.bose.tk-0039@talakunchi.com	\N	9820010045	\N	\N	\N	Andheri (Western Line)	9811000765	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-08-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.103381+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vivaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-033446c7-c133-4395-bdaa-69b5f227a7a8	TK-0024	Atharv	Reddy	atharv.reddy.tk-0024@talakunchi.com	\N	9820010028	\N	\N	\N	Andheri (Western Line)	9811000476	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	9dc69952-eae6-4ec0-a327-67392315f089	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-09-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.940959+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ananya Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-049ac489-bbd3-4153-b933-aec7b7baec89	TK-0004	Admin	User	admin@talakunchi.com	\N	9820000004	\N	\N	\N	Andheri (Western Line)	\N	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	Admin	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	2018-06-01	Active	Active	Ongoing	0 (Relevant: 0)	\N	Permanent	\N	No bond	\N	\N	NA	NA	\N	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.5279+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	\N	\N	NA	NA	Experienced	0	0	\N	\N	Functional - IT Administration	Billable	\N	Long Term	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3
-23bf310d-b789-4dcc-bb7e-576b373e72cf	TK-0099	Karan	Mehta	karan.mehta.tk-0099@talakunchi.com	\N	9820010108	\N	\N	\N	Andheri (Western Line)	9811001836	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-05-25	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.767705+00	2026-10-16 09:54:37.319639+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.319639+00	\N	\N	\N	\N	Kunal Desai	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	\N
-089e3bae-d509-46db-906f-3085e0438c9c	TK-0100	Ira	Reddy	ira.reddy.tk-0100@talakunchi.com	\N	9820010109	\N	\N	\N	Andheri (Western Line)	9811001853	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-06-17	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.799186+00	2026-10-16 09:54:37.329732+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.329732+00	\N	\N	\N	\N	Vivaan Iyer	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	\N
-b20f343b-e7fa-4310-9c43-ef10ca51ff6c	TK-0101	Neha	Choudhary	neha.choudhary.tk-0101@talakunchi.com	\N	9820010110	\N	\N	\N	Andheri (Western Line)	9811001870	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-07-10	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.811056+00	2026-10-16 09:54:37.338979+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.338979+00	\N	\N	\N	\N	Kavya Deshpande	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	\N
-d29c4919-9e2d-46c1-a78f-ffd2d4d32365	TK-0052	Anita	Iyer	anita.iyer.tk-0052@talakunchi.com	\N	9820010060	\N	\N	\N	Andheri (Western Line)	9811001020	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-06-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.249213+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Trisha Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-f19ea8a8-4d2f-48f9-832e-311f80e49f11	TKI-0006	Ananya	Joshi	ananya.joshi.tki-0006@talakunchi.com	\N	9820010036	\N	\N	\N	Andheri (Western Line)	9811000612	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	e2b10def-c91d-45da-94c5-f5530e743aa2	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-11-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.016241+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582
-e93a25e9-5347-49e1-b901-88271fdbdcf5	TK-0063	Kavya	Roy	kavya.roy.tk-0063@talakunchi.com	\N	9820010071	\N	\N	\N	Andheri (Western Line)	9811001207	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-02-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.359883+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f
-e96df572-92a2-4aa3-a3b4-6f52cfcb5293	TK-0011	Aditya	Roy	aditya.roy.tk-0011@talakunchi.com	\N	9820010012	\N	\N	\N	Andheri (Western Line)	9811000204	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	HR	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-11-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.770263+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77
-eba0b052-26bb-4216-ab6e-dff23c63bc57	TK-0022	Rahul	Mishra	rahul.mishra.tk-0022@talakunchi.com	\N	9820010025	\N	\N	\N	Andheri (Western Line)	9811000425	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	d8a2b9e5-f54d-4344-a78d-c6c840467543	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-07-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.910624+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa
-ee7b555a-4400-4c03-8fe5-60fd908c0e58	TK-0042	Arjun	Mathur	arjun.mathur.tk-0042@talakunchi.com	\N	9820010049	\N	\N	\N	Andheri (Western Line)	9811000833	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	3e60b693-d3dd-4481-95c4-9f02da21625c	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-10-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.141853+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishita Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c
-f01f614a-af85-4225-a3b4-3c463fb97bdf	TK-0003	Dev	Reddy	dev.reddy.tk-0003@talakunchi.com	\N	9820010003	\N	\N	\N	Andheri (Western Line)	9811000051	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	CTO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-05-09	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.662231+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sana Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-05-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Friend	\N	Leading Compliance & HR Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	61bbeadf-3044-4123-929c-4b1e6e2e613e
-f30d1ce8-8a1a-483d-ace2-419cd8672ecc	TK-0094	Manish	Bose	manish.bose.tk-0094@talakunchi.com	\N	9820010103	\N	\N	\N	Andheri (Western Line)	9811001751	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4b680e29-b4fb-4689-9afb-67a7f089f52b	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-31	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.704355+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Deshmukh	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798
-f8b1a855-954d-4f8b-aad7-be5502a7413a	TK-0053	Sneha	Choudhary	sneha.choudhary.tk-0053@talakunchi.com	\N	9820010061	\N	\N	\N	Andheri (Western Line)	9811001037	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.259434+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-f90e007c-90d9-440e-8f0a-a85395e49abe	TK-0047	Vikram	Roy	vikram.roy.tk-0047@talakunchi.com	\N	9820010055	\N	\N	\N	Andheri (Western Line)	9811000935	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	af8a1442-c5ee-409d-aa91-61c9dba852ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-02-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.200068+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-faa36d59-2e24-4a0e-851d-42900c200d3b	TK-0073	Rohan	Deshpande	rohan.deshpande.tk-0073@talakunchi.com	\N	9820010081	\N	\N	\N	Andheri (Western Line)	9811001377	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	ae255622-ddcc-45ea-a699-8ec416fe57ab	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-10-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.465301+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Varun Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9
-fb184814-7151-428d-87c3-f83814676aa5	TK-0065	Reyansh	Mathur	reyansh.mathur.tk-0065@talakunchi.com	\N	9820010073	\N	\N	\N	Andheri (Western Line)	9811001241	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-04-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.380982+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rohan Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755
-ffcdc44f-996b-4ef6-90e6-db858823a4c4	TK-0055	Aditya	Menon	aditya.menon@talakunchi.com	\N	9820010063	\N	\N	\N	Andheri (Western Line)	9811001071	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	SOC-Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Without Bond	\N	2021-08-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.278641+00	2026-10-22 07:41:45.955014+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Kavya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Sibling	\N	Services - Operations	Billable	\N	Long Term	\N	\N	Thane	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629
-13428d48-c81e-4720-adba-f8490f27e535	TK-0009	Vihaan	Saxena	vihaan.saxena.tk-0009@talakunchi.com	\N	9820010010	\N	\N	\N	Andheri (Western Line)	9811000170	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-24	Resigned	Resigned	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	1 days	\N	Resigned	Personal	BE (2020)	[]	["Certified Ethical Hacker (CEH)"]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.747702+00	2026-10-30 05:08:24.621416+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	00000000-0000-4000-8000-000000000004	2026-10-30 05:08:24.621416+00	\N	\N	\N	\N	Harsh Wardhan	ce28b4c5-a343-493b-9404-96c983768850	Yes	24	2020-09-24	BE	2020	NA	NA	Experienced	2 Years	2 Years	Father	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
-f39b20bb-8963-4917-aed5-0f1d86f0cbc3	TK-0007	Aarav	Roy	aarav.roy.tk-0007@talakunchi.com	\N	9820010007	\N	\N	\N	Andheri (Western Line)	9811000119	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	6e606c29-2ebf-4ab8-8006-aaedd5680009	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-08-09	Resigned	Resigned	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	10 days	\N	Resigned	BO	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.709153+00	2026-11-09 22:18:02.522381+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	2026-11-09 22:18:02.522381+00	\N	\N	\N	\N	Tanvi Gaikwad	ce28b4c5-a343-493b-9404-96c983768850	Yes	24	2020-08-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Spouse	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255
+COPY resource.tbl_employees ("Id", "EmployeeCode", "FirstName", "LastName", "WorkEmail", "PersonalEmail", "Phone", "AltPhone", "Gender", "DateOfBirth", "Address", "EmergencyContact", "MaritalStatus", "Nationality", "DepartmentId", "DesignationId", "Role", "ReportingManagerId", "BusinessUnit", "WorkLocation", "OfficeBranch", "Category", "Team", "JoiningDate", "Status", "ConfirmationStatus", "ProbationStatus", "Experience", "PreviousCompany", "EmploymentType", "ContractType", "BondStatus", "NoticePeriod", "AssetId", "ExitType", "ExitReason", "Education", "Skills", "Certifications", "Languages", "KpiScore", "QuarterlyKpi", "AnnualRating", "GoalCompletion", "Attendance", "ReportingEfficiency", "PromotionReadiness", "ManagerFeedback", "Pan", "BankAccount", "SalaryBand", "PfUan", "TaxRegime", "ComplianceStatus", "UserId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "NationalityId", "ProbationPeriod", "SalaryBandId", "Aadhaar", "EmergencyContactName", "EmployeeStatusId", "BondDelivered", "BondDurationMonths", "BondExpiryDate", "GradDegree", "GradYear", "PostGradDegree", "PostGradYear", "ExpType", "PriorTotalExp", "PriorRelevantExp", "EmergencyContactRelation", "PmoDepartment", "SubDepartment", "BillableStatus", "ClientLocation", "ProjectType", "ProjectAllocated", "ClientEngManagerMapping", "ProjectSite", "EngagementManagerEmployeeId", "ProjectManagerId", "SubDepartmentId", "OriginalRole") FROM stdin;
+4aba0077-4d88-4e0c-8d18-9152eea3fbf9	TK-0001	Vihaan	Pillai	vihaan.pillai.tk-0001@talakunchi.com	\N	9820010001	\N	\N	\N	Andheri (Western Line)	9811000017	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2026-10-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	92172235-83bb-41a1-a96e-60054a506818	2026-10-16 09:25:32.636311+00	2026-11-12 07:17:12.079393+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	Nikhil Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	PMO (Project Management Office)	Billable	\N	Long Term	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd	PMO
+62e81e6b-7247-4c3f-a8b8-db21e613d02a	TKI-0003	Aarav	Bose	aarav.bose.tki-0003@talakunchi.com	\N	9820010013	\N	\N	\N	Andheri (Western Line)	9811000221	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e8c22eff-0daf-4690-a537-c8b0b6110a01	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-09-17	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.782523+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kavya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
+049ac489-bbd3-4153-b933-aec7b7baec89	TK-0004	Admin	User	admin@talakunchi.com	\N	9820000004	\N	\N	\N	Andheri (Western Line)	\N	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	Admin	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Without Bond	\N	2018-06-01	Active	Active	Ongoing	0 (Relevant: 0)	\N	Permanent	\N	No bond	\N	\N	NA	NA	\N	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.5279+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	\N	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	\N	\N	NA	NA	Experienced	0	0	\N	\N	Functional - IT Administration	Billable	\N	Long Term	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3	Admin
+f8b1a855-954d-4f8b-aad7-be5502a7413a	TK-0053	Sneha	Choudhary	sneha.choudhary.tk-0053@talakunchi.com	\N	9820010061	\N	\N	\N	Andheri (Western Line)	9811001037	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.259434+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+f90e007c-90d9-440e-8f0a-a85395e49abe	TK-0047	Vikram	Roy	vikram.roy.tk-0047@talakunchi.com	\N	9820010055	\N	\N	\N	Andheri (Western Line)	9811000935	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	af8a1442-c5ee-409d-aa91-61c9dba852ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-02-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.200068+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+faa36d59-2e24-4a0e-851d-42900c200d3b	TK-0073	Rohan	Deshpande	rohan.deshpande.tk-0073@talakunchi.com	\N	9820010081	\N	\N	\N	Andheri (Western Line)	9811001377	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	ae255622-ddcc-45ea-a699-8ec416fe57ab	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-10-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.465301+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Varun Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9	Testing-Team Member
+fb184814-7151-428d-87c3-f83814676aa5	TK-0065	Reyansh	Mathur	reyansh.mathur.tk-0065@talakunchi.com	\N	9820010073	\N	\N	\N	Andheri (Western Line)	9811001241	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-04-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.380982+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rohan Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Leader
+ffcdc44f-996b-4ef6-90e6-db858823a4c4	TK-0055	Aditya	Menon	aditya.menon@talakunchi.com	\N	9820010063	\N	\N	\N	Andheri (Western Line)	9811001071	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	b5f39dd8-c305-489d-9f7d-9adfd010a134	SOC-Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Without Bond	\N	2021-08-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.278641+00	2026-10-22 07:41:45.955014+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Kavya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	2028-10-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Sibling	\N	Services - Operations	Billable	\N	Long Term	\N	\N	Thane	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Manager
+13428d48-c81e-4720-adba-f8490f27e535	TK-0009	Vihaan	Saxena	vihaan.saxena.tk-0009@talakunchi.com	\N	9820010010	\N	\N	\N	Andheri (Western Line)	9811000170	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	96efad7d-8b7f-4d7f-a862-c0a6bec3789f	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-24	Resigned	Resigned	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	1 days	\N	Resigned	Personal	BE (2020)	[]	["Certified Ethical Hacker (CEH)"]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.747702+00	2026-10-30 05:08:24.621416+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	00000000-0000-4000-8000-000000000004	2026-10-30 05:08:24.621416+00	\N	\N	\N	\N	Harsh Wardhan	ce28b4c5-a343-493b-9404-96c983768850	Yes	24	2020-09-24	BE	2020	NA	NA	Experienced	2 Years	2 Years	Father	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
+d17be428-1602-4e09-a164-c3c2666fad73	TK-0002	Neha	Pillai	neha.pillai.tk-0002@talakunchi.com	\N	9820010002	\N	\N	\N	Andheri (Western Line)	9811000034	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	ffed7aa1-e88f-4281-919f-8d49fbabf5a5	COO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-04-16	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.651331+00	2026-10-28 03:51:10.026204+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Vihaan Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-04-16	BE	2020	NA	NA	Experienced	2 Years	2 Years	Spouse	\N	Leading Delivery Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	45755b2a-741a-4990-ab78-8f65090f75b1	COO
+0a213b8b-1836-4660-9116-536fc9436639	TK-0040	Krishna	Saxena	krishna.saxena.tk-0040@talakunchi.com	\N	9820010046	\N	\N	\N	Andheri (Western Line)	9811000782	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	7c2380da-3ee6-46ad-93d6-a79ce3027f29	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.113491+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team member
+0a46bda6-6481-4bbe-8689-18fe959fa98a	TK-0060	Trisha	Pillai	trisha.pillai.tk-0060@talakunchi.com	\N	9820010068	\N	\N	\N	Andheri (Western Line)	9811001156	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-12-10	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.329721+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Leader
+159fb3d0-937c-4f81-ad37-aa1b4f023264	TK-0015	Rajesh	Sharma	rajesh.sharma.tk-0015@talakunchi.com	\N	9820010017	\N	\N	\N	Andheri (Western Line)	9811000289	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	e4e20503-cd55-4393-83fd-6c7e7d7d0a49	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-02-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.827405+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
+1fa56f20-56ce-4461-ac66-c7d7b34f16d6	TK-0088	Siddharth	Deshpande	siddharth.deshpande.tk-0088@talakunchi.com	\N	9820010097	\N	\N	\N	Andheri (Western Line)	9811001649	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-09-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.639521+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vikram Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Member
+940ec7cd-058d-4f8f-912f-08ae55bac01c	TK-0097	Manish	Mathur	manish.mathur.tk-0097@talakunchi.com	\N	9820010106	\N	\N	\N	Andheri (Western Line)	9811001802	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-04-09	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.736486+00	2026-10-16 09:54:37.284411+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.284411+00	\N	\N	\N	\N	Advait Deshmukh	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	\N	Testing-Team Member
+204776c8-efeb-480f-980b-a3f70be97f91	TK-0070	Divya	Deshmukh	divya.deshmukh.tk-0070@talakunchi.com	\N	9820010078	\N	\N	\N	Andheri (Western Line)	9811001326	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-07-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.43265+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Nidhi Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Manager
+2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	TK-0025	Vihaan	Mathur	vihaan.mathur.tk-0025@talakunchi.com	\N	9820010029	\N	\N	\N	Andheri (Western Line)	9811000493	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	c864b6d5-86c7-40c5-b3c4-27f7b42ebc0c	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-09-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.950815+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd	PMO
+238c3cb7-75cf-4478-a48e-fe47465d20b6	TK-0049	Ishita	Patel	ishita.patel.tk-0049@talakunchi.com	\N	9820010057	\N	\N	\N	Andheri (Western Line)	9811000969	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	6d25ff6d-e13d-440f-b775-215547af7acb	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-04-01	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.220166+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+246e0bb0-8a3b-4524-9d7b-3ac6d4ca7d8d	TK-0084	Manish	Malhotra	manish.malhotra.tk-0084@talakunchi.com	\N	9820010093	\N	\N	\N	Andheri (Western Line)	9811001581	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-06-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.596427+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Member
+26fd3209-693a-49d1-9224-8f7e2f3a1c58	TK-0067	Ishaan	Desai	ishaan.desai.tk-0067@talakunchi.com	\N	9820010075	\N	\N	\N	Andheri (Western Line)	9811001275	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-05-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.401399+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Leader
+2b245a46-a64c-440b-861d-24f712bd626e	TKI-0004	Kavya	Mathur	kavya.mathur.tki-0004@talakunchi.com	\N	9820010021	\N	\N	\N	Andheri (Western Line)	9811000357	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-10-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.870977+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3	IT Admin
+30913859-c8e8-4851-852f-28be97c74bb1	TK-0010	Sana	Pillai	sana.pillai.tk-0010@talakunchi.com	\N	9820010011	\N	\N	\N	Andheri (Western Line)	9811000187	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	1f97b442-95c5-4b11-93a0-ea146534ae85	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-10-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.759044+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Pallavi Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-10-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	BKC	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
+31057f6b-b1e5-46e3-a071-b6639b93a15c	TK-0051	Krishna	Bose	krishna.bose.tk-0051@talakunchi.com	\N	9820010059	\N	\N	\N	Andheri (Western Line)	9811001003	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	f20a7445-0b01-4f20-85a5-853101d864ee	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-05-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.239498+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kunal Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+315ae0c9-ecdf-48ba-a662-f93c21ef31d2	TK-0056	Varun	Pandey	varun.pandey.tk-0056@talakunchi.com	\N	9820010064	\N	\N	\N	Andheri (Western Line)	9811001088	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	SOC-Senior Manager	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-09-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.289299+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Senior Manager
+31e49978-ac22-44bb-a535-11d20d8aeea3	TK-0083	Rahul	Pillai	rahul.pillai.tk-0083@talakunchi.com	\N	9820010092	\N	\N	\N	Andheri (Western Line)	9811001564	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-05-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.585583+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Member
+3398777f-d384-48a2-8076-9c4fb06162bb	TK-0095	Karan	Joshi	karan.joshi.tk-0095@talakunchi.com	\N	9820010104	\N	\N	\N	Andheri (Western Line)	9811001768	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	8af28894-fd3e-4dea-a4f0-bcb62b0e4e13	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-02-23	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.715255+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Shaurya Pandey	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N	88b29e0c-39b7-4169-ab5c-350075014a84	Testing-Manager
+33e9644b-a618-47ed-b272-c078e19b36ef	TK-0080	Varun	Gaikwad	varun.gaikwad.tk-0080@talakunchi.com	\N	9820010089	\N	\N	\N	Andheri (Western Line)	9811001513	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-03-15	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.553584+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Member
+d94878fd-4650-46bc-b84c-753c841e7404	TK-0008	Nikhil	Saxena	nikhil.saxena.tk-0008@talakunchi.com	\N	9820010009	\N	\N	\N	Andheri (Western Line)	9811000153	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	eb1f4dba-0d12-42c1-9e97-317c2ae55f6f	SOC-Senior Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-09-01	Resigned	Resigned	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	60 days	\N	Resigned	BO	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.734742+00	2026-10-28 04:22:01.064952+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	\N	\N	\N	Rajesh Sharma	ce28b4c5-a343-493b-9404-96c983768850	Yes	24	2020-09-01	BE	2020	NA	NA	Experienced	2 Years	2 Years	Guardian	\N	Services - Operations	Billable	\N	Long Term	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Senior Manager
+13b14e34-f865-4c83-a6c0-3fdf7d196c1c	TK-0029	Reyansh	Sawant	reyansh.sawant.tk-0029@talakunchi.com	\N	9820010033	\N	\N	\N	Andheri (Western Line)	9811000561	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	b2b687ef-fd62-4cb7-a826-b40a35da7b2c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.988005+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales Manager
+3691f6bb-f0ca-4a5b-bdbb-a4c07624e803	TK-0087	Harsh	Gupta	harsh.gupta.tk-0087@talakunchi.com	\N	9820010096	\N	\N	\N	Andheri (Western Line)	9811001632	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-08-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.628906+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Member
+3a209908-397f-4c90-abf6-9fe52ab98b34	TK-0050	Vihaan	Wardhan	vihaan.wardhan.tk-0050@talakunchi.com	\N	9820010058	\N	\N	\N	Andheri (Western Line)	9811000986	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	48429bb5-c583-4684-b30a-7ed443b671ca	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-04-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.230016+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Meera Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+405610b0-c3bd-4725-a409-5f6dbffeacb4	TKI-0007	Arjun	Wardhan	arjun.wardhan.tki-0007@talakunchi.com	\N	9820010038	\N	\N	\N	Andheri (Western Line)	9811000646	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	bb7ccd5f-2f60-49fb-b984-f11fc47add22	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-12-18	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.03788+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Saxena	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131	R&D - Team member
+41708635-a60e-4fbd-a76b-91c0c23d18be	TK-0071	Advait	Gaikwad	advait.gaikwad.tk-0071@talakunchi.com	\N	9820010079	\N	\N	\N	Andheri (Western Line)	9811001343	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-08-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.443651+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Manager
+42583b6b-008c-45f6-b258-b08495712c7c	TK-0016	Harsh	Wardhan	harsh.wardhan.tk-0016@talakunchi.com	\N	9820010018	\N	\N	\N	Andheri (Western Line)	9811000306	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	c70b9832-841e-4864-9b85-eaba3c0a995f	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-03-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.838024+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kunal Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3	IT Admin
+450f16b6-e35c-4564-969d-6bf6ceec7ff3	TK-0082	Kabir	Sawant	kabir.sawant.tk-0082@talakunchi.com	\N	9820010091	\N	\N	\N	Andheri (Western Line)	9811001547	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-30	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.575322+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Member
+46e3d71d-ea02-474f-b668-f836d91e059d	TK-0062	Siddharth	Iyer	siddharth.iyer.tk-0062@talakunchi.com	\N	9820010070	\N	\N	\N	Andheri (Western Line)	9811001190	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-01-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.350043+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Divya Deshmukh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Leader
+4d8e2104-d723-45a0-856f-594f80efd0f6	TK-0064	Amit	Pillai	amit.pillai.tk-0064@talakunchi.com	\N	9820010072	\N	\N	\N	Andheri (Western Line)	9811001224	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-03-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.370485+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Leader
+51015348-f872-4e18-b806-e44017e10e4b	TK-0076	Dev	Roy	dev.roy.tk-0076@talakunchi.com	\N	9820010084	\N	\N	\N	Andheri (Western Line)	9811001428	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	c1fa4328-a970-48a1-bc08-d50fe36bf44c	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-12-13	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.497879+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9	Testing-Manager
+51df4d23-9202-43b7-9e29-4a14a838a242	TK-0038	Vihaan	Gaikwad	vihaan.gaikwad.tk-0038@talakunchi.com	\N	9820010044	\N	\N	\N	Andheri (Western Line)	9811000748	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2c66e6fc-c92b-4b43-bf13-0ad2bb5c058b	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-07-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.094147+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team member
+583e812b-e929-4e7c-9d76-33d3fc25cd7d	TK-0013	Tanvi	Gaikwad	tanvi.gaikwad.tk-0013@talakunchi.com	\N	9820010015	\N	\N	\N	Andheri (Western Line)	9811000255	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	c2e248c8-e917-445f-9f7b-1e25d7bb5abe	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-12-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.806235+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Anita Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
+218f30c7-87bd-4410-99fc-4d10da3e8014	TK-0043	Yash	Sharma	yash.sharma.tk-0043@talakunchi.com	\N	9820010050	\N	\N	\N	Andheri (Western Line)	9811000850	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2b1558e3-158a-4a84-ae80-053129861a64	Consulting-HOD	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-11-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.151497+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-HOD
+5e82125c-9ff8-4a97-a11b-65da79677d3c	TK-0074	Reyansh	Wardhan	reyansh.wardhan.tk-0074@talakunchi.com	\N	9820010082	\N	\N	\N	Andheri (Western Line)	9811001394	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	35a6b1af-dc78-4632-a9f4-eedabdbdcb52	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-10-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.476912+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Menon	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9	Testing-Team Member
+5bf6d5c7-4358-49f1-bb6b-9d0b1b38d4ad	TKI-0009	Priya	Mathur	priya.mathur.tki-0009@talakunchi.com	\N	9820010051	\N	\N	\N	Andheri (Western Line)	9811000867	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-02-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.161403+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+5f4b7ab9-bbfe-4196-9e6c-47f73efe7462	TK-0068	Atharv	Malhotra	atharv.malhotra.tk-0068@talakunchi.com	\N	9820010076	\N	\N	\N	Andheri (Western Line)	9811001292	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-06-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.411718+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Dev Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Leader
+5ff0346b-75b8-4c62-afc7-afeb35b17a8e	TK-0090	Siddharth	Bose	siddharth.bose.tk-0090@talakunchi.com	\N	9820010099	\N	\N	\N	Andheri (Western Line)	9811001683	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-10-31	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.662063+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aisha Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Member
+696f99d7-2380-443c-b90d-0e065642e1d4	TK-0019	Priya	Mishra	priya.mishra.tk-0019@talakunchi.com	\N	9820010022	\N	\N	\N	Andheri (Western Line)	9811000374	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	b3309eea-7374-4a8d-ac13-481b2a7fd492	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-05-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.881525+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd	PMO
+6a1ac61a-89d6-4951-8246-621d4e1b071f	TK-0066	Nikhil	Joshi	nikhil.joshi.tk-0066@talakunchi.com	\N	9820010074	\N	\N	\N	Andheri (Western Line)	9811001258	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	aaf4ca75-5fa5-4de2-8353-a5e93beecb56	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-04-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.39087+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Leader
+6b1f9737-c1f7-4201-8cd2-9b5e6274ebc8	TK-0086	Vihaan	Joshi	vihaan.joshi.tk-0086@talakunchi.com	\N	9820010095	\N	\N	\N	Andheri (Western Line)	9811001615	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	163d8c87-8f90-4295-a926-2e912c625a1c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-31	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.617282+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Member
+6b4e0847-6c40-471e-89ec-c5b63bb828f0	TK-0081	Arjun	Menon	arjun.menon.tk-0081@talakunchi.com	\N	9820010090	\N	\N	\N	Andheri (Western Line)	9811001530	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4f972924-350a-47fb-a6b6-f2b34bb6b621	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-04-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.563741+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Alok Deshpande	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Member
+6d26e662-1e9f-4df8-a353-6be5ce9e5261	TK-0085	Lakshmi	Kadam	lakshmi.kadam.tk-0085@talakunchi.com	\N	9820010094	\N	\N	\N	Andheri (Western Line)	9811001598	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0b6ab354-1fcf-4a00-9be3-e58e99c425ed	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-07-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.606837+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Member
+70e01a7d-fd0b-4e2a-b086-d059423ca380	TK-0014	Vihaan	Kadam	vihaan.kadam.tk-0014@talakunchi.com	\N	9820010016	\N	\N	\N	Andheri (Western Line)	9811000272	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	485012d4-2c28-4bc4-92c7-3609e3e3749e	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-01-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.816829+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
+74601727-6182-498f-ac57-4c02b9e56ca0	TK-0059	Kunal	Iyer	kunal.iyer.tk-0059@talakunchi.com	\N	9820010067	\N	\N	\N	Andheri (Western Line)	9811001139	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e2b4be77-2b20-4064-974d-e6322e7240b4	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-11-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.319145+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishaan Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Cloud & AI	\N	\N	\N	\N	\N	\N	\N	\N	88b29e0c-39b7-4169-ab5c-350075014a84	Testing-Team Member
+776f2cf7-c4cc-4299-b38f-afbcaff7703e	TK-0030	Omkar	Reddy	omkar.reddy.tk-0030@talakunchi.com	\N	9820010034	\N	\N	\N	Andheri (Western Line)	9811000578	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	157d001c-b056-45b1-96a3-3c05bcd8d99c	Sales Manager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-01-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.99725+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Amit Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales Manager
+777390a6-91b9-4d9e-806c-16e046568501	TK-0028	Krishna	Joshi	krishna.joshi.tk-0028@talakunchi.com	\N	9820010032	\N	\N	\N	Andheri (Western Line)	9811000544	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	7e7d954f-34b5-4c23-8c3f-698ec920e9e4	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-12-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.978927+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Suresh Desai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
+7e3f1c8d-340c-47d7-b63d-fb047a9106aa	TKI-0002	Aarav	Mathur	aarav.mathur.tki-0002@talakunchi.com	\N	9820010008	\N	\N	\N	Andheri (Western Line)	9811000136	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	caa227a1-2dcf-4195-ab9c-8f76d1862daa	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.722404+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Sibling	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
+78b71d74-d255-4ac0-a75f-ead11a61427a	TK-0035	Aarav	Desai	aarav.desai.tk-0035@talakunchi.com	\N	9820010041	\N	\N	\N	Andheri (Western Line)	9811000697	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	9ba2a2f7-e946-4e55-ad1c-135c6fd77e85	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-05-14	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.066207+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2022-05-14	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	R&D (Research & Development)	Billable	\N	Long Term	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131	R&D - Team member
+78c932da-077a-4104-919c-386de88ed062	TK-0058	Meera	Joshi	meera.joshi.tk-0058@talakunchi.com	\N	9820010066	\N	\N	\N	Andheri (Western Line)	9811001122	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	c0f974c3-f49c-449a-9276-aa64ce501344	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.309385+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Nikhil Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Leader
+7d2b2c7a-254e-4605-9f79-3f42ac7f9735	TK-0027	Reyansh	Chopra	reyansh.chopra.tk-0027@talakunchi.com	\N	9820010031	\N	\N	\N	Andheri (Western Line)	9811000527	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	272973a6-c052-4aef-bf32-9e24f7eb6cc9	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-11-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.969016+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Yash Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
+804c8187-6f28-411f-8fa5-cc9baceba3e7	TK-0031	Arjun	Joshi	arjun.joshi.tk-0031@talakunchi.com	\N	9820010035	\N	\N	\N	Andheri (Western Line)	9811000595	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	6193be76-40ad-4973-9ee7-246a4d8f4109	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-02-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.006223+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ira Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
+818ae1ea-5842-4adb-b475-ac12dba9fd2a	TK-0044	Vihaan	Bose	vihaan.bose.tk-0044@talakunchi.com	\N	9820010052	\N	\N	\N	Andheri (Western Line)	9811000884	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea804d3a-dbe3-4fb2-b120-7f0ab18d2d19	SOC-HOD	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-07	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.171436+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Anita Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-HOD
+86862bf8-c075-44ef-9f3e-f65d2cc1bb56	TK-0034	Suresh	Desai	suresh.desai.tk-0034@talakunchi.com	\N	9820010040	\N	\N	\N	Andheri (Western Line)	9811000680	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	3356f353-1566-4df6-9958-fa01d67d13c7	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-04-21	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.057075+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Mehra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131	R&D - Team member
+8bf95b5f-0a1b-4512-9fc4-0e0fd9a4503c	TK-0018	Harsh	Pandey	harsh.pandey.tk-0018@talakunchi.com	\N	9820010020	\N	\N	\N	Andheri (Western Line)	9811000340	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	da990f6e-3379-4cc4-89b7-0ead29da472b	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-04-19	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.859733+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Atharv Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3	IT Admin
+849d2fb1-a4e4-4eb2-947b-f97057e4954b	TK-0005	Dev	Bose	dev.bose.tk-0005@talakunchi.com	\N	9820010005	\N	\N	\N	Andheri (Western Line)	9811000085	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	155642eb-a633-4460-b658-aca9fde2d817	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-06-24	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	30 days	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.683541+00	2026-10-28 05:17:44.884439+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	Aarav Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Functional - Accounts	\N	\N	\N	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
+8e0616db-48af-4b73-807f-6e250dba2072	TK-0020	Anita	Pandey	anita.pandey.tk-0020@talakunchi.com	\N	9820010023	\N	\N	\N	Andheri (Western Line)	9811000391	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	2a76927c-461a-48e4-8190-dea7361ef3db	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-06-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.891741+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Chopra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd	PMO
+8f3346d4-6f76-4575-af6d-a69527694680	TK-0079	Deepak	Singh	deepak.singh.tk-0079@talakunchi.com	\N	9820010088	\N	\N	\N	Andheri (Western Line)	9811001496	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-02-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.541706+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Gupta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing Senior Manager
+900ed2a0-d8b3-439f-af86-7383cdebcd05	TK-0069	Ishaan	Pansare	ishaan.pansare.tk-0069@talakunchi.com	\N	9820010077	\N	\N	\N	Andheri (Western Line)	9811001309	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	3b7ea453-324e-40a0-bb41-77a0795d5af5	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-07-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.421674+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Simran Deshmukh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Manager
+9b7f4410-6577-4ab4-9363-e75b9d4208e9	TK-0054	Sana	Rao	sana.rao.tk-0054@talakunchi.com	\N	9820010062	\N	\N	\N	Andheri (Western Line)	9811001054	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	911f6d7f-8d43-40f2-897a-2f416abf8cf9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-07-25	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.26888+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Siddharth Iyer	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+9c4cf836-745e-4cf9-9a22-933d5e2638c3	TK-0091	Arjun	Sawant	arjun.sawant.tk-0091@talakunchi.com	\N	9820010100	\N	\N	\N	Andheri (Western Line)	9811001700	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-11-23	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.672237+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Karan Mehta	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	db0addff-605e-439f-917b-38016a398755	Testing-Team Member
+9d9bfa3a-8603-4de4-8eb7-76c3935e3014	TK-0012	Advait	Singh	advait.singh.tk-0012@talakunchi.com	\N	9820010014	\N	\N	\N	Andheri (Western Line)	9811000238	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	7d542941-65b9-499b-81b3-239748d6da52	HR	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-12-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.794393+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Priya Mishra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
+9eb64ade-203d-4e4a-aaed-8eaab7d3017d	TK-0033	Yash	Wardhan	yash.wardhan.tk-0033@talakunchi.com	\N	9820010039	\N	\N	\N	Andheri (Western Line)	9811000663	\N	\N	898c36e9-1cb7-4c56-9148-a3b6893c0149	f9a11aaf-470a-4eb6-b2b5-3ca3f730ca29	R&D - Team member	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-03-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.047613+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	R&D (Research & Development)	\N	\N	\N	\N	\N	\N	\N	\N	7682acb3-561b-4951-801b-c1564adda131	R&D - Team member
+9312226e-c7f8-4187-887e-67e2124098cd	TKI-0005	Kunal	Rao	kunal.rao.tki-0005@talakunchi.com	\N	9820010026	\N	\N	\N	Andheri (Western Line)	9811000442	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	9050e021-7d84-4401-820e-c0e768abb1ab	PM - Team Member	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-11-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.921408+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Omkar Reddy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Functional - Project Management	\N	\N	\N	\N	\N	\N	\N	\N	a73eb36c-7d62-4aa8-901d-1c70b3876b69	PM - Team Member
+9ec115c7-5377-4f9d-b46a-2a3c97bea4de	TKI-0008	Aarav	Reddy	aarav.reddy.tki-0008@talakunchi.com	\N	9820010047	\N	\N	\N	Andheri (Western Line)	9811000799	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	2076a9b1-e432-46a9-99b1-36e732159856	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-01-10	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.123207+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vikram Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Spouse	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team member
+9f646393-8fea-4b38-9f35-d88a6ab6787e	TK-0023	Aarav	Rao	aarav.rao.tk-0023@talakunchi.com	\N	9820010027	\N	\N	\N	Andheri (Western Line)	9811000459	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	8b57cfd5-5d4e-44a3-9646-b36873c111c2	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-08-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.931379+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa	EngagementManager
+8e139039-c490-436d-9af4-431d26334b34	TKI-0010	Simran	Deshmukh	simran.deshmukh.tki-0010@talakunchi.com	\N	9820010085	\N	\N	\N	Andheri (Western Line)	9811001445	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	47dbf38f-c022-47bc-8444-d0dfb35ff3fd	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2025-02-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.50859+00	2026-10-22 07:51:07.636567+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Malhotra	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Father	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	Testing-Team Member
+a73329ac-636f-475e-b566-321a5686fd66	TK-0017	Pallavi	Sawant	pallavi.sawant.tk-0017@talakunchi.com	\N	9820010019	\N	\N	\N	Andheri (Western Line)	9811000323	\N	\N	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	73bd55bb-5d0e-4381-8ad2-2238377fca93	IT Admin	049ac489-bbd3-4153-b933-aec7b7baec89	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-03-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.848874+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Functional - IT Administration	\N	\N	\N	\N	\N	\N	\N	\N	4dc4a56b-f458-4047-a1ca-345eaa08b5e3	IT Admin
+b9c0b8fc-4c96-42fb-8669-d68097cf5392	TK-0048	Aditi	Roy	aditi.roy.tk-0048@talakunchi.com	\N	9820010056	\N	\N	\N	Andheri (Western Line)	9811000952	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	e36018c5-bf48-4f93-bef7-93e8864a0b51	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-03-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.210593+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Varun Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Leader
+bbdc4c49-4262-4c1a-a270-1bfe3c550644	TK-0036	Amit	Wardhan	amit.wardhan.tk-0036@talakunchi.com	\N	9820010042	\N	\N	\N	Andheri (Western Line)	9811000714	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	195d6a81-8457-4b60-9382-6a3a0664f0e9	Consulting-Manager	f01f614a-af85-4225-a3b4-3c463fb97bdf	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-06-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.075353+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Yash Sharma	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Manager
+bbe8dd34-5945-4f0f-ab99-2cb2f7c99c95	TK-0061	Aditya	Pillai	aditya.pillai.tk-0061@talakunchi.com	\N	9820010069	\N	\N	\N	Andheri (Western Line)	9811001173	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e228c999-bf54-48b4-a373-d2bc9db88554	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-01-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.339329+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishaan Pansare	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing-Team Leader
+be9f417e-d40a-4c66-91e6-e7fde84b46d5	TK-0026	Krishna	Pandey	krishna.pandey.tk-0026@talakunchi.com	\N	9820010030	\N	\N	\N	Andheri (Western Line)	9811000510	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	138434a2-625f-4df5-836d-fcf0cfceef79	PMO	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-10-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.959922+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Arjun Wardhan	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	PMO (Project Management Office)	\N	\N	\N	\N	\N	\N	\N	\N	fd84aa38-11ef-46af-ade7-241f2a2c08fd	PMO
+bfb55863-c987-497b-9a1b-9a7bc56a9509	TK-0077	Nidhi	Bose	nidhi.bose.tk-0077@talakunchi.com	\N	9820010086	\N	\N	\N	Andheri (Western Line)	9811001462	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-01-05	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.519257+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Lakshmi Kadam	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing Senior Manager
+c5e35b7a-af12-4fd6-96af-e62225e715c6	TK-0041	Karan	Mehra	karan.mehra.tk-0041@talakunchi.com	\N	9820010048	\N	\N	\N	Andheri (Western Line)	9811000816	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	dcabe0b2-ab10-4c1a-abf7-873e8b5486ca	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-09-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.132457+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditi Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team Leader
+ca209d5b-e1e0-42bf-9dbe-47cf5ed5530c	TK-0092	Harsh	Joshi	harsh.joshi.tk-0092@talakunchi.com	\N	9820010101	\N	\N	\N	Andheri (Western Line)	9811001717	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	0a60fb48-99c4-44d0-8d97-ff687ccffc9f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-12-16	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.683278+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ira Reddy	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798	Testing-Team Member
+ca561f47-f73a-4401-8c6f-a1c776d88534	TK-0075	Vihaan	Iyer	vihaan.iyer.tk-0075@talakunchi.com	\N	9820010083	\N	\N	\N	Andheri (Western Line)	9811001411	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	767a00dd-6f09-4f64-a44e-8fbe901222af	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-11-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.48702+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Kabir Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9	Testing-Team Member
+cc295432-e771-4d6f-9cc3-079cc5d9b576	TK-0089	Alok	Deshpande	alok.deshpande.tk-0089@talakunchi.com	\N	9820010098	\N	\N	\N	Andheri (Western Line)	9811001666	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	9858c224-f97f-4ff8-908d-f46bd5e2243c	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-10-08	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.651136+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Manish Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Member
+cef36bf2-c4fb-4040-b3ab-d033190ad3b4	TK-0096	Vikram	Joshi	vikram.joshi.tk-0096@talakunchi.com	\N	9820010105	\N	\N	\N	Andheri (Western Line)	9811001785	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-03-17	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.725971+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Rahul Sharma	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Member
+d01c0ef5-731e-42de-b02a-7c996c545f15	TK-0045	Vivaan	Mathur	vivaan.mathur.tk-0045@talakunchi.com	\N	9820010053	\N	\N	\N	Andheri (Western Line)	9811000901	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	ea315f7d-d597-41b3-a999-4f3851bcd020	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-12-30	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.181143+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sneha Choudhary	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+d2010072-d612-48ab-9a8a-f137b87e6034	TK-0006	Amit	Deshmukh	amit.deshmukh.tk-0006@talakunchi.com	\N	9820010006	\N	\N	\N	Marine Lines (Western Line)	9811000102	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	8dc0d8fe-593d-422a-8b27-5b68fbe6d224	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Onsite	\N	Permanent - Bond	\N	2018-07-17	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.698357+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-07-17	BE	2020	NA	NA	Experienced	2 Years	2 Years	Mother	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	Pune	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
+d502bbdd-5186-490e-8f0a-5489d2737c6f	TKI-0001	Nikhil	Malhotra	nikhil.malhotra.tki-0001@talakunchi.com	\N	9820010004	\N	\N	\N	Andheri (Western Line)	9811000068	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	c0e1a001-0000-4000-8000-000000000001	Intern	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-08-02	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.672816+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aditya Roy	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Guardian	\N	Across all Sub Departments	\N	\N	\N	\N	\N	\N	\N	\N	63765624-d7d1-472d-abd4-627127646998	Intern
+d6ea9f00-bf1b-4aa0-815f-89fe43b1c249	TK-0093	Aarav	Patel	aarav.patel.tk-0093@talakunchi.com	\N	9820010102	\N	\N	\N	Andheri (Western Line)	9811001734	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	85cc9fbe-98a4-464d-a638-05f40529c6de	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-08	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.693648+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Neha Choudhary	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798	Testing-Team Member
+d73eac4c-d537-4d31-8e35-b55f8aff3e87	TK-0046	Arjun	Pillai	arjun.pillai.tk-0046@talakunchi.com	\N	9820010054	\N	\N	\N	Andheri (Western Line)	9811000918	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	4650d4e0-f73c-4688-ae5f-830a46348ff9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-01-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.190401+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sana Rao	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	TK-0021	Karan	Wardhan	karan.wardhan.tk-0021@talakunchi.com	\N	9820010024	\N	\N	\N	Andheri (Western Line)	9811000408	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	834c9e15-c70d-4a0b-bb12-5e55f23c181d	EngagementManager	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-06-27	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.901338+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Krishna Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa	EngagementManager
+d9fd54d6-b11b-4969-a25d-8b8e3fcca417	TK-0032	Amit	Sawant	amit.sawant.tk-0032@talakunchi.com	\N	9820010037	\N	\N	\N	Andheri (Western Line)	9811000629	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	e2c675a7-92dc-4477-be75-9a304cbe4def	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-03-06	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.027123+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Pooja Bose	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
+dd200677-337b-440b-afcb-3a661406f98b	TK-0078	Reyansh	Patel	reyansh.patel.tk-0078@talakunchi.com	\N	9820010087	\N	\N	\N	Andheri (Western Line)	9811001479	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	a697a798-caaf-4248-8e4e-7e89096a9c30	Testing Senior Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2023-01-28	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.531601+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	e99b7773-5d71-4dca-ad36-b896dcfb71c4	Testing Senior Manager
+df8f375a-d0b0-40c0-8ada-264fc2275f4f	TK-0057	Advait	Gupta	advait.gupta.tk-0057@talakunchi.com	\N	9820010065	\N	\N	\N	Andheri (Western Line)	9811001105	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	444df30d-c195-42ad-b9a7-d80cdef69ccd	SOC-Team Leader	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-10-02	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.299121+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Leader
+e09daabd-8da2-4dc9-89b4-03f4b79583de	TK-0072	Amit	Gaikwad	amit.gaikwad.tk-0072@talakunchi.com	\N	9820010080	\N	\N	\N	Andheri (Western Line)	9811001360	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	c6c6cd04-6df3-4593-b686-e4b9d362c96f	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-09-12	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.453799+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Deepak Singh	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Testing - DevSecOps	\N	\N	\N	\N	\N	\N	\N	\N	8bfa4c2a-cb0e-4bd0-b184-43d105be44b9	Testing-Team Leader
+e131815f-331f-46d7-81f8-5d2bed793630	TK-0037	Ira	Bose	ira.bose.tk-0037@talakunchi.com	\N	9820010043	\N	\N	\N	Andheri (Western Line)	9811000731	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	1e7faab8-273d-40df-9f9a-485160186c5a	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-06-29	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.084626+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Priya Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team member
+87fd3345-a756-44df-a3e7-5f21fa6e50d3	TK-0098	Aisha	Mathur	aisha.mathur.tk-0098@talakunchi.com	\N	9820010107	\N	\N	\N	Andheri (Western Line)	9811001819	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	632bf06c-f646-4edd-bf2d-e3cd2e034c7f	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-05-02	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.747534+00	2026-10-16 09:54:37.309719+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.309719+00	\N	\N	\N	\N	Divya Sawant	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	\N	Testing-Team Member
+02814af4-08b4-42cc-92e1-ad0bba687378	TK-0039	Pooja	Bose	pooja.bose.tk-0039@talakunchi.com	\N	9820010045	\N	\N	\N	Andheri (Western Line)	9811000765	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	8a655ba7-f9db-4de7-8de9-9fec72a2ed1d	Consulting-Team member	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-08-14	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.103381+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vivaan Mathur	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team member
+033446c7-c133-4395-bdaa-69b5f227a7a8	TK-0024	Atharv	Reddy	atharv.reddy.tk-0024@talakunchi.com	\N	9820010028	\N	\N	\N	Andheri (Western Line)	9811000476	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	9dc69952-eae6-4ec0-a327-67392315f089	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-09-04	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.940959+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ananya Joshi	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa	EngagementManager
+23bf310d-b789-4dcc-bb7e-576b373e72cf	TK-0099	Karan	Mehta	karan.mehta.tk-0099@talakunchi.com	\N	9820010108	\N	\N	\N	Andheri (Western Line)	9811001836	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-05-25	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.767705+00	2026-10-16 09:54:37.319639+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.319639+00	\N	\N	\N	\N	Kunal Desai	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	\N	Testing-Team Member
+089e3bae-d509-46db-906f-3085e0438c9c	TK-0100	Ira	Reddy	ira.reddy.tk-0100@talakunchi.com	\N	9820010109	\N	\N	\N	Andheri (Western Line)	9811001853	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-06-17	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.799186+00	2026-10-16 09:54:37.329732+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.329732+00	\N	\N	\N	\N	Vivaan Iyer	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Service - Testing - Infra	\N	\N	\N	\N	\N	\N	\N	\N	\N	Testing-Team Member
+b20f343b-e7fa-4310-9c43-ef10ca51ff6c	TK-0101	Neha	Choudhary	neha.choudhary.tk-0101@talakunchi.com	\N	9820010110	\N	\N	\N	Andheri (Western Line)	9811001870	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	Testing-Team Member	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-07-10	Terminated	Terminated	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	Yes	\N	Resign	Better opportunity	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.811056+00	2026-10-16 09:54:37.338979+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	049ac489-bbd3-4153-b933-aec7b7baec89	2026-10-16 09:54:37.338979+00	\N	\N	\N	\N	Kavya Deshpande	a0b5f4d8-fb43-4df7-a98d-0e2454a0907b	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Service - Testing - Mobile	\N	\N	\N	\N	\N	\N	\N	\N	\N	Testing-Team Member
+d29c4919-9e2d-46c1-a78f-ffd2d4d32365	TK-0052	Anita	Iyer	anita.iyer.tk-0052@talakunchi.com	\N	9820010060	\N	\N	\N	Andheri (Western Line)	9811001020	\N	\N	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	0c1a5ef4-7fca-45dc-8253-87afa21a1df9	SOC-Team Member	818ae1ea-5842-4adb-b475-ac12dba9fd2a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2021-06-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.249213+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Trisha Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	Services - Operations	\N	\N	\N	\N	\N	\N	\N	\N	cfdb2071-d50e-4ea3-b732-19eb08f1e629	SOC-Team Member
+f19ea8a8-4d2f-48f9-832e-311f80e49f11	TKI-0006	Ananya	Joshi	ananya.joshi.tki-0006@talakunchi.com	\N	9820010036	\N	\N	\N	Andheri (Western Line)	9811000612	\N	\N	13c91c98-00ae-4211-acb8-d06e35953806	e2b10def-c91d-45da-94c5-f5530e743aa2	Sales team member	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Intern - Paid	\N	2024-11-25	Active	Active	Completed	Fresher	\N	Intern	\N	No bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.016241+00	2026-10-21 09:53:00.683803+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Vihaan Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	No	0	\N	BE	2020	NA	NA	Fresher	0	0	Mother	\N	Functional - Sales	\N	\N	\N	\N	\N	\N	\N	\N	fa773eb9-162f-4ea8-9fc4-9c54a3068582	Sales team member
+e93a25e9-5347-49e1-b901-88271fdbdcf5	TK-0063	Kavya	Roy	kavya.roy.tk-0063@talakunchi.com	\N	9820010071	\N	\N	\N	Andheri (Western Line)	9811001207	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	168d11d7-ca26-4d61-b870-51779dc63023	Testing-Team Leader	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2022-02-17	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.359883+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Advait Gaikwad	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Mother	\N	Service - Testing - AppSec	\N	\N	\N	\N	\N	\N	\N	\N	682d36c0-4256-42ab-811e-054ab3a5b10f	Testing-Team Leader
+e96df572-92a2-4aa3-a3b4-6f52cfcb5293	TK-0011	Aditya	Roy	aditya.roy.tk-0011@talakunchi.com	\N	9820010012	\N	\N	\N	Andheri (Western Line)	9811000204	\N	\N	310a2f16-15f6-4b82-95f6-ab18b5b429f5	8fdfba5d-e947-47b6-aa25-23d9a6dc49ed	HR	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-11-09	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.770263+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Harsh Pandey	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Spouse	\N	Functional - HR	\N	\N	\N	\N	\N	\N	\N	\N	c88d783b-b628-4f3a-a972-aa56aeed5e77	HR
+eba0b052-26bb-4216-ab6e-dff23c63bc57	TK-0022	Rahul	Mishra	rahul.mishra.tk-0022@talakunchi.com	\N	9820010025	\N	\N	\N	Andheri (Western Line)	9811000425	\N	\N	8e4e88f1-e294-4554-80cc-92ed6169caeb	d8a2b9e5-f54d-4344-a78d-c6c840467543	EngagementManager	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2019-07-20	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.910624+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Reyansh Sawant	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Father	\N	EM (Engagement Manager)	\N	\N	\N	\N	\N	\N	\N	\N	63bc0f54-4d35-4279-bb62-4daeff6ceeaa	EngagementManager
+ee7b555a-4400-4c03-8fe5-60fd908c0e58	TK-0042	Arjun	Mathur	arjun.mathur.tk-0042@talakunchi.com	\N	9820010049	\N	\N	\N	Andheri (Western Line)	9811000833	\N	\N	be8e036d-ad13-4c79-89ec-294e490a6816	3e60b693-d3dd-4481-95c4-9f02da21625c	Consulting-Team Leader	bbdc4c49-4262-4c1a-a270-1bfe3c550644	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2020-10-22	Active	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.141853+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Ishita Patel	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Guardian	\N	Services - Consulting	\N	\N	\N	\N	\N	\N	\N	\N	748e93ce-e6cc-4a4f-bbc9-a769ce654c9c	Consulting-Team Leader
+f01f614a-af85-4225-a3b4-3c463fb97bdf	TK-0003	Dev	Reddy	dev.reddy.tk-0003@talakunchi.com	\N	9820010003	\N	\N	\N	Andheri (Western Line)	9811000051	\N	\N	6a6bb234-1e03-41e8-a4e7-b0e77c8e442e	0525d830-ead9-44a0-871f-91b7845fec26	CTO	\N	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-05-09	Active	Active	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	\N	\N	NA	NA	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.662231+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Sana Pillai	e273e2ed-5fd3-4564-bb87-09a71cd4779a	Yes	24	2020-05-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Friend	\N	Leading Compliance & HR Department	Billable	\N	Long Term	\N	\N	\N	\N	\N	61bbeadf-3044-4123-929c-4b1e6e2e613e	CTO
+f30d1ce8-8a1a-483d-ace2-419cd8672ecc	TK-0094	Manish	Bose	manish.bose.tk-0094@talakunchi.com	\N	9820010103	\N	\N	\N	Andheri (Western Line)	9811001751	\N	\N	0aed67b8-c454-439a-a07f-4f46d46d58af	4b680e29-b4fb-4689-9afb-67a7f089f52b	Testing-Manager	0a46bda6-6481-4bbe-8689-18fe959fa98a	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2024-01-31	Resignation Under Review	Active	Completed	2 yrs 0 mos (Relevant: 2 yrs 0 mos)	\N	Permanent	\N	In bond	In progress	\N	Resign	Personal reasons	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:33.704355+00	2026-10-20 18:31:50.195919+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	\N	\N	\N	\N	\N	\N	Aarav Deshmukh	beee234f-c734-4d09-a0bb-96a6cc523cc3	Yes	24	2028-10-16	BE	2020	NA	NA	Experienced	2 yrs 0 mos	2 yrs 0 mos	Sibling	\N	Services - Testing - Red Team	\N	\N	\N	\N	\N	\N	\N	\N	b651aec8-5455-4329-8251-0ceb62cea798	Testing-Manager
+f39b20bb-8963-4917-aed5-0f1d86f0cbc3	TK-0007	Aarav	Roy	aarav.roy.tk-0007@talakunchi.com	\N	9820010007	\N	\N	\N	Andheri (Western Line)	9811000119	\N	\N	bcbd68c8-c3f3-4396-abb0-0b0e13637958	6e606c29-2ebf-4ab8-8006-aaedd5680009	Accounts	d17be428-1602-4e09-a164-c3c2666fad73	Talakunchi Networks Private Limited	Suvidha Square, Andheri	\N	Permanent - Bond	\N	2018-08-09	Resigned	Resigned	Completed	2 Years (Relevant: 2 Years)	\N	Permanent	\N	Expired	10 days	\N	Resigned	BO	BE (2020)	[]	[]	[]	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2026-10-16 09:25:32.709153+00	2026-11-09 22:18:02.522381+00	cc9bf92a-b923-8364-be83-4bb68db79cd2	cc9bf92a-b923-8364-be83-4bb68db79cd2	2026-11-09 22:18:02.522381+00	\N	\N	\N	\N	Tanvi Gaikwad	ce28b4c5-a343-493b-9404-96c983768850	Yes	24	2020-08-09	BE	2020	NA	NA	Experienced	2 Years	2 Years	Spouse	\N	Functional - Accounts	Billable	\N	Long Term	\N	\N	\N	\N	\N	5d962383-f175-4dd8-af63-8a566a0d2255	Accounts
 \.
 
 
 --
--- Data for Name: tbl_exited_employees; Type: TABLE DATA; Schema: resource; Owner: -
+-- Data for Name: tbl_exited_employees; Type: TABLE DATA; Schema: resource; Owner: postgres
 --
 
 COPY resource.tbl_exited_employees ("Id", "OriginalEmployeeId", "EmployeeCode", "FullName", "DepartmentName", "DesignationName", "WorkEmail", "PersonalEmail", "Phone", "StatusAtExit", "ExitType", "ExitReason", "ResignationDate", "LastWorkingDay", "ReasonForLeaving", "NoticePeriodServed", "ExitChecklistJson", "AssetReturnJson", "FinalSettlementJson", "ExitedAtUtc", "ExitedBy", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc", "ClearanceCompleted", "ExitRating") FROM stdin;
@@ -6041,7 +6676,7 @@ c20c8e05-fb90-4d01-8e12-e22e582baae7	f39b20bb-8963-4917-aed5-0f1d86f0cbc3	TK-000
 
 
 --
--- Data for Name: tbl_onfloorrole; Type: TABLE DATA; Schema: resource; Owner: -
+-- Data for Name: tbl_onfloorrole; Type: TABLE DATA; Schema: resource; Owner: postgres
 --
 
 COPY resource.tbl_onfloorrole ("Id", "Name", "DepartmentId", "DesignationId", "SubDepartment", "RbacRoleId", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -6137,7 +6772,7 @@ ec4a89e1-35a6-495a-83c9-b6a34ee00402	Team Member	f7e882f6-2fa8-45e1-9137-2bc4b70
 
 
 --
--- Data for Name: tbl_team_day_entries; Type: TABLE DATA; Schema: timesheet; Owner: -
+-- Data for Name: tbl_team_day_entries; Type: TABLE DATA; Schema: timesheet; Owner: postgres
 --
 
 COPY timesheet.tbl_team_day_entries ("Id", "EmployeeId", "WorkDate", "Attendance", "Shift", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -6153,7 +6788,7 @@ b7fb0002-0eea-48c1-865e-2575b6a8fefb	1fa56f20-56ce-4461-ac66-c7d7b34f16d6	2026-1
 
 
 --
--- Data for Name: tbl_team_member_holidays; Type: TABLE DATA; Schema: timesheet; Owner: -
+-- Data for Name: tbl_team_member_holidays; Type: TABLE DATA; Schema: timesheet; Owner: postgres
 --
 
 COPY timesheet.tbl_team_member_holidays ("Id", "EmployeeId", "HolidayDate", "Name", "Comment", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -6162,7 +6797,7 @@ COPY timesheet.tbl_team_member_holidays ("Id", "EmployeeId", "HolidayDate", "Nam
 
 
 --
--- Data for Name: tbl_team_member_schedules; Type: TABLE DATA; Schema: timesheet; Owner: -
+-- Data for Name: tbl_team_member_schedules; Type: TABLE DATA; Schema: timesheet; Owner: postgres
 --
 
 COPY timesheet.tbl_team_member_schedules ("Id", "EmployeeId", "WorkingDays", "Notes", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -6171,7 +6806,7 @@ a8ccc320-a79f-4ff3-9ebb-fb3e0d6b5c2e	1fa56f20-56ce-4461-ac66-c7d7b34f16d6	{1,2,3
 
 
 --
--- Data for Name: tbl_timesheet_entries; Type: TABLE DATA; Schema: timesheet; Owner: -
+-- Data for Name: tbl_timesheet_entries; Type: TABLE DATA; Schema: timesheet; Owner: postgres
 --
 
 COPY timesheet.tbl_timesheet_entries ("Id", "TimesheetWeekId", "ProjectKey", "TaskKey", "ProjectName", "TaskName", "ReviewDecision", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -7593,7 +8228,7 @@ de0699c0-55b6-4169-a00f-cae778531295	355dc5a0-a55a-4c87-a042-01ba59b5a35b	SEED-O
 
 
 --
--- Data for Name: tbl_timesheet_entry_days; Type: TABLE DATA; Schema: timesheet; Owner: -
+-- Data for Name: tbl_timesheet_entry_days; Type: TABLE DATA; Schema: timesheet; Owner: postgres
 --
 
 COPY timesheet.tbl_timesheet_entry_days ("Id", "TimesheetEntryId", "DayIndex", "Hours", "Comment", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -12057,7 +12692,7 @@ ee90cbd5-6337-4502-b472-df0d15333f4f	142fd9ff-d7b7-4c80-9215-c934d9338c00	4	6.0	
 
 
 --
--- Data for Name: tbl_timesheets; Type: TABLE DATA; Schema: timesheet; Owner: -
+-- Data for Name: tbl_timesheets; Type: TABLE DATA; Schema: timesheet; Owner: postgres
 --
 
 COPY timesheet.tbl_timesheets ("Id", "EmployeeId", "WeekStart", "Status", "TotalHours", "SubmittedAtUtc", "ReviewedByEmployeeId", "ReviewedAtUtc", "ReviewComment", "CreatedAtUtc", "UpdatedAtUtc", "CreatedBy", "UpdatedBy", "DeletedAtUtc") FROM stdin;
@@ -13478,7 +14113,7 @@ dc614759-d904-4097-8889-8008d39a355d	f39b20bb-8963-4917-aed5-0f1d86f0cbc3	2026-1
 
 
 --
--- Name: tbl_bucket_tasks PK_tbl_bucket_tasks; Type: CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_bucket_tasks PK_tbl_bucket_tasks; Type: CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_bucket_tasks
@@ -13486,7 +14121,7 @@ ALTER TABLE ONLY action.tbl_bucket_tasks
 
 
 --
--- Name: tbl_notifications pk_tbl_notifications; Type: CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_notifications pk_tbl_notifications; Type: CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_notifications
@@ -13494,7 +14129,7 @@ ALTER TABLE ONLY action.tbl_notifications
 
 
 --
--- Name: log_role_permission_audits PK_log_role_permission_audits; Type: CONSTRAINT; Schema: auth; Owner: -
+-- Name: log_role_permission_audits PK_log_role_permission_audits; Type: CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.log_role_permission_audits
@@ -13502,7 +14137,7 @@ ALTER TABLE ONLY auth.log_role_permission_audits
 
 
 --
--- Name: tbl_refresh_tokens PK_tbl_refresh_tokens; Type: CONSTRAINT; Schema: auth; Owner: -
+-- Name: tbl_refresh_tokens PK_tbl_refresh_tokens; Type: CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.tbl_refresh_tokens
@@ -13510,7 +14145,7 @@ ALTER TABLE ONLY auth.tbl_refresh_tokens
 
 
 --
--- Name: tbl_roles PK_tbl_roles; Type: CONSTRAINT; Schema: auth; Owner: -
+-- Name: tbl_roles PK_tbl_roles; Type: CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.tbl_roles
@@ -13518,7 +14153,7 @@ ALTER TABLE ONLY auth.tbl_roles
 
 
 --
--- Name: tbl_users PK_tbl_users; Type: CONSTRAINT; Schema: auth; Owner: -
+-- Name: tbl_users PK_tbl_users; Type: CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.tbl_users
@@ -13526,7 +14161,7 @@ ALTER TABLE ONLY auth.tbl_users
 
 
 --
--- Name: tbl_role_permissions UQ_role_item_permissions; Type: CONSTRAINT; Schema: auth; Owner: -
+-- Name: tbl_role_permissions UQ_role_item_permissions; Type: CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.tbl_role_permissions
@@ -13534,7 +14169,7 @@ ALTER TABLE ONLY auth.tbl_role_permissions
 
 
 --
--- Name: tbl_role_permissions tbl_role_permissions_pkey; Type: CONSTRAINT; Schema: auth; Owner: -
+-- Name: tbl_role_permissions tbl_role_permissions_pkey; Type: CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.tbl_role_permissions
@@ -13542,7 +14177,7 @@ ALTER TABLE ONLY auth.tbl_role_permissions
 
 
 --
--- Name: tbl_client_assignments PK_tbl_client_assignments; Type: CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_client_assignments PK_tbl_client_assignments; Type: CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_client_assignments
@@ -13550,7 +14185,7 @@ ALTER TABLE ONLY customer.tbl_client_assignments
 
 
 --
--- Name: tbl_client_contacts PK_tbl_client_contacts; Type: CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_client_contacts PK_tbl_client_contacts; Type: CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_client_contacts
@@ -13558,7 +14193,7 @@ ALTER TABLE ONLY customer.tbl_client_contacts
 
 
 --
--- Name: tbl_clients PK_tbl_clients; Type: CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_clients PK_tbl_clients; Type: CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_clients
@@ -13566,7 +14201,7 @@ ALTER TABLE ONLY customer.tbl_clients
 
 
 --
--- Name: tbl_sub_ventures PK_tbl_sub_ventures; Type: CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_sub_ventures PK_tbl_sub_ventures; Type: CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_sub_ventures
@@ -13574,7 +14209,7 @@ ALTER TABLE ONLY customer.tbl_sub_ventures
 
 
 --
--- Name: mst_address_cities PK_mst_address_cities; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_address_cities PK_mst_address_cities; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_address_cities
@@ -13582,7 +14217,7 @@ ALTER TABLE ONLY master.mst_address_cities
 
 
 --
--- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_cities PK_mst_cities; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_cities
@@ -13590,7 +14225,7 @@ ALTER TABLE ONLY master.mst_cities
 
 
 --
--- Name: mst_contact_designations PK_mst_contact_designations; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_contact_designations PK_mst_contact_designations; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_contact_designations
@@ -13598,7 +14233,7 @@ ALTER TABLE ONLY master.mst_contact_designations
 
 
 --
--- Name: mst_contact_types PK_mst_contact_types; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_contact_types PK_mst_contact_types; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_contact_types
@@ -13606,7 +14241,7 @@ ALTER TABLE ONLY master.mst_contact_types
 
 
 --
--- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_countries PK_mst_countries; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_countries
@@ -13614,7 +14249,7 @@ ALTER TABLE ONLY master.mst_countries
 
 
 --
--- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_departments PK_mst_departments; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_departments
@@ -13622,7 +14257,7 @@ ALTER TABLE ONLY master.mst_departments
 
 
 --
--- Name: mst_designation_sub_departments PK_mst_designation_sub_departments; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_designation_sub_departments PK_mst_designation_sub_departments; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_designation_sub_departments
@@ -13630,7 +14265,7 @@ ALTER TABLE ONLY master.mst_designation_sub_departments
 
 
 --
--- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_designations PK_mst_designations; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_designations
@@ -13638,7 +14273,7 @@ ALTER TABLE ONLY master.mst_designations
 
 
 --
--- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_industries PK_mst_industries; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_industries
@@ -13646,7 +14281,7 @@ ALTER TABLE ONLY master.mst_industries
 
 
 --
--- Name: mst_modules PK_mst_modules; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_modules PK_mst_modules; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_modules
@@ -13654,7 +14289,7 @@ ALTER TABLE ONLY master.mst_modules
 
 
 --
--- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_nationalities PK_mst_nationalities; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_nationalities
@@ -13662,7 +14297,7 @@ ALTER TABLE ONLY master.mst_nationalities
 
 
 --
--- Name: mst_onfloorrole_sub_departments PK_mst_onfloorrole_sub_departments; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_onfloorrole_sub_departments PK_mst_onfloorrole_sub_departments; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_onfloorrole_sub_departments
@@ -13670,7 +14305,7 @@ ALTER TABLE ONLY master.mst_onfloorrole_sub_departments
 
 
 --
--- Name: mst_org_role_map PK_mst_org_role_map; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_map PK_mst_org_role_map; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_org_role_map
@@ -13678,7 +14313,7 @@ ALTER TABLE ONLY master.mst_org_role_map
 
 
 --
--- Name: mst_org_role_sub_departments PK_mst_org_role_sub_departments; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_sub_departments PK_mst_org_role_sub_departments; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_org_role_sub_departments
@@ -13686,7 +14321,7 @@ ALTER TABLE ONLY master.mst_org_role_sub_departments
 
 
 --
--- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_salary_bands PK_mst_salary_bands; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_salary_bands
@@ -13694,7 +14329,7 @@ ALTER TABLE ONLY master.mst_salary_bands
 
 
 --
--- Name: mst_service_catalog PK_mst_service_catalog; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_service_catalog PK_mst_service_catalog; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_service_catalog
@@ -13702,7 +14337,7 @@ ALTER TABLE ONLY master.mst_service_catalog
 
 
 --
--- Name: mst_service_departments PK_mst_service_departments; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_service_departments PK_mst_service_departments; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_service_departments
@@ -13710,7 +14345,7 @@ ALTER TABLE ONLY master.mst_service_departments
 
 
 --
--- Name: mst_service_groups PK_mst_service_groups; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_service_groups PK_mst_service_groups; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_service_groups
@@ -13718,7 +14353,7 @@ ALTER TABLE ONLY master.mst_service_groups
 
 
 --
--- Name: mst_service_sub_departments PK_mst_service_sub_departments; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_service_sub_departments PK_mst_service_sub_departments; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_service_sub_departments
@@ -13726,7 +14361,7 @@ ALTER TABLE ONLY master.mst_service_sub_departments
 
 
 --
--- Name: mst_sub_departments PK_mst_sub_departments; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_sub_departments PK_mst_sub_departments; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_sub_departments
@@ -13734,7 +14369,7 @@ ALTER TABLE ONLY master.mst_sub_departments
 
 
 --
--- Name: mst_submodules PK_mst_submodules; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_submodules PK_mst_submodules; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_submodules
@@ -13742,7 +14377,7 @@ ALTER TABLE ONLY master.mst_submodules
 
 
 --
--- Name: mst_tabs PK_mst_tabs; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_tabs PK_mst_tabs; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_tabs
@@ -13750,7 +14385,7 @@ ALTER TABLE ONLY master.mst_tabs
 
 
 --
--- Name: mst_widgets PK_mst_widgets; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_widgets PK_mst_widgets; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_widgets
@@ -13758,7 +14393,7 @@ ALTER TABLE ONLY master.mst_widgets
 
 
 --
--- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_business_units mst_business_units_Code_key; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_business_units
@@ -13766,7 +14401,7 @@ ALTER TABLE ONLY master.mst_business_units
 
 
 --
--- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_business_units mst_business_units_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_business_units
@@ -13774,7 +14409,7 @@ ALTER TABLE ONLY master.mst_business_units
 
 
 --
--- Name: mst_certifications mst_certifications_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_certifications mst_certifications_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_certifications
@@ -13782,7 +14417,7 @@ ALTER TABLE ONLY master.mst_certifications
 
 
 --
--- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_email_domains mst_email_domains_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_email_domains
@@ -13790,7 +14425,7 @@ ALTER TABLE ONLY master.mst_email_domains
 
 
 --
--- Name: mst_employee_statuses mst_employee_statuses_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_employee_statuses mst_employee_statuses_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_employee_statuses
@@ -13798,7 +14433,7 @@ ALTER TABLE ONLY master.mst_employee_statuses
 
 
 --
--- Name: mst_graduation_degrees mst_graduation_degrees_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_graduation_degrees mst_graduation_degrees_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_graduation_degrees
@@ -13806,7 +14441,7 @@ ALTER TABLE ONLY master.mst_graduation_degrees
 
 
 --
--- Name: mst_leave_calendar mst_leave_calendar_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_leave_calendar mst_leave_calendar_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_leave_calendar
@@ -13814,7 +14449,7 @@ ALTER TABLE ONLY master.mst_leave_calendar
 
 
 --
--- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_offices mst_offices_Code_key; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_offices
@@ -13822,7 +14457,7 @@ ALTER TABLE ONLY master.mst_offices
 
 
 --
--- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_offices mst_offices_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_offices
@@ -13830,7 +14465,7 @@ ALTER TABLE ONLY master.mst_offices
 
 
 --
--- Name: mst_post_graduation_degrees mst_post_graduation_degrees_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_post_graduation_degrees mst_post_graduation_degrees_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_post_graduation_degrees
@@ -13838,7 +14473,7 @@ ALTER TABLE ONLY master.mst_post_graduation_degrees
 
 
 --
--- Name: mst_rbac_baseline mst_rbac_baseline_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_rbac_baseline mst_rbac_baseline_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_rbac_baseline
@@ -13846,7 +14481,7 @@ ALTER TABLE ONLY master.mst_rbac_baseline
 
 
 --
--- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_reporting_managers mst_reporting_managers_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_reporting_managers
@@ -13854,7 +14489,7 @@ ALTER TABLE ONLY master.mst_reporting_managers
 
 
 --
--- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_work_locations mst_work_locations_Code_key; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_work_locations
@@ -13862,7 +14497,7 @@ ALTER TABLE ONLY master.mst_work_locations
 
 
 --
--- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_work_locations mst_work_locations_pkey; Type: CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_work_locations
@@ -13870,7 +14505,7 @@ ALTER TABLE ONLY master.mst_work_locations
 
 
 --
--- Name: log_project_task_assignments PK_log_project_task_assignments; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: log_project_task_assignments PK_log_project_task_assignments; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.log_project_task_assignments
@@ -13878,7 +14513,7 @@ ALTER TABLE ONLY project.log_project_task_assignments
 
 
 --
--- Name: tbl_project_alerts PK_tbl_project_alerts; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_alerts PK_tbl_project_alerts; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_alerts
@@ -13886,7 +14521,7 @@ ALTER TABLE ONLY project.tbl_project_alerts
 
 
 --
--- Name: tbl_project_documents PK_tbl_project_documents; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_documents PK_tbl_project_documents; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_documents
@@ -13894,7 +14529,7 @@ ALTER TABLE ONLY project.tbl_project_documents
 
 
 --
--- Name: tbl_project_drafts PK_tbl_project_drafts; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_drafts PK_tbl_project_drafts; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_drafts
@@ -13902,7 +14537,7 @@ ALTER TABLE ONLY project.tbl_project_drafts
 
 
 --
--- Name: tbl_project_extension_approvers PK_tbl_project_extension_approvers; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_extension_approvers PK_tbl_project_extension_approvers; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_extension_approvers
@@ -13910,7 +14545,7 @@ ALTER TABLE ONLY project.tbl_project_extension_approvers
 
 
 --
--- Name: tbl_project_extension_requests PK_tbl_project_extension_requests; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_extension_requests PK_tbl_project_extension_requests; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_extension_requests
@@ -13918,7 +14553,7 @@ ALTER TABLE ONLY project.tbl_project_extension_requests
 
 
 --
--- Name: tbl_project_interviews PK_tbl_project_interviews; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_interviews PK_tbl_project_interviews; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_interviews
@@ -13926,7 +14561,7 @@ ALTER TABLE ONLY project.tbl_project_interviews
 
 
 --
--- Name: tbl_project_invoices PK_tbl_project_invoices; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_invoices PK_tbl_project_invoices; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_invoices
@@ -13934,7 +14569,7 @@ ALTER TABLE ONLY project.tbl_project_invoices
 
 
 --
--- Name: tbl_project_issues PK_tbl_project_issues; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_issues PK_tbl_project_issues; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_issues
@@ -13942,7 +14577,7 @@ ALTER TABLE ONLY project.tbl_project_issues
 
 
 --
--- Name: tbl_project_service_escalation_stakeholders PK_tbl_project_service_escalation_stakeholders; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_service_escalation_stakeholders PK_tbl_project_service_escalation_stakeholders; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_service_escalation_stakeholders
@@ -13950,7 +14585,7 @@ ALTER TABLE ONLY project.tbl_project_service_escalation_stakeholders
 
 
 --
--- Name: tbl_project_service_escalations PK_tbl_project_service_escalations; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_service_escalations PK_tbl_project_service_escalations; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_service_escalations
@@ -13958,7 +14593,7 @@ ALTER TABLE ONLY project.tbl_project_service_escalations
 
 
 --
--- Name: tbl_project_services PK_tbl_project_services; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_services PK_tbl_project_services; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_services
@@ -13966,7 +14601,7 @@ ALTER TABLE ONLY project.tbl_project_services
 
 
 --
--- Name: tbl_project_task_assignments PK_tbl_project_task_assignments; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_task_assignments PK_tbl_project_task_assignments; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_task_assignments
@@ -13974,7 +14609,7 @@ ALTER TABLE ONLY project.tbl_project_task_assignments
 
 
 --
--- Name: tbl_project_tasks PK_tbl_project_tasks; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_tasks PK_tbl_project_tasks; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_tasks
@@ -13982,7 +14617,7 @@ ALTER TABLE ONLY project.tbl_project_tasks
 
 
 --
--- Name: tbl_project_team_members PK_tbl_project_team_members; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_team_members PK_tbl_project_team_members; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_team_members
@@ -13990,7 +14625,7 @@ ALTER TABLE ONLY project.tbl_project_team_members
 
 
 --
--- Name: tbl_projects PK_tbl_projects; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_projects PK_tbl_projects; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_projects
@@ -13998,7 +14633,7 @@ ALTER TABLE ONLY project.tbl_projects
 
 
 --
--- Name: tbl_project_additional_requirements tbl_project_additional_requirements_pkey; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_additional_requirements tbl_project_additional_requirements_pkey; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_additional_requirements
@@ -14006,7 +14641,7 @@ ALTER TABLE ONLY project.tbl_project_additional_requirements
 
 
 --
--- Name: tbl_project_appreciations tbl_project_appreciations_pkey; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_appreciations tbl_project_appreciations_pkey; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_appreciations
@@ -14014,7 +14649,7 @@ ALTER TABLE ONLY project.tbl_project_appreciations
 
 
 --
--- Name: tbl_resource_allocation_requests tbl_resource_allocation_requests_pkey; Type: CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_resource_allocation_requests tbl_resource_allocation_requests_pkey; Type: CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_resource_allocation_requests
@@ -14022,7 +14657,7 @@ ALTER TABLE ONLY project.tbl_resource_allocation_requests
 
 
 --
--- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: __EFMigrationsHistory PK___EFMigrationsHistory; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public."__EFMigrationsHistory"
@@ -14030,7 +14665,7 @@ ALTER TABLE ONLY public."__EFMigrationsHistory"
 
 
 --
--- Name: log_repository_activity PK_log_repository_activity; Type: CONSTRAINT; Schema: repository; Owner: -
+-- Name: log_repository_activity PK_log_repository_activity; Type: CONSTRAINT; Schema: repository; Owner: postgres
 --
 
 ALTER TABLE ONLY repository.log_repository_activity
@@ -14038,7 +14673,7 @@ ALTER TABLE ONLY repository.log_repository_activity
 
 
 --
--- Name: tbl_repository_departments PK_tbl_repository_departments; Type: CONSTRAINT; Schema: repository; Owner: -
+-- Name: tbl_repository_departments PK_tbl_repository_departments; Type: CONSTRAINT; Schema: repository; Owner: postgres
 --
 
 ALTER TABLE ONLY repository.tbl_repository_departments
@@ -14046,7 +14681,7 @@ ALTER TABLE ONLY repository.tbl_repository_departments
 
 
 --
--- Name: tbl_repository_items PK_tbl_repository_items; Type: CONSTRAINT; Schema: repository; Owner: -
+-- Name: tbl_repository_items PK_tbl_repository_items; Type: CONSTRAINT; Schema: repository; Owner: postgres
 --
 
 ALTER TABLE ONLY repository.tbl_repository_items
@@ -14054,7 +14689,7 @@ ALTER TABLE ONLY repository.tbl_repository_items
 
 
 --
--- Name: tbl_employees CK_employees_EmployeeCode_Format; Type: CHECK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees CK_employees_EmployeeCode_Format; Type: CHECK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE resource.tbl_employees
@@ -14062,7 +14697,7 @@ ALTER TABLE resource.tbl_employees
 
 
 --
--- Name: log_employee_activity PK_log_employee_activity; Type: CONSTRAINT; Schema: resource; Owner: -
+-- Name: log_employee_activity PK_log_employee_activity; Type: CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.log_employee_activity
@@ -14070,7 +14705,7 @@ ALTER TABLE ONLY resource.log_employee_activity
 
 
 --
--- Name: tbl_employees PK_tbl_employees; Type: CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees PK_tbl_employees; Type: CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -14078,7 +14713,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_exited_employees PK_tbl_exited_employees; Type: CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_exited_employees PK_tbl_exited_employees; Type: CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_exited_employees
@@ -14086,7 +14721,7 @@ ALTER TABLE ONLY resource.tbl_exited_employees
 
 
 --
--- Name: tbl_onfloorrole PK_tbl_onfloorrole; Type: CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_onfloorrole PK_tbl_onfloorrole; Type: CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_onfloorrole
@@ -14094,7 +14729,7 @@ ALTER TABLE ONLY resource.tbl_onfloorrole
 
 
 --
--- Name: tbl_team_day_entries PK_tbl_team_day_entries; Type: CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_team_day_entries PK_tbl_team_day_entries; Type: CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_team_day_entries
@@ -14102,7 +14737,7 @@ ALTER TABLE ONLY timesheet.tbl_team_day_entries
 
 
 --
--- Name: tbl_team_member_holidays PK_tbl_team_member_holidays; Type: CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_team_member_holidays PK_tbl_team_member_holidays; Type: CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_team_member_holidays
@@ -14110,7 +14745,7 @@ ALTER TABLE ONLY timesheet.tbl_team_member_holidays
 
 
 --
--- Name: tbl_team_member_schedules PK_tbl_team_member_schedules; Type: CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_team_member_schedules PK_tbl_team_member_schedules; Type: CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_team_member_schedules
@@ -14118,7 +14753,7 @@ ALTER TABLE ONLY timesheet.tbl_team_member_schedules
 
 
 --
--- Name: tbl_timesheet_entries PK_tbl_timesheet_entries; Type: CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_timesheet_entries PK_tbl_timesheet_entries; Type: CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_timesheet_entries
@@ -14126,7 +14761,7 @@ ALTER TABLE ONLY timesheet.tbl_timesheet_entries
 
 
 --
--- Name: tbl_timesheet_entry_days PK_tbl_timesheet_entry_days; Type: CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_timesheet_entry_days PK_tbl_timesheet_entry_days; Type: CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_timesheet_entry_days
@@ -14134,7 +14769,7 @@ ALTER TABLE ONLY timesheet.tbl_timesheet_entry_days
 
 
 --
--- Name: tbl_timesheets PK_tbl_timesheets; Type: CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_timesheets PK_tbl_timesheets; Type: CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_timesheets
@@ -14142,1281 +14777,1281 @@ ALTER TABLE ONLY timesheet.tbl_timesheets
 
 
 --
--- Name: IX_tbl_bucket_tasks_EmployeeId; Type: INDEX; Schema: action; Owner: -
+-- Name: IX_tbl_bucket_tasks_EmployeeId; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_bucket_tasks_EmployeeId" ON action.tbl_bucket_tasks USING btree ("EmployeeId");
 
 
 --
--- Name: IX_tbl_bucket_tasks_Priority; Type: INDEX; Schema: action; Owner: -
+-- Name: IX_tbl_bucket_tasks_Priority; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_bucket_tasks_Priority" ON action.tbl_bucket_tasks USING btree ("Priority");
 
 
 --
--- Name: IX_tbl_bucket_tasks_ProjectId; Type: INDEX; Schema: action; Owner: -
+-- Name: IX_tbl_bucket_tasks_ProjectId; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_bucket_tasks_ProjectId" ON action.tbl_bucket_tasks USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_bucket_tasks_Status; Type: INDEX; Schema: action; Owner: -
+-- Name: IX_tbl_bucket_tasks_Status; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_bucket_tasks_Status" ON action.tbl_bucket_tasks USING btree ("Status");
 
 
 --
--- Name: IX_tbl_bucket_tasks_TaskId; Type: INDEX; Schema: action; Owner: -
+-- Name: IX_tbl_bucket_tasks_TaskId; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_bucket_tasks_TaskId" ON action.tbl_bucket_tasks USING btree ("TaskId");
 
 
 --
--- Name: IX_tbl_bucket_tasks_TaskId_EmployeeId; Type: INDEX; Schema: action; Owner: -
+-- Name: IX_tbl_bucket_tasks_TaskId_EmployeeId; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_bucket_tasks_TaskId_EmployeeId" ON action.tbl_bucket_tasks USING btree ("TaskId", "EmployeeId") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: ix_tbl_notifications_project; Type: INDEX; Schema: action; Owner: -
+-- Name: ix_tbl_notifications_project; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE INDEX ix_tbl_notifications_project ON action.tbl_notifications USING btree ("ProjectId", "DeletedAtUtc");
 
 
 --
--- Name: ix_tbl_notifications_recipient_employee; Type: INDEX; Schema: action; Owner: -
+-- Name: ix_tbl_notifications_recipient_employee; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE INDEX ix_tbl_notifications_recipient_employee ON action.tbl_notifications USING btree ("RecipientEmployeeId", "DeletedAtUtc");
 
 
 --
--- Name: ix_tbl_notifications_status; Type: INDEX; Schema: action; Owner: -
+-- Name: ix_tbl_notifications_status; Type: INDEX; Schema: action; Owner: postgres
 --
 
 CREATE INDEX ix_tbl_notifications_status ON action.tbl_notifications USING btree ("Status");
 
 
 --
--- Name: IX_log_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_log_role_permission_audits_CreatedAtUtc; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE INDEX "IX_log_role_permission_audits_CreatedAtUtc" ON auth.log_role_permission_audits USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_log_role_permission_audits_RoleId; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_log_role_permission_audits_RoleId; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE INDEX "IX_log_role_permission_audits_RoleId" ON auth.log_role_permission_audits USING btree ("RoleId");
 
 
 --
--- Name: IX_role_permissions_ItemId; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_role_permissions_ItemId; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE INDEX "IX_role_permissions_ItemId" ON auth.tbl_role_permissions USING btree ("ItemId");
 
 
 --
--- Name: IX_role_permissions_RoleId; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_role_permissions_RoleId; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE INDEX "IX_role_permissions_RoleId" ON auth.tbl_role_permissions USING btree ("RoleId");
 
 
 --
--- Name: IX_tbl_refresh_tokens_TokenHash; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_tbl_refresh_tokens_TokenHash; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_refresh_tokens_TokenHash" ON auth.tbl_refresh_tokens USING btree ("TokenHash");
 
 
 --
--- Name: IX_tbl_refresh_tokens_UserId; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_tbl_refresh_tokens_UserId; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_refresh_tokens_UserId" ON auth.tbl_refresh_tokens USING btree ("UserId");
 
 
 --
--- Name: IX_tbl_roles_Name; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_tbl_roles_Name; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_roles_Name" ON auth.tbl_roles USING btree ("Name");
 
 
 --
--- Name: IX_tbl_users_Email; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_tbl_users_Email; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_users_Email" ON auth.tbl_users USING btree ("Email");
 
 
 --
--- Name: IX_tbl_users_EmployeeId; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_tbl_users_EmployeeId; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_users_EmployeeId" ON auth.tbl_users USING btree ("EmployeeId");
 
 
 --
--- Name: IX_tbl_users_RoleId; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_tbl_users_RoleId; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_users_RoleId" ON auth.tbl_users USING btree ("RoleId");
 
 
 --
--- Name: IX_users_MicrosoftOid; Type: INDEX; Schema: auth; Owner: -
+-- Name: IX_users_MicrosoftOid; Type: INDEX; Schema: auth; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_users_MicrosoftOid" ON auth.tbl_users USING btree ("MicrosoftOid") WHERE ("MicrosoftOid" IS NOT NULL);
 
 
 --
--- Name: IX_clients_ClientCode; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_clients_ClientCode; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_clients_ClientCode" ON customer.tbl_clients USING btree ("ClientCode") WHERE ("ClientCode" IS NOT NULL);
 
 
 --
--- Name: IX_tbl_client_assignments_UserId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_client_assignments_UserId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_client_assignments_UserId" ON customer.tbl_client_assignments USING btree ("UserId");
 
 
 --
--- Name: IX_tbl_client_contacts_ClientId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_client_contacts_ClientId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_client_contacts_ClientId" ON customer.tbl_client_contacts USING btree ("ClientId");
 
 
 --
--- Name: IX_tbl_client_contacts_SubVentureId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_client_contacts_SubVentureId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_client_contacts_SubVentureId" ON customer.tbl_client_contacts USING btree ("SubVentureId");
 
 
 --
--- Name: IX_tbl_clients_CityId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_clients_CityId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_clients_CityId" ON customer.tbl_clients USING btree ("CityId");
 
 
 --
--- Name: IX_tbl_clients_CountryId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_clients_CountryId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_clients_CountryId" ON customer.tbl_clients USING btree ("CountryId");
 
 
 --
--- Name: IX_tbl_clients_EngagementManagerId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_clients_EngagementManagerId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_clients_EngagementManagerId" ON customer.tbl_clients USING btree ("EngagementManagerId");
 
 
 --
--- Name: IX_tbl_clients_IndustryId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_clients_IndustryId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_clients_IndustryId" ON customer.tbl_clients USING btree ("IndustryId");
 
 
 --
--- Name: IX_tbl_clients_Name; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_clients_Name; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_clients_Name" ON customer.tbl_clients USING btree ("Name");
 
 
 --
--- Name: IX_tbl_clients_SalesManagerId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_clients_SalesManagerId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_clients_SalesManagerId" ON customer.tbl_clients USING btree ("SalesManagerId");
 
 
 --
--- Name: IX_tbl_sub_ventures_ClientId; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_sub_ventures_ClientId; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_sub_ventures_ClientId" ON customer.tbl_sub_ventures USING btree ("ClientId");
 
 
 --
--- Name: IX_tbl_sub_ventures_SubVentureCode; Type: INDEX; Schema: customer; Owner: -
+-- Name: IX_tbl_sub_ventures_SubVentureCode; Type: INDEX; Schema: customer; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_sub_ventures_SubVentureCode" ON customer.tbl_sub_ventures USING btree ("SubVentureCode");
 
 
 --
--- Name: IX_mst_address_cities_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_address_cities_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_address_cities_Code" ON master.mst_address_cities USING btree ("Code");
 
 
 --
--- Name: IX_mst_address_cities_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_address_cities_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_address_cities_Name" ON master.mst_address_cities USING btree ("Name");
 
 
 --
--- Name: IX_mst_business_units_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_business_units_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_business_units_Code" ON master.mst_business_units USING btree ("Code");
 
 
 --
--- Name: IX_mst_cities_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_cities_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_Code" ON master.mst_cities USING btree ("Code");
 
 
 --
--- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_cities_CountryId_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_cities_CountryId_Name" ON master.mst_cities USING btree ("CountryId", "Name");
 
 
 --
--- Name: IX_mst_contact_designations_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_contact_designations_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_contact_designations_Code" ON master.mst_contact_designations USING btree ("Code");
 
 
 --
--- Name: IX_mst_contact_designations_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_contact_designations_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_contact_designations_Name" ON master.mst_contact_designations USING btree ("Name");
 
 
 --
--- Name: IX_mst_contact_types_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_contact_types_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_contact_types_Code" ON master.mst_contact_types USING btree ("Code");
 
 
 --
--- Name: IX_mst_contact_types_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_contact_types_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_contact_types_Name" ON master.mst_contact_types USING btree ("Name");
 
 
 --
--- Name: IX_mst_countries_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_countries_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Code" ON master.mst_countries USING btree ("Code");
 
 
 --
--- Name: IX_mst_countries_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_countries_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_countries_Name" ON master.mst_countries USING btree ("Name");
 
 
 --
--- Name: IX_mst_departments_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_departments_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Code" ON master.mst_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_departments_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_departments_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_departments_Name" ON master.mst_departments USING btree ("Name");
 
 
 --
--- Name: IX_mst_designation_sub_departments_DesignationId_SubDepartment~; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_designation_sub_departments_DesignationId_SubDepartment~; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_designation_sub_departments_DesignationId_SubDepartment~" ON master.mst_designation_sub_departments USING btree ("DesignationId", "SubDepartmentId");
 
 
 --
--- Name: IX_mst_designation_sub_departments_SubDepartmentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_designation_sub_departments_SubDepartmentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_designation_sub_departments_SubDepartmentId" ON master.mst_designation_sub_departments USING btree ("SubDepartmentId");
 
 
 --
--- Name: IX_mst_designations_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_designations_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_Code" ON master.mst_designations USING btree ("Code");
 
 
 --
--- Name: IX_mst_designations_DefaultRoleId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_designations_DefaultRoleId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_designations_DefaultRoleId" ON master.mst_designations USING btree ("DefaultRoleId");
 
 
 --
--- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_designations_DepartmentId_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_designations_DepartmentId_Name" ON master.mst_designations USING btree ("DepartmentId", "Name");
 
 
 --
--- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_email_domains_DomainName; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_email_domains_DomainName" ON master.mst_email_domains USING btree ("DomainName");
 
 
 --
--- Name: IX_mst_employee_statuses_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_employee_statuses_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_employee_statuses_Code" ON master.mst_employee_statuses USING btree ("Code") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_mst_industries_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_industries_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Code" ON master.mst_industries USING btree ("Code");
 
 
 --
--- Name: IX_mst_industries_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_industries_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_industries_Name" ON master.mst_industries USING btree ("Name");
 
 
 --
--- Name: IX_mst_leave_calendar_HolidayDate; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_leave_calendar_HolidayDate; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_leave_calendar_HolidayDate" ON master.mst_leave_calendar USING btree ("HolidayDate") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_mst_leave_calendar_Year; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_leave_calendar_Year; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_leave_calendar_Year" ON master.mst_leave_calendar USING btree ("Year") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_mst_modules_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_modules_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_modules_Code" ON master.mst_modules USING btree ("Code");
 
 
 --
--- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_nationalities_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Code" ON master.mst_nationalities USING btree ("Code");
 
 
 --
--- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_nationalities_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_nationalities_Name" ON master.mst_nationalities USING btree ("Name");
 
 
 --
--- Name: IX_mst_offices_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_offices_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_offices_Code" ON master.mst_offices USING btree ("Code");
 
 
 --
--- Name: IX_mst_offices_WorkLocationId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_offices_WorkLocationId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_offices_WorkLocationId" ON master.mst_offices USING btree ("WorkLocationId");
 
 
 --
--- Name: IX_mst_onfloorrole_sub_departments_OnFloorRoleId_SubDepartment~; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_onfloorrole_sub_departments_OnFloorRoleId_SubDepartment~; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_onfloorrole_sub_departments_OnFloorRoleId_SubDepartment~" ON master.mst_onfloorrole_sub_departments USING btree ("OnFloorRoleId", "SubDepartmentId");
 
 
 --
--- Name: IX_mst_onfloorrole_sub_departments_SubDepartmentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_onfloorrole_sub_departments_SubDepartmentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_onfloorrole_sub_departments_SubDepartmentId" ON master.mst_onfloorrole_sub_departments USING btree ("SubDepartmentId");
 
 
 --
--- Name: IX_mst_org_role_map_DepartmentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_org_role_map_DepartmentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_org_role_map_DepartmentId" ON master.mst_org_role_map USING btree ("DepartmentId");
 
 
 --
--- Name: IX_mst_org_role_map_DesignationId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_org_role_map_DesignationId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_org_role_map_DesignationId" ON master.mst_org_role_map USING btree ("DesignationId");
 
 
 --
--- Name: IX_mst_org_role_map_RbacRoleId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_org_role_map_RbacRoleId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_org_role_map_RbacRoleId" ON master.mst_org_role_map USING btree ("RbacRoleId");
 
 
 --
--- Name: IX_mst_org_role_map_SubDepartmentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_org_role_map_SubDepartmentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_org_role_map_SubDepartmentId" ON master.mst_org_role_map USING btree ("SubDepartmentId");
 
 
 --
--- Name: IX_mst_org_role_sub_departments_OrgRoleMapId_SubDepartmentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_org_role_sub_departments_OrgRoleMapId_SubDepartmentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_org_role_sub_departments_OrgRoleMapId_SubDepartmentId" ON master.mst_org_role_sub_departments USING btree ("OrgRoleMapId", "SubDepartmentId");
 
 
 --
--- Name: IX_mst_org_role_sub_departments_SubDepartmentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_org_role_sub_departments_SubDepartmentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_org_role_sub_departments_SubDepartmentId" ON master.mst_org_role_sub_departments USING btree ("SubDepartmentId");
 
 
 --
--- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_reporting_managers_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_reporting_managers_Code" ON master.mst_reporting_managers USING btree ("Code");
 
 
 --
--- Name: IX_mst_reporting_managers_EmployeeId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_reporting_managers_EmployeeId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_reporting_managers_EmployeeId" ON master.mst_reporting_managers USING btree ("EmployeeId");
 
 
 --
--- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_salary_bands_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Code" ON master.mst_salary_bands USING btree ("Code");
 
 
 --
--- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_salary_bands_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_salary_bands_Name" ON master.mst_salary_bands USING btree ("Name");
 
 
 --
--- Name: IX_mst_service_catalog_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_catalog_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_service_catalog_Code" ON master.mst_service_catalog USING btree ("Code");
 
 
 --
--- Name: IX_mst_service_catalog_SubDepartmentId_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_catalog_SubDepartmentId_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_service_catalog_SubDepartmentId_Name" ON master.mst_service_catalog USING btree ("SubDepartmentId", "Name");
 
 
 --
--- Name: IX_mst_service_departments_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_departments_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_service_departments_Code" ON master.mst_service_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_service_departments_GroupId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_departments_GroupId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_service_departments_GroupId" ON master.mst_service_departments USING btree ("GroupId");
 
 
 --
--- Name: IX_mst_service_departments_GroupId_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_departments_GroupId_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_service_departments_GroupId_Name" ON master.mst_service_departments USING btree ("GroupId", "Name");
 
 
 --
--- Name: IX_mst_service_groups_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_groups_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_service_groups_Code" ON master.mst_service_groups USING btree ("Code");
 
 
 --
--- Name: IX_mst_service_groups_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_groups_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_service_groups_Name" ON master.mst_service_groups USING btree ("Name");
 
 
 --
--- Name: IX_mst_service_sub_departments_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_sub_departments_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_service_sub_departments_Code" ON master.mst_service_sub_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_service_sub_departments_DepartmentId_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_service_sub_departments_DepartmentId_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_service_sub_departments_DepartmentId_Name" ON master.mst_service_sub_departments USING btree ("DepartmentId", "Name");
 
 
 --
--- Name: IX_mst_sub_departments_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_sub_departments_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_sub_departments_Code" ON master.mst_sub_departments USING btree ("Code");
 
 
 --
--- Name: IX_mst_sub_departments_DepartmentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_sub_departments_DepartmentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_sub_departments_DepartmentId" ON master.mst_sub_departments USING btree ("DepartmentId");
 
 
 --
--- Name: IX_mst_sub_departments_Name; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_sub_departments_Name; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_sub_departments_Name" ON master.mst_sub_departments USING btree ("Name");
 
 
 --
--- Name: IX_mst_submodules_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_submodules_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_submodules_Code" ON master.mst_submodules USING btree ("Code");
 
 
 --
--- Name: IX_mst_submodules_ModuleId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_submodules_ModuleId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_submodules_ModuleId" ON master.mst_submodules USING btree ("ModuleId");
 
 
 --
--- Name: IX_mst_submodules_ParentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_submodules_ParentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_submodules_ParentId" ON master.mst_submodules USING btree ("ParentId");
 
 
 --
--- Name: IX_mst_tabs_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_tabs_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_tabs_Code" ON master.mst_tabs USING btree ("Code");
 
 
 --
--- Name: IX_mst_tabs_ModuleId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_tabs_ModuleId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_tabs_ModuleId" ON master.mst_tabs USING btree ("ModuleId");
 
 
 --
--- Name: IX_mst_tabs_SubModuleId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_tabs_SubModuleId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_tabs_SubModuleId" ON master.mst_tabs USING btree ("SubModuleId");
 
 
 --
--- Name: IX_mst_tabs_TabId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_tabs_TabId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_tabs_TabId" ON master.mst_tabs USING btree ("TabId");
 
 
 --
--- Name: IX_mst_widgets_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_widgets_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_widgets_Code" ON master.mst_widgets USING btree ("Code");
 
 
 --
--- Name: IX_mst_widgets_ParentId; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_widgets_ParentId; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE INDEX "IX_mst_widgets_ParentId" ON master.mst_widgets USING btree ("ParentId");
 
 
 --
--- Name: IX_mst_work_locations_Code; Type: INDEX; Schema: master; Owner: -
+-- Name: IX_mst_work_locations_Code; Type: INDEX; Schema: master; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_mst_work_locations_Code" ON master.mst_work_locations USING btree ("Code");
 
 
 --
--- Name: IX_log_project_task_assignments_EmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_log_project_task_assignments_EmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_log_project_task_assignments_EmployeeId" ON project.log_project_task_assignments USING btree ("EmployeeId");
 
 
 --
--- Name: IX_log_project_task_assignments_TaskId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_log_project_task_assignments_TaskId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_log_project_task_assignments_TaskId" ON project.log_project_task_assignments USING btree ("TaskId");
 
 
 --
--- Name: IX_log_project_task_assignments_TaskId_OccurredAtUtc; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_log_project_task_assignments_TaskId_OccurredAtUtc; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_log_project_task_assignments_TaskId_OccurredAtUtc" ON project.log_project_task_assignments USING btree ("TaskId", "OccurredAtUtc");
 
 
 --
--- Name: IX_project_tasks_LeafIdentity; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_project_tasks_LeafIdentity; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_project_tasks_LeafIdentity" ON project.tbl_project_tasks USING btree ("ProjectId", "ProjectServiceId", "Period", "Phase", "Title") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_tbl_project_alerts_IssueId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_alerts_IssueId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_alerts_IssueId" ON project.tbl_project_alerts USING btree ("IssueId");
 
 
 --
--- Name: IX_tbl_project_alerts_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_alerts_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_alerts_ProjectId" ON project.tbl_project_alerts USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_documents_DocumentType; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_documents_DocumentType; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_documents_DocumentType" ON project.tbl_project_documents USING btree ("DocumentType");
 
 
 --
--- Name: IX_tbl_project_documents_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_documents_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_documents_ProjectId" ON project.tbl_project_documents USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_drafts_ClientId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_drafts_ClientId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_drafts_ClientId" ON project.tbl_project_drafts USING btree ("ClientId");
 
 
 --
--- Name: IX_tbl_project_drafts_Status; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_drafts_Status; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_drafts_Status" ON project.tbl_project_drafts USING btree ("Status");
 
 
 --
--- Name: IX_tbl_project_drafts_UpdatedAtUtc; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_drafts_UpdatedAtUtc; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_drafts_UpdatedAtUtc" ON project.tbl_project_drafts USING btree ("UpdatedAtUtc");
 
 
 --
--- Name: IX_tbl_project_extension_approvers_EmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_extension_approvers_EmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_extension_approvers_EmployeeId" ON project.tbl_project_extension_approvers USING btree ("EmployeeId");
 
 
 --
--- Name: IX_tbl_project_extension_approvers_ExtensionRequestId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_extension_approvers_ExtensionRequestId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_extension_approvers_ExtensionRequestId" ON project.tbl_project_extension_approvers USING btree ("ExtensionRequestId");
 
 
 --
--- Name: IX_tbl_project_extension_requests_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_extension_requests_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_extension_requests_ProjectId" ON project.tbl_project_extension_requests USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_interviews_EmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_interviews_EmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_interviews_EmployeeId" ON project.tbl_project_interviews USING btree ("EmployeeId");
 
 
 --
--- Name: IX_tbl_project_interviews_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_interviews_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_interviews_ProjectId" ON project.tbl_project_interviews USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_invoices_InvoiceNumber; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_invoices_InvoiceNumber; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_invoices_InvoiceNumber" ON project.tbl_project_invoices USING btree ("InvoiceNumber");
 
 
 --
--- Name: IX_tbl_project_invoices_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_invoices_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_invoices_ProjectId" ON project.tbl_project_invoices USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_invoices_ProjectServiceId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_invoices_ProjectServiceId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_invoices_ProjectServiceId" ON project.tbl_project_invoices USING btree ("ProjectServiceId");
 
 
 --
--- Name: IX_tbl_project_invoices_Status; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_invoices_Status; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_invoices_Status" ON project.tbl_project_invoices USING btree ("Status");
 
 
 --
--- Name: IX_tbl_project_issues_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_issues_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_issues_ProjectId" ON project.tbl_project_issues USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_issues_RaisedByEmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_issues_RaisedByEmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_issues_RaisedByEmployeeId" ON project.tbl_project_issues USING btree ("RaisedByEmployeeId");
 
 
 --
--- Name: IX_tbl_project_service_escalations_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_service_escalations_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_service_escalations_ProjectId" ON project.tbl_project_service_escalations USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_service_escalations_ProjectServiceId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_service_escalations_ProjectServiceId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_service_escalations_ProjectServiceId" ON project.tbl_project_service_escalations USING btree ("ProjectServiceId");
 
 
 --
--- Name: IX_tbl_project_services_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_services_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_services_ProjectId" ON project.tbl_project_services USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_services_ServiceCatalogId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_services_ServiceCatalogId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_services_ServiceCatalogId" ON project.tbl_project_services USING btree ("ServiceCatalogId");
 
 
 --
--- Name: IX_tbl_project_task_assignments_EmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_task_assignments_EmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_task_assignments_EmployeeId" ON project.tbl_project_task_assignments USING btree ("EmployeeId");
 
 
 --
--- Name: IX_tbl_project_task_assignments_TaskId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_task_assignments_TaskId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_task_assignments_TaskId" ON project.tbl_project_task_assignments USING btree ("TaskId");
 
 
 --
--- Name: IX_tbl_project_task_assignments_TaskId_EmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_task_assignments_TaskId_EmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_task_assignments_TaskId_EmployeeId" ON project.tbl_project_task_assignments USING btree ("TaskId", "EmployeeId");
 
 
 --
--- Name: IX_tbl_project_tasks_Priority; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_tasks_Priority; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_tasks_Priority" ON project.tbl_project_tasks USING btree ("Priority");
 
 
 --
--- Name: IX_tbl_project_tasks_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_tasks_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_tasks_ProjectId" ON project.tbl_project_tasks USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_tasks_ProjectServiceId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_tasks_ProjectServiceId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_tasks_ProjectServiceId" ON project.tbl_project_tasks USING btree ("ProjectServiceId");
 
 
 --
--- Name: IX_tbl_project_tasks_Stage; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_tasks_Stage; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_tasks_Stage" ON project.tbl_project_tasks USING btree ("Stage");
 
 
 --
--- Name: IX_tbl_project_team_members_DepartmentId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_team_members_DepartmentId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_team_members_DepartmentId" ON project.tbl_project_team_members USING btree ("DepartmentId");
 
 
 --
--- Name: IX_tbl_project_team_members_EmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_team_members_EmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_team_members_EmployeeId" ON project.tbl_project_team_members USING btree ("EmployeeId");
 
 
 --
--- Name: IX_tbl_project_team_members_ProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_team_members_ProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_project_team_members_ProjectId" ON project.tbl_project_team_members USING btree ("ProjectId");
 
 
 --
--- Name: IX_tbl_project_team_members_ProjectId_EmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_project_team_members_ProjectId_EmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_project_team_members_ProjectId_EmployeeId" ON project.tbl_project_team_members USING btree ("ProjectId", "EmployeeId") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_tbl_projects_ClientId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_ClientId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_ClientId" ON project.tbl_projects USING btree ("ClientId");
 
 
 --
--- Name: IX_tbl_projects_EngagementManagerId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_EngagementManagerId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_EngagementManagerId" ON project.tbl_projects USING btree ("EngagementManagerId");
 
 
 --
--- Name: IX_tbl_projects_ProjectCode; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_ProjectCode; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_projects_ProjectCode" ON project.tbl_projects USING btree ("ProjectCode");
 
 
 --
--- Name: IX_tbl_projects_ProjectManagerId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_ProjectManagerId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_ProjectManagerId" ON project.tbl_projects USING btree ("ProjectManagerId");
 
 
 --
--- Name: IX_tbl_projects_RenewedFromProjectId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_RenewedFromProjectId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_RenewedFromProjectId" ON project.tbl_projects USING btree ("RenewedFromProjectId");
 
 
 --
--- Name: IX_tbl_projects_SalesPersonId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_SalesPersonId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_SalesPersonId" ON project.tbl_projects USING btree ("SalesPersonId");
 
 
 --
--- Name: IX_tbl_projects_Status; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_Status; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_Status" ON project.tbl_projects USING btree ("Status");
 
 
 --
--- Name: IX_tbl_projects_SubVentureId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_SubVentureId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_SubVentureId" ON project.tbl_projects USING btree ("SubVentureId");
 
 
 --
--- Name: IX_tbl_projects_TeamLeadId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_TeamLeadId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_TeamLeadId" ON project.tbl_projects USING btree ("TeamLeadId");
 
 
 --
--- Name: IX_tbl_projects_WbsId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_WbsId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_projects_WbsId" ON project.tbl_projects USING btree ("WbsId");
 
 
 --
--- Name: IX_tbl_projects_WbsStatus; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_projects_WbsStatus; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_projects_WbsStatus" ON project.tbl_projects USING btree ("WbsStatus");
 
 
 --
--- Name: IX_tbl_svc_escalation_stakeholders_EmployeeId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_svc_escalation_stakeholders_EmployeeId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_svc_escalation_stakeholders_EmployeeId" ON project.tbl_project_service_escalation_stakeholders USING btree ("EmployeeId");
 
 
 --
--- Name: IX_tbl_svc_escalation_stakeholders_EscalationId; Type: INDEX; Schema: project; Owner: -
+-- Name: IX_tbl_svc_escalation_stakeholders_EscalationId; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_svc_escalation_stakeholders_EscalationId" ON project.tbl_project_service_escalation_stakeholders USING btree ("EscalationId");
 
 
 --
--- Name: ix_resource_alloc_req_approver; Type: INDEX; Schema: project; Owner: -
+-- Name: ix_resource_alloc_req_approver; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX ix_resource_alloc_req_approver ON project.tbl_resource_allocation_requests USING btree ("ApproverEmployeeId");
 
 
 --
--- Name: ix_resource_alloc_req_employee; Type: INDEX; Schema: project; Owner: -
+-- Name: ix_resource_alloc_req_employee; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX ix_resource_alloc_req_employee ON project.tbl_resource_allocation_requests USING btree ("EmployeeId");
 
 
 --
--- Name: ix_resource_alloc_req_project; Type: INDEX; Schema: project; Owner: -
+-- Name: ix_resource_alloc_req_project; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX ix_resource_alloc_req_project ON project.tbl_resource_allocation_requests USING btree ("ProjectId");
 
 
 --
--- Name: ix_tbl_project_appreciations_project_id; Type: INDEX; Schema: project; Owner: -
+-- Name: ix_tbl_project_appreciations_project_id; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX ix_tbl_project_appreciations_project_id ON project.tbl_project_appreciations USING btree ("ProjectId");
 
 
 --
--- Name: ix_tbl_project_appreciations_recipient_id; Type: INDEX; Schema: project; Owner: -
+-- Name: ix_tbl_project_appreciations_recipient_id; Type: INDEX; Schema: project; Owner: postgres
 --
 
 CREATE INDEX ix_tbl_project_appreciations_recipient_id ON project.tbl_project_appreciations USING btree ("RecipientEmployeeId");
 
 
 --
--- Name: IX_log_repository_activity_CreatedAtUtc; Type: INDEX; Schema: repository; Owner: -
+-- Name: IX_log_repository_activity_CreatedAtUtc; Type: INDEX; Schema: repository; Owner: postgres
 --
 
 CREATE INDEX "IX_log_repository_activity_CreatedAtUtc" ON repository.log_repository_activity USING btree ("CreatedAtUtc");
 
 
 --
--- Name: IX_log_repository_activity_DeletedAtUtc; Type: INDEX; Schema: repository; Owner: -
+-- Name: IX_log_repository_activity_DeletedAtUtc; Type: INDEX; Schema: repository; Owner: postgres
 --
 
 CREATE INDEX "IX_log_repository_activity_DeletedAtUtc" ON repository.log_repository_activity USING btree ("DeletedAtUtc");
 
 
 --
--- Name: IX_tbl_repository_departments_DepartmentId; Type: INDEX; Schema: repository; Owner: -
+-- Name: IX_tbl_repository_departments_DepartmentId; Type: INDEX; Schema: repository; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_repository_departments_DepartmentId" ON repository.tbl_repository_departments USING btree ("DepartmentId");
 
 
 --
--- Name: IX_tbl_repository_items_Category; Type: INDEX; Schema: repository; Owner: -
+-- Name: IX_tbl_repository_items_Category; Type: INDEX; Schema: repository; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_repository_items_Category" ON repository.tbl_repository_items USING btree ("Category");
 
 
 --
--- Name: IX_tbl_repository_items_DeletedAtUtc; Type: INDEX; Schema: repository; Owner: -
+-- Name: IX_tbl_repository_items_DeletedAtUtc; Type: INDEX; Schema: repository; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_repository_items_DeletedAtUtc" ON repository.tbl_repository_items USING btree ("DeletedAtUtc");
 
 
 --
--- Name: IX_log_employee_activity_CreatedAtUtc; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_log_employee_activity_CreatedAtUtc; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_log_employee_activity_CreatedAtUtc" ON resource.log_employee_activity USING btree ("CreatedAtUtc" DESC);
 
 
 --
--- Name: IX_log_employee_activity_EmployeeId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_log_employee_activity_EmployeeId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_log_employee_activity_EmployeeId" ON resource.log_employee_activity USING btree ("EmployeeId");
 
 
 --
--- Name: IX_tbl_employees_DepartmentId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_DepartmentId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_DepartmentId" ON resource.tbl_employees USING btree ("DepartmentId");
 
 
 --
--- Name: IX_tbl_employees_DesignationId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_DesignationId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_DesignationId" ON resource.tbl_employees USING btree ("DesignationId");
 
 
 --
--- Name: IX_tbl_employees_EmployeeCode; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_EmployeeCode; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_employees_EmployeeCode" ON resource.tbl_employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_tbl_employees_EmployeeStatusId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_EmployeeStatusId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_EmployeeStatusId" ON resource.tbl_employees USING btree ("EmployeeStatusId");
 
 
 --
--- Name: IX_tbl_employees_EngagementManagerEmployeeId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_EngagementManagerEmployeeId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_EngagementManagerEmployeeId" ON resource.tbl_employees USING btree ("EngagementManagerEmployeeId");
 
 
 --
--- Name: IX_tbl_employees_NationalityId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_NationalityId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_NationalityId" ON resource.tbl_employees USING btree ("NationalityId");
 
 
 --
--- Name: IX_tbl_employees_ProjectManagerId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_ProjectManagerId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_ProjectManagerId" ON resource.tbl_employees USING btree ("ProjectManagerId");
 
 
 --
--- Name: IX_tbl_employees_ReportingManagerId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_ReportingManagerId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_ReportingManagerId" ON resource.tbl_employees USING btree ("ReportingManagerId");
 
 
 --
--- Name: IX_tbl_employees_SalaryBandId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_SalaryBandId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_SalaryBandId" ON resource.tbl_employees USING btree ("SalaryBandId");
 
 
 --
--- Name: IX_tbl_employees_SubDepartmentId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_SubDepartmentId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_SubDepartmentId" ON resource.tbl_employees USING btree ("SubDepartmentId");
 
 
 --
--- Name: IX_tbl_employees_UserId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_UserId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_employees_UserId" ON resource.tbl_employees USING btree ("UserId");
 
 
 --
--- Name: IX_tbl_employees_WorkEmail; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_employees_WorkEmail; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_employees_WorkEmail" ON resource.tbl_employees USING btree ("WorkEmail");
 
 
 --
--- Name: IX_tbl_exited_employees_EmployeeCode; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_exited_employees_EmployeeCode; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_exited_employees_EmployeeCode" ON resource.tbl_exited_employees USING btree ("EmployeeCode");
 
 
 --
--- Name: IX_tbl_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_exited_employees_OriginalEmployeeId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_exited_employees_OriginalEmployeeId" ON resource.tbl_exited_employees USING btree ("OriginalEmployeeId");
 
 
 --
--- Name: IX_tbl_onfloorrole_DepartmentId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_onfloorrole_DepartmentId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_onfloorrole_DepartmentId" ON resource.tbl_onfloorrole USING btree ("DepartmentId");
 
 
 --
--- Name: IX_tbl_onfloorrole_DesignationId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_onfloorrole_DesignationId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_onfloorrole_DesignationId" ON resource.tbl_onfloorrole USING btree ("DesignationId");
 
 
 --
--- Name: IX_tbl_onfloorrole_Name; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_onfloorrole_Name; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_onfloorrole_Name" ON resource.tbl_onfloorrole USING btree ("Name");
 
 
 --
--- Name: IX_tbl_onfloorrole_RbacRoleId; Type: INDEX; Schema: resource; Owner: -
+-- Name: IX_tbl_onfloorrole_RbacRoleId; Type: INDEX; Schema: resource; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_onfloorrole_RbacRoleId" ON resource.tbl_onfloorrole USING btree ("RbacRoleId");
 
 
 --
--- Name: IX_tbl_team_day_entries_EmployeeId_WorkDate; Type: INDEX; Schema: timesheet; Owner: -
+-- Name: IX_tbl_team_day_entries_EmployeeId_WorkDate; Type: INDEX; Schema: timesheet; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_team_day_entries_EmployeeId_WorkDate" ON timesheet.tbl_team_day_entries USING btree ("EmployeeId", "WorkDate") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_tbl_team_member_holidays_EmployeeId_HolidayDate; Type: INDEX; Schema: timesheet; Owner: -
+-- Name: IX_tbl_team_member_holidays_EmployeeId_HolidayDate; Type: INDEX; Schema: timesheet; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_team_member_holidays_EmployeeId_HolidayDate" ON timesheet.tbl_team_member_holidays USING btree ("EmployeeId", "HolidayDate") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_tbl_team_member_schedules_EmployeeId; Type: INDEX; Schema: timesheet; Owner: -
+-- Name: IX_tbl_team_member_schedules_EmployeeId; Type: INDEX; Schema: timesheet; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_team_member_schedules_EmployeeId" ON timesheet.tbl_team_member_schedules USING btree ("EmployeeId") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_tbl_timesheet_entries_TimesheetWeekId; Type: INDEX; Schema: timesheet; Owner: -
+-- Name: IX_tbl_timesheet_entries_TimesheetWeekId; Type: INDEX; Schema: timesheet; Owner: postgres
 --
 
 CREATE INDEX "IX_tbl_timesheet_entries_TimesheetWeekId" ON timesheet.tbl_timesheet_entries USING btree ("TimesheetWeekId");
 
 
 --
--- Name: IX_tbl_timesheet_entry_days_TimesheetEntryId_DayIndex; Type: INDEX; Schema: timesheet; Owner: -
+-- Name: IX_tbl_timesheet_entry_days_TimesheetEntryId_DayIndex; Type: INDEX; Schema: timesheet; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_timesheet_entry_days_TimesheetEntryId_DayIndex" ON timesheet.tbl_timesheet_entry_days USING btree ("TimesheetEntryId", "DayIndex") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: IX_tbl_timesheets_EmployeeId_WeekStart; Type: INDEX; Schema: timesheet; Owner: -
+-- Name: IX_tbl_timesheets_EmployeeId_WeekStart; Type: INDEX; Schema: timesheet; Owner: postgres
 --
 
 CREATE UNIQUE INDEX "IX_tbl_timesheets_EmployeeId_WeekStart" ON timesheet.tbl_timesheets USING btree ("EmployeeId", "WeekStart") WHERE ("DeletedAtUtc" IS NULL);
 
 
 --
--- Name: tbl_role_permissions trg_protect_default_permissions; Type: TRIGGER; Schema: auth; Owner: -
+-- Name: tbl_role_permissions trg_protect_default_permissions; Type: TRIGGER; Schema: auth; Owner: postgres
 --
 
 CREATE TRIGGER trg_protect_default_permissions BEFORE UPDATE ON auth.tbl_role_permissions FOR EACH ROW EXECUTE FUNCTION auth.fn_protect_default_permissions();
 
 
 --
--- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_bucket_tasks
@@ -15424,7 +16059,7 @@ ALTER TABLE ONLY action.tbl_bucket_tasks
 
 
 --
--- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_project_services_ProjectServiceId; Type: FK CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_project_services_ProjectServiceId; Type: FK CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_bucket_tasks
@@ -15432,7 +16067,7 @@ ALTER TABLE ONLY action.tbl_bucket_tasks
 
 
 --
--- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_project_task_assignments_AssignmentId; Type: FK CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_project_task_assignments_AssignmentId; Type: FK CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_bucket_tasks
@@ -15440,7 +16075,7 @@ ALTER TABLE ONLY action.tbl_bucket_tasks
 
 
 --
--- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_project_tasks_TaskId; Type: FK CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_project_tasks_TaskId; Type: FK CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_bucket_tasks
@@ -15448,7 +16083,7 @@ ALTER TABLE ONLY action.tbl_bucket_tasks
 
 
 --
--- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_bucket_tasks FK_tbl_bucket_tasks_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_bucket_tasks
@@ -15456,7 +16091,7 @@ ALTER TABLE ONLY action.tbl_bucket_tasks
 
 
 --
--- Name: tbl_notifications fk_notifications_issue; Type: FK CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_notifications fk_notifications_issue; Type: FK CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_notifications
@@ -15464,7 +16099,7 @@ ALTER TABLE ONLY action.tbl_notifications
 
 
 --
--- Name: tbl_notifications fk_notifications_project; Type: FK CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_notifications fk_notifications_project; Type: FK CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_notifications
@@ -15472,7 +16107,7 @@ ALTER TABLE ONLY action.tbl_notifications
 
 
 --
--- Name: tbl_notifications fk_notifications_recipient_employee; Type: FK CONSTRAINT; Schema: action; Owner: -
+-- Name: tbl_notifications fk_notifications_recipient_employee; Type: FK CONSTRAINT; Schema: action; Owner: postgres
 --
 
 ALTER TABLE ONLY action.tbl_notifications
@@ -15480,7 +16115,7 @@ ALTER TABLE ONLY action.tbl_notifications
 
 
 --
--- Name: log_role_permission_audits FK_log_role_permission_audits_tbl_roles_RoleId; Type: FK CONSTRAINT; Schema: auth; Owner: -
+-- Name: log_role_permission_audits FK_log_role_permission_audits_tbl_roles_RoleId; Type: FK CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.log_role_permission_audits
@@ -15488,7 +16123,7 @@ ALTER TABLE ONLY auth.log_role_permission_audits
 
 
 --
--- Name: tbl_refresh_tokens FK_tbl_refresh_tokens_tbl_users_UserId; Type: FK CONSTRAINT; Schema: auth; Owner: -
+-- Name: tbl_refresh_tokens FK_tbl_refresh_tokens_tbl_users_UserId; Type: FK CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.tbl_refresh_tokens
@@ -15496,7 +16131,7 @@ ALTER TABLE ONLY auth.tbl_refresh_tokens
 
 
 --
--- Name: tbl_users FK_tbl_users_tbl_roles_RoleId; Type: FK CONSTRAINT; Schema: auth; Owner: -
+-- Name: tbl_users FK_tbl_users_tbl_roles_RoleId; Type: FK CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.tbl_users
@@ -15504,7 +16139,7 @@ ALTER TABLE ONLY auth.tbl_users
 
 
 --
--- Name: tbl_role_permissions tbl_role_permissions_RoleId_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: -
+-- Name: tbl_role_permissions tbl_role_permissions_RoleId_fkey; Type: FK CONSTRAINT; Schema: auth; Owner: postgres
 --
 
 ALTER TABLE ONLY auth.tbl_role_permissions
@@ -15512,7 +16147,7 @@ ALTER TABLE ONLY auth.tbl_role_permissions
 
 
 --
--- Name: tbl_client_assignments FK_tbl_client_assignments_tbl_clients_ClientId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_client_assignments FK_tbl_client_assignments_tbl_clients_ClientId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_client_assignments
@@ -15520,7 +16155,7 @@ ALTER TABLE ONLY customer.tbl_client_assignments
 
 
 --
--- Name: tbl_client_assignments FK_tbl_client_assignments_tbl_users_UserId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_client_assignments FK_tbl_client_assignments_tbl_users_UserId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_client_assignments
@@ -15528,7 +16163,7 @@ ALTER TABLE ONLY customer.tbl_client_assignments
 
 
 --
--- Name: tbl_client_contacts FK_tbl_client_contacts_tbl_clients_ClientId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_client_contacts FK_tbl_client_contacts_tbl_clients_ClientId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_client_contacts
@@ -15536,7 +16171,7 @@ ALTER TABLE ONLY customer.tbl_client_contacts
 
 
 --
--- Name: tbl_client_contacts FK_tbl_client_contacts_tbl_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_client_contacts FK_tbl_client_contacts_tbl_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_client_contacts
@@ -15544,7 +16179,7 @@ ALTER TABLE ONLY customer.tbl_client_contacts
 
 
 --
--- Name: tbl_clients FK_tbl_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_clients FK_tbl_clients_mst_cities_CityId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_clients
@@ -15552,7 +16187,7 @@ ALTER TABLE ONLY customer.tbl_clients
 
 
 --
--- Name: tbl_clients FK_tbl_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_clients FK_tbl_clients_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_clients
@@ -15560,7 +16195,7 @@ ALTER TABLE ONLY customer.tbl_clients
 
 
 --
--- Name: tbl_clients FK_tbl_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_clients FK_tbl_clients_mst_industries_IndustryId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_clients
@@ -15568,7 +16203,7 @@ ALTER TABLE ONLY customer.tbl_clients
 
 
 --
--- Name: tbl_clients FK_tbl_clients_tbl_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_clients FK_tbl_clients_tbl_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_clients
@@ -15576,7 +16211,7 @@ ALTER TABLE ONLY customer.tbl_clients
 
 
 --
--- Name: tbl_clients FK_tbl_clients_tbl_employees_SalesManagerId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_clients FK_tbl_clients_tbl_employees_SalesManagerId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_clients
@@ -15584,7 +16219,7 @@ ALTER TABLE ONLY customer.tbl_clients
 
 
 --
--- Name: tbl_sub_ventures FK_tbl_sub_ventures_tbl_clients_ClientId; Type: FK CONSTRAINT; Schema: customer; Owner: -
+-- Name: tbl_sub_ventures FK_tbl_sub_ventures_tbl_clients_ClientId; Type: FK CONSTRAINT; Schema: customer; Owner: postgres
 --
 
 ALTER TABLE ONLY customer.tbl_sub_ventures
@@ -15592,7 +16227,7 @@ ALTER TABLE ONLY customer.tbl_sub_ventures
 
 
 --
--- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_cities FK_mst_cities_mst_countries_CountryId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_cities
@@ -15600,7 +16235,7 @@ ALTER TABLE ONLY master.mst_cities
 
 
 --
--- Name: mst_designation_sub_departments FK_mst_designation_sub_departments_mst_designations_Designatio~; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_designation_sub_departments FK_mst_designation_sub_departments_mst_designations_Designatio~; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_designation_sub_departments
@@ -15608,7 +16243,7 @@ ALTER TABLE ONLY master.mst_designation_sub_departments
 
 
 --
--- Name: mst_designation_sub_departments FK_mst_designation_sub_departments_mst_sub_departments_SubDepa~; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_designation_sub_departments FK_mst_designation_sub_departments_mst_sub_departments_SubDepa~; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_designation_sub_departments
@@ -15616,7 +16251,7 @@ ALTER TABLE ONLY master.mst_designation_sub_departments
 
 
 --
--- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_designations FK_mst_designations_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_designations
@@ -15624,7 +16259,7 @@ ALTER TABLE ONLY master.mst_designations
 
 
 --
--- Name: mst_designations FK_mst_designations_tbl_roles_DefaultRoleId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_designations FK_mst_designations_tbl_roles_DefaultRoleId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_designations
@@ -15632,7 +16267,7 @@ ALTER TABLE ONLY master.mst_designations
 
 
 --
--- Name: mst_onfloorrole_sub_departments FK_mst_onfloorrole_sub_departments_mst_sub_departments_SubDepa~; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_onfloorrole_sub_departments FK_mst_onfloorrole_sub_departments_mst_sub_departments_SubDepa~; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_onfloorrole_sub_departments
@@ -15640,7 +16275,7 @@ ALTER TABLE ONLY master.mst_onfloorrole_sub_departments
 
 
 --
--- Name: mst_onfloorrole_sub_departments FK_mst_onfloorrole_sub_departments_tbl_onfloorrole_OnFloorRole~; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_onfloorrole_sub_departments FK_mst_onfloorrole_sub_departments_tbl_onfloorrole_OnFloorRole~; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_onfloorrole_sub_departments
@@ -15648,7 +16283,7 @@ ALTER TABLE ONLY master.mst_onfloorrole_sub_departments
 
 
 --
--- Name: mst_org_role_map FK_mst_org_role_map_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_map FK_mst_org_role_map_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_org_role_map
@@ -15656,7 +16291,7 @@ ALTER TABLE ONLY master.mst_org_role_map
 
 
 --
--- Name: mst_org_role_map FK_mst_org_role_map_DesignationId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_map FK_mst_org_role_map_DesignationId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_org_role_map
@@ -15664,7 +16299,7 @@ ALTER TABLE ONLY master.mst_org_role_map
 
 
 --
--- Name: mst_org_role_map FK_mst_org_role_map_RbacRoleId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_map FK_mst_org_role_map_RbacRoleId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_org_role_map
@@ -15672,7 +16307,7 @@ ALTER TABLE ONLY master.mst_org_role_map
 
 
 --
--- Name: mst_org_role_map FK_mst_org_role_map_mst_sub_departments_SubDepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_map FK_mst_org_role_map_mst_sub_departments_SubDepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_org_role_map
@@ -15680,7 +16315,7 @@ ALTER TABLE ONLY master.mst_org_role_map
 
 
 --
--- Name: mst_org_role_sub_departments FK_mst_org_role_sub_departments_mst_org_role_map_OrgRoleMapId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_sub_departments FK_mst_org_role_sub_departments_mst_org_role_map_OrgRoleMapId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_org_role_sub_departments
@@ -15688,7 +16323,7 @@ ALTER TABLE ONLY master.mst_org_role_sub_departments
 
 
 --
--- Name: mst_org_role_sub_departments FK_mst_org_role_sub_departments_mst_sub_departments_SubDepartm~; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_org_role_sub_departments FK_mst_org_role_sub_departments_mst_sub_departments_SubDepartm~; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_org_role_sub_departments
@@ -15696,7 +16331,7 @@ ALTER TABLE ONLY master.mst_org_role_sub_departments
 
 
 --
--- Name: mst_reporting_managers FK_mst_reporting_managers_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_reporting_managers FK_mst_reporting_managers_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_reporting_managers
@@ -15704,7 +16339,7 @@ ALTER TABLE ONLY master.mst_reporting_managers
 
 
 --
--- Name: mst_service_catalog FK_mst_service_catalog_mst_service_sub_departments_SubDepartmen; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_service_catalog FK_mst_service_catalog_mst_service_sub_departments_SubDepartmen; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_service_catalog
@@ -15712,7 +16347,7 @@ ALTER TABLE ONLY master.mst_service_catalog
 
 
 --
--- Name: mst_service_departments FK_mst_service_departments_mst_service_groups_GroupId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_service_departments FK_mst_service_departments_mst_service_groups_GroupId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_service_departments
@@ -15720,7 +16355,7 @@ ALTER TABLE ONLY master.mst_service_departments
 
 
 --
--- Name: mst_service_sub_departments FK_mst_service_sub_departments_mst_service_departments_Departme; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_service_sub_departments FK_mst_service_sub_departments_mst_service_departments_Departme; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_service_sub_departments
@@ -15728,7 +16363,7 @@ ALTER TABLE ONLY master.mst_service_sub_departments
 
 
 --
--- Name: mst_sub_departments FK_mst_sub_departments_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_sub_departments FK_mst_sub_departments_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_sub_departments
@@ -15736,7 +16371,7 @@ ALTER TABLE ONLY master.mst_sub_departments
 
 
 --
--- Name: mst_submodules FK_mst_submodules_mst_modules_ModuleId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_submodules FK_mst_submodules_mst_modules_ModuleId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_submodules
@@ -15744,7 +16379,7 @@ ALTER TABLE ONLY master.mst_submodules
 
 
 --
--- Name: mst_submodules FK_mst_submodules_mst_submodules_ParentId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_submodules FK_mst_submodules_mst_submodules_ParentId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_submodules
@@ -15752,7 +16387,7 @@ ALTER TABLE ONLY master.mst_submodules
 
 
 --
--- Name: mst_tabs FK_mst_tabs_mst_modules_ModuleId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_tabs FK_mst_tabs_mst_modules_ModuleId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_tabs
@@ -15760,7 +16395,7 @@ ALTER TABLE ONLY master.mst_tabs
 
 
 --
--- Name: mst_tabs FK_mst_tabs_mst_submodules_SubModuleId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_tabs FK_mst_tabs_mst_submodules_SubModuleId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_tabs
@@ -15768,7 +16403,7 @@ ALTER TABLE ONLY master.mst_tabs
 
 
 --
--- Name: mst_tabs FK_mst_tabs_mst_tabs_TabId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_tabs FK_mst_tabs_mst_tabs_TabId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_tabs
@@ -15776,7 +16411,7 @@ ALTER TABLE ONLY master.mst_tabs
 
 
 --
--- Name: mst_widgets FK_mst_widgets_mst_modules_ParentId; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_widgets FK_mst_widgets_mst_modules_ParentId; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_widgets
@@ -15784,7 +16419,7 @@ ALTER TABLE ONLY master.mst_widgets
 
 
 --
--- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: master; Owner: -
+-- Name: mst_offices mst_offices_WorkLocationId_fkey; Type: FK CONSTRAINT; Schema: master; Owner: postgres
 --
 
 ALTER TABLE ONLY master.mst_offices
@@ -15792,7 +16427,7 @@ ALTER TABLE ONLY master.mst_offices
 
 
 --
--- Name: log_project_task_assignments FK_log_project_task_assignments_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: log_project_task_assignments FK_log_project_task_assignments_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.log_project_task_assignments
@@ -15800,7 +16435,7 @@ ALTER TABLE ONLY project.log_project_task_assignments
 
 
 --
--- Name: log_project_task_assignments FK_log_project_task_assignments_tbl_project_tasks_TaskId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: log_project_task_assignments FK_log_project_task_assignments_tbl_project_tasks_TaskId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.log_project_task_assignments
@@ -15808,7 +16443,7 @@ ALTER TABLE ONLY project.log_project_task_assignments
 
 
 --
--- Name: tbl_project_alerts FK_tbl_project_alerts_employees; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_alerts FK_tbl_project_alerts_employees; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_alerts
@@ -15816,7 +16451,7 @@ ALTER TABLE ONLY project.tbl_project_alerts
 
 
 --
--- Name: tbl_project_alerts FK_tbl_project_alerts_issues; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_alerts FK_tbl_project_alerts_issues; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_alerts
@@ -15824,7 +16459,7 @@ ALTER TABLE ONLY project.tbl_project_alerts
 
 
 --
--- Name: tbl_project_alerts FK_tbl_project_alerts_projects; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_alerts FK_tbl_project_alerts_projects; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_alerts
@@ -15832,7 +16467,7 @@ ALTER TABLE ONLY project.tbl_project_alerts
 
 
 --
--- Name: tbl_project_documents FK_tbl_project_documents_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_documents FK_tbl_project_documents_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_documents
@@ -15840,7 +16475,7 @@ ALTER TABLE ONLY project.tbl_project_documents
 
 
 --
--- Name: tbl_project_extension_approvers FK_tbl_project_extension_approvers_tbl_project_extension_reques; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_extension_approvers FK_tbl_project_extension_approvers_tbl_project_extension_reques; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_extension_approvers
@@ -15848,7 +16483,7 @@ ALTER TABLE ONLY project.tbl_project_extension_approvers
 
 
 --
--- Name: tbl_project_extension_requests FK_tbl_project_extension_requests_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_extension_requests FK_tbl_project_extension_requests_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_extension_requests
@@ -15856,7 +16491,7 @@ ALTER TABLE ONLY project.tbl_project_extension_requests
 
 
 --
--- Name: tbl_project_interviews FK_tbl_project_interviews_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_interviews FK_tbl_project_interviews_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_interviews
@@ -15864,7 +16499,7 @@ ALTER TABLE ONLY project.tbl_project_interviews
 
 
 --
--- Name: tbl_project_invoices FK_tbl_project_invoices_tbl_project_services_ProjectServiceId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_invoices FK_tbl_project_invoices_tbl_project_services_ProjectServiceId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_invoices
@@ -15872,7 +16507,7 @@ ALTER TABLE ONLY project.tbl_project_invoices
 
 
 --
--- Name: tbl_project_invoices FK_tbl_project_invoices_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_invoices FK_tbl_project_invoices_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_invoices
@@ -15880,7 +16515,7 @@ ALTER TABLE ONLY project.tbl_project_invoices
 
 
 --
--- Name: tbl_project_issues FK_tbl_project_issues_employees; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_issues FK_tbl_project_issues_employees; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_issues
@@ -15888,7 +16523,7 @@ ALTER TABLE ONLY project.tbl_project_issues
 
 
 --
--- Name: tbl_project_issues FK_tbl_project_issues_projects; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_issues FK_tbl_project_issues_projects; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_issues
@@ -15896,7 +16531,7 @@ ALTER TABLE ONLY project.tbl_project_issues
 
 
 --
--- Name: tbl_project_service_escalations FK_tbl_project_service_escalations_projects; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_service_escalations FK_tbl_project_service_escalations_projects; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_service_escalations
@@ -15904,7 +16539,7 @@ ALTER TABLE ONLY project.tbl_project_service_escalations
 
 
 --
--- Name: tbl_project_services FK_tbl_project_services_mst_service_catalog_ServiceCatalogId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_services FK_tbl_project_services_mst_service_catalog_ServiceCatalogId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_services
@@ -15912,7 +16547,7 @@ ALTER TABLE ONLY project.tbl_project_services
 
 
 --
--- Name: tbl_project_services FK_tbl_project_services_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_services FK_tbl_project_services_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_services
@@ -15920,7 +16555,7 @@ ALTER TABLE ONLY project.tbl_project_services
 
 
 --
--- Name: tbl_project_task_assignments FK_tbl_project_task_assignments_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_task_assignments FK_tbl_project_task_assignments_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_task_assignments
@@ -15928,7 +16563,7 @@ ALTER TABLE ONLY project.tbl_project_task_assignments
 
 
 --
--- Name: tbl_project_task_assignments FK_tbl_project_task_assignments_tbl_project_tasks_TaskId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_task_assignments FK_tbl_project_task_assignments_tbl_project_tasks_TaskId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_task_assignments
@@ -15936,7 +16571,7 @@ ALTER TABLE ONLY project.tbl_project_task_assignments
 
 
 --
--- Name: tbl_project_tasks FK_tbl_project_tasks_tbl_project_services_ProjectServiceId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_tasks FK_tbl_project_tasks_tbl_project_services_ProjectServiceId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_tasks
@@ -15944,7 +16579,7 @@ ALTER TABLE ONLY project.tbl_project_tasks
 
 
 --
--- Name: tbl_project_tasks FK_tbl_project_tasks_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_tasks FK_tbl_project_tasks_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_tasks
@@ -15952,7 +16587,7 @@ ALTER TABLE ONLY project.tbl_project_tasks
 
 
 --
--- Name: tbl_project_team_members FK_tbl_project_team_members_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_team_members FK_tbl_project_team_members_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_team_members
@@ -15960,7 +16595,7 @@ ALTER TABLE ONLY project.tbl_project_team_members
 
 
 --
--- Name: tbl_project_team_members FK_tbl_project_team_members_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_team_members FK_tbl_project_team_members_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_team_members
@@ -15968,7 +16603,7 @@ ALTER TABLE ONLY project.tbl_project_team_members
 
 
 --
--- Name: tbl_project_team_members FK_tbl_project_team_members_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_team_members FK_tbl_project_team_members_tbl_projects_ProjectId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_team_members
@@ -15976,7 +16611,7 @@ ALTER TABLE ONLY project.tbl_project_team_members
 
 
 --
--- Name: tbl_projects FK_tbl_projects_tbl_clients_ClientId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_projects FK_tbl_projects_tbl_clients_ClientId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_projects
@@ -15984,7 +16619,7 @@ ALTER TABLE ONLY project.tbl_projects
 
 
 --
--- Name: tbl_projects FK_tbl_projects_tbl_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_projects FK_tbl_projects_tbl_employees_EngagementManagerId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_projects
@@ -15992,7 +16627,7 @@ ALTER TABLE ONLY project.tbl_projects
 
 
 --
--- Name: tbl_projects FK_tbl_projects_tbl_employees_ProjectManagerId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_projects FK_tbl_projects_tbl_employees_ProjectManagerId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_projects
@@ -16000,7 +16635,7 @@ ALTER TABLE ONLY project.tbl_projects
 
 
 --
--- Name: tbl_projects FK_tbl_projects_tbl_employees_SalesPersonId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_projects FK_tbl_projects_tbl_employees_SalesPersonId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_projects
@@ -16008,7 +16643,7 @@ ALTER TABLE ONLY project.tbl_projects
 
 
 --
--- Name: tbl_projects FK_tbl_projects_tbl_employees_TeamLeadId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_projects FK_tbl_projects_tbl_employees_TeamLeadId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_projects
@@ -16016,7 +16651,7 @@ ALTER TABLE ONLY project.tbl_projects
 
 
 --
--- Name: tbl_projects FK_tbl_projects_tbl_projects_RenewedFromProjectId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_projects FK_tbl_projects_tbl_projects_RenewedFromProjectId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_projects
@@ -16024,7 +16659,7 @@ ALTER TABLE ONLY project.tbl_projects
 
 
 --
--- Name: tbl_projects FK_tbl_projects_tbl_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_projects FK_tbl_projects_tbl_sub_ventures_SubVentureId; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_projects
@@ -16032,7 +16667,7 @@ ALTER TABLE ONLY project.tbl_projects
 
 
 --
--- Name: tbl_project_service_escalation_stakeholders FK_tbl_svc_escalation_stakeholders_escalation; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_service_escalation_stakeholders FK_tbl_svc_escalation_stakeholders_escalation; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_service_escalation_stakeholders
@@ -16040,7 +16675,7 @@ ALTER TABLE ONLY project.tbl_project_service_escalation_stakeholders
 
 
 --
--- Name: tbl_project_additional_requirements tbl_project_additional_requirements_ProjectId_fkey; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_project_additional_requirements tbl_project_additional_requirements_ProjectId_fkey; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_project_additional_requirements
@@ -16048,7 +16683,7 @@ ALTER TABLE ONLY project.tbl_project_additional_requirements
 
 
 --
--- Name: tbl_resource_allocation_requests tbl_resource_allocation_requests_DepartmentId_fkey; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_resource_allocation_requests tbl_resource_allocation_requests_DepartmentId_fkey; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_resource_allocation_requests
@@ -16056,7 +16691,7 @@ ALTER TABLE ONLY project.tbl_resource_allocation_requests
 
 
 --
--- Name: tbl_resource_allocation_requests tbl_resource_allocation_requests_EmployeeId_fkey; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_resource_allocation_requests tbl_resource_allocation_requests_EmployeeId_fkey; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_resource_allocation_requests
@@ -16064,7 +16699,7 @@ ALTER TABLE ONLY project.tbl_resource_allocation_requests
 
 
 --
--- Name: tbl_resource_allocation_requests tbl_resource_allocation_requests_ProjectId_fkey; Type: FK CONSTRAINT; Schema: project; Owner: -
+-- Name: tbl_resource_allocation_requests tbl_resource_allocation_requests_ProjectId_fkey; Type: FK CONSTRAINT; Schema: project; Owner: postgres
 --
 
 ALTER TABLE ONLY project.tbl_resource_allocation_requests
@@ -16072,7 +16707,7 @@ ALTER TABLE ONLY project.tbl_resource_allocation_requests
 
 
 --
--- Name: tbl_repository_departments FK_tbl_repository_departments_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: repository; Owner: -
+-- Name: tbl_repository_departments FK_tbl_repository_departments_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: repository; Owner: postgres
 --
 
 ALTER TABLE ONLY repository.tbl_repository_departments
@@ -16080,7 +16715,7 @@ ALTER TABLE ONLY repository.tbl_repository_departments
 
 
 --
--- Name: tbl_repository_departments FK_tbl_repository_departments_tbl_repository_items_RepositoryI~; Type: FK CONSTRAINT; Schema: repository; Owner: -
+-- Name: tbl_repository_departments FK_tbl_repository_departments_tbl_repository_items_RepositoryI~; Type: FK CONSTRAINT; Schema: repository; Owner: postgres
 --
 
 ALTER TABLE ONLY repository.tbl_repository_departments
@@ -16088,7 +16723,7 @@ ALTER TABLE ONLY repository.tbl_repository_departments
 
 
 --
--- Name: log_employee_activity FK_log_employee_activity_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: log_employee_activity FK_log_employee_activity_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.log_employee_activity
@@ -16096,7 +16731,7 @@ ALTER TABLE ONLY resource.log_employee_activity
 
 
 --
--- Name: tbl_employees FK_tbl_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16104,7 +16739,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16112,7 +16747,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_mst_employee_statuses_EmployeeStatusId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_mst_employee_statuses_EmployeeStatusId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16120,7 +16755,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_mst_nationalities_NationalityId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16128,7 +16763,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_mst_salary_bands_SalaryBandId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16136,7 +16771,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_mst_sub_departments_SubDepartmentId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_mst_sub_departments_SubDepartmentId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16144,7 +16779,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_tbl_employees_EngagementManagerEmployeeId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_tbl_employees_EngagementManagerEmployeeId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16152,7 +16787,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_tbl_employees_ProjectManagerId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_tbl_employees_ProjectManagerId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16160,7 +16795,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_tbl_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_tbl_employees_ReportingManagerId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16168,7 +16803,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_employees FK_tbl_employees_tbl_users_UserId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_employees FK_tbl_employees_tbl_users_UserId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_employees
@@ -16176,7 +16811,7 @@ ALTER TABLE ONLY resource.tbl_employees
 
 
 --
--- Name: tbl_onfloorrole FK_tbl_onfloorrole_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_onfloorrole FK_tbl_onfloorrole_mst_departments_DepartmentId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_onfloorrole
@@ -16184,7 +16819,7 @@ ALTER TABLE ONLY resource.tbl_onfloorrole
 
 
 --
--- Name: tbl_onfloorrole FK_tbl_onfloorrole_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_onfloorrole FK_tbl_onfloorrole_mst_designations_DesignationId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_onfloorrole
@@ -16192,7 +16827,7 @@ ALTER TABLE ONLY resource.tbl_onfloorrole
 
 
 --
--- Name: tbl_onfloorrole FK_tbl_onfloorrole_tbl_roles_RbacRoleId; Type: FK CONSTRAINT; Schema: resource; Owner: -
+-- Name: tbl_onfloorrole FK_tbl_onfloorrole_tbl_roles_RbacRoleId; Type: FK CONSTRAINT; Schema: resource; Owner: postgres
 --
 
 ALTER TABLE ONLY resource.tbl_onfloorrole
@@ -16200,7 +16835,7 @@ ALTER TABLE ONLY resource.tbl_onfloorrole
 
 
 --
--- Name: tbl_team_day_entries FK_tbl_team_day_entries_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_team_day_entries FK_tbl_team_day_entries_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_team_day_entries
@@ -16208,7 +16843,7 @@ ALTER TABLE ONLY timesheet.tbl_team_day_entries
 
 
 --
--- Name: tbl_team_member_holidays FK_tbl_team_member_holidays_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_team_member_holidays FK_tbl_team_member_holidays_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_team_member_holidays
@@ -16216,7 +16851,7 @@ ALTER TABLE ONLY timesheet.tbl_team_member_holidays
 
 
 --
--- Name: tbl_team_member_schedules FK_tbl_team_member_schedules_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_team_member_schedules FK_tbl_team_member_schedules_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_team_member_schedules
@@ -16224,7 +16859,7 @@ ALTER TABLE ONLY timesheet.tbl_team_member_schedules
 
 
 --
--- Name: tbl_timesheet_entries FK_tbl_timesheet_entries_tbl_timesheets_TimesheetWeekId; Type: FK CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_timesheet_entries FK_tbl_timesheet_entries_tbl_timesheets_TimesheetWeekId; Type: FK CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_timesheet_entries
@@ -16232,7 +16867,7 @@ ALTER TABLE ONLY timesheet.tbl_timesheet_entries
 
 
 --
--- Name: tbl_timesheet_entry_days FK_tbl_timesheet_entry_days_tbl_timesheet_entries_TimesheetEnt~; Type: FK CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_timesheet_entry_days FK_tbl_timesheet_entry_days_tbl_timesheet_entries_TimesheetEnt~; Type: FK CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_timesheet_entry_days
@@ -16240,7 +16875,7 @@ ALTER TABLE ONLY timesheet.tbl_timesheet_entry_days
 
 
 --
--- Name: tbl_timesheets FK_tbl_timesheets_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: timesheet; Owner: -
+-- Name: tbl_timesheets FK_tbl_timesheets_tbl_employees_EmployeeId; Type: FK CONSTRAINT; Schema: timesheet; Owner: postgres
 --
 
 ALTER TABLE ONLY timesheet.tbl_timesheets
@@ -16251,5 +16886,5 @@ ALTER TABLE ONLY timesheet.tbl_timesheets
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oWRkykgQFXHGIRWrGvkKT5vfz2INSajuUKhv0P1AniSHWhJFc2lzJSqEhSwD2D0
+\unrestrict c2CNKdfED3syW1Ycw5GoZSyDouM1yZAKPDDENwaJRnuru6mJbeycanNYZYIyeIa
 

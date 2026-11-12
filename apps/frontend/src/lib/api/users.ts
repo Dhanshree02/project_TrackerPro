@@ -193,3 +193,58 @@ export async function resetRolePermissionsToDefault(roleId: string): Promise<boo
   return !!result;
 }
 
+// ─── Userwise Role Access ────────────────────────────────────────────────────
+
+export interface ApiUserRoleAccess {
+  id: string;
+  employeeCode: string;
+  fullName: string;
+  workEmail: string;
+  avatar?: string | null;
+  departmentId?: string | null;
+  departmentName: string;
+  designation?: string | null;
+  originalRoleId?: string | null;
+  originalRoleName: string;
+  originalRoleDisplayName: string;
+  currentRoleId?: string | null;
+  currentRoleName: string;
+  currentRoleDisplayName: string;
+  isSwitched: boolean;
+  isSuperAdmin: boolean;
+  departmentRoles: ApiRole[];
+}
+
+export async function fetchUserRoleAccessList(params: {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  department?: string;
+} = {}): Promise<PagedEnvelope<ApiUserRoleAccess>> {
+  const query = new URLSearchParams();
+  if (params.page) query.set("page", String(params.page));
+  if (params.perPage) query.set("perPage", String(params.perPage));
+  if (params.search) query.set("search", params.search);
+  if (params.department && params.department !== "All") query.set("department", params.department);
+
+  return apiFetch<PagedEnvelope<ApiUserRoleAccess>>(`/api/v1/roles/user-access?${query.toString()}`);
+}
+
+export async function updateUserRoleAccess(employeeId: string, roleId: string): Promise<ApiUserRoleAccess> {
+  return apiFetch<ApiUserRoleAccess>(`/api/v1/roles/user-access/${employeeId}`, {
+    method: "PUT",
+    body: JSON.stringify({ roleId }),
+  });
+}
+
+export async function resetUserRoleAccess(employeeId: string): Promise<ApiUserRoleAccess> {
+  return apiFetch<ApiUserRoleAccess>(`/api/v1/roles/user-access/${employeeId}/reset`, {
+    method: "POST",
+  });
+}
+
+export async function fetchDepartmentRoles(): Promise<Record<string, ApiRole[]>> {
+  return apiFetch<Record<string, ApiRole[]>>("/api/v1/roles/department-roles");
+}
+
+

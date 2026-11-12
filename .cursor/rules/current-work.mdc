@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-10-23
+**Last updated:** 2026-11-12
+
+- **Top-right toasts stay for 3 seconds.** `apps/frontend/src/components/ui/sonner.tsx` sets `toastOptions.duration` to `3000`. No individual toast overrides that timer.
 
 - **Working branch is `sahil-action-backend`, fast-forwarded to `origin/uat_clean` at `7e831e3`.** Local PostgreSQL 18 on `localhost:5432` database `trackerpro` was reloaded from `database/trackerpro-uat.sql`. The API connection is that local database. `Database__AutoMigrate` and `Database__Seed` stay false.
 
