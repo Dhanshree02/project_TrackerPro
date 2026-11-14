@@ -1,11 +1,11 @@
 {
   "Servers": {
     "1": {
-      "Name": "PMS shared Postgres",
+      "Name": "Pulse PMO",
       "Group": "Servers",
       "Host": "pms_uat_db",
       "Port": 5432,
-      "MaintenanceDB": "pms_uat",
+      "MaintenanceDB": "postgres",
       "Username": "postgres",
       "Password": "clockit",
       "SSLMode": "prefer"

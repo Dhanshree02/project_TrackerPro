@@ -2,7 +2,7 @@
 # Requires the main UAT Postgres container (pms_uat_db on network `pms_shared`):
 #   cd ../project_TrackerPro_UAT && docker compose -f docker-compose.uat.yml -p pms_uat up -d db
 #
-# Build and run from this folder (PMS_uat_clean):
+# Build and run from this folder (pms-development):
 #   docker compose -f docker-compose.uat-clean.yml build
 #   docker compose -f docker-compose.uat-clean.yml -p pms_uat_clean up -d
 #

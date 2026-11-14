@@ -1,0 +1,62 @@
+# UAT stack. Same application as production. Login will replace user switch later.
+# Until that login exists, this stack still runs the current application.
+# Database pms_uat on the shared Postgres container pms_uat_db.
+#
+#   docker compose -f compose/uat.yml -p pms-uat up -d
+#
+# App http://localhost:39117    API http://localhost:52819/swagger
+
+name: pms-uat
+
+services:
+  backend:
+    image: pms-backend:uat-clean
+    container_name: pms-uat-backend
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      App__Stage: uat
+      ConnectionStrings__DefaultConnection: Host=pms_uat_db;Port=5432;Database=pms_uat;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      Database__AutoMigrate: "false"
+      Database__Seed: "false"
+      Database__SyncSystemRoleBaselines: "false"
+      Storage__RootPath: /app/storage
+      Storage__DocumentsPath: /app/Documents
+    ports:
+      - "0.0.0.0:52819:8080"
+    volumes:
+      - backend_storage:/app/storage
+      - ../Documents:/app/Documents
+      - ../apps/backend/Log:/app/Log
+    networks:
+      - pms_shared
+
+  frontend:
+    image: pms-frontend:uat-clean
+    container_name: pms-uat-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_BACKEND_URL: http://pms-uat-backend:8080
+      VITE_API_URL: ""
+      VITE_APP_ENV: uat
+      VITE_HMR_CLIENT_PORT: "39117"
+    ports:
+      - "0.0.0.0:39117:3000"
+    volumes:
+      - ../apps/frontend:/app
+      - /app/node_modules
+    networks:
+      - pms_shared
+
+networks:
+  pms_shared:
+    external: true
+    name: pms_shared
+
+volumes:
+  backend_storage:
+    external: true
+    name: pms-uat-storage

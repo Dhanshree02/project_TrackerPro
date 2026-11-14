@@ -132,7 +132,11 @@ export function CalendarDayCell({
   const isWeekend = isWeeklyOff !== undefined ? isWeeklyOff : isWeekendDate(date);
   const event = getEventByDate(schedule, memberId, date, isWeekend);
   const rawAttendanceType = event?.type;
-  const hasExplicitAttendance = Boolean(rawAttendanceType && rawAttendanceType !== "holiday");
+  // A weekly off is derived, not chosen. A holiday on that day is drawn on top of it.
+  const holidayOnWeeklyOff = isHoliday && rawAttendanceType === "weeklyOff";
+  const hasExplicitAttendance = Boolean(
+    rawAttendanceType && rawAttendanceType !== "holiday" && !holidayOnWeeklyOff,
+  );
   const attendanceType = hasExplicitAttendance ? (rawAttendanceType as AttendanceType) : undefined;
   const isLeave = attendanceType === "leave" || rawAttendanceType === "leave";
   // On leave or unassigned holiday, people have NO shift data ("G" is removed)

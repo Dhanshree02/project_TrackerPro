@@ -21,6 +21,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/** Set by the Docker stack. Empty when the app is not running in one of the three environments. */
+function AppEnvironmentMark() {
+  const stage = (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase();
+  if (stage !== "development" && stage !== "uat" && stage !== "production") return null;
+  const label = stage === "uat" ? "UAT" : stage === "production" ? "Production" : "Development";
+  const tone =
+    stage === "production"
+      ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200"
+      : stage === "uat"
+        ? "bg-amber-500/15 text-amber-800 dark:text-amber-200"
+        : "bg-sky-500/15 text-sky-800 dark:text-sky-200";
+  return (
+    <span className={cn("inline-flex h-7 items-center rounded-full px-2.5 text-[10px] font-semibold tracking-wide", tone)}>
+      {label}
+    </span>
+  );
+}
+
 export function AppTopbar({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
   const { role, user, assignedIssues, pendingTimesheets } = useRoleContext();
   const { user: authUser, demoRole, switchDemoRole, status } = useAuth();
@@ -139,6 +157,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
 
       {/* Right: Notifications & Profile */}
       <div className="flex items-center gap-3 shrink-0">
+        <AppEnvironmentMark />
         <GlobalNotificationBell />
 
         <DropdownMenu>

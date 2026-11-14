@@ -7,6 +7,12 @@ alwaysApply: true
 
 **Last updated:** 2026-11-14
 
+- **Development, UAT, and production are three folders and three databases.** Development code is `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/pms-development` on branch `development` (app `:39107`, API `:52815`, database `pms_development`). UAT code is `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/pms-uat` on branch `uat` (`:39117`, `:52819`, `pms_uat`). Production code is `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/pms-production` on branch `production` (`:39127`, `:52827`, `pms_production`). A code change belongs in one folder only. The default folder is development. One Postgres container `pms_uat_db` and one pgAdmin server named Pulse PMO. `pms_uat_clean` is the snapshot those three databases were copied from. User switch stays on all three until UAT and production get login.
+
+- **A holiday on a weekly off uses the holiday colour only.** Diwali (Laxmi Pujan) on Sunday 8 November 2026 is the same green as a weekday holiday. The amber weekly-off colour is not mixed in.
+
+- **Working branch is `uat_clean13` at `c390e90`.** That commit is also `origin/uat_clean12`. The previous step note is in `GIT_Merge/archive/`. The new note is `GIT_Merge/step-timesheet-fy-search-and-manager-scope.md`. `database/pms_uat.sql` was dumped from the live `pms_uat_clean` database on PostgreSQL 16.
+
 - **Engagement Managers and Sales Managers see only their own accounts.** An Engagement Manager sees customers and projects where they are the Engagement Manager. A Sales Manager sees customers where they are the Sales Manager and projects where they are the sales person or that customer's Sales Manager. Admin, PMO, and the other wide roles still see every record. `pms-backend:uat-clean` was rebuilt and restarted.
 
 - **Total Holidays info icon uses the browser tip only.** The extra frontend tooltip on the Settings leave calendar was removed, so hovering the i icon no longer shows two messages.

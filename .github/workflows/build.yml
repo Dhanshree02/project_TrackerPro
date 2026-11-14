@@ -1,0 +1,18 @@
+name: Build
+
+on:
+  push:
+    branches: [development, uat, production]
+  pull_request:
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t pms-backend:${{ github.ref_name }} apps/backend
+
+      - name: Build frontend image
+        run: docker build -t pms-frontend:${{ github.ref_name }} apps/frontend
