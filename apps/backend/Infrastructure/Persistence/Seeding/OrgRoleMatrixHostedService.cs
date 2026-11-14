@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,47 @@ public sealed class OrgRoleMatrixHostedService(
             {
                 using var scope = scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+                await db.Database.ExecuteSqlRawAsync(
+                    """
+                    ALTER TABLE action.tbl_notifications 
+                    ADD COLUMN IF NOT EXISTS "ServiceEscalationId" uuid;
+
+                    CREATE INDEX IF NOT EXISTS "IX_tbl_notifications_ServiceEscalationId"
+                    ON action.tbl_notifications ("ServiceEscalationId")
+                    WHERE "DeletedAtUtc" IS NULL;
+
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_constraint WHERE conname = 'FK_tbl_notifications_tbl_project_service_escalations'
+                        ) THEN
+                            ALTER TABLE action.tbl_notifications
+                            ADD CONSTRAINT "FK_tbl_notifications_tbl_project_service_escalations"
+                            FOREIGN KEY ("ServiceEscalationId") 
+                            REFERENCES project.tbl_project_service_escalations("Id") 
+                            ON DELETE SET NULL;
+                        END IF;
+                    END $$;
+
+                    -- Backfill ServiceEscalationId for WBS notifications matching project alerts
+                    UPDATE action.tbl_notifications n
+                    SET "ServiceEscalationId" = a."ServiceEscalationId"
+                    FROM project.tbl_project_alerts a
+                    WHERE n."ServiceEscalationId" IS NULL
+                      AND a."ServiceEscalationId" IS NOT NULL
+                      AND n."ProjectId" = a."ProjectId"
+                      AND (n."Type" = 'WBS Escalation' OR n."Title" LIKE '%WBS Escalation%');
+
+                    -- Backfill ServiceEscalationId from project service escalations directly if still null
+                    UPDATE action.tbl_notifications n
+                    SET "ServiceEscalationId" = e."Id"
+                    FROM project.tbl_project_service_escalations e
+                    WHERE n."ServiceEscalationId" IS NULL
+                      AND n."ProjectId" = e."ProjectId"
+                      AND (n."Type" = 'WBS Escalation' OR n."Title" LIKE '%WBS Escalation%');
+                    """, cancellationToken);
+
                 logger.LogInformation("Applying sidebar modules and docs/rbac.xlsx mapping…");
                 await ModuleCatalogSync.EnsureAsync(db, cancellationToken);
                 await OrgRoleMatrixSync.ApplyAsync(db, cancellationToken);

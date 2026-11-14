@@ -21,6 +21,8 @@ public class ActionNotificationDto
 {
     public string Id { get; set; } = string.Empty;
 
+    public string NotificationCode { get; set; } = string.Empty;
+
     public string Title { get; set; } = string.Empty;
 
     public string Type { get; set; } = string.Empty;
@@ -50,6 +52,12 @@ public class ActionNotificationDto
     public Guid? ProjectId { get; set; }
 
     public Guid? IssueId { get; set; }
+
+    public string? IssueTitle { get; set; }
+
+    public string? IssueDescription { get; set; }
+
+    public string? IssueType { get; set; }
 }
 
 

@@ -4631,86 +4631,20 @@ export interface WbsDraft {
 
 
 export interface DhNotification {
-
-
-
-
-
-
-
   id: string;
-
-
-
-
-
-
-
+  notificationCode?: string;
   title: string;
-
-
-
-
-
-
-
   type: string;
-
-
-
-
-
-
-
   relatedProject: string;
-
-
-
-
-
-
-
   relatedTask?: string;
-
-
-
-
-
-
-
   raisedBy: string;
-
-
-
-
-
-
-
   createdAt: string;
-
-
-
-
-
-
-
-  status: "Pending" | "Acknowledged";
-
-
-
-
-
-
-
+  status: "Pending" | "Acknowledged" | "Open" | "In Progress" | "Resolved" | "Closed" | string;
   priority: "Low" | "Medium" | "High" | "Critical" | "-" | string;
-
-
-
-
-
-
-
   unread: boolean;
+  issueTitle?: string;
+  issueDescription?: string;
+  issueType?: string;
 
 
 

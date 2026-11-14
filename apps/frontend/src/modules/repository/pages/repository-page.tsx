@@ -38,6 +38,7 @@ import { toast } from "sonner";
 import { DocumentContentViewer } from "@/modules/repository/components/document-content-viewer";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { isAllPageSize, paginationRange } from "@/lib/pagination";
+import { TablePaginationFooter } from "@/components/table-pagination-footer";
 import { inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { openDocumentInNewTab } from "@/lib/document-tab-viewer";
 import {
@@ -1459,15 +1460,15 @@ function MyOrgPage() {
           <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
             <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10 bg-card text-left text-xs uppercase tracking-wide text-muted-foreground border-b border-border shadow-2xs">
+                <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">File Name</th>
-                    <th className="px-4 py-3 font-semibold">Category</th>
-                    <th className="px-4 py-3 font-semibold">Departments</th>
-                    <th className="px-4 py-3 font-semibold">Size</th>
-                    <th className="px-4 py-3 font-semibold">Last Updated</th>
-                    <th className="px-4 py-3 font-semibold">Uploaded By</th>
-                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">File Name</th>
+                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Category</th>
+                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Departments</th>
+                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Size</th>
+                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Last Updated</th>
+                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Uploaded By</th>
+                    <th className="px-4 py-3 text-right font-semibold text-blue-950/85 dark:text-blue-100/85">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -1593,54 +1594,14 @@ function MyOrgPage() {
             </div>
 
             {/* Frozen / Sticky Pagination Footer */}
-            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 text-xs text-muted-foreground shadow-xs">
-              <div className="flex items-center gap-3">
-                <span>
-                  Showing{" "}
-                  <strong className="font-semibold text-foreground">
-                    {docRange.from}
-                  </strong>
-                  –
-                  <strong className="font-semibold text-foreground">
-                    {docRange.to}
-                  </strong>{" "}
-                  of <strong className="font-semibold text-foreground">{totalCount}</strong> documents
-                </span>
-                <span className="text-muted-foreground/40">|</span>
-                <div className="flex items-center gap-1.5">
-                  <span>Per page:</span>
-                  <RowsPerPageSelect
-                    value={pageSize}
-                    onChange={(nextSize) => {
-                      setPageSize(nextSize);
-                      setPage(1);
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" /> Previous
-                </button>
-                <span className="px-2 tabular-nums font-semibold text-foreground">
-                  {page} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
-                >
-                  Next <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
+            <TablePaginationFooter
+              page={page}
+              pageSize={pageSize}
+              total={totalCount}
+              itemLabel="documents"
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         </div>
       </div>

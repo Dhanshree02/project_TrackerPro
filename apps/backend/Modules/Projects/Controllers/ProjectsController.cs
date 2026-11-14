@@ -1692,7 +1692,7 @@ public class ProjectsController(
 
     {
 
-        var alert = await issueService.UpdateAlertStatusAsync(projectId, alertId, request.Status, ct);
+        var alert = await issueService.UpdateAlertStatusAsync(projectId, alertId, request.Status, request.Comment, ct);
 
         return Ok(ApiResponse<ProjectAlertDto>.Ok(alert));
 

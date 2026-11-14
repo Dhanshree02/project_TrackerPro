@@ -33,6 +33,8 @@ import { isRenewedProject } from "@/lib/project-renewal";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/project-helpers";
 import { cn } from "@/lib/utils";
 import { useDraggable } from "@/hooks/use-draggable";
+import { paginateSlice } from "@/lib/pagination";
+import { TablePaginationFooter } from "@/components/table-pagination-footer";
 
 const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
 type Tab = (typeof tabs)[number];
@@ -247,6 +249,19 @@ export function ProjectsListPage() {
       );
     });
   }, [tab, q, projects, clients, assignedProjects, isDhanshree, dbProjects.length]);
+
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(15);
+
+  useEffect(() => {
+    setTablePage(1);
+  }, [tab, q, years]);
+
+  const totalProjects = visible.length;
+  const pagedProjects = useMemo(
+    () => paginateSlice(visible, tablePage, tablePageSize),
+    [visible, tablePage, tablePageSize]
+  );
 
   if (!canViewProjects) return <Navigate to="/" />;
 
@@ -506,24 +521,24 @@ export function ProjectsListPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
           <table className="w-full text-sm">
-            <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
               <tr>
-                <th className="px-3 py-2 font-medium">Project ID</th>
-                <th className="px-3 py-2 font-medium">Project</th>
-                <th className="px-3 py-2 font-medium">Customer</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Progress</th>
-                <th className="px-3 py-2 font-medium">Start</th>
-                <th className="px-3 py-2 font-medium">End</th>
-                <th className="px-3 py-2 font-medium">Engagement Mgr</th>
-                <th className="px-3 py-2 font-medium">Project Mgr</th>
-                <th className="px-3 py-2 font-medium">Team Lead</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project ID</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Customer</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Progress</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Start</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">End</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Engagement Mgr</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project Mgr</th>
+                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Team Lead</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {visible.map((p) => {
+              {pagedProjects.map((p) => {
                 const client = clients.find((c) => c.id === p.clientId) ?? {
                   id: p.clientId,
                   name: "Client",
@@ -599,6 +614,15 @@ export function ProjectsListPage() {
               )}
             </tbody>
           </table>
+
+          <TablePaginationFooter
+            page={tablePage}
+            pageSize={tablePageSize}
+            total={totalProjects}
+            itemLabel="projects"
+            onPageChange={setTablePage}
+            onPageSizeChange={setTablePageSize}
+          />
         </div>
       )}
 

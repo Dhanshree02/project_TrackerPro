@@ -57,9 +57,9 @@ public sealed class ActionNotificationService(
 
 
         var q = db.ActionNotifications
-
             .AsNoTracking()
-
+            .Include(n => n.Issue)
+            .Include(n => n.ServiceEscalation)
             .Where(n => n.DeletedAtUtc == null);
 
 
@@ -137,17 +137,12 @@ public sealed class ActionNotificationService(
             var search = query.Search.Trim().ToLower();
 
             q = q.Where(n =>
-
+                n.NotificationNumber.ToString().Contains(search) ||
                 n.Title.ToLower().Contains(search) ||
-
                 n.ProjectName.ToLower().Contains(search) ||
-
                 (n.ProjectCode != null && n.ProjectCode.ToLower().Contains(search)) ||
-
                 n.Type.ToLower().Contains(search) ||
-
                 n.RaisedByName.ToLower().Contains(search) ||
-
                 (n.RelatedTask != null && n.RelatedTask.ToLower().Contains(search)));
 
         }
@@ -177,9 +172,9 @@ public sealed class ActionNotificationService(
     {
 
         var notification = await db.ActionNotifications
-
+            .Include(n => n.Issue)
+            .Include(n => n.ServiceEscalation)
             .FirstOrDefaultAsync(n => n.Id == id && n.DeletedAtUtc == null, ct)
-
             ?? throw new NotFoundException($"Notification '{id}' was not found.");
 
 
@@ -245,9 +240,9 @@ public sealed class ActionNotificationService(
     {
 
         var notification = await db.ActionNotifications
-
+            .Include(n => n.Issue)
+            .Include(n => n.ServiceEscalation)
             .FirstOrDefaultAsync(n => n.Id == id && n.DeletedAtUtc == null, ct)
-
             ?? throw new NotFoundException($"Notification '{id}' was not found.");
 
 
@@ -640,6 +635,40 @@ public sealed class ActionNotificationService(
 
             : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : (currentUser.Email ?? "User"));
 
+        var role = (currentUser.Role ?? "").Trim();
+        var isSuperAdmin = role.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+                           || role.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase)
+                           || role.Equals("PMO", StringComparison.OrdinalIgnoreCase)
+                           || role.Equals("CEO", StringComparison.OrdinalIgnoreCase)
+                           || role.Equals("COO", StringComparison.OrdinalIgnoreCase)
+                           || currentUser.Email == "admin@talakunchi.com";
+
+        if (!isSuperAdmin && employee != null)
+        {
+            var empId = employee.Id;
+            var empIdStr = empId.ToString();
+
+            var isAudience = !string.IsNullOrWhiteSpace(alert.AudienceUserIds) && alert.AudienceUserIds.Contains(empIdStr);
+            var isProjectManager = alert.Project != null && (
+                alert.Project.ProjectManagerId == empId ||
+                alert.Project.EngagementManagerId == empId ||
+                (alert.Project.Client != null && alert.Project.Client.EngagementManagerId == empId) ||
+                alert.Project.TeamLeadId == empId);
+            var isRaiser = alert.RaisedByEmployeeId == empId;
+
+            var isStakeholder = false;
+            if (alert.ServiceEscalationId.HasValue)
+            {
+                isStakeholder = await db.ProjectServiceEscalationStakeholders
+                    .AnyAsync(s => s.EscalationId == alert.ServiceEscalationId.Value && s.EmployeeId == empId, ct);
+            }
+
+            if (!isAudience && !isProjectManager && !isRaiser && !isStakeholder)
+            {
+                throw new ForbiddenException("You do not have permission to update this alert.");
+            }
+        }
+
 
 
         var now = DateTime.UtcNow;
@@ -877,6 +906,55 @@ public sealed class ActionNotificationService(
             }
         }
 
+        // Sync linked WBS escalation status & chat if applicable
+        if (alert.ServiceEscalationId.HasValue)
+        {
+            var esc = await db.ProjectServiceEscalations.FirstOrDefaultAsync(e => e.Id == alert.ServiceEscalationId.Value, ct);
+            if (esc != null)
+            {
+                esc.Status = alert.Status;
+                if (!string.IsNullOrWhiteSpace(alert.ChatJson))
+                {
+                    esc.ChatJson = alert.ChatJson;
+                }
+                esc.UpdatedAtUtc = now;
+            }
+        }
+
+        // Synchronize status and history to all related notifications for this issue across all recipients
+        var targetIssueId = alert.IssueId ?? alert.Issue?.Id;
+        if (targetIssueId.HasValue)
+        {
+            var relatedNotifs = await db.ActionNotifications
+                .Where(n => n.IssueId == targetIssueId.Value && n.DeletedAtUtc == null)
+                .ToListAsync(ct);
+
+            foreach (var notif in relatedNotifs)
+            {
+                notif.Status = alert.Status;
+                notif.HistoryJson = alert.HistoryJson;
+                notif.UpdatedAtUtc = now;
+            }
+        }
+
+        // Synchronize status and history to all related notifications for WBS Escalation across all recipients
+        if (alert.ServiceEscalationId.HasValue || alert.AlertType == "WBS Escalation" || (alert.Title != null && alert.Title.Contains("WBS Escalation")))
+        {
+            var relatedWbsNotifs = await db.ActionNotifications
+                .Where(n => (n.Type == "WBS Escalation" || n.Title.Contains("WBS Escalation"))
+                            && n.ProjectId == alert.ProjectId
+                            && n.DeletedAtUtc == null
+                            && (alert.ServiceEscalationId == null || n.ServiceEscalationId == null || n.ServiceEscalationId == alert.ServiceEscalationId.Value))
+                .ToListAsync(ct);
+
+            foreach (var notif in relatedWbsNotifs)
+            {
+                notif.Status = alert.Status;
+                notif.HistoryJson = alert.HistoryJson;
+                notif.UpdatedAtUtc = now;
+            }
+        }
+
         await db.SaveChangesAsync(ct);
 
         // Complete SLA tracking if resolved or closed
@@ -893,7 +971,19 @@ public sealed class ActionNotificationService(
             }
         }
 
-
+        // Complete SLA tracking for WBS Escalation if resolved or closed
+        if (alert.ServiceEscalationId.HasValue && (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
+                                                   alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase)))
+        {
+            try
+            {
+                await slaTrackingService.CompleteTrackingAsync(alert.ServiceEscalationId.Value, "WBS Escalation", ct);
+            }
+            catch
+            {
+                // Non-fatal
+            }
+        }
 
         return MapAlertDto(alert);
 
@@ -926,16 +1016,23 @@ public sealed class ActionNotificationService(
 
 
             var empByUserId = await db.Employees
-
                 .AsNoTracking()
-
                 .Where(e => e.UserId == userId.Value && e.DeletedAtUtc == null)
-
                 .Select(e => (Guid?)e.Id)
-
                 .FirstOrDefaultAsync(ct);
 
             if (empByUserId.HasValue) return empByUserId.Value;
+
+            var userRecord = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId.Value, ct);
+            if (userRecord != null && !string.IsNullOrWhiteSpace(userRecord.EmployeeId))
+            {
+                var empByCode = await db.Employees
+                    .AsNoTracking()
+                    .Where(e => e.EmployeeCode == userRecord.EmployeeId && e.DeletedAtUtc == null)
+                    .Select(e => (Guid?)e.Id)
+                    .FirstOrDefaultAsync(ct);
+                if (empByCode.HasValue) return empByCode.Value;
+            }
 
         }
 
@@ -1054,55 +1151,38 @@ public sealed class ActionNotificationService(
 
 
     private static ActionNotificationDto MapDto(ActionNotification n)
-
     {
-
         var relatedProj = !string.IsNullOrWhiteSpace(n.ProjectCode)
-
             ? $"{n.ProjectCode} - {n.ProjectName}"
-
             : n.ProjectName;
 
-
+        var notifCode = n.NotificationNumber > 0
+            ? n.NotificationNumber.ToString("D4")
+            : n.Id.ToString()[..8].ToUpper();
 
         return new ActionNotificationDto
-
         {
-
             Id = n.Id.ToString(),
-
+            NotificationCode = notifCode,
             Title = n.Title,
-
             Type = n.Type,
-
             RelatedProject = relatedProj,
-
             RelatedTask = n.RelatedTask,
-
             RaisedBy = n.RaisedByName,
-
             CreatedAt = n.CreatedAtUtc.ToString("o"),
-
             Status = n.Status,
-
             Priority = n.Priority,
-
             Unread = n.Unread,
-
             CreatedBy = n.RaisedByName,
-
             CreatedDate = n.CreatedAtUtc.ToString("yyyy-MM-dd"),
-
             History = ParseHistory(n.HistoryJson),
-
             Comments = ParseComments(n.CommentsJson),
-
             ProjectId = n.ProjectId,
-
-            IssueId = n.IssueId
-
+            IssueId = n.IssueId,
+            IssueTitle = n.Issue?.Subject ?? n.ServiceEscalation?.Subject,
+            IssueDescription = n.Issue?.Description ?? n.ServiceEscalation?.Description,
+            IssueType = n.Issue?.IssueType ?? n.ServiceEscalation?.EscalationType ?? (n.Type.Contains("Issue", StringComparison.OrdinalIgnoreCase) ? n.RelatedTask : null)
         };
-
     }
 
 

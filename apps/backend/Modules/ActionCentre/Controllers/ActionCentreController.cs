@@ -187,7 +187,7 @@ public class ActionCentreController : ControllerBase
     /// Gets Action Centre governance and health alerts for the current authenticated employee / manager.
     /// </summary>
     [HttpGet("alerts")]
-    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts")]
+    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts", "action-centre")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ActionAlertDto>>>> GetAlerts(
         [FromQuery] NotificationQueryParameters query,
         CancellationToken ct = default)
@@ -200,7 +200,7 @@ public class ActionCentreController : ControllerBase
     /// Updates governance details and status for an Action Centre alert.
     /// </summary>
     [HttpPut("alerts/{id:guid}/governance")]
-    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.Manage, "action-alerts")]
+    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts", "action-centre")]
     public async Task<ActionResult<ApiResponse<ActionAlertDto>>> UpdateAlertGovernance(
         Guid id,
         [FromBody] UpdateAlertGovernanceRequest request,
@@ -214,7 +214,7 @@ public class ActionCentreController : ControllerBase
     /// Downloads the attachment file for a governance or escalation alert if present.
     /// </summary>
     [HttpGet("alerts/{id:guid}/attachment")]
-    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts")]
+    [RequireRbac(RbacCatalogCodes.ActionAlerts, RbacAccessType.View, "action-alerts", "action-centre")]
     public async Task<IActionResult> DownloadAlertAttachment(Guid id, CancellationToken ct = default)
     {
         var result = await _notificationService.DownloadAlertAttachmentAsync(id, ct);

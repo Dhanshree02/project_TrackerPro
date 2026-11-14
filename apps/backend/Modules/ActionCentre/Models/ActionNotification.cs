@@ -10,6 +10,8 @@ namespace PMS.API.Modules.ActionCentre.Models;
 /// </summary>
 public class ActionNotification : BaseEntity
 {
+    public int NotificationNumber { get; set; }
+
     public Guid RecipientEmployeeId { get; set; }
 
     public Guid? ProjectId { get; set; }
@@ -36,6 +38,8 @@ public class ActionNotification : BaseEntity
 
     public Guid? IssueId { get; set; }
 
+    public Guid? ServiceEscalationId { get; set; }
+
     public string HistoryJson { get; set; } = "[]";
 
     public string CommentsJson { get; set; } = "[]";
@@ -46,4 +50,6 @@ public class ActionNotification : BaseEntity
     public virtual Project? Project { get; set; }
 
     public virtual ProjectIssue? Issue { get; set; }
+
+    public virtual ProjectServiceEscalation? ServiceEscalation { get; set; }
 }

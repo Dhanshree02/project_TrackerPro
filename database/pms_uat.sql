@@ -4639,7 +4639,7 @@ COPY hangfire.schema (version) FROM stdin;
 --
 
 COPY hangfire.server (id, data, lastheartbeat, updatecount) FROM stdin;
-projectcompass-pms-2237d7e4d623:1:ada52d87-d71d-491c-b4bf-8ad1085f4e21	{"Queues": ["default", "default"], "StartedAt": "2026-11-14T07:46:17.1708745Z", "WorkerCount": 2}	2026-11-14 07:47:47.262356+00	0
+projectcompass-pms-2237d7e4d623:1:ada52d87-d71d-491c-b4bf-8ad1085f4e21	{"Queues": ["default", "default"], "StartedAt": "2026-11-14T07:46:17.1708745Z", "WorkerCount": 2}	2026-11-14 07:49:17.317825+00	0
 \.
 
 

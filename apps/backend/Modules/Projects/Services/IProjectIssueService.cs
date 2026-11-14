@@ -12,5 +12,5 @@ public interface IProjectIssueService
 
     Task<IReadOnlyList<ProjectAlertDto>> GetProjectAlertsAsync(Guid projectId, CancellationToken ct = default);
 
-    Task<ProjectAlertDto> UpdateAlertStatusAsync(Guid projectId, Guid alertId, string status, CancellationToken ct = default);
+    Task<ProjectAlertDto> UpdateAlertStatusAsync(Guid projectId, Guid alertId, string status, string? comment = null, CancellationToken ct = default);
 }

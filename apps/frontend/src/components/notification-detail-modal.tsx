@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Avatar, PriorityPill } from "@/components/pills";
@@ -113,9 +113,11 @@ export function NotificationDetailModal({
     }
   };
 
+  const displayCode = notification.notificationCode || (notification.id ? String(notification.id).slice(0, 8).toUpperCase() : "");
+
   return (
     <Modal
-      title={`Notification Details — ${notification.id}`}
+      title={displayCode ? `Notification Details — ${displayCode}` : "Notification Details"}
       onClose={onClose}
       wide
     >
@@ -205,67 +207,108 @@ export function NotificationDetailModal({
               {formatNotifTime(notification.createdAt)}
             </span>
           </div>
+        </div>
 
-          <div>
-            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
-              Notification ID
+        {/* Issue / WBS Escalation Details Section (Title/Subject, Description, Issue Type/Escalation Type) */}
+        {(notification.issueTitle || notification.issueDescription || notification.issueType) && (
+          <div className="border border-border rounded-xl p-4 bg-card space-y-3 shadow-xs">
+            <span className="font-bold text-muted-foreground uppercase text-[10px] tracking-wider block border-b border-border/50 pb-1 flex items-center gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5 text-primary" />
+              <span>
+                {notification.type.toLowerCase().includes("wbs")
+                  ? "WBS Escalation Details"
+                  : "Issue Details"}
+              </span>
             </span>
-            <span className="font-bold text-gray-800">{notification.id}</span>
-          </div>
-        </div>
 
-        {/* Approver Comments / Remarks Section */}
-        <div className="border border-border rounded-xl p-4 bg-card space-y-3 shadow-xs">
-          <span className="font-bold text-muted-foreground uppercase text-[10px] tracking-wider block border-b border-border/50 pb-1 flex items-center gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5 text-primary" />
-            <span>Comments</span>
-          </span>
-          {(() => {
-            const directComments = notification.comments || [];
-            const histRemarks: any[] = [];
-            if (directComments.length === 0 && notification.history) {
-              notification.history.forEach((h: any, idx: number) => {
-                if (h.action && h.action.includes("Remarks:")) {
-                  const remarkText = h.action.split("Remarks:")[1]?.replace(/"/g, "")?.trim();
-                  if (remarkText) {
-                    histRemarks.push({
-                      id: `hist-rem-${idx}`,
-                      authorName: h.by || notification.raisedBy,
-                      text: remarkText,
-                      at: h.date && h.time ? `${h.date}T${h.time}` : undefined,
-                    });
-                  }
-                }
-              });
-            }
-            const displayList = directComments.length > 0 ? directComments : histRemarks;
-
-            if (displayList.length > 0) {
-              return (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {displayList.map((c: any, idx: number) => (
-                    <div key={c.id || idx} className="text-xs rounded-md border border-border/60 bg-muted/20 p-2.5">
-                      <div className="flex justify-between items-center text-muted-foreground text-[10px] mb-1">
-                        <span className="font-semibold text-foreground">
-                          {c.authorName || notification.raisedBy || "Approver"}
-                        </span>
-                        <span>
-                          {c.at ? `${formatNotifDate(c.at)} ${formatNotifTime(c.at)}` : ""}
-                        </span>
-                      </div>
-                      <p className="text-foreground leading-normal whitespace-pre-wrap">{c.text}</p>
-                    </div>
-                  ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-6">
+              {notification.issueTitle && (
+                <div className="md:col-span-2">
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                    {notification.type.toLowerCase().includes("wbs")
+                      ? "Subject"
+                      : "Issue Title"}
+                  </span>
+                  <span className="font-medium text-gray-800 text-xs">
+                    {notification.issueTitle}
+                  </span>
                 </div>
-              );
-            }
-            return (
-              <p className="text-xs text-muted-foreground italic py-1">
-                No comments
-              </p>
-            );
-          })()}
-        </div>
+              )}
+
+              {notification.issueType && (
+                <div>
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                    {notification.type.toLowerCase().includes("wbs")
+                      ? "Escalation Type"
+                      : "Issue Type"}
+                  </span>
+                  <span className="font-medium text-gray-800">
+                    {notification.issueType}
+                  </span>
+                </div>
+              )}
+
+              {notification.issueDescription && (
+                <div className="md:col-span-2">
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
+                    Description
+                  </span>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap bg-muted/20 p-2.5 rounded-md border border-border/60">
+                    {notification.issueDescription}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Approver Comments / Remarks Section - rendered only when comments/remarks exist */}
+        {(() => {
+          const directComments = notification.comments || [];
+          const histRemarks: any[] = [];
+          if (directComments.length === 0 && notification.history) {
+            notification.history.forEach((h: any, idx: number) => {
+              if (h.action && h.action.includes("Remarks:")) {
+                const remarkText = h.action.split("Remarks:")[1]?.replace(/"/g, "")?.trim();
+                if (remarkText) {
+                  histRemarks.push({
+                    id: `hist-rem-${idx}`,
+                    authorName: h.by || notification.raisedBy,
+                    text: remarkText,
+                    at: h.date && h.time ? `${h.date}T${h.time}` : undefined,
+                  });
+                }
+              }
+            });
+          }
+          const displayList = directComments.length > 0 ? directComments : histRemarks;
+
+          if (displayList.length === 0) return null;
+
+          return (
+            <div className="border border-border rounded-xl p-4 bg-card space-y-3 shadow-xs">
+              <span className="font-bold text-muted-foreground uppercase text-[10px] tracking-wider block border-b border-border/50 pb-1 flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                <span>Comments</span>
+              </span>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {displayList.map((c: any, idx: number) => (
+                  <div key={c.id || idx} className="text-xs rounded-md border border-border/60 bg-muted/20 p-2.5">
+                    <div className="flex justify-between items-center text-muted-foreground text-[10px] mb-1">
+                      <span className="font-semibold text-foreground">
+                        {c.authorName || notification.raisedBy || "Approver"}
+                      </span>
+                      <span>
+                        {c.at ? `${formatNotifDate(c.at)} ${formatNotifTime(c.at)}` : ""}
+                      </span>
+                    </div>
+                    <p className="text-foreground leading-normal whitespace-pre-wrap">{c.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Audit History Card */}
         <div className="border border-border rounded-xl p-4 bg-card space-y-3 shadow-xs">

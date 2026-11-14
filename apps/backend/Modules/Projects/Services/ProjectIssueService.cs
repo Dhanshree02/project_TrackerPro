@@ -404,6 +404,7 @@ public sealed class ProjectIssueService(
         Guid projectId,
         Guid alertId,
         string status,
+        string? comment = null,
         CancellationToken ct = default)
     {
         var alert = await db.ProjectAlerts
@@ -435,6 +436,29 @@ public sealed class ProjectIssueService(
             ? []
             : (JsonSerializer.Deserialize<List<NotificationHistoryItemDto>>(alert.HistoryJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? []);
         var now = DateTime.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(comment))
+        {
+            var commentText = comment.Trim().Length > 50 ? comment.Trim()[..50] : comment.Trim();
+            var commentsList = ParseComments(alert.ChatJson);
+            commentsList.Add(new AlertCommentDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                AuthorName = userName,
+                AuthorEmail = currentUser.Email,
+                Text = commentText,
+                At = now.ToString("o")
+            });
+            alert.ChatJson = JsonSerializer.Serialize(commentsList);
+
+            history.Add(new NotificationHistoryItemDto
+            {
+                Action = $"Comment added: \"{commentText}\"",
+                Date = now.ToString("yyyy-MM-dd"),
+                Time = now.ToString("HH:mm:ss"),
+                By = userName
+            });
+        }
 
         var previousIssueStatus = alert.Issue?.Status;
         var wasClosedOrResolved = alert.Issue is not null &&
@@ -500,7 +524,45 @@ public sealed class ProjectIssueService(
             if (esc != null)
             {
                 esc.Status = normalizedStatus;
+                if (!string.IsNullOrWhiteSpace(alert.ChatJson))
+                {
+                    esc.ChatJson = alert.ChatJson;
+                }
                 esc.UpdatedAtUtc = DateTime.UtcNow;
+            }
+        }
+
+        // Synchronize status and history to all related notifications for this issue across all recipients
+        var targetIssueId = alert.IssueId ?? alert.Issue?.Id;
+        if (targetIssueId.HasValue)
+        {
+            var relatedNotifs = await db.ActionNotifications
+                .Where(n => n.IssueId == targetIssueId.Value && n.DeletedAtUtc == null)
+                .ToListAsync(ct);
+
+            foreach (var notif in relatedNotifs)
+            {
+                notif.Status = normalizedStatus;
+                notif.HistoryJson = alert.HistoryJson;
+                notif.UpdatedAtUtc = DateTime.UtcNow;
+            }
+        }
+
+        // Synchronize status and history to all related notifications for WBS Escalation across all recipients
+        if (alert.ServiceEscalationId.HasValue || alert.AlertType == "WBS Escalation" || (alert.Title != null && alert.Title.Contains("WBS Escalation")))
+        {
+            var relatedWbsNotifs = await db.ActionNotifications
+                .Where(n => (n.Type == "WBS Escalation" || n.Title.Contains("WBS Escalation"))
+                            && n.ProjectId == alert.ProjectId
+                            && n.DeletedAtUtc == null
+                            && (alert.ServiceEscalationId == null || n.ServiceEscalationId == null || n.ServiceEscalationId == alert.ServiceEscalationId.Value))
+                .ToListAsync(ct);
+
+            foreach (var notif in relatedWbsNotifs)
+            {
+                notif.Status = normalizedStatus;
+                notif.HistoryJson = alert.HistoryJson;
+                notif.UpdatedAtUtc = DateTime.UtcNow;
             }
         }
 
@@ -509,7 +571,6 @@ public sealed class ProjectIssueService(
         // When resolved or closed, complete SLA tracking and cancel pending Hangfire jobs
         if (normalizedStatus.Equals("Resolved", StringComparison.OrdinalIgnoreCase) || normalizedStatus.Equals("Closed", StringComparison.OrdinalIgnoreCase))
         {
-            var targetIssueId = alert.IssueId ?? alert.Issue?.Id;
             if (targetIssueId.HasValue)
             {
                 try
@@ -521,9 +582,34 @@ public sealed class ProjectIssueService(
                     // Non-fatal
                 }
             }
+
+            if (alert.ServiceEscalationId.HasValue)
+            {
+                try
+                {
+                    await slaTrackingService.CompleteTrackingAsync(alert.ServiceEscalationId.Value, "WBS Escalation", ct);
+                }
+                catch
+                {
+                    // Non-fatal
+                }
+            }
         }
 
         return MapAlert(alert);
+    }
+
+    private static List<AlertCommentDto> ParseComments(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try
+        {
+            return JsonSerializer.Deserialize<List<AlertCommentDto>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private async Task<Employee?> FindCurrentEmployeeAsync(CancellationToken ct)
