@@ -65,45 +65,34 @@ public sealed class ActionNotificationService(
 
 
         if (currentEmpId.HasValue)
-
         {
-
             if (isSuperAdmin)
-
             {
-
                 var hasOwn = await db.ActionNotifications
-
                     .AsNoTracking()
-
                     .AnyAsync(n => n.RecipientEmployeeId == currentEmpId.Value && n.DeletedAtUtc == null, ct);
-
                 if (hasOwn)
-
                 {
-
                     q = q.Where(n => n.RecipientEmployeeId == currentEmpId.Value);
-
                 }
-
             }
-
             else
-
             {
-
-                q = q.Where(n => n.RecipientEmployeeId == currentEmpId.Value);
-
+                var empId = currentEmpId.Value;
+                var uId = currentUser.UserId;
+                if (uId.HasValue && uId.Value != empId)
+                {
+                    q = q.Where(n => n.RecipientEmployeeId == empId || n.RecipientEmployeeId == uId.Value);
+                }
+                else
+                {
+                    q = q.Where(n => n.RecipientEmployeeId == empId);
+                }
             }
-
         }
-
         else if (!isSuperAdmin && currentUser.UserId.HasValue)
-
         {
-
             q = q.Where(n => n.RecipientEmployeeId == currentUser.UserId.Value);
-
         }
 
 
@@ -352,31 +341,44 @@ public sealed class ActionNotificationService(
 
 
         if (!isSuperAdmin && currentEmpId.HasValue)
-
         {
-
             var empId = currentEmpId.Value;
-
             var empIdStr = empId.ToString();
+            var userIdStr = currentUser.UserId?.ToString();
 
+            var spmProjectIds = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.EmployeeId == empId && tm.DeletedAtUtc == null &&
+                             (tm.MemberRole == ProjectMemberRoles.SeniorProjectManager ||
+                              tm.MemberRole == "Senior Project Manager" ||
+                              tm.MemberRole == "Senior PM" ||
+                              tm.MemberRole == "SPM"))
+                .Select(tm => tm.ProjectId)
+                .Distinct()
+                .ToListAsync(ct);
 
+            var stakeholderEscalationIds = await db.ProjectServiceEscalationStakeholders
+                .AsNoTracking()
+                .Where(s => s.EmployeeId == empId)
+                .Select(s => s.EscalationId)
+                .Distinct()
+                .ToListAsync(ct);
 
             q = q.Where(a =>
-
-                (a.AudienceUserIds != null && a.AudienceUserIds.Contains(empIdStr)) ||
-
+                (a.AudienceUserIds != null && (a.AudienceUserIds.Contains(empIdStr) || (userIdStr != null && a.AudienceUserIds.Contains(userIdStr)))) ||
+                (spmProjectIds.Count > 0 && spmProjectIds.Contains(a.ProjectId)) ||
+                (a.ServiceEscalationId.HasValue && stakeholderEscalationIds.Count > 0 && stakeholderEscalationIds.Contains(a.ServiceEscalationId.Value)) ||
                 (a.Project != null && (
-
                     a.Project.ProjectManagerId == empId ||
-
                     a.Project.EngagementManagerId == empId ||
-
                     (a.Project.Client != null && a.Project.Client.EngagementManagerId == empId) ||
-
                     a.Project.TeamLeadId == empId
-
                 )));
-
+        }
+        else if (!isSuperAdmin && currentUser.UserId.HasValue)
+        {
+            var userIdStr = currentUser.UserId.Value.ToString();
+            q = q.Where(a => a.AudienceUserIds != null && a.AudienceUserIds.Contains(userIdStr));
         }
 
 
@@ -647,8 +649,10 @@ public sealed class ActionNotificationService(
         {
             var empId = employee.Id;
             var empIdStr = empId.ToString();
+            var userIdStr = currentUser.UserId?.ToString();
 
-            var isAudience = !string.IsNullOrWhiteSpace(alert.AudienceUserIds) && alert.AudienceUserIds.Contains(empIdStr);
+            var isAudience = !string.IsNullOrWhiteSpace(alert.AudienceUserIds) &&
+                             (alert.AudienceUserIds.Contains(empIdStr) || (userIdStr != null && alert.AudienceUserIds.Contains(userIdStr)));
             var isProjectManager = alert.Project != null && (
                 alert.Project.ProjectManagerId == empId ||
                 alert.Project.EngagementManagerId == empId ||
@@ -663,7 +667,14 @@ public sealed class ActionNotificationService(
                     .AnyAsync(s => s.EscalationId == alert.ServiceEscalationId.Value && s.EmployeeId == empId, ct);
             }
 
-            if (!isAudience && !isProjectManager && !isRaiser && !isStakeholder)
+            var isSpm = await db.ProjectTeamMembers
+                .AnyAsync(tm => tm.ProjectId == alert.ProjectId && tm.EmployeeId == empId && tm.DeletedAtUtc == null &&
+                                (tm.MemberRole == ProjectMemberRoles.SeniorProjectManager ||
+                                 tm.MemberRole == "Senior Project Manager" ||
+                                 tm.MemberRole == "Senior PM" ||
+                                 tm.MemberRole == "SPM"), ct);
+
+            if (!isAudience && !isProjectManager && !isRaiser && !isStakeholder && !isSpm)
             {
                 throw new ForbiddenException("You do not have permission to update this alert.");
             }
@@ -1152,9 +1163,11 @@ public sealed class ActionNotificationService(
 
     private static ActionNotificationDto MapDto(ActionNotification n)
     {
-        var relatedProj = !string.IsNullOrWhiteSpace(n.ProjectCode)
-            ? $"{n.ProjectCode} - {n.ProjectName}"
-            : n.ProjectName;
+        var relatedProj = n.ProjectName == "-"
+            ? "-"
+            : (!string.IsNullOrWhiteSpace(n.ProjectCode)
+                ? $"{n.ProjectCode} - {n.ProjectName}"
+                : (string.IsNullOrWhiteSpace(n.ProjectName) ? "-" : n.ProjectName));
 
         var notifCode = n.NotificationNumber > 0
             ? n.NotificationNumber.ToString("D4")
@@ -1351,12 +1364,31 @@ public sealed class ActionNotificationService(
 
 
 
-    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveCustomerNotificationRecipientsAsync(CancellationToken ct)
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveCustomerNotificationRecipientsAsync(
+        Guid? clientId = null,
+        Guid? engagementManagerId = null,
+        string? engagementManager = null,
+        Guid? salesManagerId = null,
+        string? salesManager = null,
+        Guid? additionalEmployeeId = null,
+        string? additionalEmployeeName = null,
+        CancellationToken ct = default)
     {
-        // Criteria:
-        // 1. Resources whose Sub-Department is `EM (Engagement Manager)`
-        // AND
-        // 2. Resources whose On Floor Role is `Head Of Department` or `Leader` (strictly excluding Team Leader)
+        // 1. If client details (EM/SM) are not explicitly passed, look up from DB if clientId is provided
+        if (clientId.HasValue && (!engagementManagerId.HasValue && string.IsNullOrWhiteSpace(engagementManager) ||
+                                  !salesManagerId.HasValue && string.IsNullOrWhiteSpace(salesManager)))
+        {
+            var c = await db.Clients.AsNoTracking().FirstOrDefaultAsync(x => x.Id == clientId.Value, ct);
+            if (c != null)
+            {
+                engagementManagerId ??= c.EngagementManagerId;
+                engagementManager ??= c.EngagementManager;
+                salesManagerId ??= c.SalesManagerId;
+                salesManager ??= c.SalesManager;
+            }
+        }
+
+        // 2. Active employees whose Sub-Department is `EM (Engagement Manager)` AND On Floor Role is `Head Of Department` or `Leader`
         var emKey = "em (engagement manager)";
         var emSubDeptId = Guid.Parse("63bc0f54-4d35-4279-bb62-4daeff6ceeaa");
 
@@ -1417,7 +1449,47 @@ public sealed class ActionNotificationService(
             }
         }
 
+        // 3. Resolve and add customer's assigned Engagement Manager
+        AddCandidateIfFound(recipients, candidates, engagementManagerId, engagementManager);
+
+        // 4. Resolve and add customer's assigned Sales Manager
+        AddCandidateIfFound(recipients, candidates, salesManagerId, salesManager);
+
+        // 5. Resolve and add Additional Manager (e.g. previous manager or newly changed manager)
+        AddCandidateIfFound(recipients, candidates, additionalEmployeeId, additionalEmployeeName);
+
         return recipients;
+    }
+
+    private static void AddCandidateIfFound(
+        List<PMS.API.Modules.Resources.Models.Employee> recipients,
+        List<PMS.API.Modules.Resources.Models.Employee> candidates,
+        Guid? employeeId,
+        string? employeeName)
+    {
+        if (employeeId.HasValue && employeeId.Value != Guid.Empty)
+        {
+            var match = candidates.FirstOrDefault(e => e.Id == employeeId.Value);
+            if (match != null && !recipients.Any(r => r.Id == match.Id))
+            {
+                recipients.Add(match);
+                return;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(employeeName))
+        {
+            var norm = employeeName.Trim().ToLowerInvariant();
+            var match = candidates.FirstOrDefault(e =>
+                (e.FirstName + " " + e.LastName).Trim().ToLower() == norm ||
+                (e.LastName + " " + e.FirstName).Trim().ToLower() == norm ||
+                (e.FirstName ?? "").Trim().ToLower() == norm ||
+                (e.LastName ?? "").Trim().ToLower() == norm);
+            if (match != null && !recipients.Any(r => r.Id == match.Id))
+            {
+                recipients.Add(match);
+            }
+        }
     }
 
     public async Task NotifyCustomerOnboardedAsync(
@@ -1425,9 +1497,21 @@ public sealed class ActionNotificationService(
         string clientName,
         string? clientCode,
         string? createdByName,
+        Guid? engagementManagerId = null,
+        string? engagementManager = null,
+        Guid? salesManagerId = null,
+        string? salesManager = null,
         CancellationToken ct = default)
     {
-        var recipients = await ResolveCustomerNotificationRecipientsAsync(ct);
+        var recipients = await ResolveCustomerNotificationRecipientsAsync(
+            clientId,
+            engagementManagerId,
+            engagementManager,
+            salesManagerId,
+            salesManager,
+            null,
+            null,
+            ct);
         if (recipients.Count == 0) return;
 
         var title = $"Customer Onboarded: {clientName}";
@@ -1441,7 +1525,8 @@ public sealed class ActionNotificationService(
                 Title = title,
                 Type = "Customer Onboarded",
                 Priority = "Low",
-                Status = "Pending",
+                Status = "Created",
+                ProjectName = "-",
                 Unread = true,
                 RaisedByName = createdByName ?? currentUser.Name ?? "System",
                 RelatedTask = clientCode ?? clientName,
@@ -1450,7 +1535,7 @@ public sealed class ActionNotificationService(
                 {
                     new
                     {
-                        status = "Pending",
+                        status = "Created",
                         at = DateTime.UtcNow.ToString("o"),
                         details = $"Customer '{clientName}' has been successfully onboarded."
                     }
@@ -1471,9 +1556,21 @@ public sealed class ActionNotificationService(
         string subVentureName,
         string? subVentureCode,
         string? createdByName,
+        Guid? engagementManagerId = null,
+        string? engagementManager = null,
+        Guid? salesManagerId = null,
+        string? salesManager = null,
         CancellationToken ct = default)
     {
-        var recipients = await ResolveCustomerNotificationRecipientsAsync(ct);
+        var recipients = await ResolveCustomerNotificationRecipientsAsync(
+            clientId,
+            engagementManagerId,
+            engagementManager,
+            salesManagerId,
+            salesManager,
+            null,
+            null,
+            ct);
         if (recipients.Count == 0) return;
 
         var title = $"Sub-Venture Onboarded: {subVentureName} ({clientName})";
@@ -1487,7 +1584,8 @@ public sealed class ActionNotificationService(
                 Title = title,
                 Type = "Sub-Venture Onboarded",
                 Priority = "Low",
-                Status = "Pending",
+                Status = "Created",
+                ProjectName = "-",
                 Unread = true,
                 RaisedByName = createdByName ?? currentUser.Name ?? "System",
                 RelatedTask = subVentureCode ?? subVentureName,
@@ -1496,9 +1594,133 @@ public sealed class ActionNotificationService(
                 {
                     new
                     {
-                        status = "Pending",
+                        status = "Created",
                         at = DateTime.UtcNow.ToString("o"),
                         details = $"Sub-Venture '{subVentureName}' under Customer '{clientName}' has been successfully onboarded."
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(addedList);
+    }
+
+    public async Task NotifyCustomerEditedAsync(
+        Guid clientId,
+        string clientName,
+        string? clientCode,
+        string? performerName,
+        Guid? engagementManagerId = null,
+        string? engagementManager = null,
+        Guid? salesManagerId = null,
+        string? salesManager = null,
+        CancellationToken ct = default)
+    {
+        var recipients = await ResolveCustomerNotificationRecipientsAsync(
+            clientId,
+            engagementManagerId,
+            engagementManager,
+            salesManagerId,
+            salesManager,
+            null,
+            null,
+            ct);
+        if (recipients.Count == 0) return;
+
+        var title = $"{clientName} is edited";
+        var editorName = !string.IsNullOrWhiteSpace(performerName)
+            ? performerName
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
+
+        var addedList = new List<ActionNotification>();
+        foreach (var recipient in recipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                Title = title,
+                Type = "Customer Profile Edited",
+                Priority = "Low",
+                Status = "Edited",
+                ProjectName = "-",
+                Unread = true,
+                RaisedByName = editorName,
+                RelatedTask = clientCode ?? clientName,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = "Edited",
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = $"{clientName} is edited by {editorName}."
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(addedList);
+    }
+
+    public async Task NotifySubVentureEditedAsync(
+        Guid clientId,
+        string clientName,
+        Guid subVentureId,
+        string subVentureName,
+        string? subVentureCode,
+        string? performerName,
+        Guid? engagementManagerId = null,
+        string? engagementManager = null,
+        Guid? salesManagerId = null,
+        string? salesManager = null,
+        CancellationToken ct = default)
+    {
+        var recipients = await ResolveCustomerNotificationRecipientsAsync(
+            clientId,
+            engagementManagerId,
+            engagementManager,
+            salesManagerId,
+            salesManager,
+            null,
+            null,
+            ct);
+        if (recipients.Count == 0) return;
+
+        var title = $"{subVentureName} is edited";
+        var editorName = !string.IsNullOrWhiteSpace(performerName)
+            ? performerName
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
+
+        var addedList = new List<ActionNotification>();
+        foreach (var recipient in recipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                Title = title,
+                Type = "Sub-Venture Profile Edited",
+                Priority = "Low",
+                Status = "Edited",
+                ProjectName = "-",
+                Unread = true,
+                RaisedByName = editorName,
+                RelatedTask = subVentureCode ?? subVentureName,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = "Edited",
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = $"{subVentureName} is edited by {editorName}."
                     }
                 })
             };
@@ -1586,7 +1808,7 @@ public sealed class ActionNotificationService(
 
         if (recipients.Count == 0) return;
 
-        var title = $"WBS Created: {projectName}";
+        var title = $"WBS or the Project is Created with the {projectName}";
         var addedList = new List<ActionNotification>();
         foreach (var recipient in recipients)
         {
@@ -1597,21 +1819,21 @@ public sealed class ActionNotificationService(
                 Title = title,
                 Type = "WBS Created",
                 Priority = "Low",
-                Status = "Pending",
+                Status = "Created",
                 Unread = true,
                 RaisedByName = createdByName ?? currentUser.Name ?? "System",
                 ProjectId = projectId,
-                ProjectName = projectName,
-                ProjectCode = projectCode,
+                ProjectName = "-",
+                ProjectCode = null,
                 RelatedTask = wbsId ?? projectCode ?? projectName,
                 CreatedAtUtc = DateTime.UtcNow,
                 HistoryJson = JsonSerializer.Serialize(new[]
                 {
                     new
                     {
-                        status = "Pending",
+                        status = "Created",
                         at = DateTime.UtcNow.ToString("o"),
-                        details = $"Work Breakdown Structure for project '{projectName}' has been created."
+                        details = $"WBS or the Project is Created with the {projectName}"
                     }
                 })
             };
@@ -1723,7 +1945,8 @@ public sealed class ActionNotificationService(
                 Title = title,
                 Type = "Resource Onboarded",
                 Priority = "Low",
-                Status = "Pending",
+                Status = "Created",
+                ProjectName = "-",
                 Unread = true,
                 RaisedByName = performerName ?? currentUser.Name ?? "System",
                 RelatedTask = employeeCode,
@@ -1732,7 +1955,7 @@ public sealed class ActionNotificationService(
                 {
                     new
                     {
-                        status = "Pending",
+                        status = "Created",
                         at = DateTime.UtcNow.ToString("o"),
                         details = $"Resource '{employeeName}' ({employeeCode}) has been successfully onboarded."
                     }
@@ -1746,6 +1969,59 @@ public sealed class ActionNotificationService(
         TrySyncNotificationsToOtherDatabase(addedList);
     }
 
+    public async Task NotifyResourceProfileUpdatedAsync(
+        Guid employeeId,
+        string employeeName,
+        string employeeCode,
+        Guid? reportingManagerId,
+        IReadOnlyList<string> modifiedFields,
+        string? performerName,
+        Guid? performerEmployeeId,
+        CancellationToken ct = default)
+    {
+        if (!reportingManagerId.HasValue || reportingManagerId.Value == Guid.Empty) return;
+
+        var mgr = await db.Employees.FirstOrDefaultAsync(e => e.Id == reportingManagerId.Value && e.DeletedAtUtc == null, ct);
+        if (mgr == null) return;
+
+        var distinctChanges = modifiedFields.Distinct().ToList();
+        var fieldsText = distinctChanges.Count > 0 ? string.Join(", ", distinctChanges) : "details";
+        var editorName = !string.IsNullOrWhiteSpace(performerName)
+            ? performerName
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "Admin User");
+
+        var title = $"{employeeName} change their profile {fieldsText} by {editorName}";
+
+        var notif = new ActionNotification
+        {
+            Id = Guid.NewGuid(),
+            RecipientEmployeeId = mgr.Id,
+            Title = title,
+            Type = "Resource Profile Updated",
+            Priority = "Low",
+            Status = "Edited",
+            ProjectName = "-",
+            Unread = true,
+            RaisedByName = editorName,
+            RaisedByEmployeeId = performerEmployeeId,
+            RelatedTask = employeeCode,
+            CreatedAtUtc = DateTime.UtcNow,
+            HistoryJson = JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    status = "Edited",
+                    at = DateTime.UtcNow.ToString("o"),
+                    details = title
+                }
+            })
+        };
+
+        db.ActionNotifications.Add(notif);
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(new[] { notif });
+    }
+
 
     public async Task NotifyCustomerManagerChangedAsync(
         Guid clientId,
@@ -1754,62 +2030,30 @@ public sealed class ActionNotificationService(
         string managerRole,
         string managerName,
         Guid? managerEmployeeId,
-        string? performerName,
+        string? previousManagerName = null,
+        Guid? previousManagerEmployeeId = null,
+        string? performerName = null,
         CancellationToken ct = default)
     {
-        var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
-
-        // 1. The selected Resource (newly assigned manager)
-        if (managerEmployeeId.HasValue)
-        {
-            var mgr = await db.Employees
-                .FirstOrDefaultAsync(e => e.Id == managerEmployeeId.Value && e.DeletedAtUtc == null, ct);
-            if (mgr != null) recipients.Add(mgr);
-        }
-        else if (!string.IsNullOrWhiteSpace(managerName))
-        {
-            var normName = managerName.Trim().ToLowerInvariant();
-            var mgr = await db.Employees
-                .FirstOrDefaultAsync(e => e.DeletedAtUtc == null &&
-                    (e.FirstName + " " + e.LastName).Trim().ToLower() == normName, ct);
-            if (mgr != null) recipients.Add(mgr);
-        }
-
-        // 2. Resources whose On Floor Role is `Head Of Department`
-        var hodDesignationIds = await db.OnFloorRoles
-            .Where(r => r.DeletedAtUtc == null && (
-                r.Name.ToLower() == "head of department" ||
-                r.Name.ToLower() == "hod" ||
-                r.Name.ToLower().Contains("head of department")
-            ))
-            .Select(r => r.DesignationId)
-            .ToListAsync(ct);
-
-        var hodCandidates = await db.Employees
-            .Include(e => e.SubDepartmentRef)
-            .Where(e => e.DeletedAtUtc == null && (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
-            .Where(e =>
-                (e.DesignationId.HasValue && hodDesignationIds.Contains(e.DesignationId.Value))
-                || (e.Role != null && (
-                    e.Role.ToLower() == "head of department" ||
-                    e.Role.ToLower() == "hod" ||
-                    e.Role.ToLower().Contains("head of department") ||
-                    e.Role.ToLower().Contains("-hod")
-                ))
-            )
-            .ToListAsync(ct);
-
-        foreach (var hod in hodCandidates)
-        {
-            if (!recipients.Any(r => r.Id == hod.Id))
-            {
-                recipients.Add(hod);
-            }
-        }
+        var recipients = await ResolveCustomerNotificationRecipientsAsync(
+            clientId: clientId,
+            engagementManagerId: managerRole == "Engagement Manager" ? managerEmployeeId : null,
+            engagementManager: managerRole == "Engagement Manager" ? managerName : null,
+            salesManagerId: managerRole == "Sales Manager" ? managerEmployeeId : null,
+            salesManager: managerRole == "Sales Manager" ? managerName : null,
+            additionalEmployeeId: previousManagerEmployeeId,
+            additionalEmployeeName: previousManagerName,
+            ct: ct);
 
         if (recipients.Count == 0) return;
 
-        var title = $"{managerRole} Assigned: {clientName}";
+        var managerLabel = !string.IsNullOrWhiteSpace(previousManagerName) ? previousManagerName : managerRole;
+        var title = $"{managerLabel} of the Customer ({clientName}) change to the {managerName}";
+
+        var editorName = !string.IsNullOrWhiteSpace(performerName)
+            ? performerName
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
+
         var addedList = new List<ActionNotification>();
         foreach (var recipient in recipients)
         {
@@ -1818,20 +2062,94 @@ public sealed class ActionNotificationService(
                 Id = Guid.NewGuid(),
                 RecipientEmployeeId = recipient.Id,
                 Title = title,
-                Type = $"{managerRole} Assigned",
+                Type = $"{managerRole} Changed",
                 Priority = "Low",
-                Status = "Pending",
+                Status = "Edited",
+                ProjectName = "-",
                 Unread = true,
-                RaisedByName = performerName ?? currentUser.Name ?? "System",
+                RaisedByName = editorName,
                 RelatedTask = clientCode ?? clientName,
                 CreatedAtUtc = DateTime.UtcNow,
                 HistoryJson = JsonSerializer.Serialize(new[]
                 {
                     new
                     {
-                        status = "Pending",
+                        status = "Edited",
                         at = DateTime.UtcNow.ToString("o"),
-                        details = $"{managerName} has been assigned as the {managerRole} for customer '{clientName}'."
+                        details = title
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(addedList);
+    }
+
+    public async Task NotifyRepositoryDocumentUploadedAsync(
+        Guid documentId,
+        string fileName,
+        string category,
+        IReadOnlyList<Guid> departmentIds,
+        string? uploaderName,
+        Guid? uploaderEmployeeId = null,
+        CancellationToken ct = default)
+    {
+        if (departmentIds == null || departmentIds.Count == 0) return;
+
+        var validDeptIds = departmentIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (validDeptIds.Count == 0) return;
+
+        var candidates = await db.Employees
+            .Include(e => e.SubDepartmentRef)
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")))
+            .Where(e => (e.DepartmentId.HasValue && validDeptIds.Contains(e.DepartmentId.Value)) ||
+                        (e.SubDepartmentRef != null && e.SubDepartmentRef.DepartmentId.HasValue && validDeptIds.Contains(e.SubDepartmentRef.DepartmentId.Value)))
+            .ToListAsync(ct);
+
+        var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
+        foreach (var emp in candidates)
+        {
+            if (!recipients.Any(r => r.Id == emp.Id))
+            {
+                recipients.Add(emp);
+            }
+        }
+
+        if (recipients.Count == 0) return;
+
+        var title = "Document is Uploaded";
+        var editorName = !string.IsNullOrWhiteSpace(uploaderName)
+            ? uploaderName
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
+
+        var addedList = new List<ActionNotification>();
+        foreach (var recipient in recipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                Title = title,
+                Type = "Document Uploaded",
+                Priority = "-",
+                Status = "Upload",
+                ProjectName = "-",
+                ProjectCode = null,
+                Unread = true,
+                RaisedByName = editorName,
+                RaisedByEmployeeId = uploaderEmployeeId,
+                RelatedTask = fileName,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = "Upload",
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = $"Document '{fileName}' in category '{category}' was uploaded by {editorName}."
                     }
                 })
             };

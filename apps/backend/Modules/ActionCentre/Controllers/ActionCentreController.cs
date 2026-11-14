@@ -231,7 +231,7 @@ public class ActionCentreController : ControllerBase
     /// Gets pending central approvals (e.g. Customer Requirements, etc.) for current user.
     /// </summary>
     [HttpGet("approvals")]
-    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View)]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-center", "action-centre")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>>>> GetApprovals(
         [FromServices] PMS.API.Modules.Projects.Services.IProjectAdditionalRequirementService requirementService,
         CancellationToken ct = default)
@@ -244,7 +244,6 @@ public class ActionCentreController : ControllerBase
     /// Gets pending resource allocation approvals for the current reporting manager.
     /// </summary>
     [HttpGet("allocation-approvals")]
-    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectResourceAllocationRequestDto>>>> GetPendingAllocationApprovals(
         [FromServices] PMS.API.Modules.Projects.Services.IProjectTeamMemberService teamMemberService,
         CancellationToken ct = default)
@@ -257,7 +256,6 @@ public class ActionCentreController : ControllerBase
     /// Takes action (Approve, Reject, Hold, Request Changes) on a resource allocation approval request.
     /// </summary>
     [HttpPost("allocation-approvals/{id:guid}/action")]
-    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.Manage)]
     public async Task<ActionResult<ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectResourceAllocationRequestDto>>> TakeAllocationApprovalAction(
         Guid id,
         [FromQuery] Guid projectId,

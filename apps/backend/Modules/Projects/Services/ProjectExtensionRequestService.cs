@@ -1,37 +1,25 @@
 using System.Text.Json;
-
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.Extensions.Logging;
-
 using PMS.API.Infrastructure.Authorization;
-
 using PMS.API.Infrastructure.Persistence;
-
 using PMS.API.Modules.ActionCentre.Models;
-
 using PMS.API.Modules.Projects.DTOs;
-
 using PMS.API.Modules.Projects.Models;
-
 using PMS.API.Modules.Resources.Models;
-
+using PMS.API.Modules.Sla.DTOs;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Sla.Services;
 using PMS.API.Shared.Exceptions;
-
-
 
 namespace PMS.API.Modules.Projects.Services;
 
-
-
 public sealed class ProjectExtensionRequestService(
-
     AppDbContext db,
-
     ICurrentUserService currentUser,
-
+    ISlaTrackingService slaTrackingService,
+    ISlaRecipientResolver recipientResolver,
     ILogger<ProjectExtensionRequestService> logger) : IProjectExtensionRequestService
-
 {
 
     public const string PmoSubDepartment = "PMO (Project Management Office)";
@@ -274,6 +262,25 @@ public sealed class ProjectExtensionRequestService(
         await db.SaveChangesAsync(ct);
 
         TrySyncNotificationsToOtherDatabase(createdNotifs);
+
+        try
+        {
+            await slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                Module: "Project",
+                ActivityType: "Extension Request",
+                EntityId: row.Id,
+                EntityReference: $"EXT-{row.Id.ToString("N")[..8].ToUpper()}",
+                Stage: "Pending",
+                Priority: SlaPriority.High,
+                RecipientEmployeeId: people.FirstOrDefault()?.Id,
+                ProjectId: project.Id,
+                CustomStartTimeUtc: DateTime.UtcNow
+            ), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[ExtensionRequest] Failed to start SLA tracking for request {RequestId}", row.Id);
+        }
 
         return Map(row);
 
@@ -536,8 +543,14 @@ public sealed class ProjectExtensionRequestService(
             await NotifyLeadershipAndPmoAsync(project, ext, "Approved", approverName, approverEmployeeId, request.Comment, ct);
         }
 
-
-
+        try
+        {
+            await slaTrackingService.CompleteTrackingAsync(ext.Id, "Extension Request", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[ExtensionRequest] Failed to complete SLA tracking for {ExtId}", ext.Id);
+        }
 
         await db.SaveChangesAsync(ct);
 
@@ -613,8 +626,14 @@ public sealed class ProjectExtensionRequestService(
             await NotifyLeadershipAndPmoAsync(project, ext, "Rejected", approverName, approverEmployeeId, request.Comment, ct);
         }
 
-
-
+        try
+        {
+            await slaTrackingService.CompleteTrackingAsync(ext.Id, "Extension Request", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[ExtensionRequest] Failed to complete SLA tracking for {ExtId}", ext.Id);
+        }
 
         await db.SaveChangesAsync(ct);
 
@@ -819,28 +838,78 @@ public sealed class ProjectExtensionRequestService(
         string? comment,
         CancellationToken ct)
     {
-        var recipients = new List<Employee>();
+        var recipientIds = new HashSet<Guid>();
 
-        var tl = await ResolveTeamLeadAsync(project, ct);
-        if (tl != null) recipients.Add(tl);
-
-        var pm = await ResolveProjectManagerAsync(project, ct);
-        if (pm != null && !recipients.Any(r => r.Id == pm.Id)) recipients.Add(pm);
-
-        var spm = await ResolveSeniorProjectManagerAsync(project, ct);
-        if (spm != null && !recipients.Any(r => r.Id == spm.Id)) recipients.Add(spm);
-
-        var em = await ResolveEngagementManagerAsync(project, ct);
-        if (em != null && !recipients.Any(r => r.Id == em.Id)) recipients.Add(em);
-
-        var pmoTeam = await GetPmoTeamEmployeesAsync(ct);
-        foreach (var pmoMember in pmoTeam)
+        // 1. Assigned Project Manager(s)
+        if (project.ProjectManagerId.HasValue && project.ProjectManagerId.Value != Guid.Empty)
         {
-            if (!recipients.Any(r => r.Id == pmoMember.Id))
-            {
-                recipients.Add(pmoMember);
-            }
+            recipientIds.Add(project.ProjectManagerId.Value);
         }
+        var pmTeamMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.MemberRole == "ProjectManager" || tm.MemberRole == "PM" || tm.MemberRole == "Project Manager"))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in pmTeamMembers) recipientIds.Add(id);
+
+        // 2. Assigned Engagement Manager(s)
+        if (project.EngagementManagerId.HasValue && project.EngagementManagerId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.EngagementManagerId.Value);
+        }
+        if (project.Client != null && project.Client.EngagementManagerId.HasValue && project.Client.EngagementManagerId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.Client.EngagementManagerId.Value);
+        }
+        var emTeamMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.MemberRole == "EngagementManager" || tm.MemberRole == "EM" || tm.MemberRole == "Engagement Manager"))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in emTeamMembers) recipientIds.Add(id);
+        var emByName = await ResolveEngagementManagerAsync(project, ct);
+        if (emByName != null) recipientIds.Add(emByName.Id);
+
+        // 3. Assigned Senior Project Manager(s)
+        var spmRecipients = await recipientResolver.ResolveRecipientsAsync(new SlaInstance { ProjectId = project.Id }, ["Assigned Senior Project Manager"], ct);
+        foreach (var id in spmRecipients) recipientIds.Add(id);
+
+        // 4. Head of Department (HOD)
+        var hodRecipients = await recipientResolver.ResolveRecipientsAsync(new SlaInstance { ProjectId = project.Id }, ["Head of Department"], ct);
+        foreach (var id in hodRecipients) recipientIds.Add(id);
+
+        // 5. Team Leads of the project
+        if (project.TeamLeadId.HasValue && project.TeamLeadId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.TeamLeadId.Value);
+        }
+        var tlMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.IsTeamLead || tm.MemberRole == "TeamLead" || tm.MemberRole == "Team Leader" || (tm.MemberRole != null && tm.MemberRole.Contains("TeamLead"))))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in tlMembers) recipientIds.Add(id);
+
+        // 6. PMO whose Resources Sub-Department are `EM (Engagement Manager)`, `PMO (Project Management Office)`
+        var targetSubDeptEm = "em (engagement manager)";
+        var targetSubDeptPmo = "pmo (project management office)";
+        var pmoEmployees = await db.Employees
+            .AsNoTracking()
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
+            .Where(e => (e.SubDepartment != null && (
+                            e.SubDepartment.ToLower() == targetSubDeptEm ||
+                            e.SubDepartment.ToLower() == targetSubDeptPmo
+                        ))
+                        || (e.SubDepartmentRef != null && (
+                            e.SubDepartmentRef.Name.ToLower() == targetSubDeptEm ||
+                            e.SubDepartmentRef.Name.ToLower() == targetSubDeptPmo
+                        )))
+            .Select(e => e.Id)
+            .ToListAsync(ct);
+        foreach (var id in pmoEmployees) recipientIds.Add(id);
 
         var commentPart = string.IsNullOrWhiteSpace(comment) ? "" : $" Remarks: \"{comment.Trim()}\"";
         string notifTitle;
@@ -872,13 +941,25 @@ public sealed class ProjectExtensionRequestService(
             priority = "Medium";
         }
 
+        // Also update any pending approval request notifications for this extension request
+        var extIdStr = ext.Id.ToString();
+        var existingNotifs = await db.ActionNotifications
+            .Where(n => n.RelatedTask == extIdStr && n.DeletedAtUtc == null && n.Status == "Pending")
+            .ToListAsync(ct);
+        foreach (var n in existingNotifs)
+        {
+            n.Status = notifStatus;
+            n.Unread = false;
+            n.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
         var createdNotifs = new List<ActionNotification>();
-        foreach (var recipient in recipients)
+        foreach (var recipientId in recipientIds)
         {
             var notif = new ActionNotification
             {
                 Id = Guid.NewGuid(),
-                RecipientEmployeeId = recipient.Id,
+                RecipientEmployeeId = recipientId,
                 ProjectId = project.Id,
                 ProjectCode = project.ProjectCode,
                 ProjectName = project.Name,
@@ -1174,6 +1255,15 @@ public sealed class ProjectExtensionRequestService(
         if (project != null)
         {
             await NotifyLeadershipAndPmoAsync(project, ext, statusLabel, actorName, actorEmployeeId, request.Comment, ct);
+        }
+
+        try
+        {
+            await slaTrackingService.CompleteTrackingAsync(ext.Id, "Extension Request", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[ExtensionRequest] Failed to complete SLA tracking for {ExtId}", ext.Id);
         }
 
         await db.SaveChangesAsync(ct);

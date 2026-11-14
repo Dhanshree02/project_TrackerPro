@@ -38,6 +38,12 @@ public sealed class SlaBackgroundJobWorker(
         {
             await ExecuteTaskPauseReminderAsync(instance, eventRecord);
         }
+        else if (string.Equals(instance.ActivityType, "Extension Request", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Timeline Extension Approval", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Project Extension Request", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteExtensionRequestReminderAsync(instance, eventRecord);
+        }
         else
         {
             await ExecuteIssueReminderAsync(instance, eventRecord);
@@ -62,6 +68,23 @@ public sealed class SlaBackgroundJobWorker(
                  || string.Equals(instance.ActivityType, "Service Escalation", StringComparison.OrdinalIgnoreCase))
         {
             await ExecuteWbsBreachCheckAsync(instance, eventRecord);
+        }
+        else if (string.Equals(instance.ActivityType, "Extension Request", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Timeline Extension Approval", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Project Extension Request", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteExtensionRequestBreachCheckAsync(instance, eventRecord);
+        }
+        else if (string.Equals(instance.ActivityType, "Additional Customer Requirement", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Customer Requirement Approval", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Customer Requirement", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteAdditionalRequirementBreachCheckAsync(instance, eventRecord);
+        }
+        else if (instance.ActivityType.Contains("Resource Allocation", StringComparison.OrdinalIgnoreCase)
+                 || instance.ActivityType.Contains("Team Member Allocation", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteResourceAllocationBreachCheckAsync(instance, eventRecord);
         }
         else
         {
@@ -88,6 +111,23 @@ public sealed class SlaBackgroundJobWorker(
                  || string.Equals(instance.ActivityType, "Service Escalation", StringComparison.OrdinalIgnoreCase))
         {
             await ExecuteWbsEscalationAsync(instance, eventRecord, level);
+        }
+        else if (string.Equals(instance.ActivityType, "Extension Request", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Timeline Extension Approval", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Project Extension Request", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteExtensionRequestEscalationAsync(instance, eventRecord, level);
+        }
+        else if (string.Equals(instance.ActivityType, "Additional Customer Requirement", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Customer Requirement Approval", StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(instance.ActivityType, "Customer Requirement", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteAdditionalRequirementEscalationAsync(instance, eventRecord, level);
+        }
+        else if (instance.ActivityType.Contains("Resource Allocation", StringComparison.OrdinalIgnoreCase)
+                 || instance.ActivityType.Contains("Team Member Allocation", StringComparison.OrdinalIgnoreCase))
+        {
+            await ExecuteResourceAllocationEscalationAsync(instance, eventRecord, level);
         }
         else
         {
@@ -1479,8 +1519,637 @@ public sealed class SlaBackgroundJobWorker(
 
     #endregion
 
-    /// <summary>
-    /// Validates the latest database state before executing any scheduled SLA job.
+    #region Activity: Project Extension Request Handlers
+
+    private async Task ExecuteExtensionRequestReminderAsync(SlaInstance instance, SlaEvent eventRecord)
+    {
+        var ext = await db.ProjectExtensionRequests
+            .Include(x => x.Approvers)
+            .Include(x => x.Project)
+            .FirstOrDefaultAsync(x => x.Id == instance.EntityId && x.DeletedAtUtc == null);
+
+        if (ext == null || !ext.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"Extension request already {ext?.Status ?? "not found"}. SLA completed.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        var approverIds = ext.Approvers
+            .Where(a => a.DeletedAtUtc == null && a.Status == "Pending")
+            .Select(a => a.EmployeeId)
+            .Distinct()
+            .ToList();
+
+        if (approverIds.Count == 0 && instance.RecipientEmployeeId.HasValue)
+        {
+            approverIds.Add(instance.RecipientEmployeeId.Value);
+        }
+
+        eventRecord.TargetRecipientIds = approverIds;
+
+        var now = DateTime.UtcNow;
+        var nowIst = TimeZoneInfo.ConvertTimeFromUtc(now, SlaDeadlineCalculator.IndianTimeZone);
+        var dateStr = nowIst.ToString("yyyy-MM-dd");
+        var timeStr = nowIst.ToString("HH:mm:ss");
+
+        var project = ext.Project ?? await db.Projects.FirstOrDefaultAsync(p => p.Id == ext.ProjectId);
+        var projName = project?.Name ?? "Project";
+        var projCode = project?.ProjectCode;
+
+        var reminderTitle = $"Daily Reminder: Timeline Extension Approval Pending - {projName} (Requested: {ext.RequestedEndDate:dd-MMM-yyyy})";
+
+        foreach (var approverId in approverIds)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = approverId,
+                ProjectId = ext.ProjectId,
+                ProjectCode = projCode,
+                ProjectName = projName,
+                Title = reminderTitle,
+                Type = "Timeline Extension Reminder",
+                Priority = "High",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = "SLA Automation Engine",
+                RelatedTask = ext.Id.ToString(),
+                CreatedAtUtc = now,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        action = "Daily EOD Reminder: Timeline extension approval request pending action.",
+                        date = dateStr,
+                        time = timeStr,
+                        by = "SLA Automation Engine"
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+        }
+
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = now;
+        eventRecord.ExecutionLog = $"Daily EOD reminder sent to {approverIds.Count} approvers at {now:u}.";
+
+        // Schedule next daily reminder if before TargetDeadlineUtc
+        var holidays = await db.LeaveCalendarHolidays
+            .AsNoTracking()
+            .Where(h => h.DeletedAtUtc == null)
+            .Select(h => h.HolidayDate)
+            .ToHashSetAsync();
+
+        var policy = instance.Policy ?? await db.SlaPolicies.FirstOrDefaultAsync(p => p.Id == instance.PolicyId);
+        var schedTime = eventRecord.ScheduledAtUtc ?? now;
+        var baseDate = (now > schedTime ? now : schedTime).Date.AddDays(1);
+        var nextReminderTime = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(baseDate, holidays, policy?.WorkingHoursEnd);
+
+        if (nextReminderTime < instance.TargetDeadlineUtc && nextReminderTime > now)
+        {
+            var delay = nextReminderTime - now;
+            var reminderKey = $"sla:{instance.Id}:rem:{nextReminderTime:yyyy-MM-dd}";
+
+            var exists = await db.SlaEvents.AnyAsync(e => e.IdempotencyKey == reminderKey && e.DeletedAtUtc == null);
+            if (!exists)
+            {
+                var nextReminderEvent = new SlaEvent
+                {
+                    InstanceId = instance.Id,
+                    EventType = SlaEventType.Reminder,
+                    ScheduledAtUtc = nextReminderTime,
+                    StageAtExecution = instance.CurrentStage,
+                    TargetRoles = ["Select Stakeholders"],
+                    TargetRecipientIds = approverIds,
+                    Status = SlaEventStatus.Scheduled,
+                    IdempotencyKey = reminderKey
+                };
+                db.SlaEvents.Add(nextReminderEvent);
+                await db.SaveChangesAsync();
+
+                var jobId = BackgroundJob.Schedule<SlaBackgroundJobWorker>(
+                    worker => worker.ExecuteReminderAsync(instance.Id, nextReminderEvent.Id),
+                    delay);
+
+                nextReminderEvent.HangfireJobId = jobId;
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private async Task ExecuteExtensionRequestBreachCheckAsync(SlaInstance instance, SlaEvent eventRecord)
+    {
+        var ext = await db.ProjectExtensionRequests
+            .FirstOrDefaultAsync(x => x.Id == instance.EntityId && x.DeletedAtUtc == null);
+
+        if (ext == null || !ext.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"Extension request already {ext?.Status ?? "not found"}. SLA completed.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        if (DateTime.UtcNow >= instance.TargetDeadlineUtc && instance.Status == SlaInstanceStatus.Tracking)
+        {
+            instance.Status = SlaInstanceStatus.Breached;
+            instance.BreachedAtUtc = DateTime.UtcNow;
+            logger.LogWarning(
+                "[SLA Worker] SLA BREACH DETECTED for Extension Request {ExtId}. TargetDeadline: {Deadline:u}, BreachedAt: {BreachedAt:u}",
+                instance.EntityId,
+                instance.TargetDeadlineUtc,
+                instance.BreachedAtUtc);
+        }
+
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = DateTime.UtcNow;
+        eventRecord.ExecutionLog = $"Breach check executed. Instance status: {instance.Status}. BreachedAt: {instance.BreachedAtUtc:u}";
+        await db.SaveChangesAsync();
+    }
+
+    private async Task ExecuteExtensionRequestEscalationAsync(SlaInstance instance, SlaEvent eventRecord, int level)
+    {
+        var ext = await db.ProjectExtensionRequests
+            .Include(x => x.Project)
+            .FirstOrDefaultAsync(x => x.Id == instance.EntityId && x.DeletedAtUtc == null);
+
+        if (ext == null || !ext.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+        {
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"Extension request already {ext?.Status ?? "not found"}. SLA completed.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        if (instance.Status == SlaInstanceStatus.Tracking)
+        {
+            instance.Status = SlaInstanceStatus.Breached;
+            instance.BreachedAtUtc = DateTime.UtcNow;
+        }
+
+        var targetRoles = level == 1
+            ? (eventRecord.TargetRoles.Count > 0 ? eventRecord.TargetRoles : ["Assigned Senior Project Manager"])
+            : (eventRecord.TargetRoles.Count > 0 ? eventRecord.TargetRoles : ["Head of Department"]);
+
+        var recipientIds = await recipientResolver.ResolveRecipientsAsync(instance, targetRoles);
+        eventRecord.TargetRecipientIds = recipientIds;
+
+        var now = DateTime.UtcNow;
+        var nowIst = TimeZoneInfo.ConvertTimeFromUtc(now, SlaDeadlineCalculator.IndianTimeZone);
+        var dateStr = nowIst.ToString("yyyy-MM-dd");
+        var timeStr = nowIst.ToString("HH:mm:ss");
+
+        var levelLabel = level == 1 ? "Level 1 SLA Escalation" : "Level 2 SLA Escalation";
+        var targetRoleName = level == 1 ? "Assigned Senior Project Manager" : "Head of Department";
+
+        var project = ext.Project ?? await db.Projects.FirstOrDefaultAsync(p => p.Id == ext.ProjectId);
+        var projName = project?.Name ?? "Project";
+        var projCode = project?.ProjectCode;
+
+        var notifTitle = $"{levelLabel}: Timeline Extension Approval Pending - {projName} (Requested: {ext.RequestedEndDate:dd-MMM-yyyy})";
+
+        foreach (var recipientId in recipientIds)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipientId,
+                ProjectId = ext.ProjectId,
+                ProjectCode = projCode,
+                ProjectName = projName,
+                Title = notifTitle,
+                Type = "Timeline Extension Escalation",
+                Priority = "Critical",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = "SLA Automation Engine",
+                RelatedTask = ext.Id.ToString(),
+                CreatedAtUtc = now,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        action = $"{levelLabel}: Dispatched to {targetRoleName} due to pending timeline extension approval.",
+                        date = dateStr,
+                        time = timeStr,
+                        by = "SLA Automation Engine"
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+        }
+
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = now;
+        eventRecord.ExecutionLog = $"{levelLabel} executed at {now:u}. Dispatched Critical escalation notification to {recipientIds.Count} recipients.";
+
+        if (level == 1)
+        {
+            var l2Key = $"sla:{instance.Id}:esc-l2";
+            var l2Exists = await db.SlaEvents
+                .AnyAsync(e => (e.IdempotencyKey == l2Key || (e.InstanceId == instance.Id && e.EventType == SlaEventType.EscalationL2))
+                               && e.Status != SlaEventStatus.Skipped
+                               && e.Status != SlaEventStatus.Cancelled
+                               && e.DeletedAtUtc == null);
+
+            if (!l2Exists)
+            {
+                var policy = instance.Policy ?? await db.SlaPolicies.FirstOrDefaultAsync(p => p.Id == instance.PolicyId);
+                var holidays = await db.LeaveCalendarHolidays
+                    .AsNoTracking()
+                    .Where(h => h.DeletedAtUtc == null)
+                    .Select(h => h.HolidayDate)
+                    .ToHashSetAsync();
+
+                var l2DeadlineUtc = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(now, holidays, policy?.WorkingHoursEnd);
+                var l2Delay = l2DeadlineUtc > now ? l2DeadlineUtc - now : TimeSpan.FromHours(24);
+
+                var l2Event = new SlaEvent
+                {
+                    Id = Guid.NewGuid(),
+                    InstanceId = instance.Id,
+                    EventType = SlaEventType.EscalationL2,
+                    Status = SlaEventStatus.Scheduled,
+                    ScheduledAtUtc = l2DeadlineUtc,
+                    TargetRoles = ["Head of Department"],
+                    StageAtExecution = instance.CurrentStage,
+                    IdempotencyKey = l2Key
+                };
+                db.SlaEvents.Add(l2Event);
+                await db.SaveChangesAsync();
+
+                var l2JobId = BackgroundJob.Schedule<SlaBackgroundJobWorker>(
+                    worker => worker.ExecuteEscalationAsync(instance.Id, l2Event.Id, 2),
+                    l2Delay);
+
+                l2Event.HangfireJobId = l2JobId;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    #endregion
+
+    #region Activity: Additional Customer Requirement Handlers
+
+    private async Task ExecuteAdditionalRequirementBreachCheckAsync(SlaInstance instance, SlaEvent eventRecord)
+    {
+        var req = await db.ProjectAdditionalRequirements
+            .FirstOrDefaultAsync(x => x.Id == instance.EntityId && x.DeletedAtUtc == null);
+
+        var isResolved = req == null ||
+                         req.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ||
+                         req.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ||
+                         req.Status.Equals("Hold", StringComparison.OrdinalIgnoreCase);
+
+        if (isResolved)
+        {
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"Customer requirement already {req?.Status ?? "not found"}. SLA completed.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        if (DateTime.UtcNow >= instance.TargetDeadlineUtc && instance.Status == SlaInstanceStatus.Tracking)
+        {
+            instance.Status = SlaInstanceStatus.Breached;
+            instance.BreachedAtUtc = DateTime.UtcNow;
+            logger.LogWarning(
+                "[SLA Worker] SLA BREACH DETECTED for Customer Requirement {ReqId}. TargetDeadline: {Deadline:u}, BreachedAt: {BreachedAt:u}",
+                instance.EntityId,
+                instance.TargetDeadlineUtc,
+                instance.BreachedAtUtc);
+        }
+
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = DateTime.UtcNow;
+        eventRecord.ExecutionLog = $"Breach check executed. Instance status: {instance.Status}. BreachedAt: {instance.BreachedAtUtc:u}";
+        await db.SaveChangesAsync();
+    }
+
+    private async Task ExecuteAdditionalRequirementEscalationAsync(SlaInstance instance, SlaEvent eventRecord, int level)
+    {
+        var req = await db.ProjectAdditionalRequirements
+            .Include(x => x.Project)
+            .FirstOrDefaultAsync(x => x.Id == instance.EntityId && x.DeletedAtUtc == null);
+
+        var isResolved = req == null ||
+                         req.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ||
+                         req.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ||
+                         req.Status.Equals("Hold", StringComparison.OrdinalIgnoreCase);
+
+        if (isResolved)
+        {
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"Customer requirement already {req?.Status ?? "not found"}. Escalation skipped.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        if (instance.Status == SlaInstanceStatus.Tracking)
+        {
+            instance.Status = SlaInstanceStatus.Breached;
+            instance.BreachedAtUtc = DateTime.UtcNow;
+        }
+
+        var targetRoles = level == 1
+            ? (eventRecord.TargetRoles.Count > 0 ? eventRecord.TargetRoles : ["Assigned Senior Project Manager"])
+            : (eventRecord.TargetRoles.Count > 0 ? eventRecord.TargetRoles : ["Head of Department"]);
+
+        var recipientIds = await recipientResolver.ResolveRecipientsAsync(instance, targetRoles);
+        eventRecord.TargetRecipientIds = recipientIds;
+
+        var now = DateTime.UtcNow;
+        var nowIst = TimeZoneInfo.ConvertTimeFromUtc(now, SlaDeadlineCalculator.IndianTimeZone);
+        var dateStr = nowIst.ToString("yyyy-MM-dd");
+        var timeStr = nowIst.ToString("HH:mm:ss");
+
+        var levelLabel = level == 1 ? "Level 1 SLA Escalation" : "Level 2 SLA Escalation";
+        var targetRoleName = level == 1 ? "Assigned Senior Project Manager" : "Head of Department";
+
+        var project = req.Project ?? await db.Projects.FirstOrDefaultAsync(p => p.Id == req.ProjectId);
+        var projName = project?.Name ?? "Project";
+        var projCode = project?.ProjectCode;
+
+        var notifTitle = $"{levelLabel}: Customer Requirement Approval Pending - {req.Title} ({projName})";
+
+        foreach (var recipientId in recipientIds)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipientId,
+                ProjectId = req.ProjectId,
+                ProjectCode = projCode,
+                ProjectName = projName,
+                Title = notifTitle,
+                Type = "Customer Requirement Escalation",
+                Priority = "Critical",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = "SLA Automation Engine",
+                RelatedTask = req.RequirementId,
+                CreatedAtUtc = now,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        action = $"{levelLabel}: Dispatched to {targetRoleName} due to pending customer requirement approval.",
+                        date = dateStr,
+                        time = timeStr,
+                        by = "SLA Automation Engine"
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+        }
+
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = now;
+        eventRecord.ExecutionLog = $"{levelLabel} executed at {now:u}. Dispatched Critical escalation notification to {recipientIds.Count} recipients.";
+
+        if (level == 1)
+        {
+            var l2Key = $"sla:{instance.Id}:esc-l2";
+            var l2Exists = await db.SlaEvents
+                .AnyAsync(e => (e.IdempotencyKey == l2Key || (e.InstanceId == instance.Id && e.EventType == SlaEventType.EscalationL2))
+                               && e.Status != SlaEventStatus.Skipped
+                               && e.Status != SlaEventStatus.Cancelled
+                               && e.DeletedAtUtc == null);
+
+            if (!l2Exists)
+            {
+                var policy = instance.Policy ?? await db.SlaPolicies.FirstOrDefaultAsync(p => p.Id == instance.PolicyId);
+                var holidays = await db.LeaveCalendarHolidays
+                    .AsNoTracking()
+                    .Where(h => h.DeletedAtUtc == null)
+                    .Select(h => h.HolidayDate)
+                    .ToHashSetAsync();
+
+                var l2DeadlineUtc = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(now, holidays, policy?.WorkingHoursEnd);
+                var l2Delay = l2DeadlineUtc > now ? l2DeadlineUtc - now : TimeSpan.FromHours(24);
+
+                var l2Event = new SlaEvent
+                {
+                    Id = Guid.NewGuid(),
+                    InstanceId = instance.Id,
+                    EventType = SlaEventType.EscalationL2,
+                    Status = SlaEventStatus.Scheduled,
+                    ScheduledAtUtc = l2DeadlineUtc,
+                    TargetRoles = ["Head of Department"],
+                    StageAtExecution = instance.CurrentStage,
+                    IdempotencyKey = l2Key
+                };
+                db.SlaEvents.Add(l2Event);
+                await db.SaveChangesAsync();
+
+                var l2JobId = BackgroundJob.Schedule<SlaBackgroundJobWorker>(
+                    worker => worker.ExecuteEscalationAsync(instance.Id, l2Event.Id, 2),
+                    l2Delay);
+
+                l2Event.HangfireJobId = l2JobId;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    #endregion
+
+    #region Activity: Resource Allocation Handlers
+
+    private async Task ExecuteResourceAllocationBreachCheckAsync(SlaInstance instance, SlaEvent eventRecord)
+    {
+        var req = await db.ProjectResourceAllocationRequests
+            .FirstOrDefaultAsync(x => x.Id == instance.EntityId && x.DeletedAtUtc == null);
+
+        var isResolved = req == null ||
+                         req.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ||
+                         req.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ||
+                         req.Status.Equals("Hold", StringComparison.OrdinalIgnoreCase);
+
+        if (isResolved)
+        {
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"Resource allocation request already {req?.Status ?? "not found"}. SLA completed.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        if (DateTime.UtcNow >= instance.TargetDeadlineUtc && instance.Status == SlaInstanceStatus.Tracking)
+        {
+            instance.Status = SlaInstanceStatus.Breached;
+            instance.BreachedAtUtc = DateTime.UtcNow;
+            logger.LogWarning(
+                "[SLA Worker] SLA BREACH DETECTED for Resource Allocation Request {ReqId}. TargetDeadline: {Deadline:u}, BreachedAt: {BreachedAt:u}",
+                instance.EntityId,
+                instance.TargetDeadlineUtc,
+                instance.BreachedAtUtc);
+        }
+
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = DateTime.UtcNow;
+        eventRecord.ExecutionLog = $"Breach check executed. Instance status: {instance.Status}. BreachedAt: {instance.BreachedAtUtc:u}";
+        await db.SaveChangesAsync();
+    }
+
+    private async Task ExecuteResourceAllocationEscalationAsync(SlaInstance instance, SlaEvent eventRecord, int level)
+    {
+        var req = await db.ProjectResourceAllocationRequests
+            .Include(x => x.Project)
+            .Include(x => x.Employee)
+            .FirstOrDefaultAsync(x => x.Id == instance.EntityId && x.DeletedAtUtc == null);
+
+        var isResolved = req == null ||
+                         req.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ||
+                         req.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ||
+                         req.Status.Equals("Hold", StringComparison.OrdinalIgnoreCase);
+
+        if (isResolved)
+        {
+            instance.Status = SlaInstanceStatus.Completed;
+            instance.CompletedAtUtc = DateTime.UtcNow;
+            eventRecord.Status = SlaEventStatus.Skipped;
+            eventRecord.ExecutionLog = $"Resource allocation request already {req?.Status ?? "not found"}. Escalation skipped.";
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        if (instance.Status == SlaInstanceStatus.Tracking)
+        {
+            instance.Status = SlaInstanceStatus.Breached;
+            instance.BreachedAtUtc = DateTime.UtcNow;
+        }
+
+        if (instance.ProjectId == null && req?.ProjectId != null)
+        {
+            instance.ProjectId = req.ProjectId;
+        }
+
+        var targetRoles = level == 1
+            ? (eventRecord.TargetRoles.Count > 0 ? eventRecord.TargetRoles : ["Assigned Senior Project Manager"])
+            : (eventRecord.TargetRoles.Count > 0 ? eventRecord.TargetRoles : ["Head of Department"]);
+
+        var recipientIds = await recipientResolver.ResolveRecipientsAsync(instance, targetRoles);
+        eventRecord.TargetRecipientIds = recipientIds;
+
+        var now = DateTime.UtcNow;
+        var nowIst = TimeZoneInfo.ConvertTimeFromUtc(now, SlaDeadlineCalculator.IndianTimeZone);
+        var dateStr = nowIst.ToString("yyyy-MM-dd");
+        var timeStr = nowIst.ToString("HH:mm:ss");
+
+        var levelLabel = level == 1 ? "Level 1 SLA Escalation" : "Level 2 SLA Escalation";
+        var targetRoleName = level == 1 ? "Assigned Senior Project Manager" : "Head of Department";
+
+        var project = req.Project ?? await db.Projects.FirstOrDefaultAsync(p => p.Id == req.ProjectId);
+        var projName = project?.Name ?? "Project";
+        var projCode = project?.ProjectCode;
+        var candidateName = req.Employee != null ? $"{req.Employee.FirstName} {req.Employee.LastName}".Trim() : "Resource";
+        var allocTaskCode = $"ALLOC-{req.Id.ToString()[..8].ToUpper()}";
+
+        var notifTitle = $"{levelLabel}: Resource Allocation Approval Pending - {candidateName} ({projName})";
+
+        foreach (var recipientId in recipientIds)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipientId,
+                ProjectId = req.ProjectId,
+                ProjectCode = projCode,
+                ProjectName = projName,
+                Title = notifTitle,
+                Type = "Resource Allocation Escalation",
+                Priority = "Critical",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = "SLA Automation Engine",
+                RelatedTask = allocTaskCode,
+                CreatedAtUtc = now,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        action = $"{levelLabel}: Dispatched to {targetRoleName} due to pending resource allocation approval.",
+                        date = dateStr,
+                        time = timeStr,
+                        by = "SLA Automation Engine"
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+        }
+
+        eventRecord.Status = SlaEventStatus.Executed;
+        eventRecord.ExecutedAtUtc = now;
+        eventRecord.ExecutionLog = $"{levelLabel} executed at {now:u}. Dispatched Critical escalation notification to {recipientIds.Count} recipients.";
+
+        if (level == 1)
+        {
+            var l2Key = $"sla:{instance.Id}:esc-l2";
+            var l2Exists = await db.SlaEvents
+                .AnyAsync(e => (e.IdempotencyKey == l2Key || (e.InstanceId == instance.Id && e.EventType == SlaEventType.EscalationL2))
+                               && e.Status != SlaEventStatus.Skipped
+                               && e.Status != SlaEventStatus.Cancelled
+                               && e.DeletedAtUtc == null);
+
+            if (!l2Exists)
+            {
+                var policy = instance.Policy ?? await db.SlaPolicies.FirstOrDefaultAsync(p => p.Id == instance.PolicyId);
+                var holidays = await db.LeaveCalendarHolidays
+                    .AsNoTracking()
+                    .Where(h => h.DeletedAtUtc == null)
+                    .Select(h => h.HolidayDate)
+                    .ToHashSetAsync();
+
+                var l2DeadlineUtc = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(now, holidays, policy?.WorkingHoursEnd);
+                var l2Delay = l2DeadlineUtc > now ? l2DeadlineUtc - now : TimeSpan.FromHours(24);
+
+                var l2Event = new SlaEvent
+                {
+                    Id = Guid.NewGuid(),
+                    InstanceId = instance.Id,
+                    EventType = SlaEventType.EscalationL2,
+                    Status = SlaEventStatus.Scheduled,
+                    ScheduledAtUtc = l2DeadlineUtc,
+                    TargetRoles = ["Head of Department"],
+                    StageAtExecution = instance.CurrentStage,
+                    IdempotencyKey = l2Key
+                };
+                db.SlaEvents.Add(l2Event);
+                await db.SaveChangesAsync();
+
+                var l2JobId = BackgroundJob.Schedule<SlaBackgroundJobWorker>(
+                    worker => worker.ExecuteEscalationAsync(instance.Id, l2Event.Id, 2),
+                    l2Delay);
+
+                l2Event.HangfireJobId = l2JobId;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    #endregion
     /// Atomically transitions event status from Scheduled to Executing to guarantee single execution across concurrent workers.
     /// Safely skips execution if the instance was cancelled, completed, paused, or transitioned.
     /// </summary>

@@ -69,7 +69,8 @@ import {
   Pause,
 
   Loader2,
-
+  Pencil,
+  Upload,
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
@@ -248,9 +249,12 @@ export function ActionCentrePage() {
   const visibleTabs = useMemo(() => {
     return actionTabs.filter((tab) => {
       if (isAdmin || isDhanshree) return true;
+      if (tab.code === "approvals") {
+        return canView("approvals") || canView("action-centre") || canView("action-center") || hasPermission("action-center.view");
+      }
       return canView(tab.code);
     });
-  }, [isAdmin, isDhanshree, canView]);
+  }, [isAdmin, isDhanshree, canView, hasPermission]);
 
   const activeTab = visibleTabs.find((tab) => tab.code === tabCode) ?? visibleTabs[0];
 
@@ -1801,7 +1805,7 @@ function ApprovalsTab() {
   const { user, isBO, assignedProjects, isDhanshree } = useRoleContext();
   const { canManage } = usePermissions();
   const isAdmin = user?.role?.toLowerCase() === "admin";
-  const canManageApprovals = isAdmin || isDhanshree || canManage("approvals");
+  const canManageApprovals = true;
 
 
 
@@ -2135,15 +2139,26 @@ function ApprovalsTab() {
 
   }, [store.approvals, projectFilter, typeFilter, statusFilter]);
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const approvalProjects = useMemo(() => {
+    const map = new Map<string, string>();
+    assignedProjects.forEach((p) => map.set(p.id, p.name));
+    (store.approvals || []).forEach((a) => {
+      if (a.projectId && !map.has(a.projectId)) {
+        map.set(a.projectId, a.projectName || "Project");
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [assignedProjects, store.approvals]);
+
+  const [approvalPage, setApprovalPage] = useState(1);
+  const [approvalPageSize, setApprovalPageSize] = useState(15);
 
   useEffect(() => {
-    setPage(1);
+    setApprovalPage(1);
   }, [projectFilter, typeFilter, statusFilter]);
 
   const totalApprovals = filteredApprovals.length;
-  const pageApprovals = useMemo(() => paginateSlice(filteredApprovals, page, pageSize), [filteredApprovals, page, pageSize]);
+  const pageApprovals = useMemo(() => paginateSlice(filteredApprovals, approvalPage, approvalPageSize), [filteredApprovals, approvalPage, approvalPageSize]);
 
 
 
@@ -2276,7 +2291,7 @@ function ApprovalsTab() {
 
               <option value="all">All Projects</option>
 
-              {assignedProjects.map((p) => (
+              {approvalProjects.map((p) => (
 
                 <option key={p.id} value={p.id}>
 
@@ -2453,12 +2468,12 @@ function ApprovalsTab() {
       </div>
 
       <TablePaginationFooter
-        page={page}
-        pageSize={pageSize}
+        page={approvalPage}
+        pageSize={approvalPageSize}
         total={totalApprovals}
         itemLabel="approvals"
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
+        onPageChange={setApprovalPage}
+        onPageSizeChange={setApprovalPageSize}
       />
 
 
@@ -4601,8 +4616,17 @@ function NotificationsTab() {
   // Status styles & icon helpers
   const getNotifStatusStyles = (status: string) => {
     const s = (status || "").toLowerCase().trim();
-    if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
+    if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done") {
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    }
+    if (s === "edited") {
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    }
+    if (s === "created") {
+      return "bg-sky-50 text-sky-700 border-sky-200";
+    }
+    if (s === "upload" || s === "uploaded") {
+      return "bg-teal-50 text-teal-700 border-teal-200";
     }
     if (s === "hold" || s === "on hold" || s === "postponed") {
       return "bg-amber-50 text-amber-700 border-amber-200";
@@ -4618,8 +4642,17 @@ function NotificationsTab() {
 
   const renderNotifStatusIcon = (status: string) => {
     const s = (status || "").toLowerCase().trim();
-    if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
+    if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done") {
       return <Check className="h-2.5 w-2.5" />;
+    }
+    if (s === "edited") {
+      return <Pencil className="h-2.5 w-2.5" />;
+    }
+    if (s === "created") {
+      return <Plus className="h-2.5 w-2.5" />;
+    }
+    if (s === "upload" || s === "uploaded") {
+      return <Upload className="h-2.5 w-2.5" />;
     }
     if (s === "hold" || s === "on hold" || s === "postponed") {
       return <Pause className="h-2.5 w-2.5" />;
@@ -4631,7 +4664,7 @@ function NotificationsTab() {
   };
 
   const availableStatuses = useMemo(() => {
-    const defaultStatuses = ["Pending", "Selected", "Approved", "Hold", "Postponed", "Request Changes", "Rejected", "Acknowledged"];
+    const defaultStatuses = ["Pending", "Created", "Upload", "Selected", "Approved", "Hold", "Postponed", "Request Changes", "Rejected", "Acknowledged", "Done", "Edited"];
     const found = new Set(defaultStatuses);
     notifications.forEach((n) => {
       if (n.status && n.status.trim()) found.add(n.status.trim());
@@ -4671,11 +4704,11 @@ function NotificationsTab() {
         const query = searchQuery.toLowerCase();
         const matchesCode = n.notificationCode ? n.notificationCode.toLowerCase().includes(query) : false;
         const matchesId = n.id ? n.id.toLowerCase().includes(query) : false;
-        const matchesProject = n.relatedProject.toLowerCase().includes(query);
+        const matchesProject = (n.relatedProject || "").toLowerCase().includes(query);
         const matchesTask = n.relatedTask ? n.relatedTask.toLowerCase().includes(query) : false;
-        const matchesType = n.type.toLowerCase().includes(query);
-        const matchesEmployee = n.raisedBy.toLowerCase().includes(query);
-        const matchesTitle = n.title.toLowerCase().includes(query);
+        const matchesType = (n.type || "").toLowerCase().includes(query);
+        const matchesEmployee = (n.raisedBy || "").toLowerCase().includes(query);
+        const matchesTitle = (n.title || "").toLowerCase().includes(query);
 
         if (!matchesCode && !matchesId && !matchesProject && !matchesTask && !matchesType && !matchesEmployee && !matchesTitle) {
           return false;

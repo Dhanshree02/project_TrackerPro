@@ -1879,7 +1879,6 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/allocation-requests/{requestId:guid}/action")]
-    [RequireRbac("project-team", RbacAccessType.Manage)]
     public async Task<ActionResult<ApiResponse<ProjectResourceAllocationRequestDto>>> TakeAllocationAction(
         Guid projectId,
         Guid requestId,

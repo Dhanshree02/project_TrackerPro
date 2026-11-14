@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Storage;
+using PMS.API.Modules.ActionCentre.Services;
 using PMS.API.Modules.Repository.DTOs;
 using PMS.API.Modules.Repository.Models;
 using PMS.API.Modules.Users.Models;
@@ -14,6 +15,7 @@ public class RepositoryService(
     AppDbContext db,
     IFileStorageService storage,
     ICurrentUserService currentUser,
+    IActionNotificationService notificationService,
     ILogger<RepositoryService> logger) : IRepositoryService
 {
     public async Task<PagedResult<RepositoryItemDto>> GetDocumentsAsync(
@@ -142,6 +144,15 @@ public class RepositoryService(
         db.RepositoryActivityLogs.Add(log);
 
         await db.SaveChangesAsync(ct);
+
+        await notificationService.NotifyRepositoryDocumentUploadedAsync(
+            doc.Id,
+            doc.FileName,
+            doc.Category,
+            validDeptIds,
+            uploader,
+            currentUser.UserId,
+            ct);
 
         logger.LogInformation("Repository document uploaded: {FileName} ({Category}) by {User}", doc.FileName, doc.Category, uploader);
 

@@ -940,6 +940,36 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             }
             await db.SaveChangesAsync(ct);
             await SyncLinkedUserAsync(entity, ct);
+
+            if (distinctChanges.Count > 0 && entity.ReportingManagerId.HasValue && entity.ReportingManagerId.Value != Guid.Empty)
+            {
+                Guid? performerEmpId = null;
+                if (currentUser.UserId is Guid uid)
+                {
+                    var emp = await db.Employees.FirstOrDefaultAsync(e => e.UserId == uid && e.DeletedAtUtc == null, ct);
+                    performerEmpId = emp?.Id;
+                }
+                if (!performerEmpId.HasValue && !string.IsNullOrWhiteSpace(currentUser.Email))
+                {
+                    var normEmail = currentUser.Email.Trim().ToLowerInvariant();
+                    var emp = await db.Employees.FirstOrDefaultAsync(
+                        e => e.DeletedAtUtc == null &&
+                             ((e.WorkEmail != null && e.WorkEmail.ToLower() == normEmail) ||
+                              (e.PersonalEmail != null && e.PersonalEmail.ToLower() == normEmail)),
+                        ct);
+                    performerEmpId = emp?.Id;
+                }
+
+                await notificationService.NotifyResourceProfileUpdatedAsync(
+                    entity.Id,
+                    $"{entity.FirstName} {entity.LastName}".Trim(),
+                    entity.EmployeeCode,
+                    entity.ReportingManagerId,
+                    distinctChanges,
+                    performerName,
+                    performerEmpId,
+                    ct);
+            }
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {

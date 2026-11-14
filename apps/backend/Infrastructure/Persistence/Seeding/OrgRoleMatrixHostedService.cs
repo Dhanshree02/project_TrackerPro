@@ -25,6 +25,30 @@ public sealed class OrgRoleMatrixHostedService(
 
                 await db.Database.ExecuteSqlRawAsync(
                     """
+                    CREATE SEQUENCE IF NOT EXISTS action.tbl_notifications_number_seq;
+
+                    ALTER TABLE action.tbl_notifications 
+                    ADD COLUMN IF NOT EXISTS "NotificationNumber" integer;
+
+                    DO $$
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM action.tbl_notifications WHERE "NotificationNumber" IS NULL) THEN
+                            WITH ranked AS (
+                                SELECT "Id", ROW_NUMBER() OVER (ORDER BY "CreatedAtUtc" ASC, "Id" ASC) as rn
+                                FROM action.tbl_notifications
+                            )
+                            UPDATE action.tbl_notifications n
+                            SET "NotificationNumber" = r.rn
+                            FROM ranked r
+                            WHERE n."Id" = r."Id" AND n."NotificationNumber" IS NULL;
+
+                            PERFORM setval('action.tbl_notifications_number_seq', COALESCE((SELECT MAX("NotificationNumber") FROM action.tbl_notifications), 0) + 1, false);
+                        END IF;
+                    END $$;
+
+                    ALTER TABLE action.tbl_notifications 
+                    ALTER COLUMN "NotificationNumber" SET DEFAULT nextval('action.tbl_notifications_number_seq');
+
                     ALTER TABLE action.tbl_notifications 
                     ADD COLUMN IF NOT EXISTS "ServiceEscalationId" uuid;
 
