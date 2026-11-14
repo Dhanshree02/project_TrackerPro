@@ -220,6 +220,7 @@ export function GlobalSearch() {
   const rootRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLInputElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -247,6 +248,36 @@ export function GlobalSearch() {
     document.addEventListener("mousedown", onPointer);
     return () => document.removeEventListener("mousedown", onPointer);
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const pinPage = () => {
+      if (window.scrollX !== scrollX || window.scrollY !== scrollY) {
+        window.scrollTo(scrollX, scrollY);
+      }
+    };
+    const blockBackgroundScroll = (event: Event) => {
+      const panel = resultsRef.current;
+      const target = event.target;
+      if (panel && target instanceof Node && panel.contains(target) && event instanceof WheelEvent) {
+        const canScroll = panel.scrollHeight > panel.clientHeight + 1;
+        const atTop = panel.scrollTop <= 0 && event.deltaY < 0;
+        const atBottom = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 1 && event.deltaY > 0;
+        if (canScroll && !atTop && !atBottom) return;
+      }
+      event.preventDefault();
+    };
+    window.addEventListener("scroll", pinPage);
+    document.addEventListener("wheel", blockBackgroundScroll, { passive: false });
+    document.addEventListener("touchmove", blockBackgroundScroll, { passive: false });
+    return () => {
+      window.removeEventListener("scroll", pinPage);
+      document.removeEventListener("wheel", blockBackgroundScroll);
+      document.removeEventListener("touchmove", blockBackgroundScroll);
+    };
+  }, [open]);
 
   useEffect(() => {
     const needle = query.trim();
@@ -363,9 +394,10 @@ export function GlobalSearch() {
 
         {open && (
           <div
+            ref={resultsRef}
             id="global-search-results"
             role="listbox"
-            className="absolute left-0 top-full z-50 mt-2 max-h-[min(28rem,70vh)] w-[min(36rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl max-md:fixed max-md:inset-x-3 max-md:top-16 max-md:w-auto"
+            className="absolute left-0 top-full z-50 mt-2 max-h-[min(28rem,70vh)] w-[min(36rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl max-md:fixed max-md:inset-x-3 max-md:top-16 max-md:w-auto"
           >
             <div className="border-b border-border p-2 md:hidden">
               <input

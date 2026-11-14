@@ -49,6 +49,7 @@ public static class DependencyInjectionExtensions
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IPortfolioAccessService, PortfolioAccessService>();
         services.AddScoped<IRbacAuthorizationService, RbacAuthorizationService>();
 
         // ---- Features (modules) ----

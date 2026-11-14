@@ -5,9 +5,23 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-12
+**Last updated:** 2026-11-14
 
-- **`database/pms_uat.sql` matches `pms_uat_clean`.** Regenerated on 2026-11-12 with `pg_dump --no-owner --no-acl` from `pms_uat_db`. The step note is `GIT_Merge/step-backend-rbac-enforcement-and-leave-calendar-fix.md`.
+- **Engagement Managers and Sales Managers see only their own accounts.** An Engagement Manager sees customers and projects where they are the Engagement Manager. A Sales Manager sees customers where they are the Sales Manager and projects where they are the sales person or that customer's Sales Manager. Admin, PMO, and the other wide roles still see every record. `pms-backend:uat-clean` was rebuilt and restarted.
+
+- **Total Holidays info icon uses the browser tip only.** The extra frontend tooltip on the Settings leave calendar was removed, so hovering the i icon no longer shows two messages.
+
+- **Opening global search freezes the page behind it.** The result list still scrolls. Wheel and touch on the page stay put until the search closes.
+
+- **The header year list starts at FY 2016-17.** The organisation began in 2016, so the calendar runs from that year through next year. Employee Directory matches the financial year of the joining date. FY 2026-27 lists people who joined from 1 April 2026 through 31 March 2027. Exit Summary still uses the last working day. The year control is a fixed `w-40` pill, so choosing one year does not move global search.
+
+- **A timesheet line is saved once.** Save draft keeps the rows on My Timesheet. Submit clears those rows from My Timesheet; the week stays in Timesheet History. Edit appears on History only after the reporting manager requests changes, and it opens that week on My Timesheet with the saved rows. The review breakdown scrolls sideways with the wheel and the ‹ › buttons, so Friday through Sunday stay reachable. `pms-backend:uat-clean` already has the one-line save and the change-request notification.
+
+- **Timesheet weeks, lines, and day hours are cleared on `pms_uat_clean`.** `timesheet.tbl_timesheets`, `tbl_timesheet_entries`, and `tbl_timesheet_entry_days` are empty, including the `SEED-OCT-NOV` and `SEED-SEP-2026` sample rows. The same rows were removed from `database/pms_uat.sql` and `database/trackerpro-uat.sql`. Team calendar schedules and holidays were left in place. A refresh of My Timesheet opens a blank row.
+
+- **`pms-backend:uat-clean` was rebuilt from `uat_clean12` and restarted.** Hangfire is running: `/hangfire` returns 200, the `hangfire` schema has 12 tables, and server `projectcompass-pms-cfb518858a31` has a heartbeat. API health on `:52815` is 200.
+
+- **Working branch is `uat_clean12` at `dc63979`, tracking `origin/uat_clean12`.** `pms_uat_clean` on `pms_uat_db` was dropped and reloaded from `database/pms_uat.sql`. The dump is from PostgreSQL 18, so `\restrict` and `transaction_timeout` were left out for Postgres 16. Counts after load: 15 clients, 7 projects, 120 employees, 30 leave-calendar rows. API health on `:52815` is 200. `Database__AutoMigrate` and `Database__Seed` stay false.
 
 - **The header financial-year calendar filters the whole app.** It sits beside global search and is shared through `FinancialYearProvider` in `apps/frontend/src/lib/financial-year.tsx`. One year or several can be selected, and All years clears it. Projects, customers, the employee directory, exit summary, repository documents, and the timesheet project list follow every selected year. Dashboard graphs follow the latest selected year. Search stays independent of that calendar. A past year moves the dashboard’s rolling window to the last three months of that year. Rebuild `pms-backend:uat-clean` so `FinancialQuarter.Resolve` uses the selected year.
 

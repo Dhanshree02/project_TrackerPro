@@ -942,13 +942,18 @@ export function Modal({
       const overflowY = window.getComputedStyle(el).overflowY;
       return (overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight + 1;
     };
+    const isScrollableX = (el: HTMLElement) => {
+      const overflowX = window.getComputedStyle(el).overflowX;
+      return (overflowX === "auto" || overflowX === "scroll") && el.scrollWidth > el.clientWidth + 1;
+    };
     // Walk the full ancestor chain so nested overlays (KYC preview, combobox lists)
     // can still scroll even when they sit outside this modal panel.
-    const nearestScrollable = (start: Node | null): HTMLElement | null => {
+    const nearestScrollable = (start: Node | null, axis: "x" | "y"): HTMLElement | null => {
+      const matches = axis === "x" ? isScrollableX : isScrollableY;
       let el: HTMLElement | null =
         start instanceof HTMLElement ? start : start?.parentElement ?? null;
       while (el && el !== document.body && el !== document.documentElement) {
-        if (isScrollableY(el)) return el;
+        if (matches(el)) return el;
         el = el.parentElement;
       }
       return null;
@@ -958,8 +963,25 @@ export function Modal({
       const targetEl = target instanceof HTMLElement ? target : target?.parentElement ?? null;
       // PDF/iframe previews handle their own wheel; don't steal those events.
       if (targetEl?.closest("iframe")) return;
+      if (e instanceof WheelEvent) {
+        const horizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
+        const xScroller = nearestScrollable(target, "x");
+        if (horizontal && xScroller) {
+          const delta = e.shiftKey && Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+          const atLeft = xScroller.scrollLeft <= 0 && delta < 0;
+          const atRight =
+            xScroller.scrollLeft + xScroller.clientWidth >= xScroller.scrollWidth - 1 && delta > 0;
+          if (!atLeft && !atRight) {
+            if (e.shiftKey && Math.abs(e.deltaX) < 1) {
+              xScroller.scrollLeft += e.deltaY;
+              e.preventDefault();
+            }
+            return;
+          }
+        }
+      }
       const scroller =
-        nearestScrollable(target) ??
+        nearestScrollable(target, "y") ??
         (panel && panel.contains(target) && isScrollableY(panel) ? panel : null);
       if (scroller) {
         if (!(e instanceof WheelEvent)) return;
@@ -1031,7 +1053,7 @@ export function Modal({
             <X className="h-5 w-5" />
           </button>
         </header>
-        <div className={cn("flex-1 p-6", fullScreen ? "mx-auto w-full max-w-5xl" : "")}>
+        <div className={cn("min-w-0 flex-1 p-6", fullScreen ? "mx-auto w-full max-w-5xl" : "")}>
           {children}
         </div>
       </div>

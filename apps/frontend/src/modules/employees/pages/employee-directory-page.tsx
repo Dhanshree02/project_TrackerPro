@@ -1016,7 +1016,7 @@ export function EmployeeDirectoryPage() {
         (!status ||
           e.status === status ||
           (status === "Active" && e.status === "Resignation Under Review")) &&
-        inFinancialYears(e.joiningDate, null, years)
+        inFinancialYears(e.joiningDate, e.joiningDate, years)
       );
     });
     return [...filtered].sort((a, b) => {
@@ -1038,7 +1038,7 @@ export function EmployeeDirectoryPage() {
         (!status ||
           e.status === status ||
           (status === "Active" && e.status === "Resignation Under Review")) &&
-        inFinancialYears(e.joiningDate, null, years)
+        inFinancialYears(e.joiningDate, e.joiningDate, years)
       );
     });
     return [...filtered].sort((a, b) => {

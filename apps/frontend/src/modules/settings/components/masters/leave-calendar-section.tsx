@@ -17,12 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -227,9 +221,9 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
               {selectedYear}
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          {/* <p className="text-xs text-muted-foreground mt-0.5">
             Configure full year holidays. Reflects across the Team Dashboard.
-          </p>
+          </p> */}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -308,23 +302,14 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
         <div className="rounded-xl border border-border/70 bg-card p-3 shadow-2xs min-w-[200px]">
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
             <span>Total Holidays</span>
-            <TooltipProvider delayDuration={150}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-help"
-                    title="Click any holiday to edit. Click any empty date to quickly add a new holiday."
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                    <span className="sr-only">Holiday instructions</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs max-w-xs shadow-md">
-                  Click any holiday to edit. Click any empty date to quickly add a new holiday.
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-help"
+              title="Click any holiday to edit. Click any empty date to quickly add a new holiday."
+            >
+              <Info className="h-3.5 w-3.5" />
+              <span className="sr-only">Holiday instructions</span>
+            </button>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-bold tracking-tight text-foreground">{holidays.length}</span>

@@ -28,6 +28,7 @@ public sealed partial class ProjectAppService(
     IProjectTaskService taskService,
     PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService,
     PMS.API.Infrastructure.Authorization.ICurrentUserService currentUser,
+    PMS.API.Infrastructure.Authorization.IPortfolioAccessService portfolio,
     PMS.API.Modules.Sla.Services.ISlaTrackingService? slaTrackingService = null) : IProjectAppService
 
 {
@@ -154,6 +155,8 @@ public sealed partial class ProjectAppService(
 
 
 
+        query = await ApplyPortfolioScopeAsync(query, ct);
+
         var totalCount = await query.CountAsync(ct);
 
         var page = Math.Max(1, queryParams.Page);
@@ -196,7 +199,7 @@ public sealed partial class ProjectAppService(
 
     {
 
-        var project = await db.Projects
+        var projectQuery = db.Projects
 
             .Include(p => p.Client)
 
@@ -210,9 +213,11 @@ public sealed partial class ProjectAppService(
 
             .Include(p => p.RenewedFromProject)
 
-            .AsNoTracking()
+            .AsNoTracking();
 
-            .FirstOrDefaultAsync(p => p.Id == id, ct);
+        projectQuery = await ApplyPortfolioScopeAsync(projectQuery, ct);
+
+        var project = await projectQuery.FirstOrDefaultAsync(p => p.Id == id, ct);
 
 
 
@@ -2116,6 +2121,29 @@ public sealed partial class ProjectAppService(
 
     }
 
+    /// <summary>
+    /// Engagement Managers see projects where they are the project's or the customer's Engagement Manager.
+    /// Sales Managers see projects where they are the sales person or the customer's Sales Manager.
+    /// </summary>
+    private async Task<IQueryable<Project>> ApplyPortfolioScopeAsync(IQueryable<Project> query, CancellationToken ct)
+    {
+        var access = await portfolio.ResolveAsync(ct);
+        if (!access.LimitsToAssignments) return query;
+
+        var id = access.EmployeeId;
+        var name = access.EmployeeName;
+        if (id is null && string.IsNullOrWhiteSpace(name))
+            return query.Where(_ => false);
+
+        return query.Where(p =>
+            (access.EngagementManager && (
+                (id != null && (p.EngagementManagerId == id || (p.Client != null && p.Client.EngagementManagerId == id))) ||
+                (name != null && (p.EngagementManager == name || (p.Client != null && p.Client.EngagementManager == name)))))
+            || (access.SalesManager && (
+                (id != null && (p.SalesPersonId == id || (p.Client != null && p.Client.SalesManagerId == id))) ||
+                (name != null && (p.SalesPerson == name || (p.Client != null && p.Client.SalesManager == name))))));
+    }
+
 
 
     public async Task<IReadOnlyList<TaskSearchHitDto>> SearchTasksAsync(string? search, int limit, CancellationToken ct = default)
@@ -2124,9 +2152,10 @@ public sealed partial class ProjectAppService(
         if (needle.Length == 0) return [];
 
         var take = Math.Clamp(limit, 1, 20);
+        var visibleProjects = await ApplyPortfolioScopeAsync(db.Projects.AsNoTracking(), ct);
         return await db.ProjectTasks
             .AsNoTracking()
-            .Where(t => t.Project != null && (
+            .Where(t => t.Project != null && visibleProjects.Any(p => p.Id == t.ProjectId) && (
                 t.Title.ToLower().Contains(needle) ||
                 (t.Description != null && t.Description.ToLower().Contains(needle)) ||
                 t.Project.Name.ToLower().Contains(needle) ||

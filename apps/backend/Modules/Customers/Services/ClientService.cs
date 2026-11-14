@@ -13,23 +13,19 @@ using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Customers.Services;
 
-public sealed class ClientService(AppDbContext db, ICurrentUserService currentUser, PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService) : IClientService
+public sealed class ClientService(
+    AppDbContext db,
+    ICurrentUserService currentUser,
+    PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService,
+    IPortfolioAccessService portfolio) : IClientService
 {
-    // Roles that see every client.
-    private static readonly HashSet<string> GlobalVisibilityRoleNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Admin", "Dhanshree", "CEO", "COO", "CTO", "PMO", "Pmo", "Hod", "BusinessOwner",
-        "Sales", "Sales Manager", "Sales team member", "Accounts", "HR", "Hr", "IT Admin",
-        "Testing HOD", "Consulting-HOD", "SOC-HOD"
-    };
-
     public async Task<PagedResult<ClientDto>> GetClientsAsync(
         int page,
         int perPage,
         string? search,
         CancellationToken ct = default)
     {
-        var query = BuildScopedQuery();
+        var query = await BuildScopedQueryAsync(ct);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -78,7 +74,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<ClientDto?> GetClientAsync(Guid id, CancellationToken ct = default)
     {
-        var entity = await ApplyClientGraphIncludes(BuildScopedQuery())
+        var entity = await ApplyClientGraphIncludes(await BuildScopedQueryAsync(ct))
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (entity is null) return null;
         var clientCodes = await GetAllClientCodesAsync(ct);
@@ -167,7 +163,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<ClientDto?> UpdateClientAsync(Guid id, UpdateClientRequest request, CancellationToken ct = default)
     {
-        var client = await ApplyClientGraphIncludes(BuildScopedQuery())
+        var client = await ApplyClientGraphIncludes(await BuildScopedQueryAsync(ct))
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (client is null) return null;
 
@@ -359,7 +355,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<bool> SoftDeleteClientAsync(Guid id, CancellationToken ct = default)
     {
-        var client = await BuildScopedQuery().FirstOrDefaultAsync(c => c.Id == id, ct);
+        var client = await (await BuildScopedQueryAsync(ct)).FirstOrDefaultAsync(c => c.Id == id, ct);
         if (client is null) return false;
 
         db.Clients.Remove(client); // SaveChanges converts to soft delete (DeletedAtUtc)
@@ -482,43 +478,51 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
     }
 
     /// <summary>
-    /// Applies role-based data scoping:
-    ///  - global roles → all clients
-    ///  - SPM/EM → their engagement-manager clients + explicit assignments
-    ///  - everyone else → explicit assignments only
+    /// Global roles see every customer. An Engagement Manager sees customers where they are the
+    /// Engagement Manager. A Sales Manager sees customers where they are the Sales Manager.
+    /// A Senior Project Manager still matches by name. Everyone else sees explicit assignments.
     /// </summary>
-    private IQueryable<Client> BuildScopedQuery()
+    private async Task<IQueryable<Client>> BuildScopedQueryAsync(CancellationToken ct)
     {
         var query = db.Clients.AsQueryable();
+        var access = await portfolio.ResolveAsync(ct);
+        if (access.Unrestricted) return query;
 
-        var role = currentUser.Role;
-        var isGlobal = !string.IsNullOrEmpty(role) && GlobalVisibilityRoleNames.Contains(role);
-        if (!isGlobal)
+        if (access.LimitsToAssignments)
         {
-            var userId = currentUser.UserId;
-            var isEmOrSpm = string.Equals(role, "EngagementManager", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(role, "SeniorPm", StringComparison.OrdinalIgnoreCase);
+            var id = access.EmployeeId;
+            var name = access.EmployeeName;
+            if (id is null && string.IsNullOrWhiteSpace(name))
+                return query.Where(_ => false);
 
-            if (isEmOrSpm && !string.IsNullOrWhiteSpace(currentUser.Name))
-            {
-                var name = currentUser.Name;
-                query = query.Where(c =>
-                    c.EngagementManager == name ||
-                    (c.EngagementManagerRef != null && c.EngagementManagerRef.FirstName + " " + c.EngagementManagerRef.LastName == name) ||
-                    (userId.HasValue && c.Assignments.Any(a => a.UserId == userId.Value)));
-            }
-            else if (userId.HasValue)
-            {
-                var uid = userId.Value;
-                query = query.Where(c => c.Assignments.Any(a => a.UserId == uid));
-            }
-            else
-            {
-                query = query.Where(_ => false);
-            }
+            return query.Where(c =>
+                (access.EngagementManager && (
+                    (id != null && c.EngagementManagerId == id) ||
+                    (name != null && c.EngagementManager == name)))
+                || (access.SalesManager && (
+                    (id != null && c.SalesManagerId == id) ||
+                    (name != null && c.SalesManager == name))));
         }
 
-        return query;
+        var role = currentUser.Role;
+        var userId = currentUser.UserId;
+        var isSeniorPm = string.Equals(role, "SeniorPm", StringComparison.OrdinalIgnoreCase);
+        if (isSeniorPm && !string.IsNullOrWhiteSpace(currentUser.Name))
+        {
+            var name = currentUser.Name;
+            return query.Where(c =>
+                c.EngagementManager == name ||
+                (c.EngagementManagerRef != null && c.EngagementManagerRef.FirstName + " " + c.EngagementManagerRef.LastName == name) ||
+                (userId.HasValue && c.Assignments.Any(a => a.UserId == userId.Value)));
+        }
+
+        if (userId.HasValue)
+        {
+            var uid = userId.Value;
+            return query.Where(c => c.Assignments.Any(a => a.UserId == uid));
+        }
+
+        return query.Where(_ => false);
     }
 
     private static ClientContactEntity ToClientContact(Guid clientId, ClientContactDto c) => new()
@@ -826,7 +830,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<ClientDto?> SetClientKycAsync(Guid id, string fileName, string relativePath, CancellationToken ct = default)
     {
-        var client = await ApplyClientGraphIncludes(BuildScopedQuery())
+        var client = await ApplyClientGraphIncludes(await BuildScopedQueryAsync(ct))
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (client is null) return null;
 
@@ -841,7 +845,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<(string ClientName, string? KycName, string? KycPath)?> GetClientKycRefAsync(Guid id, CancellationToken ct = default)
     {
-        var client = await BuildScopedQuery()
+        var client = await (await BuildScopedQueryAsync(ct))
             .Where(c => c.Id == id)
             .Select(c => new { c.Name, c.KycDocumentName, c.KycDocumentPath })
             .FirstOrDefaultAsync(ct);
@@ -852,7 +856,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
     public async Task<ClientDto?> SetSubVentureKycAsync(Guid clientId, Guid subVentureId, string fileName, string relativePath, CancellationToken ct = default)
     {
         // Scope through the parent client so role-based visibility still applies.
-        var client = await BuildScopedQuery().FirstOrDefaultAsync(c => c.Id == clientId, ct);
+        var client = await (await BuildScopedQueryAsync(ct)).FirstOrDefaultAsync(c => c.Id == clientId, ct);
         if (client is null) return null;
 
         var sv = await db.SubVentures.FirstOrDefaultAsync(s => s.Id == subVentureId && s.ClientId == clientId, ct);
@@ -869,7 +873,7 @@ public sealed class ClientService(AppDbContext db, ICurrentUserService currentUs
 
     public async Task<(string ClientName, string SubVentureName, string? KycName, string? KycPath)?> GetSubVentureKycRefAsync(Guid clientId, Guid subVentureId, CancellationToken ct = default)
     {
-        var client = await BuildScopedQuery()
+        var client = await (await BuildScopedQueryAsync(ct))
             .Where(c => c.Id == clientId)
             .Select(c => new { c.Name })
             .FirstOrDefaultAsync(ct);

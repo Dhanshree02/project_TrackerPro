@@ -3,6 +3,8 @@ import { CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "pulse-financial-years";
+/** First financial year the organisation operated. April 2016 through March 2017. */
+const FIRST_FY_START = 2016;
 
 export function currentFyStart(today = new Date()): number {
   return today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
@@ -11,7 +13,7 @@ export function currentFyStart(today = new Date()): number {
 export function fyOptions(today = new Date()): number[] {
   const current = currentFyStart(today);
   const years: number[] = [];
-  for (let year = current + 1; year >= current - 6; year -= 1) years.push(year);
+  for (let year = current + 1; year >= FIRST_FY_START; year -= 1) years.push(year);
   return years;
 }
 
@@ -37,7 +39,7 @@ function fyOf(date: Date): number {
   return date.getMonth() >= 3 ? date.getFullYear() : date.getFullYear() - 1;
 }
 
-/** Empty years keeps every record. A missing end date counts as today, so people still employed stay in the current year. */
+/** Empty years keeps every record. A missing end date counts as today, so an open project range still reaches the current year. A single date, such as a joining date, must be passed as both start and end. */
 export function inFinancialYears(
   start?: string | null,
   end?: string | null,
@@ -106,7 +108,7 @@ export function FinancialYearProvider({ children }: { children: ReactNode }) {
 
 export function useFinancialYear(): FinancialYearContextValue {
   const value = useContext(FinancialYearContext);
-  if (!value) return { years: [], setYears: () => {}, chartYear: null };
+  if (!value) return { years: [], setYears: () => { }, chartYear: null };
   return value;
 }
 
@@ -132,30 +134,30 @@ export function FinancialYearFilter() {
   }, []);
 
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div ref={ref} className="relative w-40 shrink-0">
       <button
         type="button"
         aria-label="Financial year"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "inline-flex h-9 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium shadow-2xs",
+          "inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-medium shadow-2xs",
           years.length > 0
             ? "border-primary bg-primary/10 text-primary"
             : "border-border bg-card text-foreground hover:bg-accent",
         )}
       >
-        <CalendarDays className="h-4 w-4" />
-        <span className="max-w-[7.5rem] truncate">{fyButtonLabel(years)}</span>
+        <CalendarDays className="h-4 w-4 shrink-0" />
+        <span className="truncate">{fyButtonLabel(years)}</span>
       </button>
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-64 overflow-hidden rounded-xl border border-border bg-popover p-2 text-popover-foreground shadow-2xl">
           <p className="px-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Financial year
           </p>
-          <p className="px-2 pb-2 text-[10px] text-muted-foreground">
+          {/* <p className="px-2 pb-2 text-[10px] text-muted-foreground">
             April to March. One or more years filter the app. Charts use the latest year.
-          </p>
+          </p> */}
           <ul className="max-h-64 overflow-y-auto">
             {options.map((year) => {
               const checked = years.includes(year);

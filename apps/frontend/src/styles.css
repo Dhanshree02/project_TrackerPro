@@ -410,3 +410,24 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .dept-filter-scroll::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklch, var(--primary) 60%, transparent);
 }
+
+/* Review hours table — always show a sideways scrollbar (macOS hides overlay bars). */
+.timesheet-hscroll {
+  overflow-x: scroll;
+  scrollbar-width: auto;
+  scrollbar-color: #64748b #e2e8f0;
+}
+
+.timesheet-hscroll::-webkit-scrollbar {
+  height: 12px;
+  display: block;
+}
+
+.timesheet-hscroll::-webkit-scrollbar-track {
+  background: #e2e8f0;
+}
+
+.timesheet-hscroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #64748b;
+}

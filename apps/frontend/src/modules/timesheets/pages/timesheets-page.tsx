@@ -104,7 +104,12 @@ function sanitizeLoadedRow(row: TsRow): TsRow {
 }
 
 function mapWeekEntries(week: TimesheetWeek): TsRow[] {
-  return week.entries.map((entry) => {
+  const seen = new Set<string>();
+  return week.entries.filter((entry) => {
+    if (!entry.id || seen.has(entry.id)) return false;
+    seen.add(entry.id);
+    return true;
+  }).map((entry) => {
     const hours = [0, 0, 0, 0, 0, 0, 0];
     const notes = ["", "", "", "", "", "", ""];
     for (const day of entry.days) {
@@ -120,6 +125,13 @@ function mapWeekEntries(week: TimesheetWeek): TsRow[] {
       notes,
     };
   });
+}
+
+/** Submitted and approved weeks stay off My Timesheet until a manager sends the week back. */
+function rowsForEditor(week: TimesheetWeek | null): TsRow[] {
+  if (!week || week.entries.length === 0) return [emptyRow()];
+  if (week.status === "submitted" || week.status === "approved") return [emptyRow()];
+  return rowsFromWeek(week);
 }
 
 /** Load current week: hide project/task on lines with no hours and no comments. */
@@ -175,6 +187,7 @@ function TimesheetTab() {
   }, [canView, canManage]);
 
   const [subTab, setSubTab] = useState<TimesheetSubTab>("My Timesheet");
+  const [openedWeek, setOpenedWeek] = useState<string | null>(null);
 
   useEffect(() => {
     if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.label === subTab)) {
@@ -200,7 +213,10 @@ function TimesheetTab() {
           <button
             key={st.id}
             type="button"
-            onClick={() => setSubTab(st.label)}
+            onClick={() => {
+              if (st.label === "My Timesheet") setOpenedWeek(null);
+              setSubTab(st.label);
+            }}
             className={cn(
               "rounded-md px-3 py-1.5 font-medium",
               subTab === st.label
@@ -213,9 +229,14 @@ function TimesheetTab() {
         ))}
       </div>
       {subTab === "My Timesheet" && visibleTabs.some((t) => t.label === "My Timesheet") ? (
-        <MyTimesheetView />
+        <MyTimesheetView key={openedWeek ?? "current"} initialWeek={openedWeek} />
       ) : subTab === "Timesheet History" && visibleTabs.some((t) => t.label === "Timesheet History") ? (
-        <TimesheetHistoryView />
+        <TimesheetHistoryView
+          onEditWeek={(week) => {
+            setOpenedWeek(week);
+            setSubTab("My Timesheet");
+          }}
+        />
       ) : subTab === "Timesheet Approval" && visibleTabs.some((t) => t.label === "Timesheet Approval") ? (
         <TimesheetApprovalView />
       ) : null}
@@ -224,13 +245,13 @@ function TimesheetTab() {
 }
 
 // ── MyTimesheetView ──────────────────────────────────────────────────────────
-function MyTimesheetView() {
+function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
   const { years } = useFinancialYear();
   const { user: authUser } = useAuth();
   const { user, employeePersonId } = useRoleContext();
   const effectiveEmployeeId = authUser?.employeeId || employeePersonId || (user as any)?.employeeId;
 
-  const [weekStart, setWeekStart] = useState(thisMonday());
+  const [weekStart, setWeekStart] = useState(initialWeek || thisMonday());
   const [weekStatus, setWeekStatus] = useState<TimesheetWeek["status"]>("draft");
   const [showDraft, setShowDraft] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -326,7 +347,7 @@ function MyTimesheetView() {
         if (cancelled) return;
         setWeekStatus(week?.status ?? "draft");
         setShowDraft(week?.status === "draft");
-        const loadedRows = week && week.entries.length > 0 ? rowsFromWeek(week) : [emptyRow()];
+        const loadedRows = rowsForEditor(week);
         setRows(loadedRows);
 
         // Preload tasks for all projects present in this week's timesheet
@@ -441,7 +462,7 @@ function MyTimesheetView() {
         : await saveTimesheetDraft(weekStart, toSaveLines());
       setWeekStatus(saved.status);
       setShowDraft(saved.status === "draft");
-      setRows(rowsFromWeek(saved));
+      setRows(submit ? [emptyRow()] : rowsFromWeek(saved));
       toast.success(submit ? "Timesheet submitted for approval." : "Timesheet saved as draft.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save the timesheet.");
@@ -496,7 +517,8 @@ function MyTimesheetView() {
           </button>
           <button
             onClick={copyLast}
-            className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-3 py-1.5 text-sm hover:bg-accent"
+            disabled={locked}
+            className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
           >
             <Copy className="h-3.5 w-3.5" /> Copy Last Week
           </button>
@@ -565,6 +587,7 @@ function MyTimesheetView() {
                       }}
                       placeholder={loadingProjects ? "Loading projects…" : "Select project"}
                       searchPlaceholder="Search projects…"
+                      disabled={locked}
                     />
                   </td>
                   <td className="px-3 py-2 align-top">
@@ -601,7 +624,7 @@ function MyTimesheetView() {
                                   : "Select task"
                           }
                           searchPlaceholder="Search tasks…"
-                          disabled={!r.projectId || isTaskLoading || pTasks.length === 0}
+                          disabled={locked || !r.projectId || isTaskLoading || pTasks.length === 0}
                         />
                       );
                     })()}
@@ -642,7 +665,8 @@ function MyTimesheetView() {
                   <td className="px-2 py-2 text-center align-middle">
                     <button
                       onClick={() => remove(r.id)}
-                      className="inline-flex rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-destructive"
+                      disabled={locked}
+                      className="inline-flex rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-destructive disabled:pointer-events-none disabled:opacity-40"
                       aria-label="Remove"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -671,7 +695,8 @@ function MyTimesheetView() {
       <div className="mt-3">
         <button
           onClick={addRow}
-          className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-3 py-1.5 text-sm hover:bg-accent"
+          disabled={locked}
+          className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
         >
           <Plus className="h-3.5 w-3.5" /> Add row
         </button>
@@ -842,7 +867,7 @@ function toApprovalSheet(week: TimesheetWeek): ApprovalSheet {
     submittedAt: week.submittedAtUtc ?? undefined,
     reviewComment: week.reviewComment,
     viewerCanReview: week.viewerCanReview,
-        entries: week.entries.map((entry) => {
+        entries: week.entries.filter((entry, index, all) => all.findIndex((item) => item.id === entry.id) === index).map((entry) => {
       const hours = [0, 0, 0, 0, 0, 0, 0];
       const notes = ["", "", "", "", "", "", ""];
       for (const day of entry.days) {
@@ -934,7 +959,7 @@ type HistoryLogRow = {
   reviewComment?: string | null;
 };
 
-function TimesheetHistoryView() {
+function TimesheetHistoryView({ onEditWeek }: { onEditWeek: (weekStart: string) => void }) {
   const [sheets, setSheets] = useState<ApprovalSheet[]>([]);
 
   useEffect(() => {
@@ -988,10 +1013,16 @@ function TimesheetHistoryView() {
               <th className="px-4 py-3 font-semibold">Hours</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Approval note</th>
+              <th className="px-4 py-3 font-semibold">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {logRows.map((row) => (
+            {(() => {
+              const editShown = new Set<string>();
+              return logRows.map((row) => {
+                const showEdit = row.status === "change_requested" && !editShown.has(row.weekStart);
+                if (showEdit) editShown.add(row.weekStart);
+                return (
               <tr key={row.key}>
                 <td className="whitespace-nowrap px-4 py-3.5 tabular-nums text-xs sm:text-sm">
                   {formatWeekRange(row.weekStart)}
@@ -1012,11 +1043,26 @@ function TimesheetHistoryView() {
                 <td className="max-w-[16rem] px-4 py-3.5 text-muted-foreground truncate" title={row.reviewComment ?? ""}>
                   {row.reviewComment?.trim() || "—"}
                 </td>
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  {showEdit ? (
+                    <button
+                      type="button"
+                      onClick={() => onEditWeek(row.weekStart)}
+                      className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    "—"
+                  )}
+                </td>
               </tr>
-            ))}
+                );
+              });
+            })()}
             {logRows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted-foreground">
                   No timesheet history yet
                 </td>
               </tr>
@@ -1060,19 +1106,7 @@ function TimesheetApprovalView() {
     () => sheets.find((sheet) => sheet.id === selectedTsId),
     [sheets, selectedTsId],
   );
-  const breakdownCols = useMemo(() => {
-    let project = "Project".length;
-    let task = "Task".length;
-    if (!selectedTs) return { project: "12rem", task: "10rem" };
-    for (const entry of selectedTs.entries) {
-      project = Math.max(project, entry.projectName.length + (entry.reviewDecision ? 16 : 0));
-      task = Math.max(task, entry.taskName.length);
-    }
-    return {
-      project: `calc(${project}ch + 1.75rem)`,
-      task: `calc(${task}ch + 1.75rem)`,
-    };
-  }, [selectedTs]);
+  const breakdownRef = useRef<HTMLDivElement>(null);
   const [activeCell, setActiveCell] = useState<{ entryIndex: number; dayIndex: number } | null>(
     null,
   );
@@ -1320,24 +1354,52 @@ function TimesheetApprovalView() {
               </div>
             </div>
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-2 gap-2">
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   Logged Hours Breakdown
                 </h4>
-                {commentedEntriesCount > 0 && (
-                  <div className="flex items-center gap-1.5 rounded bg-blue-50 border border-blue-200 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
-                    <MessageSquare className="h-3 w-3 text-blue-600" />
-                    <span>Commented Entries: {commentedEntriesCount}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {commentedEntriesCount > 0 && (
+                    <div className="flex items-center gap-1.5 rounded bg-blue-50 border border-blue-200 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
+                      <MessageSquare className="h-3 w-3 text-blue-600" />
+                      <span>Commented Entries: {commentedEntriesCount}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    aria-label="Show earlier days"
+                    onClick={() => breakdownRef.current?.scrollBy({ left: -160, behavior: "smooth" })}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-input bg-card text-sm hover:bg-accent"
+                  >
+                    ‹
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Show later days"
+                    onClick={() => breakdownRef.current?.scrollBy({ left: 160, behavior: "smooth" })}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-input bg-card text-sm hover:bg-accent"
+                  >
+                    ›
+                  </button>
+                </div>
               </div>
-              <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-border bg-card shadow-sm [scrollbar-width:thin] [scrollbar-color:#94a3b8_#e2e8f0] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-track]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-400">
-                <table className="w-full table-fixed text-sm">
-                  <colgroup>
-                    <col className="w-12" />
-                    <col style={{ width: breakdownCols.project }} />
-                    <col style={{ width: breakdownCols.task }} />
-                  </colgroup>
+              <div
+                ref={breakdownRef}
+                className="timesheet-hscroll w-full max-w-full overscroll-x-contain rounded-xl border border-border bg-card shadow-sm"
+                onWheel={(event) => {
+                  const box = event.currentTarget;
+                  if (box.scrollWidth <= box.clientWidth + 1) return;
+                  const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+                  if (!delta) return;
+                  const max = box.scrollWidth - box.clientWidth;
+                  if (delta < 0 && box.scrollLeft <= 0) return;
+                  if (delta > 0 && box.scrollLeft >= max - 1) return;
+                  box.scrollLeft += delta;
+                  event.preventDefault();
+                  event.stopPropagation();
+                }}
+              >
+                <table className="w-max min-w-full text-sm">
                   <thead className="sticky top-0 z-10 bg-blue-50/80 text-left text-xs text-blue-950/85 border-b border-slate-300 shadow-2xs backdrop-blur-md dark:bg-blue-950/45 dark:text-blue-100/85 dark:border-slate-700">
                     <tr>
                       <th className="relative whitespace-nowrap px-4 py-3">
@@ -1359,7 +1421,7 @@ function TimesheetApprovalView() {
                           key={label}
                           className={cn(
                             "relative whitespace-nowrap px-3 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85",
-                            index >= 2 && "px-2 text-center",
+                            index >= 2 && "min-w-[4.75rem] px-2 text-center",
                           )}
                         >
                           {label}
@@ -1444,7 +1506,7 @@ function TimesheetApprovalView() {
                               <td
                                 key={i}
                                 className={cn(
-                                  "relative px-1 py-3.5 text-center font-medium tabular-nums align-middle",
+                                  "relative min-w-[4.75rem] whitespace-nowrap px-2 py-3.5 text-center font-medium tabular-nums align-middle",
                                   hasComment ? "cursor-pointer hover:bg-accent/40" : "",
                                 )}
                                 onClick={() => {
@@ -1461,7 +1523,7 @@ function TimesheetApprovalView() {
                               </td>
                             );
                           })}
-                          <td className="px-4 py-3.5 text-center text-lg font-semibold tabular-nums align-middle">
+                          <td className="min-w-[4.75rem] whitespace-nowrap px-4 py-3.5 text-center text-lg font-semibold tabular-nums align-middle">
                             {rowTotal}
                           </td>
                         </tr>

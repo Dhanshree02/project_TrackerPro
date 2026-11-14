@@ -1,8 +1,10 @@
+using System.Text.Json;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
+using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Timesheets.DTOs;
 using PMS.API.Modules.Timesheets.Models;
@@ -126,6 +128,7 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
 
         week.ReviewComment = comment;
         var open = week.Entries.Where(e => e.DeletedAtUtc == null).ToList();
+        var requestedChanges = false;
         if (open.All(e => e.ReviewDecision != null))
         {
             week.Status = open.Any(e => e.ReviewDecision == "rejected")
@@ -135,10 +138,44 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
                     : "approved";
             week.ReviewedByEmployeeId = caller.Id;
             week.ReviewedAtUtc = DateTime.UtcNow;
+            requestedChanges = week.Status == "change_requested";
         }
+
+        if (requestedChanges)
+            AddChangeRequestedNotification(week, caller, comment);
 
         await db.SaveChangesAsync(ct);
         return Map(week, caller.Id);
+    }
+
+    private void AddChangeRequestedNotification(TimesheetWeek week, Employee manager, string comment)
+    {
+        var managerName = $"{manager.FirstName} {manager.LastName}".Trim();
+        if (string.IsNullOrWhiteSpace(managerName)) managerName = "Reporting manager";
+        var start = week.WeekStart.ToString("dd-MM-yyyy");
+        var end = week.WeekStart.AddDays(6).ToString("dd-MM-yyyy");
+        var range = $"{start} – {end}";
+        db.ActionNotifications.Add(new ActionNotification
+        {
+            RecipientEmployeeId = week.EmployeeId,
+            Title = $"Timesheet changes requested for {range}",
+            Type = "Timesheet",
+            Priority = "Medium",
+            Status = "Pending",
+            Unread = true,
+            RaisedByEmployeeId = manager.Id,
+            RaisedByName = managerName,
+            RelatedTask = range,
+            HistoryJson = JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    status = "Pending",
+                    at = DateTime.UtcNow.ToString("o"),
+                    details = $"{managerName} requested changes on your timesheet for {range}. {comment}",
+                },
+            }),
+        });
     }
 
     private async Task<TimesheetWeekDto> UpsertAsync(SaveTimesheetRequest request, bool submit, CancellationToken ct)
@@ -179,10 +216,7 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
         foreach (var existing in week.Entries.ToList())
         {
             foreach (var day in existing.Days.ToList())
-            {
                 db.Entry(day).State = EntityState.Detached;
-            }
-
             db.Entry(existing).State = EntityState.Detached;
         }
 
@@ -214,7 +248,6 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
                 TaskKey = line.TaskKey.Trim(),
                 TaskName = line.TaskName.Trim(),
             };
-            db.TimesheetEntries.Add(entry);
             foreach (var day in line.Days.OrderBy(d => d.DayIndex))
             {
                 var open = IsDayOpen(request.WeekStart, day.DayIndex, today);
@@ -226,14 +259,19 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
                 total += hours;
                 entry.Days.Add(new TimesheetEntryDay
                 {
-                    TimesheetEntryId = entry.Id,
                     DayIndex = day.DayIndex,
                     Hours = hours,
                     Comment = comment,
                 });
             }
 
-            week.Entries.Add(entry);
+            db.TimesheetEntries.Add(entry);
+        }
+
+        foreach (var tracked in db.ChangeTracker.Entries().ToList())
+        {
+            if (tracked.Entity is TimesheetEntry or TimesheetEntryDay && tracked.State != EntityState.Added)
+                tracked.State = EntityState.Detached;
         }
 
         week.TotalHours = total;
@@ -251,8 +289,11 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
         }
 
         await db.SaveChangesAsync(ct);
-        week.Employee = employee;
-        return Map(week, employee.Id);
+        var employeeId = employee.Id;
+        db.ChangeTracker.Clear();
+        var stored = await LoadWeekAsync(employeeId, request.WeekStart, ct)
+            ?? throw new NotFoundException("Timesheet not found.");
+        return Map(stored, employeeId);
     }
 
     private async Task<TimesheetWeek?> LoadWeekAsync(Guid employeeId, DateOnly weekStart, CancellationToken ct)
@@ -366,6 +407,8 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
         var name = employee is null ? "" : $"{employee.FirstName} {employee.LastName}".Trim();
         var entries = week.Entries
             .Where(e => e.DeletedAtUtc == null)
+            .GroupBy(e => e.Id)
+            .Select(g => g.First())
             .Select(e => new TimesheetLineDto(
                 e.Id,
                 e.ProjectKey,
