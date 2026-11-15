@@ -1,17 +1,12 @@
-import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, ChevronDown, Check } from "lucide-react";
+import { ChevronDown, LogOut, UserRound } from "lucide-react";
 import { GlobalSearch } from "@/components/global-search";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { FinancialYearFilter } from "@/lib/financial-year";
 import { GlobalNotificationBell } from "./global-notification-bell";
-import { useRoleContext, roleLabels, backendRoleLabels } from "@/lib/role-context";
+import { roleLabels, backendRoleLabels, useRoleContext } from "@/lib/role-context";
 import { useAuth } from "@/lib/auth-context";
-import { DEMO_PERSONAS, type DemoRoleKey, type DemoPersona } from "@/lib/user-personas";
-import {
-  getCachedEmployeePersonas,
-  loadEmployeePersonas,
-  personaOrgSubtitle,
-} from "@/lib/employee-personas";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -21,131 +16,55 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function AppTopbar({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
-  const { role, user, assignedIssues, pendingTimesheets } = useRoleContext();
-  const { user: authUser, demoRole, switchDemoRole, status } = useAuth();
-  const navigate = useNavigate();
-  const [roleQuery, setRoleQuery] = useState("");
-  const [selectedDept, setSelectedDept] = useState("All");
-  const [switchPersonas, setSwitchPersonas] = useState<DemoPersona[]>(() =>
-    getCachedEmployeePersonas(),
+/** Set by the Docker stack. Empty when the app is not running in one of the three environments. */
+function AppEnvironmentMark() {
+  const stage = (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase();
+  if (stage !== "development" && stage !== "uat" && stage !== "production") return null;
+  const label = stage === "uat" ? "UAT" : stage === "production" ? "Production" : "Development";
+  const tone =
+    stage === "production"
+      ? "bg-success/15 text-success"
+      : stage === "uat"
+        ? "bg-warning/15 text-warning"
+        : "bg-info/15 text-info";
+  return (
+    <span className={cn("inline-flex h-7 items-center rounded-full px-2.5 text-[10px] font-semibold tracking-wide", tone)}>
+      {label}
+    </span>
   );
-  const deptFilterScrollRef = useRef<HTMLDivElement>(null);
+}
 
-  useEffect(() => {
-    void loadEmployeePersonas()
-      .then((list) => {
-        setSwitchPersonas(list);
-      })
-      .catch(() => {});
-  }, []);
+export function AppTopbar({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
+  const { role, user } = useRoleContext();
+  const { user: authUser, logout, status } = useAuth();
+  const navigate = useNavigate();
 
   const roleLabel = authUser?.role
     ? (backendRoleLabels[authUser.role] ?? roleLabels[role as keyof typeof roleLabels] ?? authUser.role)
     : (roleLabels[role as keyof typeof roleLabels] ?? String(role));
 
-  const notifCount =
-    assignedIssues.filter((i) => i.status === "open").length + pendingTimesheets.length;
-
-  const onSwitchRole = async (next: DemoRoleKey) => {
-    if (next === demoRole) return;
-    await navigate({ to: "/" });
-    await switchDemoRole(next);
-  };
-
-  const activePersona = useMemo(() => {
-    return (
-      switchPersonas.find(
-        (p) =>
-          (authUser?.employeeId && p.id.toLowerCase() === authUser.employeeId.toLowerCase()) ||
-          (authUser?.employeeId && p.code.toLowerCase() === authUser.employeeId.toLowerCase()) ||
-          (authUser?.email && p.email.toLowerCase() === authUser.email.toLowerCase()) ||
-          p.key === demoRole ||
-          p.code === demoRole,
-      ) ??
-      switchPersonas.find((p) => p.roleKey === authUser?.role) ??
-      switchPersonas.find((p) => p.code === "TK-0004") ??
-      switchPersonas[0] ?? {
-        key: authUser?.employeeId || "user",
-        code: authUser?.employeeId || "—",
-        label: authUser?.role || "",
-        category: "",
-        email: authUser?.email || "",
-        name: authUser?.name || user.name || "Loading…",
-        id: authUser?.id || "",
-        avatar: user.avatar || "?",
-        department: "",
-        designation: "",
-        roleKey: authUser?.role || "",
-        permissions: [],
-      }
-    );
-  }, [demoRole, authUser, switchPersonas, user]);
-
-  const departments = useMemo(() => {
-    const set = new Set<string>();
-    for (const p of switchPersonas) {
-      if (p.category) set.add(p.category);
-    }
-    return ["All", ...Array.from(set).sort((a, b) => a.localeCompare(b))];
-  }, [switchPersonas]);
-
-  const filteredPersonas = useMemo(() => {
-    let list = switchPersonas;
-    if (selectedDept !== "All") {
-      list = list.filter((p) => p.category === selectedDept);
-    }
-    const q = roleQuery.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      (p) =>
-        p.key.toLowerCase().includes(q) ||
-        p.code.toLowerCase().includes(q) ||
-        p.label.toLowerCase().includes(q) ||
-        p.name.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.department.toLowerCase().includes(q) ||
-        p.designation.toLowerCase().includes(q) ||
-        p.roleKey.toLowerCase().includes(q),
-    );
-  }, [roleQuery, selectedDept, switchPersonas]);
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, DemoPersona[]>();
-    for (const p of filteredPersonas) {
-      const list = map.get(p.category) ?? [];
-      list.push(p);
-      map.set(p.category, list);
-    }
-    return map;
-  }, [filteredPersonas]);
-
-  const categories = useMemo(() => Array.from(grouped.keys()), [grouped]);
-
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
-      {/* Left: Page Title & Subtitle */}
       <div className="min-w-0 flex-1 md:flex-initial md:w-60 lg:w-72">
         <h1 className="truncate text-base font-semibold leading-tight text-foreground">{title}</h1>
         {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 
-      {/* Center on desktop, icon on a narrow window */}
       <div className="flex shrink-0 items-center justify-end gap-2 md:min-w-0 md:flex-1 md:justify-center md:px-2">
         <GlobalSearch />
         <FinancialYearFilter />
       </div>
 
-      {/* Right: Notifications & Profile */}
       <div className="flex items-center gap-3 shrink-0">
+        <AppEnvironmentMark />
+        <ThemeToggle />
         <GlobalNotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 py-1 pl-1.5 pr-2.5 hover:border-border hover:bg-accent/60 transition-all shadow-2xs"
-              aria-label="Switch access role"
+              aria-label="Account menu"
               disabled={status === "loading"}
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-1 ring-primary/25">
@@ -163,171 +82,26 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent
-            align="end"
-            className="w-96 max-w-[95vw] overflow-x-visible p-2.5 shadow-2xl border border-border/80"
-          >
-            <div className="min-w-0 px-1 pt-0.5 pb-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-bold tracking-tight text-foreground">
-                    Switch User / Employee
-                  </span>
-                  <p className="text-[10px] text-muted-foreground">Select any employee to view as them</p>
-                </div>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                  {switchPersonas.length} Employees
-                </span>
-              </div>
-
-              {/* Active User Card */}
-              <div className="mt-2.5 flex items-center gap-2.5 rounded-lg border border-primary/25 bg-primary/5 p-2">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow-2xs">
-                  {activePersona.avatar}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="truncate text-xs font-bold text-foreground block">
-                    {activePersona.name}
-                  </span>
-                  <p className="truncate text-[10px] font-medium text-primary/90">
-                    {backendRoleLabels[activePersona.accessRole ?? activePersona.roleKey] ?? (activePersona.accessRole ?? activePersona.roleKey)}
-                  </p>
-                </div>
-                <span className="rounded-full bg-primary/15 text-[9px] font-bold text-primary px-2 py-0.5 uppercase tracking-wide">
-                  Active
-                </span>
-              </div>
-
-              {/* Search Filter Input */}
-              <div className="relative mt-2.5">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={roleQuery}
-                  onChange={(e) => setRoleQuery(e.target.value)}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  placeholder="Search by name, ID (e.g. TK-0046), role..."
-                  className="h-8 w-full rounded-md border border-border bg-muted/50 pl-8 pr-7 text-xs outline-none focus:border-primary focus:bg-background transition-colors placeholder:text-muted-foreground"
-                />
-                {roleQuery && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setRoleQuery("");
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground hover:text-foreground font-semibold"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-
-              {/* Department quick filter pills — horizontal scroll (many departments) */}
-              <div
-                ref={deptFilterScrollRef}
-                className="dept-filter-scroll mt-2 flex w-full min-w-0 max-w-full flex-nowrap items-center gap-1 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1.5 [-webkit-overflow-scrolling:touch]"
-                onWheel={(e) => {
-                  const el = deptFilterScrollRef.current;
-                  if (!el || el.scrollWidth <= el.clientWidth + 1) return;
-                  if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
-                  e.preventDefault();
-                  e.stopPropagation();
-                  el.scrollLeft += e.deltaY;
-                }}
-              >
-                {departments.map((dept) => {
-                  const count =
-                    dept === "All" ? switchPersonas.length : switchPersonas.filter((p) => p.category === dept).length;
-                  const isDeptActive = selectedDept === dept;
-                  const label = dept === "All" ? "All" : dept.replace("Functional - ", "").replace("Services - ", "").replace(" (Research & Development)", "");
-                  return (
-                    <button
-                      key={dept}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedDept(dept);
-                      }}
-                      className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[9px] font-medium transition-all",
-                        isDeptActive
-                          ? "bg-primary text-primary-foreground font-bold shadow-2xs"
-                          : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground border border-border/40",
-                      )}
-                    >
-                      {label} ({count})
-                    </button>
-                  );
-                })}
-              </div>
+          <DropdownMenuContent align="end" className="w-56 p-1.5">
+            <div className="px-2 py-1.5">
+              <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
+              <p className="truncate text-xs text-muted-foreground">{authUser?.email}</p>
             </div>
-
-            <DropdownMenuSeparator className="my-1" />
-
-            {/* Scrollable list grouped by category */}
-            <div className="max-h-[24rem] overflow-y-auto pr-1 space-y-2.5">
-              {categories.map((cat) => {
-                const personas = grouped.get(cat) ?? [];
-                return (
-                  <div key={cat} className="space-y-1">
-                    <div className="px-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/80 flex items-center justify-between">
-                      <span className="truncate">{cat}</span>
-                      <span className="text-[9px] font-normal text-muted-foreground">
-                        ({personas.length})
-                      </span>
-                    </div>
-                    {personas.map((persona) => {
-                      const isSelected =
-                        demoRole === persona.key ||
-                        demoRole === persona.code ||
-                        (authUser?.email && authUser.email.toLowerCase() === persona.email.toLowerCase()) ||
-                        (authUser?.employeeId && authUser.employeeId.toLowerCase() === persona.code.toLowerCase()) ||
-                        (user.email && user.email.toLowerCase() === persona.email.toLowerCase()) ||
-                        activePersona.code === persona.code;
-                      return (
-                        <DropdownMenuItem
-                          key={persona.key}
-                          onSelect={() => void onSwitchRole(persona.key)}
-                          className={cn(
-                            "flex items-center justify-between px-2 py-1.5 rounded-lg cursor-pointer text-xs transition-colors",
-                            isSelected
-                              ? "bg-primary/10 text-primary font-medium border border-primary/20"
-                              : "hover:bg-accent hover:text-accent-foreground",
-                          )}
-                        >
-                          <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <div
-                              className={cn(
-                                "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold shadow-2xs",
-                                isSelected
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-muted-foreground border border-border",
-                              )}
-                            >
-                              {persona.avatar}
-                            </div>
-                            <div className="flex flex-col min-w-0 flex-1">
-                              <span className="truncate font-semibold text-foreground text-xs">
-                                {persona.name}
-                              </span>
-                              <p className="truncate text-[10px] font-medium text-primary/85">
-                                {backendRoleLabels[persona.accessRole ?? persona.roleKey] ?? (persona.accessRole ?? persona.roleKey)}
-                              </p>
-                            </div>
-                          </div>
-                          {isSelected && <Check className="h-4 w-4 shrink-0 text-primary ml-2" />}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-
-              {categories.length === 0 && (
-                <div className="p-4 text-center text-xs text-muted-foreground">
-                  No employee matching &quot;{roleQuery}&quot;
-                </div>
-              )}
-            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => void navigate({ to: "/profile" })}
+              className="gap-2"
+            >
+              <UserRound className="h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => void logout()}
+              className="gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

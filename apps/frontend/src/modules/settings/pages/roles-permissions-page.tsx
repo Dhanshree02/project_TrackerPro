@@ -50,10 +50,10 @@ const kindLabel: Record<AccessKind, string> = {
 };
 
 const kindBubble: Record<AccessKind, string> = {
-  module: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200",
-  submodule: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-200",
-  widget: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  tab: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+  module: "border-primary/30 bg-primary/10 text-primary",
+  submodule: "border-chart-3/30 bg-chart-3/15 text-chart-3",
+  widget: "border-warning/40 bg-warning/15 text-warning",
+  tab: "border-success/30 bg-success/15 text-success",
 };
 
 type AccessRow = {
@@ -517,14 +517,20 @@ export function RolesPermissionsPage() {
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/50 text-left">
+        <div className="w-full overflow-hidden rounded-lg border border-border bg-card">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col style={{ width: "46%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "19%" }} />
+              <col style={{ width: "19%" }} />
+            </colgroup>
+            <thead className="app-columns-head">
+              <tr className="border-b border-border bg-card/95 text-left text-xs text-muted-foreground">
                 <th className="px-4 py-3 font-medium text-foreground">Module</th>
-                <th className="w-32 px-4 py-3 font-medium text-foreground">Type</th>
-                <th className="w-36 px-4 py-3 text-center font-medium text-foreground">Only view</th>
-                <th className="w-40 px-4 py-3 text-center font-medium text-foreground">View + Manage</th>
+                <th className="px-4 py-3 font-medium text-foreground">Type</th>
+                <th className="px-4 py-3 text-center font-medium text-foreground">Only view</th>
+                <th className="px-4 py-3 text-center font-medium text-foreground">View + Manage</th>
               </tr>
             </thead>
             <tbody>
@@ -641,10 +647,10 @@ function AccessRows({
       <Fragment key={row.id}>
         <tr className="border-b border-border last:border-b-0">
           <td
-            className={cn("py-2.5 pr-4 text-foreground", depth === 0 ? "font-medium" : "font-normal")}
+            className={cn("min-w-0 overflow-hidden py-2.5 pr-4 text-foreground", depth === 0 ? "font-medium" : "font-normal")}
             style={{ paddingLeft: 12 + depth * 28 }}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="flex min-w-0 items-center gap-1.5">
               {hasChildren ? (
                 <button
                   type="button"
@@ -658,7 +664,7 @@ function AccessRows({
               ) : (
                 <span className="size-6 shrink-0" aria-hidden />
               )}
-              <span>{row.name}</span>
+              <span className="min-w-0 truncate">{row.name}</span>
               {roleId && (
                 <span
                   title={baselineLabel}
@@ -1094,10 +1100,17 @@ function UserwiseAccessView() {
       </div>
 
       {/* Userwise Access Table */}
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+      <div className="w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[460px]">
-          <table className="w-full text-sm table-fixed min-w-[960px]">
-            <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col style={{ width: "26%" }} />
+              <col style={{ width: "18%" }} />
+              <col style={{ width: "20%" }} />
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "12%" }} />
+            </colgroup>
+            <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
               <tr>
                 <SortableUserTh
                   label="Employee Name"
@@ -1111,7 +1124,7 @@ function UserwiseAccessView() {
                       setSortDir("asc");
                     }
                   }}
-                  className="w-72 min-w-[240px]"
+                  className="w-[26%]"
                 />
                 <SortableUserTh
                   label="Department"
@@ -1125,7 +1138,7 @@ function UserwiseAccessView() {
                       setSortDir("asc");
                     }
                   }}
-                  className="w-56 min-w-[190px]"
+                  className="w-[18%]"
                 />
                 <SortableUserTh
                   label="Original RBAC Role"
@@ -1139,7 +1152,7 @@ function UserwiseAccessView() {
                       setSortDir("asc");
                     }
                   }}
-                  className="w-56 min-w-[190px]"
+                  className="w-[20%]"
                 />
                 <SortableUserTh
                   label="Assigned RBAC Role"
@@ -1153,9 +1166,9 @@ function UserwiseAccessView() {
                       setSortDir("asc");
                     }
                   }}
-                  className="w-64 min-w-[220px]"
+                  className="w-[24%]"
                 />
-                <th className="relative w-32 min-w-[110px] whitespace-nowrap px-4 py-3 font-semibold text-right text-xs text-blue-950/85 dark:text-blue-100/85">
+                <th className="relative w-[12%] whitespace-nowrap px-4 py-3 font-semibold text-right text-xs text-muted-foreground">
                   Action
                 </th>
               </tr>
@@ -1188,7 +1201,7 @@ function UserwiseAccessView() {
                       )}
                     >
                       {/* Employee Name */}
-                      <td className="w-72 min-w-[240px] whitespace-nowrap px-4 py-3.5">
+                      <td className="overflow-hidden px-4 py-3.5">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Avatar name={row.fullName} size={30} />
                           <div className="min-w-0 flex flex-col">
@@ -1203,12 +1216,12 @@ function UserwiseAccessView() {
                       </td>
 
                       {/* Department */}
-                      <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3.5 text-foreground/90 font-medium truncate" title={row.departmentName}>
+                      <td className="overflow-hidden whitespace-nowrap px-4 py-3.5 text-foreground/90 font-medium truncate" title={row.departmentName}>
                         {row.departmentName}
                       </td>
 
                       {/* Original RBAC Role */}
-                      <td className="w-56 min-w-[190px] whitespace-nowrap px-4 py-3.5">
+                      <td className="overflow-hidden px-4 py-3.5">
                         <span
                           className="inline-flex items-center rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-900/60 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 truncate max-w-full"
                           title={row.originalRoleDisplayName || row.originalRoleName}
@@ -1218,8 +1231,8 @@ function UserwiseAccessView() {
                       </td>
 
                       {/* Assigned RBAC Role (department-restricted dropdown) */}
-                      <td className="w-64 min-w-[220px] whitespace-nowrap px-4 py-3.5">
-                        <div className="flex flex-col gap-1 max-w-[230px]">
+                      <td className="overflow-hidden px-4 py-3.5">
+                        <div className="flex min-w-0 flex-col gap-1">
                           <select
                             value={row.currentRoleId ?? ""}
                             onChange={(e) => {
@@ -1255,7 +1268,7 @@ function UserwiseAccessView() {
                       </td>
 
                       {/* Action: Reset Button */}
-                      <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5 text-right">
+                      <td className="whitespace-nowrap px-4 py-3.5 text-right">
                         <button
                           type="button"
                           onClick={() => setPendingResetSingle(row)}
@@ -1289,12 +1302,12 @@ function UserwiseAccessView() {
         </div>
 
         {/* Frozen / Sticky Pagination Footer (identical styling to Employee Directory) */}
-        <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
+        <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 text-xs text-muted-foreground shadow-xs">
           <div className="flex items-center gap-3">
             <span>
-              Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong> - <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.to}</strong> of <strong className="font-semibold text-blue-950 dark:text-blue-100">{totalItems}</strong> employees
+              Showing <strong className="font-semibold text-foreground">{pageRange.from}</strong> - <strong className="font-semibold text-foreground">{pageRange.to}</strong> of <strong className="font-semibold text-foreground">{totalItems}</strong> employees
             </span>
-            <span className="text-slate-300 dark:text-slate-600">|</span>
+            <span className="text-border">|</span>
             <div className="flex items-center gap-1.5">
               <span>Per page:</span>
               <RowsPerPageSelect
@@ -1303,7 +1316,7 @@ function UserwiseAccessView() {
                   setPageSize(size);
                   setPage(1);
                 }}
-                className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -1313,18 +1326,18 @@ function UserwiseAccessView() {
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors cursor-pointer"
             >
               <ChevronLeft className="h-3.5 w-3.5" /> Previous
             </button>
-            <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
+            <span className="px-2 tabular-nums font-semibold text-foreground">
               {currentPage} / {totalPages}
             </span>
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages}
-              className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors cursor-pointer"
             >
               Next <ChevronRight className="h-3.5 w-3.5" />
             </button>
@@ -1397,7 +1410,7 @@ function UserwiseAccessView() {
                   </span>
                 </div>
 
-                <ArrowRight className="size-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <ArrowRight className="size-4 text-primary shrink-0" />
 
                 <div className="flex-1 min-w-0 rounded-md border border-blue-300 dark:border-blue-700 bg-blue-100/60 dark:bg-blue-900/40 px-2.5 py-1.5 text-center">
                   <span className="text-[10px] uppercase tracking-wider text-blue-700 dark:text-blue-300 block font-mono font-bold">New Role</span>
@@ -1621,8 +1634,8 @@ function SortableUserTh<T extends string>({
         className={cn(
           "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none cursor-pointer",
           active
-            ? "text-blue-600 dark:text-blue-400 font-bold"
-            : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
+            ? "text-primary font-bold"
+            : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
       >
@@ -1631,7 +1644,7 @@ function SortableUserTh<T extends string>({
           className={cn(
             "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
             active
-              ? "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400"
+              ? "bg-primary/15 text-primary"
               : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
           )}
         >
@@ -1644,7 +1657,7 @@ function SortableUserTh<T extends string>({
       </button>
       {!isLast && (
         <span
-          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none"
+          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
           aria-hidden="true"
         />
       )}

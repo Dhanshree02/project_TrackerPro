@@ -644,7 +644,7 @@ function BucketListRow({
           to="/projects/$projectId"
           params={{ projectId: r.projectId }}
           hash={r.taskId}
-          className="font-semibold text-gray-800 hover:text-primary transition-colors block truncate"
+          className="font-semibold text-foreground hover:text-primary transition-colors block truncate"
         >
           {r.taskTitle}
         </Link>
@@ -719,7 +719,7 @@ function BucketListRow({
       <td className="px-3 py-2.5 truncate">
         <div className="flex items-center gap-2 truncate">
           <Avatar name={byName} size={24} />
-          <span className="text-xs font-semibold text-gray-700 truncate" title={byName}>{byName}</span>
+          <span className="text-xs font-semibold text-foreground truncate" title={byName}>{byName}</span>
         </div>
       </td>
 
@@ -735,7 +735,7 @@ function BucketListRow({
 
                 <div>
 
-                  <span className="font-semibold text-gray-500">Started:</span>{" "}
+                  <span className="font-semibold text-muted-foreground">Started:</span>{" "}
 
                   {new Date(r.actualStartDate).toLocaleDateString("en-GB", {
 
@@ -751,7 +751,7 @@ function BucketListRow({
 
               )}
 
-              <div className="flex items-center justify-between font-mono font-bold text-gray-800 border-t border-border/50 mt-1 pt-1">
+              <div className="flex items-center justify-between font-mono font-bold text-foreground border-t border-border/50 mt-1 pt-1">
 
                 <span>Working Time:</span>
 
@@ -761,7 +761,7 @@ function BucketListRow({
 
                     "text-xs font-bold",
 
-                    localTimerRunning ? "text-blue-600 animate-pulse" : "text-gray-600",
+                    localTimerRunning ? "text-blue-600 animate-pulse" : "text-muted-foreground",
 
                   )}
 
@@ -1529,25 +1529,25 @@ function BucketList() {
 
 
       <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[980px] table-fixed">
+        <table className="w-full min-w-[980px] table-fixed text-sm">
           <colgroup>
-            <col className="w-[22%]" />
-            <col className="w-[16%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[10%]" />
-            <col className="w-[12%]" />
-            <col className="w-[20%]" />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "14%" }} />
           </colgroup>
-          <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+          <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Task</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Priority</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Due Date</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Assigned By</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Actions & Timer</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Task</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Priority</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Due Date</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Assigned By</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Actions & Timer</th>
             </tr>
           </thead>
 
@@ -2370,32 +2370,47 @@ function ApprovalsTab() {
 
       <div className="overflow-x-auto">
 
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[860px] table-fixed text-sm">
+          <colgroup>
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "18%" }} />
+            <col style={{ width: "18%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: canManageApprovals ? "14%" : "28%" }} />
+            {canManageApprovals ? <col style={{ width: "14%" }} /> : null}
+          </colgroup>
 
-          <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+          <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Request Type</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Requested By</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Date</th>
-              <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Request Type</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Requested By</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Date</th>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
               {canManageApprovals && (
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 text-right">Actions</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground text-right">Actions</th>
               )}
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {pageApprovals.map((app) => (
               <tr key={app.id} className="hover:bg-accent/30">
-                <td className="px-3 py-2.5 font-medium text-gray-700">{app.projectName}</td>
+                <td className="px-3 py-2.5 font-medium text-foreground">{app.projectName}</td>
                 <td className="px-3 py-2.5 text-xs text-primary font-semibold">
                   {app.requestType}
                 </td>
-                <td className="px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <Avatar name={app.requestedBy} size={20} />
-                    <span className="text-xs">{app.requestedBy}</span>
-                  </div>
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  {app.requestedBy ? (
+                    <span
+                      className="inline-flex items-center gap-2.5 text-foreground transition-colors hover:text-primary"
+                      title={app.requestedBy}
+                    >
+                      <Avatar name={app.requestedBy} size={28} />
+                      <span className="font-semibold">{app.requestedBy}</span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
                 </td>
                 <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
                   {formatToDayMonthYear(app.requestedDate)}
@@ -2409,7 +2424,7 @@ function ApprovalsTab() {
                         : app.status === "Rejected"
                           ? "bg-destructive/10 text-destructive border-destructive/30"
                           : app.status === "Hold"
-                            ? "bg-warning/15 text-warning-foreground border-warning/30"
+                            ? "bg-warning/15 text-warning border-warning/30"
                             : app.status === "Request Changes"
                               ? "bg-info/10 text-info border-info/30"
                               : "bg-muted text-muted-foreground border-border",
@@ -2539,7 +2554,7 @@ function ApprovalsTab() {
 
               </span>
 
-              <p className="text-sm text-gray-800 leading-relaxed font-medium">
+              <p className="text-sm text-foreground leading-relaxed font-medium">
 
                 {selectedApproval.description}
 
@@ -2607,7 +2622,7 @@ function ApprovalsTab() {
             {canManageApprovals && (
               selectedApproval.status !== "Approved" ? (
                 <div className="space-y-2 border-t border-border pt-3">
-                  <label className="text-xs font-semibold text-gray-700 block">
+                  <label className="text-xs font-semibold text-foreground block">
                     Action Comments / Clarifications / Instructions{" "}
                     <span className="text-destructive font-bold">*Mandatory</span>
                   </label>
@@ -2644,12 +2659,12 @@ function ApprovalsTab() {
                       <div className="flex justify-between text-muted-foreground text-[10px]">
                         <span>
                           Status:{" "}
-                          <strong className="text-gray-700 font-semibold">{h.status}</strong> by{" "}
+                          <strong className="text-foreground font-semibold">{h.status}</strong> by{" "}
                           {h.updatedBy}
                         </span>
                         <span>{formatToDayMonthYear(h.at || h.date)} {h.at ? new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (h.time || '')}</span>
                       </div>
-                      {h.comment && <p className="text-gray-800 mt-0.5">"{h.comment}"</p>}
+                      {h.comment && <p className="text-foreground mt-0.5">"{h.comment}"</p>}
                     </div>
                   ))}
                 </div>
@@ -2668,7 +2683,7 @@ function ApprovalsTab() {
                   <button
                     onClick={() => handleAction("Hold")}
                     disabled={!appComment.trim()}
-                    className="inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning/10 px-4 py-2 text-xs font-medium text-warning-foreground hover:bg-warning/20 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning/10 px-4 py-2 text-xs font-medium text-warning hover:bg-warning/20 disabled:opacity-50"
                   >
                     Hold
                   </button>
@@ -3425,19 +3440,30 @@ function AlertsTab() {
 
           <div className="overflow-x-auto">
 
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[1100px] table-fixed text-sm">
+              <colgroup>
+                <col style={{ width: "16%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "12%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "8%" }} />
+              </colgroup>
 
-              <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+              <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Alert Title</th>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project Name</th>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Customer Name</th>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Alert Type</th>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Priority</th>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Raised By</th>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Raised Date</th>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
-                  <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 text-right">Actions</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Alert Title</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project Name</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Customer Name</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Alert Type</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Priority</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised By</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised Date</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
+                  <th className="px-3 py-2.5 font-semibold text-muted-foreground text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -3447,17 +3473,17 @@ function AlertsTab() {
 
                   return (
                     <tr key={alert.id} className="hover:bg-accent/30">
-                      <td className="px-3 py-2.5 font-medium text-gray-700">{alert.title}</td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground font-semibold">
+                      <td className="px-3 py-2.5 font-medium text-foreground">{alert.title}</td>
+                      <td className="px-3 py-2.5 text-xs font-semibold text-foreground">
                         {project?.name || "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-muted-foreground">
+                      <td className="px-3 py-2.5 text-xs text-foreground">
                         {client?.name || "—"}
                       </td>
 
                       <td className="px-3 py-2.5">
 
-                        <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-gray-700">
+                        <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-foreground">
 
                           {alert.alertType || alert.kind}
 
@@ -3473,7 +3499,7 @@ function AlertsTab() {
 
                       <td className="px-3 py-2.5 text-xs font-medium">{alert.raisedByName}</td>
 
-                      <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
+                      <td className="px-3 py-2.5 text-xs tabular-nums text-foreground">
 
                         {new Date(alert.createdAt).toLocaleDateString()}
 
@@ -3489,21 +3515,21 @@ function AlertsTab() {
 
                             alert.status === "Open"
 
-                              ? "bg-orange-50 text-orange-700 border-orange-200"
+                              ? "bg-warning/15 text-warning border-warning/30"
 
                               : alert.status === "In Progress"
 
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                ? "bg-info/15 text-info border-info/30"
 
                                 : alert.status === "Resolved" || alert.status === "Closed"
 
-                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  ? "bg-success/15 text-success border-success/30"
 
                                   : alert.status === "Waiting for Customer"
 
-                                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                                    ? "bg-chart-3/15 text-chart-3 border-chart-3/30"
 
-                                    : "bg-muted text-muted-foreground border-border",
+                                    : "bg-muted text-foreground border-border",
 
                           )}
 
@@ -3589,7 +3615,7 @@ function AlertsTab() {
 
                 </span>
 
-                <p className="text-sm font-bold text-gray-800">{selectedAlert.title}</p>
+                <p className="text-sm font-bold text-foreground">{selectedAlert.title}</p>
 
               </div>
 
@@ -3623,7 +3649,7 @@ function AlertsTab() {
 
                     </span>
 
-                    <span className="font-semibold text-gray-800">
+                    <span className="font-semibold text-foreground">
 
                       {selectedAlert.escalationType || "—"}
 
@@ -3639,7 +3665,7 @@ function AlertsTab() {
 
                     </span>
 
-                    <span className="font-semibold text-gray-800">
+                    <span className="font-semibold text-foreground">
 
                       {selectedAlert.raisedByName || "—"}
 
@@ -3657,7 +3683,7 @@ function AlertsTab() {
 
                       </span>
 
-                      <span className="font-semibold text-gray-800">
+                      <span className="font-semibold text-foreground">
 
                         {formatToDayMonthYear(selectedAlert.expectedResolutionDate)}
 
@@ -3681,7 +3707,7 @@ function AlertsTab() {
 
                 </span>
 
-                <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                <p className="text-xs text-foreground leading-relaxed font-medium">
 
                   {selectedAlert.description || "No full description provided."}
 
@@ -3747,7 +3773,7 @@ function AlertsTab() {
 
                             ? "self-end ml-auto bg-emerald-100 text-emerald-950 border border-emerald-300 rounded-tr-none"
 
-                            : "self-start mr-auto bg-white text-gray-900 border border-border rounded-tl-none"
+                            : "self-start mr-auto bg-muted text-foreground border border-border rounded-tl-none"
 
                         )}
 
@@ -4130,7 +4156,7 @@ function AlertsTab() {
 
                             ? "bg-orange-50 border-orange-200 text-orange-700"
 
-                            : "bg-gray-50 border-gray-200 text-gray-600",
+                            : "bg-gray-50 border-gray-200 text-muted-foreground",
 
                       )}
 
@@ -4168,7 +4194,7 @@ function AlertsTab() {
 
                                 ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
 
-                                : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100",
+                                : "bg-gray-50 border-gray-200 text-muted-foreground hover:bg-gray-100",
 
                       )}
 
@@ -4244,7 +4270,7 @@ function AlertsTab() {
 
                       value={formatToDayMonthYear(selectedAlert.expectedResolutionDate) || "—"}
 
-                      className="w-full rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs font-semibold text-gray-800 outline-none cursor-default"
+                      className="w-full rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs font-semibold text-foreground outline-none cursor-default"
 
                     />
 
@@ -4548,7 +4574,7 @@ function NotificationsTab() {
 
     if (t.includes("wbs")) {
 
-      return "bg-orange-50 text-orange-700 border border-orange-200";
+      return "bg-warning/15 text-warning border border-warning/30";
 
     } else if (
 
@@ -4564,19 +4590,19 @@ function NotificationsTab() {
 
     ) {
 
-      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+      return "bg-success/15 text-success border border-success/30";
 
     } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal")) {
 
-      return "bg-red-50 text-red-700 border border-red-200";
+      return "bg-destructive/15 text-destructive border border-destructive/30";
 
     } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed")) {
 
-      return "bg-amber-50 text-amber-700 border border-amber-200";
+      return "bg-warning/15 text-warning border border-warning/30";
 
     } else if (t.includes("appreciation") || t.includes("feedback")) {
 
-      return "bg-purple-50 text-purple-700 border border-purple-200";
+      return "bg-chart-3/15 text-chart-3 border border-chart-3/30";
 
     } else if (
 
@@ -4590,11 +4616,11 @@ function NotificationsTab() {
 
     ) {
 
-      return "bg-sky-50 text-sky-700 border border-sky-200";
+      return "bg-info/15 text-info border border-info/30";
 
     }
 
-    return "bg-gray-50 text-gray-700 border border-gray-200";
+    return "bg-muted text-foreground border border-border";
 
   };
 
@@ -4602,18 +4628,18 @@ function NotificationsTab() {
   const getNotifStatusStyles = (status: string) => {
     const s = (status || "").toLowerCase().trim();
     if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-success/15 text-success border-success/30";
     }
     if (s === "hold" || s === "on hold" || s === "postponed") {
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-warning/15 text-warning border-warning/30";
     }
     if (s === "rejected" || s === "cancelled") {
-      return "bg-red-50 text-red-700 border-red-200";
+      return "bg-destructive/15 text-destructive border-destructive/30";
     }
     if (s === "request changes" || s === "requested changes") {
-      return "bg-purple-50 text-purple-700 border-purple-200";
+      return "bg-chart-3/15 text-chart-3 border-chart-3/30";
     }
-    return "bg-orange-50 text-orange-700 border-orange-200";
+    return "bg-warning/15 text-warning border-warning/30";
   };
 
   const renderNotifStatusIcon = (status: string) => {
@@ -4842,7 +4868,7 @@ function NotificationsTab() {
 
             <Bell className="h-5 w-5 text-primary" />
 
-            <span className="font-bold text-gray-800 text-sm">Notification Inbox</span>
+            <span className="font-bold text-foreground text-sm">Notification Inbox</span>
 
           </div>
 
@@ -5088,29 +5114,40 @@ function NotificationsTab() {
 
         <div className="overflow-x-auto border border-border rounded-xl">
 
-          <table className="min-w-full divide-y divide-border text-sm leading-relaxed text-left">
+          <table className="w-full min-w-[1100px] table-fixed text-sm leading-relaxed text-left">
+            <colgroup>
+              <col style={{ width: "24%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "8%" }} />
+            </colgroup>
 
-            <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+            <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
 
               <tr>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 min-w-[340px] w-[35%]">Notification Title</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Notification Title</th>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Type</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Type</th>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 max-w-[180px]">Related Project</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Related Project</th>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Raised By</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised By</th>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Date</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Date</th>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Time</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Time</th>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Priority</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Priority</th>
 
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85 text-right">Actions</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground text-right">Actions</th>
 
               </tr>
 
@@ -5152,7 +5189,7 @@ function NotificationsTab() {
 
                           onClick={() => handleOpenDetails(n.id)}
 
-                          className="text-left font-medium text-gray-800 hover:text-primary transition-colors cursor-pointer hover:underline block w-full"
+                          className="text-left font-medium text-foreground hover:text-primary transition-colors cursor-pointer hover:underline block w-full"
 
                         >
 

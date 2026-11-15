@@ -81,13 +81,13 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
       subStatus.includes("Approval") ||
       subStatus.includes("Released") ||
       subStatus.includes("Stabilized")
-    ) return "text-emerald-600 font-semibold";
+    ) return "text-success font-semibold";
     if (
       subStatus.includes("Pending") ||
       subStatus.includes("Cancelled") ||
       subStatus.includes("Hold")
-    ) return "text-amber-600 font-semibold";
-    return "text-blue-600 font-semibold";
+    ) return "text-warning font-semibold";
+    return "text-primary font-semibold";
   };
 
   const getStageIcon = (stage: ProjectStageData) => {
@@ -95,9 +95,9 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
       return <CheckCircle2 className="w-6 h-6 text-emerald-500" />;
     }
     if (stage.isActive) {
-      return <AlertCircle className="w-6 h-6 text-blue-500 animate-pulse" />;
+      return <AlertCircle className="w-6 h-6 text-primary" />;
     }
-    return <Circle className="w-6 h-6 text-gray-300" />;
+    return <Circle className="w-6 h-6 text-muted-foreground" />;
   };
 
   const handleStageClick = (stage: ProjectStageData) => {
@@ -110,7 +110,7 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
       {/* Main Tracker */}
       <div className="relative w-full px-2 py-4">
         {/* Background connecting line */}
-        <div className="absolute top-[32px] left-0 right-0 h-0.5 bg-gray-200 z-0" />
+        <div className="absolute top-[32px] left-0 right-0 h-0.5 bg-border z-0" />
 
         {/* Stages Container */}
         <div className="relative z-10 flex justify-between items-start gap-2">
@@ -124,15 +124,15 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
                   className={`relative mb-2 p-1.5 rounded-full transition-all duration-300 ${
                     selectedStage?.stageName === stage.stageName
                       ? "bg-primary/10 ring-2 ring-primary"
-                      : stage.isActive ? "bg-blue-50 ring-1.5 ring-blue-400" : "bg-white ring-1.5 ring-gray-200"
-                  } hover:ring-1.5 hover:ring-blue-400 cursor-pointer`}
+                      : stage.isActive ? "bg-primary/10 ring-1.5 ring-primary" : "bg-card ring-1.5 ring-border"
+                  } hover:ring-1.5 hover:ring-primary cursor-pointer`}
                 >
                   {getStageIcon(stage)}
                 </button>
 
                 {/* Stage Label */}
                 <div className="text-center w-full px-1">
-                  <p className="text-xs font-semibold text-gray-900 mb-1 truncate">{stage.stageName}</p>
+                  <p className="text-xs font-semibold text-foreground mb-1 truncate">{stage.stageName}</p>
 
                   {/* Sub-Status line — shows last completed sub-stage name */}
                   {(() => {
@@ -142,7 +142,7 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
                       const lastCompleted = completedStages.length > 0 ? completedStages[completedStages.length - 1] : null;
                       if (lastCompleted) {
                         return (
-                          <p className="mt-1 text-[10px] leading-snug truncate text-emerald-600 font-semibold">
+                          <p className="mt-1 text-[10px] leading-snug truncate text-success font-semibold">
                             {lastCompleted.label}
                           </p>
                         );
@@ -151,7 +151,7 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
                       const activeStage = subStages.find(s => s.status === "active");
                       if (activeStage) {
                         return (
-                          <p className="mt-1 text-[10px] leading-snug truncate text-blue-600 font-semibold">
+                          <p className="mt-1 text-[10px] leading-snug truncate text-primary font-semibold">
                             {activeStage.label}
                           </p>
                         );
@@ -171,9 +171,9 @@ export function StageTracker({ stages, subStatusMap, subStagesMap, onStageClick 
 
                 {/* Completion indicator */}
                 <div className="mt-1.5 text-center text-[10px]">
-                  {stage.isCompleted && <span className="text-emerald-600 font-semibold">✓ Completed</span>}
-                  {stage.isActive && !stage.isCompleted && <span className="text-blue-600 font-semibold">• Ongoing</span>}
-                  {!stage.isCompleted && !stage.isActive && <span className="text-gray-400">Pending</span>}
+                  {stage.isCompleted && <span className="text-success font-semibold">✓ Completed</span>}
+                  {stage.isActive && !stage.isCompleted && <span className="text-primary font-semibold">• Ongoing</span>}
+                  {!stage.isCompleted && !stage.isActive && <span className="text-muted-foreground">Pending</span>}
                 </div>
               </div>
             );
@@ -216,28 +216,26 @@ function SubStagePanel({ stage, subStages, subStatus, onClose }: SubStagePanelPr
   const completedCount = subStages.filter(s => s.status === "completed").length;
 
   return (
-    <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-3">
+    <div className="mt-2 rounded-lg border border-border bg-muted/40 p-4">
+      <div className="mb-3 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-gray-900">{stage.stageName} Stage</h3>
-          <p className="text-xs text-gray-600 mt-0.5">
-            Status: <span className="font-semibold text-gray-900">{stage.currentStatus}</span>
-            {subStatus && <span className="ml-2 text-blue-600 font-semibold">· {subStatus}</span>}
+          <h3 className="text-sm font-bold text-foreground">{stage.stageName} Stage</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Status: <span className="font-semibold text-foreground">{stage.currentStatus}</span>
+            {subStatus && <span className="ml-2 font-semibold text-primary">· {subStatus}</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-medium text-gray-500">
+          <span className="text-[10px] font-medium text-muted-foreground">
             {completedCount}/{subStages.length} completed
           </span>
           <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0">✕</Button>
         </div>
       </div>
 
-      {/* Progress bar */}
-      <div className="mb-3 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+      <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-border">
         <div
-          className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+          className="h-full rounded-full bg-success transition-all duration-500"
           style={{ width: `${subStages.length > 0 ? (completedCount / subStages.length) * 100 : 0}%` }}
         />
       </div>
@@ -255,27 +253,27 @@ function SubStagePanel({ stage, subStages, subStatus, onClose }: SubStagePanelPr
 function SubStageRow({ item }: { item: SubStageItem }) {
   if (item.status === "completed") {
     return (
-      <div className="flex items-center gap-2.5 rounded-md bg-white border border-emerald-100 px-3 py-2">
-        <CheckCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-        <span className="text-xs font-medium text-emerald-700">{item.label}</span>
-        <span className="ml-auto text-[10px] font-medium text-emerald-500">Done</span>
+      <div className="flex items-center gap-2.5 rounded-md border border-success/30 bg-success/10 px-3 py-2">
+        <CheckCheck className="h-3.5 w-3.5 shrink-0 text-success" />
+        <span className="text-xs font-medium text-success">{item.label}</span>
+        <span className="ml-auto text-[10px] font-medium text-success">Done</span>
       </div>
     );
   }
   if (item.status === "active") {
     return (
-      <div className="flex items-center gap-2.5 rounded-md bg-blue-50 border border-blue-200 px-3 py-2">
-        <AlertCircle className="h-3.5 w-3.5 shrink-0 text-blue-500 animate-pulse" />
-        <span className="text-xs font-semibold text-blue-700">{item.label}</span>
-        <span className="ml-auto text-[10px] font-medium text-blue-500">Ongoing</span>
+      <div className="flex items-center gap-2.5 rounded-md border border-primary/30 bg-primary/10 px-3 py-2">
+        <AlertCircle className="h-3.5 w-3.5 shrink-0 text-primary" />
+        <span className="text-xs font-semibold text-primary">{item.label}</span>
+        <span className="ml-auto text-[10px] font-medium text-primary">Ongoing</span>
       </div>
     );
   }
   return (
-    <div className="flex items-center gap-2.5 rounded-md bg-white border border-gray-100 px-3 py-2 opacity-60">
-      <Circle className="h-3.5 w-3.5 shrink-0 text-gray-300" />
-      <span className="text-xs font-medium text-gray-500">{item.label}</span>
-      <span className="ml-auto text-[10px] font-medium text-gray-400">Pending</span>
+    <div className="flex items-center gap-2.5 rounded-md border border-border bg-card px-3 py-2">
+      <Circle className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
+      <span className="ml-auto text-[10px] font-medium text-muted-foreground">Pending</span>
     </div>
   );
 }
@@ -290,21 +288,20 @@ interface StageDetailViewProps {
 
 function StageDetailView({ stage, subStatus, onClose }: StageDetailViewProps) {
   return (
-    <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <div className="flex justify-between items-center mb-4">
+    <div className="mt-2 rounded-lg border border-border bg-muted/40 p-4">
+      <div className="mb-4 flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-bold text-gray-900">{stage.stageName} Stage</h3>
-          <p className="text-xs text-gray-600 mt-0.5">
-            Status: <span className="font-semibold text-gray-900">{stage.currentStatus}</span>
-            {subStatus && <span className="ml-2 text-blue-600 font-semibold">· {subStatus}</span>}
+          <h3 className="text-sm font-bold text-foreground">{stage.stageName} Stage</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Status: <span className="font-semibold text-foreground">{stage.currentStatus}</span>
+            {subStatus && <span className="ml-2 font-semibold text-primary">· {subStatus}</span>}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose} className="h-6 w-6 p-0">✕</Button>
       </div>
 
-      {/* Status History */}
       <div className="space-y-2">
-        <h4 className="text-xs font-semibold text-gray-900">Status History</h4>
+        <h4 className="text-xs font-semibold text-foreground">Status History</h4>
         {stage.history && stage.history.length > 0 ? (
           <div className="space-y-2">
             {stage.history.map((entry, index) => (
@@ -335,24 +332,24 @@ function HistoryEntry({ entry, isLatest }: HistoryEntryProps) {
   });
 
   return (
-    <div className={`p-2.5 rounded-md border-l-2 ${isLatest ? "bg-white border-blue-500" : "bg-white border-gray-200"}`}>
+    <div className={`rounded-md border-l-2 p-2.5 ${isLatest ? "border-primary bg-card" : "border-border bg-card"}`}>
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-gray-900">{entry.action}</p>
-          <p className="text-[11px] text-gray-600 mt-0.5">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-foreground">{entry.action}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">
             Updated by <span className="font-medium">{entry.updatedByName}</span>
           </p>
           {entry.previousStatus && (
-            <p className="text-[11px] text-gray-600 mt-1">
-              <span className="line-through text-red-500">{entry.previousStatus}</span>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              <span className="text-destructive line-through">{entry.previousStatus}</span>
               {" → "}
-              <span className="font-semibold text-emerald-600">{entry.newStatus}</span>
+              <span className="font-semibold text-success">{entry.newStatus}</span>
             </p>
           )}
         </div>
-        <div className="text-right whitespace-nowrap">
-          <p className="text-[10px] text-gray-500">{formattedTime}</p>
-          {isLatest && <Badge className="mt-1 bg-blue-100 text-blue-800 text-[10px]">Latest</Badge>}
+        <div className="whitespace-nowrap text-right">
+          <p className="text-[10px] text-muted-foreground">{formattedTime}</p>
+          {isLatest && <Badge className="mt-1 bg-primary/15 text-[10px] text-primary">Latest</Badge>}
         </div>
       </div>
     </div>

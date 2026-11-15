@@ -1,7 +1,6 @@
-import { useEffect, useMemo } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ShieldX } from "lucide-react";
-import { DEFAULT_DEMO_ROLE, setStoredDemoRole } from "@/lib/user-personas";
 import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { filterNavItems, firstNavRoute, NAV_ITEMS } from "@/lib/navigation";
@@ -16,15 +15,9 @@ export const Route = createFileRoute("/access-denied")({
   component: AccessDeniedPage,
 });
 
-function continueAsAdmin() {
-  setStoredDemoRole(DEFAULT_DEMO_ROLE);
-  window.location.assign("/");
-}
-
 function AccessDeniedPage() {
   const { hasPermission, hasAny, loading } = usePermissions();
   const { isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } = useRoleContext();
-  const navigate = useNavigate();
 
   const allowedItems = useMemo(() => {
     if (loading) return [];
@@ -49,18 +42,9 @@ function AccessDeniedPage() {
         <h1 className="mt-5 text-7xl font-bold tracking-tight text-foreground">403</h1>
         <h2 className="mt-2 text-xl font-semibold text-foreground">Access Denied</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          This browser session is using a role that cannot open this page. Opening the app by
-          IP uses a different saved user than localhost. Continue as Admin, or pick another
-          person from Switch User after you are back in.
+          This signed-in role cannot open this page.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-          <button
-            type="button"
-            onClick={continueAsAdmin}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Continue as Admin
-          </button>
           <Link
             to={landingRoute || "/"}
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"

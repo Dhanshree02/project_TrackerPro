@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getDemoPersona } from "@/lib/user-personas";
 import { fetchRoles, fetchRolePermissions, type ApiRolePermission } from "@/lib/api/users";
 import { fetchSidebarModules, type SidebarTab } from "@/lib/api/catalogs";
 
@@ -216,7 +215,7 @@ const DEFAULT_PARENT_MAP: Record<string, string> = {
 const PermissionsContext = createContext<PermissionsContextValue | null>(null);
 
 export function PermissionProvider({ children }: { children: ReactNode }) {
-  const { user, demoRole } = useAuth();
+  const { user, status } = useAuth();
   const [rolePermissions, setRolePermissions] = useState<ApiRolePermission[]>([]);
   const [codeToId, setCodeToId] = useState<Record<string, string>>(() => ({ ...DEFAULT_CODE_TO_ID }));
   const [parentMap, setParentMap] = useState<Record<string, string>>(() => ({ ...DEFAULT_PARENT_MAP }));
@@ -224,6 +223,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
 
   // Load catalog to build code -> ID and child -> parent mappings
   useEffect(() => {
+    if (status !== "authed") return;
     fetchSidebarModules()
       .then((modules) => {
         const mapping: Record<string, string> = { ...DEFAULT_CODE_TO_ID };
@@ -290,14 +290,10 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
         setParentMap(parents);
       })
       .catch(() => {});
-  }, []);
+  }, [status]);
 
   // Extract active role name robustly across employee codes and RBAC roles
-  const activeRoleName = useMemo(() => {
-    if (user?.role) return user.role.trim().toLowerCase();
-    const persona = getDemoPersona(demoRole);
-    return (persona?.roleKey || persona?.accessRole || demoRole || "").trim().toLowerCase();
-  }, [user?.role, demoRole]);
+  const activeRoleName = useMemo(() => (user?.role ?? "").trim().toLowerCase(), [user?.role]);
 
   const refreshPermissions = async () => {
     if (!activeRoleName) return;
@@ -326,6 +322,10 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (!activeRoleName) {
+      setLoading(false);
+      return;
+    }
     void refreshPermissions();
   }, [activeRoleName]);
 

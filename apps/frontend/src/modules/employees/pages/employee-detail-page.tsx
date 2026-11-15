@@ -77,7 +77,7 @@ function EmpActionBadge({ action }: { action: string }) {
   }
   if (norm === "updated") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+      <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
         <History className="h-3 w-3" /> Profile Updated
       </span>
     );
@@ -101,20 +101,20 @@ function EmpStatusBadge({ status }: { status?: string }) {
   if (!status) return <span className="text-muted-foreground">—</span>;
   const map: Record<string, string> = {
     Active: "border-success/30 bg-success/10 text-success",
-    "Active - Probation": "border-warning/40 bg-warning/15 text-warning-foreground",
-    "Resignation - Under Review": "border-warning/40 bg-warning/15 text-warning-foreground",
-    "Resignation Under Review": "border-warning/40 bg-warning/15 text-warning-foreground",
+    "Active - Probation": "border-warning/40 bg-warning/15 text-warning",
+    "Resignation - Under Review": "border-warning/40 bg-warning/15 text-warning",
+    "Resignation Under Review": "border-warning/40 bg-warning/15 text-warning",
     "Resignation - Accepted": "border-destructive/30 bg-destructive/10 text-destructive",
     Resigned: "border-destructive/30 bg-destructive/10 text-destructive",
     Terminated: "border-destructive/30 bg-destructive/10 text-destructive",
     Absconded: "border-destructive/30 bg-destructive/10 text-destructive",
     "Inactive - After Onboarding": "border-muted-foreground/30 bg-muted text-muted-foreground",
-    Probation: "border-warning/40 bg-warning/15 text-warning-foreground",
+    Probation: "border-warning/40 bg-warning/15 text-warning",
     "Notice Period": "border-destructive/30 bg-destructive/10 text-destructive",
     Inactive: "border-muted-foreground/30 bg-muted text-muted-foreground",
     "On Leave": "border-info/30 bg-info/10 text-info",
     Confirmed: "border-success/30 bg-success/10 text-success",
-    Pending: "border-warning/40 bg-warning/15 text-warning-foreground",
+    Pending: "border-warning/40 bg-warning/15 text-warning",
   };
   return (
     <span

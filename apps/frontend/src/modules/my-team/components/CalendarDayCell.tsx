@@ -132,7 +132,11 @@ export function CalendarDayCell({
   const isWeekend = isWeeklyOff !== undefined ? isWeeklyOff : isWeekendDate(date);
   const event = getEventByDate(schedule, memberId, date, isWeekend);
   const rawAttendanceType = event?.type;
-  const hasExplicitAttendance = Boolean(rawAttendanceType && rawAttendanceType !== "holiday");
+  // A weekly off is derived, not chosen. A holiday on that day is drawn on top of it.
+  const holidayOnWeeklyOff = isHoliday && rawAttendanceType === "weeklyOff";
+  const hasExplicitAttendance = Boolean(
+    rawAttendanceType && rawAttendanceType !== "holiday" && !holidayOnWeeklyOff,
+  );
   const attendanceType = hasExplicitAttendance ? (rawAttendanceType as AttendanceType) : undefined;
   const isLeave = attendanceType === "leave" || rawAttendanceType === "leave";
   // On leave or unassigned holiday, people have NO shift data ("G" is removed)
@@ -176,22 +180,22 @@ export function CalendarDayCell({
     buttonRef.current?.closest("[data-calendar-day-cell]")?.removeAttribute("title");
   }, [isOpen]);
 
-  const cellSurfaceClass = `relative flex flex-col items-center justify-center overflow-visible border-r border-[#edf0f4] dark:border-slate-800 ${
-            !isLastRow ? "border-b border-[#edf0f4] dark:border-slate-800" : ""
+  const cellSurfaceClass = `relative flex flex-col items-center justify-center overflow-visible border-r border-border ${
+            !isLastRow ? "border-b border-border" : ""
           } ${
             isToday
-              ? "bg-primary/20 dark:bg-primary/25"
+              ? "bg-primary/15"
               : isPast
-                ? "bg-[#ebedf3] dark:bg-slate-800/70"
+                ? "bg-muted/80"
                 : isHoliday
-                  ? "bg-[#f1f3f8] dark:bg-slate-800/50"
+                  ? "bg-muted/50"
                   : isWeekend
-                    ? "bg-[#f3f4f7] dark:bg-slate-800/40"
+                    ? "bg-muted/60"
                     : dayAllocation && !isLeave
                       ? isDedicatedAlloc
-                        ? "bg-indigo-50/55 dark:bg-indigo-950/25"
-                        : "bg-sky-50/60 dark:bg-sky-950/25"
-                      : "bg-white dark:bg-slate-900"
+                        ? "bg-chart-3/15"
+                        : "bg-chart-2/15"
+                      : "bg-card"
           }`;
 
   const dayButton = (
@@ -226,15 +230,15 @@ export function CalendarDayCell({
                       : readOnly
                         ? isToday
                           ? "text-primary font-bold cursor-default"
-                          : "text-[#1e293b] dark:text-slate-100 font-bold cursor-default"
-                        : "cursor-not-allowed text-[#94a3b8] dark:text-slate-500 opacity-70"
+                          : "text-foreground font-bold cursor-default"
+                        : "cursor-not-allowed text-muted-foreground font-bold cursor-default"
                   : attendanceType
                     ? "text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)] font-bold cursor-pointer"
                     : isHoliday
                       ? "cursor-pointer font-bold text-white shadow-[0_0_0_1px_rgba(255,255,255,0.25)]"
                       : isToday
                         ? "text-primary font-bold cursor-pointer"
-                        : "text-[#1e293b] dark:text-slate-100 font-bold cursor-pointer"
+                        : "text-foreground font-bold cursor-pointer"
               }`}
               style={
                 attendanceType

@@ -799,6 +799,7 @@ export function MyTeamPage() {
 
     const q = searchQuery.trim().toLowerCase();
     return base.filter((m) => {
+      const liveStatus = getMemberLiveAllocationStatus(m, teamSchedule, todayKey);
       if (roster !== "team") {
         if (deptFilter && m.department !== deptFilter) return false;
         if (
@@ -807,7 +808,6 @@ export function MyTeamPage() {
         ) {
           return false;
         }
-        const liveStatus = getMemberLiveAllocationStatus(m, teamSchedule, todayKey);
         if (allocStatusFilter && liveStatus !== allocStatusFilter) return false;
         if (allocTypeFilter && m.allocationType !== allocTypeFilter) return false;
       }
@@ -843,6 +843,7 @@ export function MyTeamPage() {
     onFloorRoleFilter,
     allocStatusFilter,
     allocTypeFilter,
+    roster,
     teamSchedule,
     todayKey,
   ]);
@@ -1522,27 +1523,25 @@ export function MyTeamPage() {
             </div>
           </div>
 
-          <div className="relative z-0 mt-5 isolate overflow-hidden rounded-[22px] bg-[#fbfbfc] shadow-[inset_0_0.5px_0_rgba(255,255,255,1),inset_0_0_0_0.5px_rgba(255,255,255,0.7),0_0_0_0.5px_rgba(0,0,0,0.18),0_18px_48px_-20px_rgba(15,23,42,0.28)]">
-            <div className="border-b border-black/[0.06] bg-white/45 px-5 py-3.5 backdrop-blur-xl backdrop-saturate-150">
-              {/* ── Month navigation ── */}
+          <div className="relative z-0 mt-5 isolate overflow-hidden rounded-[22px] border border-border bg-card shadow-sm">
+            <div className="border-b border-border bg-muted/40 px-5 py-3.5">
               <div className="flex items-center gap-3">
-                {/* Month arrows */}
                 <button
                   type="button"
                   aria-label="Previous month"
                   onClick={() => changeMonth(-1)}
-                  className="flex h-6 w-6 items-center justify-center rounded-[3px] bg-[#5a49b8] text-white transition hover:bg-[#4e3fa4]"
+                  className="flex h-6 w-6 items-center justify-center rounded-[3px] bg-primary text-primary-foreground transition hover:bg-primary/80"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
                 </button>
-                <span className="min-w-[76px] text-center text-xs font-semibold text-[#586174]">
+                <span className="min-w-[76px] text-center text-xs font-semibold text-foreground">
                   {monthFormatter.format(selectedMonth)}
                 </span>
                 <button
                   type="button"
                   aria-label="Next month"
                   onClick={() => changeMonth(1)}
-                  className="flex h-6 w-6 items-center justify-center rounded-[3px] bg-[#5a49b8] text-white transition hover:bg-[#4e3fa4]"
+                  className="flex h-6 w-6 items-center justify-center rounded-[3px] bg-primary text-primary-foreground transition hover:bg-primary/80"
                 >
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
@@ -1556,17 +1555,17 @@ export function MyTeamPage() {
               className="w-full"
               style={{ minWidth: calendarMinWidth }}
             >
-              <div className="flex w-full border-b border-[#edf0f4]">
+              <div className="flex w-full border-b border-border">
                 <aside
-                  className={`sticky left-0 flex shrink-0 flex-col border-r border-white/50 shadow-[inset_1px_0_0_rgba(255,255,255,0.7)] backdrop-blur-[28px] backdrop-saturate-150 ${
+                  className={`sticky left-0 flex shrink-0 flex-col border-r border-border bg-card ${
                     openCell
-                      ? "z-[560] bg-white/98 dark:bg-slate-950/98"
-                      : "z-10 bg-white/45"
+                      ? "z-[560]"
+                      : "z-10"
                   }`}
                   style={{ width: CALENDAR_NAME_COL_PX }}
                 >
                   <div
-                    className="shrink-0 border-b border-black/[0.04]"
+                    className="shrink-0 border-b border-border"
                     style={{ height: CALENDAR_HEADER_PX }}
                   />
                   {visibleMembers.map((member, memberIdx) => {
@@ -1590,8 +1589,8 @@ export function MyTeamPage() {
                     <div
                       key={member.id}
                       className={`flex items-center gap-2.5 px-3 ${
-                        memberIdx < visibleMembers.length - 1 ? "border-b border-[#edf0f4]" : ""
-                      } ${isNameRowActive ? "relative z-[561] bg-white/98 dark:bg-slate-950/98" : ""}`}
+                        memberIdx < visibleMembers.length - 1 ? "border-b border-border" : ""
+                      } ${isNameRowActive ? "relative z-[561] bg-accent" : ""}`}
                       style={{ height: CALENDAR_ROW_PX }}
                     >
                       <div
@@ -1603,7 +1602,7 @@ export function MyTeamPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
                           <p
-                            className="truncate text-[13px] font-semibold text-[#3d3d5c] leading-tight"
+                            className="truncate text-[13px] font-semibold leading-tight text-foreground"
                             title={suppressNativeTitle ? undefined : member.name}
                           >
                             {member.name}
@@ -1623,7 +1622,7 @@ export function MyTeamPage() {
                             <button
                               type="button"
                               onClick={() => setWorkloadMember(member)}
-                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-black/10 bg-white/80 text-[#586174] hover:bg-[#f0eef9] hover:text-[#5a49b8] transition-colors"
+                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:bg-accent hover:text-primary"
                               title={`Workload & Tasks for ${member.name}`}
                               aria-label={`Workload and tasks for ${member.name}`}
                             >
@@ -1633,7 +1632,7 @@ export function MyTeamPage() {
                               <button
                                 type="button"
                                 onClick={() => setScheduleDialogMember(member)}
-                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-transparent text-[#8b93a3] hover:border-black/10 hover:bg-[#f0eef9] hover:text-[#5a49b8] transition-all"
+                                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-transparent text-muted-foreground transition-all hover:border-border hover:bg-accent hover:text-primary"
                                 title={`Configure working days, holidays & comments for ${member.name}`}
                                 aria-label={`Configure schedule for ${member.name}`}
                               >
@@ -1643,7 +1642,7 @@ export function MyTeamPage() {
                           </div>
                         </div>
                         <p
-                          className="truncate text-[10.5px] text-[#8b93a3] leading-tight mt-0.5"
+                          className="mt-0.5 truncate text-[10.5px] leading-tight text-muted-foreground"
                           title={suppressNativeTitle ? undefined : member.designation}
                         >
                           {member.designation}
@@ -1665,7 +1664,7 @@ export function MyTeamPage() {
                   style={{ minWidth: daysInMonth * CALENDAR_DAY_COL_PX, paddingRight: CALENDAR_END_PAD_PX }}
                 >
                   <div
-                    className="grid w-full items-center border-b border-[#edf0f4]"
+                    className="grid w-full items-center border-b border-border"
                     style={{ height: CALENDAR_HEADER_PX, gridTemplateColumns: dayGridTemplate }}
                   >
                       {days.map((day) => {
@@ -1682,16 +1681,16 @@ export function MyTeamPage() {
                           <div
                             key={day}
                             title={companyHol ? `Holiday: ${companyHol.name}` : undefined}
-                            className={`relative flex h-full items-center justify-center text-[11px] font-bold border-b border-r border-[#edf0f4] ${
+                            className={`relative flex h-full items-center justify-center border-b border-r border-border text-[11px] font-bold ${
                               isToday
-                                ? "bg-primary/20 text-primary"
+                                ? "bg-primary/15 text-primary"
                                 : isCompanyHoliday
-                                  ? "text-foreground font-extrabold"
+                                  ? "font-extrabold text-foreground"
                                   : isPast
-                                    ? "bg-[#ebedf3] text-[#8a94a6]"
+                                    ? "bg-muted/80 text-muted-foreground"
                                     : weekend
-                                      ? "bg-[#f3f4f7] text-[#8a94a6]"
-                                      : "bg-white text-[#334155]"
+                                      ? "bg-muted/60 text-muted-foreground"
+                                      : "bg-card text-foreground"
                             }`}
                             style={isCompanyHoliday ? { backgroundColor: `${attendanceMeta.holiday.solid}18` } : undefined}
                           >
@@ -1725,7 +1724,7 @@ export function MyTeamPage() {
                     return (
                       <div
                         key={member.id}
-                        className={`grid w-full overflow-visible border-b border-[#edf0f4] last:border-b-0 ${
+                        className={`grid w-full overflow-visible border-b border-border last:border-b-0 ${
                           isRowActive ? "relative z-10" : "relative z-0"
                         }`}
                         style={{ height: CALENDAR_ROW_PX, gridTemplateColumns: dayGridTemplate }}
@@ -1782,18 +1781,18 @@ export function MyTeamPage() {
             </div>
             </div>
 
-              <div className="flex flex-wrap items-center gap-x-7 gap-y-4 border-t border-black/[0.06] bg-white/45 px-5 py-4 text-[11px] font-medium text-[#6f7685] backdrop-blur-xl backdrop-saturate-150">
+              <div className="flex flex-wrap items-center gap-x-7 gap-y-4 border-t border-border bg-card px-5 py-4 text-[11px] font-medium text-muted-foreground">
                 <Legend color={attendanceMeta.onsite.solid}    text="Onsite" />
                 <Legend color={attendanceMeta.wfh.solid}       text="Work From Home" />
                 <Legend color={attendanceMeta.leave.solid}     text="Leave" />
                 <Legend color={attendanceMeta.weeklyOff.solid} text="Weekly Off" />
                 <Legend color={attendanceMeta.holiday.solid}   text="Holiday" />
-                <span className="h-3 w-px bg-[#e5e8ef]" />
+                <span className="h-3 w-px bg-border" />
                 <ShiftChipLegend chip={shiftMeta.Morning.chip}   text="Morning" />
                 <ShiftChipLegend chip={shiftMeta.Afternoon.chip} text="Afternoon" />
                 <ShiftChipLegend chip={shiftMeta.Night.chip}     text="Night" />
                 <ShiftChipLegend chip={shiftMeta.General.chip}   text="General (default)" />
-                <span className="h-3 w-px bg-[#e5e8ef]" />
+                <span className="h-3 w-px bg-border" />
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <span className="rounded bg-[#4f46e5] px-1.5 py-0.5 text-[8.5px] font-bold uppercase text-white">
                     DED
@@ -1808,24 +1807,24 @@ export function MyTeamPage() {
                 </div>
               </div>
               {paginateRoster && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card/95 px-4 py-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-3">
                     <span>
                       Showing{" "}
-                      <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>
+                      <strong className="font-semibold text-foreground">{pageRange.from}</strong>
                       {" - "}
-                      <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.to}</strong>
+                      <strong className="font-semibold text-foreground">{pageRange.to}</strong>
                       {" of "}
-                      <strong className="font-semibold text-blue-950 dark:text-blue-100">{filteredMembers.length}</strong>
+                      <strong className="font-semibold text-foreground">{filteredMembers.length}</strong>
                       {" employees"}
                     </span>
-                    <span className="text-slate-300 dark:text-slate-600">|</span>
+                    <span className="text-border">|</span>
                     <div className="flex items-center gap-1.5">
                       <span>Per page:</span>
                       <RowsPerPageSelect
                         value={pageSize}
                         onChange={setPageSize}
-                        className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                        className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
                       />
                     </div>
                   </div>
@@ -1834,18 +1833,18 @@ export function MyTeamPage() {
                       type="button"
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage <= 1}
-                      className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
                     >
                       <ChevronLeft className="h-3.5 w-3.5" /> Previous
                     </button>
-                    <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
+                    <span className="px-2 tabular-nums font-semibold text-foreground">
                       {currentPage} / {totalPages}
                     </span>
                     <button
                       type="button"
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                       disabled={currentPage >= totalPages}
-                      className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                      className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
                     >
                       Next <ChevronRight className="h-3.5 w-3.5" />
                     </button>

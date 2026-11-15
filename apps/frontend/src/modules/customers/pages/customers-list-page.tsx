@@ -93,7 +93,7 @@ type CustomerListRow = {
 };
 
 const CUSTOMER_METRIC_TD_CLS = "px-2 text-center";
-const CUSTOMER_HEADER_CELL_CLS = "px-2 text-center align-middle";
+const CUSTOMER_HEADER_CELL_CLS = "px-4 py-3 text-left align-middle";
 const CUSTOMER_METRIC_COL_WIDTH = "6.25rem"; /* 100px — fits "Completed" + sort icon */
 
 /** Fixed column widths so metric headers stay evenly spaced (table-fixed redistributes slack otherwise). */
@@ -209,10 +209,10 @@ function SortableTh<T extends string>({
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group mx-auto inline-flex items-center justify-center gap-1 text-center text-xs font-semibold transition-colors select-none",
+        "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
           active
-            ? "text-blue-600 dark:text-blue-400 font-bold"
-            : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
+            ? "text-primary font-bold"
+            : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
         aria-label={`Sort by ${label}`}
@@ -222,7 +222,7 @@ function SortableTh<T extends string>({
           className={cn(
             "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
             active
-              ? "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400"
+              ? "bg-primary/15 text-primary"
               : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
           )}
         >
@@ -235,7 +235,7 @@ function SortableTh<T extends string>({
       </button>
       {!isLast ? (
         <span
-          className="pointer-events-none absolute right-0 top-2.5 bottom-2.5 w-px bg-blue-300/80 dark:bg-blue-700"
+          className="pointer-events-none absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border"
           aria-hidden="true"
         />
       ) : null}
@@ -580,7 +580,7 @@ export function CustomersListPage() {
                     {/* Engagement Manager */}
                     <div className="flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-950/60 text-primary">
                           <UserRound className="h-3 w-3" />
                         </span>
                         <span className="truncate text-xs font-normal text-muted-foreground">
@@ -685,7 +685,7 @@ export function CustomersListPage() {
                         title={`Filter: ${newCount} New Project${newCount === 1 ? "" : "s"}`}
                         aria-label={`Filter by New (${newCount} projects)`}
                       >
-                        <span className="text-xs font-bold tabular-nums leading-none text-blue-600 dark:text-blue-400 group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 transition-colors">
+                        <span className="text-xs font-bold tabular-nums leading-none text-primary group-hover/btn:text-blue-700 dark:group-hover/btn:text-blue-300 transition-colors">
                           {newCount}
                         </span>
                         <GridMetricLabel lines="New" />
@@ -798,14 +798,14 @@ export function CustomersListPage() {
           })}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
-          <table className="w-full min-w-[1280px] table-fixed border-separate border-spacing-0 text-sm">
+        <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
+          <table className="w-max table-fixed border-separate border-spacing-0 text-sm">
             <colgroup>
               {CUSTOMER_LIST_COL_WIDTHS.map((width, idx) => (
                 <col key={CUSTOMER_LIST_COLUMNS[idx].key} style={{ width }} />
               ))}
             </colgroup>
-            <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-center text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+            <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
               <tr>
                 {CUSTOMER_LIST_COLUMNS.map((col, idx, cols) => (
                   <SortableTh
@@ -889,7 +889,7 @@ export function CustomersListPage() {
                           }}
                           className={cn(
                             "inline-flex items-center justify-center min-w-[38px] px-2.5 h-[26px] rounded-full border-2 font-semibold text-xs tracking-tight transition-all duration-150 cursor-pointer select-none",
-                            "border-slate-300 dark:border-slate-600 bg-slate-100/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200",
+                            "border-border bg-slate-100/90 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200",
                             "hover:bg-[#1d1d1f] hover:text-white hover:border-[#1d1d1f] dark:hover:bg-white dark:hover:text-[#1d1d1f] dark:hover:border-white",
                             "shadow-2xs hover:shadow-md hover:scale-110 active:scale-95",
                             total === 0 && "opacity-40 hover:opacity-100",

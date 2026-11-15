@@ -998,19 +998,6 @@ public class BucketTaskService : IBucketTaskService
         var userId = _currentUser.UserId;
         var email = _currentUser.Email?.Trim().ToLowerInvariant();
 
-        // 1. Direct match: Did X-User-Id pass an Employee ID directly (which is what persona switcher passes)?
-        if (userId.HasValue)
-        {
-            var empExists = await _db.Employees
-                .AsNoTracking()
-                .AnyAsync(e => e.Id == userId.Value && e.DeletedAtUtc == null, ct);
-            if (empExists)
-            {
-                return userId.Value;
-            }
-        }
-
-        // 2. Match by UserId foreign key
         if (userId.HasValue)
         {
             var empByUserId = await _db.Employees
@@ -1021,6 +1008,14 @@ public class BucketTaskService : IBucketTaskService
             if (empByUserId.HasValue)
             {
                 return empByUserId.Value;
+            }
+
+            var empExists = await _db.Employees
+                .AsNoTracking()
+                .AnyAsync(e => e.Id == userId.Value && e.DeletedAtUtc == null, ct);
+            if (empExists)
+            {
+                return userId.Value;
             }
         }
 

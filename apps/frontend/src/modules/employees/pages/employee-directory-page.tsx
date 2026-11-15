@@ -22,7 +22,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { inFinancialYears, useFinancialYear } from "@/lib/financial-year";
-import { Avatar, ProgressBar } from "@/components/pills";
+import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
   ALLOWED_WORK_EMAIL_DOMAINS,
@@ -128,8 +128,7 @@ type DirectorySortKey =
   | "workLocation"
   | "category"
   | "joiningDate"
-  | "status"
-  | "kpiScore";
+  | "status";
 type PoolSortKey =
   | "department"
   | "subDepartment"
@@ -141,28 +140,27 @@ type PoolSortKey =
   | "projectSite";
 type SortDir = "asc" | "desc";
 
-const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "TK ID", key: "id", className: "w-40 min-w-[145px]" },
-  { label: "Name", key: "name", className: "w-52 min-w-[180px]" },
-  { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
-  { label: "Designation", key: "designation", className: "w-52 min-w-[185px]" },
-  { label: "On Floor Role", key: "jobRoleName", className: "w-44 min-w-[160px]" },
-  { label: "Sub-Department", key: "subDepartment", className: "w-52 min-w-[185px]" },
-  { label: "Reporting Manager", key: "reportingManager", className: "w-48 min-w-[170px]" },
-  { label: "Work Location", key: "workLocation", className: "w-48 min-w-[160px]" },
-  { label: "Category", key: "category", className: "w-60 min-w-[210px]" },
-  { label: "Joining Date", key: "joiningDate", className: "w-40 min-w-[145px]" },
-  { label: "Status", key: "status", className: "w-56 min-w-[220px]" },
-  { label: "KPI", key: "kpiScore", className: "w-28 min-w-[100px]" },
+const DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey }[] = [
+  { label: "TK ID", key: "id" },
+  { label: "Name", key: "name" },
+  { label: "Department", key: "department" },
+  { label: "Designation", key: "designation" },
+  { label: "On Floor Role", key: "jobRoleName" },
+  { label: "Sub-Department", key: "subDepartment" },
+  { label: "Reporting Manager", key: "reportingManager" },
+  { label: "Work Location", key: "workLocation" },
+  { label: "Category", key: "category" },
+  { label: "Joining Date", key: "joiningDate" },
+  { label: "Status", key: "status" },
 ];
 
-const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey; className?: string }[] = [
-  { label: "TK ID", key: "id", className: "w-40 min-w-[145px]" },
-  { label: "Employee Name", key: "name", className: "w-52 min-w-[180px]" },
-  { label: "Department", key: "department", className: "w-44 min-w-[150px]" },
-  { label: "Designation", key: "designation", className: "w-64 min-w-[210px]" },
-  { label: "On Floor Role", key: "jobRoleName", className: "w-44 min-w-[160px]" },
-  { label: "Sub-Department", key: "subDepartment", className: "w-52 min-w-[185px]" },
+const BASIC_DIRECTORY_COLUMNS: { label: string; key: DirectorySortKey }[] = [
+  { label: "TK ID", key: "id" },
+  { label: "Employee Name", key: "name" },
+  { label: "Department", key: "department" },
+  { label: "Designation", key: "designation" },
+  { label: "On Floor Role", key: "jobRoleName" },
+  { label: "Sub-Department", key: "subDepartment" },
 ];
 
 const POOL_COLUMNS: { label: string; key: PoolSortKey | null; className?: string; align?: "right" }[] = [
@@ -182,7 +180,6 @@ function sortBlank(value: string): string {
 }
 
 function compareEmployees(a: Employee, b: Employee, key: DirectorySortKey): number {
-  if (key === "kpiScore") return a.kpiScore - b.kpiScore;
   if (key === "name") {
     return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`, undefined, {
       sensitivity: "base",
@@ -295,10 +292,10 @@ function SortableTh<T extends string>({
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
+          "group inline-flex items-center gap-1.5 whitespace-nowrap text-left text-xs font-semibold transition-colors select-none",
           active
-            ? "text-blue-600 dark:text-blue-400 font-bold"
-            : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
+            ? "text-primary font-bold"
+            : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
         aria-label={`Sort by ${label}`}
@@ -308,7 +305,7 @@ function SortableTh<T extends string>({
           className={cn(
             "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
             active
-              ? "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400"
+              ? "bg-primary/15 text-primary"
               : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
           )}
         >
@@ -323,7 +320,7 @@ function SortableTh<T extends string>({
       {/* Explicit Apple macOS-style vertical column divider */}
       {!isLast && (
         <span
-          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none"
+          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
           aria-hidden="true"
         />
       )}
@@ -391,9 +388,9 @@ function AllocationTypeBadge({ type }: { type?: string | null }) {
 function EmpStatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     Active: "border-success/30 bg-success/10 text-success",
-    Probation: "border-warning/40 bg-warning/15 text-warning-foreground",
-    "Resignation Under Review": "border-warning/40 bg-warning/15 text-warning-foreground",
-    "Resignation - Under Review": "border-warning/40 bg-warning/15 text-warning-foreground",
+    Probation: "border-warning/40 bg-warning/15 text-warning",
+    "Resignation Under Review": "border-warning/40 bg-warning/15 text-warning",
+    "Resignation - Under Review": "border-warning/40 bg-warning/15 text-warning",
     Resigned: "border-destructive/30 bg-destructive/10 text-destructive",
     Terminated: "border-destructive/30 bg-destructive/10 text-destructive",
     Absconded: "border-destructive/30 bg-destructive/10 text-destructive",
@@ -1239,8 +1236,8 @@ export function EmployeeDirectoryPage() {
       {tab === "directory" ? (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
-            <table className={cn("w-full text-sm table-fixed", basicDirectoryView ? "min-w-[985px]" : "min-w-[1665px]")}>
-              <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+            <table className="w-max text-sm">
+              <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
                   {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col, idx, arr) => (
                     <SortableTh
@@ -1249,7 +1246,6 @@ export function EmployeeDirectoryPage() {
                       column={col.key}
                       sortKey={sortKey}
                       sortDir={sortDir}
-                      className={col.className}
                       isLast={idx === arr.length - 1}
                       onSort={(next) => {
                         if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -1271,73 +1267,61 @@ export function EmployeeDirectoryPage() {
                     }
                     className="cursor-pointer transition-colors hover:bg-accent/30"
                   >
-                    <td className={cn("whitespace-nowrap px-4 py-3.5 font-mono text-xs text-muted-foreground truncate", basicDirectoryView ? "w-32 min-w-[120px]" : "w-32 min-w-[120px]")} title={e.id}>
+                    <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-muted-foreground" title={e.id}>
                       {e.id}
                     </td>
-                    <td className={cn("whitespace-nowrap px-4 py-3.5", basicDirectoryView ? "w-52 min-w-[180px]" : "w-52 min-w-[180px]")}>
+                    <td className="whitespace-nowrap px-4 py-3.5">
                       <Link
                         to="/employee-directory/$id"
                         params={{ id: e.id }}
-                        className="flex items-center gap-2.5 hover:text-primary transition-colors min-w-0"
+                        className="flex items-center gap-2.5 hover:text-primary transition-colors"
                       >
                         <Avatar name={`${e.firstName} ${e.lastName}`} size={28} />
-                        <span className="font-semibold truncate" title={`${e.firstName} ${e.lastName}`}>
+                        <span className="font-semibold" title={`${e.firstName} ${e.lastName}`}>
                           {e.firstName} {e.lastName}
                         </span>
                       </Link>
                     </td>
-                    <td className={cn("whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate", basicDirectoryView ? "w-44 min-w-[150px]" : "w-44 min-w-[150px]")} title={e.department}>
+                    <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground" title={e.department}>
                       {dash(e.department)}
                     </td>
-                    <td className={cn("whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate", basicDirectoryView ? "w-64 min-w-[210px]" : "w-52 min-w-[185px]")} title={e.designation}>
+                    <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground" title={e.designation}>
                       {dash(e.designation)}
                     </td>
                     <td
-                      className="w-44 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate"
+                      className="whitespace-nowrap px-4 py-3.5 text-muted-foreground"
                       title={formatOnFloorRoleDisplay(e.jobRoleName) || e.jobRoleName}
                     >
                       {dash(formatOnFloorRoleDisplay(e.jobRoleName) || e.jobRoleName)}
                     </td>
-                    <td
-                      className={cn(
-                        "whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate",
-                        basicDirectoryView ? "w-52 min-w-[185px]" : "w-52 min-w-[185px]",
-                      )}
-                      title={e.subDepartment}
-                    >
+                    <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground" title={e.subDepartment}>
                       {dash(e.subDepartment)}
                     </td>
                     {!basicDirectoryView && (
                       <>
-                        <td className="w-44 min-w-[150px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.reportingManager}>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground" title={e.reportingManager}>
                           {dash(e.reportingManager)}
                         </td>
-                        <td className="w-48 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground" title={e.workLocation === "Onsite" && e.projectSite ? `Onsite (${e.projectSite})` : e.workLocation}>
                           {e.workLocation === "Onsite" && e.projectSite ? (
                             <span className="inline-flex items-center gap-1.5">
                               <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 text-[11px] font-medium text-info">
                                 Onsite
                               </span>
-                              <span className="text-xs text-foreground truncate max-w-[120px]">{e.projectSite}</span>
+                              <span className="text-xs text-foreground">{e.projectSite}</span>
                             </span>
                           ) : (
                             dash(e.workLocation)
                           )}
                         </td>
-                        <td className="w-60 min-w-[210px] whitespace-nowrap px-4 py-3.5 text-muted-foreground truncate" title={e.category}>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground" title={e.category}>
                           {dash(e.category)}
                         </td>
-                        <td className="w-32 min-w-[110px] whitespace-nowrap px-4 py-3.5 text-muted-foreground">
+                        <td className="whitespace-nowrap px-4 py-3.5 text-muted-foreground">
                           {formatDateDMY(e.joiningDate)}
                         </td>
-                        <td className="w-56 min-w-[220px] px-4 py-3.5 align-middle">
+                        <td className="whitespace-nowrap px-4 py-3.5 align-middle">
                           <EmpStatusBadge status={employeeStatusDisplayLabel(e)} />
-                        </td>
-                        <td className="w-28 min-w-[100px] whitespace-nowrap px-4 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <ProgressBar value={e.kpiScore} className="w-14" />
-                            <span className="text-xs font-medium tabular-nums">{e.kpiScore}%</span>
-                          </div>
                         </td>
                       </>
                     )}
@@ -1346,7 +1330,7 @@ export function EmployeeDirectoryPage() {
                 {pageRows.length === 0 && (
                   <tr>
                     <td
-                      colSpan={basicDirectoryView ? 6 : 12}
+                      colSpan={basicDirectoryView ? 6 : 11}
                       className="px-4 py-10 text-center text-sm text-muted-foreground"
                     >
                       {isLoading
@@ -1364,21 +1348,21 @@ export function EmployeeDirectoryPage() {
           </div>
 
           {/* Frozen / Sticky Pagination Footer */}
-          <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
+          <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 text-xs text-muted-foreground shadow-xs">
             <div className="flex items-center gap-3">
               <span>
-                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong> - <strong className="font-semibold text-blue-950 dark:text-blue-100">
+                Showing <strong className="font-semibold text-foreground">{pageRange.from}</strong> - <strong className="font-semibold text-foreground">
                   {pageRange.to}
                 </strong>{" "}
-                of <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length}</strong> employees
+                of <strong className="font-semibold text-foreground">{activeRows.length}</strong> employees
               </span>
-              <span className="text-slate-300 dark:text-slate-600">|</span>
+              <span className="text-border">|</span>
               <div className="flex items-center gap-1.5">
                 <span>Per page:</span>
                 <RowsPerPageSelect
                   value={pageSize}
                   onChange={setPageSize}
-                  className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                  className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
             </div>
@@ -1388,18 +1372,18 @@ export function EmployeeDirectoryPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
               >
                 <ChevronLeft className="h-3.5 w-3.5" /> Previous
               </button>
-              <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
+              <span className="px-2 tabular-nums font-semibold text-foreground">
                 {currentPage} / {totalPages}
               </span>
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
               >
                 Next <ChevronRight className="h-3.5 w-3.5" />
               </button>
@@ -1407,10 +1391,10 @@ export function EmployeeDirectoryPage() {
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+        <div className="w-fit max-w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
-            <table className="w-full min-w-[1590px] table-fixed text-sm">
-              <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+            <table className="w-max table-fixed text-sm">
+              <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
                   {POOL_COLUMNS.map((col, idx, arr) =>
                     col.key ? (
@@ -1434,7 +1418,7 @@ export function EmployeeDirectoryPage() {
                       <th
                         key={col.label}
                         className={cn(
-                          "relative whitespace-nowrap px-4 py-3.5 font-semibold text-xs text-blue-950/85 dark:text-blue-100/85",
+                          "relative whitespace-nowrap px-4 py-3.5 font-semibold text-xs text-muted-foreground",
                           col.className,
                           col.align === "right" ? "text-right" : "text-left",
                         )}
@@ -1442,7 +1426,7 @@ export function EmployeeDirectoryPage() {
                         {col.label}
                         {idx < arr.length - 1 && (
                           <span
-                            className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none"
+                            className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
                             aria-hidden="true"
                           />
                         )}
@@ -1542,21 +1526,21 @@ export function EmployeeDirectoryPage() {
           </div>
 
           {/* Frozen / Sticky Pagination Footer */}
-          <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
+          <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 text-xs text-muted-foreground shadow-xs">
             <div className="flex items-center gap-3">
               <span>
-                Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong> - <strong className="font-semibold text-blue-950 dark:text-blue-100">
+                Showing <strong className="font-semibold text-foreground">{pageRange.from}</strong> - <strong className="font-semibold text-foreground">
                   {pageRange.to}
                 </strong>{" "}
-                of <strong className="font-semibold text-blue-950 dark:text-blue-100">{activeRows.length}</strong> resources
+                of <strong className="font-semibold text-foreground">{activeRows.length}</strong> resources
               </span>
-              <span className="text-slate-300 dark:text-slate-600">|</span>
+              <span className="text-border">|</span>
               <div className="flex items-center gap-1.5">
                 <span>Per page:</span>
                 <RowsPerPageSelect
                   value={pageSize}
                   onChange={setPageSize}
-                  className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                  className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
             </div>
@@ -1566,18 +1550,18 @@ export function EmployeeDirectoryPage() {
                 type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage <= 1}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
               >
                 <ChevronLeft className="h-3.5 w-3.5" /> Previous
               </button>
-              <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
+              <span className="px-2 tabular-nums font-semibold text-foreground">
                 {currentPage} / {totalPages}
               </span>
               <button
                 type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
               >
                 Next <ChevronRight className="h-3.5 w-3.5" />
               </button>

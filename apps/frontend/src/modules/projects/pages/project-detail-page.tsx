@@ -3559,7 +3559,7 @@ export function ProjectDetailPage() {
 
                       <li key={inv.id}>
 
-                        <span className="font-medium text-foreground">{inv.milestone || inv.invoiceNumber || "Invoice"}</span> — Payment status is currently <span className="font-semibold text-warning-foreground">"{inv.paymentStatus}"</span> (Required: "Received").
+                        <span className="font-medium text-foreground">{inv.milestone || inv.invoiceNumber || "Invoice"}</span> — Payment status is currently <span className="font-semibold text-warning">"{inv.paymentStatus}"</span> (Required: "Received").
 
                       </li>
 
@@ -4223,9 +4223,9 @@ function WbsTab({
 
           <div className="overflow-x-auto rounded-lg border border-border shadow-xs bg-card">
 
-            <table className="min-w-[1950px] w-full text-xs text-left divide-y divide-border">
+            <table className="app-columns text-xs text-left divide-y divide-border">
 
-              <thead className="bg-muted/60 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
+              <thead className="app-columns-head sticky top-0 z-10 bg-card/95 text-left text-xs font-semibold text-muted-foreground border-b border-border">
 
                 <tr>
 
@@ -4609,9 +4609,9 @@ function WbsTab({
 
         <div className="overflow-x-auto rounded-lg border border-border shadow-xs bg-card">
 
-          <table className="min-w-[1950px] w-full text-xs text-left divide-y divide-border">
+          <table className="app-columns text-xs text-left divide-y divide-border">
 
-            <thead className="bg-muted/60 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
+            <thead className="app-columns-head sticky top-0 z-10 bg-card/95 text-left text-xs font-semibold text-muted-foreground border-b border-border">
 
               <tr>
 
@@ -7752,7 +7752,7 @@ function ChangeLeaderPanel({
 
               const freeColor = stats
 
-                ? stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive"
+                ? stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning" : "text-destructive"
 
                 : "";
 
@@ -8458,7 +8458,7 @@ function treeStageCls(s: TreeTaskStage | string) {
 
     "Completed": "border-success/30 bg-success/10 text-success",
 
-    "On Hold": "border-warning/40 bg-warning/15 text-warning-foreground",
+    "On Hold": "border-warning/40 bg-warning/15 text-warning",
 
     "Cancelled": "border-destructive/30 bg-destructive/10 text-destructive",
 
@@ -10394,7 +10394,7 @@ function DhTasksTab({
 
         <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
 
-        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — No Service Started</h4>
+        <h4 className="font-semibold text-sm mb-1 text-warning">Access Blocked — No Service Started</h4>
 
         <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
 
@@ -12405,7 +12405,7 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
 
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-6 text-center">
 
-            <p className="text-sm font-semibold text-warning-foreground">No team members are added to assign</p>
+            <p className="text-sm font-semibold text-warning">No team members are added to assign</p>
 
             <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
 
@@ -13477,7 +13477,7 @@ function DhTeamTab({
 
         <AlertTriangle className="mx-auto h-8 w-8 text-amber-500 mb-2" />
 
-        <h4 className="font-semibold text-sm mb-1 text-warning-foreground">Access Blocked — PM/SPM Not Assigned</h4>
+        <h4 className="font-semibold text-sm mb-1 text-warning">Access Blocked — PM/SPM Not Assigned</h4>
 
         <p className="max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
 
@@ -15963,7 +15963,7 @@ function HealthIssuesPanel({ issues: _initialLegacyIssues, project, canRaise }: 
 
           {dbIssues.map((issue) => {
 
-            const priorityColors: Record<DhPriority, string> = { Low: "border-info/30 bg-info/10 text-info", Medium: "border-warning/30 bg-warning/15 text-warning-foreground", High: "border-destructive/30 bg-destructive/10 text-destructive", Critical: "border-destructive/30 bg-destructive/10 text-destructive" };
+            const priorityColors: Record<DhPriority, string> = { Low: "border-info/30 bg-info/10 text-info", Medium: "border-warning/30 bg-warning/15 text-warning", High: "border-destructive/30 bg-destructive/10 text-destructive", Critical: "border-destructive/30 bg-destructive/10 text-destructive" };
 
             return (
 
@@ -18159,7 +18159,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
     Medium: "bg-info/10 text-info border-info/30",
 
-    High: "bg-warning/15 text-warning-foreground border-warning/40",
+    High: "bg-warning/15 text-warning border-warning/40",
 
     Critical: "bg-destructive/10 text-destructive border-destructive/30",
 
@@ -18169,7 +18169,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
   const statusColors = {
 
-    "Open": "bg-warning/10 text-warning-foreground border-warning/30",
+    "Open": "bg-warning/10 text-warning border-warning/30",
 
     "Under Review": "bg-info/10 text-info-foreground border-info/30",
 
@@ -18617,7 +18617,7 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
   };
 
   const statusColors: Record<string, string> = {
-    "Open": "bg-warning/10 text-warning-foreground border-warning/30",
+    "Open": "bg-warning/10 text-warning border-warning/30",
     "Under Review": "bg-info/10 text-info-foreground border-info/30",
     "Hold": "bg-amber-100 text-amber-800 border-amber-300",
     "Request Changes": "bg-purple-100 text-purple-800 border-purple-300",
@@ -18886,7 +18886,7 @@ function interviewResultClass(result: InterviewResult): string {
 
   if (result === "Rejected") return "border-destructive/30 bg-destructive/10 text-destructive";
 
-  if (result === "Postponed") return "border-warning/30 bg-warning/15 text-warning-foreground";
+  if (result === "Postponed") return "border-warning/30 bg-warning/15 text-warning";
 
   return "border-info/30 bg-info/10 text-info";
 
@@ -22277,7 +22277,7 @@ function WbsAssignmentModal({
 
                   const stats = calculateManagerStats(p, dbProjects, allPrereqs);
 
-                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning" : "text-destructive";
 
                   const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
 
@@ -22411,7 +22411,7 @@ function WbsAssignmentModal({
 
                   const stats = calculateManagerStats(p, dbProjects, allPrereqs);
 
-                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning-foreground" : "text-destructive";
+                  const freeColor = stats.freePct >= 70 ? "text-success" : stats.freePct >= 40 ? "text-warning" : "text-destructive";
 
                   const barColor = stats.freePct >= 70 ? "bg-success" : stats.freePct >= 40 ? "bg-warning" : "bg-destructive";
 

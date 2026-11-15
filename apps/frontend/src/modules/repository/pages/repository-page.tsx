@@ -122,7 +122,7 @@ const ACCENT = {
   blue: {
     bg: "bg-blue-500/10",
     border: "border-blue-500/20",
-    icon: "text-blue-600 dark:text-blue-400",
+    icon: "text-primary",
     count: "text-blue-700 dark:text-blue-300",
   },
   purple: {
@@ -262,7 +262,7 @@ function formatRelativeTime(iso: string): string {
 }
 
 const AVATAR_COLORS = [
-  "bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30",
+  "bg-blue-500/15 text-primary border border-blue-500/30",
   "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30",
   "bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30",
   "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30",
@@ -719,7 +719,7 @@ function SingleDocumentLogsModal({
                           isDownload
                             ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                             : isUpload
-                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                              ? "bg-blue-500/10 text-primary border border-blue-500/20"
                               : isView
                                 ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
                                 : isDelete
@@ -1457,18 +1457,18 @@ function MyOrgPage() {
         />
 
         <div className="flex-1 min-w-0 flex flex-col gap-3">
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+          <div className="w-fit max-w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
             <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
-              <table className="w-full text-sm">
-                <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+              <table className="app-columns text-sm">
+                <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                   <tr>
-                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">File Name</th>
-                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Category</th>
-                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Departments</th>
-                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Size</th>
-                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Last Updated</th>
-                    <th className="px-4 py-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Uploaded By</th>
-                    <th className="px-4 py-3 text-right font-semibold text-blue-950/85 dark:text-blue-100/85">Actions</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">File Name</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Category</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Departments</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Size</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Last Updated</th>
+                    <th className="px-4 py-3 font-semibold text-muted-foreground">Uploaded By</th>
+                    <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">

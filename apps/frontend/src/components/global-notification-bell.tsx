@@ -200,7 +200,7 @@ export function GlobalNotificationBell() {
                     <p
                       className={cn(
                         "text-xs leading-snug line-clamp-2 select-text",
-                        notif.unread ? "font-bold text-gray-900" : "font-medium text-gray-700",
+                        notif.unread ? "font-bold text-foreground" : "font-medium text-foreground/80",
                       )}
                     >
                       {notif.title}

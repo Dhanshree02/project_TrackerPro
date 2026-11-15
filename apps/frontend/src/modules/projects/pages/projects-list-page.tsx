@@ -455,7 +455,7 @@ export function ProjectsListPage() {
                         </div>
                         {isRenewedProject(p) && <RenewedProjectTag className="shrink-0" />}
                       </div>
-                      <div className="truncate text-sm font-semibold group-hover:text-primary transition-colors mt-0.5">
+                      <div className="truncate text-sm font-semibold text-foreground group-hover:text-primary transition-colors mt-0.5">
                         {p.name}
                       </div>
                     </div>
@@ -521,20 +521,20 @@ export function ProjectsListPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+        <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
+          <table className="app-columns text-sm">
+            <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
               <tr>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project ID</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Customer</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Status</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Progress</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Start</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">End</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Engagement Mgr</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Project Mgr</th>
-                <th className="px-3 py-2.5 font-semibold text-blue-950/85 dark:text-blue-100/85">Team Lead</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Project ID</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Project</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Customer</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Status</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Progress</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Start</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">End</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Engagement Mgr</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Project Mgr</th>
+                <th className="px-4 py-3 font-semibold text-muted-foreground">Team Lead</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -593,8 +593,23 @@ export function ProjectsListPage() {
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
                       {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
                     </td>
-                    <td className="px-3 py-2.5">
-                      <PeopleSummary list={ems} />
+                    <td className="whitespace-nowrap px-4 py-3.5">
+                      {ems.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-2.5 text-foreground transition-colors hover:text-primary"
+                          title={ems[0].name}
+                        >
+                          <Avatar name={ems[0].name} size={28} />
+                          <span className="font-semibold">{ems[0].name}</span>
+                          {ems.length > 1 && (
+                            <span className="rounded-full border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                              +{ems.length - 1}
+                            </span>
+                          )}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5">
                       <PeopleSummary list={pms} />

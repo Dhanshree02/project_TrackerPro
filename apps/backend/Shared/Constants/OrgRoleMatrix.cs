@@ -8,6 +8,7 @@ public static class OrgRoleMatrix
 {
     public const string SuperAdminEmployeeCode = "TK-0004";
     public const string SuperAdminEmail = "admin@talakunchi.com";
+    public const string ProductionAdminEmail = "omkar.gaikwad@squad1.io";
     public const string SuperAdminRbac = "Admin";
 
     public static readonly string[] OnFloorRoles =
@@ -251,6 +252,8 @@ public static class OrgRoleMatrix
     {
         if (string.Equals(employeeCode?.Trim(), SuperAdminEmployeeCode, StringComparison.OrdinalIgnoreCase))
             return true;
-        return string.Equals(workEmail?.Trim(), SuperAdminEmail, StringComparison.OrdinalIgnoreCase);
+        var email = workEmail?.Trim();
+        return string.Equals(email, SuperAdminEmail, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(email, ProductionAdminEmail, StringComparison.OrdinalIgnoreCase);
     }
 }

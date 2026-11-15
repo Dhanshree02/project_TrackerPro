@@ -6,7 +6,7 @@ const base = "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px
 export function HealthPill({ status }: { status: HealthStatus }) {
   const map: Record<HealthStatus, string> = {
     green: "bg-success/10 text-success border-success/30",
-    amber: "bg-warning/15 text-warning-foreground border-warning/40",
+    amber: "bg-warning/15 text-warning border-warning/40",
     red: "bg-destructive/10 text-destructive border-destructive/30",
   };
   const label = { green: "Healthy", amber: "At Risk", red: "Critical" }[status];
@@ -45,7 +45,7 @@ export function PriorityPill({ priority }: { priority: IssuePriority }) {
   const map: Record<IssuePriority, string> = {
     low: "bg-muted text-muted-foreground border-border",
     medium: "bg-info/10 text-info border-info/30",
-    high: "bg-warning/15 text-warning-foreground border-warning/40",
+    high: "bg-warning/15 text-warning border-warning/40",
     critical: "bg-destructive/10 text-destructive border-destructive/30",
   };
   return <span className={cn(base, map[priority])}>{priority.toUpperCase()}</span>;
@@ -66,7 +66,7 @@ export function TaskStatusPill({ status }: { status: TaskStatus }) {
   const map: Record<TaskStatus, string> = {
     todo: "bg-muted text-muted-foreground border-border",
     in_progress: "bg-info/10 text-info border-info/30",
-    review: "bg-warning/15 text-warning-foreground border-warning/40",
+    review: "bg-warning/15 text-warning border-warning/40",
     done: "bg-success/10 text-success border-success/30",
   };
   const label = { todo: "To Do", in_progress: "In Progress", review: "Review", done: "Done" }[status];
@@ -75,7 +75,7 @@ export function TaskStatusPill({ status }: { status: TaskStatus }) {
 
 export function TimesheetStatusPill({ status }: { status: TimesheetStatus | "change_requested" }) {
   if (status === "change_requested") {
-    return <span className={cn(base, "bg-warning/10 text-warning-foreground border-warning/30")}>Changes requested</span>;
+    return <span className={cn(base, "bg-warning/10 text-warning border-warning/30")}>Changes requested</span>;
   }
   const map: Record<TimesheetStatus, string> = {
     draft: "bg-muted text-muted-foreground border-border",

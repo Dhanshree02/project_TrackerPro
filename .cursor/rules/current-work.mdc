@@ -5,7 +5,37 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-14
+**Last updated:** 2026-11-15
+
+- **Team Dashboard search can match allocation status.** The status is read before the search text is checked, so typing in search no longer crashes the page.
+
+- **Employee Directory ends at Status.** The last column is Status. The KPI heading and KPI sort are gone. The score stays on the employee record.
+
+- **Microsoft sign-in always opens Microsoft’s login page.** The authorize request sends `prompt=login`, so a browser that is already signed in to Microsoft cannot skip straight into PMS. The person completes the Microsoft sign-in, then comes back.
+
+- **Action Center badges follow the theme.** Notification type and status pills, and the alert status pills, use the system colors instead of white or pale chips. Alert text stays on the theme color.
+
+- **Schedule & Holidays uses the app theme.** The window, day buttons, fields, and save action use the same gray surfaces and system blue as the rest of the screens.
+
+- **Light and dark mode follow Apple’s system colors.** Pages, cards, sidebars, table headers, stage checklists, notification text, and the team calendar use the grouped grays. Warning badges use the orange system color so the label stays readable. The top bar moon/sun control stores `pms-theme`.
+
+- **The login page shows PMS as the large title.** Sign out clears the session cookies in that same request. There is no idle timer. The access cookie lasts 15 minutes and is renewed from the refresh cookie, which lasts 7 days and is replaced on each renewal.
+
+- **Onboarding writes `action.tbl_notifications."NotificationNumber"`.** That column was missing on `pms_production`, so saving a new employee failed after the person was stored. The column and sequence are in place. Startup adds them when they are absent.
+
+- **Omkar’s login role is the full-access Admin.** `auth.tbl_roles` already has `Admin`, and that role skips every permission check. His designation stays IT Admin. Startup used to copy that designation onto the login, so `OrgRoleMatrix.IsSuperAdmin` now treats `omkar.gaikwad@squad1.io` the same way it treats the old super admin and keeps the login on Admin.
+
+- **Production employee and login data is one person.** `resource.tbl_employees` and `auth.tbl_users` each have one row: Omkar Gaikwad, `TK-0001`, `omkar.gaikwad@squad1.io`, RBAC role Admin. Timesheet, team, task-assignment, notification, and exit rows that pointed at the old employees were removed. Customer and project records stayed, with their manager links cleared.
+
+- **Microsoft sign-in redeems the code as a single-page client.** Entra returns `700025` when the secret is sent and `9002327` when the `Origin` header is missing. The token request sends `Origin: http://localhost:39127` and no secret. A Web registration that asks for the secret (`7000218`) still gets a second try with the secret. The login page removes `?error=` from the address after it is shown, so a refresh opens a clean sign-in. `pms-backend:production` was rebuilt and restarted.
+
+- **Production signs in with Microsoft 365.** The login page is `/login`. The API routes are `GET /api/v1/auth/microsoft/start`, `GET /api/v1/auth/microsoft/callback`, `GET /api/v1/auth/me`, and `POST /api/v1/auth/logout`. The session is an httpOnly cookie. The name menu has Profile and Sign out. Profile is `/profile` and reads the signed-in person only. Saving an employee with an Assigned RBAC Role creates `auth.tbl_users`. `Auth__AllowHeaderBypass` is false on the production stack. The API image is `pms-backend:production`. Entra settings stay in gitignored `apps/backend/.env`. Redirect URI is `http://localhost:39127/api/v1/auth/microsoft/callback`.
+
+- **Development, UAT, and production are three folders and three databases.** Development code is `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/pms-development` on branch `development` (app `:39107`, API `:52815`, database `pms_development`). UAT code is `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/pms-uat` on branch `uat` (`:39117`, `:52819`, `pms_uat`). Production code is `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/pms-production` on branch `production` (`:39127`, `:52827`, `pms_production`). A code change belongs in one folder only. The default folder is development. One Postgres container `pms_uat_db` and one pgAdmin server named Pulse PMO. `pms_uat_clean` is the snapshot those three databases were copied from. User switch stays on development and UAT. Production uses Microsoft sign-in.
+
+- **A holiday on a weekly off uses the holiday colour only.** Diwali (Laxmi Pujan) on Sunday 8 November 2026 is the same green as a weekday holiday. The amber weekly-off colour is not mixed in.
+
+- **Working branch is `uat_clean13` at `c390e90`.** That commit is also `origin/uat_clean12`. The previous step note is in `GIT_Merge/archive/`. The new note is `GIT_Merge/step-timesheet-fy-search-and-manager-scope.md`. `database/pms_uat.sql` was dumped from the live `pms_uat_clean` database on PostgreSQL 16.
 
 - **Engagement Managers and Sales Managers see only their own accounts.** An Engagement Manager sees customers and projects where they are the Engagement Manager. A Sales Manager sees customers where they are the Sales Manager and projects where they are the sales person or that customer's Sales Manager. Admin, PMO, and the other wide roles still see every record. `pms-backend:uat-clean` was rebuilt and restarted.
 

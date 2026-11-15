@@ -1,3 +1,4 @@
+using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Logging;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -81,6 +82,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = System.Security.Claims.ClaimTypes.Name,
             RoleClaimType = System.Security.Claims.ClaimTypes.Role,
         };
+        o.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (string.IsNullOrEmpty(context.Token)
+                    && context.Request.Cookies.TryGetValue(AuthCookies.Access, out var access)
+                    && !string.IsNullOrWhiteSpace(access))
+                {
+                    context.Token = access;
+                }
+                return Task.CompletedTask;
+            },
+        };
     });
 
 // Authenticated by default — new endpoints must opt out with [AllowAnonymous].
@@ -107,7 +121,10 @@ if (!app.Configuration.GetValue("DisableHttpsRedirection", false))
     app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthentication();
-if (app.Environment.IsDevelopment())
+app.UseMiddleware<SessionRefreshMiddleware>();
+var allowHeaderBypass = app.Configuration.GetValue<bool?>("Auth:AllowHeaderBypass")
+    ?? app.Environment.IsDevelopment();
+if (allowHeaderBypass)
     app.UseMiddleware<DevelopmentAuthBypassMiddleware>();
 app.UseAuthorization();
 

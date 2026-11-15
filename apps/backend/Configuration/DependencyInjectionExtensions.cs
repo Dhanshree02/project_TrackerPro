@@ -9,6 +9,7 @@ using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Infrastructure.Storage;
 using PMS.API.Modules.ActionCentre.Services;
+using PMS.API.Modules.Auth.Services;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.Dashboard.Services;
@@ -42,6 +43,9 @@ public static class DependencyInjectionExtensions
 
         // ---- Security / Authentication (M365 Transition) ----
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<AzureAdOptions>(configuration.GetSection(AzureAdOptions.SectionName));
+        services.AddHttpClient("microsoft");
+        services.AddScoped<MicrosoftSignInService>();
         services.AddSingleton<JwtTokenService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 

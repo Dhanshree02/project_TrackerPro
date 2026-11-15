@@ -636,7 +636,7 @@ export function CustomerDetailPage() {
                     <button
                       type="button"
                       onClick={openEmPicker}
-                      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer transition-colors"
+                      className="text-[11px] font-bold text-primary hover:underline cursor-pointer transition-colors"
                       title="Change Engagement Manager"
                     >
                       Change
@@ -948,15 +948,15 @@ export function CustomerDetailPage() {
               </div>
             ) : (
               <div className="min-h-0 flex-1 overflow-auto">
-                <table className="w-full min-w-[760px] table-fixed text-sm">
-                  <thead className="sticky top-0 z-[1]">
-                    <tr className="border-b border-border bg-muted/90 text-left text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground backdrop-blur-sm">
-                      <th className="w-[30%] px-5 py-3 font-medium">Project</th>
-                      <th className="w-[13%] px-3 py-3 font-medium">Health</th>
-                      <th className="w-[12%] px-3 py-3 font-medium">Stage</th>
-                      <th className="w-[15%] px-3 py-3 font-medium">Sub-venture</th>
-                      <th className="w-[15%] px-3 py-3 font-medium">Progress</th>
-                      <th className="w-[15%] px-3 py-3 font-medium">PM</th>
+                <table className="app-columns text-sm">
+                  <thead className="app-columns-head sticky top-0 z-[1]">
+                    <tr className="border-b border-border bg-card/95 text-left text-xs font-semibold text-muted-foreground backdrop-blur-sm">
+                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Project</th>
+                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Health</th>
+                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Stage</th>
+                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Sub-venture</th>
+                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Progress</th>
+                      <th className="whitespace-nowrap px-4 py-3 font-semibold">PM</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/70">
@@ -1030,7 +1030,7 @@ export function CustomerDetailPage() {
                                 category === "Completed" &&
                                   "border-success/30 bg-success/10 text-success",
                                 category === "On Hold" &&
-                                  "border-warning/30 bg-warning/10 text-warning-foreground",
+                                  "border-warning/30 bg-warning/10 text-warning",
                                 category === "Archived" &&
                                   "border-border bg-muted text-muted-foreground",
                               )}

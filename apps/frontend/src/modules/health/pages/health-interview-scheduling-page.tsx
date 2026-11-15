@@ -135,7 +135,7 @@ export function HealthInterviewSchedulingPage() {
 
 function InterviewStatusBadge({ status }: { status: InterviewStatus }) {
   const colors = {
-    "Pending": "bg-warning/10 text-warning-foreground border-warning/30",
+    "Pending": "bg-warning/10 text-warning border-warning/30",
     "Selected": "bg-success/10 text-success border-success/30",
     "Rejected": "bg-destructive/10 text-destructive border-destructive/30",
     "Postponed": "bg-muted/10 text-muted-foreground border-muted/30",

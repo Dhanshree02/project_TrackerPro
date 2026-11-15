@@ -868,8 +868,8 @@ export function EditServicesModal({
 
                 {/* Services Table */}
                 <div className="overflow-x-auto rounded-lg border border-border shadow-xs bg-card">
-                  <table className="min-w-[2100px] w-full text-xs text-left divide-y divide-border">
-                    <thead className="bg-muted/60 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
+                  <table className="app-columns text-xs text-left divide-y divide-border">
+                    <thead className="app-columns-head bg-card/95 uppercase tracking-wider text-[10px] font-bold text-muted-foreground">
                       <tr>
                         <th className="px-3 py-3 w-10 text-center">#</th>
                         <th className="px-3 py-3 min-w-[140px] whitespace-nowrap">Department</th>

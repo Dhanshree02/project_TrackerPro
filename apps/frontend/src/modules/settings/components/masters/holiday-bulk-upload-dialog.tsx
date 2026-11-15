@@ -540,8 +540,8 @@ export function HolidayBulkUploadDialog({
                     </div>
 
                     <div className="max-h-56 overflow-y-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-muted/30 border-b border-border text-muted-foreground sticky top-0">
+                      <table className="app-columns text-left text-xs">
+                        <thead className="app-columns-head bg-card/95 border-b border-border text-muted-foreground sticky top-0">
                           <tr>
                             <th className="py-1.5 px-3 w-10 text-center">#</th>
                             <th className="py-1.5 px-3 w-36">Date</th>

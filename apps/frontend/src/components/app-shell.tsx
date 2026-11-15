@@ -28,11 +28,13 @@ export function AppShell({
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasPermission, hasAny, loading: permissionsLoading } = usePermissions();
-  const { permissionsReady } = useAuth();
+  const { permissionsReady, status } = useAuth();
   const landingItems = NAV_ITEMS;
 
   // Wait for permissions to finish loading before evaluating route guards.
-  if (!permissionsReady || permissionsLoading) {
+  if (status === "anonymous") return <Navigate to="/login" replace />;
+
+  if (status === "loading" || !permissionsReady || permissionsLoading) {
     return (
       <div className="flex min-h-screen w-full isolate bg-background text-foreground">
         <AppSidebar />
@@ -102,22 +104,8 @@ export function AppShell({
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         aria-label="Scroll to top"
         title="Scroll to top"
+        className="fixed bottom-8 right-6 z-[999] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-0 bg-primary text-primary-foreground shadow-lg"
         style={{
-          position: "fixed",
-          bottom: 32,
-          right: 24,
-          zIndex: 999,
-          width: 44,
-          height: 44,
-          borderRadius: "50%",
-          background: "#1a84d4",
-          color: "#fff",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 4px 14px rgba(26,132,212,0.45)",
           opacity: showScrollTop ? 1 : 0,
           pointerEvents: showScrollTop ? "auto" : "none",
           transform: showScrollTop ? "translateY(0)" : "translateY(12px)",

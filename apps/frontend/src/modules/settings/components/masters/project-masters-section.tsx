@@ -1110,16 +1110,16 @@ export function ProjectMastersSection({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border flex flex-col">
-            <table className="w-full text-left text-xs">
-              <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+          <div className="w-fit max-w-full overflow-x-auto rounded-lg border border-border flex flex-col">
+            <table className="app-columns text-left text-xs">
+              <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
-                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Contract Type</th>
-                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Department & Service</th>
-                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Tools & Tech</th>
-                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Duration</th>
-                  <th className="py-2.5 px-3 font-semibold text-blue-950/85 dark:text-blue-100/85">Unit Price (₹)</th>
-                  <th className="py-2.5 px-3 text-right font-semibold text-blue-950/85 dark:text-blue-100/85">Actions</th>
+                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Contract Type</th>
+                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Department & Service</th>
+                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Tools & Tech</th>
+                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Duration</th>
+                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Unit Price (₹)</th>
+                  <th className="py-2.5 px-3 text-right font-semibold text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">

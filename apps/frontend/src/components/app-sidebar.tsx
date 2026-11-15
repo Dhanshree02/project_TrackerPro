@@ -249,8 +249,8 @@ export function AppSidebar() {
 
                 {/* Collapsed Hover Flyout Popover Window */}
                 {isCollapsed && (
-                  <div className="hidden group-hover/sidebar-item:flex flex-col absolute left-full -top-1 ml-3 w-52 rounded-xl border border-border bg-card dark:bg-slate-900 text-card-foreground shadow-2xl z-[9999] p-2 animate-in fade-in zoom-in-95 duration-150 before:absolute before:-left-4 before:top-0 before:bottom-0 before:w-4">
-                    <div className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold border-b border-border text-foreground mb-1.5 bg-muted/40 dark:bg-slate-800/60 rounded-t-md">
+                  <div className="hidden group-hover/sidebar-item:flex flex-col absolute left-full -top-1 ml-3 w-52 rounded-xl border border-border bg-popover text-popover-foreground shadow-2xl z-[9999] p-2 animate-in fade-in zoom-in-95 duration-150 before:absolute before:-left-4 before:top-0 before:bottom-0 before:w-4">
+                    <div className="flex items-center gap-2 px-2.5 py-2 text-xs font-bold border-b border-border text-foreground mb-1.5 bg-muted/40 rounded-t-md">
                       <it.icon className="h-4 w-4 text-primary" />
                       <span>{it.label}</span>
                     </div>

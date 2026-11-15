@@ -18,20 +18,20 @@ const variantStyles: Record<
   { iconBg: string; textAccent: string }
 > = {
   emerald: {
-    iconBg: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
-    textAccent: "text-emerald-600 dark:text-emerald-400",
+    iconBg: "bg-success/15 text-success",
+    textAccent: "text-success",
   },
   blue: {
-    iconBg: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400",
-    textAccent: "text-blue-600 dark:text-blue-400",
+    iconBg: "bg-primary/15 text-primary",
+    textAccent: "text-primary",
   },
   violet: {
-    iconBg: "bg-violet-500/10 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400",
-    textAccent: "text-violet-600 dark:text-violet-400",
+    iconBg: "bg-chart-3/15 text-chart-3",
+    textAccent: "text-chart-3",
   },
   rose: {
-    iconBg: "bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400",
-    textAccent: "text-rose-600 dark:text-rose-400",
+    iconBg: "bg-chart-5/15 text-chart-5",
+    textAccent: "text-chart-5",
   },
   primary: {
     iconBg: "bg-primary/10 text-primary",

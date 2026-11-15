@@ -142,8 +142,8 @@ function SortableTh({
         className={cn(
           "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
           active
-            ? "text-blue-600 dark:text-blue-400 font-bold"
-            : "text-blue-950/85 hover:text-blue-600 dark:text-blue-100/85 dark:hover:text-blue-300",
+            ? "text-primary font-bold"
+            : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
       >
@@ -152,7 +152,7 @@ function SortableTh({
           className={cn(
             "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
             active
-              ? "bg-blue-100 text-blue-600 dark:bg-blue-900/60 dark:text-blue-400"
+              ? "bg-primary/15 text-primary"
               : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
           )}
         >
@@ -167,7 +167,7 @@ function SortableTh({
       {/* Explicit Apple macOS-style vertical column divider */}
       {!isLast && (
         <span
-          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-slate-400/80 dark:bg-slate-500 pointer-events-none"
+          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
           aria-hidden="true"
         />
       )}
@@ -201,7 +201,7 @@ function ExitTypeBadge({ type }: { type?: string | null }) {
   }
   if (lower.includes("contract") || lower.includes("project")) {
     return (
-      <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">
+      <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
         Contract End
       </span>
     );
@@ -468,7 +468,7 @@ export function ExitSummaryPage() {
                   "text-2xl font-bold tabular-nums",
                   avgExitRating == null
                     ? "text-muted-foreground"
-                    : "text-blue-600 dark:text-blue-400",
+                    : "text-primary",
                 )}
               >
                 {avgExitRating == null ? "0.0" : avgExitRating.toFixed(1)}
@@ -557,10 +557,10 @@ export function ExitSummaryPage() {
         </div>
 
         {/* Table Container */}
-        <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+        <div className="w-fit max-w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
-            <table className="w-full min-w-[1080px] table-fixed text-sm">
-              <thead className="sticky top-0 z-10 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md text-left text-xs text-blue-950/85 dark:text-blue-100/85 border-b border-slate-300 dark:border-slate-700 shadow-2xs">
+            <table className="w-max table-fixed text-sm">
+              <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
                   {EXIT_COLUMNS.map((col, idx, arr) => (
                     <SortableTh
@@ -713,22 +713,22 @@ export function ExitSummaryPage() {
 
           {/* Frozen / Sticky Pagination Footer */}
           {!isLoading && filtered.length > 0 && (
-            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-300 dark:border-slate-700 bg-blue-50/80 dark:bg-blue-950/45 backdrop-blur-md px-4 py-3 text-xs text-blue-950/80 dark:text-blue-100/80 shadow-xs">
+            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 text-xs text-muted-foreground shadow-xs">
               <div className="flex items-center gap-3">
                 <span>
-                  Showing <strong className="font-semibold text-blue-950 dark:text-blue-100">{pageRange.from}</strong>–
-                  <strong className="font-semibold text-blue-950 dark:text-blue-100">
+                  Showing <strong className="font-semibold text-foreground">{pageRange.from}</strong>–
+                  <strong className="font-semibold text-foreground">
                     {pageRange.to}
                   </strong>{" "}
-                  of <strong className="font-semibold text-blue-950 dark:text-blue-100">{filtered.length}</strong> records
+                  of <strong className="font-semibold text-foreground">{filtered.length}</strong> records
                 </span>
-                <span className="text-slate-300 dark:text-slate-600">|</span>
+                <span className="text-border">|</span>
                 <div className="flex items-center gap-1.5">
                   <span>Per page:</span>
                   <RowsPerPageSelect
                     value={pageSize}
                     onChange={setPageSize}
-                    className="h-7 min-w-[3.25rem] rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-950/60 pl-2 pr-5 text-xs font-medium text-blue-950 dark:text-blue-100 outline-none cursor-pointer hover:bg-blue-100/50 dark:hover:bg-blue-900/40 transition-colors focus-visible:ring-1 focus-visible:ring-blue-500"
+                    className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
                   />
                 </div>
               </div>
@@ -738,18 +738,18 @@ export function ExitSummaryPage() {
                   type="button"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" /> Previous
                 </button>
-                <span className="px-2 tabular-nums font-semibold text-blue-950 dark:text-blue-100">
+                <span className="px-2 tabular-nums font-semibold text-foreground">
                   {currentPage} / {totalPages}
                 </span>
                 <button
                   type="button"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-300 dark:border-slate-600 bg-white/90 dark:bg-blue-900/50 px-2.5 py-1 text-xs font-medium text-blue-950 dark:text-blue-100 hover:bg-blue-100/60 dark:hover:bg-blue-800/60 disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
+                  className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none shadow-2xs transition-colors"
                 >
                   Next <ChevronRight className="h-3.5 w-3.5" />
                 </button>

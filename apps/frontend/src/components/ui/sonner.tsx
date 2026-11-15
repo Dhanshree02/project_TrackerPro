@@ -21,9 +21,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           title: "text-sm font-medium",
           description: "text-sm opacity-90",
           success:
-            "!bg-green-600 !text-white !border-green-700 [&_[data-icon]]:!text-white",
-          error: "!bg-red-600 !text-white !border-red-700 [&_[data-icon]]:!text-white",
-          warning: "!bg-amber-500 !text-white !border-amber-600",
+            "!bg-success !text-success-foreground !border-success [&_[data-icon]]:!text-success-foreground",
+          error: "!bg-destructive !text-destructive-foreground !border-destructive [&_[data-icon]]:!text-destructive-foreground",
+          warning: "!bg-warning !text-warning-foreground !border-warning",
           info: "group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border",
           default:
             "group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border",

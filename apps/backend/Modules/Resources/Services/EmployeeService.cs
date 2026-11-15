@@ -1058,7 +1058,10 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         // Stay in the directory through last working day; hide from the next calendar day.
         if (request.LastWorkingDay is null || request.LastWorkingDay < TodayInIst())
+        {
+            await DeactivateLoginAsync(employee, ct);
             db.Employees.Remove(employee);
+        }
 
         var (offboardPerformerEmail, offboardPerformerName) = GetCurrentPerformer();
         db.EmployeeActivityLogs.Add(new EmployeeActivityLog
@@ -1728,11 +1731,24 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
     }
 
+    private async Task DeactivateLoginAsync(Employee employee, CancellationToken ct)
+    {
+        var email = employee.WorkEmail.Trim().ToLowerInvariant();
+        var user = await db.Users.FirstOrDefaultAsync(
+            u => u.DeletedAtUtc == null &&
+                 (u.Id == employee.UserId || u.EmployeeId == employee.EmployeeCode || u.Email.ToLower() == email), ct);
+        if (user is null) return;
+        user.IsActive = false;
+        user.UpdatedAtUtc = DateTime.UtcNow;
+        var sessions = await db.RefreshTokens.Where(t => t.UserId == user.Id && t.RevokedAtUtc == null).ToListAsync(ct);
+        foreach (var session in sessions)
+            session.RevokedAtUtc = DateTime.UtcNow;
+    }
+
     private async Task SyncLinkedUserAsync(Employee entity, CancellationToken ct)
     {
         var user = await db.Users.FirstOrDefaultAsync(
-            u => u.Email == entity.WorkEmail || u.EmployeeId == entity.EmployeeCode, ct);
-        if (user is null) return;
+            u => u.Email.ToLower() == entity.WorkEmail.ToLower() || u.EmployeeId == entity.EmployeeCode, ct);
 
         bool updated = false;
 
@@ -1748,6 +1764,38 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         {
             var desig = await db.Designations.FirstOrDefaultAsync(d => d.Id == desigId, ct);
             desigName = desig?.Name;
+        }
+
+        if (user is null)
+        {
+            if (string.IsNullOrWhiteSpace(entity.Role)) return;
+            var createdRole = await db.Roles.FirstOrDefaultAsync(
+                r => r.DeletedAtUtc == null && r.Name == entity.Role, ct);
+            if (createdRole is null) return;
+
+            user = new PMS.API.Modules.Users.Models.User
+            {
+                Id = Guid.NewGuid(),
+                Email = entity.WorkEmail.Trim().ToLowerInvariant(),
+                Name = $"{entity.FirstName} {entity.LastName}".Trim(),
+                EmployeeId = entity.EmployeeCode.Trim(),
+                Department = deptName,
+                Designation = desigName,
+                RoleId = createdRole.Id,
+                IsActive = true,
+                MustChangePassword = false,
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            db.Users.Add(user);
+            entity.UserId = user.Id;
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        if (entity.UserId != user.Id)
+        {
+            entity.UserId = user.Id;
+            updated = true;
         }
 
         if (!string.IsNullOrWhiteSpace(deptName) && user.Department != deptName)

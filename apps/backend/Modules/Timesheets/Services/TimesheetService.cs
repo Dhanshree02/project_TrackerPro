@@ -310,12 +310,11 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
         var userId = currentUser.UserId;
         if (userId is not null)
         {
-            // The user switch sends the employee id. A signed-in account matches UserId.
-            var byId = await db.Employees.FirstOrDefaultAsync(e => e.Id == userId, ct);
-            if (byId is not null) return byId;
-
-            var byUser = await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId, ct);
+            var byUser = await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId && e.DeletedAtUtc == null, ct);
             if (byUser is not null) return byUser;
+
+            var byId = await db.Employees.FirstOrDefaultAsync(e => e.Id == userId && e.DeletedAtUtc == null, ct);
+            if (byId is not null) return byId;
         }
 
         var email = currentUser.Email;

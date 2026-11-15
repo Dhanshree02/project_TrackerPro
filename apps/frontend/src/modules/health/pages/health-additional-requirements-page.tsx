@@ -17,7 +17,7 @@ function DhPriorityPill({ priority }: { priority: DhPriority }) {
   const colors = {
     "Low": "bg-muted text-muted-foreground border-border",
     "Medium": "bg-info/10 text-info border-info/30",
-    "High": "bg-warning/15 text-warning-foreground border-warning/40",
+    "High": "bg-warning/15 text-warning border-warning/40",
     "Critical": "bg-destructive/10 text-destructive border-destructive/30",
   };
   return (
@@ -153,7 +153,7 @@ export function HealthAdditionalRequirementsPage() {
 
 function RequirementStatusBadge({ status }: { status: RequirementStatus }) {
   const colors = {
-    "Open": "bg-warning/10 text-warning-foreground border-warning/30",
+    "Open": "bg-warning/10 text-warning border-warning/30",
     "Under Review": "bg-info/10 text-info-foreground border-info/30",
     "Approved": "bg-success/10 text-success border-success/30",
     "Rejected": "bg-destructive/10 text-destructive border-destructive/30",
