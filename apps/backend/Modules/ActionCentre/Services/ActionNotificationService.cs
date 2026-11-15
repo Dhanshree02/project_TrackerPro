@@ -139,9 +139,8 @@ public sealed class ActionNotificationService(
 
 
         var rows = await q
-
             .OrderByDescending(n => n.CreatedAtUtc)
-
+            .ThenByDescending(n => n.Id)
             .ToListAsync(ct);
 
 
@@ -426,9 +425,8 @@ public sealed class ActionNotificationService(
 
 
         var rows = await q
-
             .OrderByDescending(a => a.CreatedAtUtc)
-
+            .ThenByDescending(a => a.Id)
             .ToListAsync(ct);
 
 
@@ -1183,6 +1181,7 @@ public sealed class ActionNotificationService(
             RelatedTask = n.RelatedTask,
             RaisedBy = n.RaisedByName,
             CreatedAt = n.CreatedAtUtc.ToString("o"),
+            CreatedAtUtc = n.CreatedAtUtc,
             Status = n.Status,
             Priority = n.Priority,
             Unread = n.Unread,
@@ -1329,6 +1328,8 @@ public sealed class ActionNotificationService(
             AudienceUserIds = audience,
 
             CreatedAt = a.CreatedAtUtc.ToString("o"),
+
+            CreatedAtUtc = a.CreatedAtUtc,
 
             Owner = a.Owner ?? a.RaisedByName,
 
@@ -2161,7 +2162,85 @@ public sealed class ActionNotificationService(
         TrySyncNotificationsToOtherDatabase(addedList);
     }
 
-    private static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications)
+    public async Task NotifyProjectLeadershipAssignedAsync(
+        Guid projectId,
+        string projectName,
+        string? projectCode,
+        Guid recipientEmployeeId,
+        string leadershipRole,
+        string? performerName,
+        Guid? performerEmployeeId = null,
+        CancellationToken ct = default)
+    {
+        var isSpm = leadershipRole.Equals("Senior Project Manager", StringComparison.OrdinalIgnoreCase) ||
+                    leadershipRole.Equals("SPM", StringComparison.OrdinalIgnoreCase) ||
+                    leadershipRole.Equals(ProjectMemberRoles.SeniorProjectManager, StringComparison.OrdinalIgnoreCase);
+
+        var title = isSpm
+            ? "You are assigned as Senior Project Manager"
+            : "You are assigned as Project Manager";
+
+        var roleLabel = isSpm ? "Senior Project Manager" : "Project Manager";
+        var message = $"You have been assigned as the {roleLabel} for the project {projectName}.";
+
+        var editorName = !string.IsNullOrWhiteSpace(performerName)
+            ? performerName
+            : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
+
+        // Duplicate prevention check
+        var duplicateExists = await db.ActionNotifications
+            .AnyAsync(n => n.RecipientEmployeeId == recipientEmployeeId &&
+                           n.ProjectId == projectId &&
+                           n.Title == title &&
+                           n.Status == "Assigned" &&
+                           n.DeletedAtUtc == null &&
+                           n.CreatedAtUtc >= DateTime.UtcNow.AddMinutes(-5), ct);
+        if (duplicateExists)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var dateStr = now.ToString("yyyy-MM-dd");
+        var timeStr = now.ToString("HH:mm:ss");
+
+        var historyItem = new
+        {
+            action = message,
+            date = dateStr,
+            time = timeStr,
+            by = editorName,
+            status = "Assigned",
+            at = now.ToString("o"),
+            details = message
+        };
+
+        var notif = new ActionNotification
+        {
+            Id = Guid.NewGuid(),
+            RecipientEmployeeId = recipientEmployeeId,
+            ProjectId = projectId,
+            ProjectCode = null,
+            ProjectName = projectName,
+            Title = title,
+            Type = isSpm ? "Senior Project Manager Assigned" : "Project Manager Assigned",
+            Priority = "Low",
+            Status = "Assigned",
+            Unread = true,
+            RaisedByName = editorName,
+            RaisedByEmployeeId = performerEmployeeId,
+            RelatedTask = !string.IsNullOrWhiteSpace(projectCode) ? projectCode : projectName,
+            CreatedAtUtc = now,
+            HistoryJson = JsonSerializer.Serialize(new[] { historyItem }),
+            CommentsJson = "[]"
+        };
+
+        db.ActionNotifications.Add(notif);
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(new[] { notif });
+    }
+
+    public static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications)
 
     {
 

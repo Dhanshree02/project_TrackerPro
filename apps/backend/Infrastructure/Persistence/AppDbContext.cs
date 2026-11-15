@@ -207,7 +207,10 @@ public class AppDbContext(
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedAtUtc = now;
+                    if (entry.Entity.CreatedAtUtc == default)
+                    {
+                        entry.Entity.CreatedAtUtc = now;
+                    }
                     entry.Entity.CreatedBy ??= userId;
                     break;
 

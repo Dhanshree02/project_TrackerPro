@@ -21,4 +21,5 @@ public interface IActionNotificationService
     Task NotifyResourceProfileUpdatedAsync(Guid employeeId, string employeeName, string employeeCode, Guid? reportingManagerId, IReadOnlyList<string> modifiedFields, string? performerName, Guid? performerEmployeeId, CancellationToken ct = default);
     Task NotifyCustomerManagerChangedAsync(Guid clientId, string clientName, string? clientCode, string managerRole, string managerName, Guid? managerEmployeeId, string? previousManagerName = null, Guid? previousManagerEmployeeId = null, string? performerName = null, CancellationToken ct = default);
     Task NotifyRepositoryDocumentUploadedAsync(Guid documentId, string fileName, string category, IReadOnlyList<Guid> departmentIds, string? uploaderName, Guid? uploaderEmployeeId = null, CancellationToken ct = default);
+    Task NotifyProjectLeadershipAssignedAsync(Guid projectId, string projectName, string? projectCode, Guid recipientEmployeeId, string leadershipRole, string? performerName, Guid? performerEmployeeId = null, CancellationToken ct = default);
 }

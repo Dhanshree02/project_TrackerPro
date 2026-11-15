@@ -4,6 +4,7 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.Projects.Services;
 using PMS.API.Modules.Sla.DTOs;
 using PMS.API.Modules.Sla.Models;
 using PMS.API.Modules.Sla.Services;
@@ -14,6 +15,11 @@ namespace PMS.API.Modules.ActionCentre.Services;
 
 public class BucketTaskService : IBucketTaskService
 {
+    private static readonly System.Text.Json.JsonSerializerOptions s_jsonOptions = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     private readonly AppDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private readonly ISlaTrackingService _slaTrackingService;
@@ -137,9 +143,8 @@ public class BucketTaskService : IBucketTaskService
         var pageSize = query.PageSize > 0 ? query.PageSize : 50;
 
         var items = await q
-            .OrderByDescending(b => b.TimerRunning)
-            .ThenByDescending(b => b.UpdatedAtUtc ?? b.CreatedAtUtc)
-            .ThenByDescending(b => b.CreatedAtUtc)
+            .OrderByDescending(b => b.CreatedAtUtc)
+            .ThenByDescending(b => b.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
@@ -327,7 +332,10 @@ public class BucketTaskService : IBucketTaskService
         }
 
         // Update task stage and total utilized hours
-        var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
+        var task = await _db.ProjectTasks
+            .Include(t => t.ProjectService)
+            .Include(t => t.Project)
+            .FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
         if (task != null)
         {
             var anyOtherRunning = await _db.BucketTasks
@@ -355,8 +363,31 @@ public class BucketTaskService : IBucketTaskService
                 ct);
 
             var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct) ?? "Assigned Resource";
-            var pauseTitle = $"Task Paused: {bucketTask.TaskTitle}";
-            var pauseContent = $"Task '{bucketTask.TaskTitle}' has been paused by {empName} in project '{bucketTask.ProjectName}'.";
+
+            // Resolve actual Service Name
+            string serviceName = "General";
+            if (task != null)
+            {
+                serviceName = await ProjectTaskService.ResolveServiceNameAsync(_db, bucketTask.ProjectId, task, ct);
+            }
+            else
+            {
+                var firstService = await _db.ProjectServices
+                    .Where(s => s.ProjectId == bucketTask.ProjectId && s.DeletedAtUtc == null)
+                    .OrderBy(s => s.SortOrder)
+                    .FirstOrDefaultAsync(ct);
+                serviceName = firstService?.ServiceName?.Trim() ?? bucketTask.ProjectName ?? "General";
+            }
+            if (string.IsNullOrWhiteSpace(serviceName))
+            {
+                serviceName = "General";
+            }
+
+            var taskTitle = bucketTask.TaskTitle;
+            var projectName = bucketTask.ProjectName ?? task?.Project?.Name ?? "Project";
+
+            var pauseTitle = $"{empName} Task Paused: {taskTitle} - {serviceName}";
+            var pauseContent = $"{empName} has paused the task '{taskTitle}' under the service '{serviceName}' in project '{projectName}'.";
 
             foreach (var recId in leadershipRecipients)
             {
@@ -364,19 +395,31 @@ public class BucketTaskService : IBucketTaskService
                 {
                     RecipientEmployeeId = recId,
                     ProjectId = bucketTask.ProjectId,
-                    ProjectName = bucketTask.ProjectName,
+                    ProjectCode = task?.Project?.ProjectCode,
+                    ProjectName = projectName,
                     Title = pauseTitle,
                     Type = "Task Paused",
-                    Priority = bucketTask.Priority,
+                    Priority = "Low",
                     Status = "Pending",
                     Unread = true,
-                    RelatedTask = bucketTask.TaskTitle,
+                    RelatedTask = taskTitle,
                     RaisedByName = empName,
+                    RaisedByEmployeeId = bucketTask.EmployeeId,
                     CreatedAtUtc = nowUtc,
                     CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
                     {
                         new { text = pauseContent, by = empName, at = nowUtc.ToString("o") }
-                    })
+                    }, s_jsonOptions),
+                    HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                    {
+                        new
+                        {
+                            action = "Task Paused",
+                            date = nowUtc.ToString("yyyy-MM-dd"),
+                            time = nowUtc.ToString("HH:mm:ss"),
+                            by = empName
+                        }
+                    }, s_jsonOptions)
                 });
             }
             await _db.SaveChangesAsync(ct);
@@ -450,7 +493,10 @@ public class BucketTaskService : IBucketTaskService
             assignment.UpdatedAtUtc = nowUtc;
         }
 
-        var task = await _db.ProjectTasks.FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
+        var task = await _db.ProjectTasks
+            .Include(t => t.ProjectService)
+            .Include(t => t.Project)
+            .FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
         if (task != null)
         {
             var anyOtherRunning = await _db.BucketTasks
@@ -474,6 +520,19 @@ public class BucketTaskService : IBucketTaskService
 
         await _db.SaveChangesAsync(ct);
 
+        // Cancel / complete any active Task Pause SLA tracking for this assignment
+        if (bucketTask.AssignmentId.HasValue)
+        {
+            try
+            {
+                await _slaTrackingService.CompleteTrackingAsync(bucketTask.AssignmentId.Value, "Task Pause", ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Error completing Task Pause SLA for Assignment {AssignmentId}", bucketTask.AssignmentId.Value);
+            }
+        }
+
         // Activity C: Task Stop - Immediately notify Assigned Engagement Manager, Assigned Project Manager, Project Team Leader
         try
         {
@@ -483,8 +542,31 @@ public class BucketTaskService : IBucketTaskService
                 ct);
 
             var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct) ?? "Assigned Resource";
-            var stopTitle = $"Task Stopped: {bucketTask.TaskTitle}";
-            var stopContent = $"Task '{bucketTask.TaskTitle}' has been stopped by {empName} in project '{bucketTask.ProjectName}'.";
+
+            // Resolve actual Service Name
+            string serviceName = "General";
+            if (task != null)
+            {
+                serviceName = await ProjectTaskService.ResolveServiceNameAsync(_db, bucketTask.ProjectId, task, ct);
+            }
+            else
+            {
+                var firstService = await _db.ProjectServices
+                    .Where(s => s.ProjectId == bucketTask.ProjectId && s.DeletedAtUtc == null)
+                    .OrderBy(s => s.SortOrder)
+                    .FirstOrDefaultAsync(ct);
+                serviceName = firstService?.ServiceName?.Trim() ?? bucketTask.ProjectName ?? "General";
+            }
+            if (string.IsNullOrWhiteSpace(serviceName))
+            {
+                serviceName = "General";
+            }
+
+            var taskTitle = bucketTask.TaskTitle;
+            var projectName = bucketTask.ProjectName ?? task?.Project?.Name ?? "Project";
+
+            var stopTitle = $"{empName} Task Stopped: {taskTitle} - {serviceName}";
+            var stopContent = $"{empName} has stopped the task '{taskTitle}' under the service '{serviceName}' in project '{projectName}'.";
 
             foreach (var recId in leadershipRecipients)
             {
@@ -492,19 +574,31 @@ public class BucketTaskService : IBucketTaskService
                 {
                     RecipientEmployeeId = recId,
                     ProjectId = bucketTask.ProjectId,
-                    ProjectName = bucketTask.ProjectName,
+                    ProjectCode = task?.Project?.ProjectCode,
+                    ProjectName = projectName,
                     Title = stopTitle,
                     Type = "Task Stopped",
-                    Priority = bucketTask.Priority,
+                    Priority = "Low",
                     Status = "Pending",
                     Unread = true,
-                    RelatedTask = bucketTask.TaskTitle,
+                    RelatedTask = taskTitle,
                     RaisedByName = empName,
+                    RaisedByEmployeeId = bucketTask.EmployeeId,
                     CreatedAtUtc = nowUtc,
                     CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
                     {
                         new { text = stopContent, by = empName, at = nowUtc.ToString("o") }
-                    })
+                    }, s_jsonOptions),
+                    HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                    {
+                        new
+                        {
+                            action = "Task Stopped",
+                            date = nowUtc.ToString("yyyy-MM-dd"),
+                            time = nowUtc.ToString("HH:mm:ss"),
+                            by = empName
+                        }
+                    }, s_jsonOptions)
                 });
             }
             await _db.SaveChangesAsync(ct);

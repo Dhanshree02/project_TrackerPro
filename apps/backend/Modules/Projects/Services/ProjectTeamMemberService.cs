@@ -5,6 +5,7 @@ using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.ActionCentre.Services;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Resources.Models;
@@ -20,6 +21,7 @@ public sealed class ProjectTeamMemberService(
     ICurrentUserService currentUser,
     ISlaTrackingService slaTrackingService,
     ISlaRecipientResolver recipientResolver,
+    IActionNotificationService notificationService,
     ILogger<ProjectTeamMemberService> logger) : IProjectTeamMemberService
 {
     public async Task<IReadOnlyList<ProjectTeamMemberDto>> ListAsync(
@@ -343,20 +345,80 @@ public sealed class ProjectTeamMemberService(
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
             ?? throw new NotFoundException($"Project '{projectId}' was not found.");
 
+        var previousPmIds = await db.ProjectTeamMembers
+            .Where(m => m.ProjectId == projectId && m.MemberRole == ProjectMemberRoles.ProjectManager)
+            .Select(m => m.EmployeeId)
+            .ToListAsync(ct);
+
+        var previousSpmIds = await db.ProjectTeamMembers
+            .Where(m => m.ProjectId == projectId && m.MemberRole == ProjectMemberRoles.SeniorProjectManager)
+            .Select(m => m.EmployeeId)
+            .ToListAsync(ct);
+
+        List<Guid>? newPmIds = null;
         if (request.ProjectManagerIds is not null)
         {
-            var pmIds = DistinctIds(request.ProjectManagerIds);
-            await ReplaceManagersAsync(project, ProjectMemberRoles.ProjectManager, pmIds, ct);
-            project.ProjectManagerId = pmIds.Count == 0 ? null : pmIds[0];
+            newPmIds = DistinctIds(request.ProjectManagerIds);
+            await ReplaceManagersAsync(project, ProjectMemberRoles.ProjectManager, newPmIds, ct);
+            project.ProjectManagerId = newPmIds.Count == 0 ? null : newPmIds[0];
             project.UpdatedAtUtc = DateTime.UtcNow;
         }
 
+        List<Guid>? newSpmIds = null;
         if (request.SeniorProjectManagerIds is not null)
         {
-            await ReplaceManagersAsync(project, ProjectMemberRoles.SeniorProjectManager, request.SeniorProjectManagerIds, ct);
+            newSpmIds = DistinctIds(request.SeniorProjectManagerIds);
+            await ReplaceManagersAsync(project, ProjectMemberRoles.SeniorProjectManager, newSpmIds, ct);
         }
 
         await db.SaveChangesAsync(ct);
+
+        // Notify newly assigned Project Managers & Senior Project Managers independently
+        try
+        {
+            var actor = await FindCurrentEmployeeAsync(ct);
+            var actorName = actor != null
+                ? $"{actor.FirstName} {actor.LastName}".Trim()
+                : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
+
+            if (newPmIds is not null)
+            {
+                var newlyAssignedPmIds = newPmIds.Where(id => !previousPmIds.Contains(id)).ToList();
+                foreach (var pmId in newlyAssignedPmIds)
+                {
+                    await notificationService.NotifyProjectLeadershipAssignedAsync(
+                        project.Id,
+                        project.Name,
+                        project.ProjectCode,
+                        pmId,
+                        ProjectMemberRoles.ProjectManager,
+                        actorName,
+                        actor?.Id,
+                        ct);
+                }
+            }
+
+            if (newSpmIds is not null)
+            {
+                var newlyAssignedSpmIds = newSpmIds.Where(id => !previousSpmIds.Contains(id)).ToList();
+                foreach (var spmId in newlyAssignedSpmIds)
+                {
+                    await notificationService.NotifyProjectLeadershipAssignedAsync(
+                        project.Id,
+                        project.Name,
+                        project.ProjectCode,
+                        spmId,
+                        ProjectMemberRoles.SeniorProjectManager,
+                        actorName,
+                        actor?.Id,
+                        ct);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to dispatch leadership assignment notification for project {ProjectId}", projectId);
+        }
 
         var managers = await db.ProjectTeamMembers
             .AsNoTracking()
@@ -824,6 +886,7 @@ public sealed class ProjectTeamMemberService(
 
             var allRequests = await query
                 .OrderByDescending(r => r.CreatedAtUtc)
+                .ThenByDescending(r => r.Id)
                 .ToListAsync(ct);
 
             var filtered = allRequests.Where(r =>
@@ -837,6 +900,7 @@ public sealed class ProjectTeamMemberService(
 
         var list = await query
             .OrderByDescending(r => r.CreatedAtUtc)
+            .ThenByDescending(r => r.Id)
             .ToListAsync(ct);
 
         return list.Select(MapAllocationDto).ToList();
@@ -853,29 +917,102 @@ public sealed class ProjectTeamMemberService(
             .AsNoTracking()
             .Where(r => r.ProjectId == projectId && r.DeletedAtUtc == null)
             .OrderByDescending(r => r.CreatedAtUtc)
+            .ThenByDescending(r => r.Id)
             .ToListAsync(ct);
 
         return list.Select(MapAllocationDto).ToList();
     }
 
-    public async Task<ProjectResourceAllocationRequestDto> TakeAllocationActionAsync(
+    public Task<ProjectResourceAllocationRequestDto> TakeAllocationActionAsync(
         Guid projectId,
         Guid requestId,
         ResourceAllocationActionRequest request,
         CancellationToken ct = default)
     {
-        var entity = await db.ProjectResourceAllocationRequests
-            .Include(r => r.Project)
-            .Include(r => r.Employee)
-            .Include(r => r.Department)
-            .FirstOrDefaultAsync(r => r.Id == requestId && r.ProjectId == projectId && r.DeletedAtUtc == null, ct)
-            ?? throw new NotFoundException($"Allocation request '{requestId}' was not found.");
+        return TakeAllocationActionAsync(projectId, requestId.ToString(), request, ct);
+    }
+
+    public async Task<ProjectResourceAllocationRequestDto> TakeAllocationActionAsync(
+        Guid? projectId,
+        string identifier,
+        ResourceAllocationActionRequest request,
+        CancellationToken ct = default)
+    {
+        var cleanId = (identifier ?? "").Trim();
+        ProjectResourceAllocationRequest? entity = null;
+
+        if (Guid.TryParse(cleanId, out var parsedGuid))
+        {
+            // 1. Direct match by allocation request Id
+            entity = await db.ProjectResourceAllocationRequests
+                .Include(r => r.Project)
+                .Include(r => r.Employee)
+                .Include(r => r.Department)
+                .FirstOrDefaultAsync(r => r.Id == parsedGuid && (projectId == null || projectId == Guid.Empty || r.ProjectId == projectId.Value) && r.DeletedAtUtc == null, ct);
+
+            // 2. Check if parsedGuid is an ActionNotification.Id
+            if (entity == null)
+            {
+                var notif = await db.ActionNotifications
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(n => n.Id == parsedGuid && n.DeletedAtUtc == null, ct);
+
+                if (notif != null)
+                {
+                    if (notif.ProjectId.HasValue && (projectId == null || projectId == Guid.Empty))
+                    {
+                        projectId = notif.ProjectId;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(notif.RelatedTask))
+                    {
+                        var taskPrefix = notif.RelatedTask.Replace("ALLOC-", "", StringComparison.OrdinalIgnoreCase).Trim().ToUpper();
+                        entity = await db.ProjectResourceAllocationRequests
+                            .Include(r => r.Project)
+                            .Include(r => r.Employee)
+                            .Include(r => r.Department)
+                            .FirstOrDefaultAsync(r => r.Id.ToString().ToUpper().StartsWith(taskPrefix) && (projectId == null || projectId == Guid.Empty || r.ProjectId == projectId.Value) && r.DeletedAtUtc == null, ct);
+                    }
+                }
+            }
+        }
+
+        // 3. Match by task code e.g. "ALLOC-7F8C43E1" or prefix "7F8C43E1"
+        if (entity == null && !string.IsNullOrWhiteSpace(cleanId))
+        {
+            var taskPrefix = cleanId.Replace("ALLOC-", "", StringComparison.OrdinalIgnoreCase).Trim().ToUpper();
+            if (taskPrefix.Length >= 4)
+            {
+                entity = await db.ProjectResourceAllocationRequests
+                    .Include(r => r.Project)
+                    .Include(r => r.Employee)
+                    .Include(r => r.Department)
+                    .FirstOrDefaultAsync(r => r.Id.ToString().ToUpper().StartsWith(taskPrefix) && (projectId == null || projectId == Guid.Empty || r.ProjectId == projectId.Value) && r.DeletedAtUtc == null, ct);
+            }
+        }
+
+        // 4. Fallback: if projectId is given and there is a pending allocation request
+        if (entity == null && projectId.HasValue && projectId.Value != Guid.Empty)
+        {
+            entity = await db.ProjectResourceAllocationRequests
+                .Include(r => r.Project)
+                .Include(r => r.Employee)
+                .Include(r => r.Department)
+                .FirstOrDefaultAsync(r => r.ProjectId == projectId.Value && r.Status == "Pending" && r.DeletedAtUtc == null, ct);
+        }
+
+        if (entity == null)
+        {
+            throw new NotFoundException($"Allocation request '{identifier}' was not found.");
+        }
+
+        var effectiveProjectId = entity.ProjectId;
 
         var normStatus = (request.Status ?? "").Trim();
-        var mappedStatus = normStatus.Equals("Approved", StringComparison.OrdinalIgnoreCase) ? "Approved"
-            : normStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ? "Rejected"
+        var mappedStatus = normStatus.Equals("Approved", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Accept", StringComparison.OrdinalIgnoreCase) ? "Approved"
             : normStatus.Equals("Hold", StringComparison.OrdinalIgnoreCase) ? "Hold"
-            : normStatus.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) ? "Request Changes"
+            : normStatus.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) ? "Hold"
+            : normStatus.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Cancel", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Reject", StringComparison.OrdinalIgnoreCase) ? "Cancelled"
             : normStatus;
 
         var actor = await FindCurrentEmployeeAsync(ct);
@@ -939,19 +1076,19 @@ public sealed class ProjectTeamMemberService(
             entity.CommentsJson = JsonSerializer.Serialize(commentList);
         }
 
-        var project = entity.Project ?? await db.Projects.Include(p => p.Client).FirstOrDefaultAsync(p => p.Id == projectId, ct);
+        var project = entity.Project ?? await db.Projects.Include(p => p.Client).FirstOrDefaultAsync(p => p.Id == effectiveProjectId, ct);
 
         if (mappedStatus == "Approved")
         {
             var alreadyInTeam = await db.ProjectTeamMembers
-                .AnyAsync(m => m.ProjectId == projectId && m.EmployeeId == entity.EmployeeId && m.DeletedAtUtc == null, ct);
+                .AnyAsync(m => m.ProjectId == effectiveProjectId && m.EmployeeId == entity.EmployeeId && m.DeletedAtUtc == null, ct);
 
             if (!alreadyInTeam)
             {
                 var teamMember = new ProjectTeamMember
                 {
                     Id = Guid.NewGuid(),
-                    ProjectId = projectId,
+                    ProjectId = effectiveProjectId,
                     EmployeeId = entity.EmployeeId,
                     DepartmentId = entity.DepartmentId,
                     SubDepartment = entity.SubDepartment,
@@ -1027,7 +1164,7 @@ public sealed class ProjectTeamMemberService(
             .ToListAsync(ct);
         foreach (var id in pmTeamMembers) recipientIds.Add(id);
 
-        // 2. Assigned Engagement Manager(s)
+        // 2. Assigned Engagement Manager(s) of the project (You can see him into the WBS)
         if (project?.EngagementManagerId.HasValue == true && project.EngagementManagerId.Value != Guid.Empty)
         {
             recipientIds.Add(project.EngagementManagerId.Value);
@@ -1049,22 +1186,7 @@ public sealed class ProjectTeamMemberService(
             if (emByName != null) recipientIds.Add(emByName.Id);
         }
 
-        // 3. Assigned Senior Project Manager(s)
-        var spmRecipients = await recipientResolver.ResolveRecipientsAsync(new SlaInstance { ProjectId = projId }, ["Assigned Senior Project Manager"], ct);
-        foreach (var id in spmRecipients) recipientIds.Add(id);
-        var spmTeamMembers = await db.ProjectTeamMembers
-            .AsNoTracking()
-            .Where(tm => tm.ProjectId == projId && tm.DeletedAtUtc == null &&
-                         (tm.MemberRole == "SeniorProjectManager" || tm.MemberRole == "SPM" || tm.MemberRole == "Senior Project Manager" || (tm.MemberRole != null && tm.MemberRole.Contains("Senior"))))
-            .Select(tm => tm.EmployeeId)
-            .ToListAsync(ct);
-        foreach (var id in spmTeamMembers) recipientIds.Add(id);
-
-        // 4. Head of Department (HOD)
-        var hodRecipients = await recipientResolver.ResolveRecipientsAsync(new SlaInstance { ProjectId = projId }, ["Head of Department"], ct);
-        foreach (var id in hodRecipients) recipientIds.Add(id);
-
-        // 5. Team Leads of the project
+        // 3. Team Leads of the project
         if (project?.TeamLeadId.HasValue == true && project.TeamLeadId.Value != Guid.Empty)
         {
             recipientIds.Add(project.TeamLeadId.Value);
@@ -1077,25 +1199,7 @@ public sealed class ProjectTeamMemberService(
             .ToListAsync(ct);
         foreach (var id in tlMembers) recipientIds.Add(id);
 
-        // 6. PMO whose Resources Sub-Department are `EM (Engagement Manager)`, `PMO (Project Management Office)`
-        var targetSubDeptEm = "em (engagement manager)";
-        var targetSubDeptPmo = "pmo (project management office)";
-        var pmoEmployees = await db.Employees
-            .AsNoTracking()
-            .Where(e => e.DeletedAtUtc == null && (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
-            .Where(e => (e.SubDepartment != null && (
-                            e.SubDepartment.ToLower() == targetSubDeptEm ||
-                            e.SubDepartment.ToLower() == targetSubDeptPmo
-                        ))
-                        || (e.SubDepartmentRef != null && (
-                            e.SubDepartmentRef.Name.ToLower() == targetSubDeptEm ||
-                            e.SubDepartmentRef.Name.ToLower() == targetSubDeptPmo
-                        )))
-            .Select(e => e.Id)
-            .ToListAsync(ct);
-        foreach (var id in pmoEmployees) recipientIds.Add(id);
-
-        // 7. Also to the Resource selected to add into the project team
+        // 4. Candidate employee being allocated
         recipientIds.Add(entity.EmployeeId);
 
         var allocTaskCode = $"ALLOC-{entity.Id.ToString()[..8].ToUpper()}";
@@ -1105,9 +1209,8 @@ public sealed class ProjectTeamMemberService(
         var actionVerb = mappedStatus switch
         {
             "Approved" => "accepted",
-            "Rejected" => "rejected",
-            "Hold" => "on hold",
-            "Request Changes" => "on hold",
+            "Cancelled" or "Cancel" or "Rejected" or "Reject" => "cancelled",
+            "Hold" or "Request Changes" => "on hold",
             _ => mappedStatus.ToLowerInvariant()
         };
 

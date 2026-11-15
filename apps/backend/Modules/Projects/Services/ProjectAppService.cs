@@ -5,6 +5,7 @@ using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Storage;
 
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.ActionCentre.Services;
 
 using PMS.API.Modules.Customers.Models;
 
@@ -68,23 +69,16 @@ public sealed partial class ProjectAppService(
 
 
         if (queryParams.EmployeeId.HasValue)
-
         {
-
             var empId = queryParams.EmployeeId.Value;
-
             query = query.Where(p =>
-
-                p.ProjectManagerId == empId ||
-
-                p.TeamLeadId == empId ||
-
-                p.EngagementManagerId == empId ||
-
-                db.ProjectTeamMembers.Any(tm => tm.ProjectId == p.Id && tm.EmployeeId == empId) ||
-
-                db.ProjectTasks.Any(t => t.ProjectId == p.Id && db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId)));
-
+                p.DeletedAtUtc == null &&
+                (p.ProjectManagerId == empId ||
+                 p.TeamLeadId == empId ||
+                 p.EngagementManagerId == empId ||
+                 db.ProjectTeamMembers.Any(tm => tm.ProjectId == p.Id && tm.EmployeeId == empId && tm.DeletedAtUtc == null) ||
+                 db.ProjectTasks.Any(t => t.ProjectId == p.Id && t.DeletedAtUtc == null && db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId && ta.IsActive && ta.DeletedAtUtc == null)) ||
+                 db.BucketTasks.Any(bt => bt.ProjectId == p.Id && bt.EmployeeId == empId && bt.DeletedAtUtc == null)));
         }
 
 
@@ -2009,42 +2003,34 @@ public sealed partial class ProjectAppService(
 
 
 
-    public async Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
-
+    public async Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, Guid? employeeId = null, bool includeDeleted = false, CancellationToken ct = default)
     {
-
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
-
         if (!exists)
-
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
-
-
         var query = db.ProjectTasks.AsQueryable();
-
         if (includeDeleted)
-
         {
-
             query = query.IgnoreQueryFilters();
-
         }
 
+        query = query
+            .Include(t => t.ProjectService)
+            .Include(t => t.Project)
+            .Where(t => t.ProjectId == projectId);
 
+        if (employeeId.HasValue)
+        {
+            var empId = employeeId.Value;
+            query = query.Where(t =>
+                db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId && ta.IsActive && ta.DeletedAtUtc == null) ||
+                db.BucketTasks.Any(bt => bt.TaskId == t.Id && bt.EmployeeId == empId && bt.DeletedAtUtc == null));
+        }
 
         var tasks = await query
-
-            .Include(t => t.ProjectService)
-
-            .Include(t => t.Project)
-
-            .Where(t => t.ProjectId == projectId)
-
             .OrderBy(t => t.SortOrder)
-
             .ThenBy(t => t.CreatedAtUtc)
-
             .ToListAsync(ct);
 
 
@@ -2939,81 +2925,64 @@ public sealed partial class ProjectAppService(
 
         await pts.SyncBucketTasksForTaskAsync(projectId, taskId, [request.EmployeeId], [], ct);
 
-        var taskInfo = await db.ProjectTasks.Include(t => t.Project).FirstOrDefaultAsync(t => t.Id == taskId, ct);
+        var taskInfo = await db.ProjectTasks
+            .Include(t => t.Project)
+            .Include(t => t.ProjectService)
+            .FirstOrDefaultAsync(t => t.Id == taskId, ct);
 
+        var newNotifs = new List<ActionNotification>();
         if (taskInfo != null)
-
         {
-
             var nowUtc = DateTime.UtcNow;
-
             string assigner = taskInfo.Project?.EngagementManager ?? "Project Manager";
-
             if (taskInfo.Project?.ProjectManagerId.HasValue == true)
-
             {
-
                 var pm = await db.Employees.FirstOrDefaultAsync(e => e.Id == taskInfo.Project.ProjectManagerId.Value, ct);
-
                 if (pm != null) assigner = $"{pm.FirstName} {pm.LastName}".Trim();
-
             }
 
-            db.ActionNotifications.Add(new ActionNotification
+            var serviceName = await ProjectTaskService.ResolveServiceNameAsync(db, projectId, taskInfo, ct);
+            var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == request.EmployeeId, ct);
+            var resourceName = emp != null ? $"{emp.FirstName} {emp.LastName}".Trim() : "Resource";
+            if (string.IsNullOrWhiteSpace(resourceName)) resourceName = "Resource";
 
+            var notifTitle = $"The {resourceName} is assigned to the {taskInfo.Title} of the {serviceName}";
+
+            var notif = new ActionNotification
             {
-
                 Id = Guid.NewGuid(),
-
                 RecipientEmployeeId = request.EmployeeId,
-
                 ProjectId = projectId,
-
                 ProjectCode = taskInfo.Project?.ProjectCode,
-
                 ProjectName = taskInfo.Project?.Name ?? "Project",
-
-                Title = $"Task Assigned: {taskInfo.Title}",
-
+                Title = notifTitle,
                 Type = "Task Assignment",
-
                 Priority = string.IsNullOrWhiteSpace(taskInfo.Priority) ? "Medium" : taskInfo.Priority,
-
                 Status = "Assigned",
-
                 Unread = true,
-
                 RaisedByName = assigner,
-
                 RelatedTask = taskInfo.Title,
-
                 CreatedAtUtc = nowUtc,
-
                 HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
-
                 {
-
                     new
-
                     {
-
                         status = "Assigned",
-
                         at = nowUtc.ToString("O"),
-
                         by = assigner,
-
-                        comment = $"Assigned to task '{taskInfo.Title}'"
-
+                        comment = notifTitle
                     }
-
                 })
-
-            });
-
+            };
+            db.ActionNotifications.Add(notif);
+            newNotifs.Add(notif);
         }
 
         await db.SaveChangesAsync(ct);
+        if (newNotifs.Count > 0)
+        {
+            ActionNotificationService.TrySyncNotificationsToOtherDatabase(newNotifs);
+        }
 
         await pts.DistributeProjectTeamHoursAsync(projectId, taskId, ct);
 

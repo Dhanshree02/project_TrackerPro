@@ -346,7 +346,10 @@ public sealed class ProjectExtensionRequestService(
 
 
 
-        var items = await query.OrderByDescending(x => x.CreatedAtUtc).ToListAsync(ct);
+        var items = await query
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ThenByDescending(x => x.Id)
+            .ToListAsync(ct);
 
 
 

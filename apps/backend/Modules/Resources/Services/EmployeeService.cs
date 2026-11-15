@@ -1,4 +1,7 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
@@ -13,7 +16,13 @@ using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Resources.Services;
 
-public sealed class EmployeeService(AppDbContext db, IFileStorageService storage, ICurrentUserService currentUser, PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService) : IEmployeeService
+public sealed class EmployeeService(
+    AppDbContext db,
+    IFileStorageService storage,
+    ICurrentUserService currentUser,
+    PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService,
+    IOffboardingNotificationService? offboardingNotificationService = null,
+    ILogger<EmployeeService>? logger = null) : IEmployeeService
 {
     private (string Email, string Name) GetCurrentPerformer()
     {
@@ -539,7 +548,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.BusinessUnit is not null)
         {
-            if (entity.BusinessUnit != request.BusinessUnit) changes.Add("Business Unit");
+            if (HasStringChanged(entity.BusinessUnit, request.BusinessUnit)) changes.Add("Business Unit");
             entity.BusinessUnit = request.BusinessUnit;
         }
         string? previousWorkLocation = null;
@@ -547,7 +556,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         var workLocationChanged = false;
         if (request.WorkLocation is not null)
         {
-            if (entity.WorkLocation != request.WorkLocation)
+            if (HasStringChanged(entity.WorkLocation, request.WorkLocation))
             {
                 changes.Add("Work Location");
                 previousWorkLocation = entity.WorkLocation;
@@ -558,17 +567,17 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.OfficeBranch is not null)
         {
-            if (entity.OfficeBranch != request.OfficeBranch) changes.Add("Office Branch");
+            if (HasStringChanged(entity.OfficeBranch, request.OfficeBranch)) changes.Add("Office Branch");
             entity.OfficeBranch = request.OfficeBranch;
         }
         if (request.Category is not null)
         {
-            if (entity.Category != request.Category) changes.Add("Category");
+            if (HasStringChanged(entity.Category, request.Category)) changes.Add("Category");
             entity.Category = request.Category;
         }
         if (request.Team is not null)
         {
-            if (entity.Team != request.Team) changes.Add("Team");
+            if (HasStringChanged(entity.Team, request.Team)) changes.Add("Team");
             entity.Team = request.Team;
         }
         if (!string.IsNullOrWhiteSpace(request.Department))
@@ -622,73 +631,73 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         {
             if (request.Status is not null)
             {
-                if (entity.Status != request.Status) changes.Add("Status");
+                if (HasStringChanged(entity.Status, request.Status)) changes.Add("Status");
                 entity.Status = request.Status;
             }
             if (request.ConfirmationStatus is not null)
             {
-                if (entity.ConfirmationStatus != request.ConfirmationStatus) changes.Add("Confirmation Status");
+                if (HasStringChanged(entity.ConfirmationStatus, request.ConfirmationStatus)) changes.Add("Confirmation Status");
                 entity.ConfirmationStatus = request.ConfirmationStatus;
             }
         }
         if (request.ProbationStatus is not null)
         {
-            if (entity.ProbationStatus != request.ProbationStatus) changes.Add("Probation Status");
+            if (HasStringChanged(entity.ProbationStatus, request.ProbationStatus)) changes.Add("Probation Status");
             entity.ProbationStatus = request.ProbationStatus;
         }
         if (request.Experience is not null)
         {
-            if (entity.Experience != request.Experience) changes.Add("Experience");
+            if (!AreExperienceStringsEquivalent(entity.Experience, request.Experience)) changes.Add("Experience");
             entity.Experience = request.Experience;
         }
         if (request.PreviousCompany is not null)
         {
-            if (entity.PreviousCompany != request.PreviousCompany) changes.Add("Previous Company");
+            if (HasStringChanged(entity.PreviousCompany, request.PreviousCompany)) changes.Add("Previous Company");
             entity.PreviousCompany = request.PreviousCompany;
         }
         if (request.EmploymentType is not null)
         {
-            if (entity.EmploymentType != request.EmploymentType) changes.Add("Employment Type");
+            if (HasStringChanged(entity.EmploymentType, request.EmploymentType)) changes.Add("Employment Type");
             entity.EmploymentType = request.EmploymentType;
         }
         if (request.ContractType is not null)
         {
-            if (entity.ContractType != request.ContractType) changes.Add("Contract Type");
+            if (HasStringChanged(entity.ContractType, request.ContractType)) changes.Add("Contract Type");
             entity.ContractType = request.ContractType;
         }
         if (request.BondStatus is not null)
         {
-            if (entity.BondStatus != request.BondStatus) changes.Add("Bond Status");
+            if (!AreBondStatusesEquivalent(entity, request.BondStatus, request.BondExpiryDate)) changes.Add("Bond Status");
             entity.BondStatus = request.BondStatus;
         }
         if (request.NoticePeriod is not null)
         {
-            if (entity.NoticePeriod != request.NoticePeriod) changes.Add("Notice Period");
+            if (HasStringChanged(entity.NoticePeriod, request.NoticePeriod)) changes.Add("Notice Period");
             entity.NoticePeriod = request.NoticePeriod;
         }
         if (request.ProjectSite is not null)
         {
-            if (entity.ProjectSite != request.ProjectSite) changes.Add("Location (Onsite)");
+            if (HasStringChanged(entity.ProjectSite, request.ProjectSite)) changes.Add("Location (Onsite)");
             entity.ProjectSite = request.ProjectSite;
         }
         if (request.AssetId is not null)
         {
-            if (entity.AssetId != request.AssetId) changes.Add("Asset ID");
+            if (HasStringChanged(entity.AssetId, request.AssetId)) changes.Add("Asset ID");
             entity.AssetId = request.AssetId;
         }
         if (request.ExitType is not null)
         {
-            if (entity.ExitType != request.ExitType) changes.Add("Exit Type");
+            if (HasStringChanged(entity.ExitType, request.ExitType)) changes.Add("Exit Type");
             entity.ExitType = request.ExitType;
         }
         if (request.ExitReason is not null)
         {
-            if (entity.ExitReason != request.ExitReason) changes.Add("Exit Reason");
+            if (HasStringChanged(entity.ExitReason, request.ExitReason)) changes.Add("Exit Reason");
             entity.ExitReason = request.ExitReason;
         }
         if (request.Education is not null)
         {
-            if (entity.Education != request.Education) changes.Add("Education");
+            if (HasStringChanged(entity.Education, request.Education)) changes.Add("Education");
             entity.Education = request.Education;
         }
         if (request.Skills is not null) entity.Skills = request.Skills;
@@ -726,12 +735,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.PromotionReadiness is not null)
         {
-            if (entity.PromotionReadiness != request.PromotionReadiness) changes.Add("Promotion Readiness");
+            if (HasStringChanged(entity.PromotionReadiness, request.PromotionReadiness)) changes.Add("Promotion Readiness");
             entity.PromotionReadiness = request.PromotionReadiness;
         }
         if (request.ManagerFeedback is not null)
         {
-            if (entity.ManagerFeedback != request.ManagerFeedback) changes.Add("Manager Feedback");
+            if (HasStringChanged(entity.ManagerFeedback, request.ManagerFeedback)) changes.Add("Manager Feedback");
             entity.ManagerFeedback = request.ManagerFeedback;
         }
         if (request.Pan is not null)
@@ -748,12 +757,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.BankAccount is not null)
         {
-            if (entity.BankAccount != request.BankAccount) changes.Add("Bank Account");
+            if (HasStringChanged(entity.BankAccount, request.BankAccount)) changes.Add("Bank Account");
             entity.BankAccount = request.BankAccount;
         }
         if (request.SalaryBand is not null)
         {
-            if (entity.SalaryBand != request.SalaryBand) changes.Add("Salary Band");
+            if (HasStringChanged(entity.SalaryBand, request.SalaryBand)) changes.Add("Salary Band");
             entity.SalaryBand = request.SalaryBand;
         }
         if (request.SalaryBandId.HasValue)
@@ -763,7 +772,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.ProbationPeriod is not null)
         {
-            if (entity.ProbationPeriod != request.ProbationPeriod) changes.Add("Probation Period");
+            if (HasStringChanged(entity.ProbationPeriod, request.ProbationPeriod)) changes.Add("Probation Period");
             entity.ProbationPeriod = request.ProbationPeriod;
         }
         if (request.PfUan is not null)
@@ -774,22 +783,22 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.TaxRegime is not null)
         {
-            if (entity.TaxRegime != request.TaxRegime) changes.Add("Tax Regime");
+            if (HasStringChanged(entity.TaxRegime, request.TaxRegime)) changes.Add("Tax Regime");
             entity.TaxRegime = request.TaxRegime;
         }
         if (request.ComplianceStatus is not null)
         {
-            if (entity.ComplianceStatus != request.ComplianceStatus) changes.Add("Compliance Status");
+            if (HasStringChanged(entity.ComplianceStatus, request.ComplianceStatus)) changes.Add("Compliance Status");
             entity.ComplianceStatus = request.ComplianceStatus;
         }
         if (request.PmoDepartment is not null)
         {
-            if (entity.PmoDepartment != request.PmoDepartment) changes.Add("PMO Department");
+            if (HasStringChanged(entity.PmoDepartment, request.PmoDepartment)) changes.Add("PMO Department");
             entity.PmoDepartment = request.PmoDepartment;
         }
         if (request.SubDepartment is not null)
         {
-            if (entity.SubDepartment != request.SubDepartment) changes.Add("Sub Department");
+            if (HasStringChanged(entity.SubDepartment, request.SubDepartment)) changes.Add("Sub Department");
             entity.SubDepartment = request.SubDepartment;
         }
         else if (request.DesignationId.HasValue || (string.IsNullOrWhiteSpace(entity.SubDepartment) && entity.DesignationId.HasValue))
@@ -809,7 +818,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         var billableStatusChanged = false;
         if (request.BillableStatus is not null)
         {
-            if (entity.BillableStatus != request.BillableStatus)
+            if (HasStringChanged(entity.BillableStatus, request.BillableStatus))
             {
                 changes.Add("Billable Status");
                 previousBillableStatus = entity.BillableStatus;
@@ -820,62 +829,62 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.ClientLocation is not null)
         {
-            if (entity.ClientLocation != request.ClientLocation) changes.Add("Client Location");
+            if (HasStringChanged(entity.ClientLocation, request.ClientLocation)) changes.Add("Client Location");
             entity.ClientLocation = request.ClientLocation;
         }
         if (request.ProjectType is not null)
         {
-            if (entity.ProjectType != request.ProjectType) changes.Add("Project Type");
+            if (HasStringChanged(entity.ProjectType, request.ProjectType)) changes.Add("Project Type");
             entity.ProjectType = request.ProjectType;
         }
         if (request.ProjectAllocated is not null)
         {
-            if (entity.ProjectAllocated != request.ProjectAllocated) changes.Add("Project Allocated");
+            if (HasStringChanged(entity.ProjectAllocated, request.ProjectAllocated)) changes.Add("Project Allocated");
             entity.ProjectAllocated = request.ProjectAllocated;
         }
         if (request.ClientEngManagerMapping is not null)
         {
-            if (entity.ClientEngManagerMapping != request.ClientEngManagerMapping) changes.Add("Client EM Mapping");
+            if (HasStringChanged(entity.ClientEngManagerMapping, request.ClientEngManagerMapping)) changes.Add("Client EM Mapping");
             entity.ClientEngManagerMapping = request.ClientEngManagerMapping;
         }
         if (request.GradDegree is not null)
         {
-            if (entity.GradDegree != request.GradDegree) changes.Add("Graduation Degree");
+            if (HasStringChanged(entity.GradDegree, request.GradDegree)) changes.Add("Graduation Degree");
             entity.GradDegree = request.GradDegree;
         }
         if (request.GradYear is not null)
         {
-            if (entity.GradYear != request.GradYear) changes.Add("Graduation Year");
+            if (HasStringChanged(entity.GradYear, request.GradYear)) changes.Add("Graduation Year");
             entity.GradYear = request.GradYear;
         }
         if (request.PostGradDegree is not null)
         {
-            if (entity.PostGradDegree != request.PostGradDegree) changes.Add("Post Graduation Degree");
+            if (HasStringChanged(entity.PostGradDegree, request.PostGradDegree)) changes.Add("Post Graduation Degree");
             entity.PostGradDegree = request.PostGradDegree;
         }
         if (request.PostGradYear is not null)
         {
-            if (entity.PostGradYear != request.PostGradYear) changes.Add("Post Graduation Year");
+            if (HasStringChanged(entity.PostGradYear, request.PostGradYear)) changes.Add("Post Graduation Year");
             entity.PostGradYear = request.PostGradYear;
         }
         if (request.ExpType is not null)
         {
-            if (entity.ExpType != request.ExpType) changes.Add("Experience Type");
+            if (HasStringChanged(entity.ExpType, request.ExpType)) changes.Add("Experience Type");
             entity.ExpType = request.ExpType;
         }
         if (request.PriorTotalExp is not null)
         {
-            if (entity.PriorTotalExp != request.PriorTotalExp) changes.Add("Prior Total Experience");
+            if (!AreSingleExperienceEquivalent(entity.PriorTotalExp, request.PriorTotalExp)) changes.Add("Prior Total Experience");
             entity.PriorTotalExp = request.PriorTotalExp;
         }
         if (request.PriorRelevantExp is not null)
         {
-            if (entity.PriorRelevantExp != request.PriorRelevantExp) changes.Add("Prior Relevant Experience");
+            if (!AreSingleExperienceEquivalent(entity.PriorRelevantExp, request.PriorRelevantExp)) changes.Add("Prior Relevant Experience");
             entity.PriorRelevantExp = request.PriorRelevantExp;
         }
         if (request.BondDelivered is not null)
         {
-            if (entity.BondDelivered != request.BondDelivered) changes.Add("Bond Delivered");
+            if (HasStringChanged(entity.BondDelivered, request.BondDelivered)) changes.Add("Bond Delivered");
             entity.BondDelivered = request.BondDelivered;
         }
         if (request.BondDurationMonths.HasValue)
@@ -885,7 +894,20 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.BondExpiryDate.HasValue)
         {
-            if (entity.BondExpiryDate != request.BondExpiryDate) changes.Add("Bond Expiry Date");
+            var dateChanged = entity.BondExpiryDate != request.BondExpiryDate;
+            if (dateChanged)
+            {
+                var isAutoComputedBackfill = entity.BondExpiryDate == null &&
+                    entity.JoiningDate.HasValue &&
+                    entity.BondDurationMonths.HasValue &&
+                    entity.BondDurationMonths.Value > 0 &&
+                    request.BondExpiryDate.Value == entity.JoiningDate.Value.AddMonths(entity.BondDurationMonths.Value);
+
+                if (!isAutoComputedBackfill)
+                {
+                    changes.Add("Bond Expiry Date");
+                }
+            }
             entity.BondExpiryDate = request.BondExpiryDate;
         }
         await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), entity.Id, ct);
@@ -1104,6 +1126,22 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+
+        if (offboardingNotificationService != null)
+        {
+            try
+            {
+                await offboardingNotificationService.SendImmediateResignationNotificationAsync(
+                    employee.Id,
+                    offboardPerformerName,
+                    currentUser.UserId,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "[EmployeeService] Failed to dispatch immediate resignation notifications for employee {EmployeeId}", employee.Id);
+            }
+        }
 
         return MapExited(exited);
     }
@@ -2105,5 +2143,120 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
 
         return logs;
+    }
+
+    private static bool HasStringChanged(string? current, string? incoming)
+    {
+        var c = string.IsNullOrWhiteSpace(current) ? null : current.Trim();
+        var i = string.IsNullOrWhiteSpace(incoming) ? null : incoming.Trim();
+        return !string.Equals(c, i, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static (int years, int months) ParseYearsAndMonths(string? exp)
+    {
+        if (string.IsNullOrWhiteSpace(exp)) return (0, 0);
+        var s = exp.Trim();
+        if (string.Equals(s, "Fresher", StringComparison.OrdinalIgnoreCase) || s == "0" || s == "—" || s == "-")
+            return (0, 0);
+
+        var yMatch = Regex.Match(s, @"(\d+(?:\.\d+)?)\s*(?:yrs?|years?)", RegexOptions.IgnoreCase);
+        var mMatch = Regex.Match(s, @"(\d+)\s*(?:mos?|months?)", RegexOptions.IgnoreCase);
+
+        if (yMatch.Success || mMatch.Success)
+        {
+            var y = 0;
+            var m = 0;
+            if (yMatch.Success && double.TryParse(yMatch.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var yd))
+            {
+                y = (int)Math.Floor(yd);
+                var remM = (int)Math.Round((yd - y) * 12);
+                m += remM;
+            }
+            if (mMatch.Success && int.TryParse(mMatch.Groups[1].Value, out var parsedM))
+            {
+                m += parsedM;
+            }
+            y += m / 12;
+            m = m % 12;
+            return (y, m);
+        }
+
+        if (double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var num))
+        {
+            var y = (int)Math.Floor(num);
+            var m = (int)Math.Round((num - y) * 12);
+            y += m / 12;
+            m = m % 12;
+            return (y, m);
+        }
+
+        return (0, 0);
+    }
+
+    private static bool AreSingleExperienceEquivalent(string? a, string? b)
+    {
+        if (!HasStringChanged(a, b)) return true;
+        var (ya, ma) = ParseYearsAndMonths(a);
+        var (yb, mb) = ParseYearsAndMonths(b);
+        return ya == yb && ma == mb;
+    }
+
+    private static bool AreExperienceStringsEquivalent(string? a, string? b)
+    {
+        if (!HasStringChanged(a, b)) return true;
+
+        var aEmpty = string.IsNullOrWhiteSpace(a) || string.Equals(a.Trim(), "Fresher", StringComparison.OrdinalIgnoreCase) || a.Trim() is "0" or "—" or "-";
+        var bEmpty = string.IsNullOrWhiteSpace(b) || string.Equals(b.Trim(), "Fresher", StringComparison.OrdinalIgnoreCase) || b.Trim() is "0" or "—" or "-";
+        if (aEmpty && bEmpty) return true;
+
+        var matchA = Regex.Match(a ?? string.Empty, @"^(.*?)\s*\(Relevant:\s*(.*?)\)$", RegexOptions.IgnoreCase);
+        var matchB = Regex.Match(b ?? string.Empty, @"^(.*?)\s*\(Relevant:\s*(.*?)\)$", RegexOptions.IgnoreCase);
+
+        if (matchA.Success && matchB.Success)
+        {
+            return AreSingleExperienceEquivalent(matchA.Groups[1].Value, matchB.Groups[1].Value) &&
+                   AreSingleExperienceEquivalent(matchA.Groups[2].Value, matchB.Groups[2].Value);
+        }
+
+        if (matchA.Success && !matchB.Success)
+        {
+            return AreSingleExperienceEquivalent(matchA.Groups[1].Value, b);
+        }
+
+        if (!matchA.Success && matchB.Success)
+        {
+            return AreSingleExperienceEquivalent(a, matchB.Groups[1].Value);
+        }
+
+        return AreSingleExperienceEquivalent(a, b);
+    }
+
+    private static bool AreBondStatusesEquivalent(Employee entity, string? incomingStatus, DateOnly? incomingExpiry)
+    {
+        var currentNorm = ResolveNormalizedBondStatus(entity.BondStatus, entity.BondDelivered, entity.BondExpiryDate, entity.JoiningDate, entity.BondDurationMonths);
+        var incomingNorm = ResolveNormalizedBondStatus(incomingStatus, entity.BondDelivered, incomingExpiry ?? entity.BondExpiryDate, entity.JoiningDate, entity.BondDurationMonths);
+        return string.Equals(currentNorm, incomingNorm, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveNormalizedBondStatus(string? status, string? bondDelivered, DateOnly? bondExpiryDate, DateOnly? joiningDate, int? bondDurationMonths)
+    {
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var s = status.Trim().ToLowerInvariant();
+            if (s is "active" or "in bond" or "inbond") return "active";
+            if (s is "completed" or "expired") return "completed";
+            if (s is "no bond" or "nobond" or "without bond" or "none" or "na" or "n/a") return "none";
+            return s;
+        }
+
+        if (!string.Equals(bondDelivered?.Trim(), "Yes", StringComparison.OrdinalIgnoreCase))
+            return "none";
+
+        var expiry = bondExpiryDate ?? (joiningDate.HasValue && bondDurationMonths.HasValue && bondDurationMonths.Value > 0
+            ? joiningDate.Value.AddMonths(bondDurationMonths.Value)
+            : (DateOnly?)null);
+
+        if (!expiry.HasValue) return "none";
+        return expiry.Value < DateOnly.FromDateTime(DateTime.UtcNow) ? "completed" : "active";
     }
 }

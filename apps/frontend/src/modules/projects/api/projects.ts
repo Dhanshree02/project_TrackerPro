@@ -869,13 +869,15 @@ export async function fetchProjectTasks(
   period?: string,
   phase?: string,
   stage?: string,
-  includeDeleted = false
+  includeDeleted = false,
+  employeeId?: string
 ): Promise<ApiProjectTask[]> {
   const query = new URLSearchParams();
   if (period) query.set("period", period);
   if (phase) query.set("phase", phase);
   if (stage) query.set("stage", stage);
   if (includeDeleted) query.set("includeDeleted", "true");
+  if (employeeId) query.set("employeeId", employeeId);
   const qs = query.toString();
 
   return (await apiFetch<ApiProjectTask[]>(`/api/v1/projects/${projectId}/tasks${qs ? `?${qs}` : ""}`)) ?? [];

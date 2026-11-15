@@ -505,7 +505,10 @@ public sealed class ProjectAdditionalRequirementService(
             );
         }
 
-        var list = await query.OrderByDescending(r => r.CreatedAtUtc).ToListAsync(ct);
+        var list = await query
+            .OrderByDescending(r => r.CreatedAtUtc)
+            .ThenByDescending(r => r.Id)
+            .ToListAsync(ct);
         return list.Select(MapToDto).ToList();
     }
 

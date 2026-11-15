@@ -8,6 +8,8 @@ using PMS.API.Configuration;
 using PMS.API.Infrastructure.Hangfire;
 using PMS.API.Infrastructure.Swagger;
 using PMS.API.Middleware;
+using PMS.API.Modules.Timesheets.Jobs;
+using PMS.API.Modules.Resources.Jobs;
 using Serilog;
 using Serilog.Events;
 
@@ -118,6 +120,32 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     DashboardTitle = "Project Compass - Job Monitor",
     Authorization = [new HangfireDashboardAuthFilter(app.Environment, hangfireOptions)]
 });
+
+// Register Recurring Timesheet Submission Reminder Job (Daily at 09:00 IST / 03:30 UTC)
+try
+{
+    RecurringJob.AddOrUpdate<TimesheetReminderJob>(
+        "timesheet-submission-reminders",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "30 3 * * *");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to schedule recurring Hangfire job for timesheet reminders.");
+}
+
+// Register Recurring Employee Offboarding Reminder Job (Daily at 09:00 IST / 03:30 UTC)
+try
+{
+    RecurringJob.AddOrUpdate<EmployeeOffboardingReminderJob>(
+        "employee-offboarding-reminders",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "30 3 * * *");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to schedule recurring Hangfire job for employee offboarding reminders.");
+}
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();

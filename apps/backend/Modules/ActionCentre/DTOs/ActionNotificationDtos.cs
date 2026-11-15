@@ -35,6 +35,8 @@ public class ActionNotificationDto
 
     public string CreatedAt { get; set; } = string.Empty;
 
+    public DateTime CreatedAtUtc { get; set; }
+
     public string Status { get; set; } = "Pending";
 
     public string Priority { get; set; } = "Medium";
@@ -104,6 +106,8 @@ public class ActionAlertDto
     public List<string> AudienceUserIds { get; set; } = [];
 
     public string CreatedAt { get; set; } = string.Empty;
+
+    public DateTime CreatedAtUtc { get; set; }
 
     public string? Owner { get; set; }
 

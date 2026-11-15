@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive, AlertCircle, Check, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Avatar, PriorityPill } from "@/components/pills";
 import type { DhNotification } from "@/lib/workspace-store";
+import { apiFetch } from "@/lib/api-client";
+import { toast } from "sonner";
 
 export const formatNotifDate = (dateStr: string): string => {
   if (!dateStr) return "—";
@@ -24,7 +26,9 @@ export const formatNotifTime = (dateStr: string): string => {
 
 export const getTypeStyles = (type: string) => {
   const t = (type || "").toLowerCase();
-  if (t.includes("wbs")) {
+  if (t.includes("timesheet")) {
+    return "bg-indigo-50 text-indigo-700 border border-indigo-200";
+  } else if (t.includes("wbs")) {
     return "bg-orange-50 text-orange-700 border border-orange-200";
   } else if (
     t.includes("ready") ||
@@ -44,7 +48,8 @@ export const getTypeStyles = (type: string) => {
     t.includes("interview") ||
     t.includes("shuffle") ||
     t.includes("allocation") ||
-    t.includes("assignment")
+    t.includes("assignment") ||
+    t.includes("assigned")
   ) {
     return "bg-sky-50 text-sky-700 border border-sky-200";
   }
@@ -53,8 +58,20 @@ export const getTypeStyles = (type: string) => {
 
 export const getNotifStatusStyles = (status: string) => {
   const s = (status || "").toLowerCase().trim();
-  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
+  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done") {
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  }
+  if (s === "assigned") {
+    return "bg-indigo-50 text-indigo-700 border-indigo-200";
+  }
+  if (s === "created") {
+    return "bg-sky-50 text-sky-700 border-sky-200";
+  }
+  if (s === "edited") {
+    return "bg-blue-50 text-blue-700 border-blue-200";
+  }
+  if (s === "upload" || s === "uploaded") {
+    return "bg-teal-50 text-teal-700 border-teal-200";
   }
   if (s === "hold" || s === "on hold" || s === "postponed") {
     return "bg-amber-50 text-amber-700 border-amber-200";
@@ -62,7 +79,7 @@ export const getNotifStatusStyles = (status: string) => {
   if (s === "rejected" || s === "cancelled") {
     return "bg-red-50 text-red-700 border-red-200";
   }
-  if (s === "request changes" || s === "requested changes") {
+  if (s === "request change" || s === "request changes" || s === "requested changes" || s === "change_requested") {
     return "bg-purple-50 text-purple-700 border-purple-200";
   }
   return "bg-orange-50 text-orange-700 border-orange-200";
@@ -70,14 +87,20 @@ export const getNotifStatusStyles = (status: string) => {
 
 export const renderNotifStatusIcon = (status: string) => {
   const s = (status || "").toLowerCase().trim();
-  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
+  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done") {
     return <CheckCircle2 className="h-3 w-3 text-emerald-600" />;
+  }
+  if (s === "assigned") {
+    return <CheckCircle2 className="h-3 w-3 text-indigo-600" />;
   }
   if (s === "hold" || s === "on hold" || s === "postponed") {
     return <Clock className="h-3 w-3 text-amber-600" />;
   }
   if (s === "rejected" || s === "cancelled") {
     return <XCircle className="h-3 w-3 text-red-600" />;
+  }
+  if (s === "request change" || s === "request changes" || s === "requested changes" || s === "change_requested") {
+    return <AlertCircle className="h-3 w-3 text-purple-600" />;
   }
   return <Clock className="h-3 w-3 text-orange-600" />;
 };
@@ -87,6 +110,7 @@ interface NotificationDetailModalProps {
   onClose: () => void;
   onArchive?: (id: string) => Promise<void> | void;
   onNavigateToActionCentre?: () => void;
+  onActionComplete?: () => Promise<void> | void;
 }
 
 export function NotificationDetailModal({
@@ -94,10 +118,58 @@ export function NotificationDetailModal({
   onClose,
   onArchive,
   onNavigateToActionCentre,
+  onActionComplete,
 }: NotificationDetailModalProps) {
   const [isArchiving, setIsArchiving] = useState(false);
+  const [actionComment, setActionComment] = useState("");
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const [actingStatus, setActingStatus] = useState<string | null>(null);
 
   if (!notification) return null;
+
+  const isPending = (notification.status || "").toLowerCase() === "pending";
+  const isAllocationRequest =
+    (notification.type || "").toLowerCase().includes("allocation") ||
+    (notification.relatedTask || "").toUpperCase().startsWith("ALLOC-");
+
+  const handleApprovalAction = async (status: "Approved" | "Hold" | "Cancelled") => {
+    if (!actionComment.trim()) {
+      toast.error("Comments are mandatory to take action!");
+      return;
+    }
+
+    try {
+      setIsSubmittingAction(true);
+      setActingStatus(status);
+
+      const targetId = notification.relatedTask || notification.id;
+      const projParam = notification.projectId ? `?projectId=${notification.projectId}` : "";
+
+      await apiFetch(
+        `/api/v1/action-centre/allocation-approvals/${targetId}/action${projParam}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            status,
+            comment: actionComment.trim(),
+          }),
+        }
+      );
+
+      notification.status = status;
+      toast.success(`Success: Resource allocation marked as ${status}!`);
+      setActionComment("");
+      if (onActionComplete) {
+        await onActionComplete();
+      }
+    } catch (err: any) {
+      console.error("Failed to submit allocation action:", err);
+      toast.error(err?.message || `Failed to mark allocation as ${status}.`);
+    } finally {
+      setIsSubmittingAction(false);
+      setActingStatus(null);
+    }
+  };
 
   const isAlreadyArchived = (notification.status || "").toLowerCase() === "acknowledged";
 
@@ -156,6 +228,11 @@ export function NotificationDetailModal({
           <h3 className="text-base font-bold text-gray-800 leading-snug">
             {notification.title}
           </h3>
+          {notification.history?.[0]?.action && !notification.history[0].action.includes("Remarks:") && (
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              {notification.history[0].action}
+            </p>
+          )}
         </div>
 
         {/* Metadata Grid */}
@@ -309,6 +386,79 @@ export function NotificationDetailModal({
             </div>
           );
         })()}
+
+        {/* Interactive Action Box for Pending Allocation Approval Requests */}
+        {isAllocationRequest && isPending && (
+          <div className="border border-border/80 rounded-xl p-4 bg-muted/20 space-y-3 shadow-xs">
+            <div className="flex items-center justify-between border-b border-border/50 pb-1.5">
+              <span className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span>Take Action on Allocation Request</span>
+              </span>
+              <span className="text-[10px] text-amber-600 font-medium">
+                *Comment is mandatory
+              </span>
+            </div>
+
+            <div>
+              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
+                Remarks / Comment <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={actionComment}
+                onChange={(e) => setActionComment(e.target.value)}
+                placeholder="Enter remarks / reason for decision..."
+                rows={2}
+                disabled={isSubmittingAction}
+                className="w-full text-xs rounded-md border border-input bg-background p-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <button
+                type="button"
+                disabled={isSubmittingAction}
+                onClick={() => handleApprovalAction("Approved")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+              >
+                {isSubmittingAction && actingStatus === "Approved" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Check className="h-3.5 w-3.5" />
+                )}
+                Approve
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmittingAction}
+                onClick={() => handleApprovalAction("Hold")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+              >
+                {isSubmittingAction && actingStatus === "Hold" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Clock className="h-3.5 w-3.5" />
+                )}
+                Hold
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmittingAction}
+                onClick={() => handleApprovalAction("Cancelled")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
+              >
+                {isSubmittingAction && actingStatus === "Cancelled" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <X className="h-3.5 w-3.5" />
+                )}
+                Cancelled
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Audit History Card */}
         <div className="border border-border rounded-xl p-4 bg-card space-y-3 shadow-xs">

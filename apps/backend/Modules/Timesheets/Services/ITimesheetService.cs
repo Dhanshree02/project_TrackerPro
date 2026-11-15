@@ -1,3 +1,4 @@
+using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Timesheets.DTOs;
 
 namespace PMS.API.Modules.Timesheets.Services;
@@ -17,4 +18,8 @@ public interface ITimesheetService
     Task<IReadOnlyList<TimesheetWeekDto>> ListForApprovalAsync(CancellationToken ct = default);
 
     Task<TimesheetWeekDto> DecideAsync(Guid timesheetId, DecideTimesheetRequest request, CancellationToken ct = default);
+
+    Task<IReadOnlyList<ProjectDto>> ListMineAssignedProjectsAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<ProjectTaskDto>> ListMineAssignedTasksAsync(Guid projectId, CancellationToken ct = default);
 }

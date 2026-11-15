@@ -1144,24 +1144,10 @@ function BucketListRow({
 
 function sortBucketTasks(tasks: ApiBucketTask[]): ApiBucketTask[] {
   return [...tasks].sort((a, b) => {
-    // 1. Running timer first
-    if (a.timerRunning && !b.timerRunning) return -1;
-    if (!a.timerRunning && b.timerRunning) return 1;
-
-    // 2. Early / recent project task (that we start, stop, or created) comes 1st not last
-    const timeA = Math.max(
-      a.updatedAtUtc ? new Date(a.updatedAtUtc).getTime() : 0,
-      a.createdAtUtc ? new Date(a.createdAtUtc).getTime() : 0,
-      a.timerStartedAtUtc ? new Date(a.timerStartedAtUtc).getTime() : 0
-    );
-    const timeB = Math.max(
-      b.updatedAtUtc ? new Date(b.updatedAtUtc).getTime() : 0,
-      b.createdAtUtc ? new Date(b.createdAtUtc).getTime() : 0,
-      b.timerStartedAtUtc ? new Date(b.timerStartedAtUtc).getTime() : 0
-    );
+    const timeA = a.createdAtUtc ? new Date(a.createdAtUtc).getTime() : 0;
+    const timeB = b.createdAtUtc ? new Date(b.createdAtUtc).getTime() : 0;
     if (timeA !== timeB) return timeB - timeA;
-
-    return 0;
+    return (b.id || "").localeCompare(a.id || "");
   });
 }
 
@@ -1893,7 +1879,8 @@ function ApprovalsTab() {
             requestType: "Customer Requirement Approval",
             requestedBy: item.requestedByName,
             requestedById: item.requestedByEmployeeId || "",
-            requestedDate: item.requestedDate,
+            requestedDate: item.requestedDate || (item.createdAtUtc ? item.createdAtUtc.slice(0, 10) : ""),
+            createdAtUtc: item.createdAtUtc,
             status: mappedStatus,
             description: `${item.requirementType}: ${item.title}\n\n${item.description}${item.attachmentFileName ? `\n\nAttachment: ${item.attachmentFileName}` : ""}`,
             comments: parsedComments,
@@ -1936,6 +1923,7 @@ function ApprovalsTab() {
             requestedBy: item.requestedByName,
             requestedById: item.requestedByEmployeeId || "",
             requestedDate: item.createdAtUtc ? item.createdAtUtc.slice(0, 10) : "",
+            createdAtUtc: item.createdAtUtc,
             status: item.status === "Approved" ? "Approved" : item.status === "Rejected" ? "Rejected" : item.status === "Hold" ? "Hold" : item.status === "Request Changes" ? "Request Changes" : "Pending",
             description: `Timeline Extension: Requesting extension of ${item.extensionDays} days. New End Date: ${formatToDayMonthYear(item.requestedEndDate)}. Reason: ${item.reason}`,
             comments: parsedComments,
@@ -2001,6 +1989,7 @@ function ApprovalsTab() {
             requestedBy: item.requestedByName || "Project Manager",
             requestedById: item.requestedByEmployeeId || "",
             requestedDate: item.createdAtUtc ? item.createdAtUtc.slice(0, 10) : "",
+            createdAtUtc: item.createdAtUtc,
             status: mappedStatus,
             description: desc,
             comments: parsedComments,
@@ -2063,6 +2052,7 @@ function ApprovalsTab() {
             requestedBy: item.submittedByName || "Project Manager",
             requestedById: item.submittedByEmployeeId || "",
             requestedDate: item.createdAtUtc ? item.createdAtUtc.slice(0, 10) : "",
+            createdAtUtc: item.createdAtUtc,
             status: mappedStatus,
             description: desc,
             comments: parsedComments,
@@ -2081,7 +2071,13 @@ function ApprovalsTab() {
       const nonApiApprovals = (store.approvals || []).filter(
         (a) => !a.id.startsWith("APP-REQ-") && !a.id.startsWith("APP-EXT-") && !a.id.startsWith("APP-ALLOC-") && !a.id.startsWith("APP-FDBK-")
       );
-      dhStore.setApprovals([...toMerge, ...nonApiApprovals]);
+      const allSortedApprovals = [...toMerge, ...nonApiApprovals].sort((a, b) => {
+        const timeA = a.createdAtUtc ? new Date(a.createdAtUtc).getTime() : (a.requestedDate ? new Date(a.requestedDate).getTime() : 0);
+        const timeB = b.createdAtUtc ? new Date(b.createdAtUtc).getTime() : (b.requestedDate ? new Date(b.requestedDate).getTime() : 0);
+        if (timeA !== timeB) return timeB - timeA;
+        return (b.id || "").localeCompare(a.id || "");
+      });
+      dhStore.setApprovals(allSortedApprovals);
     } finally {
       setIsLoadingApprovals(false);
     }
@@ -2124,19 +2120,19 @@ function ApprovalsTab() {
 
 
   const filteredApprovals = useMemo(() => {
-
-    return store.approvals.filter((a) => {
-
-      if (projectFilter !== "all" && a.projectId !== projectFilter) return false;
-
-      if (typeFilter !== "all" && a.requestType !== typeFilter) return false;
-
-      if (statusFilter !== "all" && a.status !== statusFilter) return false;
-
-      return true;
-
-    });
-
+    return store.approvals
+      .filter((a) => {
+        if (projectFilter !== "all" && a.projectId !== projectFilter) return false;
+        if (typeFilter !== "all" && a.requestType !== typeFilter) return false;
+        if (statusFilter !== "all" && a.status !== statusFilter) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const timeA = a.createdAtUtc ? new Date(a.createdAtUtc).getTime() : (a.requestedDate ? new Date(a.requestedDate).getTime() : 0);
+        const timeB = b.createdAtUtc ? new Date(b.createdAtUtc).getTime() : (b.requestedDate ? new Date(b.requestedDate).getTime() : 0);
+        if (timeA !== timeB) return timeB - timeA;
+        return (b.id || "").localeCompare(a.id || "");
+      });
   }, [store.approvals, projectFilter, typeFilter, statusFilter]);
 
   const approvalProjects = useMemo(() => {
@@ -2892,25 +2888,22 @@ function AlertsTab() {
 
 
   const filtered = useMemo(() => {
-
-    return allAlerts.filter((a) => {
-
-      const proj = projectsList.find((p) => p.id === a.projectId);
-
-      if (projFilter !== "all" && a.projectId !== projFilter) return false;
-
-      if (clientFilter !== "all" && proj?.clientId !== clientFilter) return false;
-
-      if (prioFilter !== "all" && a.priority !== prioFilter) return false;
-
-      if (typeFilter !== "all" && a.alertType !== typeFilter) return false;
-
-      if (statusFilter !== "all" && a.status !== statusFilter) return false;
-
-      return true;
-
-    });
-
+    return allAlerts
+      .filter((a) => {
+        const proj = projectsList.find((p) => p.id === a.projectId);
+        if (projFilter !== "all" && a.projectId !== projFilter) return false;
+        if (clientFilter !== "all" && proj?.clientId !== clientFilter) return false;
+        if (prioFilter !== "all" && a.priority !== prioFilter) return false;
+        if (typeFilter !== "all" && a.alertType !== typeFilter) return false;
+        if (statusFilter !== "all" && a.status !== statusFilter) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const timeA = (a as any).createdAtUtc ? new Date((a as any).createdAtUtc).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+        const timeB = (b as any).createdAtUtc ? new Date((b as any).createdAtUtc).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+        if (timeA !== timeB) return timeB - timeA;
+        return (b.id || "").localeCompare(a.id || "");
+      });
   }, [allAlerts, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, projectsList]);
 
   const [page, setPage] = useState(1);
@@ -4581,11 +4574,11 @@ function NotificationsTab() {
 
       return "bg-emerald-50 text-emerald-700 border border-emerald-200";
 
-    } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal")) {
+    } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal") || t.includes("resignation") || t.includes("offboard")) {
 
       return "bg-red-50 text-red-700 border border-red-200";
 
-    } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed")) {
+    } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("lwd")) {
 
       return "bg-amber-50 text-amber-700 border border-amber-200";
 
@@ -4619,6 +4612,9 @@ function NotificationsTab() {
     if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done") {
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
     }
+    if (s === "assigned") {
+      return "bg-indigo-50 text-indigo-700 border-indigo-200";
+    }
     if (s === "edited") {
       return "bg-blue-50 text-blue-700 border-blue-200";
     }
@@ -4634,7 +4630,7 @@ function NotificationsTab() {
     if (s === "rejected" || s === "cancelled") {
       return "bg-red-50 text-red-700 border-red-200";
     }
-    if (s === "request changes" || s === "requested changes") {
+    if (s === "request change" || s === "request changes" || s === "requested changes" || s === "change_requested") {
       return "bg-purple-50 text-purple-700 border-purple-200";
     }
     return "bg-orange-50 text-orange-700 border-orange-200";
@@ -4644,6 +4640,9 @@ function NotificationsTab() {
     const s = (status || "").toLowerCase().trim();
     if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done") {
       return <Check className="h-2.5 w-2.5" />;
+    }
+    if (s === "assigned") {
+      return <Check className="h-2.5 w-2.5 text-indigo-600" />;
     }
     if (s === "edited") {
       return <Pencil className="h-2.5 w-2.5" />;
@@ -4660,11 +4659,14 @@ function NotificationsTab() {
     if (s === "rejected" || s === "cancelled") {
       return <X className="h-2.5 w-2.5" />;
     }
+    if (s === "request change" || s === "request changes" || s === "requested changes" || s === "change_requested") {
+      return <RotateCcw className="h-2.5 w-2.5 text-purple-600" />;
+    }
     return <Clock className="h-2.5 w-2.5" />;
   };
 
   const availableStatuses = useMemo(() => {
-    const defaultStatuses = ["Pending", "Created", "Upload", "Selected", "Approved", "Hold", "Postponed", "Request Changes", "Rejected", "Acknowledged", "Done", "Edited"];
+    const defaultStatuses = ["Pending", "Created", "Assigned", "Upload", "Selected", "Approved", "Hold", "Postponed", "Request Change", "Request Changes", "Rejected", "Acknowledged", "Done", "Edited"];
     const found = new Set(defaultStatuses);
     notifications.forEach((n) => {
       if (n.status && n.status.trim()) found.add(n.status.trim());
@@ -4730,19 +4732,17 @@ function NotificationsTab() {
         return false;
 
       if (dateFilter) {
-
         const notifDate = n.createdAt.slice(0, 10);
-
         if (notifDate !== dateFilter) return false;
-
       }
 
-
-
       return true;
-
+    }).sort((a, b) => {
+      const timeA = (a as any).createdAtUtc ? new Date((a as any).createdAtUtc).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const timeB = (b as any).createdAtUtc ? new Date((b as any).createdAtUtc).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      if (timeA !== timeB) return timeB - timeA;
+      return (b.id || "").localeCompare(a.id || "");
     });
-
   }, [notifications, subTab, searchQuery, typeFilter, priorityFilter, dateFilter, statusFilter]);
 
   const [page, setPage] = useState(1);
@@ -5361,6 +5361,7 @@ function NotificationsTab() {
         notification={selectedNotification}
         onClose={() => setSelectedNotifId(null)}
         onArchive={handleArchiveNotification}
+        onActionComplete={fetchNotifications}
       />
 
     </>
@@ -5405,11 +5406,17 @@ const NOTIFICATION_TYPES = [
 
   "Approval Request",
 
+  "Timesheet Submitted",
+
   "Timesheet Approved",
 
   "Timesheet Rejected",
 
+  "Timesheet Changes Requested",
+
   "Timesheet Request Changes",
+
+  "Timesheet Submission Reminder",
 
   "Resource Allocation",
 
@@ -5424,5 +5431,17 @@ const NOTIFICATION_TYPES = [
   "Scope Change",
 
   "Resource Shuffle",
+
+  "Task Paused",
+
+  "Task Stopped",
+
+  "Task Pause Reminder",
+
+  "Resignation Applied",
+
+  "LWD Reminder",
+
+  "Employee Offboarded",
 
 ] as const;

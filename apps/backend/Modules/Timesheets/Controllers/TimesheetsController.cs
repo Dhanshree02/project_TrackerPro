@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PMS.API.Infrastructure.Authorization;
+using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Timesheets.DTOs;
 using PMS.API.Modules.Timesheets.Services;
 using PMS.API.Shared.Common.Wrappers;
@@ -10,6 +11,22 @@ namespace PMS.API.Modules.Timesheets.Controllers;
 [Route("api/v1/timesheets")]
 public class TimesheetsController(ITimesheetService timesheets) : ControllerBase
 {
+    [HttpGet("mine/projects")]
+    [RequireRbac("my-timesheet", RbacAccessType.Manage, "timesheets")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectDto>>>> MineProjects(CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<ProjectDto>>.Ok(await timesheets.ListMineAssignedProjectsAsync(ct)));
+    }
+
+    [HttpGet("mine/tasks")]
+    [RequireRbac("my-timesheet", RbacAccessType.Manage, "timesheets")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTaskDto>>>> MineTasks(
+        [FromQuery] Guid projectId,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<ProjectTaskDto>>.Ok(await timesheets.ListMineAssignedTasksAsync(projectId, ct)));
+    }
+
     [HttpGet("mine")]
     [RequireRbac("my-timesheet", RbacAccessType.Manage, "timesheets")]
     public async Task<ActionResult<ApiResponse<TimesheetWeekDto?>>> Mine(
@@ -68,5 +85,16 @@ public class TimesheetsController(ITimesheetService timesheets) : ControllerBase
         CancellationToken ct)
     {
         return Ok(ApiResponse<TimesheetWeekDto>.Ok(await timesheets.DecideAsync(id, request, ct)));
+    }
+
+    [HttpPost("reminders/process")]
+    [RequireRbac("timesheet-approval", RbacAccessType.Manage, "timesheets", "my-timesheet")]
+    public async Task<ActionResult<ApiResponse<int>>> ProcessReminders(
+        [FromQuery] DateOnly? overrideToday,
+        [FromServices] ITimesheetNotificationService notificationService,
+        CancellationToken ct)
+    {
+        var count = await notificationService.ProcessTimesheetRemindersAsync(overrideToday, ct);
+        return Ok(ApiResponse<int>.Ok(count));
     }
 }

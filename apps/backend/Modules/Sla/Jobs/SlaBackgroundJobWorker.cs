@@ -7,6 +7,7 @@ using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Models;
 using PMS.API.Modules.Projects.Models;
+using PMS.API.Modules.Projects.Services;
 using PMS.API.Modules.Sla.Models;
 using PMS.API.Modules.Sla.Services;
 
@@ -24,6 +25,10 @@ public sealed class SlaBackgroundJobWorker(
     ISlaDeadlineCalculator deadlineCalculator,
     ILogger<SlaBackgroundJobWorker> logger)
 {
+    private static readonly JsonSerializerOptions s_jsonOptions = new()
+    {
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
     [DisplayName("SLA Reminder Job: Instance {0}, Event {1}")]
     public async Task ExecuteReminderAsync(Guid instanceId, Guid eventId)
     {
@@ -1070,19 +1075,27 @@ public sealed class SlaBackgroundJobWorker(
             .AsNoTracking()
             .Include(a => a.Task)
                 .ThenInclude(t => t!.Project)
+            .Include(a => a.Task)
+                .ThenInclude(t => t!.ProjectService)
             .Include(a => a.Employee)
             .FirstOrDefaultAsync(a => a.Id == instance.EntityId && a.DeletedAtUtc == null);
 
         // Fallback for legacy task-level instances
         if (assignment == null)
         {
-            var fallbackTask = await db.ProjectTasks.AsNoTracking().Include(t => t.Project).FirstOrDefaultAsync(t => t.Id == instance.EntityId && t.DeletedAtUtc == null);
+            var fallbackTask = await db.ProjectTasks
+                .AsNoTracking()
+                .Include(t => t.Project)
+                .Include(t => t.ProjectService)
+                .FirstOrDefaultAsync(t => t.Id == instance.EntityId && t.DeletedAtUtc == null);
             if (fallbackTask != null && instance.RecipientEmployeeId.HasValue)
             {
                 assignment = await db.ProjectTaskAssignments
                     .AsNoTracking()
                     .Include(a => a.Task)
                         .ThenInclude(t => t!.Project)
+                    .Include(a => a.Task)
+                        .ThenInclude(t => t!.ProjectService)
                     .Include(a => a.Employee)
                     .FirstOrDefaultAsync(a => a.TaskId == fallbackTask.Id && a.EmployeeId == instance.RecipientEmployeeId.Value && a.DeletedAtUtc == null);
             }
@@ -1133,8 +1146,16 @@ public sealed class SlaBackgroundJobWorker(
         var now = DateTime.UtcNow;
         var taskTitle = task.Title;
         var projectName = task.Project?.Name ?? "Project";
-        var reminderTitle = $"Task Paused Reminder: {taskTitle}";
-        var reminderContent = $"Your task {taskTitle} is still paused. Please resume the task or complete it.";
+        var projectId = instance.ProjectId ?? task.ProjectId;
+
+        var serviceName = await ProjectTaskService.ResolveServiceNameAsync(db, projectId, task);
+        if (string.IsNullOrWhiteSpace(serviceName))
+        {
+            serviceName = "General";
+        }
+
+        var reminderTitle = $"Task Paused Reminder: {taskTitle} - {serviceName}";
+        var reminderContent = $"Your task '{taskTitle}' under the service '{serviceName}' in project '{projectName}' is still paused. Please resume the task or complete it.";
 
         var alreadyNotified = await db.ActionNotifications.AnyAsync(n =>
             n.RecipientEmployeeId == resourceId &&
@@ -1148,12 +1169,12 @@ public sealed class SlaBackgroundJobWorker(
             db.ActionNotifications.Add(new ActionNotification
             {
                 RecipientEmployeeId = resourceId,
-                ProjectId = instance.ProjectId,
+                ProjectId = instance.ProjectId ?? task.ProjectId,
                 ProjectCode = task.Project?.ProjectCode,
                 ProjectName = projectName,
                 Title = reminderTitle,
                 Type = "Task Pause Reminder",
-                Priority = task.Priority ?? "Medium",
+                Priority = "Low",
                 Status = "Pending",
                 Unread = true,
                 RelatedTask = taskTitle,
@@ -1162,7 +1183,17 @@ public sealed class SlaBackgroundJobWorker(
                 CommentsJson = JsonSerializer.Serialize(new[]
                 {
                     new { text = reminderContent, by = "SLA Automation Engine", at = now.ToString("o") }
-                })
+                }, s_jsonOptions),
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        action = "Task Pause Reminder",
+                        date = now.ToString("yyyy-MM-dd"),
+                        time = now.ToString("HH:mm:ss"),
+                        by = "SLA Automation Engine"
+                    }
+                }, s_jsonOptions)
             });
         }
 
@@ -2056,7 +2087,7 @@ public sealed class SlaBackgroundJobWorker(
         var dateStr = nowIst.ToString("yyyy-MM-dd");
         var timeStr = nowIst.ToString("HH:mm:ss");
 
-        var levelLabel = level == 1 ? "Level 1 SLA Escalation" : "Level 2 SLA Escalation";
+        var levelLabel = level == 1 ? "1st Level SLA Breach Escalation" : "2nd Level SLA Breach Escalation";
         var targetRoleName = level == 1 ? "Assigned Senior Project Manager" : "Head of Department";
 
         var project = req.Project ?? await db.Projects.FirstOrDefaultAsync(p => p.Id == req.ProjectId);
@@ -2077,7 +2108,7 @@ public sealed class SlaBackgroundJobWorker(
                 ProjectCode = projCode,
                 ProjectName = projName,
                 Title = notifTitle,
-                Type = "Resource Allocation Escalation",
+                Type = "Resource Allocation Approval",
                 Priority = "Critical",
                 Status = "Pending",
                 Unread = true,

@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.Projects.DTOs;
+using PMS.API.Modules.Projects.Services;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Modules.Timesheets.DTOs;
 using PMS.API.Modules.Timesheets.Models;
@@ -12,10 +14,32 @@ using PMS.API.Shared.Exceptions;
 
 namespace PMS.API.Modules.Timesheets.Services;
 
-public sealed class TimesheetService(AppDbContext db, ICurrentUserService currentUser) : ITimesheetService
+public sealed class TimesheetService(
+    AppDbContext db,
+    ICurrentUserService currentUser,
+    ITimesheetNotificationService timesheetNotificationService,
+    IProjectAppService projectService) : ITimesheetService
 {
     private const int MaxDayCommentLength = 1000;
     private static readonly HashSet<string> Editable = ["draft", "rejected", "change_requested"];
+
+    public async Task<IReadOnlyList<ProjectDto>> ListMineAssignedProjectsAsync(CancellationToken ct = default)
+    {
+        var employee = await RequireCallerAsync(ct);
+        var result = await projectService.GetProjectsAsync(new ProjectQueryParameters
+        {
+            EmployeeId = employee.Id,
+            Status = "active",
+            PageSize = 200,
+        }, ct);
+        return result.Items;
+    }
+
+    public async Task<IReadOnlyList<ProjectTaskDto>> ListMineAssignedTasksAsync(Guid projectId, CancellationToken ct = default)
+    {
+        var employee = await RequireCallerAsync(ct);
+        return await projectService.GetProjectTasksAsync(projectId, employee.Id, false, ct);
+    }
 
     public async Task<TimesheetWeekDto?> GetMineAsync(DateOnly weekStart, CancellationToken ct = default)
     {
@@ -128,7 +152,6 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
 
         week.ReviewComment = comment;
         var open = week.Entries.Where(e => e.DeletedAtUtc == null).ToList();
-        var requestedChanges = false;
         if (open.All(e => e.ReviewDecision != null))
         {
             week.Status = open.Any(e => e.ReviewDecision == "rejected")
@@ -138,44 +161,16 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
                     : "approved";
             week.ReviewedByEmployeeId = caller.Id;
             week.ReviewedAtUtc = DateTime.UtcNow;
-            requestedChanges = week.Status == "change_requested";
         }
 
-        if (requestedChanges)
-            AddChangeRequestedNotification(week, caller, comment);
-
         await db.SaveChangesAsync(ct);
-        return Map(week, caller.Id);
-    }
 
-    private void AddChangeRequestedNotification(TimesheetWeek week, Employee manager, string comment)
-    {
-        var managerName = $"{manager.FirstName} {manager.LastName}".Trim();
-        if (string.IsNullOrWhiteSpace(managerName)) managerName = "Reporting manager";
-        var start = week.WeekStart.ToString("dd-MM-yyyy");
-        var end = week.WeekStart.AddDays(6).ToString("dd-MM-yyyy");
-        var range = $"{start} – {end}";
-        db.ActionNotifications.Add(new ActionNotification
+        if (week.Status is "approved" or "rejected" or "change_requested")
         {
-            RecipientEmployeeId = week.EmployeeId,
-            Title = $"Timesheet changes requested for {range}",
-            Type = "Timesheet",
-            Priority = "Medium",
-            Status = "Pending",
-            Unread = true,
-            RaisedByEmployeeId = manager.Id,
-            RaisedByName = managerName,
-            RelatedTask = range,
-            HistoryJson = JsonSerializer.Serialize(new[]
-            {
-                new
-                {
-                    status = "Pending",
-                    at = DateTime.UtcNow.ToString("o"),
-                    details = $"{managerName} requested changes on your timesheet for {range}. {comment}",
-                },
-            }),
-        });
+            await timesheetNotificationService.NotifyTimesheetDecidedAsync(week, caller, week.Status, comment, ct);
+        }
+
+        return Map(week, caller.Id);
     }
 
     private async Task<TimesheetWeekDto> UpsertAsync(SaveTimesheetRequest request, bool submit, CancellationToken ct)
@@ -293,6 +288,12 @@ public sealed class TimesheetService(AppDbContext db, ICurrentUserService curren
         db.ChangeTracker.Clear();
         var stored = await LoadWeekAsync(employeeId, request.WeekStart, ct)
             ?? throw new NotFoundException("Timesheet not found.");
+
+        if (submit)
+        {
+            await timesheetNotificationService.NotifyTimesheetSubmittedAsync(stored, employee, ct);
+        }
+
         return Map(stored, employeeId);
     }
 

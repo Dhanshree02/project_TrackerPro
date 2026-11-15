@@ -134,19 +134,18 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
         Assert.NotNull(candidateNotif);
         Assert.Contains("Resource Allocation Approved", candidateNotif.Title);
 
-        // PMO with target sub-departments must receive notification
-        var targetSubDeptEm = "em (engagement manager)";
-        var targetSubDeptPmo = "pmo (project management office)";
-        var pmoEmps = await db.Employees
-            .Where(e => e.DeletedAtUtc == null && (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
-            .Where(e => (e.SubDepartment != null && (e.SubDepartment.ToLower() == targetSubDeptEm || e.SubDepartment.ToLower() == targetSubDeptPmo))
-                        || (e.SubDepartmentRef != null && (e.SubDepartmentRef.Name.ToLower() == targetSubDeptEm || e.SubDepartmentRef.Name.ToLower() == targetSubDeptPmo)))
-            .Select(e => e.Id)
-            .ToListAsync();
-
-        foreach (var pmoId in pmoEmps)
+        // Assigned PM, EM, or TL must receive notification
+        if (project.ProjectManagerId.HasValue && project.ProjectManagerId.Value != Guid.Empty)
         {
-            Assert.Contains(pmoId, recipientIds);
+            Assert.Contains(project.ProjectManagerId.Value, recipientIds);
+        }
+        if (project.EngagementManagerId.HasValue && project.EngagementManagerId.Value != Guid.Empty)
+        {
+            Assert.Contains(project.EngagementManagerId.Value, recipientIds);
+        }
+        if (project.TeamLeadId.HasValue && project.TeamLeadId.Value != Guid.Empty)
+        {
+            Assert.Contains(project.TeamLeadId.Value, recipientIds);
         }
     }
 
@@ -230,7 +229,7 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
         await worker.ExecuteEscalationAsync(instance.Id, esc1Event.Id, 1);
 
         var l1Notifs = await db.ActionNotifications
-            .Where(n => n.RelatedTask == allocTaskCode && n.Priority == "Critical" && n.Title.StartsWith("Level 1 SLA Escalation"))
+            .Where(n => n.RelatedTask == allocTaskCode && n.Priority == "Critical" && (n.Title.Contains("1st Level") || n.Title.Contains("Level 1")))
             .ToListAsync();
         Assert.NotEmpty(l1Notifs);
 
@@ -245,7 +244,7 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
         await worker.ExecuteEscalationAsync(instance.Id, l2Event.Id, 2);
 
         var l2Notifs = await db.ActionNotifications
-            .Where(n => n.RelatedTask == allocTaskCode && n.Priority == "Critical" && n.Title.StartsWith("Level 2 SLA Escalation"))
+            .Where(n => n.RelatedTask == allocTaskCode && n.Priority == "Critical" && (n.Title.Contains("2nd Level") || n.Title.Contains("Level 2")))
             .ToListAsync();
         Assert.NotEmpty(l2Notifs);
 
@@ -435,5 +434,115 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
         var isAdded = await db.ProjectTeamMembers
             .AnyAsync(m => m.ProjectId == project.Id && m.EmployeeId == candidate.Id && m.DeletedAtUtc == null);
         Assert.True(isAdded);
+    }
+
+    [Fact]
+    public async Task ReportingManager_CanTakeActionViaTaskCodeOrNotificationId_FromNotificationTab_AndNotifiesPmEmTl()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var teamService = scope.ServiceProvider.GetRequiredService<IProjectTeamMemberService>();
+
+        var project = await db.Projects
+            .Include(p => p.Client)
+            .FirstOrDefaultAsync(p => p.DeletedAtUtc == null);
+        Assert.NotNull(project);
+
+        var existingMemberIds = await db.ProjectTeamMembers
+            .Where(m => m.ProjectId == project.Id && m.DeletedAtUtc == null)
+            .Select(m => m.EmployeeId)
+            .ToListAsync();
+
+        var pendingEmpIds = await db.ProjectResourceAllocationRequests
+            .Where(r => r.ProjectId == project.Id && r.Status == "Pending" && r.DeletedAtUtc == null)
+            .Select(r => r.EmployeeId)
+            .ToListAsync();
+
+        var dedicatedMemberIds = await db.ProjectTeamMembers
+            .Where(m => m.DeletedAtUtc == null && m.ResourceType == "Dedicated")
+            .Select(m => m.EmployeeId)
+            .ToListAsync();
+
+        var candidate = await db.Employees
+            .Include(e => e.Department)
+            .FirstOrDefaultAsync(e => !existingMemberIds.Contains(e.Id)
+                                      && !pendingEmpIds.Contains(e.Id)
+                                      && !dedicatedMemberIds.Contains(e.Id)
+                                      && e.ReportingManagerId != null
+                                      && e.ReportingManagerId != Guid.Empty
+                                      && e.DeletedAtUtc == null
+                                      && (e.Status == null || e.Status.StartsWith("Active"))
+                                      && e.EmploymentType != "Intern");
+        Assert.NotNull(candidate);
+
+        var reportingManager = await db.Employees
+            .FirstOrDefaultAsync(e => e.Id == candidate.ReportingManagerId && e.DeletedAtUtc == null);
+        Assert.NotNull(reportingManager);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var createReq = new CreateResourceAllocationRequest(
+            EmployeeId: candidate.Id,
+            AllocationStartDate: today,
+            AllocationEndDate: today.AddMonths(1),
+            Billability: "Non-Billable",
+            IsTeamLead: false,
+            ResourceType: "Shared Resource",
+            IsShadowTeam: false,
+            Notes: "Notification tab action test"
+        );
+
+        var created = await teamService.RequestAllocationAsync(project.Id, createReq);
+        Assert.NotNull(created);
+
+        var allocTaskCode = $"ALLOC-{created.Id.ToString()[..8].ToUpper()}";
+
+        // Verify notification exists in reporting manager's notifications
+        var notif = await db.ActionNotifications.FirstOrDefaultAsync(n =>
+            n.RelatedTask == allocTaskCode && n.Type == "Resource Allocation Approval");
+        Assert.NotNull(notif);
+
+        var mgrClient = _factory.CreateClient();
+        mgrClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "dev-bypass-token");
+        mgrClient.DefaultRequestHeaders.Add("X-User-Email", reportingManager.WorkEmail);
+        mgrClient.DefaultRequestHeaders.Add("X-User-Id", reportingManager.Id.ToString());
+        mgrClient.DefaultRequestHeaders.Add("X-User-Role", reportingManager.Role ?? "Manager");
+
+        // Action using the Task Code (ALLOC-XXXXXXXX) as the identifier
+        var actionResponse = await mgrClient.PostAsJsonAsync(
+            $"/api/v1/action-centre/allocation-approvals/{allocTaskCode}/action?projectId={project.Id}",
+            new ResourceAllocationActionRequest(
+                Status: "Cancelled",
+                Comment: "Cancelled by reporting manager from Notification detail modal"
+            ));
+        Assert.Equal(System.Net.HttpStatusCode.OK, actionResponse.StatusCode);
+
+        var actionBody = await actionResponse.Content.ReadFromJsonAsync<PMS.API.Shared.Common.Wrappers.ApiResponse<ProjectResourceAllocationRequestDto>>();
+        Assert.NotNull(actionBody?.Data);
+        Assert.Equal("Cancelled", actionBody.Data.Status);
+
+        // Verify prior notification was updated to Cancelled
+        var updatedNotif = await db.ActionNotifications.AsNoTracking().FirstOrDefaultAsync(n => n.Id == notif.Id);
+        Assert.NotNull(updatedNotif);
+        Assert.Equal("Cancelled", updatedNotif.Status);
+
+        // Verify post-cancellation notifications to PM, EM, TL
+        var postNotifs = await db.ActionNotifications
+            .Where(n => n.RelatedTask == allocTaskCode && n.Status == "Cancelled" && n.Id != notif.Id)
+            .ToListAsync();
+        Assert.NotEmpty(postNotifs);
+
+        var recipientIds = postNotifs.Select(n => n.RecipientEmployeeId).ToHashSet();
+        if (project.ProjectManagerId.HasValue && project.ProjectManagerId.Value != Guid.Empty)
+        {
+            Assert.Contains(project.ProjectManagerId.Value, recipientIds);
+        }
+        if (project.EngagementManagerId.HasValue && project.EngagementManagerId.Value != Guid.Empty)
+        {
+            Assert.Contains(project.EngagementManagerId.Value, recipientIds);
+        }
+        if (project.TeamLeadId.HasValue && project.TeamLeadId.Value != Guid.Empty)
+        {
+            Assert.Contains(project.TeamLeadId.Value, recipientIds);
+        }
     }
 }
