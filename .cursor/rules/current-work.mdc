@@ -5,7 +5,15 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-15
+**Last updated:** 2026-11-16
+
+- **`database/pms_uat.sql` matches the live `pms_development` database.** Dumped from PostgreSQL 16 on `pms_uat_db` with `pg_dump --no-owner --no-acl`. The `\restrict` lines were left out. Counts: 15 clients, 7 projects, 120 employees, 30 leave-calendar rows.
+
+- **WBS creation follows dark mode.** `/projects/new` uses the page and card colors from the theme. Fields, locked values, tables, and the invoice row tints do the same. Light mode stays the gray page with white cards. The navy bar and the blue Save Draft / Create WBS buttons stay as they are.
+
+- **`/hangfire` opens on the app port.** The development frontend proxies `/hangfire` to the API, the same way it proxies `/api`. `http://localhost:39107/hangfire` returns the Job Monitor. The API path `http://localhost:52815/hangfire` still serves it directly.
+
+- **This development checkout is based on `origin/production` (`38ba15c`) with the `CHANGELOG_AI.md` features layered on top, and it is not committed yet.** Microsoft sign-in is not used here. The header keeps Switch User. The changelog layer covers offboarding and last-working-day reminders, task pause and stop text, My Timesheet assigned projects and tasks, Action Centre sorting and governance notifications, timesheet approval reminders, resource allocation approvals, and the WBS escalation notification details. Production screens, compose files, and `database/pms-production.sql` stay as they are. Local `development` and `origin/development` have diverged; this has not been pushed.
 
 - **Team Dashboard search can match allocation status.** The status is read before the search text is checked, so typing in search no longer crashes the page.
 

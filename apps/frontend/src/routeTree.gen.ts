@@ -13,9 +13,7 @@ import { Route as SettingsSecurityRolesRouteImport } from './routes/settings-sec
 import { Route as SettingsMastersRouteImport } from './routes/settings-masters'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RepositoryRouteImport } from './routes/repository'
-import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as MyTeamRouteImport } from './routes/my-team'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as HealthInterviewSchedulingRouteImport } from './routes/health-interview-scheduling'
 import { Route as HealthAdditionalRequirementsRouteImport } from './routes/health-additional-requirements'
 import { Route as ExitSummaryRouteImport } from './routes/exit-summary'
@@ -56,19 +54,9 @@ const RepositoryRoute = RepositoryRouteImport.update({
   path: '/repository',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MyTeamRoute = MyTeamRouteImport.update({
   id: '/my-team',
   path: '/my-team',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthInterviewSchedulingRoute =
@@ -178,9 +166,7 @@ export interface FileRoutesByFullPath {
   '/exit-summary': typeof ExitSummaryRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/login': typeof LoginRoute
   '/my-team': typeof MyTeamRouteWithChildren
-  '/profile': typeof ProfileRoute
   '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/settings-masters': typeof SettingsMastersRoute
@@ -204,8 +190,6 @@ export interface FileRoutesByTo {
   '/exit-summary': typeof ExitSummaryRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/login': typeof LoginRoute
-  '/profile': typeof ProfileRoute
   '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/settings-masters': typeof SettingsMastersRoute
@@ -232,9 +216,7 @@ export interface FileRoutesById {
   '/exit-summary': typeof ExitSummaryRoute
   '/health-additional-requirements': typeof HealthAdditionalRequirementsRoute
   '/health-interview-scheduling': typeof HealthInterviewSchedulingRoute
-  '/login': typeof LoginRoute
   '/my-team': typeof MyTeamRouteWithChildren
-  '/profile': typeof ProfileRoute
   '/repository': typeof RepositoryRoute
   '/settings': typeof SettingsRoute
   '/settings-masters': typeof SettingsMastersRoute
@@ -262,9 +244,7 @@ export interface FileRouteTypes {
     | '/exit-summary'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/login'
     | '/my-team'
-    | '/profile'
     | '/repository'
     | '/settings'
     | '/settings-masters'
@@ -288,8 +268,6 @@ export interface FileRouteTypes {
     | '/exit-summary'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/login'
-    | '/profile'
     | '/repository'
     | '/settings'
     | '/settings-masters'
@@ -315,9 +293,7 @@ export interface FileRouteTypes {
     | '/exit-summary'
     | '/health-additional-requirements'
     | '/health-interview-scheduling'
-    | '/login'
     | '/my-team'
-    | '/profile'
     | '/repository'
     | '/settings'
     | '/settings-masters'
@@ -344,9 +320,7 @@ export interface RootRouteChildren {
   ExitSummaryRoute: typeof ExitSummaryRoute
   HealthAdditionalRequirementsRoute: typeof HealthAdditionalRequirementsRoute
   HealthInterviewSchedulingRoute: typeof HealthInterviewSchedulingRoute
-  LoginRoute: typeof LoginRoute
   MyTeamRoute: typeof MyTeamRouteWithChildren
-  ProfileRoute: typeof ProfileRoute
   RepositoryRoute: typeof RepositoryRoute
   SettingsRoute: typeof SettingsRoute
   SettingsMastersRoute: typeof SettingsMastersRoute
@@ -388,25 +362,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RepositoryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/my-team': {
       id: '/my-team'
       path: '/my-team'
       fullPath: '/my-team'
       preLoaderRoute: typeof MyTeamRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health-interview-scheduling': {
@@ -594,9 +554,7 @@ const rootRouteChildren: RootRouteChildren = {
   ExitSummaryRoute: ExitSummaryRoute,
   HealthAdditionalRequirementsRoute: HealthAdditionalRequirementsRoute,
   HealthInterviewSchedulingRoute: HealthInterviewSchedulingRoute,
-  LoginRoute: LoginRoute,
   MyTeamRoute: MyTeamRouteWithChildren,
-  ProfileRoute: ProfileRoute,
   RepositoryRoute: RepositoryRoute,
   SettingsRoute: SettingsRoute,
   SettingsMastersRoute: SettingsMastersRoute,

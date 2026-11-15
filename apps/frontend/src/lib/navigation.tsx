@@ -197,8 +197,6 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: string | string[] 
   { prefix: "/my-team", permission: "my-team.view" },
   { prefix: "/health", permission: "projects.health.view" },
   { prefix: "/access-denied", permission: null },
-  { prefix: "/profile", permission: null },
-  { prefix: "/login", permission: null },
   { prefix: "/", permission: "dashboard.view" },
 ];
 

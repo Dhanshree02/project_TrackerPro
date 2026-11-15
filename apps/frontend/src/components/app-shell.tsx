@@ -28,13 +28,11 @@ export function AppShell({
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasPermission, hasAny, loading: permissionsLoading } = usePermissions();
-  const { permissionsReady, status } = useAuth();
+  const { permissionsReady } = useAuth();
   const landingItems = NAV_ITEMS;
 
   // Wait for permissions to finish loading before evaluating route guards.
-  if (status === "anonymous") return <Navigate to="/login" replace />;
-
-  if (status === "loading" || !permissionsReady || permissionsLoading) {
+  if (!permissionsReady || permissionsLoading) {
     return (
       <div className="flex min-h-screen w-full isolate bg-background text-foreground">
         <AppSidebar />

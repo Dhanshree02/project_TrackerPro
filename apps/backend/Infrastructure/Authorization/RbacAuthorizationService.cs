@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,7 @@ namespace PMS.API.Infrastructure.Authorization;
 public sealed class RbacAuthorizationService(
     AppDbContext db,
     IMemoryCache cache,
+    IHttpContextAccessor httpContextAccessor,
     ILogger<RbacAuthorizationService> logger) : IRbacAuthorizationService
 {
     private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(5);
@@ -21,9 +23,14 @@ public sealed class RbacAuthorizationService(
     {
         var roleName = user?.FindFirst(ClaimTypes.Role)?.Value;
 
+        if (string.IsNullOrWhiteSpace(roleName) && httpContextAccessor.HttpContext != null)
+        {
+            roleName = httpContextAccessor.HttpContext.Request.Headers["X-User-Role"].FirstOrDefault();
+        }
+
         if (string.IsNullOrWhiteSpace(roleName))
         {
-            logger.LogWarning("RBAC check failed: No role found on the signed-in session.");
+            logger.LogWarning("RBAC check failed: No role found in claims or X-User-Role header.");
             return false;
         }
 

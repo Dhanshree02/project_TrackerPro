@@ -56,6 +56,12 @@ public interface IProjectTeamMemberService
         ResourceAllocationActionRequest request,
         CancellationToken ct = default);
 
+    Task<ProjectResourceAllocationRequestDto> TakeAllocationActionAsync(
+        Guid? projectId,
+        string identifier,
+        ResourceAllocationActionRequest request,
+        CancellationToken ct = default);
+
     Task<EmployeeWorkloadDto> GetEmployeeWorkloadAsync(
         Guid employeeId,
         Guid? projectId = null,

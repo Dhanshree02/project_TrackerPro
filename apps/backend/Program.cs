@@ -1,4 +1,3 @@
-using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Logging;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -9,6 +8,8 @@ using PMS.API.Configuration;
 using PMS.API.Infrastructure.Hangfire;
 using PMS.API.Infrastructure.Swagger;
 using PMS.API.Middleware;
+using PMS.API.Modules.Timesheets.Jobs;
+using PMS.API.Modules.Resources.Jobs;
 using Serilog;
 using Serilog.Events;
 
@@ -82,19 +83,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = System.Security.Claims.ClaimTypes.Name,
             RoleClaimType = System.Security.Claims.ClaimTypes.Role,
         };
-        o.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                if (string.IsNullOrEmpty(context.Token)
-                    && context.Request.Cookies.TryGetValue(AuthCookies.Access, out var access)
-                    && !string.IsNullOrWhiteSpace(access))
-                {
-                    context.Token = access;
-                }
-                return Task.CompletedTask;
-            },
-        };
     });
 
 // Authenticated by default — new endpoints must opt out with [AllowAnonymous].
@@ -121,10 +109,7 @@ if (!app.Configuration.GetValue("DisableHttpsRedirection", false))
     app.UseHttpsRedirection();
 app.UseCors("Frontend");
 app.UseAuthentication();
-app.UseMiddleware<SessionRefreshMiddleware>();
-var allowHeaderBypass = app.Configuration.GetValue<bool?>("Auth:AllowHeaderBypass")
-    ?? app.Environment.IsDevelopment();
-if (allowHeaderBypass)
+if (app.Environment.IsDevelopment())
     app.UseMiddleware<DevelopmentAuthBypassMiddleware>();
 app.UseAuthorization();
 
@@ -135,6 +120,32 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     DashboardTitle = "Project Compass - Job Monitor",
     Authorization = [new HangfireDashboardAuthFilter(app.Environment, hangfireOptions)]
 });
+
+// Register Recurring Timesheet Submission Reminder Job (Daily at 09:00 IST / 03:30 UTC)
+try
+{
+    RecurringJob.AddOrUpdate<TimesheetReminderJob>(
+        "timesheet-submission-reminders",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "30 3 * * *");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to schedule recurring Hangfire job for timesheet reminders.");
+}
+
+// Register Recurring Employee Offboarding Reminder Job (Daily at 09:00 IST / 03:30 UTC)
+try
+{
+    RecurringJob.AddOrUpdate<EmployeeOffboardingReminderJob>(
+        "employee-offboarding-reminders",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "30 3 * * *");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to schedule recurring Hangfire job for employee offboarding reminders.");
+}
 
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();

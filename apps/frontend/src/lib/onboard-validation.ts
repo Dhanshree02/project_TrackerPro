@@ -1021,11 +1021,11 @@ export function employeeToOnboardValues(emp: Employee): OnboardValues {
     reportingManagerId: emp.reportingManagerId || "",
     pmoDepartment: emp.pmoDepartment || "",
     subDepartment: emp.subDepartment || "",
-    billableStatus: emp.billableStatus || "Billable",
+    billableStatus: emp.billableStatus || "",
     clientLocation: emp.clientLocation || "",
-    projectType: emp.projectType || "Long Term",
+    projectType: emp.projectType || "",
     projectAllocated: emp.projectAllocated || "",
     clientEngManagerMapping: emp.clientEngManagerMapping || "",
-    probationStatus: emp.probationStatus || "Ongoing",
+    probationStatus: emp.probationStatus || "",
   };
 }

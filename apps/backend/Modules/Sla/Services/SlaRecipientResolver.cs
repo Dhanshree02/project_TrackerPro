@@ -20,7 +20,7 @@ public sealed class SlaRecipientResolver(AppDbContext db) : ISlaRecipientResolve
         var recipientIds = new HashSet<Guid>();
 
         // 1. Resolve Senior Project Manager (L1 Escalation)
-        if (ContainsRole(targetRoles, "SeniorProjectManager", "Sr. PM", "SPM", "Assigned Senior Project Manager"))
+        if (ContainsRole(targetRoles, "SeniorProjectManager", "Senior Project Manager", "Sr. PM", "SPM", "Assigned Senior Project Manager", "Senior PM"))
         {
             var spmIds = await ResolveSeniorProjectManagersAsync(instance, ct);
             foreach (var id in spmIds)
@@ -30,7 +30,7 @@ public sealed class SlaRecipientResolver(AppDbContext db) : ISlaRecipientResolve
         }
 
         // 2. Resolve Head Of Department (L2 Escalation)
-        if (ContainsRole(targetRoles, "HeadOfDepartment", "Head Of Department", "HOD"))
+        if (ContainsRole(targetRoles, "HeadOfDepartment", "Head Of Department", "Head of Department", "HOD"))
         {
             var hodIds = await ResolveHeadOfDepartmentsAsync(instance, ct);
             foreach (var id in hodIds)
@@ -179,28 +179,64 @@ public sealed class SlaRecipientResolver(AppDbContext db) : ISlaRecipientResolve
 
     private async Task<List<Guid>> ResolveSeniorProjectManagersAsync(SlaInstance instance, CancellationToken ct)
     {
-        var result = new List<Guid>();
+        var result = new HashSet<Guid>();
+
+        // 1. Query OnFloorRoles configured as Senior Manager
+        var spmOnFloorRoles = await db.OnFloorRoles
+            .AsNoTracking()
+            .Where(o => o.DeletedAtUtc == null && (
+                o.Name.ToLower() == "sr. manager"
+                || o.Name.ToLower() == "senior manager"
+                || o.Name.ToLower() == "senior project manager"
+                || o.Name.ToLower().Contains("senior manager")
+                || o.Name.ToLower().Contains("sr. manager")
+            ))
+            .Select(o => o.DesignationId)
+            .Distinct()
+            .ToListAsync(ct);
 
         if (instance.ProjectId.HasValue)
         {
-            // 1. Team members allocated with role "SeniorProjectManager"
+            // 1a. Project team members allocated with role "SeniorProjectManager"
             var spmMembers = await db.ProjectTeamMembers
                 .AsNoTracking()
                 .Where(tm => tm.ProjectId == instance.ProjectId.Value
                              && (tm.MemberRole == ProjectMemberRoles.SeniorProjectManager
                                  || tm.MemberRole == "Senior Project Manager"
-                                 || (tm.MemberRole != null && tm.MemberRole.ToLower().Contains("senior project manager"))
+                                 || (tm.MemberRole != null && tm.MemberRole.ToLower().Contains("senior"))
                                  || (tm.MemberRole != null && tm.MemberRole.ToLower().Contains("spm")))
                              && tm.DeletedAtUtc == null)
                 .Select(tm => tm.EmployeeId)
                 .ToListAsync(ct);
 
-            if (spmMembers.Count > 0)
+            foreach (var id in spmMembers)
             {
-                return spmMembers;
+                result.Add(id);
             }
 
-            // 2. Fallback: Check the Project Manager's Reporting Manager
+            // 1b. Project team members whose employee has SPM on-floor role or SPM role
+            var spmTeamEmployees = await (
+                from tm in db.ProjectTeamMembers.AsNoTracking()
+                join e in db.Employees.AsNoTracking() on tm.EmployeeId equals e.Id
+                where tm.ProjectId == instance.ProjectId.Value
+                      && tm.DeletedAtUtc == null
+                      && e.DeletedAtUtc == null
+                      && ((e.DesignationId.HasValue && spmOnFloorRoles.Contains(e.DesignationId.Value))
+                          || (e.Role != null && (e.Role.ToLower().Contains("senior manager") || e.Role.ToLower().Contains("spm") || e.Role.ToLower().Contains("senior project manager"))))
+                select e.Id
+            ).ToListAsync(ct);
+
+            foreach (var id in spmTeamEmployees)
+            {
+                result.Add(id);
+            }
+
+            if (result.Count > 0)
+            {
+                return result.ToList();
+            }
+
+            // 2. Fallback: Check the Project Manager's Reporting Manager (if reporting manager is an SPM / Sr. Manager)
             var proj = await db.Projects
                 .AsNoTracking()
                 .Where(p => p.Id == instance.ProjectId.Value && p.DeletedAtUtc == null)
@@ -218,23 +254,37 @@ public sealed class SlaRecipientResolver(AppDbContext db) : ISlaRecipientResolve
                 if (pmEmployee?.ReportingManagerId.HasValue == true && pmEmployee.ReportingManagerId.Value != Guid.Empty)
                 {
                     result.Add(pmEmployee.ReportingManagerId.Value);
-                    return result;
+                    return result.ToList();
                 }
             }
         }
 
-        // 3. Fallback: Any active employee with Senior Project Manager designation or role
-        var fallbackSpm = await db.Employees
+        // 3. Fallback: Any active employee matching SPM on-floor role, designation, or role
+        var fallbackSpms = await db.Employees
             .AsNoTracking()
             .Include(e => e.Designation)
-            .Where(e => e.DeletedAtUtc == null
-                        && ((e.Role != null && (e.Role == "SeniorProjectManager" || e.Role.ToLower().Contains("senior project manager") || e.Role.ToLower() == "spm"))
-                            || (e.Designation != null && (e.Designation.Name.Contains("Senior Project Manager") || e.Designation.Name.ToLower().Contains("senior project manager")))))
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
+            .Where(e =>
+                (e.DesignationId.HasValue && spmOnFloorRoles.Contains(e.DesignationId.Value))
+                || (e.Role != null && (
+                    e.Role.ToLower() == "seniorprojectmanager"
+                    || e.Role.ToLower() == "senior project manager"
+                    || e.Role.ToLower().Contains("senior manager")
+                    || e.Role.ToLower().Contains("spm")
+                ))
+                || (e.Designation != null && (
+                    e.Designation.Name.ToLower().Contains("senior project manager")
+                    || e.Designation.Name.ToLower().Contains("senior manager")
+                )))
             .Select(e => e.Id)
-            .Take(1)
             .ToListAsync(ct);
 
-        return fallbackSpm;
+        foreach (var id in fallbackSpms)
+        {
+            result.Add(id);
+        }
+
+        return result.ToList();
     }
 
     private async Task<List<Guid>> ResolveHeadOfDepartmentsAsync(SlaInstance instance, CancellationToken ct)
@@ -281,7 +331,8 @@ public sealed class SlaRecipientResolver(AppDbContext db) : ISlaRecipientResolve
                     e.Role.ToLower() == "head of department" ||
                     e.Role.ToLower() == "hod" ||
                     e.Role.ToLower().Contains("head of department") ||
-                    e.Role.ToLower().Contains("-hod")
+                    e.Role.ToLower().Contains("-hod") ||
+                    e.Role.ToLower().EndsWith("hod")
                 ))
                 || (e.Designation != null && (
                     e.Designation.Name.ToLower().Contains("head of department") ||
@@ -308,59 +359,41 @@ public sealed class SlaRecipientResolver(AppDbContext db) : ISlaRecipientResolve
             return [];
         }
 
-        // 4. If instance has ProjectId, attempt to match department / subdepartment
-        if (instance.ProjectId.HasValue)
+        // 4. If escalation has a specific service or project, check for matching department HOD
+        if (instance.EntityId != Guid.Empty &&
+            (string.Equals(instance.ActivityType, "WBS Escalation", StringComparison.OrdinalIgnoreCase)
+             || string.Equals(instance.ActivityType, "Service Escalation", StringComparison.OrdinalIgnoreCase)))
         {
-            var serviceDepts = await db.ProjectServices
+            var esc = await db.ProjectServiceEscalations
                 .AsNoTracking()
-                .Where(s => s.ProjectId == instance.ProjectId.Value && s.DeletedAtUtc == null)
-                .Select(s => s.Department)
-                .ToListAsync(ct);
+                .FirstOrDefaultAsync(e => e.Id == instance.EntityId && e.DeletedAtUtc == null, ct);
 
-            var matchingByServiceName = hodEmployees.Where(e =>
-                serviceDepts.Any(sd => !string.IsNullOrWhiteSpace(sd) && e.SubDepartment != null &&
-                    (e.SubDepartment.Contains(sd, StringComparison.OrdinalIgnoreCase) || sd.Contains(e.SubDepartment, StringComparison.OrdinalIgnoreCase)))
-            ).ToList();
-
-            if (matchingByServiceName.Count > 0)
+            if (esc != null && (!string.IsNullOrWhiteSpace(esc.ServiceName) || esc.ProjectServiceId.HasValue))
             {
-                return matchingByServiceName.Select(e => e.Id).Distinct().ToList();
-            }
-        }
+                var serviceDept = await db.ProjectServices
+                    .AsNoTracking()
+                    .Where(s => (esc.ProjectServiceId.HasValue && s.Id == esc.ProjectServiceId.Value) ||
+                                (s.ProjectId == esc.ProjectId && s.ServiceName == esc.ServiceName && s.DeletedAtUtc == null))
+                    .Select(s => s.Department)
+                    .FirstOrDefaultAsync(ct);
 
-        // 5. If instance has RecipientEmployeeId (e.g. assigned resource), match resource department
-        if (instance.RecipientEmployeeId.HasValue)
-        {
-            var resEmp = await db.Employees
-                .AsNoTracking()
-                .Where(e => e.Id == instance.RecipientEmployeeId.Value && e.DeletedAtUtc == null)
-                .Select(e => new { e.DepartmentId, e.SubDepartment })
-                .FirstOrDefaultAsync(ct);
-
-            if (resEmp?.DepartmentId.HasValue == true)
-            {
-                var deptMatch = hodEmployees.Where(e => e.DepartmentId == resEmp.DepartmentId.Value).ToList();
-                if (deptMatch.Count > 0)
+                if (!string.IsNullOrWhiteSpace(serviceDept))
                 {
-                    return deptMatch.Select(e => e.Id).Distinct().ToList();
-                }
-            }
+                    var matching = hodEmployees.Where(e =>
+                        !string.IsNullOrWhiteSpace(e.SubDepartment) &&
+                        (e.SubDepartment.Contains(serviceDept, StringComparison.OrdinalIgnoreCase) ||
+                         serviceDept.Contains(e.SubDepartment, StringComparison.OrdinalIgnoreCase))
+                    ).ToList();
 
-            if (!string.IsNullOrWhiteSpace(resEmp?.SubDepartment))
-            {
-                var subDeptMatch = hodEmployees.Where(e =>
-                    !string.IsNullOrWhiteSpace(e.SubDepartment) &&
-                    (e.SubDepartment.Contains(resEmp.SubDepartment, StringComparison.OrdinalIgnoreCase) ||
-                     resEmp.SubDepartment.Contains(e.SubDepartment, StringComparison.OrdinalIgnoreCase))).ToList();
-
-                if (subDeptMatch.Count > 0)
-                {
-                    return subDeptMatch.Select(e => e.Id).Distinct().ToList();
+                    if (matching.Count > 0)
+                    {
+                        return matching.Select(e => e.Id).Distinct().ToList();
+                    }
                 }
             }
         }
 
-        // 6. Default: return all active HODs
+        // 5. Default: return all active HODs whose On Floor Role is "Head Of Department"
         return hodEmployees.Select(e => e.Id).Distinct().ToList();
     }
 

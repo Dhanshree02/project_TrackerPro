@@ -435,21 +435,14 @@ public class ProjectsController(
 
 
     [HttpGet("{projectId:guid}/tasks")]
-
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ProjectTaskDto>>>> GetProjectTasks(
-
         Guid projectId,
-
+        [FromQuery] Guid? employeeId = null,
         [FromQuery] bool includeDeleted = false,
-
         CancellationToken ct = default)
-
     {
-
-        var tasks = await projectService.GetProjectTasksAsync(projectId, includeDeleted, ct);
-
+        var tasks = await projectService.GetProjectTasksAsync(projectId, employeeId, includeDeleted, ct);
         return Ok(ApiResponse<IReadOnlyList<ProjectTaskDto>>.Ok(tasks));
-
     }
 
 
@@ -1878,11 +1871,10 @@ public class ProjectsController(
         return Ok(ApiResponse<IReadOnlyList<ProjectResourceAllocationRequestDto>>.Ok(items));
     }
 
-    [HttpPost("{projectId:guid}/allocation-requests/{requestId:guid}/action")]
-    [RequireRbac("project-team", RbacAccessType.Manage)]
+    [HttpPost("{projectId:guid}/allocation-requests/{requestId}/action")]
     public async Task<ActionResult<ApiResponse<ProjectResourceAllocationRequestDto>>> TakeAllocationAction(
         Guid projectId,
-        Guid requestId,
+        string requestId,
         [FromBody] ResourceAllocationActionRequest request,
         CancellationToken ct)
     {

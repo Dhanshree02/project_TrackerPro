@@ -1,52 +1,63 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { apiFetch, type AuthUser } from "@/lib/api-client";
+import { createContext, useContext, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
+import type { AuthUser } from "@/lib/api-client";
+import {
+  getDemoPersona,
+  getStoredDemoRole,
+  mockAuthUser,
+  setStoredDemoRole,
+  type DemoRoleKey,
+} from "@/lib/user-personas";
+import { loadEmployeePersonas } from "@/lib/employee-personas";
 
-export type AuthStatus = "loading" | "authed" | "anonymous";
+export type AuthStatus = "authed";
 
 interface AuthContextValue {
   status: AuthStatus;
   user: AuthUser | null;
+  demoRole: DemoRoleKey;
   permissionsReady: boolean;
-  logout: () => Promise<void>;
+  switchDemoRole: (role: DemoRoleKey) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [status, setStatus] = useState<AuthStatus>("loading");
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const initialRole = getStoredDemoRole();
+  const [status] = useState<AuthStatus>("authed");
+  const [demoRole, setDemoRole] = useState<DemoRoleKey>(() => initialRole);
+  const [user, setUser] = useState<AuthUser | null>(() => mockAuthUser(initialRole));
+  const [permissionsReady] = useState(true);
+
+  const switchDemoRole = async (role: DemoRoleKey) => {
+    setStoredDemoRole(role);
+    setDemoRole(role);
+    setUser(mockAuthUser(role));
+  };
+
+  // The server cannot read the last switched employee, so apply it before paint.
+  useLayoutEffect(() => {
+    const stored = getStoredDemoRole();
+    const persona = getDemoPersona(stored);
+    setDemoRole(persona.key as DemoRoleKey);
+    setUser((current) => (current?.email === persona.email ? current : mockAuthUser(persona.key)));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    void apiFetch<AuthUser>("/api/v1/auth/me")
-      .then((me) => {
-        if (cancelled) return;
-        setUser({ ...me, permissions: me.permissions ?? [] });
-        setStatus("authed");
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setUser(null);
-        setStatus("anonymous");
-      });
+    void loadEmployeePersonas().then(() => {
+      if (cancelled) return;
+      const stored = getStoredDemoRole();
+      const persona = getDemoPersona(stored);
+      setDemoRole(persona.key as DemoRoleKey);
+      setUser(mockAuthUser(persona.key));
+    });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const logout = async () => {
-    try {
-      await apiFetch("/api/v1/auth/logout", { method: "POST" });
-    } catch {
-      // The cookie is cleared when the request reached the API.
-    }
-    setUser(null);
-    setStatus("anonymous");
-    window.location.assign("/login");
-  };
-
   return (
-    <AuthContext.Provider value={{ status, user, permissionsReady: status !== "loading", logout }}>
+    <AuthContext.Provider value={{ status, user, demoRole, permissionsReady, switchDemoRole }}>
       {children}
     </AuthContext.Provider>
   );

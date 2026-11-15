@@ -144,6 +144,10 @@ public sealed class ClientService(
             created.Name,
             clientCodes.GetValueOrDefault(created.Id) ?? created.ClientCode,
             created.CreatedByName,
+            created.EngagementManagerId,
+            created.EngagementManager,
+            created.SalesManagerId,
+            created.SalesManager,
             ct);
 
         foreach (var sv in created.SubVentures)
@@ -155,6 +159,10 @@ public sealed class ClientService(
                 sv.Name,
                 sv.SubVentureCode,
                 created.CreatedByName,
+                created.EngagementManagerId,
+                created.EngagementManager,
+                created.SalesManagerId,
+                created.SalesManager,
                 ct);
         }
 
@@ -169,29 +177,66 @@ public sealed class ClientService(
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
+        var previousEm = client.EngagementManager;
+        var previousEmId = client.EngagementManagerId;
+        var previousSm = client.SalesManager;
+        var previousSmId = client.SalesManagerId;
+        var emChanged = false;
+        var smChanged = false;
+        var clientProfileChanged = false;
+
         if (request.Name is not null)
         {
-            client.Name = request.Name.Trim();
-            // Keep the logo in sync with the name (first + last letter).
-            client.Logo = Client.LogoFromName(client.Name);
+            var trimmedName = request.Name.Trim();
+            if (!string.Equals(client.Name, trimmedName, StringComparison.Ordinal))
+            {
+                client.Name = trimmedName;
+                client.Logo = Client.LogoFromName(client.Name);
+                clientProfileChanged = true;
+            }
         }
         if (request.Industry is not null)
         {
-            client.Industry = request.Industry.Trim();
-            client.IndustryId = await ResolveIndustryIdAsync(request.Industry, ct);
+            var trimmedIndustry = request.Industry.Trim();
+            if (!string.Equals(client.Industry, trimmedIndustry, StringComparison.Ordinal))
+            {
+                client.Industry = trimmedIndustry;
+                client.IndustryId = await ResolveIndustryIdAsync(request.Industry, ct);
+                clientProfileChanged = true;
+            }
         }
-        if (request.Logo is not null) client.Logo = request.Logo;
-        if (request.ContactEmail is not null) client.ContactEmail = EmailRules.NullIfEmpty(request.ContactEmail);
-        if (request.ClientType is not null) client.ClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New;
+        if (request.Logo is not null && !string.Equals(client.Logo, request.Logo, StringComparison.Ordinal))
+        {
+            client.Logo = request.Logo;
+            clientProfileChanged = true;
+        }
+        if (request.ContactEmail is not null)
+        {
+            var normalizedEmail = EmailRules.NullIfEmpty(request.ContactEmail);
+            if (!string.Equals(client.ContactEmail, normalizedEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                client.ContactEmail = normalizedEmail;
+                clientProfileChanged = true;
+            }
+        }
+        if (request.ClientType is not null)
+        {
+            var newClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New;
+            if (client.ClientType != newClientType)
+            {
+                client.ClientType = newClientType;
+                clientProfileChanged = true;
+            }
+        }
         if (request.Status is not null &&
             Enum.TryParse<ClientStatus>(request.Status, ignoreCase: true, out var status))
         {
-            client.Status = status;
+            if (client.Status != status)
+            {
+                client.Status = status;
+                clientProfileChanged = true;
+            }
         }
-        var previousEm = client.EngagementManager;
-        var previousSm = client.SalesManager;
-        var emChanged = false;
-        var smChanged = false;
 
         if (request.EngagementManager is not null)
         {
@@ -213,39 +258,103 @@ public sealed class ClientService(
                 smChanged = true;
             }
         }
-        if (request.ContactName is not null) client.ContactName = request.ContactName;
-        if (request.ContactPhone is not null) client.ContactPhone = request.ContactPhone;
-        if (request.ContactDesignation is not null) client.ContactDesignation = request.ContactDesignation;
-        if (request.ContactType is not null) client.ContactType = request.ContactType;
-        if (request.Country is not null)
+        if (request.ContactName is not null && !string.Equals(client.ContactName, request.ContactName, StringComparison.Ordinal))
+        {
+            client.ContactName = request.ContactName;
+            clientProfileChanged = true;
+        }
+        if (request.ContactPhone is not null && !string.Equals(client.ContactPhone, request.ContactPhone, StringComparison.Ordinal))
+        {
+            client.ContactPhone = request.ContactPhone;
+            clientProfileChanged = true;
+        }
+        if (request.ContactDesignation is not null && !string.Equals(client.ContactDesignation, request.ContactDesignation, StringComparison.Ordinal))
+        {
+            client.ContactDesignation = request.ContactDesignation;
+            clientProfileChanged = true;
+        }
+        if (request.ContactType is not null && !string.Equals(client.ContactType, request.ContactType, StringComparison.Ordinal))
+        {
+            client.ContactType = request.ContactType;
+            clientProfileChanged = true;
+        }
+        if (request.Country is not null && !string.Equals(client.Country, request.Country, StringComparison.Ordinal))
         {
             client.Country = request.Country;
             client.CountryId = await ResolveCountryIdAsync(request.Country, ct);
+            clientProfileChanged = true;
         }
-        if (request.City is not null)
+        if (request.City is not null && !string.Equals(client.City, request.City, StringComparison.Ordinal))
         {
             client.City = request.City;
             client.CityId = await ResolveCityIdAsync(request.City, client.CountryId, ct);
+            clientProfileChanged = true;
         }
-        if (request.BusinessType is not null) client.BusinessType = request.BusinessType;
-        if (request.BillingMedium is not null) client.BillingMedium = NormalizeBillingMedium(request.BillingMedium);
+        if (request.BusinessType is not null && !string.Equals(client.BusinessType, request.BusinessType, StringComparison.Ordinal))
+        {
+            client.BusinessType = request.BusinessType;
+            clientProfileChanged = true;
+        }
+        if (request.BillingMedium is not null)
+        {
+            var normalizedBilling = NormalizeBillingMedium(request.BillingMedium);
+            if (!string.Equals(client.BillingMedium, normalizedBilling, StringComparison.OrdinalIgnoreCase))
+            {
+                client.BillingMedium = normalizedBilling;
+                clientProfileChanged = true;
+            }
+        }
         if (request.GroupSpocName is not null)
         {
-            client.GroupSpocName = NormalizeManagerName(request.GroupSpocName);
-            client.ContactName = client.GroupSpocName;
+            var normSpoc = NormalizeManagerName(request.GroupSpocName);
+            if (!string.Equals(client.GroupSpocName, normSpoc, StringComparison.OrdinalIgnoreCase))
+            {
+                client.GroupSpocName = normSpoc;
+                client.ContactName = client.GroupSpocName;
+                clientProfileChanged = true;
+            }
         }
         if (request.GroupSpocContact is not null)
         {
-            client.GroupSpocContact = NormalizeManagerName(request.GroupSpocContact);
-            client.ContactPhone = client.GroupSpocContact;
+            var normContact = NormalizeManagerName(request.GroupSpocContact);
+            if (!string.Equals(client.GroupSpocContact, normContact, StringComparison.OrdinalIgnoreCase))
+            {
+                client.GroupSpocContact = normContact;
+                client.ContactPhone = client.GroupSpocContact;
+                clientProfileChanged = true;
+            }
         }
         if (request.GroupSpocPhoneCode is not null)
-            client.GroupSpocPhoneCode = NormalizeManagerName(request.GroupSpocPhoneCode);
+        {
+            var normPhoneCode = NormalizeManagerName(request.GroupSpocPhoneCode);
+            if (!string.Equals(client.GroupSpocPhoneCode, normPhoneCode, StringComparison.OrdinalIgnoreCase))
+            {
+                client.GroupSpocPhoneCode = normPhoneCode;
+                clientProfileChanged = true;
+            }
+        }
         if (request.CreatedByName is not null && string.IsNullOrWhiteSpace(client.CreatedByName))
+        {
             client.CreatedByName = NormalizeManagerName(request.CreatedByName);
-        if (request.Notes is not null) client.Notes = request.Notes;
-        if (request.KycDocumentName is not null) client.KycDocumentName = request.KycDocumentName;
+            clientProfileChanged = true;
+        }
+        if (request.Notes is not null && !string.Equals(client.Notes, request.Notes, StringComparison.Ordinal))
+        {
+            client.Notes = request.Notes;
+            clientProfileChanged = true;
+        }
+        if (request.KycDocumentName is not null && !string.Equals(client.KycDocumentName, request.KycDocumentName, StringComparison.Ordinal))
+        {
+            client.KycDocumentName = request.KycDocumentName;
+            clientProfileChanged = true;
+        }
+        if (request.Contacts is not null)
+        {
+            clientProfileChanged = true;
+        }
+
         var newlyAddedSubVentures = new List<SubVenture>();
+        var editedSubVentures = new List<SubVenture>();
         if (request.SubVentures is not null)
         {
             // The incoming list is the full desired set. An id updates that row, including a rename.
@@ -280,9 +389,17 @@ public sealed class ClientService(
 
                 if (match is not null)
                 {
-                    match.Name = input.Name.Trim();
-                    if (input.Notes is not null)
-                        match.Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
+                    var trimmedName = input.Name.Trim();
+                    var trimmedNotes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
+                    var svNameChanged = !string.Equals(match.Name, trimmedName, StringComparison.Ordinal);
+                    var svNotesChanged = !string.Equals(match.Notes, trimmedNotes, StringComparison.Ordinal);
+
+                    if (svNameChanged || svNotesChanged)
+                    {
+                        match.Name = trimmedName;
+                        match.Notes = trimmedNotes;
+                        editedSubVentures.Add(match);
+                    }
                 }
                 else
                 {
@@ -320,6 +437,8 @@ public sealed class ClientService(
                 "Engagement Manager",
                 updated.EngagementManager,
                 updated.EngagementManagerId,
+                previousEm,
+                previousEmId,
                 currentUser.Name,
                 ct);
         }
@@ -333,7 +452,40 @@ public sealed class ClientService(
                 "Sales Manager",
                 updated.SalesManager,
                 updated.SalesManagerId,
+                previousSm,
+                previousSmId,
                 currentUser.Name,
+                ct);
+        }
+
+        if (clientProfileChanged)
+        {
+            await notificationService.NotifyCustomerEditedAsync(
+                updated.Id,
+                updated.Name,
+                clientCodes.GetValueOrDefault(updated.Id),
+                currentUser.Name,
+                updated.EngagementManagerId,
+                updated.EngagementManager,
+                updated.SalesManagerId,
+                updated.SalesManager,
+                ct);
+        }
+
+        foreach (var sv in editedSubVentures)
+        {
+            var svCode = updated.SubVentures.FirstOrDefault(s => s.Id == sv.Id)?.SubVentureCode;
+            await notificationService.NotifySubVentureEditedAsync(
+                updated.Id,
+                updated.Name,
+                sv.Id,
+                sv.Name,
+                svCode,
+                currentUser.Name,
+                updated.EngagementManagerId,
+                updated.EngagementManager,
+                updated.SalesManagerId,
+                updated.SalesManager,
                 ct);
         }
 
@@ -347,6 +499,10 @@ public sealed class ClientService(
                 sv.Name,
                 svCode,
                 currentUser.Name,
+                updated.EngagementManagerId,
+                updated.EngagementManager,
+                updated.SalesManagerId,
+                updated.SalesManager,
                 ct);
         }
 

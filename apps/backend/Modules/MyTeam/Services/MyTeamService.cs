@@ -390,11 +390,12 @@ public sealed class MyTeamService(
         var userId = currentUser.UserId;
         if (userId is not null)
         {
-            var byUser = await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId && e.DeletedAtUtc == null, ct);
-            if (byUser is not null) return byUser;
-
-            var byId = await db.Employees.FirstOrDefaultAsync(e => e.Id == userId && e.DeletedAtUtc == null, ct);
+            // The user switch sends the employee id. A signed-in account matches UserId.
+            var byId = await db.Employees.FirstOrDefaultAsync(e => e.Id == userId, ct);
             if (byId is not null) return byId;
+
+            var byUser = await db.Employees.FirstOrDefaultAsync(e => e.UserId == userId, ct);
+            if (byUser is not null) return byUser;
         }
 
         var email = currentUser.Email;

@@ -8,6 +8,7 @@ using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
+using PMS.API.Modules.Projects.Services;
 using PMS.API.Modules.Sla.DTOs;
 using PMS.API.Modules.Sla.Jobs;
 using PMS.API.Modules.Sla.Models;
@@ -205,11 +206,16 @@ public class BucketListSlaIntegrationTests : IClassFixture<WebApplicationFactory
             .ToListAsync();
         Assert.NotEmpty(reminderNotifs);
 
+        var expectedService = await ProjectTaskService.ResolveServiceNameAsync(db, project.Id, await db.ProjectTasks.Include(t => t.ProjectService).Include(t => t.Project).FirstAsync(t => t.Id == taskId));
         foreach (var rn in reminderNotifs)
         {
             Assert.Equal(employee.Id, rn.RecipientEmployeeId);
-            Assert.Equal($"Task Paused Reminder: {taskTitle}", rn.Title);
-            Assert.Contains($"Your task {taskTitle} is still paused. Please resume the task or complete it.", rn.CommentsJson);
+            Assert.Equal($"Task Paused Reminder: {taskTitle} - {expectedService}", rn.Title);
+            Assert.Contains($"Your task '{taskTitle}' under the service '{expectedService}' in project '{project.Name}' is still paused. Please resume the task or complete it.", rn.CommentsJson);
+            Assert.Equal("Low", rn.Priority);
+            Assert.Equal("Pending", rn.Status);
+            Assert.True(rn.Unread);
+            Assert.Equal("SLA Automation Engine", rn.RaisedByName);
         }
 
         // 7. Verify NO reminder went to PM, EM, TL, SPM, or HOD
@@ -448,5 +454,183 @@ public class BucketListSlaIntegrationTests : IClassFixture<WebApplicationFactory
             .Where(e => e.InstanceId == instance.Id && e.Status == SlaEventStatus.Scheduled && e.DeletedAtUtc == null)
             .ToListAsync();
         Assert.Empty(pendingEventsAfterComplete);
+    }
+
+    [Fact]
+    public async Task BucketList_PauseAndStop_Notifications_IncludeResourceTaskServiceAndProjectDetails()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var worker = scope.ServiceProvider.GetRequiredService<SlaBackgroundJobWorker>();
+
+        // 1. Resolve or set up project with PM, EM, TL and Service
+        var project = await db.Projects
+            .Include(p => p.Client)
+            .FirstOrDefaultAsync(p => p.DeletedAtUtc == null);
+        Assert.NotNull(project);
+
+        var leadershipEmployees = await db.Employees
+            .Where(e => e.DeletedAtUtc == null)
+            .Take(4)
+            .ToListAsync();
+        Assert.True(leadershipEmployees.Count >= 2);
+
+        project.ProjectManagerId = leadershipEmployees[0].Id;
+        project.TeamLeadId = leadershipEmployees[1].Id;
+        if (leadershipEmployees.Count > 2)
+        {
+            project.EngagementManagerId = leadershipEmployees[2].Id;
+        }
+        await db.SaveChangesAsync();
+
+        var service = await db.ProjectServices
+            .FirstOrDefaultAsync(s => s.ProjectId == project.Id && s.DeletedAtUtc == null);
+        if (service == null)
+        {
+            service = new ProjectServiceEntity
+            {
+                ProjectId = project.Id,
+                ServiceName = "Quality Assurance & Testing",
+                Department = "Engineering",
+                Qty = 1,
+                SortOrder = 1
+            };
+            db.ProjectServices.Add(service);
+            await db.SaveChangesAsync();
+        }
+
+        var employee = leadershipEmployees.Last();
+        var empName = $"{employee.FirstName} {employee.LastName}".Trim();
+
+        var existingMember = await db.ProjectTeamMembers
+            .FirstOrDefaultAsync(tm => tm.ProjectId == project.Id && tm.EmployeeId == employee.Id && tm.DeletedAtUtc == null);
+        if (existingMember == null)
+        {
+            db.ProjectTeamMembers.Add(new ProjectTeamMember
+            {
+                ProjectId = project.Id,
+                EmployeeId = employee.Id,
+                MemberRole = "ProjectTeam",
+                IsTeamLead = false
+            });
+            await db.SaveChangesAsync();
+        }
+
+        // 2. Create task attached to the project and service
+        var taskTitle = $"Pause-Stop Enhancement Task {Guid.NewGuid():N}";
+        var createTaskReq = new CreateProjectTaskRequest(
+            Title: taskTitle,
+            Description: "Verifying enhanced pause and stop notifications",
+            PlannedStartDate: DateOnly.FromDateTime(DateTime.UtcNow),
+            PlannedEndDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(2)),
+            EstimatedHours: 6m,
+            Priority: "High");
+
+        var taskResponse = await _client.PostAsJsonAsync($"/api/v1/projects/{project.Id}/tasks", createTaskReq);
+        Assert.True(taskResponse.IsSuccessStatusCode);
+        var taskResult = await taskResponse.Content.ReadFromJsonAsync<ApiResponse<ProjectTaskDto>>();
+        var taskId = taskResult!.Data.Id;
+
+        var taskEntity = await db.ProjectTasks.FirstAsync(t => t.Id == taskId);
+        taskEntity.ProjectServiceId = service.Id;
+        await db.SaveChangesAsync();
+
+        // 3. Assign employee to task
+        await _client.PutAsJsonAsync(
+            $"/api/v1/projects/{project.Id}/tasks/{taskId}/assignments",
+            new SyncTaskAssignmentsRequest([employee.Id], "High"));
+
+        var assignment = await db.ProjectTaskAssignments
+            .FirstOrDefaultAsync(a => a.TaskId == taskId && a.EmployeeId == employee.Id && a.IsActive && a.DeletedAtUtc == null);
+        Assert.NotNull(assignment);
+
+        var bucketTask = await db.BucketTasks
+            .FirstOrDefaultAsync(b => b.TaskId == taskId && b.EmployeeId == employee.Id && b.DeletedAtUtc == null);
+        Assert.NotNull(bucketTask);
+
+        // 4. Start Timer then Pause Timer
+        var startResp = await _client.PostAsync($"/api/v1/action-centre/bucket-list/{bucketTask.Id}/start-timer", null);
+        Assert.Equal(HttpStatusCode.OK, startResp.StatusCode);
+
+        var pauseResp = await _client.PostAsync($"/api/v1/action-centre/bucket-list/{bucketTask.Id}/pause-timer", null);
+        Assert.Equal(HttpStatusCode.OK, pauseResp.StatusCode);
+
+        // 5. Verify Immediate Leadership Notification for Pause
+        var expectedPauseTitle = $"{empName} Task Paused: {taskTitle} - {service.ServiceName}";
+        var expectedPauseMsg = $"{empName} has paused the task '{taskTitle}' under the service '{service.ServiceName}' in project '{project.Name}'.";
+
+        var pauseNotifs = await db.ActionNotifications
+            .Where(n => n.ProjectId == project.Id && n.RelatedTask == taskTitle && n.Type == "Task Paused" && n.DeletedAtUtc == null)
+            .ToListAsync();
+        Assert.NotEmpty(pauseNotifs);
+
+        foreach (var pn in pauseNotifs)
+        {
+            Assert.Equal(expectedPauseTitle, pn.Title);
+            Assert.Contains(expectedPauseMsg, pn.CommentsJson);
+            Assert.Equal("Low", pn.Priority);
+            Assert.Equal("Pending", pn.Status);
+            Assert.True(pn.Unread);
+            Assert.Equal(empName, pn.RaisedByName);
+            Assert.Equal(employee.Id, pn.RaisedByEmployeeId);
+            Assert.Equal(project.Name, pn.ProjectName);
+        }
+
+        // 6. Verify Daily Reminder goes ONLY to assigned resource
+        var pauseSla = await db.SlaInstances
+            .FirstOrDefaultAsync(i => i.EntityId == assignment.Id && i.ActivityType == "Task Pause" && i.DeletedAtUtc == null);
+        Assert.NotNull(pauseSla);
+
+        var reminderEvent = await db.SlaEvents
+            .FirstOrDefaultAsync(e => e.InstanceId == pauseSla.Id && e.EventType == SlaEventType.Reminder && e.DeletedAtUtc == null);
+        Assert.NotNull(reminderEvent);
+
+        db.ChangeTracker.Clear();
+        await worker.ExecuteReminderAsync(pauseSla.Id, reminderEvent.Id);
+
+        var reminderNotifs = await db.ActionNotifications
+            .Where(n => n.RelatedTask == taskTitle && n.Type == "Task Pause Reminder" && n.DeletedAtUtc == null)
+            .ToListAsync();
+        Assert.Single(reminderNotifs);
+        var rn = reminderNotifs[0];
+        Assert.Equal(employee.Id, rn.RecipientEmployeeId);
+        Assert.Equal($"Task Paused Reminder: {taskTitle} - {service.ServiceName}", rn.Title);
+        Assert.Contains($"Your task '{taskTitle}' under the service '{service.ServiceName}' in project '{project.Name}' is still paused. Please resume the task or complete it.", rn.CommentsJson);
+        Assert.Equal("Low", rn.Priority);
+        Assert.Equal("Pending", rn.Status);
+        Assert.True(rn.Unread);
+        Assert.Equal("SLA Automation Engine", rn.RaisedByName);
+
+        // 7. Resume Timer then Stop Timer
+        var resumeResp = await _client.PostAsync($"/api/v1/action-centre/bucket-list/{bucketTask.Id}/start-timer", null);
+        Assert.Equal(HttpStatusCode.OK, resumeResp.StatusCode);
+
+        var stopResp = await _client.PostAsync($"/api/v1/action-centre/bucket-list/{bucketTask.Id}/stop-timer", null);
+        Assert.Equal(HttpStatusCode.OK, stopResp.StatusCode);
+
+        // 8. Verify Immediate Leadership Notification for Stop
+        var expectedStopTitle = $"{empName} Task Stopped: {taskTitle} - {service.ServiceName}";
+        var expectedStopMsg = $"{empName} has stopped the task '{taskTitle}' under the service '{service.ServiceName}' in project '{project.Name}'.";
+
+        var stopNotifs = await db.ActionNotifications
+            .Where(n => n.ProjectId == project.Id && n.RelatedTask == taskTitle && n.Type == "Task Stopped" && n.DeletedAtUtc == null)
+            .ToListAsync();
+        Assert.NotEmpty(stopNotifs);
+
+        foreach (var sn in stopNotifs)
+        {
+            Assert.Equal(expectedStopTitle, sn.Title);
+            Assert.Contains(expectedStopMsg, sn.CommentsJson);
+            Assert.Equal("Low", sn.Priority);
+            Assert.Equal("Pending", sn.Status);
+            Assert.True(sn.Unread);
+            Assert.Equal(empName, sn.RaisedByName);
+            Assert.Equal(employee.Id, sn.RaisedByEmployeeId);
+            Assert.Equal(project.Name, sn.ProjectName);
+        }
+
+        // 9. Verify Stop completed Task Pause tracking (no further reminders)
+        var refreshedSla = await db.SlaInstances.AsNoTracking().FirstOrDefaultAsync(i => i.Id == pauseSla.Id);
+        Assert.Equal(SlaInstanceStatus.Completed, refreshedSla?.Status);
     }
 }

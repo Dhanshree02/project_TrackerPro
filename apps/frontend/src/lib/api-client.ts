@@ -1,14 +1,28 @@
 /**
- * API client. The session is an httpOnly cookie set by Microsoft sign-in.
- * The page does not send a bearer token or a user-switch header.
+ * TrackerPro API client.
+ *
+ * Base URL: `VITE_API_URL` (default http://localhost:5194 — the .NET API dev port)
+ * Dev Mode: Operates seamlessly with backend bypass headers (X-User-Email, X-User-Role)
+ *           driven by the frontend User Switcher dropdown. M365 authentication
+ *           will be integrated after full feature development.
  */
+
+import { getStoredDemoRole, getDemoPersona } from "@/lib/user-personas";
 
 const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   (import.meta.env.DEV ? "" : "http://localhost:5194");
 
-function requestHeaders(init?: HeadersInit): Headers {
-  return new Headers(init);
+function personaHeaders(init?: HeadersInit): Headers {
+  const headers = new Headers(init);
+  const currentRole = getStoredDemoRole();
+  const persona = getDemoPersona(currentRole);
+  if (persona) {
+    headers.set("X-User-Email", persona.email);
+    headers.set("X-User-Role", persona.roleKey || "Admin");
+    headers.set("X-User-Id", persona.id);
+  }
+  return headers;
 }
 
 interface ApiEnvelope<T> {
@@ -28,22 +42,14 @@ export interface AuthUser {
   email: string;
   name: string;
   employeeId?: string | null;
-  employeeCode?: string | null;
   role?: string | null;
   roleId?: string | null;
   mustChangePassword: boolean;
   permissions: string[];
-  phone?: string | null;
-  department?: string | null;
-  subDepartment?: string | null;
-  designation?: string | null;
-  reportingManager?: string | null;
-  workLocation?: string | null;
-  status?: string | null;
 }
 
 export function isAuthenticated(): boolean {
-  return false;
+  return true;
 }
 
 export async function ensureAuthenticated(): Promise<void> {
@@ -51,7 +57,8 @@ export async function ensureAuthenticated(): Promise<void> {
 }
 
 /**
- * API fetch wrapper. The browser sends the session cookie.
+ * API fetch wrapper. Attaches the current persona's identity headers
+ * so backend development bypass identifies the switched user.
  */
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const result = await rawFetch<ApiEnvelope<T>>(path, init);
@@ -70,7 +77,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 
 /** Authenticated file bytes (PO preview and download). */
 export async function apiFetchBlob(path: string): Promise<Blob> {
-  const headers = requestHeaders();
+  const headers = personaHeaders();
   const res = await fetch(`${API_BASE}${path}`, { headers, credentials: "include" });
   if (!res.ok) {
     let message = `Download failed (${res.status})`;
@@ -87,7 +94,7 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
 
 /** Authenticated file download (Excel sample, etc.). */
 export async function apiDownload(path: string, filename: string): Promise<void> {
-  const headers = requestHeaders();
+  const headers = personaHeaders();
 
   const res = await fetch(`${API_BASE}${path}`, { headers, credentials: "include" });
 
@@ -117,20 +124,12 @@ async function rawFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<{ ok: boolean; status: number; envelope: T }> {
-  const headers = requestHeaders(init?.headers);
+  const headers = personaHeaders(init?.headers);
   if (!(init?.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
-  if (
-    res.status === 401 &&
-    !path.startsWith("/api/v1/auth/") &&
-    typeof window !== "undefined" &&
-    window.location.pathname !== "/login"
-  ) {
-    window.location.assign("/login");
-  }
 
   let envelope = null as T | null;
   try {

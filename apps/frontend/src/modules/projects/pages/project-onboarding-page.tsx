@@ -2432,8 +2432,8 @@ export function ProjectOnboardingPage() {
       className="wbs-onboarding-form"
       style={{
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
-        background: "#f9fafb",
-        color: "#1f2937",
+        background: "var(--wbs-page)",
+        color: "var(--wbs-text)",
         minHeight: "100vh",
       }}
     >
@@ -2490,7 +2490,7 @@ export function ProjectOnboardingPage() {
       {/* ── Content ── */}
       <div style={{ maxWidth: 1400, margin: "0 auto", padding: 20 }}>
         {/* Breadcrumb */}
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: "var(--wbs-muted)", marginBottom: 12 }}>
           <span
             onClick={() => navigate({ to: "/projects" })}
             style={{ color: "#1a84d4", cursor: "pointer", textDecoration: "none" }}
@@ -2503,8 +2503,8 @@ export function ProjectOnboardingPage() {
         {/* ── Renewal Checkbox + WBS ID Search ── */}
         <div
           style={{
-            background: "#fff",
-            border: "1px solid #d1d5db",
+            background: "var(--wbs-card)",
+            border: "1px solid var(--wbs-line)",
             borderRadius: 8,
             padding: "12px 16px",
             marginBottom: 16,
@@ -2525,7 +2525,7 @@ export function ProjectOnboardingPage() {
               userSelect: "none",
               fontSize: 13,
               fontWeight: 600,
-              color: "#1f2937",
+              color: "var(--wbs-text)",
               flexShrink: 0,
               marginTop: 6,
             }}
@@ -2549,7 +2549,7 @@ export function ProjectOnboardingPage() {
                 style={{
                   fontSize: 11,
                   fontWeight: 600,
-                  color: "#6b7280",
+                  color: "var(--wbs-muted)",
                   marginBottom: 4,
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
@@ -2564,7 +2564,7 @@ export function ProjectOnboardingPage() {
                     left: 10,
                     top: "50%",
                     transform: "translateY(-50%)",
-                    color: "#9ca3af",
+                    color: "var(--wbs-placeholder)",
                     fontSize: 14,
                   }}
                 >
@@ -2598,7 +2598,7 @@ export function ProjectOnboardingPage() {
                       right: 8,
                       top: "50%",
                       transform: "translateY(-50%)",
-                      color: "#9ca3af",
+                      color: "var(--wbs-placeholder)",
                       cursor: "pointer",
                       fontSize: 16,
                       lineHeight: 1,
@@ -2614,8 +2614,8 @@ export function ProjectOnboardingPage() {
                       top: "calc(100% + 4px)",
                       left: 0,
                       right: 0,
-                      background: "#fff",
-                      border: "1px solid #d1d5db",
+                      background: "var(--wbs-card)",
+                      border: "1px solid var(--wbs-line)",
                       borderRadius: 6,
                       boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
                       zIndex: 300,
@@ -2624,7 +2624,7 @@ export function ProjectOnboardingPage() {
                     }}
                   >
                     {filteredByWbs.length === 0 ? (
-                      <div style={{ padding: "12px 14px", fontSize: 12, color: "#6b7280" }}>
+                      <div style={{ padding: "12px 14px", fontSize: 12, color: "var(--wbs-muted)" }}>
                         No projects with WBS ID match
                       </div>
                     ) : (
@@ -2660,9 +2660,9 @@ export function ProjectOnboardingPage() {
                             style={{
                               padding: "10px 14px",
                               cursor: "pointer",
-                              borderBottom: "1px solid #f3f4f6",
+                              borderBottom: "1px solid var(--wbs-line)",
                               background:
-                                renewalProject?.id === pAny.id ? "#eff6ff" : "transparent",
+                                renewalProject?.id === pAny.id ? "var(--wbs-hover)" : "transparent",
                             }}
                           >
                             <div
@@ -2674,10 +2674,10 @@ export function ProjectOnboardingPage() {
                               }}
                             >
                               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--wbs-text)" }}>
                                   {pAny.name}
                                 </span>
-                                <span style={{ fontSize: 11, color: "#6b7280" }}>
+                                <span style={{ fontSize: 11, color: "var(--wbs-muted)" }}>
                                   {c?.name || "Client"}
                                   {pAny.subVenture ? ` · ${pAny.subVenture}` : ""} · {pAny.wbsId || pAny.projectSeqId || pAny.id}
                                 </span>
@@ -2688,8 +2688,8 @@ export function ProjectOnboardingPage() {
                                   fontWeight: 600,
                                   padding: "2px 8px",
                                   borderRadius: 12,
-                                  background: "#dbeafe",
-                                  color: "#1e40af",
+                                  background: "var(--wbs-chip)",
+                                  color: "var(--wbs-chip-text)",
                                   flexShrink: 0,
                                 }}
                               >
@@ -2710,8 +2710,8 @@ export function ProjectOnboardingPage() {
         {/* ── Client Info Bar ── */}
         <div
           style={{
-            background: "#fff",
-            border: "1px solid #d1d5db",
+            background: "var(--wbs-card)",
+            border: "1px solid var(--wbs-line)",
             borderRadius: 8,
             padding: 16,
             marginBottom: 20,
@@ -2725,7 +2725,7 @@ export function ProjectOnboardingPage() {
                 width: 48,
                 height: 48,
                 borderRadius: "50%",
-                background: selectedClient ? "#1a84d4" : "#d1d5db",
+                background: selectedClient ? "#1a84d4" : "var(--wbs-line)",
                 color: "#fff",
                 display: "flex",
                 alignItems: "center",
@@ -2748,7 +2748,7 @@ export function ProjectOnboardingPage() {
                     style={{
                       fontSize: 11,
                       fontWeight: 600,
-                      color: "#6b7280",
+                      color: "var(--wbs-muted)",
                       marginBottom: 4,
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
@@ -2795,7 +2795,7 @@ export function ProjectOnboardingPage() {
                           right: 28,
                           top: "50%",
                           transform: "translateY(-50%)",
-                          color: "#9ca3af",
+                          color: "var(--wbs-placeholder)",
                           cursor: "pointer",
                           fontSize: 14,
                           lineHeight: 1,
@@ -2814,7 +2814,7 @@ export function ProjectOnboardingPage() {
                         right: 8,
                         top: "50%",
                         transform: "translateY(-50%)",
-                        color: "#374151",
+                        color: "var(--wbs-text)",
                         pointerEvents: "none",
                       }}
                     />
@@ -2826,8 +2826,8 @@ export function ProjectOnboardingPage() {
                           top: "calc(100% + 4px)",
                           left: 0,
                           right: 0,
-                          background: "#fff",
-                          border: "1px solid #d1d5db",
+                          background: "var(--wbs-card)",
+                          border: "1px solid var(--wbs-line)",
                           borderRadius: 6,
                           boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
                           zIndex: 300,
@@ -2836,7 +2836,7 @@ export function ProjectOnboardingPage() {
                         }}
                       >
                         {filteredClients.length === 0 ? (
-                          <div style={{ padding: "10px 12px", fontSize: 12, color: "#6b7280" }}>
+                          <div style={{ padding: "10px 12px", fontSize: 12, color: "var(--wbs-muted)" }}>
                             No customers match
                           </div>
                         ) : (
@@ -2856,8 +2856,8 @@ export function ProjectOnboardingPage() {
                                 padding: "9px 12px",
                                 cursor: "pointer",
                                 fontSize: 13,
-                                borderBottom: "1px solid #f3f4f6",
-                                background: c.id === selectedClientId ? "#eff6ff" : "transparent",
+                                borderBottom: "1px solid var(--wbs-line)",
+                                background: c.id === selectedClientId ? "var(--wbs-hover)" : "transparent",
                                 display: "flex",
                                 alignItems: "center",
                                 gap: 10,
@@ -2881,8 +2881,8 @@ export function ProjectOnboardingPage() {
                                 {c.logo?.charAt(0)}
                               </span>
                               <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                                <span style={{ fontWeight: 600, color: "#111827" }}>{c.name}</span>
-                                <span style={{ fontSize: 11, color: "#6b7280" }}>
+                                <span style={{ fontWeight: 600, color: "var(--wbs-text)" }}>{c.name}</span>
+                                <span style={{ fontSize: 11, color: "var(--wbs-muted)" }}>
                                   {c.subVentures?.length ?? 0} sub-ventures
                                 </span>
                               </div>
@@ -2900,7 +2900,7 @@ export function ProjectOnboardingPage() {
                     )}
                   </div>
                   {selectedClient && (
-                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>
+                    <div style={{ fontSize: 11, color: "var(--wbs-muted)", marginTop: 3 }}>
                       {selectedClient.industry} · {selectedClient.contact}
                     </div>
                   )}
@@ -2912,7 +2912,7 @@ export function ProjectOnboardingPage() {
                     style={{
                       fontSize: 11,
                       fontWeight: 600,
-                      color: "#6b7280",
+                      color: "var(--wbs-muted)",
                       marginBottom: 4,
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
@@ -2962,7 +2962,7 @@ export function ProjectOnboardingPage() {
                           right: 28,
                           top: "50%",
                           transform: "translateY(-50%)",
-                          color: "#9ca3af",
+                          color: "var(--wbs-placeholder)",
                           cursor: "pointer",
                           fontSize: 14,
                           lineHeight: 1,
@@ -2981,7 +2981,7 @@ export function ProjectOnboardingPage() {
                         right: 8,
                         top: "50%",
                         transform: "translateY(-50%)",
-                        color: "#374151",
+                        color: "var(--wbs-text)",
                         pointerEvents: "none",
                       }}
                     />
@@ -2993,8 +2993,8 @@ export function ProjectOnboardingPage() {
                           top: "calc(100% + 4px)",
                           left: 0,
                           right: 0,
-                          background: "#fff",
-                          border: "1px solid #d1d5db",
+                          background: "var(--wbs-card)",
+                          border: "1px solid var(--wbs-line)",
                           borderRadius: 6,
                           boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
                           zIndex: 300,
@@ -3003,7 +3003,7 @@ export function ProjectOnboardingPage() {
                         }}
                       >
                         {filteredSubVentures.length === 0 ? (
-                          <div style={{ padding: "10px 12px", fontSize: 12, color: "#6b7280" }}>
+                          <div style={{ padding: "10px 12px", fontSize: 12, color: "var(--wbs-muted)" }}>
                             No sub-ventures match
                           </div>
                         ) : (
@@ -3019,15 +3019,15 @@ export function ProjectOnboardingPage() {
                                 padding: "8px 12px",
                                 cursor: "pointer",
                                 fontSize: 13,
-                                borderBottom: "1px solid #f3f4f6",
+                                borderBottom: "1px solid var(--wbs-line)",
                                 background:
-                                  sv.name === selectedSubVenture ? "#eff6ff" : "transparent",
+                                  sv.name === selectedSubVenture ? "var(--wbs-hover)" : "transparent",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
                               }}
                             >
-                              <span style={{ color: "#111827" }}>{sv.name}</span>
+                              <span style={{ color: "var(--wbs-text)" }}>{sv.name}</span>
                               {sv.name === selectedSubVenture && (
                                 <span style={{ color: "#1a84d4", fontSize: 13 }}>✓</span>
                               )}
@@ -3038,7 +3038,7 @@ export function ProjectOnboardingPage() {
                     )}
                   </div>
                   {selectedClientId && (
-                    <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>
+                    <div style={{ fontSize: 11, color: "var(--wbs-muted)", marginTop: 3 }}>
                       {clientSubVentures.length} sub-ventures available
                     </div>
                   )}
@@ -3061,7 +3061,7 @@ export function ProjectOnboardingPage() {
                 <div>
                   <div
                     style={{
-                      color: "#6b7280",
+                      color: "var(--wbs-muted)",
                       fontSize: 11,
                       fontWeight: 600,
                       textTransform: "uppercase",
@@ -3069,14 +3069,14 @@ export function ProjectOnboardingPage() {
                   >
                     Customer ID
                   </div>
-                  <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
+                  <div style={{ fontWeight: 700, color: "var(--wbs-heading)", fontSize: 14 }}>
                     {selectedClient ? formatCustomerId(selectedClient.id) : "—"}
                   </div>
                 </div>
                 <div>
                   <div
                     style={{
-                      color: "#6b7280",
+                      color: "var(--wbs-muted)",
                       fontSize: 11,
                       fontWeight: 600,
                       textTransform: "uppercase",
@@ -3084,14 +3084,14 @@ export function ProjectOnboardingPage() {
                   >
                     Sub-Venture ID
                   </div>
-                  <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
+                  <div style={{ fontWeight: 700, color: "var(--wbs-heading)", fontSize: 14 }}>
                     {subVentureDisplayId}
                   </div>
                 </div>
                 <div>
                   <div
                     style={{
-                      color: "#6b7280",
+                      color: "var(--wbs-muted)",
                       fontSize: 11,
                       fontWeight: 600,
                       textTransform: "uppercase",
@@ -3099,7 +3099,7 @@ export function ProjectOnboardingPage() {
                   >
                     Project ID
                   </div>
-                  <div style={{ fontWeight: 700, color: "#1a5490", fontSize: 14 }}>
+                  <div style={{ fontWeight: 700, color: "var(--wbs-heading)", fontSize: 14 }}>
                     {projectId}
                   </div>
                 </div>
@@ -3107,7 +3107,7 @@ export function ProjectOnboardingPage() {
               <div>
                 <div
                   style={{
-                    color: "#6b7280",
+                    color: "var(--wbs-muted)",
                     fontSize: 11,
                     fontWeight: 600,
                     textTransform: "uppercase",
@@ -3219,7 +3219,7 @@ export function ProjectOnboardingPage() {
                 options={salesPersonOptions}
                 value={salesPerson}
                 onChange={setSalesPerson}
-                buttonClassName="h-10 min-h-10 rounded-md border-[#d1d5db] bg-white px-3 text-[13px] font-normal shadow-none"
+                buttonClassName="h-10 min-h-10 rounded-md border-border bg-card px-3 text-[13px] font-normal text-foreground shadow-none"
               />
             </FormGroup>
           </div>
@@ -3297,7 +3297,7 @@ export function ProjectOnboardingPage() {
                 gap: 8,
                 marginBottom: 16,
                 padding: 12,
-                background: "#f3f4f6",
+                background: "var(--wbs-locked)",
                 borderRadius: 6,
               }}
             >
@@ -3330,7 +3330,7 @@ export function ProjectOnboardingPage() {
           {/* Service table */}
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead style={{ background: "#f3f4f6" }}>
+              <thead style={{ background: "var(--wbs-locked)" }}>
                 <tr>
                   <th style={{ ...thStyle, minWidth: 140 }}>Department</th>
                   <th style={{ ...thStyle, minWidth: 180 }}>Sub-Department</th>
@@ -3361,7 +3361,7 @@ export function ProjectOnboardingPage() {
                   <tr>
                     <td
                       colSpan={21}
-                      style={{ ...tdStyle, textAlign: "center", color: "#6b7280", padding: 32 }}
+                      style={{ ...tdStyle, textAlign: "center", color: "var(--wbs-muted)", padding: 32 }}
                     >
                       No services added. Click "+ Add Services" to begin.
                     </td>
@@ -3391,7 +3391,7 @@ export function ProjectOnboardingPage() {
                           style={{
                             ...tblInputStyle(true),
                             minWidth: 140,
-                            background: "#f3f4f6",
+                            background: "var(--wbs-locked)",
                             color: FIELD_VALUE_COLOR,
                             WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
@@ -3407,7 +3407,7 @@ export function ProjectOnboardingPage() {
                           style={{
                             ...tblInputStyle(!!r.subDept),
                             minWidth: 180,
-                            background: "#f3f4f6",
+                            background: "var(--wbs-locked)",
                             color: r.subDept ? FIELD_VALUE_COLOR : FIELD_PLACEHOLDER_COLOR,
                             WebkitTextFillColor: r.subDept ? FIELD_VALUE_COLOR : FIELD_PLACEHOLDER_COLOR,
                             cursor: "not-allowed",
@@ -3423,7 +3423,7 @@ export function ProjectOnboardingPage() {
                           style={{
                             ...tblInputStyle(),
                             minWidth: 100,
-                            background: "#f3f4f6",
+                            background: "var(--wbs-locked)",
                             color: FIELD_VALUE_COLOR,
                             WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
@@ -3439,7 +3439,7 @@ export function ProjectOnboardingPage() {
                           style={{
                             ...tblInputStyle(),
                             minWidth: 200,
-                            background: "#f3f4f6",
+                            background: "var(--wbs-locked)",
                             color: FIELD_VALUE_COLOR,
                             WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
@@ -3487,7 +3487,7 @@ export function ProjectOnboardingPage() {
                             readOnly
                             style={{
                               ...tblInputStyle(true),
-                              background: "#f3f4f6",
+                              background: "var(--wbs-locked)",
                               cursor: "not-allowed",
                               minWidth: 120,
                               textAlign: "center",
@@ -3514,7 +3514,7 @@ export function ProjectOnboardingPage() {
                             readOnly
                             style={{
                               ...tblInputStyle(true),
-                              background: "#f3f4f6",
+                              background: "var(--wbs-locked)",
                               cursor: "not-allowed",
                               minWidth: 160,
                               textAlign: "center",
@@ -3564,7 +3564,7 @@ export function ProjectOnboardingPage() {
                               ? !r.locationText.trim()
                                 ? { border: "1.5px solid #ef4444" }
                                 : {}
-                              : { ...tblInputStyle(!!r.locationText), background: "#f3f4f6", cursor: "not-allowed" }),
+                              : { ...tblInputStyle(!!r.locationText), background: "var(--wbs-locked)", cursor: "not-allowed" }),
                           }}
                         />
                       </td>
@@ -3628,7 +3628,7 @@ export function ProjectOnboardingPage() {
                           style={{
                             ...tblInputStyle(),
                             minWidth: 80,
-                            background: "#f3f4f6",
+                            background: "var(--wbs-locked)",
                             color: FIELD_VALUE_COLOR,
                             WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
@@ -3644,7 +3644,7 @@ export function ProjectOnboardingPage() {
                           style={{
                             ...tblInputStyle(),
                             minWidth: 80,
-                            background: "#f3f4f6",
+                            background: "var(--wbs-locked)",
                             color: FIELD_VALUE_COLOR,
                             WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
@@ -3660,7 +3660,7 @@ export function ProjectOnboardingPage() {
                           style={{
                             ...tblInputStyle(),
                             minWidth: 80,
-                            background: "#f3f4f6",
+                            background: "var(--wbs-locked)",
                             color: FIELD_VALUE_COLOR,
                             WebkitTextFillColor: FIELD_VALUE_COLOR,
                             cursor: "not-allowed",
@@ -3681,7 +3681,7 @@ export function ProjectOnboardingPage() {
                           type="number"
                           value={r.total}
                           readOnly
-                          style={{ ...tblInputStyle(), background: "#f3f4f6", minWidth: 100 }}
+                          style={{ ...tblInputStyle(), background: "var(--wbs-locked)", minWidth: 100 }}
                         />
                       </td>
                       <td style={tdStyle}>
@@ -3712,7 +3712,7 @@ export function ProjectOnboardingPage() {
           {serviceRows.length > 0 && (
             <div
               style={{
-                background: "#f0f9ff",
+                background: "var(--wbs-row-1)",
                 padding: 12,
                 borderRadius: 6,
                 marginTop: 16,
@@ -3726,7 +3726,7 @@ export function ProjectOnboardingPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontWeight: 600 }}>Subtotal:</span>
-                <span style={{ fontWeight: 600, color: "#1a5490" }}>
+                <span style={{ fontWeight: 600, color: "var(--wbs-heading)" }}>
                   {sym}
                   {subtotal.toLocaleString()}
                 </span>
@@ -3744,24 +3744,24 @@ export function ProjectOnboardingPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontWeight: 600 }}>Invoice Target:</span>
-                <span style={{ fontWeight: 600, color: "#1a5490" }}>
+                <span style={{ fontWeight: 600, color: "var(--wbs-heading)" }}>
                   {sym}
                   {invoiceTarget.toLocaleString()}
                 </span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontWeight: 600 }}>Total Hours:</span>
-                <span style={{ fontWeight: 600, color: "#666" }}>{totalHours} hrs</span>
+                <span style={{ fontWeight: 600, color: "var(--wbs-muted)" }}>{totalHours} hrs</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontWeight: 600 }}>Total Days:</span>
-                <span style={{ fontWeight: 600, color: "#666" }}>{totalDays} days</span>
+                <span style={{ fontWeight: 600, color: "var(--wbs-muted)" }}>{totalDays} days</span>
               </div>
             </div>
           )}
 
           {/* Comments A */}
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #d1d5db" }}>
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--wbs-line)" }}>
             <label style={{ fontWeight: 600, fontSize: 14, display: "block", marginBottom: 12 }}>
               Comments / Notes
             </label>
@@ -3852,7 +3852,7 @@ export function ProjectOnboardingPage() {
                               textAlign: "right",
                             }}
                           />
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>%</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--wbs-text)" }}>%</span>
                         </div>
                         {customPayments.length > 1 && (
                           <button
@@ -3910,9 +3910,9 @@ export function ProjectOnboardingPage() {
                             setCustomPayments((prev) => [...prev, { label, pct: 0 }]);
                           }}
                           style={{
-                            background: isFull ? "#f3f4f6" : "#eff6ff",
-                            border: isFull ? "1px solid #e5e7eb" : "1px solid #bfdbfe",
-                            color: isFull ? "#9ca3af" : "#1d4ed8",
+                            background: isFull ? "var(--wbs-locked)" : "var(--wbs-hover)",
+                            border: isFull ? "1px solid var(--wbs-line)" : "1px solid var(--wbs-chip-line)",
+                            color: isFull ? "var(--wbs-placeholder)" : "#1d4ed8",
                             borderRadius: 4,
                             padding: "5px 12px",
                             cursor: isFull ? "not-allowed" : "pointer",
@@ -3996,7 +3996,7 @@ export function ProjectOnboardingPage() {
                   fontSize: 14,
                   display: "block",
                   marginBottom: 10,
-                  color: "#1a5490",
+                  color: "var(--wbs-heading)",
                 }}
               >
                 Invoice Scheduling
@@ -4005,19 +4005,19 @@ export function ProjectOnboardingPage() {
                 style={{
                   overflowX: "auto",
                   maxHeight: "400px",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--wbs-line)",
                   borderRadius: 8,
                   boxShadow: "0 1px 3px rgba(0,0,0,0.02)",
                 }}
               >
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead style={{ background: "#f9fafb", position: "sticky", top: 0, zIndex: 10 }}>
+                  <thead style={{ background: "var(--wbs-page)", position: "sticky", top: 0, zIndex: 10 }}>
                     {(() => {
                       const thStyleOverride: React.CSSProperties = {
                         padding: "12px 10px",
                         fontWeight: 600,
-                        color: "#4b5563",
-                        borderBottom: "2px solid #e5e7eb",
+                        color: "var(--wbs-muted)",
+                        borderBottom: "2px solid var(--wbs-line)",
                         textAlign: "center",
                         verticalAlign: "middle",
                         fontSize: 11,
@@ -4048,27 +4048,27 @@ export function ProjectOnboardingPage() {
                   <tbody>
                     {(() => {
                       const serviceGroupColors = [
-                        "#f0f7ff", // Soft Pastel Blue (Azure-like)
-                        "#f0fdf4", // Soft Pastel Green (Google Cloud-like)
-                        "#fffbeb", // Soft Pastel Yellow/Amber
-                        "#fdf2f8", // Soft Pastel Pink
-                        "#faf5ff", // Soft Pastel Purple
+                        "var(--wbs-row-1)",
+                        "var(--wbs-row-2)",
+                        "var(--wbs-row-3)",
+                        "var(--wbs-row-4)",
+                        "var(--wbs-row-5)",
                       ];
 
                       const getHoverColor = (color: string) => {
                         switch (color) {
-                          case "#f0f7ff":
-                            return "#e7f2ff";
-                          case "#f0fdf4":
-                            return "#e6faf0";
-                          case "#fffbeb":
-                            return "#fff9db";
-                          case "#fdf2f8":
-                            return "#fdf0f7";
-                          case "#faf5ff":
-                            return "#fbf3ff";
+                          case "var(--wbs-row-1)":
+                            return "var(--wbs-row-1-hover)";
+                          case "var(--wbs-row-2)":
+                            return "var(--wbs-row-2-hover)";
+                          case "var(--wbs-row-3)":
+                            return "var(--wbs-row-3-hover)";
+                          case "var(--wbs-row-4)":
+                            return "var(--wbs-row-4-hover)";
+                          case "var(--wbs-row-5)":
+                            return "var(--wbs-row-5-hover)";
                           default:
-                            return "#f9fafb";
+                            return "var(--wbs-page)";
                         }
                       };
 
@@ -4082,7 +4082,7 @@ export function ProjectOnboardingPage() {
 
                       const tdStyleOverride: React.CSSProperties = {
                         padding: "10px 8px",
-                        borderBottom: "1px solid #f3f4f6",
+                        borderBottom: "1px solid var(--wbs-line)",
                         verticalAlign: "middle",
                         textAlign: "center",
                         fontSize: 12,
@@ -4097,7 +4097,7 @@ export function ProjectOnboardingPage() {
 
                       return invoiceRows.map((inv) => {
                         const isHovered = hoveredInvoiceRowId === inv.rowId;
-                        const baseBg = serviceColorMap[inv.serviceId] || "#ffffff";
+                        const baseBg = serviceColorMap[inv.serviceId] || "var(--wbs-card)";
                         const bg = isHovered ? getHoverColor(baseBg) : baseBg;
 
                         const rowStyle: React.CSSProperties = {
@@ -4113,7 +4113,7 @@ export function ProjectOnboardingPage() {
                             onMouseLeave={() => setHoveredInvoiceRowId(null)}
                           >
                             {/* Service Name */}
-                            <td style={{ ...tdStyleOverride, fontWeight: 500, color: "#374151" }}>
+                            <td style={{ ...tdStyleOverride, fontWeight: 500, color: "var(--wbs-text)" }}>
                               {inv.serviceName}
                             </td>
 
@@ -4123,9 +4123,9 @@ export function ProjectOnboardingPage() {
                                 style={{
                                   display: "inline-flex",
                                   alignItems: "center",
-                                  background: "rgba(255, 255, 255, 0.7)",
-                                  border: "1px solid rgba(0, 0, 0, 0.05)",
-                                  color: "#374151",
+                                  background: "var(--wbs-veil)",
+                                  border: "1px solid var(--wbs-line)",
+                                  color: "var(--wbs-text)",
                                   padding: "2px 8px",
                                   borderRadius: 12,
                                   fontSize: 10,
@@ -4166,7 +4166,7 @@ export function ProjectOnboardingPage() {
                             </td>
 
                             {/* Invoice Amount */}
-                            <td style={{ ...tdStyleOverride, fontWeight: 600, color: "#1a5490" }}>
+                            <td style={{ ...tdStyleOverride, fontWeight: 600, color: "var(--wbs-heading)" }}>
                               {CURRENCY_SYMBOLS[inv.currency] || ""}
                               {inv.amount.toLocaleString()}
                             </td>
@@ -4200,7 +4200,7 @@ export function ProjectOnboardingPage() {
                                   fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
                                   fontSize: 11,
                                   ...(inv.invoiceStatus !== "Raised"
-                                    ? { backgroundColor: "#f3f4f6", cursor: "not-allowed", color: "#9ca3af" }
+                                    ? { backgroundColor: "var(--wbs-locked)", cursor: "not-allowed", color: "var(--wbs-placeholder)" }
                                     : !inv.invoiceNumber.trim()
                                       ? { borderColor: "#ef4444", backgroundColor: "#fef2f2" }
                                       : {}),
@@ -4221,7 +4221,7 @@ export function ProjectOnboardingPage() {
                                   textAlign: "center",
                                   textAlignLast: "center",
                                   ...(inv.invoiceStatus !== "Raised"
-                                    ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" }
+                                    ? { backgroundColor: "var(--wbs-locked)", cursor: "not-allowed" }
                                     : {}),
                                 }}
                               >
@@ -4245,7 +4245,7 @@ export function ProjectOnboardingPage() {
                                   ...(inv.paymentStatus === "Received" && !inv.paymentDate
                                     ? { border: "1.5px solid #ef4444" }
                                     : inv.paymentStatus !== "Received"
-                                      ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" }
+                                      ? { backgroundColor: "var(--wbs-locked)", cursor: "not-allowed" }
                                       : {}),
                                 }}
                               />
@@ -4283,7 +4283,7 @@ export function ProjectOnboardingPage() {
                       style={{ display: "none" }}
                     />
                   </label>
-                  <span style={{ fontSize: 12, color: poFile ? "#1f2937" : "#6b7280" }}>
+                  <span style={{ fontSize: 12, color: poFile ? "var(--wbs-text)" : "var(--wbs-muted)" }}>
                     {poFile ? poFile.name : "No file selected"}
                   </span>
                   {poFile && (
@@ -4307,7 +4307,7 @@ export function ProjectOnboardingPage() {
           )}
 
           {/* Comments B */}
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid #d1d5db" }}>
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid var(--wbs-line)" }}>
             <label style={{ fontWeight: 600, fontSize: 14, display: "block", marginBottom: 12 }}>
               Comments / Notes
             </label>
@@ -4409,7 +4409,7 @@ export function ProjectOnboardingPage() {
         >
           <div
             style={{
-              background: "#fff",
+              background: "var(--wbs-card)",
               borderRadius: 12,
               boxShadow: "0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.04)",
               width: "100%",
@@ -4417,19 +4417,19 @@ export function ProjectOnboardingPage() {
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
-              border: "1px solid #e5e7eb",
+              border: "1px solid var(--wbs-line)",
             }}
           >
             <div
               style={{
                 padding: "16px 20px",
-                borderBottom: "1px solid #e5e7eb",
+                borderBottom: "1px solid var(--wbs-line)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a5490" }}>Confirm WBS Creation</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--wbs-heading)" }}>Confirm WBS Creation</div>
               <button
                 onClick={() => {
                   if (!isCreatingWbs) setShowCreateWbsConfirm(false);
@@ -4439,7 +4439,7 @@ export function ProjectOnboardingPage() {
                   background: "none",
                   border: "none",
                   fontSize: 22,
-                  color: "#6b7280",
+                  color: "var(--wbs-muted)",
                   cursor: isCreatingWbs ? "not-allowed" : "pointer",
                   lineHeight: 1,
                   padding: "0 4px",
@@ -4450,7 +4450,7 @@ export function ProjectOnboardingPage() {
               </button>
             </div>
 
-            <div style={{ padding: "24px 20px", fontSize: 14, color: "#374151", lineHeight: 1.6 }}>
+            <div style={{ padding: "24px 20px", fontSize: 14, color: "var(--wbs-text)", lineHeight: 1.6 }}>
               Are you sure you want to create the WBS for this project?
             </div>
 
@@ -4460,8 +4460,8 @@ export function ProjectOnboardingPage() {
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: 10,
-                borderTop: "1px solid #f3f4f6",
-                background: "#fafafa",
+                borderTop: "1px solid var(--wbs-line)",
+                background: "var(--wbs-soft)",
               }}
             >
               <button
@@ -4516,7 +4516,7 @@ export function ProjectOnboardingPage() {
         >
           <div
             style={{
-              background: "#fff",
+              background: "var(--wbs-card)",
               borderRadius: 12,
               boxShadow: "0 20px 25px rgba(0,0,0,0.15)",
               width: "90%",
@@ -4530,13 +4530,13 @@ export function ProjectOnboardingPage() {
             <div
               style={{
                 padding: 20,
-                borderBottom: "1px solid #d1d5db",
+                borderBottom: "1px solid var(--wbs-line)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <div style={{ fontSize: 18, fontWeight: 700, color: "#1a5490" }}>Select Services</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--wbs-heading)" }}>Select Services</div>
               <button
                 onClick={() => setPickerOpen(false)}
                 style={{ background: "none", border: "none", fontSize: 24, cursor: "pointer" }}
@@ -4567,11 +4567,11 @@ export function ProjectOnboardingPage() {
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
-                          color: "#6b7280",
+                          color: "var(--wbs-muted)",
                           textTransform: "uppercase",
                           letterSpacing: "0.05em",
                           marginBottom: 8,
-                          borderBottom: "1px solid #e5e7eb",
+                          borderBottom: "1px solid var(--wbs-line)",
                           paddingBottom: 4,
                         }}
                       >
@@ -4604,15 +4604,15 @@ export function ProjectOnboardingPage() {
                                 }}
                                 style={{
                                   padding: 10,
-                                  border: "1px solid #d1d5db",
+                                  border: "1px solid var(--wbs-line)",
                                   borderRadius: 6,
                                   cursor: "pointer",
                                   display: "flex",
                                   justifyContent: "space-between",
                                   alignItems: "center",
                                   gap: 8,
-                                  background: isActiveDept && !pickerSubDept ? "#dbeafe" : "#fff",
-                                  borderColor: isActiveDept ? "#1a84d4" : "#d1d5db",
+                                  background: isActiveDept && !pickerSubDept ? "var(--wbs-chip)" : "var(--wbs-card)",
+                                  borderColor: isActiveDept ? "#1a84d4" : "var(--wbs-line)",
                                 }}
                               >
                                 <span
@@ -4630,7 +4630,7 @@ export function ProjectOnboardingPage() {
                                       flexShrink: 0,
                                       fontSize: 10,
                                       lineHeight: "16px",
-                                      color: "#6b7280",
+                                      color: "var(--wbs-muted)",
                                     }}
                                     aria-hidden
                                   >
@@ -4658,7 +4658,7 @@ export function ProjectOnboardingPage() {
                                     marginTop: 4,
                                     marginLeft: 8,
                                     paddingLeft: 8,
-                                    borderLeft: "2px solid #e5e7eb",
+                                    borderLeft: "2px solid var(--wbs-line)",
                                     display: "flex",
                                     flexDirection: "column",
                                     gap: 2,
@@ -4680,8 +4680,8 @@ export function ProjectOnboardingPage() {
                                           cursor: "pointer",
                                           fontSize: 12,
                                           fontWeight: isSelected ? 600 : 500,
-                                          color: isSelected ? "#1a5490" : "#374151",
-                                          background: isSelected ? "#dbeafe" : "transparent",
+                                          color: isSelected ? "var(--wbs-heading)" : "var(--wbs-text)",
+                                          background: isSelected ? "var(--wbs-chip)" : "transparent",
                                           lineHeight: 1.35,
                                         }}
                                       >
@@ -4730,12 +4730,12 @@ export function ProjectOnboardingPage() {
                   }}
                 >
                   {!pickerSubDept && !pickerSearchQuery && (
-                    <div style={{ fontSize: 13, color: "#6b7280", padding: "8px 2px" }}>
+                    <div style={{ fontSize: 13, color: "var(--wbs-muted)", padding: "8px 2px" }}>
                       Select a Sub-Department to view services.
                     </div>
                   )}
                   {(pickerSubDept || pickerSearchQuery) && filteredPickerServices.length === 0 && (
-                    <div style={{ fontSize: 13, color: "#6b7280", padding: "8px 2px" }}>
+                    <div style={{ fontSize: 13, color: "var(--wbs-muted)", padding: "8px 2px" }}>
                       No services match your search.
                     </div>
                   )}
@@ -4747,7 +4747,7 @@ export function ProjectOnboardingPage() {
                         key={`${svcDept}-${svc.id}`}
                         style={{
                           padding: 12,
-                          border: "1px solid #d1d5db",
+                          border: "1px solid var(--wbs-line)",
                           borderRadius: 6,
                           display: "flex",
                           alignItems: "center",
@@ -4775,7 +4775,7 @@ export function ProjectOnboardingPage() {
                         />
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: 13 }}>{svc.name}</div>
-                          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>
+                          <div style={{ fontSize: 11, color: "var(--wbs-muted)", marginTop: 2 }}>
                             {svc.tool} • ₹{svc.unitPrice.toLocaleString()} • {svc.days} days
                           </div>
                         </div>
@@ -4788,13 +4788,13 @@ export function ProjectOnboardingPage() {
             <div
               style={{
                 padding: "16px 20px",
-                borderTop: "1px solid #d1d5db",
+                borderTop: "1px solid var(--wbs-line)",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <span style={{ fontSize: 12, color: "#6b7280" }}>
+              <span style={{ fontSize: 12, color: "var(--wbs-muted)" }}>
                 Selected: <strong>{pickerTotalSelected}</strong> services
               </span>
               <div style={{ display: "flex", gap: 10 }}>
@@ -4831,8 +4831,8 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   return (
     <div
       style={{
-        background: "#fff",
-        border: "1px solid #d1d5db",
+        background: "var(--wbs-card)",
+        border: "1px solid var(--wbs-line)",
         borderRadius: 8,
         padding: 20,
         marginBottom: 20,
@@ -4843,7 +4843,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
         style={{
           fontSize: 16,
           fontWeight: 700,
-          color: "#1a5490",
+          color: "var(--wbs-heading)",
           marginBottom: 16,
           paddingBottom: 12,
           borderBottom: "2px solid #1a84d4",
@@ -4873,12 +4873,12 @@ function FormGroup({
         display: "flex",
         flexDirection: "column",
         gap: 6,
-        background: locked ? "#f3f4f6" : "transparent",
+        background: locked ? "var(--wbs-locked)" : "transparent",
         borderRadius: locked ? 6 : 0,
         padding: locked ? "4px 0" : 0,
       }}
     >
-      <label style={{ fontSize: 13, fontWeight: 600, color: "#1f2937" }}>
+      <label style={{ fontSize: 13, fontWeight: 600, color: "var(--wbs-text)" }}>
         {label}
         {required && <span style={{ color: "#ef4444" }}> *</span>}
         {locked && <span style={{ fontSize: 12, marginLeft: 4 }}>🔒</span>}
@@ -4890,8 +4890,8 @@ function FormGroup({
 
 // ─── Style helpers ────────────────────────────────────────────────────────────
 
-const FIELD_VALUE_COLOR = "#1f2937";
-const FIELD_PLACEHOLDER_COLOR = "#9ca3af";
+const FIELD_VALUE_COLOR = "var(--wbs-text)";
+const FIELD_PLACEHOLDER_COLOR = "var(--wbs-placeholder)";
 
 function fieldColor(hasValue: boolean): string {
   return hasValue ? FIELD_VALUE_COLOR : FIELD_PLACEHOLDER_COLOR;
@@ -4899,7 +4899,7 @@ function fieldColor(hasValue: boolean): string {
 
 const inputStyle = (locked: boolean, hasValue = true): React.CSSProperties => ({
   padding: "9px 12px",
-  border: "1px solid #d1d5db",
+  border: "1px solid var(--wbs-line)",
   borderRadius: 6,
   fontSize: 13,
   lineHeight: 1.4,
@@ -4909,25 +4909,20 @@ const inputStyle = (locked: boolean, hasValue = true): React.CSSProperties => ({
   minHeight: 40,
   boxSizing: "border-box" as const,
   overflow: "visible",
-  backgroundColor: locked ? "#f3f4f6" : "#fff",
+  backgroundColor: locked ? "var(--wbs-locked)" : "var(--wbs-card)",
   color: fieldColor(hasValue),
   WebkitTextFillColor: fieldColor(hasValue),
   opacity: 1,
   cursor: locked ? "not-allowed" : "auto",
 });
 
-/** Dropdown arrow used on <select> fields so they don't look like plain text inputs. */
-const SELECT_CHEVRON = `url("data:image/svg+xml,${encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
-)}")`;
-
 const selectArrow = (locked: boolean): React.CSSProperties => ({
   paddingRight: 32,
   appearance: "none",
   WebkitAppearance: "none",
   MozAppearance: "none",
-  backgroundColor: locked ? "#f3f4f6" : "#fff",
-  backgroundImage: SELECT_CHEVRON,
+  backgroundColor: locked ? "var(--wbs-locked)" : "var(--wbs-card)",
+  backgroundImage: "var(--wbs-chevron)",
   backgroundRepeat: "no-repeat",
   backgroundPosition: "right 10px center",
   backgroundSize: "16px 16px",
@@ -4943,7 +4938,7 @@ const tblInputStyle = (hasValue = true): React.CSSProperties => ({
   width: "100%",
   minWidth: 120,
   padding: "6px 8px",
-  border: "1px solid #d1d5db",
+  border: "1px solid var(--wbs-line)",
   borderRadius: 4,
   fontSize: 12,
   lineHeight: 1.4,
@@ -4969,14 +4964,14 @@ const thStyle: React.CSSProperties = {
   padding: "10px 8px",
   textAlign: "left",
   fontWeight: 600,
-  color: "#1f2937",
-  border: "1px solid #d1d5db",
+  color: "var(--wbs-text)",
+  border: "1px solid var(--wbs-line)",
   whiteSpace: "nowrap",
   fontSize: 11,
 };
 const tdStyle: React.CSSProperties = {
   padding: "6px 8px",
-  border: "1px solid #d1d5db",
+  border: "1px solid var(--wbs-line)",
   verticalAlign: "middle",
 };
 function btnStyle(variant: "primary" | "secondary"): React.CSSProperties {
@@ -4987,8 +4982,8 @@ function btnStyle(variant: "primary" | "secondary"): React.CSSProperties {
     fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",
-    background: variant === "primary" ? "#1a84d4" : "#f3f4f6",
-    color: variant === "primary" ? "#fff" : "#1f2937",
+    background: variant === "primary" ? "#1a84d4" : "var(--wbs-locked)",
+    color: variant === "primary" ? "#fff" : "var(--wbs-text)",
     transition: "all 0.2s",
   };
 }
@@ -5095,8 +5090,8 @@ function ResourceLevelCell({
             top: pos.top,
             left: pos.left,
             width: 280,
-            background: "#fff",
-            border: "1px solid #d1d5db",
+            background: "var(--wbs-card)",
+            border: "1px solid var(--wbs-line)",
             borderRadius: 8,
             boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
             zIndex: 1400,
@@ -5104,7 +5099,7 @@ function ResourceLevelCell({
             fontFamily: "inherit",
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#1a5490", marginBottom: 10 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--wbs-heading)", marginBottom: 10 }}>
             Resource Level Distribution
           </div>
           {RESOURCE_LEVELS.map((level) => (
@@ -5118,7 +5113,7 @@ function ResourceLevelCell({
                 gap: 8,
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#1f2937", width: 64 }}>{level}</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--wbs-text)", width: 64 }}>{level}</span>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <button
                   type="button"
@@ -5135,7 +5130,7 @@ function ResourceLevelCell({
                     textAlign: "center",
                     fontSize: 13,
                     fontWeight: 700,
-                    color: "#1f2937",
+                    color: "var(--wbs-text)",
                   }}
                 >
                   {draft[level]}
@@ -5212,9 +5207,9 @@ function stepperBtnStyle(disabled: boolean): React.CSSProperties {
     width: 26,
     height: 26,
     borderRadius: 4,
-    border: "1px solid #d1d5db",
-    background: disabled ? "#f3f4f6" : "#fff",
-    color: disabled ? "#9ca3af" : "#1f2937",
+    border: "1px solid var(--wbs-line)",
+    background: disabled ? "var(--wbs-locked)" : "var(--wbs-card)",
+    color: disabled ? "var(--wbs-placeholder)" : "var(--wbs-text)",
     fontSize: 16,
     fontWeight: 700,
     lineHeight: 1,

@@ -1352,6 +1352,8 @@ export interface DhCentralApproval {
 
   requestedDate: string;
 
+  createdAtUtc?: string;
+
 
 
 
@@ -1639,6 +1641,8 @@ export interface LeadershipChangeRequest {
 
 
   requestedDate: string;
+
+  createdAtUtc?: string;
 
 
 
@@ -2231,6 +2235,8 @@ export interface DhAdditionalRequirement {
 
 
   requestedDate: string;
+
+  createdAtUtc?: string;
 
 
 
@@ -4642,6 +4648,8 @@ export interface DhNotification {
   status: "Pending" | "Acknowledged" | "Open" | "In Progress" | "Resolved" | "Closed" | string;
   priority: "Low" | "Medium" | "High" | "Critical" | "-" | string;
   unread: boolean;
+  projectId?: string;
+  issueId?: string;
   issueTitle?: string;
   issueDescription?: string;
   issueType?: string;

@@ -9,14 +9,15 @@ using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Infrastructure.Storage;
 using PMS.API.Modules.ActionCentre.Services;
-using PMS.API.Modules.Auth.Services;
 using PMS.API.Modules.Catalogs.Services;
 using PMS.API.Modules.Customers.Services;
 using PMS.API.Modules.Dashboard.Services;
 using PMS.API.Modules.MyTeam.Services;
+using PMS.API.Modules.Timesheets.Jobs;
 using PMS.API.Modules.Timesheets.Services;
 using PMS.API.Modules.Projects.Services;
 using PMS.API.Modules.Repository.Services;
+using PMS.API.Modules.Resources.Jobs;
 using PMS.API.Modules.Resources.Services;
 using PMS.API.Modules.Sla.Jobs;
 using PMS.API.Modules.Sla.Services;
@@ -43,9 +44,6 @@ public static class DependencyInjectionExtensions
 
         // ---- Security / Authentication (M365 Transition) ----
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
-        services.Configure<AzureAdOptions>(configuration.GetSection(AzureAdOptions.SectionName));
-        services.AddHttpClient("microsoft");
-        services.AddScoped<MicrosoftSignInService>();
         services.AddSingleton<JwtTokenService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 
@@ -63,9 +61,13 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProjectMastersService, ProjectMastersService>();
         services.AddScoped<IResourceMastersService, ResourceMastersService>();
         services.AddScoped<IEmployeeService, EmployeeService>();
+        services.AddScoped<IOffboardingNotificationService, OffboardingNotificationService>();
+        services.AddTransient<EmployeeOffboardingReminderJob>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRepositoryService, RepositoryService>();
         services.AddScoped<IMyTeamService, MyTeamService>();
+        services.AddScoped<ITimesheetNotificationService, TimesheetNotificationService>();
+        services.AddTransient<TimesheetReminderJob>();
         services.AddScoped<ITimesheetService, TimesheetService>();
         services.AddScoped<IProjectAppService, ProjectAppService>();
         services.AddScoped<IProjectDraftService, ProjectDraftService>();

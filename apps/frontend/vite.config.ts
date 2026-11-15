@@ -67,6 +67,10 @@ export default defineConfig(({ command, mode }) => {
           target: process.env.VITE_BACKEND_URL || "http://localhost:5194",
           changeOrigin: true,
         },
+        "/hangfire": {
+          target: process.env.VITE_BACKEND_URL || "http://localhost:5194",
+          changeOrigin: true,
+        },
       },
     },
   };

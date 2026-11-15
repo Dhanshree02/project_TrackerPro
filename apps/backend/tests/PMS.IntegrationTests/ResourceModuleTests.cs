@@ -3,7 +3,11 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.Resources.DTOs;
+using PMS.API.Modules.Resources.Models;
 using PMS.API.Shared.Common.Wrappers;
 
 namespace PMS.IntegrationTests;
@@ -11,9 +15,11 @@ namespace PMS.IntegrationTests;
 public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
+    private readonly WebApplicationFactory<Program> _factory;
 
     public ResourceModuleTests(WebApplicationFactory<Program> factory)
     {
+        _factory = factory;
         factory = factory.WithWebHostBuilder(b =>
             b.UseSetting("Database:AutoMigrate", "false"));
         _client = factory.CreateClient();
@@ -584,6 +590,191 @@ public class ResourceModuleTests : IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(0, second.Data!.Created);
         Assert.True(second.Data.Failed >= 1);
         Assert.Contains(second.Data.Errors, e =>
-            e.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase));
+            e.Message.Contains("already exist", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task UpdateEmployee_OnlyReportingManagerChanged_GeneratesNotificationWithOnlyReportingManager()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var joiningDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-3));
+        var bondExpiry = joiningDate.AddMonths(24);
+        var manager1 = await db.Employees.FirstOrDefaultAsync(e => e.DeletedAtUtc == null);
+        Assert.NotNull(manager1);
+        var manager2 = await db.Employees.FirstOrDefaultAsync(e => e.DeletedAtUtc == null && e.Id != manager1.Id);
+        Assert.NotNull(manager2);
+
+        var code = "TK-" + Random.Shared.Next(1000, 9999).ToString("D4");
+        var emp = new Employee
+        {
+            Id = Guid.NewGuid(),
+            EmployeeCode = code,
+            FirstName = "TestRohan",
+            LastName = "Deshpande",
+            WorkEmail = $"testrohan.{Guid.NewGuid():N}@talakunchi.com",
+            ReportingManagerId = manager1.Id,
+            Experience = "2 yrs 0 mos (Relevant: 2 yrs 0 mos)",
+            PriorTotalExp = "2 yrs 0 mos",
+            PriorRelevantExp = "2 yrs 0 mos",
+            BondDelivered = "Yes",
+            BondDurationMonths = 24,
+            BondExpiryDate = bondExpiry,
+            BondStatus = "Completed",
+            JoiningDate = joiningDate,
+            BillableStatus = "Billable",
+            ProjectType = "Long Term",
+            Category = "Permanent - Bond",
+            Status = "Active",
+            ConfirmationStatus = "Active",
+            Role = "Employee",
+            BusinessUnit = "Talakunchi Networks Private Limited",
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        db.Employees.Add(emp);
+        await db.SaveChangesAsync();
+
+        var updateReq = new UpdateEmployeeRequest(
+            EmployeeCode: emp.EmployeeCode,
+            FirstName: emp.FirstName,
+            LastName: emp.LastName,
+            WorkEmail: emp.WorkEmail,
+            ReportingManagerId: manager2.Id,
+            Experience: "2 Years (Relevant: 2 Years)",
+            PriorTotalExp: "2 Years",
+            PriorRelevantExp: "2 Years",
+            BondStatus: "Expired",
+            BondExpiryDate: bondExpiry,
+            BondDelivered: "Yes",
+            BondDurationMonths: 24,
+            BillableStatus: "Billable",
+            ProjectType: "Long Term",
+            Category: "Permanent - Bond",
+            Status: "Active",
+            ConfirmationStatus: "Active",
+            Role: "Employee",
+            BusinessUnit: "Talakunchi Networks Private Limited",
+            JoiningDate: joiningDate
+        );
+
+        var updateRes = await _client.PutAsJsonAsync($"/api/v1/employees/{emp.Id}", updateReq);
+        Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
+
+        var notif = await db.ActionNotifications
+            .OrderByDescending(n => n.CreatedAtUtc)
+            .FirstOrDefaultAsync(n => n.RecipientEmployeeId == manager2.Id && n.RelatedTask == emp.EmployeeCode);
+
+        Assert.NotNull(notif);
+        Assert.Contains("change their profile Reporting Manager by", notif.Title);
+        Assert.DoesNotContain("Experience", notif.Title);
+        Assert.DoesNotContain("Bond Status", notif.Title);
+        Assert.DoesNotContain("Billable Status", notif.Title);
+        Assert.DoesNotContain("Project Type", notif.Title);
+        Assert.DoesNotContain("Prior Total Experience", notif.Title);
+        Assert.DoesNotContain("Prior Relevant Experience", notif.Title);
+        Assert.DoesNotContain("Bond Expiry Date", notif.Title);
+
+        var log = await db.EmployeeActivityLogs
+            .OrderByDescending(l => l.CreatedAtUtc)
+            .FirstOrDefaultAsync(l => l.EmployeeId == emp.Id && l.Action == "Updated");
+
+        Assert.NotNull(log);
+        Assert.Equal("Updated: Reporting Manager", log.Details);
+    }
+
+    [Fact]
+    public async Task UpdateEmployee_WithNullLegacyFields_EditingOnlyReportingManager_DoesNotTriggerFalsePositives()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var joiningDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-3));
+        var manager1 = await db.Employees.FirstOrDefaultAsync(e => e.DeletedAtUtc == null);
+        Assert.NotNull(manager1);
+        var manager2 = await db.Employees.FirstOrDefaultAsync(e => e.DeletedAtUtc == null && e.Id != manager1.Id);
+        Assert.NotNull(manager2);
+
+        var code = "TK-" + Random.Shared.Next(1000, 9999).ToString("D4");
+        var emp = new Employee
+        {
+            Id = Guid.NewGuid(),
+            EmployeeCode = code,
+            FirstName = "LegacyRohan",
+            LastName = "Deshpande",
+            WorkEmail = $"legacyrohan.{Guid.NewGuid():N}@talakunchi.com",
+            ReportingManagerId = manager1.Id,
+            Experience = "Fresher",
+            PriorTotalExp = "0",
+            PriorRelevantExp = "0",
+            BondDelivered = "Yes",
+            BondDurationMonths = 24,
+            BondExpiryDate = null,
+            BondStatus = null,
+            JoiningDate = joiningDate,
+            BillableStatus = null,
+            ProjectType = null,
+            Category = "Permanent - Bond",
+            Status = "Active",
+            ConfirmationStatus = "Active",
+            Role = "Employee",
+            BusinessUnit = "Talakunchi Networks Private Limited",
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        db.Employees.Add(emp);
+        await db.SaveChangesAsync();
+
+        var updateReq = new UpdateEmployeeRequest(
+            EmployeeCode: emp.EmployeeCode,
+            FirstName: emp.FirstName,
+            LastName: emp.LastName,
+            WorkEmail: emp.WorkEmail,
+            ReportingManagerId: manager2.Id,
+            Experience: "Fresher",
+            PriorTotalExp: "0",
+            PriorRelevantExp: "0",
+            BondStatus: "Expired",
+            BondExpiryDate: joiningDate.AddMonths(24),
+            BondDelivered: "Yes",
+            BondDurationMonths: 24,
+            BillableStatus: null,
+            ProjectType: null,
+            Category: "Permanent - Bond",
+            Status: "Active",
+            ConfirmationStatus: "Active",
+            Role: "Employee",
+            BusinessUnit: "Talakunchi Networks Private Limited",
+            JoiningDate: joiningDate
+        );
+
+        var updateRes = await _client.PutAsJsonAsync($"/api/v1/employees/{emp.Id}", updateReq);
+        Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
+
+        var notif = await db.ActionNotifications
+            .OrderByDescending(n => n.CreatedAtUtc)
+            .FirstOrDefaultAsync(n => n.RecipientEmployeeId == manager2.Id && n.RelatedTask == emp.EmployeeCode);
+
+        Assert.NotNull(notif);
+        Assert.Contains("change their profile Reporting Manager by", notif.Title);
+        Assert.DoesNotContain("Experience", notif.Title);
+        Assert.DoesNotContain("Bond Status", notif.Title);
+        Assert.DoesNotContain("Billable Status", notif.Title);
+        Assert.DoesNotContain("Project Type", notif.Title);
+        Assert.DoesNotContain("Prior Total Experience", notif.Title);
+        Assert.DoesNotContain("Prior Relevant Experience", notif.Title);
+        Assert.DoesNotContain("Bond Expiry Date", notif.Title);
+
+        var log = await db.EmployeeActivityLogs
+            .OrderByDescending(l => l.CreatedAtUtc)
+            .FirstOrDefaultAsync(l => l.EmployeeId == emp.Id && l.Action == "Updated");
+
+        Assert.NotNull(log);
+        Assert.Equal("Updated: Reporting Manager", log.Details);
     }
 }

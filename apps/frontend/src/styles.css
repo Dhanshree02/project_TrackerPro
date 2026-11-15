@@ -344,6 +344,72 @@
     font-weight: 400;
   }
 
+  /* WBS creation uses inline colors. These variables keep light mode as it is and follow dark mode.
+     They sit on the root so dropdowns portaled outside the form still pick them up. */
+  :root {
+    --wbs-page: #f9fafb;
+    --wbs-card: #ffffff;
+    --wbs-text: #1f2937;
+    --wbs-muted: #6b7280;
+    --wbs-line: #d1d5db;
+    --wbs-locked: #f3f4f6;
+    --wbs-placeholder: #9ca3af;
+    --wbs-soft: #fafafa;
+    --wbs-hover: #eff6ff;
+    --wbs-chip: #dbeafe;
+    --wbs-chip-text: #1e40af;
+    --wbs-chip-line: #bfdbfe;
+    --wbs-heading: #1a5490;
+    --wbs-veil: rgba(255, 255, 255, 0.7);
+    --wbs-row-1: #f0f7ff;
+    --wbs-row-1-hover: #e7f2ff;
+    --wbs-row-2: #f0fdf4;
+    --wbs-row-2-hover: #e6faf0;
+    --wbs-row-3: #fffbeb;
+    --wbs-row-3-hover: #fff9db;
+    --wbs-row-4: #fdf2f8;
+    --wbs-row-4-hover: #fdf0f7;
+    --wbs-row-5: #faf5ff;
+    --wbs-row-5-hover: #fbf3ff;
+    --wbs-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  }
+
+  .wbs-onboarding-form {
+    color-scheme: light;
+  }
+
+  .dark {
+    --wbs-page: var(--background);
+    --wbs-card: var(--card);
+    --wbs-text: var(--foreground);
+    --wbs-muted: var(--muted-foreground);
+    --wbs-line: var(--border);
+    --wbs-locked: var(--muted);
+    --wbs-placeholder: var(--muted-foreground);
+    --wbs-soft: var(--muted);
+    --wbs-hover: color-mix(in oklch, var(--primary) 22%, var(--card));
+    --wbs-chip: color-mix(in oklch, var(--primary) 28%, var(--card));
+    --wbs-chip-text: var(--foreground);
+    --wbs-chip-line: color-mix(in oklch, var(--primary) 45%, var(--border));
+    --wbs-heading: color-mix(in oklch, var(--primary) 55%, white);
+    --wbs-veil: color-mix(in oklch, var(--card) 72%, transparent);
+    --wbs-row-1: color-mix(in oklch, var(--primary) 18%, var(--card));
+    --wbs-row-1-hover: color-mix(in oklch, var(--primary) 28%, var(--card));
+    --wbs-row-2: color-mix(in oklch, var(--success) 16%, var(--card));
+    --wbs-row-2-hover: color-mix(in oklch, var(--success) 26%, var(--card));
+    --wbs-row-3: color-mix(in oklch, var(--warning) 16%, var(--card));
+    --wbs-row-3-hover: color-mix(in oklch, var(--warning) 26%, var(--card));
+    --wbs-row-4: color-mix(in oklch, var(--chart-5) 16%, var(--card));
+    --wbs-row-4-hover: color-mix(in oklch, var(--chart-5) 26%, var(--card));
+    --wbs-row-5: color-mix(in oklch, var(--chart-3) 16%, var(--card));
+    --wbs-row-5-hover: color-mix(in oklch, var(--chart-3) 26%, var(--card));
+    --wbs-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23e5e7eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  }
+
+  .dark .wbs-onboarding-form {
+    color-scheme: dark;
+  }
+
   /* Hide number input spinners for custom payment % fields */
   input.no-spinner::-webkit-inner-spin-button,
   input.no-spinner::-webkit-outer-spin-button {

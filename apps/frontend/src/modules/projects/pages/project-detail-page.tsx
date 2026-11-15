@@ -6374,11 +6374,11 @@ const visibleApprovers = useMemo(() => {
 
 
 
-              {/* Floating dropdown overlay - opens upward so modal window length NEVER increases */}
+              {/* In-flow dropdown panel so it never overlays or hides the footer Cancel & Submit buttons */}
 
               {showSearch && (
 
-                <div className="absolute top-full mt-1.5 left-0 right-0 z-50 rounded-lg border border-border bg-card shadow-2xl p-2.5 space-y-2 max-h-56 flex flex-col">
+                <div className="mt-1.5 rounded-lg border border-border bg-card shadow-xs p-2.5 space-y-2 max-h-52 flex flex-col">
 
                   <div className="flex items-center justify-between border-b border-border pb-1.5 px-0.5">
 
@@ -6606,9 +6606,9 @@ const visibleApprovers = useMemo(() => {
 
             {formError && <p className="text-[11px] text-destructive">{formError}</p>}
 
-            <div className="flex justify-end gap-2 border-t border-border pt-3">
+            <div className="flex justify-end gap-2 border-t border-border pt-3 mt-3">
 
-              <button type="button" onClick={() => setOpen(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button type="button" onClick={() => setOpen(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent cursor-pointer transition-colors">Cancel</button>
 
               <button
 
@@ -6618,11 +6618,11 @@ const visibleApprovers = useMemo(() => {
 
                 disabled={saving || !reason.trim() || taggedIds.length === 0}
 
-                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer transition-colors"
 
               >
 
-                Submit Request
+                {saving ? "Submitting..." : "Submit Request"}
 
               </button>
 

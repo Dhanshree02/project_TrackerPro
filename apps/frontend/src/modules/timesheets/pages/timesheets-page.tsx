@@ -34,6 +34,8 @@ import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import {
   decideTimesheet,
+  getMyAssignedProjects,
+  getMyAssignedTasks,
   getMyTimesheet,
   getPreviousTimesheet,
   listMyTimesheetHistory,
@@ -249,7 +251,12 @@ function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
   const { years } = useFinancialYear();
   const { user: authUser } = useAuth();
   const { user, employeePersonId } = useRoleContext();
-  const effectiveEmployeeId = authUser?.employeeId || employeePersonId || (user as any)?.employeeId;
+  const effectiveEmployeeId =
+    authUser?.employeeId ||
+    employeePersonId ||
+    (user as any)?.employeeId ||
+    authUser?.id ||
+    (user as any)?.id;
 
   const [weekStart, setWeekStart] = useState(initialWeek || thisMonday());
   const [weekStatus, setWeekStatus] = useState<TimesheetWeek["status"]>("draft");
@@ -273,61 +280,102 @@ function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
   const dayTotals = days.map((_, di) => rows.reduce((s, r) => s + (Number(r.hours[di]) || 0), 0));
   const total = dayTotals.reduce((a, b) => a + b, 0);
 
-  // Load real tasks for a specific project from backend DB
+  // Load real tasks assigned to the current employee for a specific project from backend DB
   const loadTasksForProject = useCallback(async (projectId: string) => {
     if (!projectId) return;
     setLoadingTasks((prev) => ({ ...prev, [projectId]: true }));
     try {
-      const apiTasks = await fetchProjectTasks(projectId);
-      setTasksByProject((prev) => ({
-        ...prev,
-        [projectId]: apiTasks.map((t) => ({
+      let assignedTasks: Array<{ id: string; title: string; serviceName?: string; stage?: string; estimatedHours?: number }> = [];
+
+      // 1. Try dedicated endpoint for caller's assigned tasks
+      const mineTasks = await getMyAssignedTasks(projectId).catch(() => null);
+      if (mineTasks && Array.isArray(mineTasks) && mineTasks.length > 0) {
+        assignedTasks = mineTasks.map((t) => ({
           id: t.id,
           title: t.title,
           serviceName: t.serviceName?.trim() || undefined,
           stage: t.stage,
           estimatedHours: t.estimatedHours ?? undefined,
-        })),
+        }));
+      } else {
+        // 2. Query project tasks with employeeId filter
+        const apiTasks = await fetchProjectTasks(projectId, undefined, undefined, undefined, false, effectiveEmployeeId || undefined);
+        const filtered = effectiveEmployeeId
+          ? apiTasks.filter(
+              (t) =>
+                !t.assignments ||
+                t.assignments.length === 0 ||
+                t.assignments.some(
+                  (a) =>
+                    a.employeeId?.toLowerCase() === effectiveEmployeeId.toLowerCase() &&
+                    a.isActive !== false,
+                ),
+            )
+          : apiTasks;
+
+        assignedTasks = (filtered ?? []).map((t) => ({
+          id: t.id,
+          title: t.title,
+          serviceName: t.serviceName?.trim() || undefined,
+          stage: t.stage,
+          estimatedHours: t.estimatedHours ?? undefined,
+        }));
+      }
+
+      setTasksByProject((prev) => ({
+        ...prev,
+        [projectId]: assignedTasks,
       }));
     } catch (err) {
-      console.error(`Failed to load tasks for project ${projectId}:`, err);
+      console.error(`Failed to load assigned tasks for project ${projectId}:`, err);
     } finally {
       setLoadingTasks((prev) => ({ ...prev, [projectId]: false }));
     }
-  }, []);
+  }, [effectiveEmployeeId]);
 
-  // Load real projects from database (filtered to assigned employee, falling back to all active)
+  // Load real assigned projects from database for the current employee
   useEffect(() => {
     let cancelled = false;
     setLoadingProjects(true);
 
     async function loadProjects() {
       try {
-        let res = effectiveEmployeeId
-          ? await fetchProjects({ employeeId: effectiveEmployeeId, status: "active", perPage: 200 })
-          : null;
+        let projects: Array<{ id: string; name: string; projectCode?: string; startDate?: string | null; endDate?: string | null; wbsId?: string | null }> = [];
 
-        // If no assigned projects found, fallback to active projects so timesheet is loggable
-        if (!res || !res.items || res.items.length === 0) {
-          res = await fetchProjects({ status: "active", perPage: 200 });
-        }
-
-        if (!res || !res.items || res.items.length === 0) {
-          res = await fetchProjects({ perPage: 200 });
-        }
-
-        if (!cancelled && res?.items) {
-          setDbProjects(res.items.map((p) => ({
+        // 1. Try dedicated endpoint for caller's assigned projects
+        const mineRes = await getMyAssignedProjects().catch(() => null);
+        if (mineRes) {
+          const items = Array.isArray(mineRes) ? mineRes : (mineRes as any).items ?? [];
+          projects = items.map((p: any) => ({
             id: p.id,
             name: p.name,
             projectCode: p.projectCode,
             startDate: p.startDate,
             endDate: p.endDate,
             wbsId: p.wbsId,
-          })));
+          }));
+        }
+
+        // 2. Fallback to fetchProjects with employeeId filter if mine endpoint was empty
+        if (projects.length === 0 && effectiveEmployeeId) {
+          const res = await fetchProjects({ employeeId: effectiveEmployeeId, status: "active", perPage: 200 }).catch(() => null);
+          if (res?.items && res.items.length > 0) {
+            projects = res.items.map((p) => ({
+              id: p.id,
+              name: p.name,
+              projectCode: p.projectCode,
+              startDate: p.startDate,
+              endDate: p.endDate,
+              wbsId: p.wbsId,
+            }));
+          }
+        }
+
+        if (!cancelled) {
+          setDbProjects(projects);
         }
       } catch (err) {
-        console.error("Failed to load real projects from DB:", err);
+        console.error("Failed to load assigned projects from DB:", err);
       } finally {
         if (!cancelled) setLoadingProjects(false);
       }
@@ -585,9 +633,15 @@ function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
                           loadTasksForProject(projectId);
                         }
                       }}
-                      placeholder={loadingProjects ? "Loading projects…" : "Select project"}
+                      placeholder={
+                        loadingProjects
+                          ? "Loading projects…"
+                          : projectOptions.length === 0
+                            ? "No assigned projects"
+                            : "Select project"
+                      }
                       searchPlaceholder="Search projects…"
-                      disabled={locked}
+                      disabled={locked || (projectOptions.length === 0 && !loadingProjects)}
                     />
                   </td>
                   <td className="px-3 py-2 align-top">
@@ -620,7 +674,7 @@ function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
                               : isTaskLoading
                                 ? "Loading tasks…"
                                 : pTasks.length === 0
-                                  ? "No tasks in this project"
+                                  ? "No assigned tasks in this project"
                                   : "Select task"
                           }
                           searchPlaceholder="Search tasks…"

@@ -37,7 +37,7 @@ public interface IProjectAppService
 
     Task<bool> DeleteProjectServiceAsync(Guid projectId, Guid serviceId, CancellationToken ct = default);
 
-    Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default);
+    Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, Guid? employeeId = null, bool includeDeleted = false, CancellationToken ct = default);
 
     Task<IReadOnlyList<TaskSearchHitDto>> SearchTasksAsync(string? search, int limit, CancellationToken ct = default);
 
