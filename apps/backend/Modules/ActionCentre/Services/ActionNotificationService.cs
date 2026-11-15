@@ -433,7 +433,7 @@ public sealed class ActionNotificationService(
 
         // Backfill any escalation details if not directly present on older project alert records
 
-        var wbsAlerts = rows.Where(r => r.AlertType == "WBS Escalation" && (r.AttachmentFileName == null || r.ExpectedResolutionDate == null)).ToList();
+        var wbsAlerts = rows.Where(r => (r.AlertType == "WBS Escalation" || (r.AlertType != null && r.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase)) || r.ServiceEscalationId.HasValue) && (r.AttachmentFileName == null || r.ExpectedResolutionDate == null)).ToList();
 
         if (wbsAlerts.Count > 0)
 
@@ -563,7 +563,7 @@ public sealed class ActionNotificationService(
 
 
 
-        if (string.IsNullOrWhiteSpace(path) && alert.AlertType == "WBS Escalation")
+        if (string.IsNullOrWhiteSpace(path) && (alert.AlertType == "WBS Escalation" || (alert.AlertType != null && alert.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase)) || alert.ServiceEscalationId.HasValue))
 
         {
 
@@ -947,7 +947,7 @@ public sealed class ActionNotificationService(
         }
 
         // Synchronize status and history to all related notifications for WBS Escalation across all recipients
-        if (alert.ServiceEscalationId.HasValue || alert.AlertType == "WBS Escalation" || (alert.Title != null && alert.Title.Contains("WBS Escalation")))
+        if (alert.ServiceEscalationId.HasValue || alert.AlertType == "WBS Escalation" || (alert.AlertType != null && alert.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase)) || (alert.Title != null && alert.Title.Contains("WBS Escalation")))
         {
             var relatedWbsNotifs = await db.ActionNotifications
                 .Where(n => (n.Type == "WBS Escalation" || n.Title.Contains("WBS Escalation"))
@@ -1313,9 +1313,9 @@ public sealed class ActionNotificationService(
 
             CustomerName = a.Project?.Client?.Name ?? "",
 
-            AlertType = a.AlertType ?? "Issue",
+            AlertType = ResolveAlertDisplayType(a),
 
-            Kind = a.AlertType == "WBS Escalation" ? "Escalation" : "Alert",
+            Kind = IsWbsEscalationAlert(a) ? "Escalation" : "Alert",
 
             Priority = a.Priority,
 
@@ -1361,6 +1361,34 @@ public sealed class ActionNotificationService(
 
         };
 
+    }
+
+    private static bool IsWbsEscalationAlert(ProjectAlert a)
+    {
+        return a.ServiceEscalationId.HasValue
+            || (!string.IsNullOrWhiteSpace(a.AlertType) && a.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(a.Title) && a.Title.Contains("WBS Escalation", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string ResolveAlertDisplayType(ProjectAlert a)
+    {
+        if (!string.IsNullOrWhiteSpace(a.AlertType) && (a.AlertType.StartsWith("issue:", StringComparison.OrdinalIgnoreCase) || a.AlertType.StartsWith("WBS:", StringComparison.OrdinalIgnoreCase)))
+        {
+            return a.AlertType;
+        }
+
+        if (IsWbsEscalationAlert(a))
+        {
+            var escType = !string.IsNullOrWhiteSpace(a.EscalationType)
+                ? a.EscalationType.Trim()
+                : (!string.IsNullOrWhiteSpace(a.Description) && a.Description.Contains(':') ? a.Description.Split(':')[0].Trim() : "Escalation");
+            return $"WBS:{escType}";
+        }
+
+        var issueType = !string.IsNullOrWhiteSpace(a.EscalationType)
+            ? a.EscalationType.Trim()
+            : (!string.IsNullOrWhiteSpace(a.ServiceName) ? a.ServiceName.Trim() : "Issue");
+        return $"issue:{issueType}";
     }
 
 

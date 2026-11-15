@@ -159,6 +159,7 @@ import { Field } from "@/components/form-row";
 
 import {
   createProjectIssue,
+  raiseBucketListIssue,
   fetchMyAssignedProjects,
   type AssignedProjectSummary,
 } from "@/modules/projects/api/project-issues";
@@ -250,11 +251,11 @@ export function ActionCentrePage() {
     return actionTabs.filter((tab) => {
       if (isAdmin || isDhanshree) return true;
       if (tab.code === "approvals") {
-        return canView("approvals") || canView("action-centre") || canView("action-center") || hasPermission("action-center.view");
+        return canView("approvals") || canView("action-centre") || canView("action-center") || hasPermission("action-center.view") || (store.approvals && store.approvals.length > 0);
       }
       return canView(tab.code);
     });
-  }, [isAdmin, isDhanshree, canView, hasPermission]);
+  }, [isAdmin, isDhanshree, canView, hasPermission, store.approvals]);
 
   const activeTab = visibleTabs.find((tab) => tab.code === tabCode) ?? visibleTabs[0];
 
@@ -1172,127 +1173,106 @@ function BucketList() {
   >("all");
 
   const [showRaiseModal, setShowRaiseModal] = useState(false);
-
   const [dbAssignedProjects, setDbAssignedProjects] = useState<AssignedProjectSummary[]>([]);
 
   const [formData, setFormData] = useState({
-
     projectId: "",
-
     title: "",
-
     description: "",
-
     category: "Technical Related Issues" as IssueCategory,
-
     priority: "Medium" as DhPriority,
-
   });
-
   const [submittingIssue, setSubmittingIssue] = useState(false);
 
-
-
   useEffect(() => {
-
     fetchMyAssignedProjects()
-
       .then((projs) => {
-
-        if (projs && projs.length > 0) setDbAssignedProjects(projs);
-
+        const list = projs ?? [];
+        setDbAssignedProjects(list);
+        if (list.length > 0) {
+          setFormData((s) => ({ ...s, projectId: list[0].id }));
+        }
       })
-
-      .catch(() => {});
-
+      .catch(() => {
+        setDbAssignedProjects([]);
+      });
   }, []);
 
-
-
   const userProjects = useMemo(() => {
+    return dbAssignedProjects;
+  }, [dbAssignedProjects]);
 
-    if (dbAssignedProjects.length > 0) return dbAssignedProjects;
-
-    return assignedProjects;
-
-  }, [dbAssignedProjects, assignedProjects]);
-
-
+  const handleOpenRaiseModal = async () => {
+    try {
+      const projs = await fetchMyAssignedProjects();
+      const list = projs ?? [];
+      setDbAssignedProjects(list);
+      setFormData((prev) => ({
+        ...prev,
+        projectId: list.length > 0 ? (prev.projectId && list.some(p => p.id === prev.projectId) ? prev.projectId : list[0].id) : "",
+      }));
+    } catch {
+      // keep existing
+    }
+    setShowRaiseModal(true);
+  };
 
   const handleSubmitIssue = async () => {
-
-    if (!formData.title.trim() || !formData.description.trim()) {
-
-      toast.error("Fill all fields");
-
+    if (!formData.projectId || !formData.projectId.trim()) {
+      if (userProjects.length === 0) {
+        toast.error("Cannot raise issue: No project assigned to you");
+      } else {
+        toast.error("Please select an assigned project");
+      }
       return;
-
     }
 
-    const targetProjectId = formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || "";
-
-    if (!targetProjectId) {
-
-      toast.error("Please select a project");
-
+    if (!formData.title.trim()) {
+      toast.error("Issue Title is required");
       return;
-
     }
 
+    if (!formData.description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
 
+    if (!formData.category || !formData.category.trim()) {
+      toast.error("Issue Type is required");
+      return;
+    }
+
+    if (!formData.priority || !formData.priority.trim()) {
+      toast.error("Priority is required");
+      return;
+    }
 
     setSubmittingIssue(true);
-
     try {
-
-      await createProjectIssue(targetProjectId, {
-
+      await raiseBucketListIssue(formData.projectId, {
         subject: formData.title.trim(),
-
         description: formData.description.trim(),
-
         issueType: formData.category,
-
         priority: formData.priority,
-
       });
-
-
 
       toast.success("Issue raised successfully", {
-
         description: "Mirrored to project health and alerts",
-
       });
-
-
 
       setShowRaiseModal(false);
-
       setFormData({
-
-        projectId: userProjects[0]?.id || assignedProjects[0]?.id || "",
-
+        projectId: userProjects.length > 0 ? userProjects[0].id : "",
         title: "",
-
         description: "",
-
         category: "Technical Related Issues",
-
         priority: "Medium",
-
       });
-
     } catch (err: any) {
-
       toast.error(err?.message || "Failed to raise issue");
-
     } finally {
-
       setSubmittingIssue(false);
-
     }
-
   };
 
 
@@ -1493,17 +1473,11 @@ function BucketList() {
 
 
         {/* Raise Issue Button */}
-
         <button
-
-          onClick={() => setShowRaiseModal(true)}
-
+          onClick={handleOpenRaiseModal}
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer whitespace-nowrap"
-
         >
-
           <Plus className="h-3.5 w-3.5" /> Raise Issue
-
         </button>
 
 
@@ -1609,155 +1583,103 @@ function BucketList() {
 
 
       {/* Raise Issue Modal */}
-
       {showRaiseModal && (
-
         <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
-
           <div className="space-y-3">
-
-            <Field label="Project">
-
+            <Field label="Project *">
               <select
-
-                value={formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || ""}
-
+                value={formData.projectId}
                 onChange={(e) => setFormData((s) => ({ ...s, projectId: e.target.value }))}
-
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               >
-
-                {userProjects.map((p) => (
-
-                  <option key={p.id} value={p.id}>
-
-                    {p.name}
-
+                {userProjects.length === 0 ? (
+                  <option value="" disabled>
+                    No project assigned
                   </option>
-
-                ))}
-
+                ) : (
+                  <>
+                    <option value="" disabled>
+                      Select an assigned project...
+                    </option>
+                    {userProjects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}{p.projectCode ? ` (${p.projectCode})` : ""}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
-
             </Field>
 
-            <Field label="Issue Title">
+            {userProjects.length === 0 && (
+              <div className="rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                You are not currently assigned to any project. An issue must be associated with an assigned project.
+              </div>
+            )}
 
+            <Field label="Issue Title *">
               <input
-
                 value={formData.title}
-
                 onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))}
-
                 placeholder="Brief summary..."
-
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               />
-
             </Field>
 
-            <Field label="Description">
-
+            <Field label="Description *">
               <textarea
-
                 value={formData.description}
-
                 onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))}
-
                 placeholder="Detailed description..."
-
                 rows={3}
-
                 className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               />
-
             </Field>
 
-            <Field label="Issue Type">
-
+            <Field label="Issue Type *">
               <select
-
                 value={formData.category}
-
                 onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))}
-
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               >
-
                 {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => (
-
                   <option key={cat} value={cat}>
-
                     {cat}
-
                   </option>
-
                 ))}
-
               </select>
-
             </Field>
 
-            <Field label="Priority">
-
+            <Field label="Priority *">
               <select
-
                 value={formData.priority}
-
                 onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))}
-
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               >
-
                 {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => (
-
                   <option key={pri} value={pri}>
-
                     {pri}
-
                   </option>
-
                 ))}
-
               </select>
-
             </Field>
 
             <div className="flex justify-end gap-2 border-t border-border pt-3">
-
               <button
-
                 onClick={() => setShowRaiseModal(false)}
-
                 className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
-
               >
-
                 Cancel
-
               </button>
-
               <button
-
                 onClick={handleSubmitIssue}
-
-                disabled={submittingIssue}
-
+                disabled={submittingIssue || userProjects.length === 0}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-
+                title={userProjects.length === 0 ? "No project assigned" : undefined}
               >
-
                 {submittingIssue ? "Raising..." : "Raise Issue"}
-
               </button>
-
             </div>
-
           </div>
 
         </Modal>
@@ -1771,6 +1693,37 @@ function BucketList() {
 }
 
 
+
+// ---------- Type styles helper ----------
+const getTypeStyles = (type: string) => {
+  const t = (type || "").toLowerCase();
+  if (t.includes("wbs")) {
+    return "bg-warning/15 text-warning border border-warning/30";
+  } else if (
+    t.includes("ready") ||
+    t.includes("completed") ||
+    t.includes("resolved") ||
+    t.includes("approved") ||
+    t.includes("selected")
+  ) {
+    return "bg-success/15 text-success border border-success/30";
+  } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal") || t.includes("resignation") || t.includes("offboard")) {
+    return "bg-destructive/15 text-destructive border border-destructive/30";
+  } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("lwd")) {
+    return "bg-warning/15 text-warning border border-warning/30";
+  } else if (t.includes("appreciation") || t.includes("feedback")) {
+    return "bg-chart-3/15 text-chart-3 border border-chart-3/30";
+  } else if (
+    t.includes("interview") ||
+    t.includes("shuffle") ||
+    t.includes("allocation") ||
+    t.includes("assignment") ||
+    t.includes("issue")
+  ) {
+    return "bg-info/15 text-info border border-info/30";
+  }
+  return "bg-muted text-foreground border border-border";
+};
 
 // ---------- Approvals ----------
 
@@ -2095,29 +2048,40 @@ function ApprovalsTab() {
 
 
 
-  const approvalTypes = [
+  const approvalTypes = useMemo(() => {
+    const types = new Set<string>();
+    (store.approvals || []).forEach((a) => {
+      if (a.requestType && a.requestType.trim()) {
+        types.add(a.requestType.trim());
+      }
+    });
+    return Array.from(types).sort();
+  }, [store.approvals]);
 
-    "WBS Approval",
+  useEffect(() => {
+    if (typeFilter !== "all" && !approvalTypes.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [approvalTypes, typeFilter]);
 
-    "Budget Approval",
+  const approvalProjects = useMemo(() => {
+    const map = new Map<string, string>();
+    (store.approvals || []).forEach((a) => {
+      if (a.projectId) {
+        const name = a.projectName || assignedProjects.find((p) => p.id === a.projectId)?.name || a.projectId;
+        map.set(a.projectId, name);
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [assignedProjects, store.approvals]);
 
-    "PM Assignment Approval",
-
-    "SPM Assignment Approval",
-
-    "Project Ready To Start Approval",
-
-    "Resource Allocation Approval",
-
-    "Customer Requirement Approval",
-
-    "Timeline Extension Approval",
-
-    "Feedback Request Approval",
-
-  ];
-
-
+  useEffect(() => {
+    if (projectFilter !== "all" && !approvalProjects.some((p) => p.id === projectFilter)) {
+      setProjectFilter("all");
+    }
+  }, [approvalProjects, projectFilter]);
 
   const filteredApprovals = useMemo(() => {
     return store.approvals
@@ -2134,17 +2098,6 @@ function ApprovalsTab() {
         return (b.id || "").localeCompare(a.id || "");
       });
   }, [store.approvals, projectFilter, typeFilter, statusFilter]);
-
-  const approvalProjects = useMemo(() => {
-    const map = new Map<string, string>();
-    assignedProjects.forEach((p) => map.set(p.id, p.name));
-    (store.approvals || []).forEach((a) => {
-      if (a.projectId && !map.has(a.projectId)) {
-        map.set(a.projectId, a.projectName || "Project");
-      }
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [assignedProjects, store.approvals]);
 
   const [approvalPage, setApprovalPage] = useState(1);
   const [approvalPageSize, setApprovalPageSize] = useState(15);
@@ -2224,9 +2177,7 @@ function ApprovalsTab() {
     }
     toast.success(`Success: Approval Request marked as ${status}!`);
     setAppComment("");
-    if (status === "Approved") {
-      setSelectedAppId(null);
-    }
+    setSelectedAppId(null);
 
   };
 
@@ -2249,21 +2200,8 @@ function ApprovalsTab() {
       <header className="border-b border-border p-4 space-y-3">
 
         <div className="flex items-center gap-2">
-
-        <div className="flex items-center justify-between">
-            <ShieldAlert className="h-4.5 w-4.5 text-primary" />
-            <h3 className="text-sm font-semibold">Central Approval Center</h3>
-          </div>
-          <button
-            type="button"
-            onClick={loadApprovals}
-            disabled={isLoadingApprovals}
-            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-50 transition-colors shadow-xs"
-            title="Refresh Approvals"
-          >
-            <RotateCcw className={cn("h-3.5 w-3.5", isLoadingApprovals && "animate-spin")} />
-            <span>Refresh</span>
-          </button>
+          <ShieldAlert className="h-4.5 w-4.5 text-primary" />
+          <h3 className="text-sm font-semibold">Central Approval Center</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
 
@@ -2383,12 +2321,12 @@ function ApprovalsTab() {
 
         <table className="w-full min-w-[860px] table-fixed text-sm">
           <colgroup>
-            <col style={{ width: "22%" }} />
+            <col style={{ width: canManageApprovals ? "34%" : "44%" }} />
             <col style={{ width: "18%" }} />
-            <col style={{ width: "18%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: canManageApprovals ? "14%" : "28%" }} />
-            {canManageApprovals ? <col style={{ width: "14%" }} /> : null}
+            <col style={{ width: "17%" }} />
+            <col style={{ width: "11%" }} />
+            <col style={{ width: "10%" }} />
+            {canManageApprovals ? <col style={{ width: "10%" }} /> : null}
           </colgroup>
 
           <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
@@ -2406,9 +2344,17 @@ function ApprovalsTab() {
           <tbody className="divide-y divide-border">
             {pageApprovals.map((app) => (
               <tr key={app.id} className="hover:bg-accent/30">
-                <td className="px-3 py-2.5 font-medium text-foreground">{app.projectName}</td>
-                <td className="px-3 py-2.5 text-xs text-primary font-semibold">
-                  {app.requestType}
+                <td className="px-3 py-2.5 font-medium text-foreground break-words whitespace-normal">{app.projectName}</td>
+                <td className="px-3 py-2.5">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider leading-tight text-center break-words max-w-full",
+                      getTypeStyles(app.requestType),
+                    )}
+                    title={app.requestType}
+                  >
+                    {app.requestType}
+                  </span>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3.5">
                   {app.requestedBy ? (
@@ -2448,9 +2394,14 @@ function ApprovalsTab() {
                   <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
                     <button
                       onClick={() => setSelectedAppId(app.id)}
-                      className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
+                      className={cn(
+                        "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                        app.status === "Pending"
+                          ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 font-semibold"
+                          : "border-input bg-card text-primary hover:bg-accent"
+                      )}
                     >
-                      View
+                      {app.status === "Pending" ? "Review & Action" : "View"}
                     </button>
                   </td>
                 )}
@@ -2547,9 +2498,17 @@ function ApprovalsTab() {
 
               <div>
 
-                <span className="text-muted-foreground">Request Type</span>
+                <span className="text-muted-foreground block mb-1">Request Type</span>
 
-                <p className="font-bold text-xs text-primary">{selectedApproval.requestType}</p>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider leading-tight text-center break-words",
+                    getTypeStyles(selectedApproval.requestType),
+                  )}
+                  title={selectedApproval.requestType}
+                >
+                  {selectedApproval.requestType}
+                </span>
 
               </div>
 
@@ -2689,7 +2648,7 @@ function ApprovalsTab() {
               >
                 Close
               </button>
-              {canManageApprovals && selectedApproval.status !== "Approved" && !isBO && (
+              {canManageApprovals && selectedApproval.status !== "Approved" && (
                 <>
                   <button
                     onClick={() => handleAction("Hold")}
@@ -3142,29 +3101,41 @@ function AlertsTab() {
 
 
 
-  const alertTypes = [
+  const alertTypes = useMemo(() => {
+    const types = new Set<string>();
+    (allAlerts || []).forEach((a) => {
+      const t = a.alertType || (a as any).kind;
+      if (t && t.trim()) {
+        types.add(t.trim());
+      }
+    });
+    return Array.from(types).sort();
+  }, [allAlerts]);
 
-    "Project Risk",
+  useEffect(() => {
+    if (typeFilter !== "all" && !alertTypes.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [alertTypes, typeFilter]);
 
-    "Resource Risk",
+  const alertProjects = useMemo(() => {
+    const map = new Map<string, string>();
+    (allAlerts || []).forEach((a) => {
+      if (a.projectId) {
+        const proj = projectsList.find((p) => p.id === a.projectId);
+        map.set(a.projectId, proj?.name || a.projectId);
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allAlerts, projectsList]);
 
-    "Technical Issue",
-
-    "Dependency Blocker",
-
-    "Escalation",
-
-    "Customer Concern",
-
-    "Budget Concern",
-
-    "Schedule Delay",
-
-    "Quality Concern",
-
-    "Governance Alert",
-
-  ];
+  useEffect(() => {
+    if (projFilter !== "all" && !alertProjects.some((p) => p.id === projFilter)) {
+      setProjFilter("all");
+    }
+  }, [alertProjects, projFilter]);
 
 
 
@@ -3262,7 +3233,7 @@ function AlertsTab() {
 
                 <option value="all">All Projects</option>
 
-                {(projectsList || []).map((p) => (
+                {alertProjects.map((p) => (
 
                   <option key={p.id} value={p.id}>
 
@@ -3450,13 +3421,12 @@ function AlertsTab() {
 
             <table className="w-full min-w-[1100px] table-fixed text-sm">
               <colgroup>
-                <col style={{ width: "16%" }} />
+                <col style={{ width: "19%" }} />
+                <col style={{ width: "17%" }} />
                 <col style={{ width: "14%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "10%" }} />
                 <col style={{ width: "8%" }} />
+                <col style={{ width: "14%" }} />
                 <col style={{ width: "12%" }} />
-                <col style={{ width: "10%" }} />
                 <col style={{ width: "8%" }} />
                 <col style={{ width: "8%" }} />
               </colgroup>
@@ -3465,7 +3435,6 @@ function AlertsTab() {
                 <tr>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Alert Title</th>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project Name</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Customer Name</th>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Alert Type</th>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Priority</th>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised By</th>
@@ -3477,7 +3446,6 @@ function AlertsTab() {
               <tbody className="divide-y divide-border">
                 {pageAlerts.map((alert) => {
                   const project = projectsList.find((p) => p.id === alert.projectId);
-                  const client = clientsList.find((c) => c.id === project?.clientId);
 
                   return (
                     <tr key={alert.id} className="hover:bg-accent/30">
@@ -3485,18 +3453,17 @@ function AlertsTab() {
                       <td className="px-3 py-2.5 text-xs font-semibold text-foreground">
                         {project?.name || "—"}
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-foreground">
-                        {client?.name || "—"}
-                      </td>
 
                       <td className="px-3 py-2.5">
-
-                        <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-foreground">
-
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold leading-tight break-words max-w-full",
+                            getTypeStyles(alert.alertType || alert.kind),
+                          )}
+                          title={alert.alertType || alert.kind}
+                        >
                           {alert.alertType || alert.kind}
-
                         </span>
-
                       </td>
 
                       <td className="px-3 py-2.5">
@@ -3629,7 +3596,7 @@ function AlertsTab() {
 
 
 
-              {selectedAlert.kind === "Escalation" && (
+              {selectedAlert.kind === "Escalation" ? (
 
                 <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
 
@@ -3653,13 +3620,13 @@ function AlertsTab() {
 
                     <span className="text-[9px] uppercase font-bold text-muted-foreground block">
 
-                      Escalation Type
+                      Alert Type
 
                     </span>
 
                     <span className="font-semibold text-foreground">
 
-                      {selectedAlert.escalationType || "—"}
+                      {selectedAlert.alertType || selectedAlert.escalationType || "—"}
 
                     </span>
 
@@ -3700,6 +3667,44 @@ function AlertsTab() {
                     </div>
 
                   )}
+
+                </div>
+
+              ) : (
+
+                <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
+
+                  <div>
+
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+
+                      Alert Type
+
+                    </span>
+
+                    <span className="font-semibold text-primary">
+
+                      {selectedAlert.alertType || "—"}
+
+                    </span>
+
+                  </div>
+
+                  <div>
+
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+
+                      Raised By
+
+                    </span>
+
+                    <span className="font-semibold text-foreground">
+
+                      {selectedAlert.raisedByName || "—"}
+
+                    </span>
+
+                  </div>
 
                 </div>
 
@@ -4492,145 +4497,41 @@ function NotificationsTab() {
 
   const archivedCount = notifications.filter((n) => (n.status || "").toLowerCase() === "acknowledged").length;
 
+  // Available notification types dynamically derived from actual notifications in the system
+  const availableNotificationTypes = useMemo(() => {
+    const set = new Set<string>();
+    notifications.forEach((n) => {
+      const t = (n.type || "").trim();
+      if (t) set.add(t);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [notifications]);
 
+  useEffect(() => {
+    if (typeFilter !== "all" && availableNotificationTypes.length > 0 && !availableNotificationTypes.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [availableNotificationTypes, typeFilter]);
 
-  // Formatting helpers matching images
-
-  const formatNotifDate = (dateStr: string): string => {
-
+  // Timestamp formatting helper: YYYY-MM-DD HH:MM:SS (e.g. 2026-11-16 02:27:00)
+  const formatNotifTimestamp = (dateStr?: string | null): string => {
+    if (!dateStr) return "—";
     try {
-
       const d = new Date(dateStr);
-
       if (isNaN(d.getTime())) return dateStr;
-
-      const day = d.getDate();
-
-      const months = [
-
-        "Jan",
-
-        "Feb",
-
-        "Mar",
-
-        "Apr",
-
-        "May",
-
-        "Jun",
-
-        "Jul",
-
-        "Aug",
-
-        "Sep",
-
-        "Oct",
-
-        "Nov",
-
-        "Dec",
-
-      ];
-
-      const month = months[d.getMonth()];
-
       const year = d.getFullYear();
-
-      return `${day} ${month} ${year}`;
-
-    } catch (e) {
-
-      return dateStr;
-
-    }
-
-  };
-
-
-
-  const formatNotifTime = (dateStr: string): string => {
-
-    try {
-
-      const d = new Date(dateStr);
-
-      if (isNaN(d.getTime())) return "12:00";
-
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
       const hours = String(d.getHours()).padStart(2, "0");
-
       const minutes = String(d.getMinutes()).padStart(2, "0");
-
-      return `${hours}:${minutes}`;
-
-    } catch (e) {
-
-      return "12:00";
-
+      const seconds = String(d.getSeconds()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    } catch {
+      return dateStr;
     }
-
   };
 
 
-
-  // Type styles helper
-
-  const getTypeStyles = (type: string) => {
-
-    const t = type.toLowerCase();
-
-    if (t.includes("wbs")) {
-
-      return "bg-warning/15 text-warning border border-warning/30";
-
-    } else if (
-
-      t.includes("ready") ||
-
-      t.includes("completed") ||
-
-      t.includes("resolved") ||
-
-      t.includes("approved") ||
-
-      t.includes("selected")
-
-    ) {
-
-      return "bg-success/15 text-success border border-success/30";
-
-    } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal") || t.includes("resignation") || t.includes("offboard")) {
-
-      return "bg-destructive/15 text-destructive border border-destructive/30";
-
-    } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("lwd")) {
-
-      return "bg-warning/15 text-warning border border-warning/30";
-
-    } else if (t.includes("appreciation") || t.includes("feedback")) {
-
-      return "bg-chart-3/15 text-chart-3 border border-chart-3/30";
-
-    } else if (
-
-      t.includes("interview") ||
-
-      t.includes("shuffle") ||
-
-      t.includes("allocation") ||
-
-      t.includes("assignment")
-
-    ) {
-
-      return "bg-info/15 text-info border border-info/30";
-
-    }
-
-    return "bg-muted text-foreground border border-border";
-
-  };
 
   // Status styles & icon helpers
   const getNotifStatusStyles = (status: string) => {
@@ -4961,7 +4862,7 @@ function NotificationsTab() {
 
               <option value="all">All Types</option>
 
-              {NOTIFICATION_TYPES.map((t) => (
+              {availableNotificationTypes.map((t) => (
 
                 <option key={t} value={t}>
 
@@ -5150,14 +5051,13 @@ function NotificationsTab() {
           <table className="w-full min-w-[1100px] table-fixed text-sm leading-relaxed text-left">
             <colgroup>
               <col style={{ width: "24%" }} />
-              <col style={{ width: "10%" }} />
+              <col style={{ width: "16%" }} />
               <col style={{ width: "14%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "9%" }} />
+              <col style={{ width: "13%" }} />
               <col style={{ width: "8%" }} />
-              <col style={{ width: "8%" }} />
+              <col style={{ width: "6%" }} />
               <col style={{ width: "7%" }} />
-              <col style={{ width: "8%" }} />
             </colgroup>
 
             <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
@@ -5172,9 +5072,7 @@ function NotificationsTab() {
 
                 <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised By</th>
 
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Date</th>
-
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Time</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Timestamp</th>
 
                 <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
 
@@ -5192,7 +5090,7 @@ function NotificationsTab() {
 
                 <tr>
 
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
 
                     No notifications matching search and filters.
 
@@ -5208,27 +5106,27 @@ function NotificationsTab() {
 
                     {/* Title */}
 
-                    <td className="px-3 py-2.5 min-w-[340px] w-[35%]">
+                    <td className="px-3 py-2.5">
 
                       <div className="flex items-start gap-1.5">
 
                         {n.unread && (
 
-                          <span className="text-primary mt-1 text-[10px] select-none">●</span>
+                          <span className="text-primary mt-1 text-[10px] select-none shrink-0">●</span>
 
                         )}
 
-                        <button
+                        <span
 
-                          onClick={() => handleOpenDetails(n.id)}
+                          className="font-medium text-foreground break-words whitespace-normal block"
 
-                          className="text-left font-medium text-foreground hover:text-primary transition-colors cursor-pointer hover:underline block w-full"
+                          title={n.title}
 
                         >
 
                           {n.title}
 
-                        </button>
+                        </span>
 
                       </div>
 
@@ -5238,17 +5136,19 @@ function NotificationsTab() {
 
                     {/* Type Badge */}
 
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+                    <td className="px-3 py-2.5">
 
                       <span
 
                         className={cn(
 
-                          "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider leading-tight text-center break-words max-w-full",
 
                           getTypeStyles(n.type),
 
                         )}
+
+                        title={n.type}
 
                       >
 
@@ -5262,9 +5162,9 @@ function NotificationsTab() {
 
                     {/* Related Project */}
 
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[180px] break-words">
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground break-words whitespace-normal" title={n.relatedProject}>
 
-                      {n.relatedProject}
+                      {n.relatedProject || "—"}
 
                     </td>
 
@@ -5274,11 +5174,11 @@ function NotificationsTab() {
 
                     <td className="px-3 py-2.5 whitespace-nowrap">
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 truncate">
 
                         <Avatar name={n.raisedBy} size={24} />
 
-                        <span className="text-xs">{n.raisedBy}</span>
+                        <span className="text-xs truncate" title={n.raisedBy}>{n.raisedBy}</span>
 
                       </div>
 
@@ -5286,21 +5186,11 @@ function NotificationsTab() {
 
 
 
-                    {/* Date */}
+                    {/* Timestamp */}
 
-                    <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap">
+                    <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap font-mono" title={formatNotifTimestamp(n.createdAt)}>
 
-                      {formatNotifDate(n.createdAt)}
-
-                    </td>
-
-
-
-                    {/* Time */}
-
-                    <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap font-mono">
-
-                      {formatNotifTime(n.createdAt)}
+                      {formatNotifTimestamp(n.createdAt)}
 
                     </td>
 
@@ -5398,7 +5288,22 @@ function NotificationsTab() {
         notification={selectedNotification}
         onClose={() => setSelectedNotifId(null)}
         onArchive={handleArchiveNotification}
-        onActionComplete={fetchNotifications}
+        onActionComplete={async () => {
+          await fetchNotifications();
+          if (selectedNotification?.relatedTask) {
+            const rawCode = selectedNotification.relatedTask.replace(/^ALLOC-/, "").toUpperCase();
+            const matching = store.approvals.find((a) => a.id.toUpperCase().includes(rawCode));
+            if (matching && selectedNotification.status) {
+              dhStore.updateCentralApprovalStatus(
+                matching.id,
+                selectedNotification.status as any,
+                "Action taken via notification",
+                user.name,
+                user.id,
+              );
+            }
+          }
+        }}
       />
 
     </>

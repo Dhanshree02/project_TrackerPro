@@ -324,7 +324,7 @@ public sealed class ProjectServiceEscalationService(
             ProjectId = projectId,
             Title = alertTitle,
             Description = $"{escalationType}: {description}",
-            AlertType = "WBS Escalation",
+            AlertType = !string.IsNullOrWhiteSpace(escalationType) ? $"WBS:{escalationType.Trim()}" : "WBS:Escalation",
             Priority = priority,
             Status = "Open",
             Owner = row.RaisedByName,

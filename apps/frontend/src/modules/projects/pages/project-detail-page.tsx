@@ -14039,6 +14039,36 @@ function DhTeamTab({
                     isTeamLead: Boolean(extras?.asTeamLead),
                     isShadowTeam: false,
                   });
+                  if (req) {
+                    const desc = [
+                      `Resource: ${req.employeeName || newRow.person.name}${req.employeeCode ? ` (${req.employeeCode})` : ""}`,
+                      `Allocation Duration: ${formatToDayMonthYear(req.allocationStartDate)} → ${formatToDayMonthYear(req.allocationEndDate)}`,
+                      `Billability: ${req.billability}`,
+                      `Resource Type: ${req.resourceType}`,
+                      `Role: ${req.isTeamLead ? "Team Lead" : "Team Member"}`,
+                    ].join("\n");
+                    dhStore.mergeApprovals([{
+                      id: `APP-ALLOC-${req.id}`,
+                      projectId: req.projectId,
+                      projectName: req.projectName || project.name,
+                      requestType: "Resource Allocation Approval",
+                      requestedBy: req.requestedByName || "Project Manager",
+                      requestedById: req.requestedByEmployeeId || "",
+                      requestedDate: req.createdAtUtc ? req.createdAtUtc.slice(0, 10) : "",
+                      createdAtUtc: req.createdAtUtc,
+                      status: "Pending",
+                      description: desc,
+                      comments: [],
+                      history: [
+                        {
+                          status: "Pending",
+                          at: req.createdAtUtc || new Date().toISOString(),
+                          updatedBy: req.requestedByName || "Requester",
+                          details: `Requested allocation for ${req.employeeName || newRow.person.name}`,
+                        },
+                      ],
+                    }]);
+                  }
                   toast.success(
                     `Allocation approval request sent to ${req.approverName || "Reporting Manager"} for approval`
                   );

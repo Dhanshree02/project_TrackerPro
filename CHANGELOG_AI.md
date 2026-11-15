@@ -1,3 +1,294 @@
+# Changelog - Action Centre Bucket List Issue Raising & RBAC Decoupling
+
+## Summary of Changes
+Resolved RBAC permission defect where authorized resources attempting to raise issues from their Action Centre Bucket List (`/action-centre?tab=bucket-list`) encountered a `403 Forbidden` ("You do not have permission to manage this section") error. Decoupled Bucket List issue raising from Project Health management permissions, enforced project assignment filtering and mandatory field validation, and preserved full parity with Project Health issue workflows (notification routing to PM, EM, and TL, mirroring to alerts with `issue:<type>`, and multi-level SLA breach tracking):
+1. **RBAC Decoupling for Bucket List**:
+   - Introduced dedicated Action Centre endpoints (`POST /api/v1/action-centre/bucket-list/issues` and `GET /api/v1/action-centre/bucket-list/assigned-projects`) governed by `RbacCatalogCodes.ActionBucketList` (`"bucket-list"`), enabling any authorized resource with Bucket List access to report issues for their assigned projects without requiring `HealthIssues` (`"health-issues"`) management privileges.
+   - Preserved `POST /api/v1/projects/{projectId}/issues` under `[RequireRbac(RbacCatalogCodes.HealthIssues, RbacAccessType.Manage)]` to maintain strict access control over the Project Health management tab.
+2. **Resource-Specific Project Assignment Scope**:
+   - Fixed `GetEmployeeAssignedProjectsAsync` in `ProjectIssueService` so that non-administrative employees are strictly constrained to projects where they are assigned (via `tbl_project_team_members`, `tbl_project_task_assignments`, `tbl_bucket_tasks`, or managerial roles). Removed inaccurate system-wide project fallback.
+   - If an employee has no project assignments, the API returns an empty list, and the UI displays `"No project assigned"` in the Project dropdown.
+3. **Mandatory Form Field Validation**:
+   - Form fields in the Raise Issue modal (`Project *`, `Issue Title *`, `Description *`, `Issue Type *`, `Priority *`) are explicitly marked as mandatory with asterisk indicators.
+   - Enforced client-side and server-side validation ensuring that all fields must be populated, and a valid assigned project must be chosen before submission. The submit button is disabled when no project is assigned.
+4. **Mirroring, Notifications, and Centralized SLA Tracking**:
+   - Creating an issue via the Bucket List provisions the record in `project.tbl_project_issues`, creates a corresponding alert in `project.tbl_project_alerts` formatted as `issue:<issue_type_name>`, and dispatches `action.tbl_notifications` to the assigned Project Manager, Engagement Manager, and Team Lead.
+   - Automatically initializes centralized SLA tracking under `"Resolution of Issues"`, scheduling Hangfire background checks and multi-level breach escalations (1st Level SLA Breach Escalation to Senior Project Manager, 2nd Level SLA Breach Escalation to Head of Department) upon SLA breach.
+
+---
+
+### Affected Files
+- `apps/backend/Modules/ActionCentre/Controllers/ActionCentreController.cs`
+- `apps/backend/Modules/Projects/Services/ProjectIssueService.cs`
+- `apps/frontend/src/modules/projects/api/project-issues.ts`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+
+---
+
+### Database Changes and Migrations
+- None. (Utilizes existing tables `project.tbl_project_issues`, `project.tbl_project_alerts`, `action.tbl_notifications`, and `sla.tbl_sla_instances`.)
+
+---
+
+### API Changes
+- **Added Endpoints**:
+  - `POST /api/v1/action-centre/bucket-list/issues`: Raises a project issue from the Bucket List using `ActionBucketList` permissions.
+  - `POST /api/v1/action-centre/bucket-list/raise-issue`: Alias route for raising issues from the Bucket List.
+  - `POST /api/v1/action-centre/bucket-list/{projectId:guid}/issues`: Route parameter variant for raising issues for a specific project.
+  - `GET /api/v1/action-centre/bucket-list/assigned-projects`: Retrieves projects assigned to the calling employee.
+- **Client API (`project-issues.ts`)**:
+  - Added `raiseBucketListIssue(projectId, payload)`.
+  - Updated `fetchMyAssignedProjects()` to attempt `/api/v1/action-centre/bucket-list/assigned-projects` with fallback to `/api/v1/projects/my-assigned-projects`.
+
+---
+
+### Business Logic & UI Adjustments
+- **ProjectIssueService**:
+  - `GetEmployeeAssignedProjectsAsync`: For PMO/Admin, returns all active projects; for regular employees, queries assignments across team membership, task assignments, bucket tasks, and project leadership. Returns `[]` if no assignments exist (no fallback to all active projects).
+  - `FindCurrentEmployeeAsync`: Enhanced multi-attribute employee matching across `WorkEmail`, `PersonalEmail`, and `EmployeeCode`.
+- **Action Centre Bucket List UI**:
+  - Re-fetches assigned projects dynamically whenever the "Raise Issue" modal is opened.
+  - Displays `"No project assigned"` and an explanatory warning banner when the employee is not assigned to any projects.
+  - Added strict validation on `projectId`, `title`, `description`, `category`, and `priority` with explicit toast error messages.
+  - Disabled the "Raise Issue" submit button when `userProjects.length === 0`.
+
+---
+
+### Existing Functionality Preserved
+- Project Health -> Issues tab remains protected by `RbacCatalogCodes.HealthIssues`.
+- Dual Action Centre alert creation with standardized `issue:<type>` nomenclature.
+- Notification dispatching to assigned PM, EM, and TL.
+- Centralized SLA/TAT tracking, 1st level breach escalation, and 2nd level breach escalation.
+
+---
+
+# Changelog - Health Issues & WBS Escalations Alert Type Formatting in Action Centre
+
+## Summary of Changes
+Standardized the `AlertType` designation across Health Issues and WBS Escalations so that alerts surfaced in Action Centre (`/action-centre?tab=alerts`) explicitly reflect the selected type with standard domain prefixes:
+- When raised from **Health -> Issue** (`project-detail-page.tsx`), the alert displays as `issue:<issue_type_name>` (e.g., `issue:Technical Related Issues`, `issue:Behavioral Related Issues`, `issue:Process Related Issues`).
+- When raised from **WBS Escalation** (`project-detail-page.tsx` -> Service-wise Prerequisite Tracking), the alert displays as `WBS:<escalation_type_name>` (e.g., `WBS:Prerequisite Pending`, `WBS:Technical Blocker`, `WBS:Billing Issue`, `WBS:Customer Dependency`).
+
+---
+
+### Affected Files
+- `apps/backend/Infrastructure/Persistence/Configurations/ProjectIssueConfiguration.cs`
+- `apps/backend/Modules/Projects/Services/ProjectIssueService.cs`
+- `apps/backend/Modules/Projects/Services/ProjectServiceEscalationService.cs`
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `database/pms_uat.sql`
+
+---
+
+### Database Changes and Migrations
+- **Table `project.tbl_project_alerts`**:
+  - Expanded `AlertType` column definition from `character varying(50)` to `character varying(100)` to support prefixed strings (e.g., `issue:Technical Related Issues`, `WBS:Prerequisite Pending`).
+  - Executed database migration in live PostgreSQL database `pms_uat` (`ALTER TABLE project.tbl_project_alerts ALTER COLUMN "AlertType" TYPE character varying(100)`).
+  - Updated all 41 existing records in `project.tbl_project_alerts` to conform with the standardized `issue:<type>` and `WBS:<type>` prefix format.
+  - Synchronized `database/pms_uat.sql` with column definition `character varying(100)` and updated all dump records in `COPY project.tbl_project_alerts`.
+
+---
+
+### API Changes
+- `GET /api/v1/action-centre/alerts`:
+  - `ActionAlertDto.AlertType` now returns formatted string with `issue:<issue_type_name>` for project health issues and `WBS:<escalation_type_name>` for WBS escalations.
+- `POST /api/v1/projects/{projectId}/issues`:
+  - Automatically provisions `tbl_project_alerts` record with `AlertType = $"issue:{issueType.Trim()}"`.
+- `POST /api/v1/projects/{projectId}/service-escalations`:
+  - Automatically provisions `tbl_project_alerts` record with `AlertType = $"WBS:{escalationType.Trim()}"`.
+
+---
+
+### Business Logic & UI Adjustments
+- **ProjectIssueService**:
+  - `CreateProjectIssueAsync`: Populates `alert.AlertType` with `$"issue:{issueType.Trim()}"`.
+  - `MapAlert`: Dynamically resolves and assigns `issue:{issueType}` prefix to mapped alert response if not already formatted.
+- **ProjectServiceEscalationService**:
+  - `CreateEscalationAsync`: Populates `alert.AlertType` with `$"WBS:{escalationType.Trim()}"`.
+- **ActionNotificationService**:
+  - Implemented `ResolveAlertDisplayType` and `IsWbsEscalationAlert` helper logic to ensure all alert DTOs map to either `issue:...` or `WBS:...` even if legacy records lack the prefix.
+  - Updated query filters across alert listing, attachment download, and governance updates to match `r.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase) || r.ServiceEscalationId.HasValue`.
+- **Action Centre Frontend (`AlertsTab`)**:
+  - Added support for `issue` types to `getTypeStyles` badge palette so issue alerts render distinct, styled badges.
+  - Expanded the Alert Type column width to `14%` in the alerts table colgroup and ensured badge text wraps properly without overflow.
+  - Updated the Alert Details Modal to display `Alert Type: {selectedAlert.alertType}` consistently across issues and escalations.
+
+---
+
+### Existing Functionality Preserved
+- Notification and alert routing to assigned Project Manager, Engagement Manager, and Team Lead.
+- WBS prerequisite tracking, task timelines, and SLA tracking for service escalations.
+- Project Health Issues logging, tracking, and comments.
+- Dynamic Action Centre filtering by status, priority, client, and project.
+
+---
+
+# Changelog - Action Centre UI, Styling, Layout & Dynamic Filtering Updates
+
+## Summary of Changes
+Implemented UI improvements, styling consistency, column layout rebalancing, and dynamic data-driven dropdown filters across the Action Centre module (`/action-centre`):
+1. **Notifications Tab (`NotificationsTab`)**:
+   - Converted the Notification Title from an interactive/clickable `<button>` element into non-clickable formatted text (`<span>`), preserving detail inspection exclusively via the "View" action button in the Actions column.
+   - Removed text truncation (`truncate`) from both **Notification Title** and **Related Project** table cells, applying `break-words whitespace-normal` so that longer titles and project names wrap seamlessly onto subsequent lines within the same row.
+2. **Approvals Tab (`ApprovalsTab`)**:
+   - Transformed the Request Type table column and the Review Request modal view from plain blue text (`text-primary`) into standardized styled pill badges with subtle colored backgrounds, borders, and uppercase typography matching the Notifications tab format via shared `getTypeStyles`.
+   - Rebalanced table column widths in `<colgroup>`: increased the `Project` column width (from 22% to 34% / 44%) and tightened `Status` (10%) and `Actions` (10%), eliminating excessive blank space between the Status badge and Actions button.
+   - Removed the redundant "Refresh" button located beside the "Central Approval Center" header title.
+   - Replaced the hardcoded static `approvalTypes` list with a dynamic list derived strictly from active approvals in `store.approvals`.
+   - Replaced `approvalProjects` with a dynamic project list containing only projects that have actual approval requests present in `store.approvals`.
+   - Added automatic filter reset effects to switch back to `"all"` if the currently selected type or project is no longer present.
+3. **Alerts Tab (`AlertsTab`)**:
+   - Replaced the hardcoded static `alertTypes` array with dynamic extraction from `allAlerts` (`alert.alertType || alert.kind`), displaying only alert types currently existing in the system.
+   - Updated the `Project` filter dropdown to display only projects that currently have active alerts in `allAlerts`.
+   - Added automatic filter reset effects for both type and project filters when the selected option does not exist in the filtered options.
+
+---
+
+### Affected Files
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+
+---
+
+### Database Changes and Migrations
+- None.
+
+---
+
+### API Changes
+- None.
+
+---
+
+### Business Logic & UI Adjustments
+- **Notification Title Non-Clickable & Text Wrapping**: Notification title cell now renders a non-interactive `<span>` with `break-words whitespace-normal` along with the unread indicator (`shrink-0`). Related project cell renders `break-words whitespace-normal text-xs text-muted-foreground` without clipping.
+- **Request Type Badge Consistency**: Created a module-scoped `getTypeStyles` helper used across both `ApprovalsTab` (table + review modal) and `NotificationsTab` for unified color-coded status pills.
+- **Column Width Rebalancing**: Approvals table column distribution adjusted to `canManageApprovals ? 34% : 44%` (Project), `18%` (Request Type), `17%` (Requested By), `11%` (Date), `10%` (Status), and `10%` (Actions), eliminating empty space between Status and Actions while allocating more room for project names.
+- **Header Simplification**: Removed `<button ... title="Refresh Approvals">` beside "Central Approval Center".
+- **Dynamic Contextual Dropdown Filtering**: Approvals and Alerts filters derive options dynamically from active state objects (`store.approvals` and `store.alerts`), preventing user confusion from selecting non-existent categories or projects.
+
+---
+
+### Existing Functionality Preserved
+- Notification detail modal inspection via "View" button in Notifications tab.
+- Central Approval review and actioning (Approve, Reject, Hold, Request Changes) with mandatory comments.
+- Alerts management, metrics counters, filtering by priority, status, and client, and inline chat/commenting.
+- Pagination across all tabs.
+
+---
+
+# Changelog - Resource Allocation Approval & Dual Action Centre Synchronization (Approvals & Notifications)
+
+## Summary of Changes
+Resolved workflow defect where a candidate resource's Reporting Manager did not receive the approval request in the Central Approvals tab upon adding a team member from Project Details → Team tab. Ensured the Reporting Manager receives both an approval request in the Approvals tab (`/action-centre?tab=approvals`) and an action notification in the Notifications tab (`/action-centre?tab=notifications`) simultaneously, allowing the Reporting Manager to Approve, Reject, or Hold the allocation from either location with two-way state synchronization. Enforced that post-status changes (Approved, Rejected, On Hold) dispatch purely informational notifications to the candidate resource, assigned Project Manager(s), Engagement Manager(s), and Project Team Lead(s) without generating approval requests in their Approvals tabs. Corrected status mapping so Rejections are stored as `"Rejected"` rather than `"Cancelled"`.
+
+---
+
+### 1. Backend Business Logic & Service Enhancements
+- **Reporting Manager Resolution & Identity Mapping**:
+  - `apps/backend/Middleware/DevelopmentAuthBypassMiddleware.cs`: Updated identity claims resolution to link `X-User-Email`, `X-User-Role`, and `X-User-Id` directly with corresponding `resource.tbl_employees` records (by GUID, work email, personal email, or employee code). Guarantees `currentUser.UserId` always maps directly to the active employee's `Id`.
+  - `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`:
+    - `FindCurrentEmployeeAsync`: Enhanced email and code pattern matching (e.g. matching `e.EmployeeCode` within formatted work emails) to resolve the active employee identity reliably.
+    - `ListPendingAllocationsAsync`:
+      - Restricted allocation approval visibility so only the candidate's actual Approver/Reporting Manager (`r.ApproverEmployeeId == currentEmpId`, `r.ApproverEmployeeId == currentUser.UserId`, `r.Employee.ReportingManagerId == currentEmpId`, or `r.Employee.ReportingManagerId == currentUser.UserId`), plus global Admin/SuperAdmin/PMO, see the approval request in the Approvals tab.
+      - Removed generic task-prefix (`ALLOC-`) notification matching that previously caused candidate resources, PMs, EMs, and TLs to also receive approval requests in their Approvals tabs upon receiving status updates.
+    - `TakeAllocationActionAsync`:
+      - Fixed status mapping: Explicitly mapped `"Rejected"`, `"Reject"`, `"Cancelled"`, and `"Cancel"` to `"Rejected"` (previously misassigned to `"Cancelled"` which broke frontend status chips and dropdown filters).
+      - Mapped `"Hold"` and `"Request Changes"` to `"Hold"`, and `"Approved"` and `"Accept"` to `"Approved"`.
+      - On `"Approved"`: Assigns candidate to `ProjectTeamMember` and updates `project.TeamLeadId` if marked as Team Lead.
+      - On status change: Updates audit trail in `HistoryJson`, records mandatory comments in `CommentsJson`, completes SLA tracking, and updates all prior pending notifications (`RelatedTask == ALLOC-...`) in-line to the new status.
+    - `NotifyLeadershipOnAllocationStatusChangeAsync`:
+      - Generates informational notifications (`Type = "Resource Allocation"`) for the Candidate, assigned PM(s), assigned EM(s), and Project Team Lead(s).
+      - Action verbs correctly aligned: `"approved"`, `"rejected"`, `"on hold"` (replacing `"accepted"` and `"cancelled"`).
+      - Candidate title format: `"Resource Allocation {Approved|Rejected|On Hold}: ..."`
+      - Stakeholders (PM, EM, TL) title format: `"{candidateName} is {approved|rejected|on hold} for the {projectName}"`.
+
+---
+
+### 2. Frontend Action Centre & Modal Enhancements
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - `visibleTabs`: Ensured the "Approvals" tab is unconditionally accessible to managers and users who have approvals present in `store.approvals`.
+  - `ApprovalsTab`:
+    - Removed `!isBO` restriction from approval actions modal so all designated reporting managers (including COO, CEO, or business owners acting as reporting manager) can execute Hold, Request Changes, Reject, and Approve actions.
+    - Replaced generic "View" button with an active `"Review & Action"` badge button for items with `"Pending"` status.
+    - Updated `handleAction` to automatically dismiss the modal upon completing an action and refresh approvals from the backend.
+  - `NotificationsTab`:
+    - Updated `onActionComplete` callback on `NotificationDetailModal` to synchronously reflect the updated approval status in `dhStore.approvals` when an action is executed from the notification modal.
+- `apps/frontend/src/components/notification-detail-modal.tsx`:
+  - Aligned status action choices with central approvals: Changed action type from `"Approved" | "Hold" | "Cancelled"` to `"Approved" | "Hold" | "Rejected"`.
+  - Updated Reject button to dispatch `"Rejected"` status with mandatory remarks, ensuring both Approvals tab and Notification modal execute identical business logic and state updates.
+- `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`:
+  - `AddTeamMemberModal` submit handler: Added immediate optimistic merge into `dhStore.mergeApprovals` upon successful allocation request creation so that central approval state is immediately in sync before background API refetches occur.
+
+---
+
+### 3. Affected Files
+- `apps/backend/Middleware/DevelopmentAuthBypassMiddleware.cs`
+- `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`
+- `apps/frontend/src/components/notification-detail-modal.tsx`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
+
+---
+
+### 4. Database Changes & Migrations
+- **None**: No schema changes required; operations utilize existing tables `project.tbl_resource_allocation_requests`, `project.tbl_project_team_members`, and `action.tbl_notifications`.
+
+---
+
+### 5. API Changes
+- **Status Value Alignment**:
+  - `POST /api/v1/projects/{projectId}/allocation-requests/{requestId}/action` and `POST /api/v1/action-centre/allocation-approvals/{identifier}/action` now strictly return and record `"Rejected"` (rather than `"Cancelled"`).
+  - Informational notifications dispatched after approval actions use `Type = "Resource Allocation"` to distinguish them from actionable `Type = "Resource Allocation Approval"` requests.
+
+---
+
+### 6. Business Logic & Preserved Functionality
+- **Preserved Functionality**:
+  - Employee allocation validations (intern shadow team checks, overlap checks, existing assignment checks).
+  - Central Approval center filtering by Project, Request Type, and Status.
+  - Mandatory action comment validation across both Notification Modal and Approvals Tab Modal.
+  - In-line updating of prior pending notifications on approval action.
+  - SLA tracking start and completion lifecycle.
+
+---
+
+# Changelog - Action Centre Notification Table Formatting, Dynamic Type Filter & Alert Column Clean-up
+
+## Summary of Changes
+Updated Action Centre's Notifications and Alerts views to resolve table layout defects, streamline notification metadata, dynamically restrict filter options to active notification types, and remove redundant customer details from alert listings.
+
+### 1. Notifications Tab Layout & Data Enhancements
+- **Column Overlap Resolution**: Fixed visual overlap where long uppercase Notification Type badges (e.g. `CUSTOMER INTERVIEW SELECTED`) encroached onto the Related Project column. Reallocated table `<colgroup>` column widths (`Type`: 16%, `Related Project`: 14%), removed forced cell `whitespace-nowrap`, added badge text wrapping (`break-words`, `leading-tight`, `max-w-full`), and enabled text truncation on the Related Project cell with a hover `title`.
+- **Combined Timestamp Column**: Replaced separate `Date` and `Time` columns with a single `Timestamp` column displaying formatted values in `YYYY-MM-DD HH:MM:SS` format (e.g., `2026-11-16 02:27:00`).
+- **Dynamic Notification Type Filter**: Updated the Notification Type dropdown under Notification Inbox to dynamically derive available options from active notifications in the system (`availableNotificationTypes`) rather than rendering a static 34-item list containing unused types. If a previously selected type is no longer present, the filter automatically resets to `"all"`.
+
+### 2. Alerts Tab Clean-up
+- **Removed Customer Name Column**: Removed the redundant `Customer Name` column header and table cells from the Alerts tab.
+- **Rebalanced Column Allocation**: Adjusted the 8-column table layout (`Alert Title: 20%`, `Project Name: 18%`, `Alert Type: 12%`, `Priority: 9%`, `Raised By: 14%`, `Raised Date: 11%`, `Status: 8%`, `Actions: 8%`) to ensure optimal cell readability.
+
+---
+
+### 3. Affected Files
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - AlertsTab: Removed Customer Name column header, data cells, unused client lookup, and rebalanced column widths.
+  - NotificationsTab: Added dynamic notification type derivation (`useMemo`), combined `formatNotifTimestamp` formatter (`YYYY-MM-DD HH:MM:SS`), replaced Date & Time columns with single Timestamp column, rebalanced colgroup widths, and prevented badge text overflow.
+
+### 4. Database Changes & Migrations
+- **None**: Frontend UI and formatting changes only; no database schema or data modifications required.
+
+### 5. API Changes
+- **None**: Utilizes existing backend Action Notification and Alert endpoints without modification.
+
+### 6. Business Logic & Preserved Functionality
+- **Preserved Functionality**:
+  - Notification and Alert search, priority filtering, and status filtering.
+  - Pagination, sorting, read/unread state updates, and archive/unarchive workflows.
+  - Detail inspection modal and action triggers.
+  - Existing offboarding, pause/stop, SLA, and general notification event processing.
+
+---
+
 # Changelog - Employee Offboarding Notifications and LWD Reminder Workflow
 
 ## Summary of Changes

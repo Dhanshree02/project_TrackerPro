@@ -132,7 +132,7 @@ export function NotificationDetailModal({
     (notification.type || "").toLowerCase().includes("allocation") ||
     (notification.relatedTask || "").toUpperCase().startsWith("ALLOC-");
 
-  const handleApprovalAction = async (status: "Approved" | "Hold" | "Cancelled") => {
+  const handleApprovalAction = async (status: "Approved" | "Hold" | "Rejected") => {
     if (!actionComment.trim()) {
       toast.error("Comments are mandatory to take action!");
       return;
@@ -446,15 +446,15 @@ export function NotificationDetailModal({
               <button
                 type="button"
                 disabled={isSubmittingAction}
-                onClick={() => handleApprovalAction("Cancelled")}
+                onClick={() => handleApprovalAction("Rejected")}
                 className="inline-flex items-center gap-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
               >
-                {isSubmittingAction && actingStatus === "Cancelled" ? (
+                {isSubmittingAction && actingStatus === "Rejected" ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <X className="h-3.5 w-3.5" />
                 )}
-                Cancelled
+                Reject
               </button>
             </div>
           </div>
