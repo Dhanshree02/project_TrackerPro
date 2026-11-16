@@ -7,6 +7,8 @@ alwaysApply: true
 
 **Last updated:** 2026-11-16
 
+- **Each environment has its own Postgres container.** Development is `pms_development_db` on host port 41761, UAT is `pms_uat_postgres` on 41764, and production is `pms_production_db` on 41765. Each has its own volume. The apps connect to those containers. The old `pms_uat_db` on 41763 is still running with the same volume, including `pms_uat_clean` and `pms_deployment`, and the apps no longer use it. Fresh dumps from before the switch are in `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/db-split-backups/2026-11-16/`. Every table row count on the new databases matches the source.
+
 - **`database/pms_uat.sql` matches the live `pms_development` database.** Dumped from PostgreSQL 16 on `pms_uat_db` with `pg_dump --no-owner --no-acl`. The `\restrict` lines were left out. Counts: 15 clients, 7 projects, 120 employees, 30 leave-calendar rows.
 
 - **WBS creation follows dark mode.** `/projects/new` uses the page and card colors from the theme. Fields, locked values, tables, and the invoice row tints do the same. Light mode stays the gray page with white cards. The navy bar and the blue Save Draft / Create WBS buttons stay as they are.
