@@ -349,6 +349,9 @@ public sealed class ProjectServiceEscalationService(
         await db.SaveChangesAsync(ct);
 
         // Start centralized TAT/SLA tracking for the WBS Escalation workflow (EOD of next 2 working days)
+        var entityRef = $"WBS-{row.ServiceName}-{row.Subject}";
+        if (entityRef.Length > 100) entityRef = entityRef[..100];
+
         try
         {
             var slaPriority = priority.ToLowerInvariant() switch
@@ -363,7 +366,7 @@ public sealed class ProjectServiceEscalationService(
                 Module: "Projects",
                 ActivityType: "WBS Escalation",
                 EntityId: row.Id,
-                EntityReference: $"WBS-{row.ServiceName}-{row.Subject}",
+                EntityReference: entityRef,
                 Stage: "Open",
                 Priority: slaPriority,
                 RecipientEmployeeId: null,

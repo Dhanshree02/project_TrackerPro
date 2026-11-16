@@ -10,6 +10,7 @@ using PMS.API.Infrastructure.Swagger;
 using PMS.API.Middleware;
 using PMS.API.Modules.Timesheets.Jobs;
 using PMS.API.Modules.Resources.Jobs;
+using PMS.API.Modules.Sla.Jobs;
 using Serilog;
 using Serilog.Events;
 
@@ -120,6 +121,9 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     DashboardTitle = "Project Compass - Job Monitor",
     Authorization = [new HangfireDashboardAuthFilter(app.Environment, hangfireOptions)]
 });
+
+// Initialize SLA job display name formatter and pre-warm dashboard cache
+SlaJobDisplayNameFormatter.Initialize(app.Services);
 
 // Register Recurring Timesheet Submission Reminder Job (Daily at 09:00 IST / 03:30 UTC)
 try

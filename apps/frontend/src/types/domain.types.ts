@@ -47,7 +47,10 @@ export interface DhAlert {
   id: string;
   title: string;
   kind: AlertKind;
-  projectId?: string;
+  projectId?: string;
+  projectName?: string;
+  customerId?: string;
+  customerName?: string;
   raisedByName: string;
   audienceUserIds: string[];
   priority: DhPriority;

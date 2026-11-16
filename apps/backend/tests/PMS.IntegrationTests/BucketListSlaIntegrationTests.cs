@@ -633,4 +633,115 @@ public class BucketListSlaIntegrationTests : IClassFixture<WebApplicationFactory
         var refreshedSla = await db.SlaInstances.AsNoTracking().FirstOrDefaultAsync(i => i.Id == pauseSla.Id);
         Assert.Equal(SlaInstanceStatus.Completed, refreshedSla?.Status);
     }
+
+    [Fact]
+    public async Task Hangfire_SlaJobs_DisplayNames_MatchRequiredBusinessFormat()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var slaTracking = scope.ServiceProvider.GetRequiredService<ISlaTrackingService>();
+
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.DeletedAtUtc == null);
+        Assert.NotNull(project);
+
+        var employee = await db.Employees.FirstOrDefaultAsync(e => e.DeletedAtUtc == null);
+        Assert.NotNull(employee);
+
+        var taskTitle = $"Hangfire Display Test Task {Guid.NewGuid():N}";
+        var task = new ProjectTask
+        {
+            ProjectId = project.Id,
+            Title = taskTitle,
+            Description = "Test for Hangfire SLA Display Names",
+            PlannedStartDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            PlannedEndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(2)),
+            EstimatedHours = 4,
+            Priority = "High"
+        };
+        db.ProjectTasks.Add(task);
+        await db.SaveChangesAsync();
+
+        var assignment = new ProjectTaskAssignment
+        {
+            TaskId = task.Id,
+            EmployeeId = employee.Id,
+            Role = "Developer",
+            IsActive = true
+        };
+        db.ProjectTaskAssignments.Add(assignment);
+        await db.SaveChangesAsync();
+
+        // Start Task Start SLA tracking
+        var taskStartSla = await slaTracking.StartTrackingAsync(new SlaStartTrackingRequest(
+            Module: "Project",
+            ActivityType: "Task Start After Assigning",
+            EntityId: assignment.Id,
+            Stage: "PendingStart",
+            Priority: SlaPriority.High,
+            RecipientEmployeeId: employee.Id,
+            ProjectId: project.Id,
+            EntityReference: taskTitle));
+
+        // Start Task Deadline SLA tracking
+        var taskDeadlineSla = await slaTracking.StartTrackingAsync(new SlaStartTrackingRequest(
+            Module: "Project",
+            ActivityType: "Task Deadline",
+            EntityId: assignment.Id,
+            Stage: "InProgress",
+            Priority: SlaPriority.High,
+            RecipientEmployeeId: employee.Id,
+            ProjectId: project.Id,
+            EntityReference: taskTitle));
+
+        // Verify scheduled jobs for Task Start SLA
+        var startEvents = await db.SlaEvents
+            .Where(e => e.InstanceId == taskStartSla.Id && e.Status == SlaEventStatus.Scheduled)
+            .ToListAsync();
+
+        Assert.NotEmpty(startEvents);
+
+        var methodBreach = typeof(SlaBackgroundJobWorker).GetMethod(nameof(SlaBackgroundJobWorker.ExecuteBreachCheckAsync))!;
+        var attrBreach = (SlaJobDisplayNameAttribute)Attribute.GetCustomAttribute(methodBreach, typeof(SlaJobDisplayNameAttribute))!;
+        var methodEsc = typeof(SlaBackgroundJobWorker).GetMethod(nameof(SlaBackgroundJobWorker.ExecuteEscalationAsync))!;
+        var attrEsc = (SlaJobDisplayNameAttribute)Attribute.GetCustomAttribute(methodEsc, typeof(SlaJobDisplayNameAttribute))!;
+        var methodRem = typeof(SlaBackgroundJobWorker).GetMethod(nameof(SlaBackgroundJobWorker.ExecuteReminderAsync))!;
+        var attrRem = (SlaJobDisplayNameAttribute)Attribute.GetCustomAttribute(methodRem, typeof(SlaJobDisplayNameAttribute))!;
+
+        var breachEv = startEvents.FirstOrDefault(e => e.EventType == SlaEventType.BreachCheck);
+        if (breachEv != null)
+        {
+            var job = new Hangfire.Common.Job(typeof(SlaBackgroundJobWorker), methodBreach, taskStartSla.Id, breachEv.Id);
+            var title = attrBreach.Format(null!, job);
+            Assert.Equal($"Task Start SLA | Breach Check | {taskTitle} | {project.Name}", title);
+        }
+
+        var esc1Ev = startEvents.FirstOrDefault(e => e.EventType == SlaEventType.EscalationL1);
+        if (esc1Ev != null)
+        {
+            var job = new Hangfire.Common.Job(typeof(SlaBackgroundJobWorker), methodEsc, taskStartSla.Id, esc1Ev.Id, 1);
+            var title = attrEsc.Format(null!, job);
+            Assert.Equal($"Task Start SLA | L1 Escalation | Senior Project Manager | {taskTitle} | {project.Name}", title);
+        }
+
+        // Verify Task Deadline SLA jobs
+        var deadlineEvents = await db.SlaEvents
+            .Where(e => e.InstanceId == taskDeadlineSla.Id && e.Status == SlaEventStatus.Scheduled)
+            .ToListAsync();
+
+        var remEv = deadlineEvents.FirstOrDefault(e => e.EventType == SlaEventType.Reminder);
+        if (remEv != null)
+        {
+            var job = new Hangfire.Common.Job(typeof(SlaBackgroundJobWorker), methodRem, taskDeadlineSla.Id, remEv.Id);
+            var title = attrRem.Format(null!, job);
+            Assert.Equal($"Task Deadline SLA | Upcoming Deadline Reminder | {taskTitle} | {project.Name}", title);
+        }
+
+        var deadlineEsc1 = deadlineEvents.FirstOrDefault(e => e.EventType == SlaEventType.EscalationL1);
+        if (deadlineEsc1 != null)
+        {
+            var job = new Hangfire.Common.Job(typeof(SlaBackgroundJobWorker), methodEsc, taskDeadlineSla.Id, deadlineEsc1.Id, 1);
+            var title = attrEsc.Format(null!, job);
+            Assert.Equal($"Task Deadline SLA | L1 Escalation | Senior Project Manager | {taskTitle} | {project.Name}", title);
+        }
+    }
 }

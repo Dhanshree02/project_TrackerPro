@@ -2,7 +2,7 @@ import { Link, Navigate } from "@tanstack/react-router";
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 
-import { NotificationDetailModal } from "@/components/notification-detail-modal";
+import { NotificationDetailModal, formatNotificationId } from "@/components/notification-detail-modal";
 
 import {
 
@@ -644,7 +644,7 @@ function BucketListRow({
 
   return (
     <tr className="hover:bg-accent/30 border-b border-border">
-      <td className="px-3 py-2.5 truncate" title={r.taskTitle}>
+      <td className="px-3 py-2.5 truncate">
         <Link
           to="/projects/$projectId"
           params={{ projectId: r.projectId }}
@@ -654,7 +654,7 @@ function BucketListRow({
           {r.taskTitle}
         </Link>
       </td>
-      <td className="px-3 py-2.5 text-muted-foreground font-medium truncate" title={r.projectName}>{r.projectName}</td>
+      <td className="px-3 py-2.5 text-muted-foreground font-medium truncate">{r.projectName}</td>
       <td className="px-3 py-2.5">
         <PriorityPill priority={(r.priority?.toLowerCase() as any) || "medium"} />
       </td>
@@ -724,7 +724,7 @@ function BucketListRow({
       <td className="px-3 py-2.5 truncate">
         <div className="flex items-center gap-2 truncate">
           <Avatar name={byName} size={24} />
-          <span className="text-xs font-semibold text-foreground truncate" title={byName}>{byName}</span>
+          <span className="text-xs font-semibold text-foreground truncate">{byName}</span>
         </div>
       </td>
 
@@ -1086,14 +1086,14 @@ function BucketListRow({
                 <div className="rounded-lg border border-border/80 bg-muted/30 p-3.5 space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Task:</span>
-                    <span className="font-semibold text-foreground text-right max-w-[240px] truncate" title={r.taskTitle}>
+                    <span className="font-semibold text-foreground text-right max-w-[240px] truncate">
                       {r.taskTitle}
                     </span>
                   </div>
                   <div className="h-px bg-border/60" />
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Project:</span>
-                    <span className="font-medium text-foreground text-right max-w-[240px] truncate" title={r.projectName}>
+                    <span className="font-medium text-foreground text-right max-w-[240px] truncate">
                       {r.projectName}
                     </span>
                   </div>
@@ -1709,7 +1709,7 @@ const getTypeStyles = (type: string) => {
     return "bg-success/15 text-success border border-success/30";
   } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal") || t.includes("resignation") || t.includes("offboard")) {
     return "bg-destructive/15 text-destructive border border-destructive/30";
-  } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("lwd")) {
+  } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("lwd") || t.includes("extension")) {
     return "bg-warning/15 text-warning border border-warning/30";
   } else if (t.includes("appreciation") || t.includes("feedback")) {
     return "bg-chart-3/15 text-chart-3 border border-chart-3/30";
@@ -1727,6 +1727,47 @@ const getTypeStyles = (type: string) => {
 
 // ---------- Approvals ----------
 
+export const getApprovalRequestTypeStyles = (type: string) => {
+  const t = (type || "").toLowerCase();
+  if (t.includes("requirement") || t.includes("customer")) {
+    return "bg-purple-100 text-purple-800 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50";
+  }
+  if (t.includes("extension") || t.includes("timeline")) {
+    return "bg-amber-100 text-amber-800 border border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50";
+  }
+  if (t.includes("allocation") || t.includes("resource")) {
+    return "bg-sky-100 text-sky-800 border border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/50";
+  }
+  if (t.includes("feedback")) {
+    return "bg-emerald-100 text-emerald-800 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50";
+  }
+  if (t.includes("wbs")) {
+    return "bg-indigo-100 text-indigo-800 border border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/50";
+  }
+  if (t.includes("budget")) {
+    return "bg-teal-100 text-teal-800 border border-teal-200/80 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/50";
+  }
+  if (t.includes("leadership") || t.includes("assignment")) {
+    return "bg-blue-100 text-blue-800 border border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/50";
+  }
+  return "bg-slate-100 text-slate-800 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700";
+};
+
+export function formatApprovalId(id: string): string {
+  if (!id) return "";
+  const match = id.match(/^APP-(?:REQ|EXT|ALLOC|FDBK)-([0-9a-fA-F-]+)$/i);
+  if (match) {
+    const raw = match[1].replace(/-/g, "");
+    return `APP-${raw.slice(0, 8).toUpperCase()}`;
+  }
+  if (id.startsWith("APP-")) {
+    const raw = id.slice(4).replace(/-/g, "");
+    return `APP-${raw.slice(0, 8).toUpperCase()}`;
+  }
+  const clean = id.replace(/-/g, "");
+  return `APP-${clean.slice(0, 8).toUpperCase()}`;
+}
+
 function ApprovalsTab() {
 
   const store = useDhStore((s) => s);
@@ -1734,6 +1775,8 @@ function ApprovalsTab() {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
 
   const [appComment, setAppComment] = useState("");
+
+  const [approvalSearchQuery, setApprovalSearchQuery] = useState("");
 
   const [projectFilter, setProjectFilter] = useState("all");
 
@@ -2021,10 +2064,7 @@ function ApprovalsTab() {
         });
       }
 
-      const nonApiApprovals = (store.approvals || []).filter(
-        (a) => !a.id.startsWith("APP-REQ-") && !a.id.startsWith("APP-EXT-") && !a.id.startsWith("APP-ALLOC-") && !a.id.startsWith("APP-FDBK-")
-      );
-      const allSortedApprovals = [...toMerge, ...nonApiApprovals].sort((a, b) => {
+      const allSortedApprovals = [...toMerge].sort((a, b) => {
         const timeA = a.createdAtUtc ? new Date(a.createdAtUtc).getTime() : (a.requestedDate ? new Date(a.requestedDate).getTime() : 0);
         const timeB = b.createdAtUtc ? new Date(b.createdAtUtc).getTime() : (b.requestedDate ? new Date(b.requestedDate).getTime() : 0);
         if (timeA !== timeB) return timeB - timeA;
@@ -2089,6 +2129,21 @@ function ApprovalsTab() {
         if (projectFilter !== "all" && a.projectId !== projectFilter) return false;
         if (typeFilter !== "all" && a.requestType !== typeFilter) return false;
         if (statusFilter !== "all" && a.status !== statusFilter) return false;
+
+        if (approvalSearchQuery.trim()) {
+          const q = approvalSearchQuery.trim().toLowerCase();
+          const compactId = formatApprovalId(a.id).toLowerCase();
+          const fullId = (a.id || "").toLowerCase();
+          const extId = a.id ? `ext-${a.id.replace(/-/g, "").slice(0, 8).toLowerCase()}` : "";
+          const matchesId = compactId.includes(q) || fullId.includes(q) || extId.includes(q);
+          const matchesType = (a.requestType || "").toLowerCase().includes(q);
+          const projName = (a.projectName || assignedProjects.find((p) => p.id === a.projectId)?.name || "").toLowerCase();
+          const projCode = (assignedProjects.find((p) => p.id === a.projectId)?.projectCode || "").toLowerCase();
+          const matchesProject = projName.includes(q) || projCode.includes(q);
+
+          if (!matchesId && !matchesType && !matchesProject) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -2097,14 +2152,14 @@ function ApprovalsTab() {
         if (timeA !== timeB) return timeB - timeA;
         return (b.id || "").localeCompare(a.id || "");
       });
-  }, [store.approvals, projectFilter, typeFilter, statusFilter]);
+  }, [store.approvals, projectFilter, typeFilter, statusFilter, approvalSearchQuery, assignedProjects]);
 
   const [approvalPage, setApprovalPage] = useState(1);
   const [approvalPageSize, setApprovalPageSize] = useState(15);
 
   useEffect(() => {
     setApprovalPage(1);
-  }, [projectFilter, typeFilter, statusFilter]);
+  }, [projectFilter, typeFilter, statusFilter, approvalSearchQuery]);
 
   const totalApprovals = filteredApprovals.length;
   const pageApprovals = useMemo(() => paginateSlice(filteredApprovals, approvalPage, approvalPageSize), [filteredApprovals, approvalPage, approvalPageSize]);
@@ -2128,11 +2183,21 @@ function ApprovalsTab() {
     if (currentApp && currentApp.requestType === "Customer Requirement Approval") {
       try {
         const rawReqId = currentApp.id.replace(/^APP-REQ-/, "");
-        await takeProjectAdditionalRequirementAction(currentApp.projectId, rawReqId, status, appComment);
+        const updated = await takeProjectAdditionalRequirementAction(currentApp.projectId, rawReqId, status, appComment);
+        if (updated) {
+          dhStore.updateRequirementStatus(updated.id, status as any, user.id, user.name);
+          const reqInStore = ((dhStore as any).getState?.().requirements || []).find((r: any) => r.id === updated.id || r.requirementId === updated.requirementId);
+          if (reqInStore) {
+            reqInStore.approvedAtUtc = updated.approvedAtUtc;
+          }
+        }
+        dhStore.updateCentralApprovalStatus(selectedAppId, status, appComment, user.name, user.id);
         await loadApprovals();
         handledByApi = true;
       } catch (err: any) {
         console.error("Failed to update additional requirement approval on backend:", err);
+        toast.error(err?.message || "Failed to update additional requirement approval on backend");
+        return;
       }
     }
 
@@ -2203,6 +2268,18 @@ function ApprovalsTab() {
           <ShieldAlert className="h-4.5 w-4.5 text-primary" />
           <h3 className="text-sm font-semibold">Central Approval Center</h3>
         </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={approvalSearchQuery}
+            onChange={(e) => setApprovalSearchQuery(e.target.value)}
+            placeholder="Search by approval ID, request type, project..."
+            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
 
           <div className="flex flex-col gap-1">
@@ -2321,16 +2398,18 @@ function ApprovalsTab() {
 
         <table className="w-full min-w-[860px] table-fixed text-sm">
           <colgroup>
-            <col style={{ width: canManageApprovals ? "34%" : "44%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: canManageApprovals ? "26%" : "36%" }} />
             <col style={{ width: "18%" }} />
-            <col style={{ width: "17%" }} />
-            <col style={{ width: "11%" }} />
+            <col style={{ width: "16%" }} />
             <col style={{ width: "10%" }} />
-            {canManageApprovals ? <col style={{ width: "10%" }} /> : null}
+            <col style={{ width: "9%" }} />
+            {canManageApprovals ? <col style={{ width: "9%" }} /> : null}
           </colgroup>
 
           <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Approval ID</th>
               <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project</th>
               <th className="px-3 py-2.5 font-semibold text-muted-foreground">Request Type</th>
               <th className="px-3 py-2.5 font-semibold text-muted-foreground">Requested By</th>
@@ -2344,14 +2423,16 @@ function ApprovalsTab() {
           <tbody className="divide-y divide-border">
             {pageApprovals.map((app) => (
               <tr key={app.id} className="hover:bg-accent/30">
+                <td className="px-3 py-2.5 font-mono text-xs font-semibold text-foreground">
+                  {formatApprovalId(app.id)}
+                </td>
                 <td className="px-3 py-2.5 font-medium text-foreground break-words whitespace-normal">{app.projectName}</td>
                 <td className="px-3 py-2.5">
                   <span
                     className={cn(
                       "inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider leading-tight text-center break-words max-w-full",
-                      getTypeStyles(app.requestType),
+                      getApprovalRequestTypeStyles(app.requestType),
                     )}
-                    title={app.requestType}
                   >
                     {app.requestType}
                   </span>
@@ -2360,7 +2441,6 @@ function ApprovalsTab() {
                   {app.requestedBy ? (
                     <span
                       className="inline-flex items-center gap-2.5 text-foreground transition-colors hover:text-primary"
-                      title={app.requestedBy}
                     >
                       <Avatar name={app.requestedBy} size={28} />
                       <span className="font-semibold">{app.requestedBy}</span>
@@ -2409,7 +2489,7 @@ function ApprovalsTab() {
             ))}
             {isLoadingApprovals && filteredApprovals.length === 0 ? (
               <tr>
-                <td colSpan={canManageApprovals ? 6 : 5} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canManageApprovals ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <span>Loading approvals...</span>
@@ -2418,7 +2498,7 @@ function ApprovalsTab() {
               </tr>
             ) : filteredApprovals.length === 0 ? (
               <tr>
-                <td colSpan={canManageApprovals ? 6 : 5} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canManageApprovals ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No approvals found
                 </td>
               </tr>
@@ -2444,7 +2524,7 @@ function ApprovalsTab() {
 
         <Modal
 
-          title={`Review Request — ${selectedApproval.id}`}
+          title={`Review Request — ${formatApprovalId(selectedApproval.id)}`}
 
           onClose={() => setSelectedAppId(null)}
 
@@ -2460,23 +2540,9 @@ function ApprovalsTab() {
 
               <div>
 
-                <span className="text-muted-foreground">Project Link</span>
+                <span className="text-muted-foreground">Approval ID</span>
 
-                <p className="font-medium text-primary hover:underline">
-
-                  <Link
-
-                    to="/projects/$projectId"
-
-                    params={{ projectId: selectedApproval.projectId }}
-
-                  >
-
-                    {selectedApproval.projectName}
-
-                  </Link>
-
-                </p>
+                <p className="font-mono font-semibold text-foreground">{formatApprovalId(selectedApproval.id)}</p>
 
               </div>
 
@@ -2503,9 +2569,8 @@ function ApprovalsTab() {
                 <span
                   className={cn(
                     "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider leading-tight text-center break-words",
-                    getTypeStyles(selectedApproval.requestType),
+                    getApprovalRequestTypeStyles(selectedApproval.requestType),
                   )}
-                  title={selectedApproval.requestType}
                 >
                   {selectedApproval.requestType}
                 </span>
@@ -2726,6 +2791,8 @@ function AlertsTab() {
 
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
 
+  const [alertSearchQuery, setAlertSearchQuery] = useState("");
+
   const [projFilter, setProjFilter] = useState("all");
 
   const [clientFilter, setClientFilter] = useState("all");
@@ -2866,10 +2933,23 @@ function AlertsTab() {
       .filter((a) => {
         const proj = projectsList.find((p) => p.id === a.projectId);
         if (projFilter !== "all" && a.projectId !== projFilter) return false;
-        if (clientFilter !== "all" && proj?.clientId !== clientFilter) return false;
+        if (clientFilter !== "all" && proj?.clientId !== clientFilter && (a as any).customerId !== clientFilter) return false;
         if (prioFilter !== "all" && a.priority !== prioFilter) return false;
         if (typeFilter !== "all" && a.alertType !== typeFilter) return false;
         if (statusFilter !== "all" && a.status !== statusFilter) return false;
+
+        if (alertSearchQuery.trim()) {
+          const q = alertSearchQuery.trim().toLowerCase();
+          const matchesId = (a.alertId || "").toLowerCase().includes(q) || (a.id || "").toLowerCase().includes(q);
+          const projName = (a.projectName || proj?.name || "").toLowerCase();
+          const projCode = (proj?.code || (a as any).projectCode || "").toLowerCase();
+          const matchesProject = projName.includes(q) || projCode.includes(q);
+          const alertTypeStr = (a.alertType || (a as any).kind || "").toLowerCase();
+          const matchesType = alertTypeStr.includes(q);
+
+          if (!matchesId && !matchesProject && !matchesType) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -2878,14 +2958,14 @@ function AlertsTab() {
         if (timeA !== timeB) return timeB - timeA;
         return (b.id || "").localeCompare(a.id || "");
       });
-  }, [allAlerts, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, projectsList]);
+  }, [allAlerts, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, projectsList, alertSearchQuery]);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     setPage(1);
-  }, [projFilter, clientFilter, prioFilter, typeFilter, statusFilter]);
+  }, [projFilter, clientFilter, prioFilter, typeFilter, statusFilter, alertSearchQuery]);
 
   const totalAlerts = filtered.length;
   const pageAlerts = useMemo(() => paginateSlice(filtered, page, pageSize), [filtered, page, pageSize]);
@@ -3123,7 +3203,8 @@ function AlertsTab() {
     (allAlerts || []).forEach((a) => {
       if (a.projectId) {
         const proj = projectsList.find((p) => p.id === a.projectId);
-        map.set(a.projectId, proj?.name || a.projectId);
+        const name = a.projectName || proj?.name || a.projectId;
+        map.set(a.projectId, name);
       }
     });
     return Array.from(map.entries())
@@ -3213,6 +3294,17 @@ function AlertsTab() {
 
             <h3 className="text-sm font-semibold">PMO Health & Governance Governance Panel</h3>
 
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={alertSearchQuery}
+              onChange={(e) => setAlertSearchQuery(e.target.value)}
+              placeholder="Search by alert ID, project name, alert type..."
+              className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
+            />
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 text-xs">
@@ -3409,7 +3501,7 @@ function AlertsTab() {
 
             <p className="text-sm text-muted-foreground">
 
-              No governance alerts found matching the active filters.
+              No governance alerts found matching the active filters or search.
 
             </p>
 
@@ -3446,12 +3538,22 @@ function AlertsTab() {
               <tbody className="divide-y divide-border">
                 {pageAlerts.map((alert) => {
                   const project = projectsList.find((p) => p.id === alert.projectId);
+                  const projectName = alert.projectName || project?.name || "—";
 
                   return (
                     <tr key={alert.id} className="hover:bg-accent/30">
-                      <td className="px-3 py-2.5 font-medium text-foreground">{alert.title}</td>
-                      <td className="px-3 py-2.5 text-xs font-semibold text-foreground">
-                        {project?.name || "—"}
+                      <td className="px-3 py-2.5 font-medium text-foreground break-words whitespace-normal [overflow-wrap:anywhere]">
+                        {alert.alertId ? (
+                          <span className="font-mono text-[10px] text-foreground block font-semibold leading-tight mb-0.5">
+                            {alert.alertId}
+                          </span>
+                        ) : null}
+                        <span className="block break-words whitespace-normal [overflow-wrap:anywhere]">
+                          {alert.title}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs font-semibold text-foreground break-words whitespace-normal">
+                        {projectName}
                       </td>
 
                       <td className="px-3 py-2.5">
@@ -3460,7 +3562,6 @@ function AlertsTab() {
                             "inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold leading-tight break-words max-w-full",
                             getTypeStyles(alert.alertType || alert.kind),
                           )}
-                          title={alert.alertType || alert.kind}
                         >
                           {alert.alertType || alert.kind}
                         </span>
@@ -3608,7 +3709,7 @@ function AlertsTab() {
 
                     </span>
 
-                    <span className="font-semibold text-primary">
+                    <span className="font-semibold text-foreground">
 
                       {selectedAlert.serviceName || "—"}
 
@@ -4006,11 +4107,9 @@ function AlertsTab() {
                     >
 
                       <span>
-
-                        {projectsList.find((p) => p.id === selectedAlert.projectId)?.name ||
-
+                        {selectedAlert.projectName ||
+                          projectsList.find((p) => p.id === selectedAlert.projectId)?.name ||
                           "Go to project"}
-
                       </span>
 
                       <ExternalLink className="h-3 w-3" />
@@ -4127,9 +4226,7 @@ function AlertsTab() {
 
                     <p
 
-                      className="text-xs font-semibold text-primary truncate"
-
-                      title={selectedAlert.escalatedTo.join(", ")}
+                      className="text-xs font-semibold text-foreground truncate"
 
                     >
 
@@ -4513,7 +4610,7 @@ function NotificationsTab() {
     }
   }, [availableNotificationTypes, typeFilter]);
 
-  // Timestamp formatting helper: YYYY-MM-DD HH:MM:SS (e.g. 2026-11-16 02:27:00)
+  // Timestamp formatting helper: DD-MM-YYYY HH:MM:SS (e.g. 16-11-2026 02:27:00)
   const formatNotifTimestamp = (dateStr?: string | null): string => {
     if (!dateStr) return "—";
     try {
@@ -4525,7 +4622,7 @@ function NotificationsTab() {
       const hours = String(d.getHours()).padStart(2, "0");
       const minutes = String(d.getMinutes()).padStart(2, "0");
       const seconds = String(d.getSeconds()).padStart(2, "0");
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
     } catch {
       return dateStr;
     }
@@ -4631,7 +4728,8 @@ function NotificationsTab() {
       // 2. Search query filter (ID, Project, Task, Notification Type, Employee, Title)
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchesCode = n.notificationCode ? n.notificationCode.toLowerCase().includes(query) : false;
+        const formattedCode = formatNotificationId(n.notificationCode || n.id).toLowerCase();
+        const matchesCode = formattedCode.includes(query) || (n.notificationCode ? n.notificationCode.toLowerCase().includes(query) : false);
         const matchesId = n.id ? n.id.toLowerCase().includes(query) : false;
         const matchesProject = (n.relatedProject || "").toLowerCase().includes(query);
         const matchesTask = n.relatedTask ? n.relatedTask.toLowerCase().includes(query) : false;
@@ -5116,17 +5214,25 @@ function NotificationsTab() {
 
                         )}
 
-                        <span
+                        <div className="min-w-0 flex-1">
 
-                          className="font-medium text-foreground break-words whitespace-normal block"
+                          <span className="font-mono text-[10px] text-foreground block font-semibold leading-tight mb-0.5">
 
-                          title={n.title}
+                            {formatNotificationId(n.notificationCode || n.id)}
 
-                        >
+                          </span>
 
-                          {n.title}
+                          <span
 
-                        </span>
+                            className="font-medium text-foreground break-words whitespace-normal block"
+
+                          >
+
+                            {n.title}
+
+                          </span>
+
+                        </div>
 
                       </div>
 
@@ -5148,8 +5254,6 @@ function NotificationsTab() {
 
                         )}
 
-                        title={n.type}
-
                       >
 
                         {n.type}
@@ -5162,7 +5266,7 @@ function NotificationsTab() {
 
                     {/* Related Project */}
 
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground break-words whitespace-normal" title={n.relatedProject}>
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground break-words whitespace-normal">
 
                       {n.relatedProject || "—"}
 
@@ -5178,7 +5282,7 @@ function NotificationsTab() {
 
                         <Avatar name={n.raisedBy} size={24} />
 
-                        <span className="text-xs truncate" title={n.raisedBy}>{n.raisedBy}</span>
+                        <span className="text-xs truncate">{n.raisedBy}</span>
 
                       </div>
 
@@ -5188,7 +5292,7 @@ function NotificationsTab() {
 
                     {/* Timestamp */}
 
-                    <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap font-mono" title={formatNotifTimestamp(n.createdAt)}>
+                    <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap font-mono">
 
                       {formatNotifTimestamp(n.createdAt)}
 

@@ -522,7 +522,10 @@ public sealed class ProjectIssueService(
         if (targetIssueId.HasValue)
         {
             var relatedNotifs = await db.ActionNotifications
-                .Where(n => n.IssueId == targetIssueId.Value && n.DeletedAtUtc == null)
+                .Where(n => n.IssueId == targetIssueId.Value
+                            && n.Type != "Issue Status Update"
+                            && n.Type != "Issue Escalation Reminder"
+                            && n.DeletedAtUtc == null)
                 .ToListAsync(ct);
 
             foreach (var notif in relatedNotifs)
@@ -538,6 +541,8 @@ public sealed class ProjectIssueService(
         {
             var relatedWbsNotifs = await db.ActionNotifications
                 .Where(n => (n.Type == "WBS Escalation" || n.Title.Contains("WBS Escalation"))
+                            && n.Type != "WBS Escalation Status Update"
+                            && n.Type != "WBS Escalation Reminder"
                             && n.ProjectId == alert.ProjectId
                             && n.DeletedAtUtc == null
                             && (alert.ServiceEscalationId == null || n.ServiceEscalationId == null || n.ServiceEscalationId == alert.ServiceEscalationId.Value))

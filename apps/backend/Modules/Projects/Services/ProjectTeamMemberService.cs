@@ -420,6 +420,29 @@ public sealed class ProjectTeamMemberService(
             logger.LogError(ex, "Failed to dispatch leadership assignment notification for project {ProjectId}", projectId);
         }
 
+        // Check if both PM and SPM are assigned to stop pending reminder notifications
+        try
+        {
+            var isPmNowAssigned = project.ProjectManagerId.HasValue || await db.ProjectTeamMembers.AnyAsync(m =>
+                m.ProjectId == projectId &&
+                (m.MemberRole == ProjectMemberRoles.ProjectManager || m.MemberRole == "Project Manager") &&
+                m.DeletedAtUtc == null, ct);
+
+            var isSpmNowAssigned = await db.ProjectTeamMembers.AnyAsync(m =>
+                m.ProjectId == projectId &&
+                (m.MemberRole == ProjectMemberRoles.SeniorProjectManager || m.MemberRole == "Senior Project Manager") &&
+                m.DeletedAtUtc == null, ct);
+
+            if (isPmNowAssigned && isSpmNowAssigned)
+            {
+                await notificationService.CancelProjectAllocationRemindersAsync(projectId, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to cancel project allocation reminder workflow for project {ProjectId}.", projectId);
+        }
+
         var managers = await db.ProjectTeamMembers
             .AsNoTracking()
             .Include(m => m.Employee)
@@ -994,8 +1017,8 @@ public sealed class ProjectTeamMemberService(
         var mappedStatus = normStatus.Equals("Approved", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Accept", StringComparison.OrdinalIgnoreCase) ? "Approved"
             : normStatus.Equals("Hold", StringComparison.OrdinalIgnoreCase) ? "Hold"
             : normStatus.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) ? "Hold"
+            : normStatus.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Cancel", StringComparison.OrdinalIgnoreCase) ? "Cancelled"
             : normStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Reject", StringComparison.OrdinalIgnoreCase) ? "Rejected"
-            : normStatus.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Cancel", StringComparison.OrdinalIgnoreCase) ? "Rejected"
             : normStatus;
 
         var actor = await FindCurrentEmployeeAsync(ct);

@@ -298,6 +298,22 @@ public class ActionCentreController : ControllerBase
     }
 
     /// <summary>
+    /// Takes action (Approve, Reject, Hold, Request Changes) on a customer requirement approval request.
+    /// Supports GUID requirementId, or task code (e.g. APP-XXXXXXXX or APP-REQ-guid).
+    /// </summary>
+    [HttpPost("approvals/{identifier}/action")]
+    public async Task<ActionResult<ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>>> TakeCustomerRequirementApprovalAction(
+        string identifier,
+        [FromQuery] Guid? projectId,
+        [FromBody] PMS.API.Modules.Projects.DTOs.AdditionalRequirementActionRequest request,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectAdditionalRequirementService requirementService,
+        CancellationToken ct = default)
+    {
+        var result = await requirementService.TakeActionByIdentifierAsync(projectId, identifier, request, ct);
+        return Ok(ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>.Ok(result));
+    }
+
+    /// <summary>
     /// Gets pending resource allocation approvals for the current reporting manager.
     /// </summary>
     [HttpGet("allocation-approvals")]
