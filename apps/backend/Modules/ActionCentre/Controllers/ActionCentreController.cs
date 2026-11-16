@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Services;
+using PMS.API.Modules.Projects.DTOs;
+using PMS.API.Modules.Projects.Services;
 using PMS.API.Shared.Common.Wrappers;
 
 namespace PMS.API.Modules.ActionCentre.Controllers;
@@ -140,6 +142,61 @@ public class ActionCentreController : ControllerBase
         return Ok(ApiResponse<bool>.Ok(true));
     }
 
+    /// <summary>
+    /// Gets assigned projects for the current authenticated employee for Bucket List issue raising.
+    /// Accessible to any user with Action Centre Bucket List permissions.
+    /// </summary>
+    [HttpGet("bucket-list/assigned-projects")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "bucket-list", "action-centre")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AssignedProjectSummaryDto>>>> GetBucketListAssignedProjects(
+        [FromServices] IProjectIssueService issueService,
+        CancellationToken ct = default)
+    {
+        var list = await issueService.GetEmployeeAssignedProjectsAsync(ct);
+        return Ok(ApiResponse<IReadOnlyList<AssignedProjectSummaryDto>>.Ok(list));
+    }
+
+    /// <summary>
+    /// Raises a project issue directly from the Action Centre bucket list for an assigned project.
+    /// Accessible to any user with Action Centre Bucket List permissions without requiring Project Health permissions.
+    /// </summary>
+    [HttpPost("bucket-list/issues")]
+    [HttpPost("bucket-list/raise-issue")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "bucket-list", "action-centre")]
+    public async Task<ActionResult<ApiResponse<ProjectIssueDto>>> RaiseBucketListIssue(
+        [FromBody] CreateProjectIssueRequest request,
+        [FromServices] IProjectIssueService issueService,
+        CancellationToken ct = default)
+    {
+        if (request.ProjectId == null || request.ProjectId == Guid.Empty)
+        {
+            return BadRequest(ApiResponse<ProjectIssueDto>.Fail("VALIDATION_ERROR", "Project is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Description))
+        {
+            return BadRequest(ApiResponse<ProjectIssueDto>.Fail("VALIDATION_ERROR", "All fields are required."));
+        }
+
+        var issue = await issueService.CreateIssueAsync(request.ProjectId.Value, request, ct);
+        return Ok(ApiResponse<ProjectIssueDto>.Ok(issue));
+    }
+
+    /// <summary>
+    /// Raises a project issue directly from the Action Centre bucket list for an assigned project route.
+    /// </summary>
+    [HttpPost("bucket-list/{projectId:guid}/issues")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "bucket-list", "action-centre")]
+    public async Task<ActionResult<ApiResponse<ProjectIssueDto>>> RaiseBucketListIssueWithRoute(
+        Guid projectId,
+        [FromBody] CreateProjectIssueRequest request,
+        [FromServices] IProjectIssueService issueService,
+        CancellationToken ct = default)
+    {
+        request.ProjectId = projectId;
+        return await RaiseBucketListIssue(request, issueService, ct);
+    }
+
     // ── Notifications ────────────────────────────────────────────────────────
 
     /// <summary>
@@ -238,6 +295,22 @@ public class ActionCentreController : ControllerBase
     {
         var items = await requirementService.ListPendingApprovalsAsync(ct);
         return Ok(ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>>.Ok(items));
+    }
+
+    /// <summary>
+    /// Takes action (Approve, Reject, Hold, Request Changes) on a customer requirement approval request.
+    /// Supports GUID requirementId, or task code (e.g. APP-XXXXXXXX or APP-REQ-guid).
+    /// </summary>
+    [HttpPost("approvals/{identifier}/action")]
+    public async Task<ActionResult<ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>>> TakeCustomerRequirementApprovalAction(
+        string identifier,
+        [FromQuery] Guid? projectId,
+        [FromBody] PMS.API.Modules.Projects.DTOs.AdditionalRequirementActionRequest request,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectAdditionalRequirementService requirementService,
+        CancellationToken ct = default)
+    {
+        var result = await requirementService.TakeActionByIdentifierAsync(projectId, identifier, request, ct);
+        return Ok(ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>.Ok(result));
     }
 
     /// <summary>

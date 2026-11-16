@@ -3892,7 +3892,7 @@ function WbsTab({
         }
       }).catch((err) => console.error("Error fetching project requirements for WBS:", err));
     }
-  }, [project?.id]);
+  }, [project?.id, refreshCount]);
 
   const isEditServicesEnabled = useMemo(() => {
     const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
@@ -3902,8 +3902,14 @@ function WbsTab({
     // Check directly fetched requirements from API first
     const hasApprovedInDb = dbRequirements.some((r) => {
       if ((r.projectId || "").toLowerCase() !== projId) return false;
-      if (r.status?.toLowerCase() !== "approved") return false;
-      const approvedAt = r.approvedAtUtc ? new Date(r.approvedAtUtc).getTime() : 0;
+      if ((r.status || "").toLowerCase() !== "approved") return false;
+      const approvedAt = r.approvedAtUtc
+        ? new Date(r.approvedAtUtc).getTime()
+        : r.updatedAtUtc
+          ? new Date(r.updatedAtUtc).getTime()
+          : r.createdAtUtc
+            ? new Date(r.createdAtUtc).getTime()
+            : 0;
       return approvedAt > 0 && (now - approvedAt) <= twoDaysMs;
     });
     if (hasApprovedInDb) return true;
@@ -3911,12 +3917,14 @@ function WbsTab({
     // Check store requirements
     const reqs = (store.requirements || []).filter((r) => (r.projectId || "").toLowerCase() === projId);
     return reqs.some((r) => {
-      if (r.status?.toLowerCase() !== "approved") return false;
+      if ((r.status || "").toLowerCase() !== "approved") return false;
       const approvedAt = (r as any).approvedAtUtc
         ? new Date((r as any).approvedAtUtc).getTime()
-        : r.history?.find((h: any) => h.status?.toLowerCase() === "approved")
-          ? new Date(r.history.find((h: any) => h.status?.toLowerCase() === "approved")!.at).getTime()
-          : 0;
+        : r.history?.find((h: any) => (h.status || "").toLowerCase() === "approved")
+          ? new Date(r.history.find((h: any) => (h.status || "").toLowerCase() === "approved")!.at).getTime()
+          : (r as any).createdAt
+            ? new Date((r as any).createdAt).getTime()
+            : 0;
       return approvedAt > 0 && (now - approvedAt) <= twoDaysMs;
     });
   }, [dbRequirements, store.requirements, project?.id]);
@@ -14039,6 +14047,36 @@ function DhTeamTab({
                     isTeamLead: Boolean(extras?.asTeamLead),
                     isShadowTeam: false,
                   });
+                  if (req) {
+                    const desc = [
+                      `Resource: ${req.employeeName || newRow.person.name}${req.employeeCode ? ` (${req.employeeCode})` : ""}`,
+                      `Allocation Duration: ${formatToDayMonthYear(req.allocationStartDate)} → ${formatToDayMonthYear(req.allocationEndDate)}`,
+                      `Billability: ${req.billability}`,
+                      `Resource Type: ${req.resourceType}`,
+                      `Role: ${req.isTeamLead ? "Team Lead" : "Team Member"}`,
+                    ].join("\n");
+                    dhStore.mergeApprovals([{
+                      id: `APP-ALLOC-${req.id}`,
+                      projectId: req.projectId,
+                      projectName: req.projectName || project.name,
+                      requestType: "Resource Allocation Approval",
+                      requestedBy: req.requestedByName || "Project Manager",
+                      requestedById: req.requestedByEmployeeId || "",
+                      requestedDate: req.createdAtUtc ? req.createdAtUtc.slice(0, 10) : "",
+                      createdAtUtc: req.createdAtUtc,
+                      status: "Pending",
+                      description: desc,
+                      comments: [],
+                      history: [
+                        {
+                          status: "Pending",
+                          at: req.createdAtUtc || new Date().toISOString(),
+                          updatedBy: req.requestedByName || "Requester",
+                          details: `Requested allocation for ${req.employeeName || newRow.person.name}`,
+                        },
+                      ],
+                    }]);
+                  }
                   toast.success(
                     `Allocation approval request sent to ${req.approverName || "Reporting Manager"} for approval`
                   );

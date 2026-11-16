@@ -64,6 +64,7 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
                                       && e.DeletedAtUtc == null
                                       && (e.Status == null || e.Status.StartsWith("Active"))
                                       && e.EmploymentType != "Intern"
+                                      && !e.EmployeeCode.StartsWith("TKI-")
                                       && (e.Role == null || !e.Role.ToLower().Contains("intern")));
         Assert.NotNull(candidate);
 
@@ -183,7 +184,8 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
                                       && !dedicatedMemberIds.Contains(e.Id)
                                       && e.DeletedAtUtc == null
                                       && (e.Status == null || e.Status.StartsWith("Active"))
-                                      && e.EmploymentType != "Intern");
+                                      && e.EmploymentType != "Intern"
+                                      && !e.EmployeeCode.StartsWith("TKI-"));
         Assert.NotNull(candidate);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -298,7 +300,8 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
                                       && !dedicatedMemberIds.Contains(e.Id)
                                       && e.DeletedAtUtc == null
                                       && (e.Status == null || e.Status.StartsWith("Active"))
-                                      && e.EmploymentType != "Intern");
+                                      && e.EmploymentType != "Intern"
+                                      && !e.EmployeeCode.StartsWith("TKI-"));
         Assert.NotNull(candidate);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -380,7 +383,8 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
                                       && e.ReportingManagerId != Guid.Empty
                                       && e.DeletedAtUtc == null
                                       && (e.Status == null || e.Status.StartsWith("Active"))
-                                      && e.EmploymentType != "Intern");
+                                      && e.EmploymentType != "Intern"
+                                      && !e.EmployeeCode.StartsWith("TKI-"));
         Assert.NotNull(candidate);
 
         var reportingManager = await db.Employees
@@ -472,7 +476,8 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
                                       && e.ReportingManagerId != Guid.Empty
                                       && e.DeletedAtUtc == null
                                       && (e.Status == null || e.Status.StartsWith("Active"))
-                                      && e.EmploymentType != "Intern");
+                                      && e.EmploymentType != "Intern"
+                                      && !e.EmployeeCode.StartsWith("TKI-"));
         Assert.NotNull(candidate);
 
         var reportingManager = await db.Employees

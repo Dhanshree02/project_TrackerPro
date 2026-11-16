@@ -2,7 +2,7 @@ import { Link, Navigate } from "@tanstack/react-router";
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 
-import { NotificationDetailModal } from "@/components/notification-detail-modal";
+import { NotificationDetailModal, formatNotificationId } from "@/components/notification-detail-modal";
 
 import {
 
@@ -159,6 +159,7 @@ import { Field } from "@/components/form-row";
 
 import {
   createProjectIssue,
+  raiseBucketListIssue,
   fetchMyAssignedProjects,
   type AssignedProjectSummary,
 } from "@/modules/projects/api/project-issues";
@@ -250,11 +251,11 @@ export function ActionCentrePage() {
     return actionTabs.filter((tab) => {
       if (isAdmin || isDhanshree) return true;
       if (tab.code === "approvals") {
-        return canView("approvals") || canView("action-centre") || canView("action-center") || hasPermission("action-center.view");
+        return canView("approvals") || canView("action-centre") || canView("action-center") || hasPermission("action-center.view") || (store.approvals && store.approvals.length > 0);
       }
       return canView(tab.code);
     });
-  }, [isAdmin, isDhanshree, canView, hasPermission]);
+  }, [isAdmin, isDhanshree, canView, hasPermission, store.approvals]);
 
   const activeTab = visibleTabs.find((tab) => tab.code === tabCode) ?? visibleTabs[0];
 
@@ -643,7 +644,7 @@ function BucketListRow({
 
   return (
     <tr className="hover:bg-accent/30 border-b border-border">
-      <td className="px-3 py-2.5 truncate" title={r.taskTitle}>
+      <td className="px-3 py-2.5 truncate">
         <Link
           to="/projects/$projectId"
           params={{ projectId: r.projectId }}
@@ -653,7 +654,7 @@ function BucketListRow({
           {r.taskTitle}
         </Link>
       </td>
-      <td className="px-3 py-2.5 text-muted-foreground font-medium truncate" title={r.projectName}>{r.projectName}</td>
+      <td className="px-3 py-2.5 text-muted-foreground font-medium truncate">{r.projectName}</td>
       <td className="px-3 py-2.5">
         <PriorityPill priority={(r.priority?.toLowerCase() as any) || "medium"} />
       </td>
@@ -723,7 +724,7 @@ function BucketListRow({
       <td className="px-3 py-2.5 truncate">
         <div className="flex items-center gap-2 truncate">
           <Avatar name={byName} size={24} />
-          <span className="text-xs font-semibold text-foreground truncate" title={byName}>{byName}</span>
+          <span className="text-xs font-semibold text-foreground truncate">{byName}</span>
         </div>
       </td>
 
@@ -1085,14 +1086,14 @@ function BucketListRow({
                 <div className="rounded-lg border border-border/80 bg-muted/30 p-3.5 space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Task:</span>
-                    <span className="font-semibold text-foreground text-right max-w-[240px] truncate" title={r.taskTitle}>
+                    <span className="font-semibold text-foreground text-right max-w-[240px] truncate">
                       {r.taskTitle}
                     </span>
                   </div>
                   <div className="h-px bg-border/60" />
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Project:</span>
-                    <span className="font-medium text-foreground text-right max-w-[240px] truncate" title={r.projectName}>
+                    <span className="font-medium text-foreground text-right max-w-[240px] truncate">
                       {r.projectName}
                     </span>
                   </div>
@@ -1172,127 +1173,106 @@ function BucketList() {
   >("all");
 
   const [showRaiseModal, setShowRaiseModal] = useState(false);
-
   const [dbAssignedProjects, setDbAssignedProjects] = useState<AssignedProjectSummary[]>([]);
 
   const [formData, setFormData] = useState({
-
     projectId: "",
-
     title: "",
-
     description: "",
-
     category: "Technical Related Issues" as IssueCategory,
-
     priority: "Medium" as DhPriority,
-
   });
-
   const [submittingIssue, setSubmittingIssue] = useState(false);
 
-
-
   useEffect(() => {
-
     fetchMyAssignedProjects()
-
       .then((projs) => {
-
-        if (projs && projs.length > 0) setDbAssignedProjects(projs);
-
+        const list = projs ?? [];
+        setDbAssignedProjects(list);
+        if (list.length > 0) {
+          setFormData((s) => ({ ...s, projectId: list[0].id }));
+        }
       })
-
-      .catch(() => {});
-
+      .catch(() => {
+        setDbAssignedProjects([]);
+      });
   }, []);
 
-
-
   const userProjects = useMemo(() => {
+    return dbAssignedProjects;
+  }, [dbAssignedProjects]);
 
-    if (dbAssignedProjects.length > 0) return dbAssignedProjects;
-
-    return assignedProjects;
-
-  }, [dbAssignedProjects, assignedProjects]);
-
-
+  const handleOpenRaiseModal = async () => {
+    try {
+      const projs = await fetchMyAssignedProjects();
+      const list = projs ?? [];
+      setDbAssignedProjects(list);
+      setFormData((prev) => ({
+        ...prev,
+        projectId: list.length > 0 ? (prev.projectId && list.some(p => p.id === prev.projectId) ? prev.projectId : list[0].id) : "",
+      }));
+    } catch {
+      // keep existing
+    }
+    setShowRaiseModal(true);
+  };
 
   const handleSubmitIssue = async () => {
-
-    if (!formData.title.trim() || !formData.description.trim()) {
-
-      toast.error("Fill all fields");
-
+    if (!formData.projectId || !formData.projectId.trim()) {
+      if (userProjects.length === 0) {
+        toast.error("Cannot raise issue: No project assigned to you");
+      } else {
+        toast.error("Please select an assigned project");
+      }
       return;
-
     }
 
-    const targetProjectId = formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || "";
-
-    if (!targetProjectId) {
-
-      toast.error("Please select a project");
-
+    if (!formData.title.trim()) {
+      toast.error("Issue Title is required");
       return;
-
     }
 
+    if (!formData.description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
 
+    if (!formData.category || !formData.category.trim()) {
+      toast.error("Issue Type is required");
+      return;
+    }
+
+    if (!formData.priority || !formData.priority.trim()) {
+      toast.error("Priority is required");
+      return;
+    }
 
     setSubmittingIssue(true);
-
     try {
-
-      await createProjectIssue(targetProjectId, {
-
+      await raiseBucketListIssue(formData.projectId, {
         subject: formData.title.trim(),
-
         description: formData.description.trim(),
-
         issueType: formData.category,
-
         priority: formData.priority,
-
       });
-
-
 
       toast.success("Issue raised successfully", {
-
         description: "Mirrored to project health and alerts",
-
       });
-
-
 
       setShowRaiseModal(false);
-
       setFormData({
-
-        projectId: userProjects[0]?.id || assignedProjects[0]?.id || "",
-
+        projectId: userProjects.length > 0 ? userProjects[0].id : "",
         title: "",
-
         description: "",
-
         category: "Technical Related Issues",
-
         priority: "Medium",
-
       });
-
     } catch (err: any) {
-
       toast.error(err?.message || "Failed to raise issue");
-
     } finally {
-
       setSubmittingIssue(false);
-
     }
-
   };
 
 
@@ -1493,17 +1473,11 @@ function BucketList() {
 
 
         {/* Raise Issue Button */}
-
         <button
-
-          onClick={() => setShowRaiseModal(true)}
-
+          onClick={handleOpenRaiseModal}
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-all shadow-sm cursor-pointer whitespace-nowrap"
-
         >
-
           <Plus className="h-3.5 w-3.5" /> Raise Issue
-
         </button>
 
 
@@ -1609,155 +1583,103 @@ function BucketList() {
 
 
       {/* Raise Issue Modal */}
-
       {showRaiseModal && (
-
         <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
-
           <div className="space-y-3">
-
-            <Field label="Project">
-
+            <Field label="Project *">
               <select
-
-                value={formData.projectId || userProjects[0]?.id || assignedProjects[0]?.id || ""}
-
+                value={formData.projectId}
                 onChange={(e) => setFormData((s) => ({ ...s, projectId: e.target.value }))}
-
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               >
-
-                {userProjects.map((p) => (
-
-                  <option key={p.id} value={p.id}>
-
-                    {p.name}
-
+                {userProjects.length === 0 ? (
+                  <option value="" disabled>
+                    No project assigned
                   </option>
-
-                ))}
-
+                ) : (
+                  <>
+                    <option value="" disabled>
+                      Select an assigned project...
+                    </option>
+                    {userProjects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}{p.projectCode ? ` (${p.projectCode})` : ""}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
-
             </Field>
 
-            <Field label="Issue Title">
+            {userProjects.length === 0 && (
+              <div className="rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                You are not currently assigned to any project. An issue must be associated with an assigned project.
+              </div>
+            )}
 
+            <Field label="Issue Title *">
               <input
-
                 value={formData.title}
-
                 onChange={(e) => setFormData((s) => ({ ...s, title: e.target.value }))}
-
                 placeholder="Brief summary..."
-
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               />
-
             </Field>
 
-            <Field label="Description">
-
+            <Field label="Description *">
               <textarea
-
                 value={formData.description}
-
                 onChange={(e) => setFormData((s) => ({ ...s, description: e.target.value }))}
-
                 placeholder="Detailed description..."
-
                 rows={3}
-
                 className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               />
-
             </Field>
 
-            <Field label="Issue Type">
-
+            <Field label="Issue Type *">
               <select
-
                 value={formData.category}
-
                 onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))}
-
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               >
-
                 {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => (
-
                   <option key={cat} value={cat}>
-
                     {cat}
-
                   </option>
-
                 ))}
-
               </select>
-
             </Field>
 
-            <Field label="Priority">
-
+            <Field label="Priority *">
               <select
-
                 value={formData.priority}
-
                 onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))}
-
                 className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
               >
-
                 {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => (
-
                   <option key={pri} value={pri}>
-
                     {pri}
-
                   </option>
-
                 ))}
-
               </select>
-
             </Field>
 
             <div className="flex justify-end gap-2 border-t border-border pt-3">
-
               <button
-
                 onClick={() => setShowRaiseModal(false)}
-
                 className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent"
-
               >
-
                 Cancel
-
               </button>
-
               <button
-
                 onClick={handleSubmitIssue}
-
-                disabled={submittingIssue}
-
+                disabled={submittingIssue || userProjects.length === 0}
                 className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-
+                title={userProjects.length === 0 ? "No project assigned" : undefined}
               >
-
                 {submittingIssue ? "Raising..." : "Raise Issue"}
-
               </button>
-
             </div>
-
           </div>
 
         </Modal>
@@ -1772,7 +1694,79 @@ function BucketList() {
 
 
 
+// ---------- Type styles helper ----------
+const getTypeStyles = (type: string) => {
+  const t = (type || "").toLowerCase();
+  if (t.includes("wbs")) {
+    return "bg-warning/15 text-warning border border-warning/30";
+  } else if (
+    t.includes("ready") ||
+    t.includes("completed") ||
+    t.includes("resolved") ||
+    t.includes("approved") ||
+    t.includes("selected")
+  ) {
+    return "bg-success/15 text-success border border-success/30";
+  } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal") || t.includes("resignation") || t.includes("offboard")) {
+    return "bg-destructive/15 text-destructive border border-destructive/30";
+  } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("lwd") || t.includes("extension")) {
+    return "bg-warning/15 text-warning border border-warning/30";
+  } else if (t.includes("appreciation") || t.includes("feedback")) {
+    return "bg-chart-3/15 text-chart-3 border border-chart-3/30";
+  } else if (
+    t.includes("interview") ||
+    t.includes("shuffle") ||
+    t.includes("allocation") ||
+    t.includes("assignment") ||
+    t.includes("issue")
+  ) {
+    return "bg-info/15 text-info border border-info/30";
+  }
+  return "bg-muted text-foreground border border-border";
+};
+
 // ---------- Approvals ----------
+
+export const getApprovalRequestTypeStyles = (type: string) => {
+  const t = (type || "").toLowerCase();
+  if (t.includes("requirement") || t.includes("customer")) {
+    return "bg-purple-100 text-purple-800 border border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50";
+  }
+  if (t.includes("extension") || t.includes("timeline")) {
+    return "bg-amber-100 text-amber-800 border border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50";
+  }
+  if (t.includes("allocation") || t.includes("resource")) {
+    return "bg-sky-100 text-sky-800 border border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/50";
+  }
+  if (t.includes("feedback")) {
+    return "bg-emerald-100 text-emerald-800 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50";
+  }
+  if (t.includes("wbs")) {
+    return "bg-indigo-100 text-indigo-800 border border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/50";
+  }
+  if (t.includes("budget")) {
+    return "bg-teal-100 text-teal-800 border border-teal-200/80 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/50";
+  }
+  if (t.includes("leadership") || t.includes("assignment")) {
+    return "bg-blue-100 text-blue-800 border border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/50";
+  }
+  return "bg-slate-100 text-slate-800 border border-slate-200/80 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700";
+};
+
+export function formatApprovalId(id: string): string {
+  if (!id) return "";
+  const match = id.match(/^APP-(?:REQ|EXT|ALLOC|FDBK)-([0-9a-fA-F-]+)$/i);
+  if (match) {
+    const raw = match[1].replace(/-/g, "");
+    return `APP-${raw.slice(0, 8).toUpperCase()}`;
+  }
+  if (id.startsWith("APP-")) {
+    const raw = id.slice(4).replace(/-/g, "");
+    return `APP-${raw.slice(0, 8).toUpperCase()}`;
+  }
+  const clean = id.replace(/-/g, "");
+  return `APP-${clean.slice(0, 8).toUpperCase()}`;
+}
 
 function ApprovalsTab() {
 
@@ -1781,6 +1775,8 @@ function ApprovalsTab() {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
 
   const [appComment, setAppComment] = useState("");
+
+  const [approvalSearchQuery, setApprovalSearchQuery] = useState("");
 
   const [projectFilter, setProjectFilter] = useState("all");
 
@@ -2068,10 +2064,7 @@ function ApprovalsTab() {
         });
       }
 
-      const nonApiApprovals = (store.approvals || []).filter(
-        (a) => !a.id.startsWith("APP-REQ-") && !a.id.startsWith("APP-EXT-") && !a.id.startsWith("APP-ALLOC-") && !a.id.startsWith("APP-FDBK-")
-      );
-      const allSortedApprovals = [...toMerge, ...nonApiApprovals].sort((a, b) => {
+      const allSortedApprovals = [...toMerge].sort((a, b) => {
         const timeA = a.createdAtUtc ? new Date(a.createdAtUtc).getTime() : (a.requestedDate ? new Date(a.requestedDate).getTime() : 0);
         const timeB = b.createdAtUtc ? new Date(b.createdAtUtc).getTime() : (b.requestedDate ? new Date(b.requestedDate).getTime() : 0);
         if (timeA !== timeB) return timeB - timeA;
@@ -2095,29 +2088,40 @@ function ApprovalsTab() {
 
 
 
-  const approvalTypes = [
+  const approvalTypes = useMemo(() => {
+    const types = new Set<string>();
+    (store.approvals || []).forEach((a) => {
+      if (a.requestType && a.requestType.trim()) {
+        types.add(a.requestType.trim());
+      }
+    });
+    return Array.from(types).sort();
+  }, [store.approvals]);
 
-    "WBS Approval",
+  useEffect(() => {
+    if (typeFilter !== "all" && !approvalTypes.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [approvalTypes, typeFilter]);
 
-    "Budget Approval",
+  const approvalProjects = useMemo(() => {
+    const map = new Map<string, string>();
+    (store.approvals || []).forEach((a) => {
+      if (a.projectId) {
+        const name = a.projectName || assignedProjects.find((p) => p.id === a.projectId)?.name || a.projectId;
+        map.set(a.projectId, name);
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [assignedProjects, store.approvals]);
 
-    "PM Assignment Approval",
-
-    "SPM Assignment Approval",
-
-    "Project Ready To Start Approval",
-
-    "Resource Allocation Approval",
-
-    "Customer Requirement Approval",
-
-    "Timeline Extension Approval",
-
-    "Feedback Request Approval",
-
-  ];
-
-
+  useEffect(() => {
+    if (projectFilter !== "all" && !approvalProjects.some((p) => p.id === projectFilter)) {
+      setProjectFilter("all");
+    }
+  }, [approvalProjects, projectFilter]);
 
   const filteredApprovals = useMemo(() => {
     return store.approvals
@@ -2125,6 +2129,21 @@ function ApprovalsTab() {
         if (projectFilter !== "all" && a.projectId !== projectFilter) return false;
         if (typeFilter !== "all" && a.requestType !== typeFilter) return false;
         if (statusFilter !== "all" && a.status !== statusFilter) return false;
+
+        if (approvalSearchQuery.trim()) {
+          const q = approvalSearchQuery.trim().toLowerCase();
+          const compactId = formatApprovalId(a.id).toLowerCase();
+          const fullId = (a.id || "").toLowerCase();
+          const extId = a.id ? `ext-${a.id.replace(/-/g, "").slice(0, 8).toLowerCase()}` : "";
+          const matchesId = compactId.includes(q) || fullId.includes(q) || extId.includes(q);
+          const matchesType = (a.requestType || "").toLowerCase().includes(q);
+          const projName = (a.projectName || assignedProjects.find((p) => p.id === a.projectId)?.name || "").toLowerCase();
+          const projCode = (assignedProjects.find((p) => p.id === a.projectId)?.projectCode || "").toLowerCase();
+          const matchesProject = projName.includes(q) || projCode.includes(q);
+
+          if (!matchesId && !matchesType && !matchesProject) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -2133,25 +2152,14 @@ function ApprovalsTab() {
         if (timeA !== timeB) return timeB - timeA;
         return (b.id || "").localeCompare(a.id || "");
       });
-  }, [store.approvals, projectFilter, typeFilter, statusFilter]);
-
-  const approvalProjects = useMemo(() => {
-    const map = new Map<string, string>();
-    assignedProjects.forEach((p) => map.set(p.id, p.name));
-    (store.approvals || []).forEach((a) => {
-      if (a.projectId && !map.has(a.projectId)) {
-        map.set(a.projectId, a.projectName || "Project");
-      }
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [assignedProjects, store.approvals]);
+  }, [store.approvals, projectFilter, typeFilter, statusFilter, approvalSearchQuery, assignedProjects]);
 
   const [approvalPage, setApprovalPage] = useState(1);
   const [approvalPageSize, setApprovalPageSize] = useState(15);
 
   useEffect(() => {
     setApprovalPage(1);
-  }, [projectFilter, typeFilter, statusFilter]);
+  }, [projectFilter, typeFilter, statusFilter, approvalSearchQuery]);
 
   const totalApprovals = filteredApprovals.length;
   const pageApprovals = useMemo(() => paginateSlice(filteredApprovals, approvalPage, approvalPageSize), [filteredApprovals, approvalPage, approvalPageSize]);
@@ -2175,11 +2183,21 @@ function ApprovalsTab() {
     if (currentApp && currentApp.requestType === "Customer Requirement Approval") {
       try {
         const rawReqId = currentApp.id.replace(/^APP-REQ-/, "");
-        await takeProjectAdditionalRequirementAction(currentApp.projectId, rawReqId, status, appComment);
+        const updated = await takeProjectAdditionalRequirementAction(currentApp.projectId, rawReqId, status, appComment);
+        if (updated) {
+          dhStore.updateRequirementStatus(updated.id, status as any, user.id, user.name);
+          const reqInStore = ((dhStore as any).getState?.().requirements || []).find((r: any) => r.id === updated.id || r.requirementId === updated.requirementId);
+          if (reqInStore) {
+            reqInStore.approvedAtUtc = updated.approvedAtUtc;
+          }
+        }
+        dhStore.updateCentralApprovalStatus(selectedAppId, status, appComment, user.name, user.id);
         await loadApprovals();
         handledByApi = true;
       } catch (err: any) {
         console.error("Failed to update additional requirement approval on backend:", err);
+        toast.error(err?.message || "Failed to update additional requirement approval on backend");
+        return;
       }
     }
 
@@ -2224,9 +2242,7 @@ function ApprovalsTab() {
     }
     toast.success(`Success: Approval Request marked as ${status}!`);
     setAppComment("");
-    if (status === "Approved") {
-      setSelectedAppId(null);
-    }
+    setSelectedAppId(null);
 
   };
 
@@ -2249,22 +2265,21 @@ function ApprovalsTab() {
       <header className="border-b border-border p-4 space-y-3">
 
         <div className="flex items-center gap-2">
-
-        <div className="flex items-center justify-between">
-            <ShieldAlert className="h-4.5 w-4.5 text-primary" />
-            <h3 className="text-sm font-semibold">Central Approval Center</h3>
-          </div>
-          <button
-            type="button"
-            onClick={loadApprovals}
-            disabled={isLoadingApprovals}
-            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-50 transition-colors shadow-xs"
-            title="Refresh Approvals"
-          >
-            <RotateCcw className={cn("h-3.5 w-3.5", isLoadingApprovals && "animate-spin")} />
-            <span>Refresh</span>
-          </button>
+          <ShieldAlert className="h-4.5 w-4.5 text-primary" />
+          <h3 className="text-sm font-semibold">Central Approval Center</h3>
         </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={approvalSearchQuery}
+            onChange={(e) => setApprovalSearchQuery(e.target.value)}
+            placeholder="Search by approval ID, request type, project..."
+            className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
 
           <div className="flex flex-col gap-1">
@@ -2383,16 +2398,18 @@ function ApprovalsTab() {
 
         <table className="w-full min-w-[860px] table-fixed text-sm">
           <colgroup>
-            <col style={{ width: "22%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: canManageApprovals ? "26%" : "36%" }} />
             <col style={{ width: "18%" }} />
-            <col style={{ width: "18%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: canManageApprovals ? "14%" : "28%" }} />
-            {canManageApprovals ? <col style={{ width: "14%" }} /> : null}
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "9%" }} />
+            {canManageApprovals ? <col style={{ width: "9%" }} /> : null}
           </colgroup>
 
           <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
+              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Approval ID</th>
               <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project</th>
               <th className="px-3 py-2.5 font-semibold text-muted-foreground">Request Type</th>
               <th className="px-3 py-2.5 font-semibold text-muted-foreground">Requested By</th>
@@ -2406,15 +2423,24 @@ function ApprovalsTab() {
           <tbody className="divide-y divide-border">
             {pageApprovals.map((app) => (
               <tr key={app.id} className="hover:bg-accent/30">
-                <td className="px-3 py-2.5 font-medium text-foreground">{app.projectName}</td>
-                <td className="px-3 py-2.5 text-xs text-primary font-semibold">
-                  {app.requestType}
+                <td className="px-3 py-2.5 font-mono text-xs font-semibold text-foreground">
+                  {formatApprovalId(app.id)}
+                </td>
+                <td className="px-3 py-2.5 font-medium text-foreground break-words whitespace-normal">{app.projectName}</td>
+                <td className="px-3 py-2.5">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider leading-tight text-center break-words max-w-full",
+                      getApprovalRequestTypeStyles(app.requestType),
+                    )}
+                  >
+                    {app.requestType}
+                  </span>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3.5">
                   {app.requestedBy ? (
                     <span
                       className="inline-flex items-center gap-2.5 text-foreground transition-colors hover:text-primary"
-                      title={app.requestedBy}
                     >
                       <Avatar name={app.requestedBy} size={28} />
                       <span className="font-semibold">{app.requestedBy}</span>
@@ -2448,9 +2474,14 @@ function ApprovalsTab() {
                   <td className="px-3 py-2.5 text-right space-x-1 whitespace-nowrap">
                     <button
                       onClick={() => setSelectedAppId(app.id)}
-                      className="rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-accent font-medium text-primary"
+                      className={cn(
+                        "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                        app.status === "Pending"
+                          ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 font-semibold"
+                          : "border-input bg-card text-primary hover:bg-accent"
+                      )}
                     >
-                      View
+                      {app.status === "Pending" ? "Review & Action" : "View"}
                     </button>
                   </td>
                 )}
@@ -2458,7 +2489,7 @@ function ApprovalsTab() {
             ))}
             {isLoadingApprovals && filteredApprovals.length === 0 ? (
               <tr>
-                <td colSpan={canManageApprovals ? 6 : 5} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canManageApprovals ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
                     <span>Loading approvals...</span>
@@ -2467,7 +2498,7 @@ function ApprovalsTab() {
               </tr>
             ) : filteredApprovals.length === 0 ? (
               <tr>
-                <td colSpan={canManageApprovals ? 6 : 5} className="px-3 py-10 text-center text-sm text-muted-foreground">
+                <td colSpan={canManageApprovals ? 7 : 6} className="px-3 py-10 text-center text-sm text-muted-foreground">
                   No approvals found
                 </td>
               </tr>
@@ -2493,7 +2524,7 @@ function ApprovalsTab() {
 
         <Modal
 
-          title={`Review Request — ${selectedApproval.id}`}
+          title={`Review Request — ${formatApprovalId(selectedApproval.id)}`}
 
           onClose={() => setSelectedAppId(null)}
 
@@ -2509,23 +2540,9 @@ function ApprovalsTab() {
 
               <div>
 
-                <span className="text-muted-foreground">Project Link</span>
+                <span className="text-muted-foreground">Approval ID</span>
 
-                <p className="font-medium text-primary hover:underline">
-
-                  <Link
-
-                    to="/projects/$projectId"
-
-                    params={{ projectId: selectedApproval.projectId }}
-
-                  >
-
-                    {selectedApproval.projectName}
-
-                  </Link>
-
-                </p>
+                <p className="font-mono font-semibold text-foreground">{formatApprovalId(selectedApproval.id)}</p>
 
               </div>
 
@@ -2547,9 +2564,16 @@ function ApprovalsTab() {
 
               <div>
 
-                <span className="text-muted-foreground">Request Type</span>
+                <span className="text-muted-foreground block mb-1">Request Type</span>
 
-                <p className="font-bold text-xs text-primary">{selectedApproval.requestType}</p>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider leading-tight text-center break-words",
+                    getApprovalRequestTypeStyles(selectedApproval.requestType),
+                  )}
+                >
+                  {selectedApproval.requestType}
+                </span>
 
               </div>
 
@@ -2689,7 +2713,7 @@ function ApprovalsTab() {
               >
                 Close
               </button>
-              {canManageApprovals && selectedApproval.status !== "Approved" && !isBO && (
+              {canManageApprovals && selectedApproval.status !== "Approved" && (
                 <>
                   <button
                     onClick={() => handleAction("Hold")}
@@ -2766,6 +2790,8 @@ function AlertsTab() {
   const store = useDhStore((s) => s);
 
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(null);
+
+  const [alertSearchQuery, setAlertSearchQuery] = useState("");
 
   const [projFilter, setProjFilter] = useState("all");
 
@@ -2907,10 +2933,23 @@ function AlertsTab() {
       .filter((a) => {
         const proj = projectsList.find((p) => p.id === a.projectId);
         if (projFilter !== "all" && a.projectId !== projFilter) return false;
-        if (clientFilter !== "all" && proj?.clientId !== clientFilter) return false;
+        if (clientFilter !== "all" && proj?.clientId !== clientFilter && (a as any).customerId !== clientFilter) return false;
         if (prioFilter !== "all" && a.priority !== prioFilter) return false;
         if (typeFilter !== "all" && a.alertType !== typeFilter) return false;
         if (statusFilter !== "all" && a.status !== statusFilter) return false;
+
+        if (alertSearchQuery.trim()) {
+          const q = alertSearchQuery.trim().toLowerCase();
+          const matchesId = (a.alertId || "").toLowerCase().includes(q) || (a.id || "").toLowerCase().includes(q);
+          const projName = (a.projectName || proj?.name || "").toLowerCase();
+          const projCode = (proj?.code || (a as any).projectCode || "").toLowerCase();
+          const matchesProject = projName.includes(q) || projCode.includes(q);
+          const alertTypeStr = (a.alertType || (a as any).kind || "").toLowerCase();
+          const matchesType = alertTypeStr.includes(q);
+
+          if (!matchesId && !matchesProject && !matchesType) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
@@ -2919,14 +2958,14 @@ function AlertsTab() {
         if (timeA !== timeB) return timeB - timeA;
         return (b.id || "").localeCompare(a.id || "");
       });
-  }, [allAlerts, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, projectsList]);
+  }, [allAlerts, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, projectsList, alertSearchQuery]);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     setPage(1);
-  }, [projFilter, clientFilter, prioFilter, typeFilter, statusFilter]);
+  }, [projFilter, clientFilter, prioFilter, typeFilter, statusFilter, alertSearchQuery]);
 
   const totalAlerts = filtered.length;
   const pageAlerts = useMemo(() => paginateSlice(filtered, page, pageSize), [filtered, page, pageSize]);
@@ -3142,29 +3181,42 @@ function AlertsTab() {
 
 
 
-  const alertTypes = [
+  const alertTypes = useMemo(() => {
+    const types = new Set<string>();
+    (allAlerts || []).forEach((a) => {
+      const t = a.alertType || (a as any).kind;
+      if (t && t.trim()) {
+        types.add(t.trim());
+      }
+    });
+    return Array.from(types).sort();
+  }, [allAlerts]);
 
-    "Project Risk",
+  useEffect(() => {
+    if (typeFilter !== "all" && !alertTypes.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [alertTypes, typeFilter]);
 
-    "Resource Risk",
+  const alertProjects = useMemo(() => {
+    const map = new Map<string, string>();
+    (allAlerts || []).forEach((a) => {
+      if (a.projectId) {
+        const proj = projectsList.find((p) => p.id === a.projectId);
+        const name = a.projectName || proj?.name || a.projectId;
+        map.set(a.projectId, name);
+      }
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allAlerts, projectsList]);
 
-    "Technical Issue",
-
-    "Dependency Blocker",
-
-    "Escalation",
-
-    "Customer Concern",
-
-    "Budget Concern",
-
-    "Schedule Delay",
-
-    "Quality Concern",
-
-    "Governance Alert",
-
-  ];
+  useEffect(() => {
+    if (projFilter !== "all" && !alertProjects.some((p) => p.id === projFilter)) {
+      setProjFilter("all");
+    }
+  }, [alertProjects, projFilter]);
 
 
 
@@ -3244,6 +3296,17 @@ function AlertsTab() {
 
           </div>
 
+          {/* Search */}
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={alertSearchQuery}
+              onChange={(e) => setAlertSearchQuery(e.target.value)}
+              placeholder="Search by alert ID, project name, alert type..."
+              className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring border-border"
+            />
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5 text-xs">
 
             <div className="flex flex-col gap-1">
@@ -3262,7 +3325,7 @@ function AlertsTab() {
 
                 <option value="all">All Projects</option>
 
-                {(projectsList || []).map((p) => (
+                {alertProjects.map((p) => (
 
                   <option key={p.id} value={p.id}>
 
@@ -3438,7 +3501,7 @@ function AlertsTab() {
 
             <p className="text-sm text-muted-foreground">
 
-              No governance alerts found matching the active filters.
+              No governance alerts found matching the active filters or search.
 
             </p>
 
@@ -3450,13 +3513,12 @@ function AlertsTab() {
 
             <table className="w-full min-w-[1100px] table-fixed text-sm">
               <colgroup>
-                <col style={{ width: "16%" }} />
+                <col style={{ width: "19%" }} />
+                <col style={{ width: "17%" }} />
                 <col style={{ width: "14%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "10%" }} />
                 <col style={{ width: "8%" }} />
+                <col style={{ width: "14%" }} />
                 <col style={{ width: "12%" }} />
-                <col style={{ width: "10%" }} />
                 <col style={{ width: "8%" }} />
                 <col style={{ width: "8%" }} />
               </colgroup>
@@ -3465,7 +3527,6 @@ function AlertsTab() {
                 <tr>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Alert Title</th>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project Name</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Customer Name</th>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Alert Type</th>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Priority</th>
                   <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised By</th>
@@ -3477,26 +3538,33 @@ function AlertsTab() {
               <tbody className="divide-y divide-border">
                 {pageAlerts.map((alert) => {
                   const project = projectsList.find((p) => p.id === alert.projectId);
-                  const client = clientsList.find((c) => c.id === project?.clientId);
+                  const projectName = alert.projectName || project?.name || "—";
 
                   return (
                     <tr key={alert.id} className="hover:bg-accent/30">
-                      <td className="px-3 py-2.5 font-medium text-foreground">{alert.title}</td>
-                      <td className="px-3 py-2.5 text-xs font-semibold text-foreground">
-                        {project?.name || "—"}
+                      <td className="px-3 py-2.5 font-medium text-foreground break-words whitespace-normal [overflow-wrap:anywhere]">
+                        {alert.alertId ? (
+                          <span className="font-mono text-[10px] text-foreground block font-semibold leading-tight mb-0.5">
+                            {alert.alertId}
+                          </span>
+                        ) : null}
+                        <span className="block break-words whitespace-normal [overflow-wrap:anywhere]">
+                          {alert.title}
+                        </span>
                       </td>
-                      <td className="px-3 py-2.5 text-xs text-foreground">
-                        {client?.name || "—"}
+                      <td className="px-3 py-2.5 text-xs font-semibold text-foreground break-words whitespace-normal">
+                        {projectName}
                       </td>
 
                       <td className="px-3 py-2.5">
-
-                        <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-foreground">
-
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold leading-tight break-words max-w-full",
+                            getTypeStyles(alert.alertType || alert.kind),
+                          )}
+                        >
                           {alert.alertType || alert.kind}
-
                         </span>
-
                       </td>
 
                       <td className="px-3 py-2.5">
@@ -3629,7 +3697,7 @@ function AlertsTab() {
 
 
 
-              {selectedAlert.kind === "Escalation" && (
+              {selectedAlert.kind === "Escalation" ? (
 
                 <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
 
@@ -3641,7 +3709,7 @@ function AlertsTab() {
 
                     </span>
 
-                    <span className="font-semibold text-primary">
+                    <span className="font-semibold text-foreground">
 
                       {selectedAlert.serviceName || "—"}
 
@@ -3653,13 +3721,13 @@ function AlertsTab() {
 
                     <span className="text-[9px] uppercase font-bold text-muted-foreground block">
 
-                      Escalation Type
+                      Alert Type
 
                     </span>
 
                     <span className="font-semibold text-foreground">
 
-                      {selectedAlert.escalationType || "—"}
+                      {selectedAlert.alertType || selectedAlert.escalationType || "—"}
 
                     </span>
 
@@ -3700,6 +3768,44 @@ function AlertsTab() {
                     </div>
 
                   )}
+
+                </div>
+
+              ) : (
+
+                <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
+
+                  <div>
+
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+
+                      Alert Type
+
+                    </span>
+
+                    <span className="font-semibold text-primary">
+
+                      {selectedAlert.alertType || "—"}
+
+                    </span>
+
+                  </div>
+
+                  <div>
+
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground block">
+
+                      Raised By
+
+                    </span>
+
+                    <span className="font-semibold text-foreground">
+
+                      {selectedAlert.raisedByName || "—"}
+
+                    </span>
+
+                  </div>
 
                 </div>
 
@@ -4001,11 +4107,9 @@ function AlertsTab() {
                     >
 
                       <span>
-
-                        {projectsList.find((p) => p.id === selectedAlert.projectId)?.name ||
-
+                        {selectedAlert.projectName ||
+                          projectsList.find((p) => p.id === selectedAlert.projectId)?.name ||
                           "Go to project"}
-
                       </span>
 
                       <ExternalLink className="h-3 w-3" />
@@ -4122,9 +4226,7 @@ function AlertsTab() {
 
                     <p
 
-                      className="text-xs font-semibold text-primary truncate"
-
-                      title={selectedAlert.escalatedTo.join(", ")}
+                      className="text-xs font-semibold text-foreground truncate"
 
                     >
 
@@ -4492,145 +4594,41 @@ function NotificationsTab() {
 
   const archivedCount = notifications.filter((n) => (n.status || "").toLowerCase() === "acknowledged").length;
 
+  // Available notification types dynamically derived from actual notifications in the system
+  const availableNotificationTypes = useMemo(() => {
+    const set = new Set<string>();
+    notifications.forEach((n) => {
+      const t = (n.type || "").trim();
+      if (t) set.add(t);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [notifications]);
 
+  useEffect(() => {
+    if (typeFilter !== "all" && availableNotificationTypes.length > 0 && !availableNotificationTypes.includes(typeFilter)) {
+      setTypeFilter("all");
+    }
+  }, [availableNotificationTypes, typeFilter]);
 
-  // Formatting helpers matching images
-
-  const formatNotifDate = (dateStr: string): string => {
-
+  // Timestamp formatting helper: DD-MM-YYYY HH:MM:SS (e.g. 16-11-2026 02:27:00)
+  const formatNotifTimestamp = (dateStr?: string | null): string => {
+    if (!dateStr) return "—";
     try {
-
       const d = new Date(dateStr);
-
       if (isNaN(d.getTime())) return dateStr;
-
-      const day = d.getDate();
-
-      const months = [
-
-        "Jan",
-
-        "Feb",
-
-        "Mar",
-
-        "Apr",
-
-        "May",
-
-        "Jun",
-
-        "Jul",
-
-        "Aug",
-
-        "Sep",
-
-        "Oct",
-
-        "Nov",
-
-        "Dec",
-
-      ];
-
-      const month = months[d.getMonth()];
-
       const year = d.getFullYear();
-
-      return `${day} ${month} ${year}`;
-
-    } catch (e) {
-
-      return dateStr;
-
-    }
-
-  };
-
-
-
-  const formatNotifTime = (dateStr: string): string => {
-
-    try {
-
-      const d = new Date(dateStr);
-
-      if (isNaN(d.getTime())) return "12:00";
-
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
       const hours = String(d.getHours()).padStart(2, "0");
-
       const minutes = String(d.getMinutes()).padStart(2, "0");
-
-      return `${hours}:${minutes}`;
-
-    } catch (e) {
-
-      return "12:00";
-
+      const seconds = String(d.getSeconds()).padStart(2, "0");
+      return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`;
+    } catch {
+      return dateStr;
     }
-
   };
 
 
-
-  // Type styles helper
-
-  const getTypeStyles = (type: string) => {
-
-    const t = type.toLowerCase();
-
-    if (t.includes("wbs")) {
-
-      return "bg-warning/15 text-warning border border-warning/30";
-
-    } else if (
-
-      t.includes("ready") ||
-
-      t.includes("completed") ||
-
-      t.includes("resolved") ||
-
-      t.includes("approved") ||
-
-      t.includes("selected")
-
-    ) {
-
-      return "bg-success/15 text-success border border-success/30";
-
-    } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal") || t.includes("resignation") || t.includes("offboard")) {
-
-      return "bg-destructive/15 text-destructive border border-destructive/30";
-
-    } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("lwd")) {
-
-      return "bg-warning/15 text-warning border border-warning/30";
-
-    } else if (t.includes("appreciation") || t.includes("feedback")) {
-
-      return "bg-chart-3/15 text-chart-3 border border-chart-3/30";
-
-    } else if (
-
-      t.includes("interview") ||
-
-      t.includes("shuffle") ||
-
-      t.includes("allocation") ||
-
-      t.includes("assignment")
-
-    ) {
-
-      return "bg-info/15 text-info border border-info/30";
-
-    }
-
-    return "bg-muted text-foreground border border-border";
-
-  };
 
   // Status styles & icon helpers
   const getNotifStatusStyles = (status: string) => {
@@ -4730,7 +4728,8 @@ function NotificationsTab() {
       // 2. Search query filter (ID, Project, Task, Notification Type, Employee, Title)
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchesCode = n.notificationCode ? n.notificationCode.toLowerCase().includes(query) : false;
+        const formattedCode = formatNotificationId(n.notificationCode || n.id).toLowerCase();
+        const matchesCode = formattedCode.includes(query) || (n.notificationCode ? n.notificationCode.toLowerCase().includes(query) : false);
         const matchesId = n.id ? n.id.toLowerCase().includes(query) : false;
         const matchesProject = (n.relatedProject || "").toLowerCase().includes(query);
         const matchesTask = n.relatedTask ? n.relatedTask.toLowerCase().includes(query) : false;
@@ -4961,7 +4960,7 @@ function NotificationsTab() {
 
               <option value="all">All Types</option>
 
-              {NOTIFICATION_TYPES.map((t) => (
+              {availableNotificationTypes.map((t) => (
 
                 <option key={t} value={t}>
 
@@ -5150,14 +5149,13 @@ function NotificationsTab() {
           <table className="w-full min-w-[1100px] table-fixed text-sm leading-relaxed text-left">
             <colgroup>
               <col style={{ width: "24%" }} />
-              <col style={{ width: "10%" }} />
+              <col style={{ width: "16%" }} />
               <col style={{ width: "14%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "9%" }} />
+              <col style={{ width: "13%" }} />
               <col style={{ width: "8%" }} />
-              <col style={{ width: "8%" }} />
+              <col style={{ width: "6%" }} />
               <col style={{ width: "7%" }} />
-              <col style={{ width: "8%" }} />
             </colgroup>
 
             <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
@@ -5172,9 +5170,7 @@ function NotificationsTab() {
 
                 <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised By</th>
 
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Date</th>
-
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Time</th>
+                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Timestamp</th>
 
                 <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
 
@@ -5192,7 +5188,7 @@ function NotificationsTab() {
 
                 <tr>
 
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
 
                     No notifications matching search and filters.
 
@@ -5208,27 +5204,35 @@ function NotificationsTab() {
 
                     {/* Title */}
 
-                    <td className="px-3 py-2.5 min-w-[340px] w-[35%]">
+                    <td className="px-3 py-2.5">
 
                       <div className="flex items-start gap-1.5">
 
                         {n.unread && (
 
-                          <span className="text-primary mt-1 text-[10px] select-none">●</span>
+                          <span className="text-primary mt-1 text-[10px] select-none shrink-0">●</span>
 
                         )}
 
-                        <button
+                        <div className="min-w-0 flex-1">
 
-                          onClick={() => handleOpenDetails(n.id)}
+                          <span className="font-mono text-[10px] text-foreground block font-semibold leading-tight mb-0.5">
 
-                          className="text-left font-medium text-foreground hover:text-primary transition-colors cursor-pointer hover:underline block w-full"
+                            {formatNotificationId(n.notificationCode || n.id)}
 
-                        >
+                          </span>
 
-                          {n.title}
+                          <span
 
-                        </button>
+                            className="font-medium text-foreground break-words whitespace-normal block"
+
+                          >
+
+                            {n.title}
+
+                          </span>
+
+                        </div>
 
                       </div>
 
@@ -5238,13 +5242,13 @@ function NotificationsTab() {
 
                     {/* Type Badge */}
 
-                    <td className="px-3 py-2.5 whitespace-nowrap">
+                    <td className="px-3 py-2.5">
 
                       <span
 
                         className={cn(
 
-                          "inline-flex rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider",
+                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider leading-tight text-center break-words max-w-full",
 
                           getTypeStyles(n.type),
 
@@ -5262,9 +5266,9 @@ function NotificationsTab() {
 
                     {/* Related Project */}
 
-                    <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-[180px] break-words">
+                    <td className="px-3 py-2.5 text-xs text-muted-foreground break-words whitespace-normal">
 
-                      {n.relatedProject}
+                      {n.relatedProject || "—"}
 
                     </td>
 
@@ -5274,11 +5278,11 @@ function NotificationsTab() {
 
                     <td className="px-3 py-2.5 whitespace-nowrap">
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 truncate">
 
                         <Avatar name={n.raisedBy} size={24} />
 
-                        <span className="text-xs">{n.raisedBy}</span>
+                        <span className="text-xs truncate">{n.raisedBy}</span>
 
                       </div>
 
@@ -5286,21 +5290,11 @@ function NotificationsTab() {
 
 
 
-                    {/* Date */}
-
-                    <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap">
-
-                      {formatNotifDate(n.createdAt)}
-
-                    </td>
-
-
-
-                    {/* Time */}
+                    {/* Timestamp */}
 
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground whitespace-nowrap font-mono">
 
-                      {formatNotifTime(n.createdAt)}
+                      {formatNotifTimestamp(n.createdAt)}
 
                     </td>
 
@@ -5398,7 +5392,22 @@ function NotificationsTab() {
         notification={selectedNotification}
         onClose={() => setSelectedNotifId(null)}
         onArchive={handleArchiveNotification}
-        onActionComplete={fetchNotifications}
+        onActionComplete={async () => {
+          await fetchNotifications();
+          if (selectedNotification?.relatedTask) {
+            const rawCode = selectedNotification.relatedTask.replace(/^ALLOC-/, "").toUpperCase();
+            const matching = store.approvals.find((a) => a.id.toUpperCase().includes(rawCode));
+            if (matching && selectedNotification.status) {
+              dhStore.updateCentralApprovalStatus(
+                matching.id,
+                selectedNotification.status as any,
+                "Action taken via notification",
+                user.name,
+                user.id,
+              );
+            }
+          }
+        }}
       />
 
     </>

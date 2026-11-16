@@ -1,11 +1,26 @@
 import React, { useState } from "react";
-import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive, AlertCircle, Check, X, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Avatar, PriorityPill } from "@/components/pills";
 import type { DhNotification } from "@/lib/workspace-store";
 import { apiFetch } from "@/lib/api-client";
 import { toast } from "sonner";
+
+export function formatNotificationId(id?: string | null): string {
+  if (!id) return "";
+  const match = id.match(/^NOT-([0-9a-fA-F-]+)$/i);
+  if (match) {
+    const raw = match[1].replace(/-/g, "");
+    return `NOT-${raw.slice(0, 8).toUpperCase()}`;
+  }
+  if (id.startsWith("NOT-")) {
+    const raw = id.slice(4).replace(/-/g, "");
+    return `NOT-${raw.slice(0, 8).toUpperCase()}`;
+  }
+  const clean = id.replace(/-/g, "");
+  return `NOT-${clean.slice(0, 8).toUpperCase()}`;
+}
 
 export const formatNotifDate = (dateStr: string): string => {
   if (!dateStr) return "—";
@@ -121,55 +136,8 @@ export function NotificationDetailModal({
   onActionComplete,
 }: NotificationDetailModalProps) {
   const [isArchiving, setIsArchiving] = useState(false);
-  const [actionComment, setActionComment] = useState("");
-  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
-  const [actingStatus, setActingStatus] = useState<string | null>(null);
 
   if (!notification) return null;
-
-  const isPending = (notification.status || "").toLowerCase() === "pending";
-  const isAllocationRequest =
-    (notification.type || "").toLowerCase().includes("allocation") ||
-    (notification.relatedTask || "").toUpperCase().startsWith("ALLOC-");
-
-  const handleApprovalAction = async (status: "Approved" | "Hold" | "Cancelled") => {
-    if (!actionComment.trim()) {
-      toast.error("Comments are mandatory to take action!");
-      return;
-    }
-
-    try {
-      setIsSubmittingAction(true);
-      setActingStatus(status);
-
-      const targetId = notification.relatedTask || notification.id;
-      const projParam = notification.projectId ? `?projectId=${notification.projectId}` : "";
-
-      await apiFetch(
-        `/api/v1/action-centre/allocation-approvals/${targetId}/action${projParam}`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            status,
-            comment: actionComment.trim(),
-          }),
-        }
-      );
-
-      notification.status = status;
-      toast.success(`Success: Resource allocation marked as ${status}!`);
-      setActionComment("");
-      if (onActionComplete) {
-        await onActionComplete();
-      }
-    } catch (err: any) {
-      console.error("Failed to submit allocation action:", err);
-      toast.error(err?.message || `Failed to mark allocation as ${status}.`);
-    } finally {
-      setIsSubmittingAction(false);
-      setActingStatus(null);
-    }
-  };
 
   const isAlreadyArchived = (notification.status || "").toLowerCase() === "acknowledged";
 
@@ -185,7 +153,7 @@ export function NotificationDetailModal({
     }
   };
 
-  const displayCode = notification.notificationCode || (notification.id ? String(notification.id).slice(0, 8).toUpperCase() : "");
+  const displayCode = formatNotificationId(notification.notificationCode || notification.id);
 
   return (
     <Modal
@@ -386,79 +354,6 @@ export function NotificationDetailModal({
             </div>
           );
         })()}
-
-        {/* Interactive Action Box for Pending Allocation Approval Requests */}
-        {isAllocationRequest && isPending && (
-          <div className="border border-border/80 rounded-xl p-4 bg-muted/20 space-y-3 shadow-xs">
-            <div className="flex items-center justify-between border-b border-border/50 pb-1.5">
-              <span className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span>Take Action on Allocation Request</span>
-              </span>
-              <span className="text-[10px] text-amber-600 font-medium">
-                *Comment is mandatory
-              </span>
-            </div>
-
-            <div>
-              <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">
-                Remarks / Comment <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={actionComment}
-                onChange={(e) => setActionComment(e.target.value)}
-                placeholder="Enter remarks / reason for decision..."
-                rows={2}
-                disabled={isSubmittingAction}
-                className="w-full text-xs rounded-md border border-input bg-background p-2.5 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                disabled={isSubmittingAction}
-                onClick={() => handleApprovalAction("Approved")}
-                className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
-              >
-                {isSubmittingAction && actingStatus === "Approved" ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Check className="h-3.5 w-3.5" />
-                )}
-                Approve
-              </button>
-
-              <button
-                type="button"
-                disabled={isSubmittingAction}
-                onClick={() => handleApprovalAction("Hold")}
-                className="inline-flex items-center gap-1.5 rounded-md bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
-              >
-                {isSubmittingAction && actingStatus === "Hold" ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Clock className="h-3.5 w-3.5" />
-                )}
-                Hold
-              </button>
-
-              <button
-                type="button"
-                disabled={isSubmittingAction}
-                onClick={() => handleApprovalAction("Cancelled")}
-                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 hover:bg-red-700 text-white px-3.5 py-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors shadow-xs"
-              >
-                {isSubmittingAction && actingStatus === "Cancelled" ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <X className="h-3.5 w-3.5" />
-                )}
-                Cancelled
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Audit History Card */}
         <div className="border border-border rounded-xl p-4 bg-card space-y-3 shadow-xs">

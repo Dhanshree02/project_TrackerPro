@@ -27,25 +27,42 @@ public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
 
             if (string.IsNullOrWhiteSpace(email)) email = "admin@talakunchi.com";
 
+            var db = context.RequestServices.GetRequiredService<AppDbContext>();
+            var normalizedEmail = email.Trim().ToLowerInvariant();
+
+            // Try to resolve matching Employee in resource.tbl_employees to ensure userId matches Employee.Id
+            PMS.API.Modules.Resources.Models.Employee? matchingEmp = null;
+            if (Guid.TryParse(userIdStr, out var parsedGuid))
+            {
+                matchingEmp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == parsedGuid && e.DeletedAtUtc == null);
+            }
+            if (matchingEmp == null)
+            {
+                matchingEmp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e =>
+                    e.DeletedAtUtc == null && (
+                        (e.WorkEmail != null && e.WorkEmail.ToLower() == normalizedEmail) ||
+                        (e.PersonalEmail != null && e.PersonalEmail.ToLower() == normalizedEmail) ||
+                        (!string.IsNullOrWhiteSpace(userIdStr) && e.EmployeeCode.ToLower() == userIdStr.ToLower()) ||
+                        normalizedEmail.Contains(e.EmployeeCode.ToLower())
+                    ));
+            }
+
             string role = roleHeader ?? string.Empty;
             if (string.IsNullOrWhiteSpace(role))
             {
-                // User Role Access stores a temporary access role on the login account.
-                // That role decides what they can open. It is not their resource profile.
-                var db = context.RequestServices.GetRequiredService<AppDbContext>();
-                var normalized = email.Trim().ToLowerInvariant();
                 var accessRole = await db.Users.AsNoTracking()
-                    .Where(u => u.Email.ToLower() == normalized && u.Role != null)
+                    .Where(u => u.Email.ToLower() == normalizedEmail && u.Role != null)
                     .Select(u => u.Role!.Name)
                     .FirstOrDefaultAsync();
                 if (!string.IsNullOrWhiteSpace(accessRole)) role = accessRole;
+                else if (matchingEmp?.Role != null) role = matchingEmp.Role;
             }
 
             if (string.IsNullOrWhiteSpace(role)) role = nameof(UserRole.Admin);
 
-            Guid userId = Guid.TryParse(userIdStr, out var parsedId)
+            Guid userId = matchingEmp?.Id ?? (Guid.TryParse(userIdStr, out var parsedId)
                 ? parsedId
-                : DbSeeder.StableGuid($"user-{email}");
+                : DbSeeder.StableGuid($"user-{email}"));
 
             var claims = new List<Claim>
             {

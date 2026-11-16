@@ -379,6 +379,16 @@ public sealed class SlaRecipientResolver(AppDbContext db) : ISlaRecipientResolve
 
                 if (!string.IsNullOrWhiteSpace(serviceDept))
                 {
+                    var exactMatching = hodEmployees.Where(e =>
+                        !string.IsNullOrWhiteSpace(e.SubDepartment) &&
+                        string.Equals(e.SubDepartment.Trim(), serviceDept.Trim(), StringComparison.OrdinalIgnoreCase)
+                    ).ToList();
+
+                    if (exactMatching.Count > 0)
+                    {
+                        return exactMatching.Select(e => e.Id).Distinct().ToList();
+                    }
+
                     var matching = hodEmployees.Where(e =>
                         !string.IsNullOrWhiteSpace(e.SubDepartment) &&
                         (e.SubDepartment.Contains(serviceDept, StringComparison.OrdinalIgnoreCase) ||

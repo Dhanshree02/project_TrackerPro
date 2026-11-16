@@ -1,43 +1,34 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
-
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Authorization;
-
 using PMS.API.Infrastructure.Persistence;
-
 using PMS.API.Infrastructure.Storage;
-
 using PMS.API.Modules.ActionCentre.DTOs;
-
 using PMS.API.Modules.ActionCentre.Models;
-
 using PMS.API.Modules.Projects.Models;
-
+using PMS.API.Modules.Sla.Models;
 using PMS.API.Modules.Sla.Services;
-
 using PMS.API.Shared.Exceptions;
 
-
-
 namespace PMS.API.Modules.ActionCentre.Services;
-
-
 
 public sealed class ActionNotificationService(
     AppDbContext db,
     ICurrentUserService currentUser,
     IFileStorageService storage,
-    ISlaTrackingService slaTrackingService) : IActionNotificationService
-
+    ISlaTrackingService slaTrackingService,
+    ISlaRecipientResolver? slaRecipientResolver = null,
+    ILogger<ActionNotificationService>? logger = null) : IActionNotificationService
 {
+    private static readonly ConcurrentDictionary<Guid, string> s_activeReminderJobs = new();
+    private static readonly ConcurrentDictionary<Guid, string> s_activeHodJobs = new();
 
     private static readonly JsonSerializerOptions JsonOptions = new()
-
     {
-
         PropertyNameCaseInsensitive = true
-
     };
 
 
@@ -433,7 +424,7 @@ public sealed class ActionNotificationService(
 
         // Backfill any escalation details if not directly present on older project alert records
 
-        var wbsAlerts = rows.Where(r => r.AlertType == "WBS Escalation" && (r.AttachmentFileName == null || r.ExpectedResolutionDate == null)).ToList();
+        var wbsAlerts = rows.Where(r => (r.AlertType == "WBS Escalation" || (r.AlertType != null && r.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase)) || r.ServiceEscalationId.HasValue) && (r.AttachmentFileName == null || r.ExpectedResolutionDate == null)).ToList();
 
         if (wbsAlerts.Count > 0)
 
@@ -531,7 +522,22 @@ public sealed class ActionNotificationService(
 
 
 
-        return rows.Select(MapAlertDto).ToList();
+        var missingProjectEscalationIds = rows
+            .Where(r => r.Project == null && r.ServiceEscalationId.HasValue)
+            .Select(r => r.ServiceEscalationId!.Value)
+            .Distinct()
+            .ToList();
+
+        Dictionary<Guid, string> escProjectNames = [];
+        if (missingProjectEscalationIds.Count > 0)
+        {
+            escProjectNames = await db.ProjectServiceEscalations
+                .AsNoTracking()
+                .Where(e => missingProjectEscalationIds.Contains(e.Id))
+                .ToDictionaryAsync(e => e.Id, e => e.ProjectName, ct);
+        }
+
+        return rows.Select(r => MapAlertDto(r, escProjectNames)).ToList();
 
     }
 
@@ -563,7 +569,7 @@ public sealed class ActionNotificationService(
 
 
 
-        if (string.IsNullOrWhiteSpace(path) && alert.AlertType == "WBS Escalation")
+        if (string.IsNullOrWhiteSpace(path) && (alert.AlertType == "WBS Escalation" || (alert.AlertType != null && alert.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase)) || alert.ServiceEscalationId.HasValue))
 
         {
 
@@ -935,7 +941,10 @@ public sealed class ActionNotificationService(
         if (targetIssueId.HasValue)
         {
             var relatedNotifs = await db.ActionNotifications
-                .Where(n => n.IssueId == targetIssueId.Value && n.DeletedAtUtc == null)
+                .Where(n => n.IssueId == targetIssueId.Value
+                            && n.Type != "Issue Status Update"
+                            && n.Type != "Issue Escalation Reminder"
+                            && n.DeletedAtUtc == null)
                 .ToListAsync(ct);
 
             foreach (var notif in relatedNotifs)
@@ -947,10 +956,12 @@ public sealed class ActionNotificationService(
         }
 
         // Synchronize status and history to all related notifications for WBS Escalation across all recipients
-        if (alert.ServiceEscalationId.HasValue || alert.AlertType == "WBS Escalation" || (alert.Title != null && alert.Title.Contains("WBS Escalation")))
+        if (alert.ServiceEscalationId.HasValue || alert.AlertType == "WBS Escalation" || (alert.AlertType != null && alert.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase)) || (alert.Title != null && alert.Title.Contains("WBS Escalation")))
         {
             var relatedWbsNotifs = await db.ActionNotifications
                 .Where(n => (n.Type == "WBS Escalation" || n.Title.Contains("WBS Escalation"))
+                            && n.Type != "WBS Escalation Status Update"
+                            && n.Type != "WBS Escalation Reminder"
                             && n.ProjectId == alert.ProjectId
                             && n.DeletedAtUtc == null
                             && (alert.ServiceEscalationId == null || n.ServiceEscalationId == null || n.ServiceEscalationId == alert.ServiceEscalationId.Value))
@@ -967,12 +978,13 @@ public sealed class ActionNotificationService(
         await db.SaveChangesAsync(ct);
 
         // Complete SLA tracking if resolved or closed
-        if (alert.Issue != null && (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
-                                    alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase)))
+        var issueIdForSla = alert.IssueId ?? alert.Issue?.Id;
+        if (issueIdForSla.HasValue && (alert.Status.Equals("Closed", StringComparison.OrdinalIgnoreCase) ||
+                                       alert.Status.Equals("Resolved", StringComparison.OrdinalIgnoreCase)))
         {
             try
             {
-                await slaTrackingService.CompleteTrackingAsync(alert.Issue.Id, "Resolution of Issues", ct);
+                await slaTrackingService.CompleteTrackingAsync(issueIdForSla.Value, "Resolution of Issues", ct);
             }
             catch
             {
@@ -992,6 +1004,33 @@ public sealed class ActionNotificationService(
             {
                 // Non-fatal
             }
+        }
+
+        // Dispatch status update notifications according to the dynamic SLA recipient matrix
+        if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            var actorEmpId = employee?.Id ?? await ResolveCurrentEmployeeIdAsync(ct);
+            var isIssueAlert = alert.IssueId.HasValue || alert.Issue != null
+                               || (alert.AlertType != null && alert.AlertType.StartsWith("issue", StringComparison.OrdinalIgnoreCase));
+
+            if (isIssueAlert)
+            {
+                await SendIssueStatusChangeNotificationsAsync(alert, oldStatus, newStatus, userName, actorEmpId, ct);
+            }
+            else if (alert.ServiceEscalationId.HasValue)
+            {
+                await SendWbsEscalationStatusChangeNotificationsAsync(alert, oldStatus, newStatus, userName, actorEmpId, ct);
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(alert.Project?.Name) && alert.ServiceEscalationId.HasValue)
+        {
+            var fallbackName = await db.ProjectServiceEscalations
+                .AsNoTracking()
+                .Where(e => e.Id == alert.ServiceEscalationId.Value)
+                .Select(e => e.ProjectName)
+                .FirstOrDefaultAsync(ct);
+            return MapAlertDto(alert, fallbackName != null ? new Dictionary<Guid, string> { [alert.ServiceEscalationId.Value] = fallbackName } : null);
         }
 
         return MapAlertDto(alert);
@@ -1168,8 +1207,8 @@ public sealed class ActionNotificationService(
                 : (string.IsNullOrWhiteSpace(n.ProjectName) ? "-" : n.ProjectName));
 
         var notifCode = n.NotificationNumber > 0
-            ? n.NotificationNumber.ToString("D4")
-            : n.Id.ToString()[..8].ToUpper();
+            ? $"NOT-{n.NotificationNumber:D4}"
+            : $"NOT-{n.Id.ToString()[..8].ToUpper()}";
 
         return new ActionNotificationDto
         {
@@ -1225,9 +1264,14 @@ public sealed class ActionNotificationService(
 
 
 
-    private static ActionAlertDto MapAlertDto(ProjectAlert a)
+    private static ActionAlertDto MapAlertDto(ProjectAlert a, IReadOnlyDictionary<Guid, string>? escProjectNames = null)
 
     {
+        var projName = a.Project?.Name;
+        if (string.IsNullOrWhiteSpace(projName) && a.ServiceEscalationId.HasValue && escProjectNames != null && escProjectNames.TryGetValue(a.ServiceEscalationId.Value, out var fallbackName))
+        {
+            projName = fallbackName;
+        }
 
         var audience = new List<string>();
 
@@ -1307,15 +1351,15 @@ public sealed class ActionNotificationService(
 
             ProjectId = a.ProjectId.ToString(),
 
-            ProjectName = a.Project?.Name ?? "",
+            ProjectName = projName ?? "",
 
             CustomerId = a.Project != null ? a.Project.ClientId.ToString() : null,
 
             CustomerName = a.Project?.Client?.Name ?? "",
 
-            AlertType = a.AlertType ?? "Issue",
+            AlertType = ResolveAlertDisplayType(a),
 
-            Kind = a.AlertType == "WBS Escalation" ? "Escalation" : "Alert",
+            Kind = IsWbsEscalationAlert(a) ? "Escalation" : "Alert",
 
             Priority = a.Priority,
 
@@ -1361,6 +1405,34 @@ public sealed class ActionNotificationService(
 
         };
 
+    }
+
+    private static bool IsWbsEscalationAlert(ProjectAlert a)
+    {
+        return a.ServiceEscalationId.HasValue
+            || (!string.IsNullOrWhiteSpace(a.AlertType) && a.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase))
+            || (!string.IsNullOrWhiteSpace(a.Title) && a.Title.Contains("WBS Escalation", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string ResolveAlertDisplayType(ProjectAlert a)
+    {
+        if (!string.IsNullOrWhiteSpace(a.AlertType) && (a.AlertType.StartsWith("issue:", StringComparison.OrdinalIgnoreCase) || a.AlertType.StartsWith("WBS:", StringComparison.OrdinalIgnoreCase)))
+        {
+            return a.AlertType;
+        }
+
+        if (IsWbsEscalationAlert(a))
+        {
+            var escType = !string.IsNullOrWhiteSpace(a.EscalationType)
+                ? a.EscalationType.Trim()
+                : (!string.IsNullOrWhiteSpace(a.Description) && a.Description.Contains(':') ? a.Description.Split(':')[0].Trim() : "Escalation");
+            return $"WBS:{escType}";
+        }
+
+        var issueType = !string.IsNullOrWhiteSpace(a.EscalationType)
+            ? a.EscalationType.Trim()
+            : (!string.IsNullOrWhiteSpace(a.ServiceName) ? a.ServiceName.Trim() : "Issue");
+        return $"issue:{issueType}";
     }
 
 
@@ -1807,43 +1879,47 @@ public sealed class ActionNotificationService(
             }
         }
 
-        if (recipients.Count == 0) return;
-
-        var title = $"WBS or the Project is Created with the {projectName}";
-        var addedList = new List<ActionNotification>();
-        foreach (var recipient in recipients)
+        if (recipients.Count > 0)
         {
-            var notif = new ActionNotification
+            var title = $"WBS or the Project is Created with the {projectName}";
+            var addedList = new List<ActionNotification>();
+            foreach (var recipient in recipients)
             {
-                Id = Guid.NewGuid(),
-                RecipientEmployeeId = recipient.Id,
-                Title = title,
-                Type = "WBS Created",
-                Priority = "Low",
-                Status = "Created",
-                Unread = true,
-                RaisedByName = createdByName ?? currentUser.Name ?? "System",
-                ProjectId = projectId,
-                ProjectName = "-",
-                ProjectCode = null,
-                RelatedTask = wbsId ?? projectCode ?? projectName,
-                CreatedAtUtc = DateTime.UtcNow,
-                HistoryJson = JsonSerializer.Serialize(new[]
+                var notif = new ActionNotification
                 {
-                    new
+                    Id = Guid.NewGuid(),
+                    RecipientEmployeeId = recipient.Id,
+                    Title = title,
+                    Type = "WBS Created",
+                    Priority = "Low",
+                    Status = "Created",
+                    Unread = true,
+                    RaisedByName = createdByName ?? currentUser.Name ?? "System",
+                    ProjectId = projectId,
+                    ProjectName = "-",
+                    ProjectCode = null,
+                    RelatedTask = wbsId ?? projectCode ?? projectName,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    HistoryJson = JsonSerializer.Serialize(new[]
                     {
-                        status = "Created",
-                        at = DateTime.UtcNow.ToString("o"),
-                        details = $"WBS or the Project is Created with the {projectName}"
-                    }
-                })
-            };
-            db.ActionNotifications.Add(notif);
-            addedList.Add(notif);
+                        new
+                        {
+                            status = "Created",
+                            at = DateTime.UtcNow.ToString("o"),
+                            details = $"WBS or the Project is Created with the {projectName}"
+                        }
+                    })
+                };
+                db.ActionNotifications.Add(notif);
+                addedList.Add(notif);
+            }
+
+            await db.SaveChangesAsync(ct);
+            TrySyncNotificationsToOtherDatabase(addedList);
         }
 
-        await db.SaveChangesAsync(ct);
-        TrySyncNotificationsToOtherDatabase(addedList);
+        // Automated PM/SPM assignment reminder workflow
+        await StartProjectAllocationReminderWorkflowAsync(projectId, ct);
     }
 
     public async Task NotifyResourceOnboardedAsync(
@@ -2313,6 +2389,1192 @@ public sealed class ActionNotificationService(
         }
 
     }
+
+    private async Task SendWbsEscalationStatusChangeNotificationsAsync(
+        ProjectAlert alert,
+        string oldStatus,
+        string newStatus,
+        string userName,
+        Guid? actorEmployeeId,
+        CancellationToken ct = default)
+    {
+        if (string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (alert.IssueId.HasValue || alert.Issue != null || (alert.AlertType != null && alert.AlertType.StartsWith("issue", StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        if (!alert.ServiceEscalationId.HasValue)
+        {
+            return;
+        }
+
+        var esc = await db.ProjectServiceEscalations
+            .Include(e => e.Stakeholders)
+            .Include(e => e.Project)
+                .ThenInclude(p => p!.Client)
+            .FirstOrDefaultAsync(e => e.Id == alert.ServiceEscalationId.Value && e.DeletedAtUtc == null, ct);
+
+        if (esc == null)
+        {
+            return;
+        }
+
+        // 1. Query SLA Instance and Events for this WBS Escalation
+        var slaInstance = await db.SlaInstances
+            .AsNoTracking()
+            .Include(i => i.Events)
+            .FirstOrDefaultAsync(i => i.EntityId == esc.Id && i.ActivityType == "WBS Escalation", ct);
+
+        // 2. Resolve Senior Project Manager(s) dynamically
+        var spmIds = new HashSet<Guid>();
+        if (alert.ProjectId != Guid.Empty)
+        {
+            var projectSpms = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.ProjectId == alert.ProjectId
+                             && tm.DeletedAtUtc == null
+                             && (tm.MemberRole == ProjectMemberRoles.SeniorProjectManager
+                                 || tm.MemberRole == "Senior Project Manager"
+                                 || tm.MemberRole == "Senior PM"
+                                 || tm.MemberRole == "SPM"
+                                 || (tm.MemberRole != null && (tm.MemberRole.ToLower().Contains("senior") || tm.MemberRole.ToLower().Contains("spm")))))
+                .Select(tm => tm.EmployeeId)
+                .ToListAsync(ct);
+            foreach (var id in projectSpms) spmIds.Add(id);
+        }
+
+        var escSpms = esc.Stakeholders
+            .Where(s => string.Equals(s.SubDepartment, "Senior Project Management", StringComparison.OrdinalIgnoreCase))
+            .Select(s => s.EmployeeId);
+        foreach (var id in escSpms) spmIds.Add(id);
+
+        var l1NotifRecipients = await db.ActionNotifications
+            .AsNoTracking()
+            .Where(n => n.ServiceEscalationId == esc.Id
+                        && n.Type == "WBS Escalation"
+                        && n.Title.Contains("Level 1 Escalation")
+                        && n.DeletedAtUtc == null)
+            .Select(n => n.RecipientEmployeeId)
+            .Distinct()
+            .ToListAsync(ct);
+        foreach (var id in l1NotifRecipients) spmIds.Add(id);
+
+        if (spmIds.Count == 0 && slaRecipientResolver != null)
+        {
+            var dummyInstance = slaInstance ?? new SlaInstance { ProjectId = alert.ProjectId, ActivityType = "WBS Escalation", EntityId = esc.Id };
+            var resolvedSpms = await slaRecipientResolver.ResolveRecipientsAsync(dummyInstance, ["Assigned Senior Project Manager"], ct);
+            foreach (var id in resolvedSpms) spmIds.Add(id);
+        }
+
+        // 3. Resolve Head of Department(s) dynamically
+        var hodIds = new HashSet<Guid>();
+        var escHods = esc.Stakeholders
+            .Where(s => string.Equals(s.SubDepartment, "Department Head", StringComparison.OrdinalIgnoreCase))
+            .Select(s => s.EmployeeId);
+        foreach (var id in escHods) hodIds.Add(id);
+
+        var l2NotifRecipients = await db.ActionNotifications
+            .AsNoTracking()
+            .Where(n => n.ServiceEscalationId == esc.Id
+                        && n.Type == "WBS Escalation"
+                        && n.Title.Contains("Level 2 Escalation")
+                        && n.DeletedAtUtc == null)
+            .Select(n => n.RecipientEmployeeId)
+            .Distinct()
+            .ToListAsync(ct);
+        foreach (var id in l2NotifRecipients) hodIds.Add(id);
+
+        if (hodIds.Count == 0 && esc.Project != null)
+        {
+            var projectHods = await ResolveProjectHodAsync(esc.Project, ct);
+            foreach (var id in projectHods) hodIds.Add(id);
+        }
+
+        if (hodIds.Count == 0 && slaRecipientResolver != null)
+        {
+            var dummyInstance = slaInstance ?? new SlaInstance { ProjectId = alert.ProjectId, ActivityType = "WBS Escalation", EntityId = esc.Id };
+            var resolvedHods = await slaRecipientResolver.ResolveRecipientsAsync(dummyInstance, ["Head of Department"], ct);
+            foreach (var id in resolvedHods) hodIds.Add(id);
+        }
+
+        if (hodIds.Count == 0)
+        {
+            var hodOnFloorRoles = await db.OnFloorRoles
+                .AsNoTracking()
+                .Where(o => o.DeletedAtUtc == null && (
+                    o.Name.ToLower() == "head of department"
+                    || o.Name.ToLower() == "hod"
+                    || o.Name.ToLower().Contains("head of department")
+                    || o.Name.Contains("Head Of Department")
+                ))
+                .Select(o => o.DesignationId)
+                .Distinct()
+                .ToListAsync(ct);
+
+            if (hodOnFloorRoles.Count > 0)
+            {
+                var hodEmps = await db.Employees
+                    .AsNoTracking()
+                    .Where(e => e.DeletedAtUtc == null
+                                && (e.Status == null || !e.Status.ToLower().StartsWith("inactive"))
+                                && e.DesignationId.HasValue
+                                && hodOnFloorRoles.Contains(e.DesignationId.Value))
+                    .Select(e => e.Id)
+                    .ToListAsync(ct);
+                foreach (var id in hodEmps) hodIds.Add(id);
+            }
+        }
+
+        // 4. Resolve Original Selected Stakeholders
+        var initialStakeholderIds = new HashSet<Guid>();
+        foreach (var s in esc.Stakeholders)
+        {
+            var isSpmOrHod = string.Equals(s.SubDepartment, "Senior Project Management", StringComparison.OrdinalIgnoreCase)
+                             || string.Equals(s.SubDepartment, "Department Head", StringComparison.OrdinalIgnoreCase)
+                             || spmIds.Contains(s.EmployeeId)
+                             || hodIds.Contains(s.EmployeeId);
+            if (!isSpmOrHod)
+            {
+                initialStakeholderIds.Add(s.EmployeeId);
+            }
+        }
+
+        if (initialStakeholderIds.Count == 0)
+        {
+            var initialNotifRecipients = await db.ActionNotifications
+                .AsNoTracking()
+                .Where(n => n.ServiceEscalationId == esc.Id
+                            && n.Type == "WBS Escalation"
+                            && !n.Title.Contains("Level 1 Escalation")
+                            && !n.Title.Contains("Level 2 Escalation")
+                            && n.DeletedAtUtc == null)
+                .Select(n => n.RecipientEmployeeId)
+                .Distinct()
+                .ToListAsync(ct);
+            foreach (var id in initialNotifRecipients) initialStakeholderIds.Add(id);
+        }
+
+        if (initialStakeholderIds.Count == 0 && esc.Stakeholders.Count > 0)
+        {
+            var earliest = esc.Stakeholders.OrderBy(s => s.CreatedAtUtc).FirstOrDefault();
+            if (earliest != null) initialStakeholderIds.Add(earliest.EmployeeId);
+        }
+
+        // 5. Determine Current SLA Stage dynamically
+        bool isL2 = (slaInstance?.Events.Any(e => e.EventType == SlaEventType.EscalationL2 && e.Status == SlaEventStatus.Executed) == true)
+                    || esc.Stakeholders.Any(s => string.Equals(s.SubDepartment, "Department Head", StringComparison.OrdinalIgnoreCase))
+                    || l2NotifRecipients.Count > 0
+                    || (!string.IsNullOrWhiteSpace(alert.Title) && alert.Title.Contains("Level 2 Escalation"));
+
+        bool isL1 = !isL2 && (
+                    (slaInstance?.Events.Any(e => e.EventType == SlaEventType.EscalationL1 && e.Status == SlaEventStatus.Executed) == true)
+                    || esc.Stakeholders.Any(s => string.Equals(s.SubDepartment, "Senior Project Management", StringComparison.OrdinalIgnoreCase))
+                    || l1NotifRecipients.Count > 0
+                    || (!string.IsNullOrWhiteSpace(alert.Title) && alert.Title.Contains("Level 1 Escalation")));
+
+        // 6. Resolve Project Leadership (PM, EM, TL)
+        var project = esc.Project ?? alert.Project;
+        if (project == null && alert.ProjectId != Guid.Empty)
+        {
+            project = await db.Projects.Include(p => p.Client).FirstOrDefaultAsync(p => p.Id == alert.ProjectId, ct);
+        }
+
+        var pmId = project?.ProjectManagerId;
+        if (!pmId.HasValue && project != null)
+        {
+            pmId = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.ProjectId == project.Id && tm.MemberRole == ProjectMemberRoles.ProjectManager && tm.DeletedAtUtc == null)
+                .Select(tm => (Guid?)tm.EmployeeId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        var emId = project?.EngagementManagerId ?? project?.Client?.EngagementManagerId;
+        if (!emId.HasValue && project != null)
+        {
+            emId = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.ProjectId == project.Id && (tm.MemberRole == "EngagementManager" || tm.MemberRole == "EM") && tm.DeletedAtUtc == null)
+                .Select(tm => (Guid?)tm.EmployeeId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        var tlId = project?.TeamLeadId;
+        if (!tlId.HasValue && project != null)
+        {
+            tlId = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.ProjectId == project.Id && (tm.MemberRole == "TeamLead" || tm.MemberRole == "Team Leader") && tm.DeletedAtUtc == null)
+                .Select(tm => (Guid?)tm.EmployeeId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        // 7. Build Recipient Set based on Matrix:
+        // Initial SLA: Selected Stakeholder -> PM, EM, TL
+        // After L1: Selected Stakeholder -> PM, EM, TL, SPM
+        // After L1: SPM -> PM, EM, TL, Selected Stakeholder
+        // After L2: Selected Stakeholder -> PM, EM, TL, SPM, HOD
+        // After L2: SPM -> PM, EM, TL, Selected Stakeholder, HOD
+        // After L2: HOD -> PM, EM, TL, Selected Stakeholder, SPM
+        var recipientSet = new HashSet<Guid>();
+        if (pmId.HasValue) recipientSet.Add(pmId.Value);
+        if (emId.HasValue) recipientSet.Add(emId.Value);
+        if (tlId.HasValue) recipientSet.Add(tlId.Value);
+
+        if (isL2)
+        {
+            foreach (var id in initialStakeholderIds) recipientSet.Add(id);
+            foreach (var id in spmIds) recipientSet.Add(id);
+            foreach (var id in hodIds) recipientSet.Add(id);
+        }
+        else if (isL1)
+        {
+            foreach (var id in initialStakeholderIds) recipientSet.Add(id);
+            foreach (var id in spmIds) recipientSet.Add(id);
+        }
+        else
+        {
+            foreach (var id in initialStakeholderIds) recipientSet.Add(id);
+        }
+
+        // 8. Actor Exclusion: The person performing the status update must NOT receive a duplicate notification for their own action
+        if (actorEmployeeId.HasValue)
+        {
+            recipientSet.Remove(actorEmployeeId.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(userName))
+        {
+            var matchingEmp = await db.Employees
+                .AsNoTracking()
+                .Where(e => (e.FirstName + " " + e.LastName).Trim().ToLower() == userName.Trim().ToLower() && e.DeletedAtUtc == null)
+                .Select(e => (Guid?)e.Id)
+                .FirstOrDefaultAsync(ct);
+            if (matchingEmp.HasValue)
+            {
+                recipientSet.Remove(matchingEmp.Value);
+            }
+        }
+
+        var candidateIds = recipientSet.Distinct().ToList();
+        if (candidateIds.Count == 0)
+        {
+            return;
+        }
+
+        // 9. Filter out inactive or deleted employees
+        var activeRecipientIds = await db.Employees
+            .AsNoTracking()
+            .Where(e => candidateIds.Contains(e.Id)
+                        && e.DeletedAtUtc == null
+                        && (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
+            .Select(e => e.Id)
+            .ToListAsync(ct);
+
+        if (activeRecipientIds.Count == 0)
+        {
+            return;
+        }
+
+        // 10. Prepare Notification Data
+        var now = DateTime.UtcNow;
+        var dateStr = now.ToString("yyyy-MM-dd");
+        var timeStr = now.ToString("HH:mm:ss");
+
+        var notifTitle = $"WBS Escalation Status Updated: {esc.ServiceName} - {esc.Subject} [{oldStatus} -> {newStatus}]";
+        if (notifTitle.Length > 255) notifTitle = notifTitle[..255];
+
+        var relatedTask = esc.ServiceName.Length > 255 ? esc.ServiceName[..255] : esc.ServiceName;
+        var projectName = project?.Name ?? esc.ProjectName;
+        if (string.IsNullOrWhiteSpace(projectName)) projectName = "Project";
+
+        var notifHistory = JsonSerializer.Serialize(new[]
+        {
+            new
+            {
+                action = $"WBS Escalation status changed from '{oldStatus}' to '{newStatus}'",
+                date = dateStr,
+                time = timeStr,
+                by = userName
+            }
+        });
+
+        var notificationsToAdd = new List<ActionNotification>();
+        foreach (var rId in activeRecipientIds)
+        {
+            var alreadyExists = await db.ActionNotifications.AnyAsync(n =>
+                n.RecipientEmployeeId == rId &&
+                n.ProjectId == alert.ProjectId &&
+                n.ServiceEscalationId == esc.Id &&
+                n.Type == "WBS Escalation Status Update" &&
+                n.Title == notifTitle &&
+                n.CreatedAtUtc >= now.AddMinutes(-2) &&
+                n.DeletedAtUtc == null, ct);
+
+            if (!alreadyExists)
+            {
+                var notif = new ActionNotification
+                {
+                    RecipientEmployeeId = rId,
+                    ProjectId = alert.ProjectId,
+                    ProjectCode = project?.ProjectCode ?? esc.ProjectCode,
+                    ProjectName = projectName,
+                    Title = notifTitle,
+                    Type = "WBS Escalation Status Update",
+                    Priority = "Low",
+                    Status = "Pending",
+                    Unread = true,
+                    RaisedByEmployeeId = actorEmployeeId,
+                    RaisedByName = userName,
+                    RelatedTask = relatedTask,
+                    ServiceEscalationId = esc.Id,
+                    HistoryJson = notifHistory,
+                    CreatedAtUtc = now
+                };
+                db.ActionNotifications.Add(notif);
+                notificationsToAdd.Add(notif);
+            }
+        }
+
+        if (notificationsToAdd.Count > 0)
+        {
+            await db.SaveChangesAsync(ct);
+            TrySyncNotificationsToOtherDatabase(notificationsToAdd);
+        }
+    }
+
+    private async Task SendIssueStatusChangeNotificationsAsync(
+        ProjectAlert alert,
+        string oldStatus,
+        string newStatus,
+        string userName,
+        Guid? actorEmployeeId,
+        CancellationToken ct = default)
+    {
+        if (string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var issue = alert.Issue;
+        if (issue == null && alert.IssueId.HasValue)
+        {
+            issue = await db.ProjectIssues
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.Client)
+                .Include(i => i.RaisedByEmployee)
+                .FirstOrDefaultAsync(i => i.Id == alert.IssueId.Value && i.DeletedAtUtc == null, ct);
+        }
+
+        if (issue == null && alert.ProjectId != Guid.Empty && !string.IsNullOrWhiteSpace(alert.Title))
+        {
+            issue = await db.ProjectIssues
+                .Include(i => i.Project)
+                    .ThenInclude(p => p!.Client)
+                .Include(i => i.RaisedByEmployee)
+                .FirstOrDefaultAsync(i => i.ProjectId == alert.ProjectId && i.Subject == alert.Title && i.DeletedAtUtc == null, ct);
+        }
+
+        if (issue == null)
+        {
+            return;
+        }
+
+        // 1. Query SLA Instance and Events for this Issue
+        var slaInstance = await db.SlaInstances
+            .AsNoTracking()
+            .Include(i => i.Events)
+            .FirstOrDefaultAsync(i => i.EntityId == issue.Id && i.ActivityType == "Resolution of Issues", ct);
+
+        // 2. Resolve notifications previously dispatched for L1 / L2 escalation of this issue
+        var l2NotifRecipients = await db.ActionNotifications
+            .AsNoTracking()
+            .Where(n => n.IssueId == issue.Id
+                        && (n.Type == "SLA Escalation" || n.Title.Contains("Level 2"))
+                        && n.Title.Contains("Level 2")
+                        && n.DeletedAtUtc == null)
+            .Select(n => n.RecipientEmployeeId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var l1NotifRecipients = await db.ActionNotifications
+            .AsNoTracking()
+            .Where(n => n.IssueId == issue.Id
+                        && (n.Type == "SLA Escalation" || n.Title.Contains("Level 1"))
+                        && n.Title.Contains("Level 1")
+                        && n.DeletedAtUtc == null)
+            .Select(n => n.RecipientEmployeeId)
+            .Distinct()
+            .ToListAsync(ct);
+
+        // 3. Determine Current SLA Escalation Stage dynamically
+        bool isL2 = (slaInstance?.Events.Any(e => e.EventType == SlaEventType.EscalationL2 && e.Status == SlaEventStatus.Executed) == true)
+                    || l2NotifRecipients.Count > 0
+                    || (!string.IsNullOrWhiteSpace(alert.HistoryJson) && alert.HistoryJson.Contains("Level 2 SLA Escalation"))
+                    || (!string.IsNullOrWhiteSpace(alert.Title) && alert.Title.Contains("Level 2"));
+
+        bool isL1 = !isL2 && (
+                    (slaInstance?.Events.Any(e => e.EventType == SlaEventType.EscalationL1 && e.Status == SlaEventStatus.Executed) == true)
+                    || l1NotifRecipients.Count > 0
+                    || (!string.IsNullOrWhiteSpace(alert.HistoryJson) && alert.HistoryJson.Contains("Level 1 SLA Escalation"))
+                    || (!string.IsNullOrWhiteSpace(alert.Title) && alert.Title.Contains("Level 1")));
+
+        // 4. Resolve Project Leadership (PM, EM, TL)
+        var project = issue.Project ?? alert.Project;
+        if (project == null && alert.ProjectId != Guid.Empty)
+        {
+            project = await db.Projects.Include(p => p.Client).FirstOrDefaultAsync(p => p.Id == alert.ProjectId, ct);
+        }
+
+        var pmId = project?.ProjectManagerId;
+        if (!pmId.HasValue && project != null)
+        {
+            pmId = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.ProjectId == project.Id && tm.MemberRole == ProjectMemberRoles.ProjectManager && tm.DeletedAtUtc == null)
+                .Select(tm => (Guid?)tm.EmployeeId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        var emId = project?.EngagementManagerId ?? project?.Client?.EngagementManagerId;
+        if (!emId.HasValue && project != null)
+        {
+            emId = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.ProjectId == project.Id && (tm.MemberRole == "EngagementManager" || tm.MemberRole == "EM") && tm.DeletedAtUtc == null)
+                .Select(tm => (Guid?)tm.EmployeeId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        var tlId = project?.TeamLeadId;
+        if (!tlId.HasValue && project != null)
+        {
+            tlId = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.ProjectId == project.Id && (tm.MemberRole == "TeamLead" || tm.MemberRole == "Team Leader") && tm.DeletedAtUtc == null)
+                .Select(tm => (Guid?)tm.EmployeeId)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        // 5. Resolve Original Issue Raiser
+        Guid? raiserId = issue.RaisedByEmployeeId ?? alert.RaisedByEmployeeId;
+        if (!raiserId.HasValue && !string.IsNullOrWhiteSpace(issue.RaisedByName))
+        {
+            raiserId = await db.Employees
+                .AsNoTracking()
+                .Where(e => (e.FirstName + " " + e.LastName).Trim().ToLower() == issue.RaisedByName.Trim().ToLower() && e.DeletedAtUtc == null)
+                .Select(e => (Guid?)e.Id)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        // 6. Resolve Senior Project Manager(s) dynamically
+        var spmIds = new HashSet<Guid>();
+        if (alert.ProjectId != Guid.Empty)
+        {
+            var projectSpms = await db.ProjectTeamMembers
+                .AsNoTracking()
+                .Where(tm => tm.ProjectId == alert.ProjectId
+                             && tm.DeletedAtUtc == null
+                             && (tm.MemberRole == ProjectMemberRoles.SeniorProjectManager
+                                 || tm.MemberRole == "Senior Project Manager"
+                                 || tm.MemberRole == "Senior PM"
+                                 || tm.MemberRole == "SPM"
+                                 || (tm.MemberRole != null && (tm.MemberRole.ToLower().Contains("senior") || tm.MemberRole.ToLower().Contains("spm")))))
+                .Select(tm => tm.EmployeeId)
+                .ToListAsync(ct);
+            foreach (var id in projectSpms) spmIds.Add(id);
+        }
+
+        foreach (var id in l1NotifRecipients) spmIds.Add(id);
+
+        if (spmIds.Count == 0 && slaRecipientResolver != null)
+        {
+            var dummyInstance = slaInstance ?? new SlaInstance { ProjectId = alert.ProjectId, ActivityType = "Resolution of Issues", EntityId = issue.Id };
+            var resolvedSpms = await slaRecipientResolver.ResolveRecipientsAsync(dummyInstance, ["Assigned Senior Project Manager"], ct);
+            foreach (var id in resolvedSpms) spmIds.Add(id);
+        }
+
+        // 7. Resolve Head of Department(s) dynamically
+        var hodIds = new HashSet<Guid>();
+        foreach (var id in l2NotifRecipients) hodIds.Add(id);
+
+        if (hodIds.Count == 0 && project != null)
+        {
+            var projectHods = await ResolveProjectHodAsync(project, ct);
+            foreach (var id in projectHods) hodIds.Add(id);
+        }
+
+        if (hodIds.Count == 0 && slaRecipientResolver != null)
+        {
+            var dummyInstance = slaInstance ?? new SlaInstance { ProjectId = alert.ProjectId, ActivityType = "Resolution of Issues", EntityId = issue.Id };
+            var resolvedHods = await slaRecipientResolver.ResolveRecipientsAsync(dummyInstance, ["Head of Department"], ct);
+            foreach (var id in resolvedHods) hodIds.Add(id);
+        }
+
+        if (hodIds.Count == 0)
+        {
+            var hodOnFloorRoles = await db.OnFloorRoles
+                .AsNoTracking()
+                .Where(o => o.DeletedAtUtc == null && (
+                    o.Name.ToLower() == "head of department"
+                    || o.Name.ToLower() == "hod"
+                    || o.Name.ToLower().Contains("head of department")
+                    || o.Name.Contains("Head Of Department")
+                ))
+                .Select(o => o.DesignationId)
+                .Distinct()
+                .ToListAsync(ct);
+
+            if (hodOnFloorRoles.Count > 0)
+            {
+                var hodEmps = await db.Employees
+                    .AsNoTracking()
+                    .Where(e => e.DeletedAtUtc == null
+                                && (e.Status == null || !e.Status.ToLower().StartsWith("inactive"))
+                                && e.DesignationId.HasValue
+                                && hodOnFloorRoles.Contains(e.DesignationId.Value))
+                    .Select(e => e.Id)
+                    .ToListAsync(ct);
+                foreach (var id in hodEmps) hodIds.Add(id);
+            }
+        }
+
+        // 8. Build Recipient Set based on Matrix (Section 5):
+        // Initial SLA: Any user -> PM, EM, TL, Issue Raiser, excluding updater
+        // After L1:    Any user -> PM, EM, TL, Issue Raiser, SPM, excluding updater
+        // After L2:    Any user -> PM, EM, TL, Issue Raiser, SPM, HOD, excluding updater
+        var recipientSet = new HashSet<Guid>();
+        if (pmId.HasValue) recipientSet.Add(pmId.Value);
+        if (emId.HasValue) recipientSet.Add(emId.Value);
+        if (tlId.HasValue) recipientSet.Add(tlId.Value);
+        if (raiserId.HasValue) recipientSet.Add(raiserId.Value);
+
+        if (isL2)
+        {
+            foreach (var id in spmIds) recipientSet.Add(id);
+            foreach (var id in hodIds) recipientSet.Add(id);
+        }
+        else if (isL1)
+        {
+            foreach (var id in spmIds) recipientSet.Add(id);
+        }
+
+        // 9. Actor Exclusion: Never send a notification to the user who performed the status update
+        if (actorEmployeeId.HasValue)
+        {
+            recipientSet.Remove(actorEmployeeId.Value);
+        }
+        else if (!string.IsNullOrWhiteSpace(userName))
+        {
+            var matchingEmp = await db.Employees
+                .AsNoTracking()
+                .Where(e => (e.FirstName + " " + e.LastName).Trim().ToLower() == userName.Trim().ToLower() && e.DeletedAtUtc == null)
+                .Select(e => (Guid?)e.Id)
+                .FirstOrDefaultAsync(ct);
+            if (matchingEmp.HasValue)
+            {
+                recipientSet.Remove(matchingEmp.Value);
+            }
+        }
+
+        var candidateIds = recipientSet.Distinct().ToList();
+        if (candidateIds.Count == 0)
+        {
+            return;
+        }
+
+        // 10. Filter out inactive or deleted employees
+        var activeRecipientIds = await db.Employees
+            .AsNoTracking()
+            .Where(e => candidateIds.Contains(e.Id)
+                        && e.DeletedAtUtc == null
+                        && (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
+            .Select(e => e.Id)
+            .ToListAsync(ct);
+
+        if (activeRecipientIds.Count == 0)
+        {
+            return;
+        }
+
+        // 11. Prepare Notification Data
+        var now = DateTime.UtcNow;
+        var dateStr = now.ToString("yyyy-MM-dd");
+        var timeStr = now.ToString("HH:mm:ss");
+
+        var notifTitle = $"Issue Status Updated: {issue.Subject} [{oldStatus} -> {newStatus}]";
+        if (notifTitle.Length > 255) notifTitle = notifTitle[..255];
+
+        var relatedTask = issue.Subject.Length > 255 ? issue.Subject[..255] : issue.Subject;
+        var projectName = project?.Name ?? issue.ProjectName;
+        if (string.IsNullOrWhiteSpace(projectName)) projectName = "Project";
+
+        var notifHistory = JsonSerializer.Serialize(new[]
+        {
+            new
+            {
+                action = $"Issue status changed from '{oldStatus}' to '{newStatus}'",
+                date = dateStr,
+                time = timeStr,
+                by = userName
+            }
+        });
+
+        var notificationsToAdd = new List<ActionNotification>();
+        foreach (var rId in activeRecipientIds)
+        {
+            var alreadyExists = await db.ActionNotifications.AnyAsync(n =>
+                n.RecipientEmployeeId == rId &&
+                n.ProjectId == alert.ProjectId &&
+                n.IssueId == issue.Id &&
+                n.Type == "Issue Status Update" &&
+                n.Title == notifTitle &&
+                n.CreatedAtUtc >= now.AddMinutes(-2) &&
+                n.DeletedAtUtc == null, ct);
+
+            if (!alreadyExists)
+            {
+                var notif = new ActionNotification
+                {
+                    RecipientEmployeeId = rId,
+                    ProjectId = alert.ProjectId,
+                    ProjectCode = project?.ProjectCode ?? issue.ProjectCode,
+                    ProjectName = projectName,
+                    Title = notifTitle,
+                    Type = "Issue Status Update",
+                    Priority = "Low",
+                    Status = "Pending",
+                    Unread = true,
+                    RaisedByEmployeeId = actorEmployeeId,
+                    RaisedByName = userName,
+                    RelatedTask = relatedTask,
+                    IssueId = issue.Id,
+                    ServiceEscalationId = alert.ServiceEscalationId,
+                    HistoryJson = notifHistory,
+                    CreatedAtUtc = now
+                };
+                db.ActionNotifications.Add(notif);
+                notificationsToAdd.Add(notif);
+            }
+        }
+
+        if (notificationsToAdd.Count > 0)
+        {
+            await db.SaveChangesAsync(ct);
+            TrySyncNotificationsToOtherDatabase(notificationsToAdd);
+        }
+    }
+
+
+
+    #region Project Allocation PM/SPM Assignment Automated Reminders
+
+    public async Task StartProjectAllocationReminderWorkflowAsync(Guid projectId, CancellationToken ct = default)
+    {
+        var project = await db.Projects
+            .Include(p => p.Client)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.DeletedAtUtc == null, ct);
+
+        if (project == null) return;
+
+        // Check if both PM and SPM are already assigned
+        var isPmAssigned = project.ProjectManagerId.HasValue || await db.ProjectTeamMembers.AnyAsync(m =>
+            m.ProjectId == projectId &&
+            (m.MemberRole == ProjectMemberRoles.ProjectManager || m.MemberRole == "Project Manager") &&
+            m.DeletedAtUtc == null, ct);
+
+        var isSpmAssigned = await db.ProjectTeamMembers.AnyAsync(m =>
+            m.ProjectId == projectId &&
+            (m.MemberRole == ProjectMemberRoles.SeniorProjectManager || m.MemberRole == "Senior Project Manager") &&
+            m.DeletedAtUtc == null, ct);
+
+        // If both are already assigned, no reminders needed
+        if (isPmAssigned && isSpmAssigned) return;
+
+        // Avoid duplicate reminder workflows if the same Project/WBS creation operation is retried
+        var workflowAlreadyStarted = await db.ActionNotifications.AnyAsync(n =>
+            n.ProjectId == projectId &&
+            n.Type == "Project Allocation Reminder" &&
+            n.DeletedAtUtc == null, ct);
+
+        if (workflowAlreadyStarted)
+        {
+            logger?.LogInformation("Project allocation reminder workflow already started for project {ProjectId}. Skipping duplicate initialization.", projectId);
+            return;
+        }
+
+        // Resolve assigned Engagement Manager
+        var emId = await ResolveEngagementManagerIdAsync(project, ct);
+        if (!emId.HasValue)
+        {
+            logger?.LogWarning("Engagement Manager could not be resolved for project {ProjectId} ('{ProjectName}'). Reminders cannot be dispatched.", projectId, project.Name);
+            return;
+        }
+
+        var projectName = project.Name;
+        var wbsId = !string.IsNullOrWhiteSpace(project.WbsId) ? project.WbsId : project.ProjectCode;
+        var jobWbsId = !string.IsNullOrWhiteSpace(wbsId) ? wbsId : projectName;
+
+        // Send initial assignment reminder to Engagement Manager
+        var title = BuildEmReminderTitle(projectName, project.WbsId);
+        var details = $"Project Manager and Senior Project Manager assignment is pending for project '{projectName}'{(string.IsNullOrWhiteSpace(project.WbsId) ? "" : $" (WBS: {project.WbsId})")}. Please assign both positions.";
+
+        var initialNotif = new ActionNotification
+        {
+            Id = Guid.NewGuid(),
+            RecipientEmployeeId = emId.Value,
+            ProjectId = project.Id,
+            ProjectCode = project.ProjectCode,
+            ProjectName = projectName,
+            Title = title,
+            Type = "Project Allocation Reminder",
+            Priority = "Low",
+            Status = "Pending",
+            Unread = true,
+            RaisedByName = "System / Automation Engine",
+            RelatedTask = wbsId ?? projectName,
+            CreatedAtUtc = DateTime.UtcNow,
+            HistoryJson = JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    status = "Pending",
+                    interval = 0,
+                    at = DateTime.UtcNow.ToString("o"),
+                    details = details
+                }
+            })
+        };
+
+        db.ActionNotifications.Add(initialNotif);
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(new[] { initialNotif });
+
+        // Schedule 2-Hour Reminder Job in Hangfire
+        var remJobId = BackgroundJob.Schedule<IActionNotificationService>(
+            s => s.ExecuteProjectAllocationReminderJobAsync(project.Id, projectName, jobWbsId, 1),
+            TimeSpan.FromHours(2));
+        s_activeReminderJobs[projectId] = remJobId;
+
+        // Schedule Same-Day HOD Check Job in Hangfire (at End of Day in IST)
+        var ist = ResolveIstTimeZone();
+        var createdInIst = TimeZoneInfo.ConvertTimeFromUtc(project.CreatedAtUtc != default ? project.CreatedAtUtc : DateTime.UtcNow, ist);
+        var eodIst = createdInIst.Date.AddHours(18); // 18:00 IST
+        if (createdInIst >= eodIst)
+        {
+            eodIst = createdInIst.Date.AddDays(1).AddSeconds(-1);
+        }
+        var eodUtc = TimeZoneInfo.ConvertTimeToUtc(eodIst, ist);
+        var hodDelay = eodUtc > DateTime.UtcNow ? eodUtc - DateTime.UtcNow : TimeSpan.FromMinutes(1);
+
+        var hodJobId = BackgroundJob.Schedule<IActionNotificationService>(
+            s => s.ExecuteSameDayHodCheckJobAsync(project.Id, projectName, jobWbsId),
+            hodDelay);
+        s_activeHodJobs[projectId] = hodJobId;
+    }
+
+    [JobDisplayName("Project Allocation | PM-SPM Assignment Reminder | {1} | {2}")]
+    public async Task ExecuteProjectAllocationReminderJobAsync(Guid projectId, string projectName, string wbsId, int reminderCount)
+    {
+        var project = await db.Projects
+            .Include(p => p.Client)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.DeletedAtUtc == null);
+
+        if (project == null)
+        {
+            logger?.LogWarning("Project {ProjectId} not found or deleted. Terminating reminder job.", projectId);
+            s_activeReminderJobs.TryRemove(projectId, out _);
+            return;
+        }
+
+        // Always verify latest assignment state directly from database
+        var isPmAssigned = project.ProjectManagerId.HasValue || await db.ProjectTeamMembers.AnyAsync(m =>
+            m.ProjectId == projectId &&
+            (m.MemberRole == ProjectMemberRoles.ProjectManager || m.MemberRole == "Project Manager") &&
+            m.DeletedAtUtc == null);
+
+        var isSpmAssigned = await db.ProjectTeamMembers.AnyAsync(m =>
+            m.ProjectId == projectId &&
+            (m.MemberRole == ProjectMemberRoles.SeniorProjectManager || m.MemberRole == "Senior Project Manager") &&
+            m.DeletedAtUtc == null);
+
+        // Note: Reminder notifications will continue until and unless BOTH PM and SPM are assigned
+        if (isPmAssigned && isSpmAssigned)
+        {
+            logger?.LogInformation("Both PM and SPM are assigned for project {ProjectId}. Stopping 2-hour reminder workflow.", projectId);
+            s_activeReminderJobs.TryRemove(projectId, out _);
+            return;
+        }
+
+        // Check duplicate execution guard for this interval
+        var duplicateInterval = await db.ActionNotifications.AnyAsync(n =>
+            n.ProjectId == projectId &&
+            n.Type == "Project Allocation Reminder" &&
+            n.HistoryJson.Contains($"\"interval\":{reminderCount}") &&
+            n.DeletedAtUtc == null);
+
+        if (!duplicateInterval)
+        {
+            var emId = await ResolveEngagementManagerIdAsync(project);
+            if (emId.HasValue)
+            {
+                var title = BuildEmReminderTitle(project.Name, project.WbsId);
+                var details = $"Project Manager and Senior Project Manager assignment is still pending for project '{project.Name}'{(string.IsNullOrWhiteSpace(project.WbsId) ? "" : $" (WBS: {project.WbsId})")}.";
+
+                var reminderNotif = new ActionNotification
+                {
+                    Id = Guid.NewGuid(),
+                    RecipientEmployeeId = emId.Value,
+                    ProjectId = project.Id,
+                    ProjectCode = project.ProjectCode,
+                    ProjectName = project.Name,
+                    Title = title,
+                    Type = "Project Allocation Reminder",
+                    Priority = "Low",
+                    Status = "Pending",
+                    Unread = true,
+                    RaisedByName = "System / Automation Engine",
+                    RelatedTask = project.WbsId ?? project.ProjectCode ?? project.Name,
+                    CreatedAtUtc = DateTime.UtcNow,
+                    HistoryJson = JsonSerializer.Serialize(new[]
+                    {
+                        new
+                        {
+                            status = "Pending",
+                            interval = reminderCount,
+                            at = DateTime.UtcNow.ToString("o"),
+                            details = details
+                        }
+                    })
+                };
+
+                db.ActionNotifications.Add(reminderNotif);
+                await db.SaveChangesAsync();
+                TrySyncNotificationsToOtherDatabase(new[] { reminderNotif });
+            }
+        }
+
+        // Schedule next 2-hour reminder
+        var jobWbsId = !string.IsNullOrWhiteSpace(project.WbsId) ? project.WbsId : (!string.IsNullOrWhiteSpace(project.ProjectCode) ? project.ProjectCode : project.Name);
+        var nextJobId = BackgroundJob.Schedule<IActionNotificationService>(
+            s => s.ExecuteProjectAllocationReminderJobAsync(project.Id, project.Name, jobWbsId, reminderCount + 1),
+            TimeSpan.FromHours(2));
+        s_activeReminderJobs[projectId] = nextJobId;
+    }
+
+    [JobDisplayName("Project Allocation | Same-Day Pending Assignment Alert | HOD | {1} | {2}")]
+    public async Task ExecuteSameDayHodCheckJobAsync(Guid projectId, string projectName, string wbsId)
+    {
+        var project = await db.Projects
+            .Include(p => p.Client)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.DeletedAtUtc == null);
+
+        if (project == null)
+        {
+            logger?.LogWarning("Project {ProjectId} not found or deleted. Terminating HOD alert job.", projectId);
+            s_activeHodJobs.TryRemove(projectId, out _);
+            return;
+        }
+
+        // Check latest PM/SPM assignment state from database
+        var isPmAssigned = project.ProjectManagerId.HasValue || await db.ProjectTeamMembers.AnyAsync(m =>
+            m.ProjectId == projectId &&
+            (m.MemberRole == ProjectMemberRoles.ProjectManager || m.MemberRole == "Project Manager") &&
+            m.DeletedAtUtc == null);
+
+        var isSpmAssigned = await db.ProjectTeamMembers.AnyAsync(m =>
+            m.ProjectId == projectId &&
+            (m.MemberRole == ProjectMemberRoles.SeniorProjectManager || m.MemberRole == "Senior Project Manager") &&
+            m.DeletedAtUtc == null);
+
+        // Section 5 & 10: If PM or SPM was assigned before the end-of-day HOD check -> HOD notification is not generated.
+        // Only if BOTH remain unassigned at end of creation day -> send HOD alert.
+        if (isPmAssigned || isSpmAssigned)
+        {
+            logger?.LogInformation("Project {ProjectId} has at least one leadership position assigned (PM: {IsPm}, SPM: {IsSpm}). HOD alert will not be generated.", projectId, isPmAssigned, isSpmAssigned);
+            s_activeHodJobs.TryRemove(projectId, out _);
+            return;
+        }
+
+        // Guard against duplicate HOD alert for this project
+        var alreadySent = await db.ActionNotifications.AnyAsync(n =>
+            n.ProjectId == projectId &&
+            n.Type == "Project Allocation Escalation" &&
+            n.DeletedAtUtc == null);
+
+        if (alreadySent)
+        {
+            logger?.LogInformation("HOD alert already generated for project {ProjectId}. Skipping duplicate.", projectId);
+            s_activeHodJobs.TryRemove(projectId, out _);
+            return;
+        }
+
+        // Resolve relevant HOD(s) dynamically using On Floor Role = Head Of Department
+        var hodIds = await ResolveProjectHodAsync(project);
+        if (hodIds.Count == 0)
+        {
+            logger?.LogWarning("No Head of Department found for project {ProjectId} ('{ProjectName}'). HOD alert could not be dispatched.", projectId, project.Name);
+            s_activeHodJobs.TryRemove(projectId, out _);
+            return;
+        }
+
+        var title = BuildHodAlertTitle(project.Name, project.WbsId);
+        var details = $"Both Project Manager and Senior Project Manager assignments remain pending at the end of the creation day for project '{project.Name}'{(string.IsNullOrWhiteSpace(project.WbsId) ? "" : $" (WBS: {project.WbsId})")}.";
+
+        var addedList = new List<ActionNotification>();
+        foreach (var hodId in hodIds)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = hodId,
+                ProjectId = project.Id,
+                ProjectCode = project.ProjectCode,
+                ProjectName = project.Name,
+                Title = title,
+                Type = "Project Allocation Escalation",
+                Priority = "Low",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = "System / Automation Engine",
+                RelatedTask = project.WbsId ?? project.ProjectCode ?? project.Name,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = "Pending",
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = details
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync();
+        TrySyncNotificationsToOtherDatabase(addedList);
+        s_activeHodJobs.TryRemove(projectId, out _);
+    }
+
+    public Task CancelProjectAllocationRemindersAsync(Guid projectId, CancellationToken ct = default)
+    {
+        if (s_activeReminderJobs.TryRemove(projectId, out var remJobId))
+        {
+            try
+            {
+                BackgroundJob.Delete(remJobId);
+                logger?.LogInformation("Deleted Hangfire reminder job {JobId} for project {ProjectId}.", remJobId, projectId);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed deleting Hangfire reminder job {JobId} for project {ProjectId}.", remJobId, projectId);
+            }
+        }
+
+        if (s_activeHodJobs.TryRemove(projectId, out var hodJobId))
+        {
+            try
+            {
+                BackgroundJob.Delete(hodJobId);
+                logger?.LogInformation("Deleted Hangfire HOD alert job {JobId} for project {ProjectId}.", hodJobId, projectId);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed deleting Hangfire HOD alert job {JobId} for project {ProjectId}.", hodJobId, projectId);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task<Guid?> ResolveEngagementManagerIdAsync(Project project, CancellationToken ct = default)
+    {
+        if (project.EngagementManagerId.HasValue && project.EngagementManagerId.Value != Guid.Empty)
+            return project.EngagementManagerId.Value;
+
+        if (project.Client?.EngagementManagerId.HasValue == true && project.Client.EngagementManagerId.Value != Guid.Empty)
+            return project.Client.EngagementManagerId.Value;
+
+        if (!string.IsNullOrWhiteSpace(project.EngagementManager))
+        {
+            var trimmed = project.EngagementManager.Trim().ToLower();
+            var emp = await db.Employees.FirstOrDefaultAsync(e =>
+                e.DeletedAtUtc == null &&
+                ((e.FirstName + " " + e.LastName).Trim().ToLower() == trimmed ||
+                 (e.WorkEmail != null && e.WorkEmail.ToLower() == trimmed) ||
+                 (e.PersonalEmail != null && e.PersonalEmail.ToLower() == trimmed)), ct);
+            if (emp != null) return emp.Id;
+        }
+
+        if (project.ClientId != Guid.Empty)
+        {
+            var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == project.ClientId && c.DeletedAtUtc == null, ct);
+            if (client?.EngagementManagerId.HasValue == true && client.EngagementManagerId.Value != Guid.Empty)
+                return client.EngagementManagerId.Value;
+
+            if (!string.IsNullOrWhiteSpace(client?.EngagementManager))
+            {
+                var trimmed = client.EngagementManager.Trim().ToLower();
+                var emp = await db.Employees.FirstOrDefaultAsync(e =>
+                    e.DeletedAtUtc == null &&
+                    ((e.FirstName + " " + e.LastName).Trim().ToLower() == trimmed ||
+                     (e.WorkEmail != null && e.WorkEmail.ToLower() == trimmed) ||
+                     (e.PersonalEmail != null && e.PersonalEmail.ToLower() == trimmed)), ct);
+                if (emp != null) return emp.Id;
+            }
+        }
+
+        // Fallback: Check project team members with role EngagementManager or EM
+        var tmEmId = await db.ProjectTeamMembers
+            .Where(m => m.ProjectId == project.Id && m.DeletedAtUtc == null &&
+                        (m.MemberRole.ToLower().Contains("engagement") || m.MemberRole.ToLower() == "em"))
+            .Select(m => (Guid?)m.EmployeeId)
+            .FirstOrDefaultAsync(ct);
+
+        return tmEmId;
+    }
+
+    private async Task<List<Guid>> ResolveProjectHodAsync(Project project, CancellationToken ct = default)
+    {
+        var projectDeptIds = new HashSet<Guid>();
+        var projectSubDeptNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // 1. From Project Services
+        var services = await db.ProjectServices
+            .AsNoTracking()
+            .Include(s => s.ServiceCatalog)
+                .ThenInclude(sc => sc.SubDepartment)
+            .Where(s => s.ProjectId == project.Id && s.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        foreach (var s in services)
+        {
+            if (s.ServiceCatalog?.SubDepartment != null && s.ServiceCatalog.SubDepartment.DepartmentId != Guid.Empty)
+                projectDeptIds.Add(s.ServiceCatalog.SubDepartment.DepartmentId);
+            if (!string.IsNullOrWhiteSpace(s.Department))
+            {
+                var d = await db.Departments.FirstOrDefaultAsync(dept => dept.Name.ToLower() == s.Department.ToLower() && dept.DeletedAtUtc == null, ct);
+                if (d != null) projectDeptIds.Add(d.Id);
+            }
+            if (!string.IsNullOrWhiteSpace(s.SubDepartment))
+                projectSubDeptNames.Add(s.SubDepartment.Trim());
+        }
+
+        // 2. From EM if project services don't yield department
+        if (projectDeptIds.Count == 0 && project.EngagementManagerId.HasValue)
+        {
+            var em = await db.Employees.FirstOrDefaultAsync(e => e.Id == project.EngagementManagerId.Value, ct);
+            if (em?.DepartmentId.HasValue == true)
+                projectDeptIds.Add(em.DepartmentId.Value);
+            if (!string.IsNullOrWhiteSpace(em?.SubDepartment))
+                projectSubDeptNames.Add(em.SubDepartment.Trim());
+        }
+
+        // 3. Find OnFloorRoles with Name = "Head Of Department" / "Head of Department" / "HOD"
+        var hodRoles = await db.OnFloorRoles
+            .AsNoTracking()
+            .Where(o => o.DeletedAtUtc == null && (
+                o.Name.ToLower() == "head of department" ||
+                o.Name.ToLower() == "hod" ||
+                o.Name.Contains("Head Of Department") ||
+                o.Name.ToLower().Contains("head of department")
+            ))
+            .ToListAsync(ct);
+
+        var hodDesigIds = hodRoles.Select(o => o.DesignationId).Distinct().ToList();
+
+        // 4. Query active employees holding those designations
+        var candidates = await db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.SubDepartmentRef)
+            .Where(e => e.DeletedAtUtc == null &&
+                        (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
+            .Where(e => e.DesignationId.HasValue && hodDesigIds.Contains(e.DesignationId.Value))
+            .ToListAsync(ct);
+
+        // Filter by matching department/subdepartment if available
+        var matchedHodIds = new List<Guid>();
+        if (projectDeptIds.Count > 0 || projectSubDeptNames.Count > 0)
+        {
+            foreach (var c in candidates)
+            {
+                bool deptMatch = c.DepartmentId.HasValue && projectDeptIds.Contains(c.DepartmentId.Value);
+                bool subDeptMatch = (!string.IsNullOrWhiteSpace(c.SubDepartment) && projectSubDeptNames.Contains(c.SubDepartment))
+                    || (c.SubDepartmentRef != null && projectSubDeptNames.Contains(c.SubDepartmentRef.Name));
+
+                if (deptMatch || subDeptMatch)
+                {
+                    matchedHodIds.Add(c.Id);
+                }
+            }
+        }
+
+        // Fallback: if no department match or project has no services yet, return active employees with Head of Department OnFloorRole
+        if (matchedHodIds.Count == 0 && candidates.Count > 0)
+        {
+            var deptHodDesigs = hodRoles.Where(r => r.DepartmentId.HasValue && projectDeptIds.Contains(r.DepartmentId.Value))
+                                        .Select(r => r.DesignationId).ToHashSet();
+            if (deptHodDesigs.Count > 0)
+            {
+                var deptMatches = candidates.Where(c => c.DesignationId.HasValue && deptHodDesigs.Contains(c.DesignationId.Value)).Select(c => c.Id).ToList();
+                if (deptMatches.Count > 0) return deptMatches;
+            }
+
+            matchedHodIds.AddRange(candidates.Select(c => c.Id));
+        }
+
+        // If still 0, try slaRecipientResolver if available
+        if (matchedHodIds.Count == 0 && slaRecipientResolver != null)
+        {
+            var dummyInstance = new SlaInstance { ProjectId = project.Id, ActivityType = "Project Allocation" };
+            var resolved = await slaRecipientResolver.ResolveRecipientsAsync(dummyInstance, ["Head of Department"], ct);
+            matchedHodIds.AddRange(resolved);
+        }
+
+        return matchedHodIds.Distinct().ToList();
+    }
+
+    private static string BuildEmReminderTitle(string projectName, string? wbsId)
+    {
+        if (string.IsNullOrWhiteSpace(wbsId))
+            return $"Project Manager and Senior Project Manager Assignment Pending | {projectName}";
+        return $"Project Manager and Senior Project Manager Assignment Pending | {projectName} | {wbsId}";
+    }
+
+    private static string BuildHodAlertTitle(string projectName, string? wbsId)
+    {
+        if (string.IsNullOrWhiteSpace(wbsId))
+            return $"Project Manager and Senior Project Manager Assignment Still Pending | {projectName}";
+        return $"Project Manager and Senior Project Manager Assignment Still Pending | {projectName} | {wbsId}";
+    }
+
+    private static TimeZoneInfo ResolveIstTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+        }
+        catch
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+            }
+            catch
+            {
+                return TimeZoneInfo.CreateCustomTimeZone("IST", TimeSpan.FromHours(5.5), "India Standard Time", "India Standard Time");
+            }
+        }
+    }
+
+    #endregion
 
 }
 

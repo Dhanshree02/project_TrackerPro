@@ -420,6 +420,29 @@ public sealed class ProjectTeamMemberService(
             logger.LogError(ex, "Failed to dispatch leadership assignment notification for project {ProjectId}", projectId);
         }
 
+        // Check if both PM and SPM are assigned to stop pending reminder notifications
+        try
+        {
+            var isPmNowAssigned = project.ProjectManagerId.HasValue || await db.ProjectTeamMembers.AnyAsync(m =>
+                m.ProjectId == projectId &&
+                (m.MemberRole == ProjectMemberRoles.ProjectManager || m.MemberRole == "Project Manager") &&
+                m.DeletedAtUtc == null, ct);
+
+            var isSpmNowAssigned = await db.ProjectTeamMembers.AnyAsync(m =>
+                m.ProjectId == projectId &&
+                (m.MemberRole == ProjectMemberRoles.SeniorProjectManager || m.MemberRole == "Senior Project Manager") &&
+                m.DeletedAtUtc == null, ct);
+
+            if (isPmNowAssigned && isSpmNowAssigned)
+            {
+                await notificationService.CancelProjectAllocationRemindersAsync(projectId, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to cancel project allocation reminder workflow for project {ProjectId}.", projectId);
+        }
+
         var managers = await db.ProjectTeamMembers
             .AsNoTracking()
             .Include(m => m.Employee)
@@ -854,7 +877,7 @@ public sealed class ProjectTeamMemberService(
     {
         var currentEmp = await FindCurrentEmployeeAsync(ct);
         var currentEmpId = currentEmp?.Id;
-        var isSuper = currentUser.Role is "Admin" or "SuperAdmin" || currentUser.Email == "admin@talakunchi.com";
+        var isSuper = currentUser.Role is "Admin" or "SuperAdmin" || (currentUser.Role != null && currentUser.Role.Contains("PMO")) || currentUser.Email == "admin@talakunchi.com";
 
         var query = db.ProjectResourceAllocationRequests
             .Include(r => r.Project)
@@ -865,25 +888,6 @@ public sealed class ProjectTeamMemberService(
 
         if (!isSuper)
         {
-            var myNotifTaskCodes = new List<string>();
-            if (currentEmpId.HasValue || currentUser.UserId.HasValue)
-            {
-                var empIdVal = currentEmpId ?? Guid.Empty;
-                var userIdVal = currentUser.UserId ?? Guid.Empty;
-                myNotifTaskCodes = await db.ActionNotifications
-                    .AsNoTracking()
-                    .Where(n => (n.RecipientEmployeeId == empIdVal || n.RecipientEmployeeId == userIdVal) &&
-                                n.RelatedTask != null && n.Type == "Resource Allocation Approval" && n.DeletedAtUtc == null)
-                    .Select(n => n.RelatedTask!)
-                    .Distinct()
-                    .ToListAsync(ct);
-            }
-
-            var matchingPrefixes = myNotifTaskCodes
-                .Where(t => t.StartsWith("ALLOC-", StringComparison.OrdinalIgnoreCase))
-                .Select(t => t[6..].ToUpper())
-                .ToList();
-
             var allRequests = await query
                 .OrderByDescending(r => r.CreatedAtUtc)
                 .ThenByDescending(r => r.Id)
@@ -892,7 +896,8 @@ public sealed class ProjectTeamMemberService(
             var filtered = allRequests.Where(r =>
                 (currentEmpId.HasValue && r.ApproverEmployeeId == currentEmpId.Value) ||
                 (currentUser.UserId.HasValue && r.ApproverEmployeeId == currentUser.UserId.Value) ||
-                matchingPrefixes.Any(p => r.Id.ToString().ToUpper().StartsWith(p))
+                (currentEmpId.HasValue && r.Employee != null && r.Employee.ReportingManagerId == currentEmpId.Value) ||
+                (currentUser.UserId.HasValue && r.Employee != null && r.Employee.ReportingManagerId == currentUser.UserId.Value)
             ).ToList();
 
             return filtered.Select(MapAllocationDto).ToList();
@@ -1012,7 +1017,8 @@ public sealed class ProjectTeamMemberService(
         var mappedStatus = normStatus.Equals("Approved", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Accept", StringComparison.OrdinalIgnoreCase) ? "Approved"
             : normStatus.Equals("Hold", StringComparison.OrdinalIgnoreCase) ? "Hold"
             : normStatus.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) ? "Hold"
-            : normStatus.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Cancel", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Reject", StringComparison.OrdinalIgnoreCase) ? "Cancelled"
+            : normStatus.Equals("Cancelled", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Cancel", StringComparison.OrdinalIgnoreCase) ? "Cancelled"
+            : normStatus.Equals("Rejected", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Reject", StringComparison.OrdinalIgnoreCase) ? "Rejected"
             : normStatus;
 
         var actor = await FindCurrentEmployeeAsync(ct);
@@ -1208,8 +1214,8 @@ public sealed class ProjectTeamMemberService(
 
         var actionVerb = mappedStatus switch
         {
-            "Approved" => "accepted",
-            "Cancelled" or "Cancel" or "Rejected" or "Reject" => "cancelled",
+            "Approved" => "approved",
+            "Rejected" => "rejected",
             "Hold" or "Request Changes" => "on hold",
             _ => mappedStatus.ToLowerInvariant()
         };
@@ -1265,7 +1271,7 @@ public sealed class ProjectTeamMemberService(
                 ProjectCode = project?.ProjectCode,
                 ProjectName = projectName,
                 Title = title,
-                Type = "Resource Allocation Approval",
+                Type = "Resource Allocation",
                 Priority = priority,
                 Status = mappedStatus,
                 Unread = true,
@@ -1370,7 +1376,8 @@ public sealed class ProjectTeamMemberService(
                     e.DeletedAtUtc == null &&
                     ((e.WorkEmail != null && e.WorkEmail.ToLower() == normalized) ||
                      (e.PersonalEmail != null && e.PersonalEmail.ToLower() == normalized) ||
-                     (e.EmployeeCode != null && e.EmployeeCode.ToLower() == normalized)), ct);
+                     (e.EmployeeCode != null && e.EmployeeCode.ToLower() == normalized) ||
+                     (e.EmployeeCode != null && normalized.Contains(e.EmployeeCode.ToLower()))), ct);
             if (empByEmail != null) return empByEmail;
 
             var user = await db.Users

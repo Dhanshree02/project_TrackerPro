@@ -443,6 +443,8 @@ public sealed partial class ProjectAppService(
 
             ct);
 
+        await notificationService.StartProjectAllocationReminderWorkflowAsync(project.Id, ct);
+
 
 
         return (await GetProjectByIdAsync(project.Id, ct))!;
@@ -536,6 +538,31 @@ public sealed partial class ProjectAppService(
 
 
         await db.SaveChangesAsync(ct);
+
+        if (request.ProjectManagerId.HasValue)
+        {
+            try
+            {
+                var isPmAssigned = project.ProjectManagerId.HasValue || await db.ProjectTeamMembers.AnyAsync(m =>
+                    m.ProjectId == project.Id &&
+                    (m.MemberRole == ProjectMemberRoles.ProjectManager || m.MemberRole == "Project Manager") &&
+                    m.DeletedAtUtc == null, ct);
+
+                var isSpmAssigned = await db.ProjectTeamMembers.AnyAsync(m =>
+                    m.ProjectId == project.Id &&
+                    (m.MemberRole == ProjectMemberRoles.SeniorProjectManager || m.MemberRole == "Senior Project Manager") &&
+                    m.DeletedAtUtc == null, ct);
+
+                if (isPmAssigned && isSpmAssigned)
+                {
+                    await notificationService.CancelProjectAllocationRemindersAsync(project.Id, ct);
+                }
+            }
+            catch
+            {
+                // Non-blocking cancellation check
+            }
+        }
 
         return (await GetProjectByIdAsync(id, ct))!;
 
@@ -4542,7 +4569,15 @@ public sealed partial class ProjectAppService(
 
         await tx.CommitAsync(ct);
 
+        await notificationService.NotifyWbsCreatedAsync(
+            renewedProject.Id,
+            renewedProject.Name,
+            renewedProject.WbsId,
+            renewedProject.ProjectCode,
+            currentUser.Name,
+            ct);
 
+        await notificationService.StartProjectAllocationReminderWorkflowAsync(renewedProject.Id, ct);
 
         return (await GetProjectByIdAsync(renewedProject.Id, ct))!;
 

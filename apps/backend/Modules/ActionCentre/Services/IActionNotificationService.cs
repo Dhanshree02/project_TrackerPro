@@ -1,3 +1,4 @@
+using Hangfire;
 using PMS.API.Modules.ActionCentre.DTOs;
 
 namespace PMS.API.Modules.ActionCentre.Services;
@@ -22,4 +23,13 @@ public interface IActionNotificationService
     Task NotifyCustomerManagerChangedAsync(Guid clientId, string clientName, string? clientCode, string managerRole, string managerName, Guid? managerEmployeeId, string? previousManagerName = null, Guid? previousManagerEmployeeId = null, string? performerName = null, CancellationToken ct = default);
     Task NotifyRepositoryDocumentUploadedAsync(Guid documentId, string fileName, string category, IReadOnlyList<Guid> departmentIds, string? uploaderName, Guid? uploaderEmployeeId = null, CancellationToken ct = default);
     Task NotifyProjectLeadershipAssignedAsync(Guid projectId, string projectName, string? projectCode, Guid recipientEmployeeId, string leadershipRole, string? performerName, Guid? performerEmployeeId = null, CancellationToken ct = default);
+
+    Task StartProjectAllocationReminderWorkflowAsync(Guid projectId, CancellationToken ct = default);
+    Task CancelProjectAllocationRemindersAsync(Guid projectId, CancellationToken ct = default);
+
+    [JobDisplayName("Project Allocation | PM-SPM Assignment Reminder | {1} | {2}")]
+    Task ExecuteProjectAllocationReminderJobAsync(Guid projectId, string projectName, string wbsId, int reminderCount);
+
+    [JobDisplayName("Project Allocation | Same-Day Pending Assignment Alert | HOD | {1} | {2}")]
+    Task ExecuteSameDayHodCheckJobAsync(Guid projectId, string projectName, string wbsId);
 }

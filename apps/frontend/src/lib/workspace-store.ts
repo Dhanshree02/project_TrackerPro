@@ -799,6 +799,9 @@ export interface DhAlert {
 
 
   projectId?: string;
+  projectName?: string;
+  customerId?: string;
+  customerName?: string;
 
 
 
@@ -4649,6 +4652,9 @@ export interface DhNotification {
   priority: "Low" | "Medium" | "High" | "Critical" | "-" | string;
   unread: boolean;
   projectId?: string;
+  projectName?: string;
+  customerId?: string;
+  customerName?: string;
   issueId?: string;
   issueTitle?: string;
   issueDescription?: string;
@@ -5520,7 +5526,7 @@ const state: DhState = {
 
 
 
-const PERSIST_KEY = "trackerpro_store_state_clean_v1";
+const PERSIST_KEY = "trackerpro_store_state_clean_v2";
 
 
 
@@ -5545,6 +5551,12 @@ function loadPersistedState() {
 
 
   if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem("trackerpro_store_state_clean_v1");
+    window.localStorage.removeItem("trackerpro_store_state_v1");
+    window.localStorage.removeItem("trackerpro_store_state");
+  } catch {}
 
 
 
@@ -5797,6 +5809,12 @@ function persistState() {
 
 
   if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem("trackerpro_store_state_clean_v1");
+    window.localStorage.removeItem("trackerpro_store_state_v1");
+    window.localStorage.removeItem("trackerpro_store_state");
+  } catch {}
 
 
 

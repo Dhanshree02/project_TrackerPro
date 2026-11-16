@@ -1388,7 +1388,7 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/extension-requests/{extensionRequestId:guid}/action")]
-    [RequireRbac(RbacCatalogCodes.HealthExtensionRequest, RbacAccessType.Manage, RbacCatalogCodes.ActionApprovals, "approvals")]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-centre", "action-center", RbacCatalogCodes.HealthExtensionRequest, "approvals", RbacCatalogCodes.Projects)]
     public async Task<ActionResult<ApiResponse<ProjectExtensionRequestDto>>> TakeExtensionAction(
         Guid projectId,
         Guid extensionRequestId,
@@ -1400,7 +1400,7 @@ public class ProjectsController(
     }
 
     [HttpPost("{projectId:guid}/extension-requests/{extensionRequestId:guid}/comments")]
-    [RequireRbac(RbacCatalogCodes.HealthExtensionRequest, RbacAccessType.Manage, RbacCatalogCodes.ActionApprovals, "approvals")]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-centre", "action-center", RbacCatalogCodes.HealthExtensionRequest, "approvals", RbacCatalogCodes.Projects)]
     public async Task<ActionResult<ApiResponse<ProjectExtensionRequestDto>>> AddExtensionComment(
         Guid projectId,
         Guid extensionRequestId,
@@ -1802,51 +1802,51 @@ public class ProjectsController(
         return Ok(ApiResponse<ProjectAdditionalRequirementDto>.Ok(created));
     }
 
-    [HttpPost("{projectId:guid}/additional-requirements/{requirementId:guid}/approve")]
-    [RequireRbac(RbacCatalogCodes.HealthCustomerEngagement, RbacAccessType.Manage, RbacCatalogCodes.ActionApprovals, "approvals")]
+    [HttpPost("{projectId:guid}/additional-requirements/{requirementId}/approve")]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-centre", "action-center", RbacCatalogCodes.HealthCustomerEngagement, "approvals", RbacCatalogCodes.Projects)]
     public async Task<ActionResult<ApiResponse<ProjectAdditionalRequirementDto>>> ApproveAdditionalRequirement(
         Guid projectId,
-        Guid requirementId,
+        string requirementId,
         [FromBody] ApproveAdditionalRequirementRequest request,
         CancellationToken ct)
     {
-        var approved = await additionalRequirementService.ApproveAsync(projectId, requirementId, request, ct);
+        var approved = await additionalRequirementService.ApproveByIdentifierAsync(projectId, requirementId, request, ct);
         return Ok(ApiResponse<ProjectAdditionalRequirementDto>.Ok(approved));
     }
 
-    [HttpPost("{projectId:guid}/additional-requirements/{requirementId:guid}/reject")]
-    [RequireRbac(RbacCatalogCodes.HealthCustomerEngagement, RbacAccessType.Manage, RbacCatalogCodes.ActionApprovals, "approvals")]
+    [HttpPost("{projectId:guid}/additional-requirements/{requirementId}/reject")]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-centre", "action-center", RbacCatalogCodes.HealthCustomerEngagement, "approvals", RbacCatalogCodes.Projects)]
     public async Task<ActionResult<ApiResponse<ProjectAdditionalRequirementDto>>> RejectAdditionalRequirement(
         Guid projectId,
-        Guid requirementId,
+        string requirementId,
         [FromBody] RejectAdditionalRequirementRequest request,
         CancellationToken ct)
     {
-        var rejected = await additionalRequirementService.RejectAsync(projectId, requirementId, request, ct);
+        var rejected = await additionalRequirementService.RejectByIdentifierAsync(projectId, requirementId, request, ct);
         return Ok(ApiResponse<ProjectAdditionalRequirementDto>.Ok(rejected));
     }
 
-    [HttpPost("{projectId:guid}/additional-requirements/{requirementId:guid}/action")]
-    [RequireRbac(RbacCatalogCodes.HealthCustomerEngagement, RbacAccessType.Manage, RbacCatalogCodes.ActionApprovals, "approvals")]
+    [HttpPost("{projectId:guid}/additional-requirements/{requirementId}/action")]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-centre", "action-center", RbacCatalogCodes.HealthCustomerEngagement, "approvals", RbacCatalogCodes.Projects)]
     public async Task<ActionResult<ApiResponse<ProjectAdditionalRequirementDto>>> TakeActionAdditionalRequirement(
         Guid projectId,
-        Guid requirementId,
+        string requirementId,
         [FromBody] AdditionalRequirementActionRequest request,
         CancellationToken ct)
     {
-        var result = await additionalRequirementService.TakeActionAsync(projectId, requirementId, request, ct);
+        var result = await additionalRequirementService.TakeActionByIdentifierAsync(projectId, requirementId, request, ct);
         return Ok(ApiResponse<ProjectAdditionalRequirementDto>.Ok(result));
     }
 
-    [HttpPost("{projectId:guid}/additional-requirements/{requirementId:guid}/comments")]
-    [RequireRbac(RbacCatalogCodes.HealthCustomerEngagement, RbacAccessType.Manage, RbacCatalogCodes.ActionApprovals, "approvals")]
+    [HttpPost("{projectId:guid}/additional-requirements/{requirementId}/comments")]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-centre", "action-center", RbacCatalogCodes.HealthCustomerEngagement, "approvals", RbacCatalogCodes.Projects)]
     public async Task<ActionResult<ApiResponse<ProjectAdditionalRequirementDto>>> AddCommentAdditionalRequirement(
         Guid projectId,
-        Guid requirementId,
+        string requirementId,
         [FromBody] AddRequirementCommentRequest request,
         CancellationToken ct)
     {
-        var result = await additionalRequirementService.AddCommentAsync(projectId, requirementId, request, ct);
+        var result = await additionalRequirementService.AddCommentByIdentifierAsync(projectId, requirementId, request, ct);
         return Ok(ApiResponse<ProjectAdditionalRequirementDto>.Ok(result));
     }
 
