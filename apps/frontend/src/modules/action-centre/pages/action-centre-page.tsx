@@ -4708,7 +4708,7 @@ function NotificationsTab() {
 
 
 
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-1">
 
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
 
@@ -4724,9 +4724,12 @@ function NotificationsTab() {
 
               onChange={(e) => setDateFilter(e.target.value)}
 
-              placeholder="dd-mm-yyyy"
+              aria-label="Date"
 
-              className="form-input rounded-md border border-border p-1.5 bg-card outline-none focus-visible:ring-1 focus-visible:ring-primary text-xs"
+              className={cn(
+                "notification-date-filter h-9 w-full min-w-0 rounded-md border border-input bg-card px-3 text-xs font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                dateFilter ? "text-foreground" : "text-muted-foreground",
+              )}
 
             />
 

@@ -56,9 +56,13 @@ export default defineConfig(({ command, mode }) => {
         clientPort: Number(process.env.VITE_HMR_CLIENT_PORT || process.env.UAT_CLEAN_FRONTEND_PORT || 39107),
       },
       watch: {
+        // Docker on macOS does not get native file events. Poll once a second
+        // instead of the default 10 times, so the dev server is not busy
+        // scanning while the browser is waiting on the API.
         usePolling: true,
+        interval: 1000,
         awaitWriteFinish: {
-          stabilityThreshold: 1000,
+          stabilityThreshold: 300,
           pollInterval: 100,
         },
       },

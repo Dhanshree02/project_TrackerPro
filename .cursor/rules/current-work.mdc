@@ -7,6 +7,14 @@ alwaysApply: true
 
 **Last updated:** 2026-11-17
 
+- **The development app no longer waits on permissions before Admin can see a page.** Admin already has full access, so the shell draws immediately. Other roles still wait. A missing role no longer leaves the screen on “Loading permissions…”. The frontend file watcher polls once a second instead of ten times. `apps/frontend/src/components/app-shell.tsx`, `apps/frontend/vite.config.ts`.
+
+- **Notification Date filter matches the other filter dropdowns.** The native date box on Action Centre notifications uses the same 36px height, text size, and padding as Notification Type, Priority, and Status. `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`.
+
+- **`master.mst_departments` on `pms_development` keeps the ten main departments.** Removed 80 test rows (`Dept_…` and the retired probe departments) plus the generated designations and on-floor rows that belonged only to those departments. No employee was assigned to them. The ten that remain are Core, Functional - Accounts, Functional - HR, Functional - IT Administration, Functional - Project Management, Functional - Sales, R&D (Research & Development), Services - Consulting, Services - Operations, and Services - Testing. `database/pms_development.sql` was dumped again from PostgreSQL 16.
+
+- **`origin/development` is merged here at `d34ea19`.** Fast-forward of 4 commits, no conflicts. `database/pms_uat.sql` from that tip is loaded into `pms_development` on `pms_development_db` (port 41761). PostgreSQL 16. `SET transaction_timeout` was left out of the load. Counts: 4 clients (C001–C004), 8 projects (P001–P008), 109 employees, 30 leave-calendar rows, 77 notifications, 1 repository item. The earlier changelog section that kept only C001–C003 and P001–P007 is not the file that was loaded. The newest commit dumped the local database again, and that dump includes Electrolab (C004) and P008. A backup of the previous development database is `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/db-split-backups/2026-11-17/pms_development-before-pms_uat-load.sql`. `database/pms_development.sql` was dumped from this database on PostgreSQL 16, and the `\restrict` lines were left out. The API on `:52815` is healthy. The running API image is still `pms-backend:uat-clean` and was not rebuilt, so the new backend jobs are in the checkout and not in that container. The frontend on `:39107` is bind-mounted, so the merged screens are the ones being served.
+
 - **Engagement Mgr in the project list stays the normal text color on hover.** `apps/frontend/src/modules/projects/pages/projects-list-page.tsx`.
 
 - **Export WBS is hidden on WBS Management System.** Save Draft and Create WBS stay on the workflow bar. `apps/frontend/src/modules/projects/pages/project-onboarding-page.tsx`.

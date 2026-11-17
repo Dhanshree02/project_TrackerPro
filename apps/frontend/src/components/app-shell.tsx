@@ -28,11 +28,13 @@ export function AppShell({
 
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { hasPermission, hasAny, loading: permissionsLoading } = usePermissions();
-  const { permissionsReady } = useAuth();
+  const { permissionsReady, user } = useAuth();
   const landingItems = NAV_ITEMS;
+  const isAdmin = (user?.role ?? "").trim().toLowerCase() === "admin";
 
-  // Wait for permissions to finish loading before evaluating route guards.
-  if (!permissionsReady || permissionsLoading) {
+  // Admin already has full access before the permission rows return.
+  // Other roles wait so a page is not shown and then taken away.
+  if (!permissionsReady || (permissionsLoading && !isAdmin)) {
     return (
       <div className="flex min-h-screen w-full isolate bg-background text-foreground">
         <AppSidebar />

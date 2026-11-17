@@ -448,6 +448,36 @@
   color: inherit !important;
 }
 
+/* Notification date filter matches the h-9 searchable dropdowns beside it. */
+input[type="date"].notification-date-filter {
+  box-sizing: border-box;
+  height: 2.25rem;
+  min-height: 2.25rem;
+  max-height: 2.25rem;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 2.25rem;
+}
+
+input[type="date"].notification-date-filter::-webkit-datetime-edit,
+input[type="date"].notification-date-filter::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].notification-date-filter::-webkit-datetime-edit-text,
+input[type="date"].notification-date-filter::-webkit-datetime-edit-month-field,
+input[type="date"].notification-date-filter::-webkit-datetime-edit-day-field,
+input[type="date"].notification-date-filter::-webkit-datetime-edit-year-field {
+  padding: 0;
+  margin: 0;
+  line-height: normal;
+  color: inherit;
+}
+
+input[type="date"].notification-date-filter::-webkit-calendar-picker-indicator {
+  margin: 0 0 0 0.35rem;
+  padding: 0;
+  height: 0.875rem;
+  width: 0.875rem;
+}
+
 /* Always keep native date picker indicator visible, accessible, and styled */
 input[type="date"]::-webkit-calendar-picker-indicator {
   display: block !important;
