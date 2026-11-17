@@ -3220,8 +3220,7 @@ public sealed class SlaBackgroundJobWorker(
 
         var isResolved = req == null ||
                          req.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ||
-                         req.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ||
-                         req.Status.Equals("Hold", StringComparison.OrdinalIgnoreCase);
+                         req.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase);
 
         if (isResolved)
         {
@@ -3259,8 +3258,7 @@ public sealed class SlaBackgroundJobWorker(
 
         var isResolved = req == null ||
                          req.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase) ||
-                         req.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase) ||
-                         req.Status.Equals("Hold", StringComparison.OrdinalIgnoreCase);
+                         req.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase);
 
         if (isResolved)
         {

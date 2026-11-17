@@ -1,3 +1,57 @@
+# Changelog - Project Card Progress Bar Synchronization with Main Total Progress
+
+## Summary of Changes
+Resolved the issue where project cards on the Projects list page (`/projects`) displayed 0% progress instead of matching the main overall progress bar in the project detail header ("Healthy Ongoing" status row):
+
+1. **Backend Dynamic Progress Calculation & Persistence (`ProjectAppService.cs`)**:
+   - Implemented `CalculateSingleProjectProgress(List<ProjectServiceEntity> services, List<ProjectTask> tasks)` using the standard weighted completion formula:
+     - Completed tasks (`Stage == "Completed"`): 1.0 weight (100%).
+     - Ongoing / In Progress tasks (`Stage == "Ongoing"` or `"In Progress"`): 0.5 weight (50%).
+     - Cancelled tasks (`Stage == "Cancelled"`): excluded from denominator and numerator.
+     - Not started / stopped / paused tasks: 0.0 weight.
+     - Service progress: `Math.Round((sumWeights / totalTasks) * 100)`.
+     - Overall project progress: arithmetic average across all active services (`sumOfServiceProgresses / activeServicesCount`).
+   - Implemented `RecalculateProjectProgressAsync(Guid projectId, CancellationToken ct)` to persist the computed progress directly to `project.tbl_projects."Progress"`.
+   - In `GetProjectsAsync`: dynamically evaluates each listed project against its active services and tasks, updating `tbl_projects."Progress"` and returning the accurate value in `ProjectDto.Progress`.
+   - In `GetProjectByIdAsync`: ensures the project's progress is updated and returned accurately.
+   - Wired `RecalculateProjectProgressAsync` into all task and service mutation workflows:
+     - `UpdateTaskStageAsync` (task stage changes)
+     - `UpdateProjectTaskAsync` (task detail edits)
+     - `CreateProjectTaskAsync` (new task creation)
+     - `DeleteProjectTaskAsync` (task deletion)
+     - `AutoGenerateTasksFromServicesAsync` & `ProjectsController.AutoGenerateTasks` (auto-generating tasks from WBS services)
+     - `UpdateProjectServiceAsync` & `DeleteProjectServiceAsync` (WBS service modifications and deletions).
+
+2. **Frontend Project Detail Progress Synchronization (`project-detail-page.tsx`)**:
+   - Added an automatic synchronization effect in `ProjectDetailPage` that compares `overallProjectProgress` (computed from `calculateOverallProjectProgress`) with `dbProject.progress`.
+   - When a discrepancy is detected (e.g. following client-side WBS edits or stage changes), automatically calls `updateProject(project.id, { progress: overallProjectProgress })` to keep the backend and database in perfect sync.
+
+3. **Frontend Project Cards & List Consistency (`projects-list-page.tsx`)**:
+   - Both Grid/Card view (`<ProgressBar value={p.progress} />` + `<span>{p.progress}%</span>`) and Table/List view now display the real, calculated progress value matching the main total progress bar in `ProjectDetailPage`.
+   - Updated existing database records (e.g. P001 = 25%, P002 = 21%, P003 = 8%, P004 = 5%, P007 = 68%, P008 = 0%).
+
+---
+
+# Changelog - Active SLA Tracking & Hangfire Level 1 Escalation for "Hold" Approvals Across Action Centre
+
+## Summary of Changes
+Ensured that setting an approval request to **"Hold"** (or "Request Changes") across all Action Centre approval workflows preserves active SLA tracking and Hangfire background jobs so that Level 1 escalations (to Senior Project Manager) and Level 2 escalations (to Head of Department) execute upon deadline breach if the request remains unresolved:
+
+1. **Resource Allocation Approval (`ProjectTeamMemberService.cs`)**:
+   - Updated `TakeAllocationActionAsync` so that `CompleteTrackingAsync` is only invoked when `mappedStatus` is `"Approved"` or `"Rejected"`.
+   - When status is `"Hold"` or `"Request Changes"`, SLA tracking remains active, ensuring Hangfire's 2-day breach check and Level 1 escalation jobs remain scheduled and armed.
+
+2. **SLA Background Worker Escalation Checks (`SlaBackgroundJobWorker.cs`)**:
+   - In `ExecuteResourceAllocationBreachCheckAsync` and `ExecuteResourceAllocationEscalationAsync`, removed `req.Status.Equals("Hold")` from `isResolved`.
+   - Aligning with `ExecuteAdditionalRequirementBreachCheckAsync` and `ExecuteExtensionRequestBreachCheckAsync`, requests with status `"Hold"` are treated as unresolved: if the 2-day SLA deadline passes without approval or rejection, Hangfire marks the SLA as breached and fires the Level 1 escalation to the Senior Project Manager (SPM), followed by Level 2 escalation to the Head of Department (HOD).
+
+3. **Consistency Across Central Approval Types**:
+   - **Customer Requirement Approval**: Status `"Hold"` keeps SLA active and triggers L1 escalation upon 2-day breach.
+   - **Timeline Extension Approval**: Status `"Hold"` keeps SLA active and triggers L1 escalation upon 2-day breach.
+   - **Resource Allocation Approval**: Status `"Hold"` keeps SLA active and triggers L1 escalation upon 2-day breach.
+
+---
+
 # Changelog - Sync database/pms_uat.sql with Local Database & Push to origin/development
 
 ## Summary of Changes

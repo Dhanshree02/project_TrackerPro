@@ -55,6 +55,8 @@ import {
 
   mapApiProjectToProject,
 
+  updateProject,
+
   updateProjectStatus,
 
   updateTaskStage,
@@ -1942,6 +1944,20 @@ export function ProjectDetailPage() {
     );
     return overallProgress;
   }, [project, dhStore, dbServices, catalogAbbrMap, dbTasks, treeTaskStates]);
+
+  useEffect(() => {
+    if (!isApiGuid(rawId) || !project?.id || overallProjectProgress === undefined) return;
+    if (dbProject && dbProject.progress !== overallProjectProgress) {
+      updateProject(project.id, {
+        name: dbProject.name || project.name,
+        progress: overallProjectProgress,
+      })
+        .then((updated) => {
+          setDbProject((prev) => (prev ? { ...prev, progress: updated.progress } : prev));
+        })
+        .catch(() => {});
+    }
+  }, [rawId, project?.id, project?.name, overallProjectProgress, dbProject?.progress, dbProject?.name]);
 
   const client: Client = useMemo(() => {
 

@@ -1121,13 +1121,21 @@ public sealed class ProjectTeamMemberService(
             }
         }
 
-        try
+        if (mappedStatus == "Approved" || mappedStatus == "Rejected")
         {
-            await slaTrackingService.CompleteTrackingAsync(entity.Id, "Resource Allocation Approval", ct);
+            try
+            {
+                await slaTrackingService.CompleteTrackingAsync(entity.Id, "Resource Allocation Approval", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "[ProjectTeamMember] Failed to complete SLA tracking for allocation {AllocId}", entity.Id);
+            }
         }
-        catch (Exception ex)
+        else
         {
-            logger.LogWarning(ex, "[ProjectTeamMember] Failed to complete SLA tracking for allocation {AllocId}", entity.Id);
+            // Hold / Request Changes: SLA tracking and Hangfire background jobs remain active for Level 1 escalation
+            logger.LogInformation("[ProjectTeamMember] Allocation {AllocId} set to {Status}. SLA tracking remains active for Level 1 escalation.", entity.Id, mappedStatus);
         }
 
         await NotifyLeadershipOnAllocationStatusChangeAsync(entity, project, mappedStatus, actorName, actor?.Id, request.Comment, ct);

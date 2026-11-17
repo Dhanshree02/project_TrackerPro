@@ -268,11 +268,12 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
     }
 
     [Fact]
-    public async Task ResourceAllocation_HoldOrReject_CompletesSlaTracking_AndNotifiesResourceAndLeadership()
+    public async Task ResourceAllocation_Hold_KeepsSlaTrackingActive_AndEscalatesOnSlaBreach()
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var teamService = scope.ServiceProvider.GetRequiredService<IProjectTeamMemberService>();
+        var worker = scope.ServiceProvider.GetRequiredService<SlaBackgroundJobWorker>();
 
         var project = await db.Projects
             .Include(p => p.Client)
@@ -333,11 +334,11 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
             .AnyAsync(m => m.ProjectId == project.Id && m.EmployeeId == candidate.Id && m.DeletedAtUtc == null);
         Assert.False(notAdded);
 
-        // Verify SLA instance completed
+        // Verify SLA instance remains ACTIVE (Tracking) when request is on Hold
         var instance = await db.SlaInstances.AsNoTracking()
             .FirstOrDefaultAsync(i => i.EntityId == created.Id && i.ActivityType == "Resource Allocation Approval");
         Assert.NotNull(instance);
-        Assert.Equal(SlaInstanceStatus.Completed, instance.Status);
+        Assert.Equal(SlaInstanceStatus.Tracking, instance.Status);
 
         // Verify candidate received Hold notification
         var candidateNotif = await db.ActionNotifications
@@ -345,6 +346,20 @@ public class ResourceAllocationSlaIntegrationTests : IClassFixture<WebApplicatio
             .FirstOrDefaultAsync(n => n.RelatedTask == allocTaskCode && n.RecipientEmployeeId == candidate.Id && n.Status == "Hold");
         Assert.NotNull(candidateNotif);
         Assert.Contains("On Hold", candidateNotif.Title);
+
+        // Execute Level 1 Escalation while on Hold: verify it escalates to Senior Project Manager
+        var escEvent = await db.SlaEvents
+            .FirstOrDefaultAsync(e => e.InstanceId == instance.Id && e.EventType == SlaEventType.EscalationL1 && e.Status == SlaEventStatus.Scheduled);
+        if (escEvent != null)
+        {
+            await worker.ExecuteEscalationAsync(instance.Id, escEvent.Id, 1);
+
+            var spmNotif = await db.ActionNotifications
+                .OrderByDescending(n => n.CreatedAtUtc)
+                .FirstOrDefaultAsync(n => n.RelatedTask == allocTaskCode && n.Priority == "Critical");
+            Assert.NotNull(spmNotif);
+            Assert.Contains("1st Level SLA Breach Escalation", spmNotif.Title);
+        }
     }
 
     [Fact]

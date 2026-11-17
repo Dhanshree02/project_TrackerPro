@@ -1359,7 +1359,7 @@ public sealed class ProjectTaskService(
 
 
 
-    private static int QuarterCount(string? frequency)
+    internal static int QuarterCount(string? frequency)
 
     {
 
@@ -1393,7 +1393,7 @@ public sealed class ProjectTaskService(
 
 
 
-    private static List<(string Suffix, string Label)> TasksFromServiceModel(string? model)
+    internal static List<(string Suffix, string Label)> TasksFromServiceModel(string? model)
 
     {
 
