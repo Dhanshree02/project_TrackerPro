@@ -1,3 +1,43 @@
+# Changelog - Database Cleanup & Reset to Baseline (P001-P007, C001-C003, Clear Notifications & Approvals, Refresh pms_uat.sql)
+
+## Summary of Changes
+Cleaned and sanitized the local databases (`trackerpro` and `pms_uat`) and synchronized `database/pms_uat.sql` to baseline reference specifications:
+
+1. **Projects (Retained Strictly P001 to P007)**:
+   - Purged all test-created projects (P008 and all temporary test projects) along with all associated child records (tasks, task assignments, task assignment logs, service escalations, stakeholders, issues, documents, interviews, invoices, team members, timesheet entries, and drafts).
+   - Only projects **P001, P002, P003, P004, P005, P006, and P007** remain in the database.
+
+2. **Customers (Retained Strictly C001 to C003)**:
+   - Purged all test clients (C004 and all temporary test clients) along with their sub-ventures, client contacts, client assignments, and related drafts.
+   - Only clients **C001, C002, and C003** remain in the database.
+
+3. **Repository Document Data**:
+   - Completely cleared all document records from `repository.tbl_repository_items`, `repository.tbl_repository_departments`, and `repository.log_repository_activity`.
+
+4. **Resources / Employees**:
+   - Removed all testing/dummy employee records lacking required organizational assignments (Department, Designation, Onfloor Role, Sub-department, or Reporting Manager).
+   - Preserved legitimate top-level executive / administrative accounts (TK-0001, TK-0002, TK-0003, TK-0004).
+   - Unlinked prior reporting manager and project leadership foreign key references for cleanly removed employee rows.
+
+5. **Action Centre & Approvals / SLAs**:
+   - Completely cleared all action centre records:
+     - `action.tbl_notifications` (0 remaining)
+     - `project.tbl_project_alerts` (0 remaining)
+     - `project.tbl_resource_allocation_requests` (0 remaining)
+     - `project.tbl_project_additional_requirements` (0 remaining)
+     - `project.tbl_project_extension_requests` & `project.tbl_project_extension_approvers` (0 remaining)
+     - `project.tbl_project_feedbacks` (0 remaining)
+     - `sla.tbl_sla_events` & `sla.tbl_sla_instances` (0 remaining)
+   - Truncated Hangfire queues, parameters, states, and background jobs to prevent zombie triggers.
+
+6. **Updated `database/pms_uat.sql`**:
+   - Exported clean database dump using `pg_dump` with `-O` (`--no-owner`) and `-x` (`--no-privileges`).
+   - Cleaned `\restrict` and `\unrestrict` directives.
+   - Verified restore into a temporary database with **0 errors**.
+   - Updated `database/pms_uat.sql` and synchronized both local databases (`pms_uat` and `trackerpro`).
+
+---
+
 # Changelog - My Team Availability & Shift Coverage Multi-Tier Notification & Escalation Workflow
 
 ## Summary of Changes
