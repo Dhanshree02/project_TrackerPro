@@ -156,8 +156,8 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
         var updateRes = await _client.PutAsJsonAsync($"/api/v1/clients/{clientId}", updateReq);
         Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
 
-        // Verify "{Customer name} {field_name that changed} is edited" notification
-        var expectedTitle = $"{clientName} Industry, Notes is edited";
+        // Verify "{Customer name} {field_name that changed} are edited" notification
+        var expectedTitle = $"{clientName} Industry, Notes are edited";
         var editNotifs = await db.ActionNotifications
             .Where(n => n.Title == expectedTitle && n.Type == "Customer Profile Edited")
             .ToListAsync();
@@ -168,6 +168,21 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
         Assert.Equal("Edited", emNotif.Status);
         Assert.Equal("Low", emNotif.Priority);
         Assert.Equal("-", emNotif.ProjectName);
+
+        // Verify HODs whose On Floor Role is 'Head Of Department' also received notifications
+        var hodDesignationIds = await db.OnFloorRoles
+            .Where(r => r.DeletedAtUtc == null && r.Name.ToLower().Contains("head of department"))
+            .Select(r => r.DesignationId)
+            .ToListAsync();
+        var hodEmployees = await db.Employees
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")) &&
+                        e.DesignationId.HasValue && hodDesignationIds.Contains(e.DesignationId.Value))
+            .ToListAsync();
+        foreach (var hod in hodEmployees)
+        {
+            var hodNotif = editNotifs.FirstOrDefault(n => n.RecipientEmployeeId == hod.Id);
+            Assert.NotNull(hodNotif);
+        }
     }
 
     [Fact]
@@ -242,8 +257,8 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
         var updateRes = await _client.PutAsJsonAsync($"/api/v1/clients/{clientId}", updateReq);
         Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
 
-        // Verify "{Subventure Name} {field_name that changed} is edited" notification
-        var expectedTitle = $"{svNewName} Name, Notes is edited";
+        // Verify "{Subventure Name} {field_name that changed} are edited" notification
+        var expectedTitle = $"{svNewName} Name, Notes are edited";
         var svNotifs = await db.ActionNotifications
             .Where(n => n.Title == expectedTitle && n.Type == "Sub-Venture Profile Edited")
             .ToListAsync();
@@ -254,6 +269,119 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
         Assert.Equal("Edited", emNotif.Status);
         Assert.Equal("Low", emNotif.Priority);
         Assert.Equal("-", emNotif.ProjectName);
+
+        // Verify HODs also received notifications
+        var hodDesignationIds = await db.OnFloorRoles
+            .Where(r => r.DeletedAtUtc == null && r.Name.ToLower().Contains("head of department"))
+            .Select(r => r.DesignationId)
+            .ToListAsync();
+        var hodEmployees = await db.Employees
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")) &&
+                        e.DesignationId.HasValue && hodDesignationIds.Contains(e.DesignationId.Value))
+            .ToListAsync();
+        foreach (var hod in hodEmployees)
+        {
+            var hodNotif = svNotifs.FirstOrDefault(n => n.RecipientEmployeeId == hod.Id);
+            Assert.NotNull(hodNotif);
+        }
+    }
+
+    [Fact]
+    public async Task SubVentureSingleFieldEdit_DispatchesNotification_WithSingleFieldInTitle()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var emCandidate = await db.Employees.FirstOrDefaultAsync(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")));
+        Assert.NotNull(emCandidate);
+        var emName = $"{emCandidate.FirstName} {emCandidate.LastName}".Trim();
+
+        var clientName = "SvSingleEdit-" + Guid.NewGuid().ToString("N")[..8];
+        var svOriginalName = clientName + "-SV-Initial";
+        var req = new CreateClientRequest(
+            Name: clientName,
+            Industry: "Healthcare",
+            Logo: null,
+            ContactEmail: null,
+            ClientType: "NEW",
+            EngagementManager: emName,
+            ContactName: null,
+            ContactPhone: null,
+            ContactDesignation: null,
+            ContactType: null,
+            City: null,
+            Country: null,
+            BusinessType: null,
+            Notes: null,
+            KycDocumentName: null,
+            SubVentures: new List<SubVentureInput>
+            {
+                new SubVentureInput(Name: svOriginalName, Contacts: null, Notes: "Initial Notes")
+            },
+            Contacts: null
+        );
+
+        var createRes = await _client.PostAsJsonAsync("/api/v1/clients", req);
+        Assert.Equal(HttpStatusCode.Created, createRes.StatusCode);
+        var created = await createRes.Content.ReadFromJsonAsync<ApiResponse<ClientDto>>();
+        Assert.NotNull(created?.Data);
+        var clientId = created!.Data!.Id;
+        Assert.NotEmpty(created.Data.SubVentures);
+        var svId = created.Data.SubVentures[0].Id;
+
+        // Edit ONLY SubVenture Notes
+        var updateReq = new UpdateClientRequest(
+            Name: null,
+            Industry: null,
+            Logo: null,
+            ContactEmail: null,
+            ClientType: null,
+            Status: null,
+            EngagementManager: null,
+            ContactName: null,
+            ContactPhone: null,
+            ContactDesignation: null,
+            ContactType: null,
+            City: null,
+            Country: null,
+            BusinessType: null,
+            Notes: null,
+            KycDocumentName: null,
+            SubVentures: new List<SubVentureInput>
+            {
+                new SubVentureInput(Name: svOriginalName, Contacts: null, Notes: "Only Notes Changed", Id: svId)
+            },
+            Contacts: null
+        );
+
+        var updateRes = await _client.PutAsJsonAsync($"/api/v1/clients/{clientId}", updateReq);
+        Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
+
+        // Verify "{Subventure Name} {field_name that changed} is edited" notification
+        var expectedTitle = $"{svOriginalName} Notes is edited";
+        var svNotifs = await db.ActionNotifications
+            .Where(n => n.Title == expectedTitle && n.Type == "Sub-Venture Profile Edited")
+            .ToListAsync();
+
+        Assert.NotEmpty(svNotifs);
+        var emNotif = svNotifs.FirstOrDefault(n => n.RecipientEmployeeId == emCandidate.Id);
+        Assert.NotNull(emNotif);
+        Assert.Equal("Edited", emNotif.Status);
+
+        // Verify HODs also received notifications
+        var hodDesignationIds = await db.OnFloorRoles
+            .Where(r => r.DeletedAtUtc == null && r.Name.ToLower().Contains("head of department"))
+            .Select(r => r.DesignationId)
+            .ToListAsync();
+        var hodEmployees = await db.Employees
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")) &&
+                        e.DesignationId.HasValue && hodDesignationIds.Contains(e.DesignationId.Value))
+            .ToListAsync();
+        foreach (var hod in hodEmployees)
+        {
+            var hodNotif = svNotifs.FirstOrDefault(n => n.RecipientEmployeeId == hod.Id);
+            Assert.NotNull(hodNotif);
+        }
     }
 
     [Fact]
@@ -328,6 +456,21 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
         var emNotif = editNotifs.FirstOrDefault(n => n.RecipientEmployeeId == emCandidate.Id);
         Assert.NotNull(emNotif);
         Assert.Equal("Edited", emNotif.Status);
+
+        // Verify HODs also received notifications
+        var hodDesignationIds = await db.OnFloorRoles
+            .Where(r => r.DeletedAtUtc == null && r.Name.ToLower().Contains("head of department"))
+            .Select(r => r.DesignationId)
+            .ToListAsync();
+        var hodEmployees = await db.Employees
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")) &&
+                        e.DesignationId.HasValue && hodDesignationIds.Contains(e.DesignationId.Value))
+            .ToListAsync();
+        foreach (var hod in hodEmployees)
+        {
+            var hodNotif = editNotifs.FirstOrDefault(n => n.RecipientEmployeeId == hod.Id);
+            Assert.NotNull(hodNotif);
+        }
     }
 
     [Fact]
@@ -411,7 +554,7 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
     }
 
     [Fact]
-    public async Task WbsCreated_DispatchesNotification_ToEmPmoHod_WithCreatedStatusAndDashProjectName()
+    public async Task WbsCreated_DispatchesNotification_ToEm_EmHod_SalesPerson_AndPmo_WithOnboardedTitle()
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -434,37 +577,84 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
 
         var floorRoles = floorRoleList.ToDictionary(r => r.DesignationId, r => r.Name);
 
-        var hodEmPmo = candidates.FirstOrDefault(e =>
+        // 1. EM HOD
+        var hodEm = candidates.FirstOrDefault(e =>
         {
             var subDept = (e.SubDepartment ?? e.SubDepartmentRef?.Name ?? "").Trim().ToLowerInvariant();
-            var isEmOrPmo = e.SubDepartmentId == emSubDeptId || e.SubDepartmentId == pmoSubDeptId ||
-                            subDept.Contains("engagement manager") || subDept.Contains("project management office") || subDept == "em" || subDept == "pmo";
+            var isEm = e.SubDepartmentId == emSubDeptId || subDept.Contains("engagement manager") || subDept == "em";
             var roleName = (e.DesignationId.HasValue && floorRoles.TryGetValue(e.DesignationId.Value, out var rn) ? rn : e.Role ?? "").Trim().ToLowerInvariant();
             var isHod = (roleName == "head of department" || roleName == "hod" || roleName.Contains("head of department")) && !roleName.Contains("team leader");
-            return isEmOrPmo && isHod;
+            return isEm && isHod;
         });
 
-        Assert.NotNull(hodEmPmo);
+        if (hodEm == null)
+        {
+            var anyHod = candidates.First(e =>
+            {
+                var roleName = (e.DesignationId.HasValue && floorRoles.TryGetValue(e.DesignationId.Value, out var rn) ? rn : e.Role ?? "").Trim().ToLowerInvariant();
+                return (roleName == "head of department" || roleName == "hod" || roleName.Contains("head of department")) && !roleName.Contains("team leader");
+            });
+            anyHod.SubDepartment = "EM (Engagement Manager)";
+            anyHod.SubDepartmentId = emSubDeptId;
+            await db.SaveChangesAsync();
+            hodEm = anyHod;
+        }
 
-        var proj = await db.Projects.FirstOrDefaultAsync(p => p.DeletedAtUtc == null);
+        // 2. PMO
+        var pmoMember = candidates.FirstOrDefault(e =>
+        {
+            if (e.Id == hodEm.Id) return false;
+            var subDept = (e.SubDepartment ?? e.SubDepartmentRef?.Name ?? "").Trim().ToLowerInvariant();
+            var roleName = (e.Role ?? "").Trim().ToLowerInvariant();
+            return e.SubDepartmentId == pmoSubDeptId || subDept.Contains("pmo") || subDept.Contains("project management office") || roleName.Contains("pmo");
+        });
+
+        Assert.NotNull(hodEm);
+        Assert.NotNull(pmoMember);
+
+        var proj = await db.Projects.Include(p => p.Client).FirstOrDefaultAsync(p => p.DeletedAtUtc == null);
         Assert.NotNull(proj);
+
+        var emEmp = candidates.FirstOrDefault(e => e.Id != hodEm.Id && e.Id != pmoMember.Id) ?? candidates.First();
+        var salesEmp = candidates.FirstOrDefault(e => e.Id != hodEm.Id && e.Id != pmoMember.Id && e.Id != emEmp.Id &&
+                                                     ((e.Role != null && e.Role.ToLower().Contains("sales")) ||
+                                                      (e.SubDepartment != null && e.SubDepartment.ToLower().Contains("sales"))))
+                       ?? candidates.Last();
+
+        proj.EngagementManagerId = emEmp.Id;
+        proj.SalesPersonId = salesEmp.Id;
+        await db.SaveChangesAsync();
 
         var testCreatedBy = "WbsCreator User";
 
         await notifService.NotifyWbsCreatedAsync(proj.Id, proj.Name, "WBS-123", proj.ProjectCode, testCreatedBy);
 
-        var expectedTitle = $"WBS or the Project is Created with the {proj.Name}";
+        var expectedTitle = $"{proj.Name} is onboarded";
         var notifs = await db.ActionNotifications
-            .Where(n => n.Title == expectedTitle && n.Type == "WBS Created")
+            .Where(n => n.Title == expectedTitle && n.Type == "WBS Created" && n.ProjectId == proj.Id)
             .ToListAsync();
 
         Assert.NotEmpty(notifs);
-        var targetNotif = notifs.FirstOrDefault(n => n.RecipientEmployeeId == hodEmPmo.Id);
-        Assert.NotNull(targetNotif);
-        Assert.Equal("Created", targetNotif.Status);
-        Assert.Equal("Low", targetNotif.Priority);
-        Assert.Equal("-", targetNotif.ProjectName);
-        Assert.Equal(testCreatedBy, targetNotif.RaisedByName);
+
+        // Check EM HOD received notification
+        var targetHodNotif = notifs.FirstOrDefault(n => n.RecipientEmployeeId == hodEm.Id);
+        Assert.NotNull(targetHodNotif);
+        Assert.Equal("Created", targetHodNotif.Status);
+        Assert.Equal("Low", targetHodNotif.Priority);
+        Assert.Equal("-", targetHodNotif.ProjectName);
+        Assert.Equal(testCreatedBy, targetHodNotif.RaisedByName);
+
+        // Check Assigned EM received notification
+        var targetEmNotif = notifs.FirstOrDefault(n => n.RecipientEmployeeId == emEmp.Id);
+        Assert.NotNull(targetEmNotif);
+
+        // Check Sales Person received notification
+        var targetSalesNotif = notifs.FirstOrDefault(n => n.RecipientEmployeeId == salesEmp.Id);
+        Assert.NotNull(targetSalesNotif);
+
+        // Check PMO received notification
+        var targetPmoNotif = notifs.FirstOrDefault(n => n.RecipientEmployeeId == pmoMember.Id);
+        Assert.NotNull(targetPmoNotif);
 
         // Verify DTO projection maps RelatedProject as "-"
         var dtos = await notifService.GetNotificationsAsync(new NotificationQueryParameters

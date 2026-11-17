@@ -364,4 +364,66 @@ public class CustomerModuleTests : IClassFixture<WebApplicationFactory<Program>>
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Update_EditingSubVentureWithExistingContacts_DoesNotThrowCheckConstraintError()
+    {
+        _client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", await LoginAsync());
+
+        var name = "SubVentureEditTest-" + Guid.NewGuid().ToString("N")[..8];
+        var spoc = new ClientContactDto(
+            "Omakar",
+            "omkar@gmail.com",
+            "8723463284",
+            "CIO",
+            "Procurement",
+            Country: "India",
+            PhoneCode: "+91");
+
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/clients",
+            new CreateClientRequest(
+                Name: name,
+                Industry: "Technology",
+                Logo: null,
+                ContactEmail: null,
+                ClientType: null,
+                EngagementManager: null,
+                ContactName: null,
+                ContactPhone: null,
+                ContactDesignation: null,
+                ContactType: null,
+                City: null,
+                Country: null,
+                BusinessType: null,
+                Notes: null,
+                KycDocumentName: null,
+                SubVentures: [new SubVentureInput("SubVenture 1", [spoc])],
+                Contacts: null));
+
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiResponse<ClientDto>>();
+        Assert.NotNull(created?.Data);
+        var id = created!.Data!.Id;
+        var svId = created.Data.SubVentures[0].Id;
+
+        try
+        {
+            // Now simulate editing the subventure (e.g. updating notes / contacts)
+            var updateResponse = await _client.PutAsJsonAsync($"/api/v1/clients/{id}",
+                new UpdateClientRequest(
+                    SubVentures:
+                    [
+                        new SubVentureInput("SubVenture 1", [spoc], Notes: "Updated notes", Id: svId),
+                    ]));
+
+            var body = await updateResponse.Content.ReadAsStringAsync();
+            Assert.True(updateResponse.IsSuccessStatusCode, $"Status: {updateResponse.StatusCode}, Body: {body}");
+            Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        }
+        finally
+        {
+            await _client.DeleteAsync($"/api/v1/clients/{id}");
+        }
+    }
 }

@@ -913,11 +913,23 @@ public sealed class ClientService(
                 || (c.SubVentureId != null && subVentureIds.Contains(c.SubVentureId.Value)))
             .ToListAsync(ct);
 
+        var now = DateTime.UtcNow;
+        var userId = currentUser.UserId;
         foreach (var c in existing)
         {
-            db.ClientContacts.Remove(c); // SaveChanges converts to soft delete (DeletedAtUtc)
+            c.DeletedAtUtc = now;
+            c.UpdatedAtUtc = now;
+            c.UpdatedBy = userId;
         }
         await db.SaveChangesAsync(ct);
+
+        // Detach old soft-deleted contacts so that subsequent collection reassignments (e.g. sv.Contacts)
+        // do not cause EF Core relationship fixup to nullify SubVentureId / ClientId and trigger
+        // CK_client_contacts_exactly_one_owner during subsequent SaveChangesAsync calls (such as in notifications).
+        foreach (var c in existing)
+        {
+            db.Entry(c).State = EntityState.Detached;
+        }
 
         var toAdd = new List<ClientContactEntity>();
 
@@ -932,6 +944,7 @@ public sealed class ClientService(
             foreach (var input in subVentureInputs)
             {
                 var sv = client.SubVentures.FirstOrDefault(s =>
+                    (input.Id.HasValue && s.Id == input.Id.Value) ||
                     string.Equals(s.Name, input.Name.Trim(), StringComparison.OrdinalIgnoreCase));
                 if (sv is null) continue;
 
@@ -950,7 +963,7 @@ public sealed class ClientService(
             await db.SaveChangesAsync(ct);
         }
 
-        // Populate navigation collections for the DTO projection (no further save).
+        // Populate navigation collections for the DTO projection.
         client.Contacts = toAdd.Where(c => c.ClientId == client.Id).ToList();
         foreach (var sv in client.SubVentures)
         {
