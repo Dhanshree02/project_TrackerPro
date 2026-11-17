@@ -8,6 +8,8 @@ using PMS.API.Configuration;
 using PMS.API.Infrastructure.Hangfire;
 using PMS.API.Infrastructure.Swagger;
 using PMS.API.Middleware;
+using PMS.API.Modules.ActionCentre.Jobs;
+using PMS.API.Modules.MyTeam.Jobs;
 using PMS.API.Modules.Timesheets.Jobs;
 using PMS.API.Modules.Resources.Jobs;
 using PMS.API.Modules.Sla.Jobs;
@@ -149,6 +151,57 @@ try
 catch (Exception ex)
 {
     Log.Warning(ex, "Failed to schedule recurring Hangfire job for employee offboarding reminders.");
+}
+
+// Register Recurring Bucket Task Auto-Pause Job (Every 15 minutes to auto-pause timers running >= 12h with 8h cap)
+try
+{
+    RecurringJob.AddOrUpdate<BucketTaskAutoPauseJob>(
+        "bucket-task-auto-pause",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "*/15 * * * *");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to schedule recurring Hangfire job for bucket task auto-pause.");
+}
+
+// Register Recurring My Team Availability & Shift Coverage Jobs
+try
+{
+    // Tier 1: 2-Hour Reminders to Reporting Managers (09:00, 11:00, 13:00, 15:00, 17:00 IST / 03:30, 05:30, 07:30, 09:30, 11:30 UTC Mon-Fri)
+    RecurringJob.AddOrUpdate<TeamAvailabilityTwoHourReminderJob>(
+        "team-availability-2hour-reminders",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "30 3,5,7,9,11 * * 1-5");
+
+    // Tier 2: 11:00 AM IST Project Leadership Alert (05:30 UTC Mon-Fri)
+    RecurringJob.AddOrUpdate<TeamAvailabilityLeadershipAlertJob>(
+        "team-availability-leadership-11am",
+        job => job.ExecuteAsync(11, CancellationToken.None),
+        "30 5 * * 1-5");
+
+    // Tier 2: 12:00 PM IST Project Leadership Alert (06:30 UTC Mon-Fri)
+    RecurringJob.AddOrUpdate<TeamAvailabilityLeadershipAlertJob>(
+        "team-availability-leadership-12pm",
+        job => job.ExecuteAsync(12, CancellationToken.None),
+        "30 6 * * 1-5");
+
+    // Tier 3: 1:00 PM IST SPM Daily Escalation Alert (07:30 UTC Mon-Fri)
+    RecurringJob.AddOrUpdate<TeamAvailabilitySpmAlertJob>(
+        "team-availability-spm-1pm",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "30 7 * * 1-5");
+
+    // Tier 4: Next-Day EOD (18:00 IST / 12:30 UTC Mon-Fri) HOD Escalation for Unresolved Shift Availability
+    RecurringJob.AddOrUpdate<TeamAvailabilityHodEscalationJob>(
+        "team-availability-hod-eod",
+        job => job.ExecuteAsync(CancellationToken.None),
+        "30 12 * * 1-5");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to schedule recurring Hangfire jobs for team availability & shift notifications.");
 }
 
 app.MapControllers();

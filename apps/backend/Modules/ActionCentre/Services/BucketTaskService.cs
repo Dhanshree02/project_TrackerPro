@@ -242,7 +242,7 @@ public class BucketTaskService : IBucketTaskService
         if (task != null)
         {
             task.ActualStartDate ??= today;
-            if (task.Stage is "Ready to Start" or "To Do" or "Not Started" or "Stopped")
+            if (task.Stage is "Ready to Start" or "To Do" or "Not Started" or "Stopped" or "Paused")
             {
                 task.Stage = "Ongoing";
             }
@@ -796,6 +796,206 @@ public class BucketTaskService : IBucketTaskService
         await _db.SaveChangesAsync(ct);
 
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
+    }
+
+    public async Task<int> AutoPauseAbandonedTasksAsync(CancellationToken ct = default)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var cutoffUtc = nowUtc.AddHours(-12);
+
+        var abandonedTasks = await _db.BucketTasks
+            .Include(b => b.Task)
+                .ThenInclude(t => t!.Project)
+            .Include(b => b.Task)
+                .ThenInclude(t => t!.ProjectService)
+            .Where(b => b.TimerRunning
+                     && b.TimerStartedAtUtc.HasValue
+                     && b.TimerStartedAtUtc.Value <= cutoffUtc
+                     && b.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        if (abandonedTasks.Count == 0)
+        {
+            return 0;
+        }
+
+        const long eightHoursInSeconds = 8 * 3600; // 28,800 seconds (standard shift duration)
+
+        foreach (var bucketTask in abandonedTasks)
+        {
+            var elapsedTotalSeconds = (long)(nowUtc - bucketTask.TimerStartedAtUtc!.Value).TotalSeconds;
+            var cappedSessionSeconds = Math.Min(elapsedTotalSeconds, eightHoursInSeconds);
+
+            bucketTask.TimerAccumulatedSeconds += cappedSessionSeconds;
+            bucketTask.TimerRunning = false;
+            bucketTask.TimerStartedAtUtc = null;
+            bucketTask.UtilizedHours = Math.Round((decimal)bucketTask.TimerAccumulatedSeconds / 3600m, 2);
+            bucketTask.Status = "Paused";
+            bucketTask.UpdatedAtUtc = nowUtc;
+
+            // Sync to Assignment
+            var assignment = await _db.ProjectTaskAssignments
+                .FirstOrDefaultAsync(a => (bucketTask.AssignmentId.HasValue && a.Id == bucketTask.AssignmentId.Value) ||
+                                          (a.TaskId == bucketTask.TaskId && a.EmployeeId == bucketTask.EmployeeId), ct);
+            if (assignment != null)
+            {
+                bucketTask.AssignmentId ??= assignment.Id;
+                assignment.TimerStartedAtUtc = null;
+                assignment.TimerAccumulatedSeconds = bucketTask.TimerAccumulatedSeconds;
+                assignment.UtilizedHours = bucketTask.UtilizedHours;
+                assignment.UpdatedAtUtc = nowUtc;
+            }
+
+            // Sync to ProjectTask
+            var task = bucketTask.Task ?? await _db.ProjectTasks
+                .Include(t => t.ProjectService)
+                .Include(t => t.Project)
+                .FirstOrDefaultAsync(t => t.Id == bucketTask.TaskId, ct);
+            if (task != null)
+            {
+                var anyOtherRunning = await _db.BucketTasks
+                    .AnyAsync(b => b.TaskId == task.Id && b.Id != bucketTask.Id && b.TimerRunning && b.DeletedAtUtc == null, ct);
+                if (!anyOtherRunning)
+                {
+                    task.Stage = "Paused";
+                }
+
+                var allBucketTasks = await _db.BucketTasks
+                    .Where(b => b.TaskId == bucketTask.TaskId && b.DeletedAtUtc == null)
+                    .ToListAsync(ct);
+                long totalSeconds = allBucketTasks.Sum(b => b.Id == bucketTask.Id ? bucketTask.TimerAccumulatedSeconds : b.TimerAccumulatedSeconds);
+                task.UtilizedHours = Math.Round((decimal)totalSeconds / 3600m, 2);
+                task.UpdatedAtUtc = nowUtc;
+            }
+
+            // Dispatch Notifications & SLA Tracking
+            try
+            {
+                var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct) ?? "Assigned Resource";
+                var taskTitle = bucketTask.TaskTitle;
+                var projectName = bucketTask.ProjectName ?? task?.Project?.Name ?? "Project";
+
+                string serviceName = "General";
+                if (task != null)
+                {
+                    serviceName = await ProjectTaskService.ResolveServiceNameAsync(_db, bucketTask.ProjectId, task, ct);
+                }
+                else
+                {
+                    var firstService = await _db.ProjectServices
+                        .Where(s => s.ProjectId == bucketTask.ProjectId && s.DeletedAtUtc == null)
+                        .OrderBy(s => s.SortOrder)
+                        .FirstOrDefaultAsync(ct);
+                    serviceName = firstService?.ServiceName?.Trim() ?? bucketTask.ProjectName ?? "General";
+                }
+                if (string.IsNullOrWhiteSpace(serviceName))
+                {
+                    serviceName = "General";
+                }
+
+                // 1. Notification for the Resource (Assigned Employee)
+                var empTitle = $"Task Auto-Paused: {taskTitle}";
+                var empContent = $"The timer for '{taskTitle}' was automatically paused after 8 hours of work because it remained active for over 12 hours. You can resume this task at any time.";
+                _db.ActionNotifications.Add(new ActionNotification
+                {
+                    RecipientEmployeeId = bucketTask.EmployeeId,
+                    ProjectId = bucketTask.ProjectId,
+                    ProjectCode = task?.Project?.ProjectCode,
+                    ProjectName = projectName,
+                    Title = empTitle,
+                    Type = "Task Auto-Paused",
+                    Priority = "Low",
+                    Status = "Paused",
+                    Unread = true,
+                    RelatedTask = taskTitle,
+                    RaisedByName = "System",
+                    CreatedAtUtc = nowUtc,
+                    CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                    {
+                        new { text = empContent, by = "System", at = nowUtc.ToString("o") }
+                    }, s_jsonOptions),
+                    HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                    {
+                        new
+                        {
+                            action = "Task Auto-Paused",
+                            date = nowUtc.ToString("yyyy-MM-dd"),
+                            time = nowUtc.ToString("HH:mm:ss"),
+                            by = "System",
+                            reason = "12-hour continuous execution threshold reached without manual pause; capped at 8 hours."
+                        }
+                    }, s_jsonOptions)
+                });
+
+                // 2. Notification for Project Leadership (PM, TL, EM)
+                var leadershipRecipients = await _slaRecipientResolver.ResolveLeadershipRecipientsAsync(
+                    bucketTask.ProjectId,
+                    ["Assigned Engagement Manager", "Assigned Project Manager", "Project Team Leader"],
+                    ct);
+
+                var leadTitle = $"{empName} Task Auto-Paused: {taskTitle} - {serviceName}";
+                var leadContent = $"{empName}'s task '{taskTitle}' under service '{serviceName}' was automatically paused after 8 hours of work (timer active > 12h).";
+                foreach (var recId in leadershipRecipients.Where(r => r != bucketTask.EmployeeId))
+                {
+                    _db.ActionNotifications.Add(new ActionNotification
+                    {
+                        RecipientEmployeeId = recId,
+                        ProjectId = bucketTask.ProjectId,
+                        ProjectCode = task?.Project?.ProjectCode,
+                        ProjectName = projectName,
+                        Title = leadTitle,
+                        Type = "Task Auto-Paused",
+                        Priority = "Low",
+                        Status = "Paused",
+                        Unread = true,
+                        RelatedTask = taskTitle,
+                        RaisedByName = empName,
+                        RaisedByEmployeeId = bucketTask.EmployeeId,
+                        CreatedAtUtc = nowUtc,
+                        CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                        {
+                            new { text = leadContent, by = "System", at = nowUtc.ToString("o") }
+                        }, s_jsonOptions),
+                        HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                        {
+                            new
+                            {
+                                action = "Task Auto-Paused",
+                                date = nowUtc.ToString("yyyy-MM-dd"),
+                                time = nowUtc.ToString("HH:mm:ss"),
+                                by = "System",
+                                reason = "12-hour continuous execution threshold reached without manual pause; capped at 8 hours."
+                            }
+                        }, s_jsonOptions)
+                    });
+                }
+
+                // 3. Start Task Pause SLA tracking for daily recurring reminders
+                var pauseEntityId = bucketTask.AssignmentId ?? assignment?.Id ?? bucketTask.Id;
+                var reminderUtc = await _slaDeadlineCalculator.CalculateNextPauseReminderForEmployeeAsync(nowUtc, bucketTask.EmployeeId, null, ct);
+
+                await _slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                    Module: "ActionCentre",
+                    ActivityType: "Task Pause",
+                    EntityId: pauseEntityId,
+                    EntityReference: bucketTask.TaskTitle,
+                    Stage: "Paused",
+                    Priority: SlaPriority.Medium,
+                    ProjectId: bucketTask.ProjectId,
+                    RecipientEmployeeId: bucketTask.EmployeeId,
+                    CustomDeadlineUtc: reminderUtc,
+                    CustomStartTimeUtc: nowUtc
+                ), ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Error dispatching auto-pause notifications or SLA for Task {TaskId}", bucketTask.TaskId);
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        _logger?.LogInformation("[BucketTaskService] Auto-paused {Count} abandoned task timer(s) exceeding 12-hour threshold.", abandonedTasks.Count);
+        return abandonedTasks.Count;
     }
 
     public async Task SyncBucketTasksFromAssignmentsAsync(Guid? projectId = null, Guid? taskId = null, CancellationToken ct = default)

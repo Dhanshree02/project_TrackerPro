@@ -156,8 +156,8 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
         var updateRes = await _client.PutAsJsonAsync($"/api/v1/clients/{clientId}", updateReq);
         Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
 
-        // Verify "{Customer name} is edited" notification
-        var expectedTitle = $"{clientName} is edited";
+        // Verify "{Customer name} {field_name that changed} is edited" notification
+        var expectedTitle = $"{clientName} Industry, Notes is edited";
         var editNotifs = await db.ActionNotifications
             .Where(n => n.Title == expectedTitle && n.Type == "Customer Profile Edited")
             .ToListAsync();
@@ -242,8 +242,8 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
         var updateRes = await _client.PutAsJsonAsync($"/api/v1/clients/{clientId}", updateReq);
         Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
 
-        // Verify "{Subventure Name} is edited" notification
-        var expectedTitle = $"{svNewName} is edited";
+        // Verify "{Subventure Name} {field_name that changed} is edited" notification
+        var expectedTitle = $"{svNewName} Name, Notes is edited";
         var svNotifs = await db.ActionNotifications
             .Where(n => n.Title == expectedTitle && n.Type == "Sub-Venture Profile Edited")
             .ToListAsync();
@@ -254,6 +254,80 @@ public class CustomerNotificationIntegrationTests : IClassFixture<WebApplication
         Assert.Equal("Edited", emNotif.Status);
         Assert.Equal("Low", emNotif.Priority);
         Assert.Equal("-", emNotif.ProjectName);
+    }
+
+    [Fact]
+    public async Task CustomerSingleFieldEdit_DispatchesNotification_WithSingleFieldInTitle()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var emCandidate = await db.Employees.FirstOrDefaultAsync(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")));
+        Assert.NotNull(emCandidate);
+        var emName = $"{emCandidate.FirstName} {emCandidate.LastName}".Trim();
+
+        var clientName = "SingleFieldEdit-" + Guid.NewGuid().ToString("N")[..8];
+        var req = new CreateClientRequest(
+            Name: clientName,
+            Industry: "Manufacturing",
+            Logo: null,
+            ContactEmail: null,
+            ClientType: "NEW",
+            EngagementManager: emName,
+            ContactName: null,
+            ContactPhone: null,
+            ContactDesignation: null,
+            ContactType: null,
+            City: null,
+            Country: null,
+            BusinessType: null,
+            Notes: null,
+            KycDocumentName: null,
+            SubVentures: null,
+            Contacts: null
+        );
+
+        var createRes = await _client.PostAsJsonAsync("/api/v1/clients", req);
+        Assert.Equal(HttpStatusCode.Created, createRes.StatusCode);
+        var created = await createRes.Content.ReadFromJsonAsync<ApiResponse<ClientDto>>();
+        Assert.NotNull(created?.Data);
+        var clientId = created!.Data!.Id;
+
+        // Edit ONLY Industry
+        var updateReq = new UpdateClientRequest(
+            Name: null,
+            Industry: "Aerospace",
+            Logo: null,
+            ContactEmail: null,
+            ClientType: null,
+            Status: null,
+            EngagementManager: null,
+            ContactName: null,
+            ContactPhone: null,
+            ContactDesignation: null,
+            ContactType: null,
+            City: null,
+            Country: null,
+            BusinessType: null,
+            Notes: null,
+            KycDocumentName: null,
+            SubVentures: null,
+            Contacts: null
+        );
+
+        var updateRes = await _client.PutAsJsonAsync($"/api/v1/clients/{clientId}", updateReq);
+        Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
+
+        // Verify "{Customer name} Industry is edited" notification
+        var expectedTitle = $"{clientName} Industry is edited";
+        var editNotifs = await db.ActionNotifications
+            .Where(n => n.Title == expectedTitle && n.Type == "Customer Profile Edited")
+            .ToListAsync();
+
+        Assert.NotEmpty(editNotifs);
+        var emNotif = editNotifs.FirstOrDefault(n => n.RecipientEmployeeId == emCandidate.Id);
+        Assert.NotNull(emNotif);
+        Assert.Equal("Edited", emNotif.Status);
     }
 
     [Fact]

@@ -744,4 +744,108 @@ public class BucketListSlaIntegrationTests : IClassFixture<WebApplicationFactory
             Assert.Equal($"Task Deadline SLA | L1 Escalation | Senior Project Manager | {taskTitle} | {project.Name}", title);
         }
     }
+
+    [Fact]
+    public async Task BucketTask_AutoPause_TriggersAt12HourThreshold_CapsAt8Hours_AndAllowsResume()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        // 1. Resolve project and team member
+        var teamMember = await db.ProjectTeamMembers
+            .FirstOrDefaultAsync(tm => tm.DeletedAtUtc == null && tm.MemberRole == "ProjectTeam");
+        Assert.NotNull(teamMember);
+
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == teamMember.ProjectId && p.DeletedAtUtc == null);
+        Assert.NotNull(project);
+
+        var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == teamMember.EmployeeId && e.DeletedAtUtc == null);
+        Assert.NotNull(employee);
+
+        // 2. Create a test task
+        var taskTitle = $"AutoPause Task {Guid.NewGuid():N}";
+        var createTaskReq = new CreateProjectTaskRequest(
+            Title: taskTitle,
+            Description: "Testing Shift Auto-Pause with 12h threshold and 8h cap",
+            PlannedStartDate: DateOnly.FromDateTime(DateTime.UtcNow),
+            PlannedEndDate: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(2)),
+            EstimatedHours: 8m,
+            Priority: "High");
+
+        var taskResponse = await _client.PostAsJsonAsync($"/api/v1/projects/{project.Id}/tasks", createTaskReq);
+        Assert.True(taskResponse.IsSuccessStatusCode);
+        var taskResult = await taskResponse.Content.ReadFromJsonAsync<ApiResponse<ProjectTaskDto>>();
+        Assert.NotNull(taskResult?.Data);
+        var taskId = taskResult.Data.Id;
+
+        // 3. Assign employee to task
+        var assignResponse = await _client.PutAsJsonAsync(
+            $"/api/v1/projects/{project.Id}/tasks/{taskId}/assignments",
+            new SyncTaskAssignmentsRequest([employee.Id], "High"));
+        Assert.Equal(HttpStatusCode.OK, assignResponse.StatusCode);
+
+        // 4. Start timer on Bucket Task
+        var bucketTask = await db.BucketTasks
+            .FirstOrDefaultAsync(b => b.TaskId == taskId && b.EmployeeId == employee.Id && b.DeletedAtUtc == null);
+        Assert.NotNull(bucketTask);
+
+        var startTimerResponse = await _client.PostAsync($"/api/v1/action-centre/bucket-list/{bucketTask.Id}/start-timer", null);
+        Assert.Equal(HttpStatusCode.OK, startTimerResponse.StatusCode);
+
+        // 5. Simulate forgotten timer running for 13 hours (> 12-hour threshold)
+        var simulatedStartTime = DateTime.UtcNow.AddHours(-13);
+        bucketTask.TimerStartedAtUtc = simulatedStartTime;
+        await db.SaveChangesAsync();
+
+        // 6. Trigger Auto-Pause
+        var autoPauseResponse = await _client.PostAsync("/api/v1/action-centre/bucket-list/auto-pause", null);
+        Assert.Equal(HttpStatusCode.OK, autoPauseResponse.StatusCode);
+        var autoPauseResult = await autoPauseResponse.Content.ReadFromJsonAsync<ApiResponse<int>>();
+        Assert.NotNull(autoPauseResult?.Data);
+        Assert.True(autoPauseResult.Data >= 1, "Expected at least 1 task to be auto-paused");
+
+        // 7. Verify BucketTask state and 8-hour cap (28,800 seconds)
+        var refreshedBucket = await db.BucketTasks.AsNoTracking().FirstOrDefaultAsync(b => b.Id == bucketTask.Id);
+        Assert.NotNull(refreshedBucket);
+        Assert.False(refreshedBucket.TimerRunning, "TimerRunning should be false after auto-pause");
+        Assert.Null(refreshedBucket.TimerStartedAtUtc);
+        Assert.Equal("Paused", refreshedBucket.Status);
+        Assert.Equal(8 * 3600, refreshedBucket.TimerAccumulatedSeconds);
+        Assert.Equal(8.00m, refreshedBucket.UtilizedHours);
+
+        // 8. Verify ProjectTask and Assignment synchronization
+        var refreshedTask = await db.ProjectTasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == taskId);
+        Assert.NotNull(refreshedTask);
+        Assert.Equal("Paused", refreshedTask.Stage);
+        Assert.Equal(8.00m, refreshedTask.UtilizedHours);
+
+        var refreshedAssign = await db.ProjectTaskAssignments.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.TaskId == taskId && a.EmployeeId == employee.Id);
+        Assert.NotNull(refreshedAssign);
+        Assert.Null(refreshedAssign.TimerStartedAtUtc);
+        Assert.Equal(8 * 3600, refreshedAssign.TimerAccumulatedSeconds);
+        Assert.Equal(8.00m, refreshedAssign.UtilizedHours);
+
+        // 9. Verify Action Notifications
+        var empNotif = await db.ActionNotifications
+            .FirstOrDefaultAsync(n => n.RecipientEmployeeId == employee.Id && n.Title == $"Task Auto-Paused: {taskTitle}");
+        Assert.NotNull(empNotif);
+        Assert.Equal("Paused", empNotif.Status);
+        Assert.Equal("Low", empNotif.Priority);
+
+        // 10. Verify Next-Day Resume flow: Resource starts/resumes the task
+        var resumeResponse = await _client.PostAsync($"/api/v1/action-centre/bucket-list/{bucketTask.Id}/start-timer", null);
+        Assert.Equal(HttpStatusCode.OK, resumeResponse.StatusCode);
+
+        var resumedBucket = await db.BucketTasks.AsNoTracking().FirstOrDefaultAsync(b => b.Id == bucketTask.Id);
+        Assert.NotNull(resumedBucket);
+        Assert.True(resumedBucket.TimerRunning, "TimerRunning should be true after resume");
+        Assert.NotNull(resumedBucket.TimerStartedAtUtc);
+        Assert.Equal("Ongoing", resumedBucket.Status);
+        Assert.Equal(8 * 3600, resumedBucket.TimerAccumulatedSeconds); // Preserved previous 8 hours
+
+        var resumedTask = await db.ProjectTasks.AsNoTracking().FirstOrDefaultAsync(t => t.Id == taskId);
+        Assert.NotNull(resumedTask);
+        Assert.Equal("Ongoing", resumedTask.Stage);
+    }
 }

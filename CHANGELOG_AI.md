@@ -1,3 +1,158 @@
+# Changelog - My Team Availability & Shift Coverage Multi-Tier Notification & Escalation Workflow
+
+## Summary of Changes
+Implemented the comprehensive 4-tier **My Team Availability and Shift Coverage Notification & Escalation** workflow to ensure compliance with daily team attendance and shift scheduling (`My Team -> Team Dashboard -> My Reportees`):
+
+1. **Tier 1: 2-Hour Recurring Reminders to Reporting Managers**:
+   - Recurring reminders sent every 2 hours during the workday (09:00, 11:00, 13:00, 15:00, 17:00 IST) to Reporting Managers whose direct reportees have missing or incomplete availability and shift coverage for the current date.
+   - Pending check verifies entries in `timesheet.tbl_team_day_entries` (`Attendance` set, or if attendance != "leave", `Shift` must also be set).
+   - Grouped by `(ReportingManagerId, ProjectId)` so each notification maps directly to the project the resource is under.
+   - **Notification Details**:
+     - **Title**: Meaningful title format: `Pending Team Availability & Shift Coverage: {resourceNames} - {projectName}` (or `Pending Team Availability & Shift Coverage: {resourceNames}` for unallocated resources).
+     - **Related Project**: Mapped to the specific project (`ProjectId`, `ProjectCode`, `ProjectName`) or `"-"` if unallocated.
+     - **Type**: `Team Availability Reminder`.
+     - **Priority**: `Medium`.
+     - **Status**: `Pending`.
+
+2. **Tier 2: 11:00 AM & 12:00 PM Daily Leadership Alerts**:
+   - Scheduled daily alerts at 11:00 AM and 12:00 PM IST dispatched to Project Leadership (Project Managers, Engagement Managers, and Team Leaders) for all active project-allocated resources.
+   - **Pending Status**: If one or more allocated team members are pending:
+     - **Title**: `Alert: Pending Resource Availability & Shift Coverage - {projectName} (11:00 AM)` / `(12:00 PM)`.
+     - **Type**: `Project Shift & Availability Alert`.
+     - **Priority**: `Medium`, **Status**: `Pending`.
+     - Details include the pending count, resource names, and the names of their respective reporting managers.
+   - **Completed Status**: If 100% of allocated team members are updated:
+     - **Title**: `Project Team Availability Updated: {projectName} (11:00 AM)` / `(12:00 PM)`.
+     - **Type**: `Project Shift & Availability Status`.
+     - **Priority**: `Low`, **Status**: `Completed`.
+   - **Related Project**: `ProjectId`, `ProjectCode`, `ProjectName`.
+
+3. **Tier 3: 1:00 PM Daily Senior Project Manager (SPM) Escalation**:
+   - Scheduled daily escalation alert at 1:00 PM IST dispatched to Senior Project Managers (SPMs) for active projects with pending resources.
+   - **Title**: `Escalation: Pending Resource Availability & Shift Coverage - {projectName} (1:00 PM)`.
+   - **Type**: `SPM Shift & Availability Escalation`.
+   - **Priority**: `High`, **Status**: `Pending`.
+   - **Related Project**: `ProjectId`, `ProjectCode`, `ProjectName`.
+
+4. **Tier 4: Next-Day EOD (18:00 IST) Escalation to Head of Department (HOD)**:
+   - Compliance escalation evaluated at 18:00 IST on the next business day (skipping weekends) for prior-day records that were left unfulfilled by reporting managers.
+   - Resolved via `_slaRecipientResolver.ResolveLeadershipRecipientsAsync(project.Id, ["Head of Department"])` with fallback to HOD on-floor roles.
+   - **Title**: `HOD Escalation: Reporting Manager Failed to Update Shift & Availability - {managerName} - {projectName}`.
+   - **Type**: `HOD Shift & Availability Escalation`.
+   - **Priority**: `High`, **Status**: `Escalated`.
+   - **Related Project**: `ProjectId`, `ProjectCode`, `ProjectName`.
+
+5. **Hangfire Recurring Background Jobs & Configuration**:
+   - Created job classes in `apps/backend/Modules/MyTeam/Jobs/`:
+     - `TeamAvailabilityTwoHourReminderJob`
+     - `TeamAvailabilityLeadershipAlertJob`
+     - `TeamAvailabilitySpmAlertJob`
+     - `TeamAvailabilityHodEscalationJob`
+   - Registered in `DependencyInjectionExtensions.cs` and scheduled in `Program.cs` according to IST business hours:
+     - `team-availability-2hour-reminders`: `"30 3,5,7,9,11 * * 1-5"` (09:00, 11:00, 13:00, 15:00, 17:00 IST)
+     - `team-availability-leadership-11am`: `"30 5 * * 1-5"` (11:00 AM IST)
+     - `team-availability-leadership-12pm`: `"30 6 * * 1-5"` (12:00 PM IST)
+     - `team-availability-spm-1pm`: `"30 7 * * 1-5"` (1:00 PM IST)
+     - `team-availability-hod-eod`: `"30 12 * * 1-5"` (18:00 IST)
+
+6. **Trigger Endpoints in `MyTeamController.cs`**:
+   - `POST /api/v1/my-team/notifications/trigger-2hour-reminders?date=YYYY-MM-DD`
+   - `POST /api/v1/my-team/notifications/trigger-leadership-alerts?hour=11&date=YYYY-MM-DD`
+   - `POST /api/v1/my-team/notifications/trigger-spm-alerts?date=YYYY-MM-DD`
+   - `POST /api/v1/my-team/notifications/trigger-hod-escalations?date=YYYY-MM-DD`
+
+7. **Automated Integration Tests & Verification**:
+   - Created `TeamAvailabilityNotificationTests.cs` covering:
+     - Tier 1: Reminders to reporting managers with meaningful titles, project mapping, and resolution verification.
+     - Tier 2: 11:00 AM & 12:00 PM leadership alerts to PM, EM, and TL with pending vs completed status transitions.
+     - Tier 3: 1:00 PM SPM escalation alert.
+     - Tier 4: Next-day EOD HOD compliance escalation.
+     - Controller trigger endpoints validation.
+   - All 5/5 integration tests passed (`TeamAvailabilityNotificationTests.cs`).
+   - All 118 unit tests passed (`PMS.UnitTests.csproj`).
+   - All 141 frontend tests passed (`vitest`).
+
+---
+
+# Changelog - Shift-Aware Bucket Task Auto-Pause (12h Threshold & 8h Cap)
+
+## Summary of Changes
+Implemented an automatic **Auto-Pause** workflow for assigned tasks in the Action Centre Bucket List to handle cases where resources leave at the end of the day (EOD) and forget to pause their active timer:
+
+1. **Shift-Aware 12-Hour Threshold & 8-Hour Cap**:
+   - **No Auto-Stop**: The task is never stopped (which would permanently lock it), but **Auto-Paused** so the resource can seamlessly resume it the next working day.
+   - **Allowed Overtime Window**: Resources can work 9, 10, or 11 hours legitimately without interference. If they manually pause/stop within 12 hours, their actual time is recorded.
+   - **12-Hour Continuous Run Threshold**: If a timer remains active for ≥ 12 continuous hours without a manual pause, the system flags it as an abandoned timer from the previous shift/day.
+   - **8-Hour Cap**: The credited time for the abandoned session is capped at exactly 8 hours (`8 * 3600 = 28,800` seconds, corresponding to standard shift duration for Morning, General, Afternoon, and Night shifts), preventing ghost hours from inflating timesheets.
+
+2. **Backend Service & Synchronization (`BucketTaskService.cs`)**:
+   - Added `AutoPauseAbandonedTasksAsync(CancellationToken ct)` in `IBucketTaskService` and implemented in `BucketTaskService`:
+     - Queries running bucket tasks where `TimerStartedAtUtc <= DateTime.UtcNow.AddHours(-12)`.
+     - Caps session elapsed time to 28,800 seconds and updates `TimerAccumulatedSeconds` and `UtilizedHours`.
+     - Sets `TimerRunning = false`, `TimerStartedAtUtc = null`, and `Status = "Paused"`.
+     - Synchronizes timer state to `tbl_project_task_assignments` (`TimerStartedAtUtc = null`, updated accumulated seconds and utilized hours).
+     - Synchronizes task stage to `tbl_project_tasks` (`Stage = "Paused"` if no other member is running, updated total utilized hours).
+     - In `StartBucketTaskTimerAsync`, added `"Paused"` to stage transition check so tasks cleanly resume to `"Ongoing"`.
+     - Initiates "Task Pause" SLA tracking for subsequent pause reminders.
+
+3. **Notifications & Leadership Visibility**:
+   - Dispatches a clear notification to the **Resource**:
+     - Title: `Task Auto-Paused: {taskTitle}`
+     - Message: `The timer for '{taskTitle}' was automatically paused after 8 hours of work because it remained active for over 12 hours. You can resume this task at any time.`
+   - Dispatches a notification to **Project Leadership** (PM, TL, EM):
+     - Title: `{empName} Task Auto-Paused: {taskTitle} - {serviceName}`
+
+4. **Hangfire Recurring Job & Automation (`BucketTaskAutoPauseJob.cs`)**:
+   - Created `BucketTaskAutoPauseJob` decorated with `[JobDisplayName("Bucket Task | Shift Auto-Pause Over-12-Hour Timers (8h Cap)")]`.
+   - Registered in `DependencyInjectionExtensions.cs` as transient.
+   - Registered as a recurring Hangfire job running every 15 minutes (`"*/15 * * * *"`) in `Program.cs`.
+   - Exposed trigger endpoint `POST /api/v1/action-centre/bucket-list/auto-pause` in `ActionCentreController.cs`.
+
+5. **Verification & Tests**:
+   - Added integration test `BucketTask_AutoPause_TriggersAt12HourThreshold_CapsAt8Hours_AndAllowsResume` in `BucketListSlaIntegrationTests.cs`:
+     - Verified timer running > 12h triggers auto-pause.
+     - Verified exact 8-hour cap (28,800 seconds / 8.00 hours).
+     - Verified `BucketTask`, `ProjectTaskAssignment`, and `ProjectTask` sync.
+     - Verified Action Centre notifications dispatched.
+     - Verified clean next-day resume back to `"Ongoing"` preserving the credited 8 hours.
+   - All 7/7 tests in `BucketListSlaIntegrationTests.cs` passed.
+   - All 118 unit tests passed.
+   - All 141 frontend tests passed.
+
+---
+
+# Changelog - Customer and Sub-Venture Edit Notification Title Format
+
+## Summary of Changes
+Updated the notification title formatting for Customer and Sub-Venture profile updates to explicitly include only the modified field name(s):
+
+1. **Title Pattern Implementation**:
+   - Customer profile edited: `{customer_name} {field_name that changed} is edited` (e.g. `Aditya Birla Industry is edited` or `Aditya Birla Industry, City is edited`).
+   - Sub-Venture profile edited: `{subventure_name} {field_name that changed} is edited` (e.g. `Aditya Birla_Finance Notes is edited` or `Aditya Birla_Finance Name, Notes is edited`).
+   - If multiple fields are modified simultaneously, only the specific changed field names are displayed, separated by commas (e.g. `{clientName} Industry, Notes is edited`).
+
+2. **Backend Service Changes**:
+   - **`IActionNotificationService.cs` & `ActionNotificationService.cs`**:
+     - Updated `NotifyCustomerEditedAsync` and `NotifySubVentureEditedAsync` to accept `IReadOnlyList<string>? modifiedFields = null`.
+     - Dynamically formats `Title` as `$"{clientName} {fieldsText} is edited"` (or `$"{subVentureName} {fieldsText} is edited"`) when `modifiedFields` contains changed fields.
+     - Includes safety fallback to `$"{name} is edited"` when no fields are specified, and enforces max 255-character length guard.
+     - Formats history details accordingly (`$"{name} {fieldsText} is edited by {performer}."`).
+   - **`ClientService.cs`**:
+     - In `UpdateClientAsync`, collects changed field names (`Name`, `Industry`, `Logo`, `Contact Email`, `Client Type`, `Status`, `Contact Name`, `Contact Phone`, `Contact Designation`, `Contact Type`, `Country`, `City`, `BusinessType`, `Billing Medium`, `Group SPOC Name`, `Group SPOC Contact`, `Group SPOC Phone Code`, `Created By Name`, `Notes`, `KYC Document`, `Contacts`).
+     - Added `ContactsHaveChanged` helper to accurately detect contact list additions, deletions, or edits without false positives.
+     - Tracks sub-venture modifications per sub-venture (`Name`, `Notes`, `KYC Document`, `Contacts`) and passes `svChangedFields` to `NotifySubVentureEditedAsync`.
+     - In `SetClientKycAsync` and `SetSubVentureKycAsync`, dispatches edit notifications with `["KYC Document"]` when a KYC file is updated.
+
+3. **Verification & Tests**:
+   - Updated integration tests in `CustomerNotificationIntegrationTests.cs` to verify multi-field and single-field notifications:
+     - `CustomerProfileEdit_DispatchesNotification_WithEditedStatusAndTitle`: verifies `{clientName} Industry, Notes is edited`.
+     - `SubVentureEdit_DispatchesNotification_WithSubVentureEditedTitle`: verifies `{svNewName} Name, Notes is edited`.
+     - Added `CustomerSingleFieldEdit_DispatchesNotification_WithSingleFieldInTitle`: verifies `{clientName} Industry is edited`.
+   - All backend unit tests (118/118) and integration tests (6/6 in `CustomerNotificationIntegrationTests`) pass cleanly.
+   - All frontend unit tests (141/141) pass cleanly.
+
+---
+
 # Changelog - Project Card Progress Bar Synchronization with Main Total Progress
 
 ## Summary of Changes

@@ -1686,6 +1686,7 @@ public sealed class ActionNotificationService(
         string clientName,
         string? clientCode,
         string? performerName,
+        IReadOnlyList<string>? modifiedFields = null,
         Guid? engagementManagerId = null,
         string? engagementManager = null,
         Guid? salesManagerId = null,
@@ -1703,10 +1704,20 @@ public sealed class ActionNotificationService(
             ct);
         if (recipients.Count == 0) return;
 
-        var title = $"{clientName} is edited";
+        var distinctChanges = modifiedFields?.Where(f => !string.IsNullOrWhiteSpace(f)).Distinct().ToList() ?? [];
+        var fieldsText = distinctChanges.Count > 0 ? string.Join(", ", distinctChanges) : null;
+        var title = fieldsText != null
+            ? $"{clientName} {fieldsText} is edited"
+            : $"{clientName} is edited";
+        if (title.Length > 255) title = title[..255];
+
         var editorName = !string.IsNullOrWhiteSpace(performerName)
             ? performerName
             : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
+
+        var detailsText = fieldsText != null
+            ? $"{clientName} {fieldsText} is edited by {editorName}."
+            : $"{clientName} is edited by {editorName}.";
 
         var addedList = new List<ActionNotification>();
         foreach (var recipient in recipients)
@@ -1730,7 +1741,7 @@ public sealed class ActionNotificationService(
                     {
                         status = "Edited",
                         at = DateTime.UtcNow.ToString("o"),
-                        details = $"{clientName} is edited by {editorName}."
+                        details = detailsText
                     }
                 })
             };
@@ -1749,6 +1760,7 @@ public sealed class ActionNotificationService(
         string subVentureName,
         string? subVentureCode,
         string? performerName,
+        IReadOnlyList<string>? modifiedFields = null,
         Guid? engagementManagerId = null,
         string? engagementManager = null,
         Guid? salesManagerId = null,
@@ -1766,10 +1778,20 @@ public sealed class ActionNotificationService(
             ct);
         if (recipients.Count == 0) return;
 
-        var title = $"{subVentureName} is edited";
+        var distinctChanges = modifiedFields?.Where(f => !string.IsNullOrWhiteSpace(f)).Distinct().ToList() ?? [];
+        var fieldsText = distinctChanges.Count > 0 ? string.Join(", ", distinctChanges) : null;
+        var title = fieldsText != null
+            ? $"{subVentureName} {fieldsText} is edited"
+            : $"{subVentureName} is edited";
+        if (title.Length > 255) title = title[..255];
+
         var editorName = !string.IsNullOrWhiteSpace(performerName)
             ? performerName
             : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
+
+        var detailsText = fieldsText != null
+            ? $"{subVentureName} {fieldsText} is edited by {editorName}."
+            : $"{subVentureName} is edited by {editorName}.";
 
         var addedList = new List<ActionNotification>();
         foreach (var recipient in recipients)
@@ -1793,7 +1815,7 @@ public sealed class ActionNotificationService(
                     {
                         status = "Edited",
                         at = DateTime.UtcNow.ToString("o"),
-                        details = $"{subVentureName} is edited by {editorName}."
+                        details = detailsText
                     }
                 })
             };

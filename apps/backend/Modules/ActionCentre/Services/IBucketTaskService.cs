@@ -19,5 +19,7 @@ public interface IBucketTaskService
 
     Task<BucketTaskDto> UpdateBucketTaskStatusAsync(Guid id, string status, CancellationToken ct = default);
 
+    Task<int> AutoPauseAbandonedTasksAsync(CancellationToken ct = default);
+
     Task SyncBucketTasksFromAssignmentsAsync(Guid? projectId = null, Guid? taskId = null, CancellationToken ct = default);
 }

@@ -89,6 +89,18 @@ public class ActionCentreController : ControllerBase
     }
 
     /// <summary>
+    /// Evaluates running bucket list task timers, automatically pausing any task that has been
+    /// running continuously for 12 hours or more, capping credited time at 8 hours (standard shift duration).
+    /// </summary>
+    [HttpPost("bucket-list/auto-pause")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
+    public async Task<ActionResult<ApiResponse<int>>> TriggerAutoPause(CancellationToken ct = default)
+    {
+        var count = await _bucketTaskService.AutoPauseAbandonedTasksAsync(ct);
+        return Ok(ApiResponse<int>.Ok(count, new ApiMeta { Total = count }));
+    }
+
+    /// <summary>
     /// Stops the task timer and accumulates elapsed working time.
     /// </summary>
     [HttpPost("bucket-list/{id:guid}/stop-timer")]
