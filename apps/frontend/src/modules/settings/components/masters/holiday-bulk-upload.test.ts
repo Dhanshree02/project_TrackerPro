@@ -48,11 +48,8 @@ describe("Holiday Bulk Upload Utilities", () => {
   });
 
   describe("formatDateDisplay", () => {
-    it("formats ISO date string into readable label with weekday", () => {
-      const formatted = formatDateDisplay("2026-01-26");
-      expect(formatted).toContain("Jan");
-      expect(formatted).toContain("26");
-      expect(formatted).toContain("2026");
+    it("formats ISO date string as DD-MM-YYYY", () => {
+      expect(formatDateDisplay("2026-01-26")).toBe("26-01-2026");
     });
   });
 

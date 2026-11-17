@@ -3,6 +3,7 @@ import { ChevronRight, Circle, CheckCircle2, AlertCircle, CheckCheck } from "luc
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { ProjectStageData, StageHistoryEntry } from "@/lib/workspace-store";
+import { formatDateTimeDMY } from "@/lib/utils";
 
 // ── Sub-stage types (Dhanshree role only) ────────────────────────────────────
 
@@ -323,13 +324,7 @@ interface HistoryEntryProps {
 
 function HistoryEntry({ entry, isLatest }: HistoryEntryProps) {
   const timestamp = new Date(entry.timestamp);
-  const formattedTime = timestamp.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const formattedTime = formatDateTimeDMY(timestamp);
 
   return (
     <div className={`rounded-md border-l-2 p-2.5 ${isLatest ? "border-primary bg-card" : "border-border bg-card"}`}>

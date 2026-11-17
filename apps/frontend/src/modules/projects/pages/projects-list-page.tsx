@@ -31,7 +31,7 @@ import { type Project, type Client, people, type Person, getPerson } from "@/lib
 import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { isRenewedProject } from "@/lib/project-renewal";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/project-helpers";
-import { cn } from "@/lib/utils";
+import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
 import { useDraggable } from "@/hooks/use-draggable";
 import { paginateSlice } from "@/lib/pagination";
 import { TablePaginationFooter } from "@/components/table-pagination-footer";
@@ -476,13 +476,13 @@ export function ProjectsListPage() {
                     <div>
                       <dt className="text-muted-foreground">Start</dt>
                       <dd className="font-medium tabular-nums">
-                        {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
+                        {p.startDate ? formatDateDMY(p.startDate) : "—"}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-muted-foreground">End</dt>
                       <dd className="font-medium tabular-nums">
-                        {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
+                        {p.endDate ? formatDateDMY(p.endDate) : "—"}
                       </dd>
                     </div>
                     <div className="min-w-0">
@@ -521,8 +521,8 @@ export function ProjectsListPage() {
           )}
         </div>
       ) : (
-        <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
-          <table className="app-columns text-sm">
+        <div className="w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
+          <table className="w-full min-w-[1100px] text-sm">
             <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
               <tr>
                 <th className="px-4 py-3 font-semibold text-muted-foreground">Project ID</th>
@@ -588,17 +588,17 @@ export function ProjectsListPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-                      {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
+                      {p.startDate ? formatDateDMY(p.startDate) : "—"}
                     </td>
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-                      {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
+                      {p.endDate ? formatDateDMY(p.endDate) : "—"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3.5">
                       {ems.length === 0 ? (
                         <span className="text-xs text-muted-foreground">—</span>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-2.5 text-foreground transition-colors hover:text-primary"
+                          className="inline-flex items-center gap-2.5 text-foreground"
                           title={ems[0].name}
                         >
                           <Avatar name={ems[0].name} size={28} />
@@ -731,13 +731,7 @@ export function ProjectsListPage() {
                             {d.updatedByName
                               ? `Updated by ${d.updatedByName}`
                               : `Created by ${d.createdByName}`} ·{" "}
-                            {new Date(d.updatedAtUtc || d.createdAtUtc).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {formatDateTimeDMY(d.updatedAtUtc || d.createdAtUtc)}
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-col gap-1.5">

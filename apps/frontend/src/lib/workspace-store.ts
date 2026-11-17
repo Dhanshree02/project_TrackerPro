@@ -18804,7 +18804,7 @@ export const dhStore = {
 
 
 
-        iv.resourceResponse.text += `\n[${actionTaken} - ${new Date(now).toLocaleDateString()}]: ${remarks.trim()}`;
+        iv.resourceResponse.text += `\n[${actionTaken} - ${`${String(new Date(now).getDate()).padStart(2, "0")}-${String(new Date(now).getMonth() + 1).padStart(2, "0")}-${new Date(now).getFullYear()}`}]: ${remarks.trim()}`;
 
 
 

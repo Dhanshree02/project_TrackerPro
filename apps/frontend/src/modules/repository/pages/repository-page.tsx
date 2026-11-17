@@ -33,7 +33,7 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
-import { cn } from "@/lib/utils";
+import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import { DocumentContentViewer } from "@/modules/repository/components/document-content-viewer";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
@@ -222,28 +222,11 @@ function formatFileSize(bytes: number): string {
 }
 
 function formatLastUpdated(iso: string): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatDateDMY(iso);
 }
 
 function formatExactDateTime(iso: string): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
+  return formatDateTimeDMY(iso);
 }
 
 function formatRelativeTime(iso: string): string {
@@ -1457,9 +1440,9 @@ function MyOrgPage() {
         />
 
         <div className="flex-1 min-w-0 flex flex-col gap-3">
-          <div className="w-fit max-w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+          <div className="w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
             <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
-              <table className="app-columns text-sm">
+              <table className="w-full min-w-[900px] text-sm">
                 <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                   <tr>
                     <th className="px-4 py-3 font-semibold text-muted-foreground">File Name</th>

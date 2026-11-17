@@ -43,6 +43,7 @@ import {
   type LeaveCalendarHoliday,
   type UpsertLeaveCalendarHolidayPayload,
 } from "@/modules/settings/api/leave-calendar";
+import { formatDateDMY } from "@/lib/utils";
 import { HolidayBulkUploadDialog } from "./holiday-bulk-upload-dialog";
 
 // Standard company holiday green matching Team Dashboard
@@ -195,20 +196,7 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
     }
   };
 
-  const formatDateLabel = (isoDate: string) => {
-    try {
-      const parts = isoDate.split("-");
-      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      return d.toLocaleDateString("en-US", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return isoDate;
-    }
-  };
+  const formatDateLabel = (isoDate: string) => formatDateDMY(isoDate) || isoDate;
 
   return (
     <div className="space-y-6">

@@ -1,3 +1,22 @@
+# Changelog - Synchronize pms_uat.sql from Local Database and Push Development Updates
+
+## Summary of Changes
+- **Database Dump & Verification (`database/pms_uat.sql`)**:
+  - Exported accurate dump from the active local database `trackerpro` via `pg_dump` with `-O` (`--no-owner`) and `-x` (`--no-privileges`).
+  - Cleaned `\restrict` and `\unrestrict` directives for broad PostgreSQL compatibility.
+  - Verified restore into temporary database `verify_pms_uat_dump` with **0 errors**.
+  - Synchronized `database/pms_uat.sql` to both `pms_uat` and `trackerpro` local databases to ensure 100% data and schema parity across all environments.
+- **Frontend & UI Polish**:
+  - Customer list, project list, and repository tables updated to use full viewport width.
+  - Consistent date formatting across UI and bulk upload templates (`DD-MM-YYYY`).
+  - Searchable catalog dropdowns with check indicators and rounded controls.
+  - Bucket list action styling, hover boundaries, and plain text task formatting.
+  - Stage tracker, TK ID and work email field components aligned.
+- **Backend Service Refinements**:
+  - Enhanced `LeaveCalendarService` with multi-format date parsing (`dd-MM-yyyy`, `yyyy-MM-dd`, etc.) for holiday bulk uploads.
+
+---
+
 # Changelog - Database Cleanup & Reset to Baseline (P001-P007, C001-C003, Clear Notifications & Approvals, Refresh pms_uat.sql)
 
 ## Summary of Changes

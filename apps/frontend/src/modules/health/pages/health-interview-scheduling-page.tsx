@@ -7,7 +7,8 @@ import { useRoleContext } from "@/lib/role-context";
 import { getPerson, people } from "@/lib/domain-models";
 import { Avatar, PriorityPill } from "@/components/pills";
 import { FormRow } from "@/components/form-row";
-import { cn } from "@/lib/utils";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
+import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
 import { useDhStore, dhStore, type InterviewStatus, type DhInterview } from "@/lib/workspace-store";
 
 const interviewStatuses: InterviewStatus[] = ["Pending", "Selected", "Rejected", "Postponed"];
@@ -91,7 +92,7 @@ export function HealthInterviewSchedulingPage() {
                   <p className="mt-1 line-clamp-2 text-sm">{iv.clientName}</p>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-[11px] text-muted-foreground">{iv.projectName}</span>
-                    <span className="text-[11px] text-muted-foreground">{new Date(iv.interviewDate).toLocaleDateString()}</span>
+                    <span className="text-[11px] text-muted-foreground">{formatDateDMY(iv.interviewDate)}</span>
                   </div>
                 </button>
               </li>
@@ -182,7 +183,7 @@ function InterviewDetail({
           <Field label="TK ID" value={interview.employeeId} />
           <Field label="Customer" value={interview.clientName} />
           <Field label="Project" value={interview.projectName} />
-          <Field label="Interview Date" value={new Date(interview.interviewDate).toLocaleDateString()} />
+          <Field label="Interview Date" value={formatDateDMY(interview.interviewDate)} />
           <Field label="Time" value={interview.interviewTime} />
           <Field label="Interviewer" value={interview.interviewer} />
         </div>
@@ -204,7 +205,7 @@ function InterviewDetail({
               <li key={idx} className="text-xs">
                 <span className="absolute -left-[5px] mt-1.5 h-2 w-2 rounded-full bg-primary" />
                 <span className="font-medium">{h.status}</span>
-                <span className="ml-2 text-muted-foreground">{new Date(h.at).toLocaleString()}</span>
+                <span className="ml-2 text-muted-foreground">{formatDateTimeDMY(h.at)}</span>
               </li>
             ))}
           </ol>
@@ -242,7 +243,7 @@ function InterviewDetail({
           <div className="rounded-lg border border-border bg-card p-3">
             <div className="text-xs font-semibold">Resource Response</div>
             <p className="mt-1 text-sm">{interview.resourceResponse.text}</p>
-            <div className="mt-2 text-xs text-muted-foreground">{new Date(interview.resourceResponse.at).toLocaleString()}</div>
+            <div className="mt-2 text-xs text-muted-foreground">{formatDateTimeDMY(interview.resourceResponse.at)}</div>
           </div>
         )}
       </div>
@@ -286,10 +287,12 @@ function NewInterviewDialog({
         </header>
         <div className="grid gap-3 p-5 text-sm">
           <FormRow label="Resource">
-            <select value={resourceId} onChange={(e) => setResourceId(e.target.value)} className="form-input">
-              <option value="">Select a resource…</option>
-              {people.map((p) => <option key={p.id} value={p.id}>{p.name} • {p.role}</option>)}
-            </select>
+            <SearchableSelect
+              value={resourceId}
+              onChange={setResourceId}
+              placeholder="Select a resource…"
+              options={people.map((p) => ({ value: p.id, label: `${p.name} • ${p.role}` }))}
+            />
           </FormRow>
           {resource && (
             <FormRow label="TK ID">

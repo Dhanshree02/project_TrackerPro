@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive, AlertCircle, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDateDMY } from "@/lib/utils";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Avatar, PriorityPill } from "@/components/pills";
 import type { DhNotification } from "@/lib/workspace-store";
@@ -26,10 +26,7 @@ export const formatNotifDate = (dateStr: string): string => {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = d.toLocaleString("en-US", { month: "short" });
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
+  return formatDateDMY(d);
 };
 
 export const formatNotifTime = (dateStr: string): string => {

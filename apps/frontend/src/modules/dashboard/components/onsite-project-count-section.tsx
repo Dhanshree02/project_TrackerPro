@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
@@ -163,16 +164,19 @@ export function OnsiteProjectCountSection({
                 </span>
                 <label className="flex items-center gap-2">
                   Chart projects
-                  <select
-                    value={chartLimit}
-                    onChange={(event) => setChartLimit(Number(event.target.value))}
-                    className="h-8 min-w-[7rem] rounded-md border border-input bg-card py-0 pl-2 pr-8 text-xs text-foreground"
-                  >
-                    <option value={10}>Top 10</option>
-                    <option value={20}>Top 20</option>
-                    <option value={50}>Top 50</option>
-                    <option value={0}>All</option>
-                  </select>
+                  <SearchableSelect
+                    value={String(chartLimit)}
+                    onChange={(value) => setChartLimit(Number(value))}
+                    placeholder="Top 10"
+                    options={[
+                      { value: "10", label: "Top 10" },
+                      { value: "20", label: "Top 20" },
+                      { value: "50", label: "Top 50" },
+                      { value: "0", label: "All" },
+                    ]}
+                    clearable={false}
+                    className="min-w-[7rem]"
+                  />
                 </label>
               </div>
               <ProjectCountChart

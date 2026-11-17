@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn } from "@/lib/utils";
 import { FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import type { ApiMetaOption } from "@/modules/employees/api/employees";
@@ -76,28 +76,23 @@ export function WorkEmailField({
             {...prefixInputProps}
           />
           <div className="relative border-l border-input">
-            <select
+            <SearchableSelect
               value={domain}
-              onChange={(e) => onDomainChange(e.target.value)}
-              className="h-full w-full appearance-none border-0 bg-muted/70 pl-2.5 pr-8 text-sm font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-0 cursor-pointer"
-              aria-label="Email domain"
-            >
-              {domainOptions.length === 0 ? (
-                <option value="" disabled>
-                  Loading…
-                </option>
-              ) : (
-                domainOptions.map((opt) => {
-                  const domainVal = opt.code.replace(/^@/, "");
-                  return (
-                    <option key={opt.id || opt.code} value={domainVal}>
-                      {opt.name.startsWith("@") ? opt.name : `@${opt.name}`}
-                    </option>
-                  );
-                })
-              )}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              onChange={onDomainChange}
+              placeholder={domainOptions.length === 0 ? "Loading…" : "Domain"}
+              disabled={domainOptions.length === 0}
+              clearable={false}
+              showSearch={domainOptions.length >= 5}
+              options={domainOptions.map((opt) => {
+                const domainVal = opt.code.replace(/^@/, "");
+                return {
+                  value: domainVal,
+                  label: opt.name.startsWith("@") ? opt.name : `@${opt.name}`,
+                };
+              })}
+              className="h-full min-w-[9rem]"
+              buttonClassName="h-full rounded-none border-0 bg-transparent px-2.5 text-xs font-semibold shadow-none"
+            />
           </div>
         </div>
         {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}

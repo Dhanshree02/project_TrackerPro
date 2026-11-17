@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { Avatar } from "@/components/pills";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -317,10 +318,10 @@ function OffboardConfirmDialog({
             <span className="mb-1 block text-xs font-medium text-muted-foreground">
               Employment Status <span className="text-destructive">*</span>
             </span>
-            <select
+            <SearchableSelect
               value={employeeStatusId}
-              onChange={(e) => {
-                setEmployeeStatusId(e.target.value);
+              onChange={(value) => {
+                setEmployeeStatusId(value);
                 if (errors.employeeStatusId) {
                   setErrors((prev) => {
                     const copy = { ...prev };
@@ -330,18 +331,13 @@ function OffboardConfirmDialog({
                 }
               }}
               disabled={isSubmitting || loadingStatuses}
-              className={cn(inputCls, errors.employeeStatusId && "border-destructive")}
-            >
-              {loadingStatuses ? (
-                <option value="">Loading employment statuses…</option>
-              ) : (
-                statusOptions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))
-              )}
-            </select>
+              disabledHint={loadingStatuses ? "Loading employment statuses…" : undefined}
+              placeholder="Select employment status"
+              options={statusOptions.map((s) => ({ value: s.id, label: s.name }))}
+              error={errors.employeeStatusId}
+              hideErrorText
+              clearable={false}
+            />
             {errors.employeeStatusId ? (
               <p className="mt-1 text-[11px] text-destructive">{errors.employeeStatusId}</p>
             ) : null}

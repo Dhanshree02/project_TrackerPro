@@ -1,28 +1,25 @@
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { PAGE_SIZE_ALL, PAGE_SIZE_OPTIONS } from "@/lib/pagination";
 
 type RowsPerPageSelectProps = {
   value: number;
   onChange: (pageSize: number) => void;
-  className?: string;
 };
 
-export function RowsPerPageSelect({ value, onChange, className }: RowsPerPageSelectProps) {
+export function RowsPerPageSelect({ value, onChange }: RowsPerPageSelectProps) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      className={
-        className ??
-        "h-7 min-w-[3.25rem] rounded-md border border-input bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/30 transition-colors"
-      }
-      aria-label="Rows per page"
-    >
-      {PAGE_SIZE_OPTIONS.map((size) => (
-        <option key={size} value={size}>
-          {size}
-        </option>
-      ))}
-      <option value={PAGE_SIZE_ALL}>All</option>
-    </select>
+    <SearchableSelect
+      value={String(value)}
+      onChange={(next) => onChange(Number(next))}
+      placeholder="Rows"
+      options={[
+        ...PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) })),
+        { value: String(PAGE_SIZE_ALL), label: "All" },
+      ]}
+      clearable={false}
+      showSearch={false}
+      className="w-[5.5rem] shrink-0"
+      buttonClassName="h-8 w-full cursor-pointer border-border bg-background px-2.5 font-medium text-foreground shadow-none hover:bg-accent"
+    />
   );
 }

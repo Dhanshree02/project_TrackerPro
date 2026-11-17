@@ -2145,10 +2145,11 @@ export function ProjectOnboardingPage() {
             createdBackendProjectId = backendProj.id;
 
             // Save service rows to backend database
+            const projectServiceIdByRow = new Map<string, string>();
             for (let i = 0; i < serviceRows.length; i++) {
               const r = serviceRows[i];
               try {
-                await addProjectService(backendProj.id, {
+                const savedService = await addProjectService(backendProj.id, {
                   serviceCatalogId: r.catalogId || null,
                   serviceAbbreviation: r.serviceAbbreviation || null,
                   taskId: r.taskId,
@@ -2173,6 +2174,7 @@ export function ProjectOnboardingPage() {
                   sortOrder: i,
                   generateInvoices: false,
                 });
+                if (savedService?.id) projectServiceIdByRow.set(r.rowId, savedService.id);
               } catch (svcErr) {
                 console.warn("Project service save to database failed:", svcErr);
               }
@@ -2187,7 +2189,11 @@ export function ProjectOnboardingPage() {
                 await createProjectInvoice(
                   backendProj.id,
                   toCreateInvoicePayload(
-                    { ...inv, resourceLevel: svcRow?.resourceLevel || "" },
+                    {
+                      ...inv,
+                      resourceLevel: svcRow?.resourceLevel || "",
+                      projectServiceId: projectServiceIdByRow.get(inv.serviceId) ?? null,
+                    },
                     i,
                     taxPercent || 18,
                   ),
@@ -2806,18 +2812,32 @@ export function ProjectOnboardingPage() {
                       </span>
                     )}
                     {!renewalFieldsLocked && (
-                    <ChevronDown
-                      size={18}
-                      strokeWidth={2.5}
+                    <button
+                      type="button"
+                      aria-label="Open customer list"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setClientDropOpen((open) => !open);
+                      }}
                       style={{
                         position: "absolute",
-                        right: 8,
+                        right: 4,
                         top: "50%",
                         transform: "translateY(-50%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 24,
+                        height: 24,
+                        border: "none",
+                        background: "transparent",
                         color: "var(--wbs-text)",
-                        pointerEvents: "none",
+                        cursor: "pointer",
+                        padding: 0,
                       }}
-                    />
+                    >
+                      <ChevronDown size={18} strokeWidth={2.5} style={{ pointerEvents: "none" }} />
+                    </button>
                     )}
                     {clientDropOpen && !renewalFieldsLocked && (
                       <div
@@ -2973,18 +2993,34 @@ export function ProjectOnboardingPage() {
                       </span>
                     )}
                     {!renewalFieldsLocked && (
-                    <ChevronDown
-                      size={18}
-                      strokeWidth={2.5}
+                    <button
+                      type="button"
+                      aria-label="Open sub-venture list"
+                      disabled={!selectedClientId}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        if (!selectedClientId) return;
+                        setSvDropOpen((open) => !open);
+                      }}
                       style={{
                         position: "absolute",
-                        right: 8,
+                        right: 4,
                         top: "50%",
                         transform: "translateY(-50%)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 24,
+                        height: 24,
+                        border: "none",
+                        background: "transparent",
                         color: "var(--wbs-text)",
-                        pointerEvents: "none",
+                        cursor: selectedClientId ? "pointer" : "default",
+                        padding: 0,
                       }}
-                    />
+                    >
+                      <ChevronDown size={18} strokeWidth={2.5} style={{ pointerEvents: "none" }} />
+                    </button>
                     )}
                     {svDropOpen && selectedClientId && !renewalFieldsLocked && (
                       <div
@@ -3174,10 +3210,9 @@ export function ProjectOnboardingPage() {
             }}
           >
             <FormGroup label="Contract Type" required>
-              <select
+              <SearchableSelect
                 value={contractType}
-                onChange={(e) => {
-                  const val = e.target.value;
+                onChange={(val) => {
                   const hadServices =
                     serviceRows.length > 0 || Object.keys(selectedServices).length > 0;
                   if (val !== contractType && hadServices) {
@@ -3199,15 +3234,9 @@ export function ProjectOnboardingPage() {
                   setBillingModel("");
                   setPaymentTerms("");
                 }}
-                style={selectStyle(false, !!contractType)}
-              >
-                <option value="">Select Contract Type</option>
-                {contractTypeOptions.map((ct) => (
-                  <option key={ct} value={ct}>
-                    {ct}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select Contract Type"
+                options={contractTypeOptions}
+              />
             </FormGroup>
             <FormGroup label="Sales Person" required>
               <SearchableSelect
@@ -3219,7 +3248,6 @@ export function ProjectOnboardingPage() {
                 options={salesPersonOptions}
                 value={salesPerson}
                 onChange={setSalesPerson}
-                buttonClassName="h-10 min-h-10 rounded-md border-border bg-card px-3 text-[13px] font-normal text-foreground shadow-none"
               />
             </FormGroup>
           </div>
@@ -3232,11 +3260,11 @@ export function ProjectOnboardingPage() {
             }}
           >
             <FormGroup label="Project Type" required>
-              <select
+              <SearchableSelect
                 value={projectType}
                 disabled={isResourceContract(contractType) || !contractType}
-                onChange={(e) => {
-                  const val = e.target.value;
+                disabledHint={!contractType ? "Select Contract Type first" : undefined}
+                onChange={(val) => {
                   setProjectType(val);
                   setBillingModel("");
                   setPaymentTerms("");
@@ -3250,21 +3278,14 @@ export function ProjectOnboardingPage() {
                     );
                   }
                 }}
-                style={selectStyle(isResourceContract(contractType) || !contractType, !!projectType)}
-                title={!contractType ? "Select a Contract Type first" : ""}
-              >
-                {!contractType ? (
-                  <option value="">Select Contract Type first</option>
-                ) : isResourceContract(contractType) ? (
-                  <option value="Long Term">Long Term</option>
-                ) : (
-                  <>
-                    <option value="">Select Project Type</option>
-                    <option value="Short term (Ad-hoc)">Short term (Ad-hoc)</option>
-                    <option value="Long Term">Long Term</option>
-                  </>
-                )}
-              </select>
+                placeholder={!contractType ? "Select Contract Type first" : "Select Project Type"}
+                options={
+                  isResourceContract(contractType)
+                    ? ["Long Term"]
+                    : ["Short term (Ad-hoc)", "Long Term"]
+                }
+                clearable={false}
+              />
             </FormGroup>
             <FormGroup label="Project Onboarding Date" required>
               <input type="date" value={projectIssuedDate} readOnly style={inputStyle(true, !!projectIssuedDate)} />
@@ -3494,16 +3515,13 @@ export function ProjectOnboardingPage() {
                             }}
                           />
                         ) : (
-                          <select
+                          <SearchableSelect
                             value={r.frequency}
-                            onChange={(e) => updateRow(r.rowId, "frequency", e.target.value)}
-                            style={{ ...reqSel(r.frequency), minWidth: 120 }}
-                          >
-                            <option value="">— Select —</option>
-                            <option value="Once">Once</option>
-                            <option value="Half yearly">Half yearly</option>
-                            <option value="Yearly">Yearly</option>
-                          </select>
+                            onChange={(value) => updateRow(r.rowId, "frequency", value)}
+                            placeholder="— Select —"
+                            options={["Once", "Half yearly", "Yearly"]}
+                            className="min-w-[120px]"
+                          />
                         )}
                       </td>
                       <td style={tdStyle}>
@@ -3521,34 +3539,26 @@ export function ProjectOnboardingPage() {
                             }}
                           />
                         ) : (
-                          <select
+                          <SearchableSelect
                             value={r.serviceModel}
-                            onChange={(e) => updateRow(r.rowId, "serviceModel", e.target.value)}
-                            style={{ ...reqSel(r.serviceModel), minWidth: 160 }}
-                          >
-                            <option value="">— Select —</option>
-                            <option value="Initial Test">Initial Test</option>
-                            <option value="Initial + 1 Re-test">Initial + 1 Re-test</option>
-                            <option value="Initial + 2 Re-test">Initial + 2 Re-test</option>
-                            <option value="Initial + 3 Re-test">Initial + 3 Re-test</option>
-                          </select>
+                            onChange={(value) => updateRow(r.rowId, "serviceModel", value)}
+                            placeholder="— Select —"
+                            options={["Initial Test", "Initial + 1 Re-test", "Initial + 2 Re-test", "Initial + 3 Re-test"]}
+                            className="min-w-[160px]"
+                          />
                         )}
                       </td>
                       <td style={tdStyle}>
-                        <select
+                        <SearchableSelect
                           value={r.location}
-                          onChange={(e) => {
-                            updateRow(r.rowId, "location", e.target.value);
-                            // clear locationText when switching away from Onsite
-                            if (e.target.value !== "Onsite") updateRow(r.rowId, "locationText", "");
+                          onChange={(value) => {
+                            updateRow(r.rowId, "location", value);
+                            if (value !== "Onsite") updateRow(r.rowId, "locationText", "");
                           }}
-                          style={{ ...reqSel(r.location), minWidth: 110 }}
-                        >
-                          <option value="">— Select —</option>
-                          <option>Onsite</option>
-                          <option>Offsite</option>
-                          <option>Hybrid</option>
-                        </select>
+                          placeholder="— Select —"
+                          options={["Onsite", "Offsite", "Hybrid"]}
+                          className="min-w-[110px]"
+                        />
                       </td>
                       <td style={tdStyle}>
                         <input
@@ -3569,17 +3579,13 @@ export function ProjectOnboardingPage() {
                         />
                       </td>
                       <td style={tdStyle}>
-                        <select
+                        <SearchableSelect
                           value={r.deliveryFormat}
-                          onChange={(e) => updateRow(r.rowId, "deliveryFormat", e.target.value)}
-                          style={{ ...reqSel(r.deliveryFormat), minWidth: 140 }}
-                        >
-                          <option value="">— Select —</option>
-                          <option value="PDF">PDF</option>
-                          <option value="Excel">Excel</option>
-                          <option value="Squad 1">Squad 1</option>
-                          <option value="Other Toolbase">Other Toolbase</option>
-                        </select>
+                          onChange={(value) => updateRow(r.rowId, "deliveryFormat", value)}
+                          placeholder="— Select —"
+                          options={["PDF", "Excel", "Squad 1", "Other Toolbase"]}
+                          className="min-w-[140px]"
+                        />
                       </td>
                       <td style={tdStyle}>
                         <input
@@ -3789,24 +3795,14 @@ export function ProjectOnboardingPage() {
             }}
           >
             <FormGroup label="Billing Model" required>
-              <select
+              <SearchableSelect
                 value={billingModel}
                 disabled={!projectType}
-                onChange={(e) => onBillingModelChange(e.target.value)}
-                style={selectStyle(!projectType, !!billingModel)}
-                title={!projectType ? "Select a Project Type in WBS Information first" : ""}
-              >
-                {!projectType ? (
-                  <option value="">⚠ Select Project Type first</option>
-                ) : (
-                  <option value="">Select Billing Model</option>
-                )}
-                {(BILLING_MODELS[projectType] || []).map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+                disabledHint="Select a Project Type in WBS Information first"
+                onChange={onBillingModelChange}
+                placeholder={!projectType ? "Select Project Type first" : "Select Billing Model"}
+                options={BILLING_MODELS[projectType] || []}
+              />
             </FormGroup>
             <FormGroup label={`Payment Terms${billingModel === "Custom" ? " *" : ""}`}>
               {billingModel === "Custom" ? (
@@ -3970,20 +3966,15 @@ export function ProjectOnboardingPage() {
             </FormGroup>
 
             <FormGroup label="PO Status" required>
-              <select
+              <SearchableSelect
                 value={poStatus}
-                onChange={(e) => {
-                  const val = e.target.value;
+                onChange={(val) => {
                   setPoStatus(val);
                   if (val !== "PO Received") setPoFile(null);
                 }}
-                style={selectStyle(false, !!poStatus)}
-              >
-                <option value="">Select PO Status</option>
-                <option value="PO Received">PO Received</option>
-                <option value="PO Pending">PO Pending</option>
-                <option value="PO Not Required">PO Not Required</option>
-              </select>
+                placeholder="Select PO Status"
+                options={["PO Received", "PO Pending", "PO Not Required"]}
+              />
             </FormGroup>
           </div>
 
@@ -4173,16 +4164,13 @@ export function ProjectOnboardingPage() {
 
                             {/* Invoice Status */}
                             <td style={tdStyleOverride}>
-                              <select
+                              <SearchableSelect
                                 value={inv.invoiceStatus}
-                                onChange={(e) =>
-                                  updateInvoiceRowField(inv.rowId, "invoiceStatus", e.target.value)
-                                }
-                                style={{ ...tblSelectStyle(!!inv.invoiceStatus), textAlign: "center", textAlignLast: "center" }}
-                              >
-                                <option value="Not Raised">Not Raised</option>
-                                <option value="Raised">Raised</option>
-                              </select>
+                                onChange={(value) => updateInvoiceRowField(inv.rowId, "invoiceStatus", value)}
+                                placeholder="Not Raised"
+                                options={["Not Raised", "Raised"]}
+                                clearable={false}
+                              />
                             </td>
 
                             {/* Invoice Number */}
@@ -4210,24 +4198,14 @@ export function ProjectOnboardingPage() {
 
                             {/* Payment Status */}
                             <td style={tdStyleOverride}>
-                              <select
+                              <SearchableSelect
                                 value={inv.paymentStatus}
                                 disabled={inv.invoiceStatus !== "Raised"}
-                                onChange={(e) =>
-                                  updateInvoiceRowField(inv.rowId, "paymentStatus", e.target.value)
-                                }
-                                style={{
-                                  ...tblSelectStyle(!!inv.paymentStatus),
-                                  textAlign: "center",
-                                  textAlignLast: "center",
-                                  ...(inv.invoiceStatus !== "Raised"
-                                    ? { backgroundColor: "var(--wbs-locked)", cursor: "not-allowed" }
-                                    : {}),
-                                }}
-                              >
-                                <option value="Not Received">Not Received</option>
-                                <option value="Received">Received</option>
-                              </select>
+                                onChange={(value) => updateInvoiceRowField(inv.rowId, "paymentStatus", value)}
+                                placeholder="Not Received"
+                                options={["Not Received", "Received"]}
+                                clearable={false}
+                              />
                             </td>
 
                             {/* Date of Payment Received */}
@@ -4329,16 +4307,6 @@ export function ProjectOnboardingPage() {
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <button onClick={handleSaveDraft} style={btnStyle("primary")}>
               Save Draft
-            </button>
-            <button
-              onClick={handleExport}
-              disabled={exporting}
-              style={{
-                ...btnStyle("secondary"),
-                ...(exporting ? { opacity: 0.6, cursor: "not-allowed" } : {}),
-              }}
-            >
-              {exporting ? "Preparing preview…" : "Export WBS"}
             </button>
             <button onClick={handleCreateWbsClick} style={btnStyle("primary")}>
               Create WBS
@@ -5060,23 +5028,20 @@ function ResourceLevelCell({
 
   if (qty <= 1) {
     return (
-      <select
+      <SearchableSelect
         value={RESOURCE_LEVELS.includes(resourceLevel as ResourceLevelName) ? resourceLevel : ""}
-        onChange={(e) => {
-          const v = e.target.value as ResourceLevelName | "";
+        onChange={(value) => {
+          const v = value as ResourceLevelName | "";
           const dist = EMPTY_DIST();
           if (v) dist[v] = 1;
           onChange(v, dist);
         }}
-        style={{ ...tblSelectStyle(!!resourceLevel), minWidth: 110, ...(invalid ? { border: "1.5px solid #ef4444" } : {}) }}
-      >
-        <option value="">— Select —</option>
-        {RESOURCE_LEVELS.map((level) => (
-          <option key={level} value={level}>
-            {level}
-          </option>
-        ))}
-      </select>
+        placeholder="— Select —"
+        options={RESOURCE_LEVELS}
+        error={invalid ? "Required" : undefined}
+        hideErrorText
+        className="min-w-[110px]"
+      />
     );
   }
 

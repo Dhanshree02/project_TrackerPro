@@ -7,6 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { Badge } from "@/components/ui/badge";
 import {
   fetchServiceHierarchy,
@@ -224,25 +225,19 @@ function ResourceDistSelector({
 
   if (qty <= 1) {
     return (
-      <select
+      <SearchableSelect
         value={RESOURCE_LEVELS.includes(resourceLevel as ResourceLevelName) ? resourceLevel : ""}
-        onChange={(e) => {
-          const v = e.target.value as ResourceLevelName | "";
+        onChange={(value) => {
+          const v = value as ResourceLevelName | "";
           const d = EMPTY_DIST();
           if (v) d[v] = 1;
           onChange(v, d);
         }}
-        className={`h-8 w-full rounded-md border px-2 text-xs bg-background ${
-          !isValid ? "border-destructive text-destructive" : "border-input"
-        }`}
-      >
-        <option value="">— Select Level —</option>
-        {RESOURCE_LEVELS.map((lvl) => (
-          <option key={lvl} value={lvl}>
-            {lvl}
-          </option>
-        ))}
-      </select>
+        placeholder="— Select Level —"
+        options={RESOURCE_LEVELS}
+        error={!isValid ? "Required" : undefined}
+        hideErrorText
+      />
     );
   }
 
@@ -1167,23 +1162,17 @@ export function EditServicesModal({
                     <label className="block text-xs font-semibold text-foreground mb-1">
                       Department <span className="text-destructive">*</span>
                     </label>
-                    <select
+                    <SearchableSelect
                       value={selectedDept}
-                      onChange={(e) => {
-                        setSelectedDept(e.target.value);
+                      onChange={(value) => {
+                        setSelectedDept(value);
                         setSelectedSubDept("");
                         setServiceName("");
                         setIsCustomServiceName(false);
                       }}
-                      className="h-8 w-full rounded-md border border-input bg-background px-2.5 text-xs focus-visible:ring-1 focus-visible:ring-primary outline-none"
-                    >
-                      <option value="">— Select Department —</option>
-                      {departmentsList.map((d) => (
-                        <option key={d.id} value={d.name}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="— Select Department —"
+                      options={departmentsList.map((d) => ({ value: d.name, label: d.name }))}
+                    />
                   </div>
 
                   {/* Sub-Department */}
@@ -1191,23 +1180,18 @@ export function EditServicesModal({
                     <label className="block text-xs font-semibold text-foreground mb-1">
                       Sub-Department <span className="text-destructive">*</span>
                     </label>
-                    <select
+                    <SearchableSelect
                       value={selectedSubDept}
                       disabled={!selectedDept}
-                      onChange={(e) => {
-                        setSelectedSubDept(e.target.value);
+                      disabledHint="Select a department first"
+                      onChange={(value) => {
+                        setSelectedSubDept(value);
                         setServiceName("");
                         setIsCustomServiceName(false);
                       }}
-                      className="h-8 w-full rounded-md border border-input bg-background px-2.5 text-xs focus-visible:ring-1 focus-visible:ring-primary outline-none disabled:opacity-50"
-                    >
-                      <option value="">— Select Sub-Department —</option>
-                      {subDepartmentsList.map((s) => (
-                        <option key={s.id} value={s.name}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="— Select Sub-Department —"
+                      options={subDepartmentsList.map((s) => ({ value: s.name, label: s.name }))}
+                    />
                   </div>
 
                   {/* Service Name Selector (from master catalog under subdepartment) */}
@@ -1216,20 +1200,17 @@ export function EditServicesModal({
                       Service Name <span className="text-destructive">*</span>
                     </label>
                     {!isCustomServiceName ? (
-                      <select
+                      <SearchableSelect
                         value={serviceName}
                         disabled={!selectedSubDept}
-                        onChange={(e) => handleServiceNameSelect(e.target.value)}
-                        className="h-8 w-full rounded-md border border-input bg-background px-2.5 text-xs focus-visible:ring-1 focus-visible:ring-primary outline-none disabled:opacity-50"
-                      >
-                        <option value="">— Select Service Name —</option>
-                        {availableServicesList.map((svc) => (
-                          <option key={svc.id} value={svc.name}>
-                            {svc.name}
-                          </option>
-                        ))}
-                        <option value="__custom__">+ Enter Custom Service Name</option>
-                      </select>
+                        disabledHint="Select a sub-department first"
+                        onChange={handleServiceNameSelect}
+                        placeholder="— Select Service Name —"
+                        options={[
+                          ...availableServicesList.map((svc) => ({ value: svc.name, label: svc.name })),
+                          { value: "__custom__", label: "+ Enter Custom Service Name" },
+                        ]}
+                      />
                     ) : (
                       <div className="flex items-center gap-1">
                         <input
@@ -1320,15 +1301,13 @@ export function EditServicesModal({
                         className="h-8 w-full rounded-md border border-input bg-muted px-2.5 text-xs text-center cursor-not-allowed"
                       />
                     ) : (
-                      <select
+                      <SearchableSelect
                         value={frequency}
-                        onChange={(e) => handleFrequencyChange(e.target.value)}
-                        className="h-8 w-full rounded-md border border-input bg-background px-2.5 text-xs focus-visible:ring-1 focus-visible:ring-primary outline-none"
-                      >
-                        <option value="Once">Once</option>
-                        <option value="Half yearly">Half yearly</option>
-                        <option value="Yearly">Yearly</option>
-                      </select>
+                        onChange={handleFrequencyChange}
+                        placeholder="Frequency"
+                        options={["Once", "Half yearly", "Yearly"]}
+                        clearable={false}
+                      />
                     )}
                   </div>
 
@@ -1345,16 +1324,13 @@ export function EditServicesModal({
                         className="h-8 w-full rounded-md border border-input bg-muted px-2.5 text-xs text-center cursor-not-allowed"
                       />
                     ) : (
-                      <select
+                      <SearchableSelect
                         value={serviceModel}
-                        onChange={(e) => setServiceModel(e.target.value)}
-                        className="h-8 w-full rounded-md border border-input bg-background px-2.5 text-xs focus-visible:ring-1 focus-visible:ring-primary outline-none"
-                      >
-                        <option value="Initial Test">Initial Test</option>
-                        <option value="Initial + 1 Re-test">Initial + 1 Re-test</option>
-                        <option value="Initial + 2 Re-test">Initial + 2 Re-test</option>
-                        <option value="Initial + 3 Re-test">Initial + 3 Re-test</option>
-                      </select>
+                        onChange={setServiceModel}
+                        placeholder="Service model"
+                        options={["Initial Test", "Initial + 1 Re-test", "Initial + 2 Re-test", "Initial + 3 Re-test"]}
+                        clearable={false}
+                      />
                     )}
                   </div>
                 </div>
@@ -1365,19 +1341,16 @@ export function EditServicesModal({
                     <label className="block text-xs font-semibold text-foreground mb-1">
                       Delivery Model
                     </label>
-                    <select
+                    <SearchableSelect
                       value={deliveryModel}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                      onChange={(val) => {
                         setDeliveryModel(val);
                         if (val !== "Onsite") setLocationText("");
                       }}
-                      className="h-8 w-full rounded-md border border-input bg-background px-2.5 text-xs focus-visible:ring-1 focus-visible:ring-primary outline-none"
-                    >
-                      <option value="Onsite">Onsite</option>
-                      <option value="Offsite">Offsite</option>
-                      <option value="Hybrid">Hybrid</option>
-                    </select>
+                      placeholder="Delivery model"
+                      options={["Onsite", "Offsite", "Hybrid"]}
+                      clearable={false}
+                    />
                   </div>
 
                   {/* Delivery Site / Location */}
@@ -1402,16 +1375,13 @@ export function EditServicesModal({
                     <label className="block text-xs font-semibold text-foreground mb-1">
                       Final Delivery Format
                     </label>
-                    <select
+                    <SearchableSelect
                       value={finalDeliveryFormat}
-                      onChange={(e) => setFinalDeliveryFormat(e.target.value)}
-                      className="h-8 w-full rounded-md border border-input bg-background px-2.5 text-xs focus-visible:ring-1 focus-visible:ring-primary outline-none"
-                    >
-                      <option value="PDF">PDF</option>
-                      <option value="Excel">Excel</option>
-                      <option value="Squad 1">Squad 1</option>
-                      <option value="Other Toolbase">Other Toolbase</option>
-                    </select>
+                      onChange={setFinalDeliveryFormat}
+                      placeholder="Delivery format"
+                      options={["PDF", "Excel", "Squad 1", "Other Toolbase"]}
+                      clearable={false}
+                    />
                   </div>
 
                   {/* Tools */}

@@ -257,7 +257,7 @@ import { fetchServiceHierarchy } from "@/lib/api/catalogs";
 
 
 
-// Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
+// Helper function for consistent date formatting in DD-MM-YYYY
 
 function formatDate(dateInput: Date | string | undefined | null): string {
 
@@ -275,7 +275,7 @@ function formatDate(dateInput: Date | string | undefined | null): string {
 
       const [, y, m, d] = match;
 
-      return `${d}/${m}/${y}`;
+      return `${d}-${m}-${y}`;
 
     }
 
@@ -291,7 +291,7 @@ function formatDate(dateInput: Date | string | undefined | null): string {
 
   const d = String(dObj.getDate()).padStart(2, "0");
 
-  return `${d}/${m}/${y}`;
+  return `${d}-${m}-${y}`;
 
 }
 
@@ -305,7 +305,7 @@ function formatDateString(dateStr: string | undefined | null): string {
 
   if (isNaN(d.getTime())) return "—";
 
-  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return formatDate(dateStr);
 
 }
 
@@ -551,7 +551,7 @@ function DateRangePicker({
 
 }) {
 
-  // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
+  // Parse "DD-MM-YYYY → DD-MM-YYYY" (formatDate output). Older slash values still parse. Do NOT use
 
   // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
 
@@ -561,7 +561,7 @@ function DateRangePicker({
 
     if (!s) return undefined;
 
-    const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    const dmy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
 
     if (dmy) {
 
@@ -8050,7 +8050,7 @@ function DefaultTasksTab({ project }: { project: Project }) {
 
                   <td className="px-3 py-2.5"><TaskStatusPill status={t.status} /></td>
 
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{new Date(t.dueDate).toLocaleDateString()}</td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{formatDate(t.dueDate)}</td>
 
                   <td className="px-3 py-2.5">
 
@@ -8178,7 +8178,7 @@ function formatDisplayDate(dateStr?: string | null): string {
 
     if (!isNaN(dt.getTime())) {
 
-      return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      return `${String(d).padStart(2, "0")}-${String(m + 1).padStart(2, "0")}-${y}`;
 
     }
 
@@ -11287,15 +11287,17 @@ function DhTasksTab({
 
                                             ) : (
 
-                                              <select
-
+                                              <SearchableSelect
                                                 value={t.stage}
-
                                                 disabled={readOnly}
-
-                                                onChange={(e) => {
-
-                                                  const v = e.target.value as TreeTaskStage;
+                                                clearable={false}
+                                                placeholder="Stage"
+                                                options={[
+                                                  ...TREE_TASK_STAGES.filter((s) => s !== "Not Started" && s !== "Completed" && s !== ("Assigned" as any)),
+                                                  "Completed",
+                                                ]}
+                                                onChange={(value) => {
+                                                  const v = value as TreeTaskStage;
 
                                                   if (v === t.stage) return;
 
@@ -11363,19 +11365,7 @@ function DhTasksTab({
 
                                                 }}
 
-                                                className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring text-center cursor-pointer", treeStageCls(t.stage))}
-
-                                              >
-
-                                                {TREE_TASK_STAGES.filter(s => s !== "Not Started" && s !== "Completed" && s !== ("Assigned" as any)).map((s) => (
-
-                                                  <option key={s} value={s}>{s}</option>
-
-                                                ))}
-
-                                                <option value="Completed">Completed</option>
-
-                                              </select>
+                                              />
 
                                             )}
 
@@ -12569,7 +12559,7 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
 
                 <span className="text-[10px] text-muted-foreground">
 
-                  {new Date(h.timestamp).toLocaleDateString()} {new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatDate(h.timestamp)} {new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 
                 </span>
 
@@ -13201,7 +13191,7 @@ function DhTeamTab({
 
       const detail = shadowDetails[id] || {
 
-        duration: `${new Date(project.startDate).toLocaleDateString()} → ${new Date(project.endDate).toLocaleDateString()}`,
+        duration: `${formatDate(project.startDate)} → ${formatDate(project.endDate)}`,
 
         billability: "Non-Billable" as Billability,
 
@@ -14540,11 +14530,12 @@ function TeamActionModal({
 
             ) : (
 
-              <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.billability} onChange={(e) => setEditState((s) => ({ ...s, billability: e.target.value as Billability }))}>
-
-                {(["Billable", "Non-Billable"] as Billability[]).map((o) => <option key={o}>{o}</option>)}
-
-              </select>
+              <SearchableSelect
+                value={editState.billability}
+                onChange={(value) => setEditState((s) => ({ ...s, billability: value as Billability }))}
+                options={["Billable", "Non-Billable"]}
+                clearable={false}
+              />
 
             )}
 
@@ -14566,11 +14557,12 @@ function TeamActionModal({
 
             ) : (
 
-              <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.resourceType} onChange={(e) => setEditState((s) => ({ ...s, resourceType: e.target.value as ResourceType }))}>
-
-                {(["Dedicated", "Shared Resource"] as ResourceType[]).map((o) => <option key={o}>{o}</option>)}
-
-              </select>
+              <SearchableSelect
+                value={editState.resourceType}
+                onChange={(value) => setEditState((s) => ({ ...s, resourceType: value as ResourceType }))}
+                options={["Dedicated", "Shared Resource"]}
+                clearable={false}
+              />
 
             )}
 
@@ -14684,11 +14676,12 @@ function TeamActionModal({
 
           <Field label="Badge">
 
-            <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={praise.tag} onChange={(e) => setPraise((s) => ({ ...s, tag: e.target.value }))}>
-
-              {["Team Player", "Innovator", "Customer Hero", "Above & Beyond", "Mentor"].map((o) => <option key={o}>{o}</option>)}
-
-            </select>
+            <SearchableSelect
+              value={praise.tag}
+              onChange={(value) => setPraise((s) => ({ ...s, tag: value }))}
+              options={["Team Player", "Innovator", "Customer Hero", "Above & Beyond", "Mentor"]}
+              clearable={false}
+            />
 
           </Field>
 
@@ -15509,23 +15502,12 @@ function AddTeamMemberModal({
 
           ) : (
 
-            <select
-
+            <SearchableSelect
               value={resourceType}
-
-              onChange={(e) => setResourceType(e.target.value as ResourceType)}
-
-              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
-            >
-
-              {(["Dedicated", "Shared Resource"] as ResourceType[]).map((t) => (
-
-                <option key={t} value={t}>{t}</option>
-
-              ))}
-
-            </select>
+              onChange={(value) => setResourceType(value as ResourceType)}
+              options={["Dedicated", "Shared Resource"]}
+              clearable={false}
+            />
 
           )}
 
@@ -15965,21 +15947,23 @@ function HealthIssuesPanel({ issues: _initialLegacyIssues, project, canRaise }: 
 
             <Field label="Issue Type">
 
-              <select value={formData.category} onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-
-                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-
-              </select>
+              <SearchableSelect
+                value={formData.category}
+                onChange={(value) => setFormData((s) => ({ ...s, category: value as IssueCategory }))}
+                options={["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"]}
+                clearable={false}
+              />
 
             </Field>
 
             <Field label="Priority">
 
-              <select value={formData.priority} onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-
-                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => <option key={pri} value={pri}>{pri}</option>)}
-
-              </select>
+              <SearchableSelect
+                value={formData.priority}
+                onChange={(value) => setFormData((s) => ({ ...s, priority: value as DhPriority }))}
+                options={["Low", "Medium", "High", "Critical"]}
+                clearable={false}
+              />
 
             </Field>
 
@@ -16045,7 +16029,7 @@ function HealthIssuesPanel({ issues: _initialLegacyIssues, project, canRaise }: 
 
                       <span>·</span>
 
-                      <span>{new Date(issue.createdAtUtc).toLocaleDateString()}</span>
+                      <span>{formatDate(issue.createdAtUtc)}</span>
 
                     </div>
 
@@ -16201,7 +16185,7 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
 
                 <p className="mt-1 text-xs text-muted-foreground">
 
-                  Raised by {alert.raisedByName} · {new Date(alert.createdAtUtc).toLocaleDateString()}
+                  Raised by {alert.raisedByName} · {formatDate(alert.createdAtUtc)}
 
                 </p>
 
@@ -16217,7 +16201,7 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
 
                         <span>·</span>
 
-                        <span>{new Date(alert.statusChangedAtUtc).toLocaleDateString()}</span>
+                        <span>{formatDate(alert.statusChangedAtUtc)}</span>
 
                       </>
 
@@ -17605,29 +17589,15 @@ function HealthAppreciationPanel({
 
               ) : (
 
-                <select
-
+                <SearchableSelect
                   value={formData.recipientEmployeeId}
-
-                  onChange={(e) => setFormData((s) => ({ ...s, recipientEmployeeId: e.target.value }))}
-
-                  className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
-                >
-
-                  {teamMembers.map((m) => (
-
-                    <option key={m.employeeId} value={m.employeeId}>
-
-                      {m.employeeName}
-
-                      {m.employeeCode ? ` (${m.employeeCode})` : ""} — {m.employeeRole || m.memberRole || "Team Member"}
-
-                    </option>
-
-                  ))}
-
-                </select>
+                  onChange={(value) => setFormData((s) => ({ ...s, recipientEmployeeId: value }))}
+                  placeholder="Select a team member"
+                  options={teamMembers.map((m) => ({
+                    value: m.employeeId,
+                    label: `${m.employeeName}${m.employeeCode ? ` (${m.employeeCode})` : ""} — ${m.employeeRole || m.memberRole || "Team Member"}`,
+                  }))}
+                />
 
               )}
 
@@ -17637,27 +17607,12 @@ function HealthAppreciationPanel({
 
             <Field label="Badge">
 
-              <select
-
+              <SearchableSelect
                 value={formData.badge}
-
-                onChange={(e) => setFormData((s) => ({ ...s, badge: e.target.value }))}
-
-                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
-              >
-
-                {BADGE_OPTIONS.map((b) => (
-
-                  <option key={b} value={b}>
-
-                    {b}
-
-                  </option>
-
-                ))}
-
-              </select>
+                onChange={(value) => setFormData((s) => ({ ...s, badge: value }))}
+                options={BADGE_OPTIONS}
+                clearable={false}
+              />
 
             </Field>
 
@@ -18293,7 +18248,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
               <span>By: {req.requestedBy}</span>
 
-              <span>{new Date(req.requestedDate).toLocaleDateString()}</span>
+              <span>{formatDate(req.requestedDate)}</span>
 
             </div>
 
@@ -18379,17 +18334,15 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
                 <Field label="Requirement Title" required>
 
-                  <select value={title} onChange={(e) => { setTitle(e.target.value); if (e.target.value !== "Other") setCustomTitle(""); }} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-
-                    <option value="" disabled>Select requirement type...</option>
-
-                    <option value="Resource Requirement">Resource Requirement</option>
-
-                    <option value="Scope Requirement">Scope Requirement</option>
-
-                    <option value="Other">Other</option>
-
-                  </select>
+                  <SearchableSelect
+                    value={title}
+                    onChange={(value) => {
+                      setTitle(value);
+                      if (value !== "Other") setCustomTitle("");
+                    }}
+                    placeholder="Select requirement type..."
+                    options={["Resource Requirement", "Scope Requirement", "Other"]}
+                  />
 
                 </Field>
 
@@ -18409,17 +18362,12 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
               <Field label="Service to Cancel" required>
 
-                <select value={scopeCancellation} onChange={(e) => setScopeCancellation(e.target.value)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-
-                  <option value="" disabled>Select service...</option>
-
-                  {projectServices.map((svc) => (
-
-                    <option key={svc.id} value={svc.name}>{svc.name}</option>
-
-                  ))}
-
-                </select>
+                <SearchableSelect
+                  value={scopeCancellation}
+                  onChange={setScopeCancellation}
+                  placeholder="Select service..."
+                  options={projectServices.map((svc) => ({ value: svc.name, label: svc.name }))}
+                />
 
               </Field>
 
@@ -18435,11 +18383,12 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
               <Field label="Priority">
 
-                <select value={priority} onChange={(e) => setPriority(e.target.value as DhPriority)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm">
-
-                  {["Low", "Medium", "High", "Critical"].map((p) => <option key={p} value={p}>{p}</option>)}
-
-                </select>
+                <SearchableSelect
+                  value={priority}
+                  onChange={(value) => setPriority(value as DhPriority)}
+                  options={["Low", "Medium", "High", "Critical"]}
+                  clearable={false}
+                />
 
               </Field>
 
@@ -18709,7 +18658,7 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
           <Info icon={Users} label="Requested By" value={req.requestedBy} />
 
-          <Info icon={Calendar} label="Date" value={new Date(req.requestedDate).toLocaleDateString()} />
+          <Info icon={Calendar} label="Date" value={formatDate(req.requestedDate)} />
 
           <Info icon={AlertTriangle} label="Priority" value={req.priority} />
 
@@ -18773,7 +18722,7 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
                     <span className="font-semibold text-gray-800">{c.authorName}</span>
 
-                    <span className="text-[10px] text-muted-foreground">{new Date(c.at).toLocaleString()}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatDate(c.at)} {new Date(c.at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</span>
 
                   </div>
 
@@ -18819,7 +18768,7 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
                     <span className="ml-2 text-[10px] text-muted-foreground">
 
-                      {new Date(h.at).toLocaleDateString()} {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatDate(h.at)} {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 
                     </span>
 
@@ -19417,29 +19366,12 @@ function InterviewSchedulingPanel({ project, isEM: _isEM, canManage = true }: { 
 
             <Field label="Resource Name" required as="div">
 
-              <select
-
+              <SearchableSelect
                 value={resourceId}
-
-                onChange={(e) => setResourceId(e.target.value)}
-
-                className={inputCls}
-
-              >
-
-                <option value="">Select a team member</option>
-
-                {teamMembers.map((member) => (
-
-                  <option key={member.employeeId} value={member.employeeId}>
-
-                    {member.employeeName}
-
-                  </option>
-
-                ))}
-
-              </select>
+                onChange={setResourceId}
+                placeholder="Select a team member"
+                options={teamMembers.map((member) => ({ value: member.employeeId, label: member.employeeName }))}
+              />
 
               {teamMembers.length === 0 && (
 
@@ -19501,15 +19433,12 @@ function InterviewSchedulingPanel({ project, isEM: _isEM, canManage = true }: { 
 
             <Field label="Interview Result" required as="div">
 
-              <select value={resultValue} onChange={(e) => setResultValue(e.target.value as InterviewResult)} className={inputCls}>
-
-                {(["Pending", "Selected", "Rejected", "Postponed"] as InterviewResult[]).map((option) => (
-
-                  <option key={option} value={option}>{option}</option>
-
-                ))}
-
-              </select>
+              <SearchableSelect
+                value={resultValue}
+                onChange={(value) => setResultValue(value as InterviewResult)}
+                options={["Pending", "Selected", "Rejected", "Postponed"]}
+                clearable={false}
+              />
 
             </Field>
 
@@ -19647,29 +19576,13 @@ function PrerequisiteValidationPanel({ prereq, project, isEM }: { prereq: DhProj
 
             {isEM ? (
 
-              <select
-
+              <SearchableSelect
                 value={editingStatus}
-
-                onChange={(e) => handleStatusChange(e.target.value as PrereqStatus)}
-
-                className={cn(
-
-                  "h-8 rounded-md border px-2.5 text-[10px] font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-
-                  editingStatus === "Validated"
-
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-
-                    : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-
-                )}
-
-              >
-
-                {(["Validation Pending", "Validated"] as PrereqStatus[]).map((s) => <option key={s} value={s}>{s}</option>)}
-
-              </select>
+                onChange={(value) => handleStatusChange(value as PrereqStatus)}
+                options={["Validation Pending", "Validated"]}
+                clearable={false}
+                className="w-44"
+              />
 
             ) : (
 
@@ -20787,139 +20700,40 @@ function WbsPrerequisiteSection({
 
                           <td className="px-3 py-2.5 text-center align-middle">
 
-                            <select
-
+                            <SearchableSelect
                               value={isResourceDept ? "NA" : svc.collectionStatus}
-
                               disabled={effectiveReadOnly || isResourceDept || isDeleted || isReady}
-
-                              onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
-
-                              className={cn(
-
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                effectiveReadOnly || isResourceDept || isDeleted || isReady
-
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-
-                                  : svc.collectionStatus === "Collected"
-
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-
-                              )}
-
-                            >
-
-                              {isResourceDept ? (
-
-                                <option value="NA">NA</option>
-
-                              ) : (
-
-                                <>
-
-                                  <option value="Pending To Collect">Pending To Collect</option>
-
-                                  <option value="Collected">Collected</option>
-
-                                </>
-
-                              )}
-
-                            </select>
+                              onChange={(value) => handleServiceChange(svc.serviceId, "collectionStatus", value)}
+                              options={isResourceDept ? ["NA"] : ["Pending To Collect", "Collected"]}
+                              clearable={false}
+                              showSearch={false}
+                            />
 
                           </td>
 
                           <td className="px-3 py-2.5 text-center align-middle">
 
-                            <select
-
+                            <SearchableSelect
                               value={isResourceDept ? "NA" : svc.validationStatus}
-
                               disabled={effectiveReadOnly || isResourceDept || !isCollected || isDeleted || isReady}
-
-                              onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
-
-                              className={cn(
-
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                (effectiveReadOnly || isResourceDept || !isCollected || isDeleted || isReady)
-
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-
-                                  : svc.validationStatus === "Validated"
-
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-
-                              )}
-
-                            >
-
-                              {isResourceDept ? (
-
-                                <option value="NA">NA</option>
-
-                              ) : (
-
-                                <>
-
-                                  <option value="Pending To Validate">Pending To Validate</option>
-
-                                  <option value="Validated">Validated</option>
-
-                                </>
-
-                              )}
-
-                            </select>
+                              onChange={(value) => handleServiceChange(svc.serviceId, "validationStatus", value)}
+                              options={isResourceDept ? ["NA"] : ["Pending To Validate", "Validated"]}
+                              clearable={false}
+                              showSearch={false}
+                            />
 
                           </td>
 
                           <td className="px-3 py-2.5 text-center align-middle">
 
-                            <select
-
+                            <SearchableSelect
                               value={svc.billingStatus ?? "Advance Pending"}
-
                               disabled={effectiveReadOnly || isDeleted || isReady}
-
-                              onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
-
-                              className={cn(
-
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                effectiveReadOnly || isDeleted || isReady
-
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-
-                                  : svc.billingStatus === "Advance Received"
-
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                    : svc.billingStatus === "Advance Not Required"
-
-                                      ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-
-                                      : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer"
-
-                              )}
-
-                            >
-
-                              <option value="Advance Pending">Advance Pending</option>
-
-                              <option value="Advance Received">Advance Received</option>
-
-                              <option value="Advance Not Required">Advance Not Required</option>
-
-                            </select>
+                              onChange={(value) => handleServiceChange(svc.serviceId, "billingStatus", value)}
+                              options={["Advance Pending", "Advance Received", "Advance Not Required"]}
+                              clearable={false}
+                              showSearch={false}
+                            />
 
                           </td>
 
@@ -21129,15 +20943,14 @@ function WbsPrerequisiteSection({
 
                             <td className="px-3 py-2.5 text-center align-middle">
 
-                              <select
-
+                              <SearchableSelect
                                 value={isResourceDept ? "NA" : (localServiceStatus[svc.serviceId]?.modCollectionStatus ?? wbsSvc.modCollectionStatus ?? "Pending To Collect")}
-
                                 disabled={effectiveReadOnly || isResourceDept || Boolean(isModified && wbsSvc.modIsReady)}
-
-                                onChange={(e) => {
-
-                                  const val = e.target.value;
+                                options={isResourceDept ? ["NA"] : ["Pending To Collect", "Collected"]}
+                                clearable={false}
+                                showSearch={false}
+                                onChange={(value) => {
+                                  const val = value;
 
                                   setLocalServiceStatus((prev) => ({
 
@@ -21156,52 +20969,20 @@ function WbsPrerequisiteSection({
                                   });
 
                                 }}
-
-                                className={cn(
-
-                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                  (effectiveReadOnly || isResourceDept || (isModified && wbsSvc.modIsReady))
-
-                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
-
-                                    : (wbsSvc.modCollectionStatus === "Collected"
-
-                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer")
-
-                                )}
-
-                              >
-
-                                {isResourceDept ? <option value="NA">NA</option> : (
-
-                                  <>
-
-                                    <option value="Pending To Collect">Pending To Collect</option>
-
-                                    <option value="Collected">Collected</option>
-
-                                  </>
-
-                                )}
-
-                              </select>
+                              />
 
                             </td>
 
                             <td className="px-3 py-2.5 text-center align-middle">
 
-                              <select
-
+                              <SearchableSelect
                                 value={isResourceDept ? "NA" : (localServiceStatus[svc.serviceId]?.modValidationStatus ?? wbsSvc.modValidationStatus ?? "Pending To Validate")}
-
                                 disabled={effectiveReadOnly || isResourceDept || Boolean(isModified && wbsSvc.modIsReady) || (!isResourceDept && (localServiceStatus[svc.serviceId]?.modCollectionStatus ?? wbsSvc.modCollectionStatus) !== "Collected")}
-
-                                onChange={(e) => {
-
-                                  const val = e.target.value;
+                                options={isResourceDept ? ["NA"] : ["Pending To Validate", "Validated"]}
+                                clearable={false}
+                                showSearch={false}
+                                onChange={(value) => {
+                                  const val = value;
 
                                   setLocalServiceStatus((prev) => ({
 
@@ -21220,52 +21001,20 @@ function WbsPrerequisiteSection({
                                   });
 
                                 }}
-
-                                className={cn(
-
-                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                  (effectiveReadOnly || isResourceDept || (isModified && wbsSvc.modIsReady) || (!isResourceDept && wbsSvc.modCollectionStatus !== "Collected"))
-
-                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
-
-                                    : (wbsSvc.modValidationStatus === "Validated"
-
-                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer")
-
-                                )}
-
-                              >
-
-                                {isResourceDept ? <option value="NA">NA</option> : (
-
-                                  <>
-
-                                    <option value="Pending To Validate">Pending To Validate</option>
-
-                                    <option value="Validated">Validated</option>
-
-                                  </>
-
-                                )}
-
-                              </select>
+                              />
 
                             </td>
 
                             <td className="px-3 py-2.5 text-center align-middle">
 
-                              <select
-
+                              <SearchableSelect
                                 value={localServiceStatus[svc.serviceId]?.modBillingStatus ?? wbsSvc.modBillingStatus ?? "Advance Pending"}
-
                                 disabled={effectiveReadOnly || Boolean(isModified && wbsSvc.modIsReady)}
-
-                                onChange={(e) => {
-
-                                  const val = e.target.value;
+                                options={["Advance Pending", "Advance Received", "Advance Not Required"]}
+                                clearable={false}
+                                showSearch={false}
+                                onChange={(value) => {
+                                  const val = value;
 
                                   setLocalServiceStatus((prev) => ({
 
@@ -21284,36 +21033,7 @@ function WbsPrerequisiteSection({
                                   });
 
                                 }}
-
-                                className={cn(
-
-                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                  (effectiveReadOnly || (isModified && wbsSvc.modIsReady))
-
-                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
-
-                                    : wbsSvc.modBillingStatus === "Advance Received"
-
-                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                      : wbsSvc.modBillingStatus === "Advance Not Required"
-
-                                        ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-
-                                        : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer"
-
-                                )}
-
-                              >
-
-                                <option value="Advance Pending">Advance Pending</option>
-
-                                <option value="Advance Received">Advance Received</option>
-
-                                <option value="Advance Not Required">Advance Not Required</option>
-
-                              </select>
+                              />
 
                             </td>
 
@@ -21525,37 +21245,24 @@ function WbsPrerequisiteSection({
 
                 <label className="font-bold text-gray-700">Escalation Type <span className="text-destructive">*</span></label>
 
-                <select
-
+                <SearchableSelect
                   value={escType}
-
-                  onChange={(e) => setEscType(e.target.value)}
-
-                  className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
-
-                >
-
-                  <option value="Prerequisite Pending">Prerequisite Pending</option>
-
-                  <option value="Customer Dependency">Customer Dependency</option>
-
-                  <option value="Billing Issue">Billing Issue</option>
-
-                  <option value="Technical Blocker">Technical Blocker</option>
-
-                  <option value="Resource Blocker">Resource Blocker</option>
-
-                  <option value="Approval Pending">Approval Pending</option>
-
-                  <option value="Infrastructure Issue">Infrastructure Issue</option>
-
-                  <option value="Requirement Clarification">Requirement Clarification</option>
-
-                  <option value="Timeline Risk">Timeline Risk</option>
-
-                  <option value="Other">Other</option>
-
-                </select>
+                  onChange={setEscType}
+                  placeholder="Escalation type"
+                  options={[
+                    "Prerequisite Pending",
+                    "Customer Dependency",
+                    "Billing Issue",
+                    "Technical Blocker",
+                    "Resource Blocker",
+                    "Approval Pending",
+                    "Infrastructure Issue",
+                    "Requirement Clarification",
+                    "Timeline Risk",
+                    "Other",
+                  ]}
+                  clearable={false}
+                />
 
               </div>
 
@@ -21565,25 +21272,13 @@ function WbsPrerequisiteSection({
 
                 <label className="font-bold text-gray-700">Priority <span className="text-destructive">*</span></label>
 
-                <select
-
+                <SearchableSelect
                   value={escPriority}
-
-                  onChange={(e) => setEscPriority(e.target.value as any)}
-
-                  className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
-
-                >
-
-                  <option value="Low">Low</option>
-
-                  <option value="Medium">Medium</option>
-
-                  <option value="High">High</option>
-
-                  <option value="Critical">Critical</option>
-
-                </select>
+                  onChange={(value) => setEscPriority(value as any)}
+                  placeholder="Priority"
+                  options={["Low", "Medium", "High", "Critical"]}
+                  clearable={false}
+                />
 
               </div>
 

@@ -5,7 +5,27 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-16
+**Last updated:** 2026-11-17
+
+- **Engagement Mgr in the project list stays the normal text color on hover.** `apps/frontend/src/modules/projects/pages/projects-list-page.tsx`.
+
+- **Export WBS is hidden on WBS Management System.** Save Draft and Create WBS stay on the workflow bar. `apps/frontend/src/modules/projects/pages/project-onboarding-page.tsx`.
+
+- **The customer list table uses the full width, the same as the project list and repository tables.**
+
+- **Per page is one fixed-size control, and the project list and repository tables use the full width.** The page-size field no longer shrinks inside a second box. Those two tables fill the page instead of hugging their text.
+
+- **The TK Customer and Sub-venture arrows show a hand on hover.** Each chevron opens and closes its list on project onboarding. `apps/frontend/src/modules/projects/pages/project-onboarding-page.tsx`.
+
+- **Dropdowns use the All Departments list.** The field is the compact rounded control with a chevron. A chosen value gets the blue tint, and the list shows a check on the selected row. Search appears when the list is long. `SearchableSelect` in `apps/frontend/src/components/creatable-catalog-select.tsx`.
+
+- **Creating a WBS saves the invoice rows.** Each invoice was sent with the service code as `projectServiceId`. The API only accepts the saved project-service id, so every row was rejected. The create flow now sends that id, and a service code is left off the invoice.
+
+- **Dates on screen and in the bulk-upload samples use DD-MM-YYYY.** Due Date, project dates, holidays, repository dates, and timestamps follow that pattern. The holiday sample and the employee sample use the same day-month-year order. Calendar month names stay as month names. Date fields that the browser fills still store `yyyy-mm-dd`.
+
+- **Bucket List task names are plain text.** The Task column no longer opens the project. The running API uses local PostgreSQL 18 database `trackerpro` on `localhost:5432`.
+
+- **Bucket List row hover and divider follow the row.** The timer card was wider than the Actions column, so the hover and the row line stopped short and sat across the cards. The Actions column is wider, the card stays inside that cell, and the row line comes from the table divider. `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`.
 
 - **Database updates for development go through `database/pms_development.sql`.** Sahil's `database/pms_uat.sql` was loaded into `pms_development` on `pms_development_db`. `AlertType` is `character varying(100)`. The loaded data is 4 clients, 8 projects, 110 employees, and 30 leave-calendar rows. `pms_development.sql` was dumped from that database on PostgreSQL 16. `pms_uat.sql` stays as the file he pushed.
 

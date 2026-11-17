@@ -7,7 +7,8 @@ import { useRoleContext } from "@/lib/role-context";
 import { getPerson } from "@/lib/domain-models";
 import { Avatar } from "@/components/pills";
 import { FormRow } from "@/components/form-row";
-import { cn } from "@/lib/utils";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
+import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
 import { useDhStore, dhStore, type RequirementStatus, type DhPriority, type DhComment, type DhAdditionalRequirement } from "@/lib/workspace-store";
 
 const requirementStatuses: RequirementStatus[] = ["Open", "Under Review", "Approved", "Rejected", "Implemented"];
@@ -204,7 +205,7 @@ function RequirementDetail({
           <Field label="Customer" value={requirement.clientName} />
           <Field label="Project" value={requirement.projectName} />
           <Field label="Requested By" value={requirement.requestedBy} />
-          <Field label="Requested Date" value={new Date(requirement.requestedDate).toLocaleDateString()} />
+          <Field label="Requested Date" value={formatDateDMY(requirement.requestedDate)} />
           <Field label="Priority" value={requirement.priority} />
         </div>
         {requirement.attachmentName && (
@@ -229,7 +230,7 @@ function RequirementDetail({
                   <div className="flex-1 rounded-lg border border-border bg-accent/30 p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold">{c.authorName}</span>
-                      <span className="text-[11px] text-muted-foreground">{new Date(c.at).toLocaleString()}</span>
+                      <span className="text-[11px] text-muted-foreground">{formatDateTimeDMY(c.at)}</span>
                     </div>
                     <p className="mt-1 text-sm">{c.text}</p>
                   </div>
@@ -276,7 +277,7 @@ function RequirementDetail({
               <li key={h.at} className="text-xs">
                 <span className="absolute -left-[5px] mt-1.5 h-2 w-2 rounded-full bg-primary" />
                 <span className="font-medium">{h.status}</span> · {h.updatedByName}
-                <span className="ml-2 text-muted-foreground">{new Date(h.at).toLocaleString()}</span>
+                <span className="ml-2 text-muted-foreground">{formatDateTimeDMY(h.at)}</span>
               </li>
             ))}
           </ol>
@@ -332,9 +333,13 @@ function NewRequirementDialog({
           </FormRow>
           <div className="grid grid-cols-2 gap-3">
             <FormRow label="Priority">
-              <select value={priority} onChange={(e) => setPriority(e.target.value as DhPriority)} className="form-input">
-                {priorities.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
+              <SearchableSelect
+                value={priority}
+                onChange={(value) => setPriority(value as DhPriority)}
+                placeholder="Priority"
+                options={priorities}
+                clearable={false}
+              />
             </FormRow>
             <FormRow label="Requested Date">
               <input type="date" value={requestedDate} onChange={(e) => setRequestedDate(e.target.value)} className="form-input" />

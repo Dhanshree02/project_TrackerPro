@@ -1039,20 +1039,19 @@ function UserwiseAccessView() {
 
           {/* Department Filter */}
           <div className="w-full md:w-56 shrink-0">
-            <select
+            <SearchableSelect
               value={department}
-              onChange={(e) => {
-                setDepartment(e.target.value);
+              onChange={(value) => {
+                setDepartment(value || "All");
                 setPage(1);
               }}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/50 focus:border-primary transition-colors"
-            >
-              {USERWISE_DEPARTMENT_OPTIONS.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept === "All" ? "All Departments" : dept}
-                </option>
-              ))}
-            </select>
+              placeholder="All Departments"
+              options={USERWISE_DEPARTMENT_OPTIONS.map((dept) => ({
+                value: dept,
+                label: dept === "All" ? "All Departments" : dept,
+              }))}
+              className="w-full"
+            />
           </div>
 
           {/* Reset Filters Button */}
@@ -1233,31 +1232,24 @@ function UserwiseAccessView() {
                       {/* Assigned RBAC Role (department-restricted dropdown) */}
                       <td className="overflow-hidden px-4 py-3.5">
                         <div className="flex min-w-0 flex-col gap-1">
-                          <select
+                          <SearchableSelect
                             value={row.currentRoleId ?? ""}
-                            onChange={(e) => {
-                              const newRoleId = e.target.value;
+                            onChange={(newRoleId) => {
                               if (!newRoleId || newRoleId === row.currentRoleId) return;
                               const targetRole = row.departmentRoles.find((r) => r.id === newRoleId);
                               if (!targetRole) return;
                               setPendingRoleChange({ employee: row, newRole: targetRole });
                             }}
                             disabled={row.isSuperAdmin || isUpdating}
-                            title={row.isSuperAdmin ? "Super Admin role is locked" : `Choose role from ${row.departmentName}`}
-                            className={cn(
-                              "h-8 w-full rounded-md border px-2.5 text-xs font-medium transition-colors outline-none cursor-pointer",
-                              row.isSwitched
-                                ? "border-primary bg-primary/5 text-primary font-semibold focus:ring-1 focus:ring-primary"
-                                : "border-input bg-background text-foreground hover:bg-muted/50 focus:border-primary",
-                              (row.isSuperAdmin || isUpdating) && "opacity-60 cursor-not-allowed bg-muted/30"
-                            )}
-                          >
-                            {row.departmentRoles.map((role) => (
-                              <option key={role.id} value={role.id}>
-                                {role.displayName || role.name}
-                              </option>
-                            ))}
-                          </select>
+                            disabledHint={row.isSuperAdmin ? "Super Admin role is locked" : undefined}
+                            placeholder={`Choose role from ${row.departmentName}`}
+                            options={row.departmentRoles.map((role) => ({
+                              value: role.id,
+                              label: role.displayName || role.name,
+                            }))}
+                            clearable={false}
+                            className="w-full"
+                          />
                           {row.isSwitched && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary">
                               <span className="size-1.5 rounded-full bg-primary animate-pulse" />
@@ -1316,7 +1308,6 @@ function UserwiseAccessView() {
                   setPageSize(size);
                   setPage(1);
                 }}
-                className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
           </div>

@@ -156,6 +156,7 @@ import {
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 
 import { Field } from "@/components/form-row";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 
 import {
   createProjectIssue,
@@ -643,16 +644,11 @@ function BucketListRow({
 
 
   return (
-    <tr className="hover:bg-accent/30 border-b border-border">
+    <tr className="hover:bg-accent/30">
       <td className="px-3 py-2.5 truncate">
-        <Link
-          to="/projects/$projectId"
-          params={{ projectId: r.projectId }}
-          hash={r.taskId}
-          className="font-semibold text-foreground hover:text-primary transition-colors block truncate"
-        >
+        <span className="font-semibold text-foreground block truncate">
           {r.taskTitle}
-        </Link>
+        </span>
       </td>
       <td className="px-3 py-2.5 text-muted-foreground font-medium truncate">{r.projectName}</td>
       <td className="px-3 py-2.5">
@@ -661,19 +657,7 @@ function BucketListRow({
 
       <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground font-medium">
 
-        {r.dueDate
-
-          ? new Date(r.dueDate).toLocaleDateString("en-GB", {
-
-              day: "2-digit",
-
-              month: "short",
-
-              year: "numeric",
-
-            })
-
-          : "—"}
+        {r.dueDate ? formatToDayMonthYear(r.dueDate) || "—" : "—"}
 
       </td>
 
@@ -730,7 +714,7 @@ function BucketListRow({
 
       <td className="px-3 py-2.5">
 
-        <div className="flex flex-col gap-1.5 min-w-[210px] bg-muted/20 p-2 rounded-lg border border-border/80">
+        <div className="flex w-full min-w-0 flex-col gap-1.5 bg-muted/20 p-2 rounded-lg border border-border/80">
 
           {(displayStatus !== "Not Started" || workingTimeSeconds > 0 || !!r.actualStartDate) && (
 
@@ -742,15 +726,7 @@ function BucketListRow({
 
                   <span className="font-semibold text-muted-foreground">Started:</span>{" "}
 
-                  {new Date(r.actualStartDate).toLocaleDateString("en-GB", {
-
-                    day: "2-digit",
-
-                    month: "short",
-
-                    year: "numeric",
-
-                  })}
+                  {formatToDayMonthYear(r.actualStartDate)}
 
                 </div>
 
@@ -814,15 +790,7 @@ function BucketListRow({
 
                   Completed:{" "}
 
-                  {new Date(r.actualEndDate).toLocaleDateString("en-GB", {
-
-                    day: "2-digit",
-
-                    month: "short",
-
-                    year: "numeric",
-
-                  })}
+                  {formatToDayMonthYear(r.actualEndDate)}
 
                 </div>
 
@@ -834,7 +802,7 @@ function BucketListRow({
 
 
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
 
             {/* If task is completed */}
 
@@ -1052,10 +1020,7 @@ function BucketListRow({
 
         </div>
 
-      </td>
-
-      {showStopModal && (
-        <td className="p-0">
+        {showStopModal && (
           <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
             <div
               role="dialog"
@@ -1133,8 +1098,8 @@ function BucketListRow({
               </div>
             </div>
           </div>
-        </td>
-      )}
+        )}
+      </td>
     </tr>
 
   );
@@ -1493,15 +1458,15 @@ function BucketList() {
 
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] table-fixed text-sm">
+        <table className="w-full min-w-[1100px] table-fixed text-sm">
           <colgroup>
-            <col style={{ width: "22%" }} />
-            <col style={{ width: "16%" }} />
+            <col style={{ width: "18%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "10%" }} />
             <col style={{ width: "10%" }} />
             <col style={{ width: "12%" }} />
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "14%" }} />
+            <col style={{ width: "28%" }} />
           </colgroup>
           <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
@@ -1587,28 +1552,16 @@ function BucketList() {
         <Modal title="Raise Issue" onClose={() => setShowRaiseModal(false)} draggable>
           <div className="space-y-3">
             <Field label="Project *">
-              <select
+              <SearchableSelect
                 value={formData.projectId}
-                onChange={(e) => setFormData((s) => ({ ...s, projectId: e.target.value }))}
-                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {userProjects.length === 0 ? (
-                  <option value="" disabled>
-                    No project assigned
-                  </option>
-                ) : (
-                  <>
-                    <option value="" disabled>
-                      Select an assigned project...
-                    </option>
-                    {userProjects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}{p.projectCode ? ` (${p.projectCode})` : ""}
-                      </option>
-                    ))}
-                  </>
-                )}
-              </select>
+                onChange={(value) => setFormData((s) => ({ ...s, projectId: value }))}
+                placeholder={userProjects.length === 0 ? "No project assigned" : "Select an assigned project..."}
+                disabled={userProjects.length === 0}
+                options={userProjects.map((p) => ({
+                  value: p.id,
+                  label: `${p.name}${p.projectCode ? ` (${p.projectCode})` : ""}`,
+                }))}
+              />
             </Field>
 
             {userProjects.length === 0 && (
@@ -1637,31 +1590,23 @@ function BucketList() {
             </Field>
 
             <Field label="Issue Type *">
-              <select
+              <SearchableSelect
                 value={formData.category}
-                onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))}
-                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setFormData((s) => ({ ...s, category: value as IssueCategory }))}
+                placeholder="Select issue type"
+                options={["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"]}
+                clearable={false}
+              />
             </Field>
 
             <Field label="Priority *">
-              <select
+              <SearchableSelect
                 value={formData.priority}
-                onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))}
-                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => (
-                  <option key={pri} value={pri}>
-                    {pri}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setFormData((s) => ({ ...s, priority: value as DhPriority }))}
+                placeholder="Select priority"
+                options={["Low", "Medium", "High", "Critical"]}
+                clearable={false}
+              />
             </Field>
 
             <div className="flex justify-end gap-2 border-t border-border pt-3">
@@ -2290,29 +2235,12 @@ function ApprovalsTab() {
 
             </span>
 
-            <select
-
-              value={projectFilter}
-
-              onChange={(e) => setProjectFilter(e.target.value)}
-
-              className="form-input rounded-md border border-border p-1.5 bg-card"
-
-            >
-
-              <option value="all">All Projects</option>
-
-              {approvalProjects.map((p) => (
-
-                <option key={p.id} value={p.id}>
-
-                  {p.name}
-
-                </option>
-
-              ))}
-
-            </select>
+            <SearchableSelect
+              value={projectFilter === "all" ? "" : projectFilter}
+              onChange={(value) => setProjectFilter(value || "all")}
+              placeholder="All Projects"
+              options={approvalProjects.map((p) => ({ value: p.id, label: p.name }))}
+            />
 
           </div>
 
@@ -2324,29 +2252,12 @@ function ApprovalsTab() {
 
             </span>
 
-            <select
-
-              value={typeFilter}
-
-              onChange={(e) => setTypeFilter(e.target.value)}
-
-              className="form-input rounded-md border border-border p-1.5 bg-card"
-
-            >
-
-              <option value="all">All Request Types</option>
-
-              {approvalTypes.map((t) => (
-
-                <option key={t} value={t}>
-
-                  {t}
-
-                </option>
-
-              ))}
-
-            </select>
+            <SearchableSelect
+              value={typeFilter === "all" ? "" : typeFilter}
+              onChange={(value) => setTypeFilter(value || "all")}
+              placeholder="All Request Types"
+              options={approvalTypes}
+            />
 
           </div>
 
@@ -2358,33 +2269,12 @@ function ApprovalsTab() {
 
             </span>
 
-            <select
-
-              value={statusFilter}
-
-              onChange={(e) => setStatusFilter(e.target.value)}
-
-              className="form-input rounded-md border border-border p-1.5 bg-card"
-
-            >
-
-              <option value="all">All Statuses</option>
-
-              {(["Pending", "Approved", "Rejected", "Hold", "Request Changes"] as const).map(
-
-                (s) => (
-
-                  <option key={s} value={s}>
-
-                    {s}
-
-                  </option>
-
-                ),
-
-              )}
-
-            </select>
+            <SearchableSelect
+              value={statusFilter === "all" ? "" : statusFilter}
+              onChange={(value) => setStatusFilter(value || "all")}
+              placeholder="All Statuses"
+              options={["Pending", "Approved", "Rejected", "Hold", "Request Changes"]}
+            />
 
           </div>
 
@@ -2646,7 +2536,7 @@ function ApprovalsTab() {
 
                   This decision was acknowledged by the requester on{" "}
 
-                  <strong>{new Date(selectedApproval.acknowledgedAt).toLocaleString()}</strong>.
+                  <strong>{formatToDayMonthYear(selectedApproval.acknowledgedAt)} {new Date(selectedApproval.acknowledgedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</strong>.
 
                 </span>
 
@@ -3313,29 +3203,12 @@ function AlertsTab() {
 
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Project</span>
 
-              <select
-
-                value={projFilter}
-
-                onChange={(e) => setProjFilter(e.target.value)}
-
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-
-              >
-
-                <option value="all">All Projects</option>
-
-                {alertProjects.map((p) => (
-
-                  <option key={p.id} value={p.id}>
-
-                    {p.name}
-
-                  </option>
-
-                ))}
-
-              </select>
+              <SearchableSelect
+                value={projFilter === "all" ? "" : projFilter}
+                onChange={(value) => setProjFilter(value || "all")}
+                placeholder="All Projects"
+                options={alertProjects.map((p) => ({ value: p.id, label: p.name }))}
+              />
 
             </div>
 
@@ -3347,29 +3220,12 @@ function AlertsTab() {
 
               </span>
 
-              <select
-
-                value={clientFilter}
-
-                onChange={(e) => setClientFilter(e.target.value)}
-
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-
-              >
-
-                <option value="all">All Customers</option>
-
-                {(clientsList || []).map((c) => (
-
-                  <option key={c.id} value={c.id}>
-
-                    {c.name}
-
-                  </option>
-
-                ))}
-
-              </select>
+              <SearchableSelect
+                value={clientFilter === "all" ? "" : clientFilter}
+                onChange={(value) => setClientFilter(value || "all")}
+                placeholder="All Customers"
+                options={(clientsList || []).map((c) => ({ value: c.id, label: c.name }))}
+              />
 
             </div>
 
@@ -3381,29 +3237,12 @@ function AlertsTab() {
 
               </span>
 
-              <select
-
-                value={prioFilter}
-
-                onChange={(e) => setPrioFilter(e.target.value)}
-
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-
-              >
-
-                <option value="all">All Priorities</option>
-
-                {(["Low", "Medium", "High", "Critical"] as const).map((pr) => (
-
-                  <option key={pr} value={pr}>
-
-                    {pr}
-
-                  </option>
-
-                ))}
-
-              </select>
+              <SearchableSelect
+                value={prioFilter === "all" ? "" : prioFilter}
+                onChange={(value) => setPrioFilter(value || "all")}
+                placeholder="All Priorities"
+                options={["Low", "Medium", "High", "Critical"]}
+              />
 
             </div>
 
@@ -3415,29 +3254,12 @@ function AlertsTab() {
 
               </span>
 
-              <select
-
-                value={typeFilter}
-
-                onChange={(e) => setTypeFilter(e.target.value)}
-
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-
-              >
-
-                <option value="all">All Types</option>
-
-                {alertTypes.map((t) => (
-
-                  <option key={t} value={t}>
-
-                    {t}
-
-                  </option>
-
-                ))}
-
-              </select>
+              <SearchableSelect
+                value={typeFilter === "all" ? "" : typeFilter}
+                onChange={(value) => setTypeFilter(value || "all")}
+                placeholder="All Types"
+                options={alertTypes}
+              />
 
             </div>
 
@@ -3445,47 +3267,12 @@ function AlertsTab() {
 
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Status</span>
 
-              <select
-
-                value={statusFilter}
-
-                onChange={(e) => setStatusFilter(e.target.value)}
-
-                className="form-input rounded-md border border-border p-1.5 bg-card"
-
-              >
-
-                <option value="all">All Statuses</option>
-
-                {(
-
-                  [
-
-                    "Open",
-
-                    "Acknowledged",
-
-                    "In Progress",
-
-                    "Waiting for Customer",
-
-                    "Resolved",
-
-                    "Closed",
-
-                  ] as const
-
-                ).map((s) => (
-
-                  <option key={s} value={s}>
-
-                    {s}
-
-                  </option>
-
-                ))}
-
-              </select>
+              <SearchableSelect
+                value={statusFilter === "all" ? "" : statusFilter}
+                onChange={(value) => setStatusFilter(value || "all")}
+                placeholder="All Statuses"
+                options={["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"]}
+              />
 
             </div>
 
@@ -3577,7 +3364,7 @@ function AlertsTab() {
 
                       <td className="px-3 py-2.5 text-xs tabular-nums text-foreground">
 
-                        {new Date(alert.createdAt).toLocaleDateString()}
+                        {formatToDayMonthYear(alert.createdAt) || "—"}
 
                       </td>
 
@@ -4278,79 +4065,17 @@ function AlertsTab() {
 
                   ) : (
 
-                    <select
-
+                    <SearchableSelect
                       value={selectedStatus}
-
-                      onChange={(e) => setSelectedStatus(e.target.value as any)}
-
-                      className={cn(
-
-                        "w-full rounded-md border p-2 text-xs font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-
-                        selectedStatus === "Resolved" || selectedStatus === "Closed"
-
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-
-                          : selectedStatus === "Open"
-
-                            ? "bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-
-                            : selectedStatus === "In Progress"
-
-                              ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-
-                              : selectedStatus === "Waiting for Customer"
-
-                                ? "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
-
-                                : "bg-gray-50 border-gray-200 text-muted-foreground hover:bg-gray-100",
-
-                      )}
-
-                    >
-
-                      {selectedAlert.kind === "Escalation"
-
-                        ? (
-
-                            [
-
-                              "Open",
-
-                              "Acknowledged",
-
-                              "In Progress",
-
-                              "Waiting for Customer",
-
-                              "Resolved",
-
-                              "Closed",
-
-                            ] as const
-
-                          ).map((s) => (
-
-                            <option key={s} value={s}>
-
-                              {s}
-
-                            </option>
-
-                          ))
-
-                        : (["Open", "In Progress", "Resolved", "Closed"] as const).map((s) => (
-
-                            <option key={s} value={s}>
-
-                              {s}
-
-                            </option>
-
-                          ))}
-
-                    </select>
+                      onChange={(value) => setSelectedStatus(value as any)}
+                      placeholder="Set status"
+                      clearable={false}
+                      options={
+                        selectedAlert.kind === "Escalation"
+                          ? ["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"]
+                          : ["Open", "In Progress", "Resolved", "Closed"]
+                      }
+                    />
 
                   )}
 
@@ -4948,29 +4673,12 @@ function NotificationsTab() {
 
             </span>
 
-            <select
-
-              value={typeFilter}
-
-              onChange={(e) => setTypeFilter(e.target.value)}
-
-              className="form-input rounded-md border border-border p-1.5 bg-card outline-none focus-visible:ring-1 focus-visible:ring-primary"
-
-            >
-
-              <option value="all">All Types</option>
-
-              {availableNotificationTypes.map((t) => (
-
-                <option key={t} value={t}>
-
-                  {t}
-
-                </option>
-
-              ))}
-
-            </select>
+            <SearchableSelect
+              value={typeFilter === "all" ? "" : typeFilter}
+              onChange={(value) => setTypeFilter(value || "all")}
+              placeholder="All Types"
+              options={availableNotificationTypes}
+            />
 
           </div>
 
@@ -4984,27 +4692,17 @@ function NotificationsTab() {
 
             </span>
 
-            <select
-
-              value={priorityFilter}
-
-              onChange={(e) => setPriorityFilter(e.target.value)}
-
-              className="form-input rounded-md border border-border p-1.5 bg-card outline-none focus-visible:ring-1 focus-visible:ring-primary"
-
-            >
-
-              <option value="all">All Priorities</option>
-
-              <option value="low">Low</option>
-
-              <option value="medium">Medium</option>
-
-              <option value="high">High</option>
-
-              <option value="critical">Critical</option>
-
-            </select>
+            <SearchableSelect
+              value={priorityFilter === "all" ? "" : priorityFilter}
+              onChange={(value) => setPriorityFilter(value || "all")}
+              placeholder="All Priorities"
+              options={[
+                { value: "low", label: "Low" },
+                { value: "medium", label: "Medium" },
+                { value: "high", label: "High" },
+                { value: "critical", label: "Critical" },
+              ]}
+            />
 
           </div>
 
@@ -5044,25 +4742,12 @@ function NotificationsTab() {
 
             </span>
 
-            <select
-
-              value={statusFilter}
-
-              onChange={(e) => setStatusFilter(e.target.value)}
-
-              className="form-input rounded-md border border-border p-1.5 bg-card outline-none focus-visible:ring-1 focus-visible:ring-primary"
-
-            >
-
-              <option value="all">All Statuses</option>
-
-              {availableStatuses.map((st) => (
-
-                <option key={st} value={st.toLowerCase()}>{st}</option>
-
-              ))}
-
-            </select>
+            <SearchableSelect
+              value={statusFilter === "all" ? "" : statusFilter}
+              onChange={(value) => setStatusFilter(value || "all")}
+              placeholder="All Statuses"
+              options={availableStatuses.map((st) => ({ value: st.toLowerCase(), label: st }))}
+            />
 
           </div>
 

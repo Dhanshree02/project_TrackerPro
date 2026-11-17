@@ -203,8 +203,10 @@ export function SearchableSelect({
           }}
           className={cn(
             FORM_CONTROL_CLS,
-            "flex w-full items-center justify-between gap-2 text-left font-normal transition-colors select-none",
-            !value && "text-muted-foreground",
+            "flex w-full items-center justify-between gap-2 text-left text-xs font-normal transition-all select-none",
+            value
+              ? "border-blue-500/50 bg-blue-500/5 font-medium text-foreground"
+              : "border-input text-muted-foreground",
             disabled && "cursor-not-allowed opacity-60 bg-muted/40",
             isOpen && !error && "border-primary ring-2 ring-primary/20",
             error && "!border-destructive ring-2 ring-destructive/20",

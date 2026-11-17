@@ -14,6 +14,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
@@ -1302,14 +1303,6 @@ export function MyTeamPage() {
     setActiveFilter({ kind: "all" });
   };
 
-  const filterSelectClass = (active: boolean) =>
-    cn(
-      "h-9 w-full rounded-md border bg-card px-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-primary transition-all",
-      active
-        ? "border-blue-500/50 font-medium text-foreground bg-blue-500/5"
-        : "border-input text-muted-foreground",
-    );
-
   // ── Render ────────────────────────────────────────────────────────────────────
   if (!isAdmin && !isDhanshree && visibleRosterTabs.length === 0) {
     return (
@@ -1448,62 +1441,50 @@ export function MyTeamPage() {
               {roster !== "team" && (
                 <>
                   <div className="w-full md:w-44 shrink-0">
-                    <select
+                    <SearchableSelect
                       value={deptFilter}
-                      onChange={(e) => setDeptFilter(e.target.value)}
-                      aria-label="Filter by Department"
-                      className={filterSelectClass(Boolean(deptFilter))}
-                    >
-                      <option value="">All Departments</option>
-                      {departmentOptions.map((dept) => (
-                        <option key={dept} value={dept}>
-                          {dept}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setDeptFilter}
+                      placeholder="All Departments"
+                      options={departmentOptions}
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="w-full md:w-48 shrink-0">
-                    <select
+                    <SearchableSelect
                       value={onFloorRoleFilter}
-                      onChange={(e) => setOnFloorRoleFilter(e.target.value)}
-                      aria-label="Filter by On Floor Role"
-                      className={filterSelectClass(Boolean(onFloorRoleFilter))}
-                    >
-                      <option value="">All On Floor Roles</option>
-                      {onFloorRoleOptions.map((role) => (
-                        <option key={role} value={role}>
-                          {role}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setOnFloorRoleFilter}
+                      placeholder="All On Floor Roles"
+                      options={onFloorRoleOptions}
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="w-full md:w-48 shrink-0">
-                    <select
+                    <SearchableSelect
                       value={allocStatusFilter}
-                      onChange={(e) => setAllocStatusFilter(e.target.value as "" | PoolAllocationStatus)}
-                      aria-label="Filter by Allocation Status"
-                      className={filterSelectClass(Boolean(allocStatusFilter))}
-                    >
-                      <option value="">All Allocation Statuses</option>
-                      <option value="Free">Free</option>
-                      <option value="Occupied">Occupied</option>
-                      <option value="On Leave">On Leave</option>
-                    </select>
+                      onChange={(value) => setAllocStatusFilter(value as "" | PoolAllocationStatus)}
+                      placeholder="All Allocation Statuses"
+                      options={[
+                        { value: "Free", label: "Free" },
+                        { value: "Occupied", label: "Occupied" },
+                        { value: "On Leave", label: "On Leave" },
+                      ]}
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="w-full md:w-44 shrink-0">
-                    <select
+                    <SearchableSelect
                       value={allocTypeFilter}
-                      onChange={(e) => setAllocTypeFilter(e.target.value as "" | PoolAllocationType)}
-                      aria-label="Filter by Allocation Type"
-                      className={filterSelectClass(Boolean(allocTypeFilter))}
-                    >
-                      <option value="">All Allocation Types</option>
-                      <option value="Dedicated">Dedicated</option>
-                      <option value="Shared">Shared</option>
-                    </select>
+                      onChange={(value) => setAllocTypeFilter(value as "" | PoolAllocationType)}
+                      placeholder="All Allocation Types"
+                      options={[
+                        { value: "Dedicated", label: "Dedicated" },
+                        { value: "Shared", label: "Shared" },
+                      ]}
+                      className="w-full"
+                    />
                   </div>
 
                   <div className="w-20 shrink-0 flex items-center">
@@ -1824,7 +1805,6 @@ export function MyTeamPage() {
                       <RowsPerPageSelect
                         value={pageSize}
                         onChange={setPageSize}
-                        className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
                       />
                     </div>
                   </div>

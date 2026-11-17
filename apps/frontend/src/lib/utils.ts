@@ -9,10 +9,7 @@ export function cn(...inputs: ClassValue[]) {
  * Robust date formatter supporting Date, ISO strings, and fallback display.
  */
 export function formatDate(dateStr?: string | Date | null, fallback = "—"): string {
-  if (!dateStr) return fallback;
-  const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
-  if (isNaN(d.getTime())) return fallback;
-  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return formatDateDMY(dateStr, fallback);
 }
 
 /**
@@ -42,6 +39,19 @@ export function formatDateDMY(value?: string | Date | null, fallback = "—"): s
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yyyy = d.getFullYear();
   return `${dd}-${mm}-${yyyy}`;
+}
+
+/** Date and time as DD-MM-YYYY hh:mm AM/PM. */
+export function formatDateTimeDMY(value?: string | Date | null, fallback = "—"): string {
+  if (!value) return fallback;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return typeof value === "string" ? value : fallback;
+  const time = d.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${formatDateDMY(d)} ${time}`;
 }
 
 

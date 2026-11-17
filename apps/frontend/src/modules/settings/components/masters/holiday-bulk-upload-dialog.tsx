@@ -47,20 +47,20 @@ interface ParsedHolidayRow {
  */
 export function downloadHolidaySampleExcel(year: number) {
   const sampleData = [
-    { Date: `${year}-01-01`, "Holiday Name": "New Year's Day" },
-    { Date: `${year}-01-26`, "Holiday Name": "Republic Day" },
-    { Date: `${year}-03-03`, "Holiday Name": "Holi" },
-    { Date: `${year}-03-20`, "Holiday Name": "Id-ul-Fitr (Ramzan Eid)" },
-    { Date: `${year}-04-03`, "Holiday Name": "Good Friday" },
-    { Date: `${year}-04-14`, "Holiday Name": "Dr. Ambedkar Jayanti" },
-    { Date: `${year}-05-01`, "Holiday Name": "Maharashtra Day / May Day" },
-    { Date: `${year}-08-15`, "Holiday Name": "Independence Day" },
-    { Date: `${year}-09-14`, "Holiday Name": "Ganesh Chaturthi" },
-    { Date: `${year}-10-02`, "Holiday Name": "Mahatma Gandhi Jayanti" },
-    { Date: `${year}-10-20`, "Holiday Name": "Dussehra (Vijaya Dashami)" },
-    { Date: `${year}-11-08`, "Holiday Name": "Diwali (Laxmi Pujan)" },
-    { Date: `${year}-11-09`, "Holiday Name": "Diwali (Balipratipada)" },
-    { Date: `${year}-12-25`, "Holiday Name": "Christmas" },
+    { Date: `01-01-${year}`, "Holiday Name": "New Year's Day" },
+    { Date: `26-01-${year}`, "Holiday Name": "Republic Day" },
+    { Date: `03-03-${year}`, "Holiday Name": "Holi" },
+    { Date: `20-03-${year}`, "Holiday Name": "Id-ul-Fitr (Ramzan Eid)" },
+    { Date: `03-04-${year}`, "Holiday Name": "Good Friday" },
+    { Date: `14-04-${year}`, "Holiday Name": "Dr. Ambedkar Jayanti" },
+    { Date: `01-05-${year}`, "Holiday Name": "Maharashtra Day / May Day" },
+    { Date: `15-08-${year}`, "Holiday Name": "Independence Day" },
+    { Date: `14-09-${year}`, "Holiday Name": "Ganesh Chaturthi" },
+    { Date: `02-10-${year}`, "Holiday Name": "Mahatma Gandhi Jayanti" },
+    { Date: `20-10-${year}`, "Holiday Name": "Dussehra (Vijaya Dashami)" },
+    { Date: `08-11-${year}`, "Holiday Name": "Diwali (Laxmi Pujan)" },
+    { Date: `09-11-${year}`, "Holiday Name": "Diwali (Balipratipada)" },
+    { Date: `25-12-${year}`, "Holiday Name": "Christmas" },
   ];
 
   const worksheet = XLSX.utils.json_to_sheet(sampleData);
@@ -148,18 +148,9 @@ export function normalizeDateString(rawVal: unknown): string | null {
 }
 
 export function formatDateDisplay(isoDate: string): string {
-  try {
-    const [y, m, d] = isoDate.split("-").map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  } catch {
-    return isoDate;
-  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate.trim());
+  if (!match) return isoDate;
+  return `${match[3]}-${match[2]}-${match[1]}`;
 }
 
 export function HolidayBulkUploadDialog({

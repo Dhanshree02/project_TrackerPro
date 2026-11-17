@@ -204,23 +204,26 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
             cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         }
 
-        var samples = new (string Date, string Name)[]
+        var samples = new (int Month, int Day, string Name)[]
         {
-            ($"{targetYear}-01-01", "New Year's Day"),
-            ($"{targetYear}-01-26", "Republic Day"),
-            ($"{targetYear}-03-03", "Holi"),
-            ($"{targetYear}-04-14", "Dr. Ambedkar Jayanti"),
-            ($"{targetYear}-05-01", "Maharashtra Day / May Day"),
-            ($"{targetYear}-08-15", "Independence Day"),
-            ($"{targetYear}-10-02", "Mahatma Gandhi Jayanti"),
-            ($"{targetYear}-12-25", "Christmas"),
+            (1, 1, "New Year's Day"),
+            (1, 26, "Republic Day"),
+            (3, 3, "Holi"),
+            (4, 14, "Dr. Ambedkar Jayanti"),
+            (5, 1, "Maharashtra Day / May Day"),
+            (8, 15, "Independence Day"),
+            (10, 2, "Mahatma Gandhi Jayanti"),
+            (12, 25, "Christmas"),
         };
 
         for (int i = 0; i < samples.Length; i++)
         {
             var row = i + 2;
-            sheet.Cell(row, 1).Value = samples[i].Date;
-            sheet.Cell(row, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            var sampleDate = new DateOnly(targetYear, samples[i].Month, samples[i].Day);
+            var cell = sheet.Cell(row, 1);
+            cell.Value = sampleDate.ToDateTime(TimeOnly.MinValue);
+            cell.Style.DateFormat.Format = "dd-MM-yyyy";
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
             sheet.Cell(row, 2).Value = samples[i].Name;
         }
 
@@ -279,8 +282,7 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
             else
             {
                 var dateStr = dateCell.GetString().Trim();
-                if (!DateOnly.TryParse(dateStr, CultureInfo.InvariantCulture, out date) &&
-                    !DateOnly.TryParse(dateStr, out date))
+                if (!TryParseHolidayDate(dateStr, out date))
                 {
                     continue;
                 }
@@ -298,6 +300,15 @@ public sealed class LeaveCalendarService(AppDbContext db) : ILeaveCalendarServic
         }
 
         return await BulkCreateHolidaysAsync(requests, ct);
+    }
+
+    private static bool TryParseHolidayDate(string raw, out DateOnly date)
+    {
+        string[] formats = ["dd-MM-yyyy", "d-M-yyyy", "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "yyyy/MM/dd"];
+        if (DateOnly.TryParseExact(raw, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+            return true;
+        return DateOnly.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out date)
+            || DateOnly.TryParse(raw, out date);
     }
 
     private static void ValidateRequest(UpsertLeaveCalendarHolidayRequest request)

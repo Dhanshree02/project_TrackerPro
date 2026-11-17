@@ -1122,6 +1122,25 @@ export function mapApiInvoiceToScheduleRow(inv: any, idx: number, projectCurrenc
   };
 }
 
+const PROJECT_SERVICE_GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The invoice link must be a project-service id. Onboarding row keys are service codes. */
+function asProjectServiceId(value?: string | null): string | null {
+  const raw = (value ?? "").trim();
+  return PROJECT_SERVICE_GUID.test(raw) ? raw : null;
+}
+
+/** DateOnly columns accept yyyy-mm-dd. Screen values may already be dd-mm-yyyy. */
+function toIsoDateOnly(value?: string | null): string | null {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const dmy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (!dmy) return null;
+  return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
+}
+
 export function toCreateInvoicePayload(
   inv: {
     milestone?: string;
@@ -1141,8 +1160,8 @@ export function toCreateInvoicePayload(
     paymentDate?: string;
     paymentReceivedDate?: string;
     remarks?: string;
-    projectServiceId?: string;
-    serviceId?: string;
+    projectServiceId?: string | null;
+    serviceId?: string | null;
   },
   sortOrder = 0,
   taxPercent = 18,
@@ -1151,18 +1170,19 @@ export function toCreateInvoicePayload(
   const paymentReceived = inv.paymentStatus === "Received" || inv.status === "Paid";
   const raised =
     paymentReceived || inv.invoiceStatus === "Raised" || inv.status === "Raised" || inv.status === "Paid";
-  const date = String(inv.targetDate || inv.invoiceDate || "").slice(0, 10);
-  const payDate = String(inv.paymentDate || inv.paymentReceivedDate || "").slice(0, 10);
+  const date = toIsoDateOnly(inv.targetDate || inv.invoiceDate);
+  const payDate = toIsoDateOnly(inv.paymentDate || inv.paymentReceivedDate);
   const taxAmount = Math.round(amount * (taxPercent / 100) * 100) / 100;
+  const currencyCode = (inv.currency || "").replace(/[()]/g, "").trim().split(/\s+/)[0] || "";
   return {
     milestoneName: (inv.milestone || inv.milestoneName || "Milestone").trim() || "Milestone",
     amount,
     unitPrice: inv.unitPrice ?? null,
-    qty: inv.qty ?? null,
-    currency: inv.currency || null,
+    qty: inv.qty == null ? null : Math.round(Number(inv.qty)),
+    currency: currencyCode ? currencyCode.slice(0, 10) : null,
     serviceName: inv.serviceName || null,
     resourceLevel: inv.resourceLevel || null,
-    projectServiceId: inv.projectServiceId || inv.serviceId || null,
+    projectServiceId: asProjectServiceId(inv.projectServiceId) ?? asProjectServiceId(inv.serviceId),
     taxAmount,
     totalAmount: Math.round((amount + taxAmount) * 100) / 100,
     status: paymentReceived ? "Paid" : raised ? "Raised" : "Pending",

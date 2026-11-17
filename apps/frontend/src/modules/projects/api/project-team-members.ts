@@ -219,7 +219,7 @@ export async function removeProjectTeamMember(projectId: string, memberId: strin
   });
 }
 
-/** Parse UI duration "DD/MM/YYYY → DD/MM/YYYY" into ISO date strings. */
+/** Parse UI duration "DD-MM-YYYY → DD-MM-YYYY" into ISO date strings. */
 export function parseAllocationDuration(duration: string): { start: string; end: string } | null {
   const parts = duration.split(" → ").map((s) => s.trim());
   if (parts.length < 2 || !parts[0] || !parts[1]) return null;
@@ -230,23 +230,12 @@ export function parseAllocationDuration(duration: string): { start: string; end:
 }
 
 function toIsoDate(raw: string): string | null {
-  // DD/MM/YYYY
-  const dmy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const dmy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   if (dmy) {
     const [, d, m, y] = dmy;
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-  }
-  // ISO already
-  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
-  // M/D/YYYY fallback
-  const mdY = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (mdY) {
-    const [, a, b, y] = mdY;
-    const month = Number(a);
-    const day = Number(b);
-    if (month > 12) return `${y}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`;
-    return `${y}-${a.padStart(2, "0")}-${b.padStart(2, "0")}`;
   }
   return null;
 }
@@ -255,7 +244,7 @@ export function formatAllocationDuration(start: string, end: string): string {
   const fmt = (iso: string) => {
     const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (!m) return iso;
-    return `${m[3]}/${m[2]}/${m[1]}`;
+    return `${m[3]}-${m[2]}-${m[1]}`;
   };
   return `${fmt(start)} → ${fmt(end)}`;
 }

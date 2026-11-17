@@ -1362,7 +1362,6 @@ export function EmployeeDirectoryPage() {
                 <RowsPerPageSelect
                   value={pageSize}
                   onChange={setPageSize}
-                  className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
             </div>
@@ -1540,7 +1539,6 @@ export function EmployeeDirectoryPage() {
                 <RowsPerPageSelect
                   value={pageSize}
                   onChange={setPageSize}
-                  className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
             </div>

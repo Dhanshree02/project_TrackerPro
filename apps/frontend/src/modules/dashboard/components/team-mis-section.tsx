@@ -4,6 +4,7 @@ import {
   ChartContainer,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { usePermissions } from "@/lib/permissions";
 import { useFinancialYear } from "@/lib/financial-year";
 import {
@@ -172,18 +173,14 @@ export function TeamMisSection() {
           <label htmlFor="mis-quarter" className="text-xs font-medium text-muted-foreground">
             Period
           </label>
-          <select
-            id="mis-quarter"
+          <SearchableSelect
             value={period}
-            onChange={(event) => changePeriod(event.target.value as DashboardPeriod)}
-            className="h-9 w-36 rounded-md border border-input bg-card px-2 text-xs shadow-sm"
-          >
-            {PERIODS.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.label}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => changePeriod(value as DashboardPeriod)}
+            placeholder="Period"
+            options={PERIODS.map((item) => ({ value: item.id, label: item.label }))}
+            clearable={false}
+            className="w-36"
+          />
         </div>
       </div>
 

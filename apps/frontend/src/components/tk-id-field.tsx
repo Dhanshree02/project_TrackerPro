@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn } from "@/lib/utils";
 import { FORM_ERROR_CLS, FORM_LABEL_CLS } from "@/components/form-row";
 import { TK_ID_DIGITS, TK_ID_PREFIXES, type TkIdPrefix } from "@/lib/form-validation";
@@ -48,23 +48,16 @@ export function TkIdField({
           )}
         >
           <div className="relative shrink-0 border-r border-input">
-            <select
+            <SearchableSelect
               value={prefix}
               disabled={disabled}
-              onChange={(e) => onChange(e.target.value as TkIdPrefix, digits)}
-              className={cn(
-                "h-full appearance-none border-0 bg-muted/70 pl-3 pr-8 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-0",
-                disabled ? "cursor-not-allowed" : "cursor-pointer",
-              )}
-              aria-label="TK ID prefix"
-            >
-              {TK_ID_PREFIXES.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              onChange={(value) => onChange(value as TkIdPrefix, digits)}
+              options={[...TK_ID_PREFIXES]}
+              clearable={false}
+              showSearch={false}
+              className="h-full w-[5.5rem]"
+              buttonClassName="h-full rounded-none border-0 bg-transparent px-3 text-xs font-semibold shadow-none"
+            />
           </div>
           <span
             className="flex h-full shrink-0 items-center border-r border-input bg-muted/40 px-1.5 text-sm text-muted-foreground select-none"

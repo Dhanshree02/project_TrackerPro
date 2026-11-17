@@ -54,16 +54,16 @@ describe("deriveProjectDates", () => {
 });
 
 describe("formatDateDMY", () => {
-  it("formats YYYY-MM-DD string into DD/MM/YYYY", () => {
-    expect(formatDateDMY("2026-04-10")).toBe("10/04/2026");
-    expect(formatDateDMY("2026-08-31")).toBe("31/08/2026");
-    expect(formatDateDMY("2026-01-05")).toBe("05/01/2026");
-    expect(formatDateDMY("2026-12-25")).toBe("25/12/2026");
+  it("formats YYYY-MM-DD string into DD-MM-YYYY", () => {
+    expect(formatDateDMY("2026-04-10")).toBe("10-04-2026");
+    expect(formatDateDMY("2026-08-31")).toBe("31-08-2026");
+    expect(formatDateDMY("2026-01-05")).toBe("05-01-2026");
+    expect(formatDateDMY("2026-12-25")).toBe("25-12-2026");
   });
 
-  it("formats Date object into DD/MM/YYYY", () => {
+  it("formats Date object into DD-MM-YYYY", () => {
     const d = new Date(2026, 3, 10);
-    expect(formatDateDMY(d)).toBe("10/04/2026");
+    expect(formatDateDMY(d)).toBe("10-04-2026");
   });
 
   it("handles null and empty values gracefully", () => {

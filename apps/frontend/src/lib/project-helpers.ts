@@ -1,4 +1,5 @@
 import { people, getPerson, type Person, type Project, type Task } from "@/lib/domain-models";
+import { formatDateDMY } from "@/lib/utils";
 
 export function getProjectEMs(p: Project): Person[] {
   if (p.engagementManager) {
@@ -127,7 +128,7 @@ export function getProjectTeam(p: Project): TeamAllocation[] {
     const person = getPerson(id);
     return {
       person,
-      duration: `${new Date(p.startDate).toLocaleDateString()} → ${new Date(p.endDate).toLocaleDateString()}`,
+      duration: `${formatDateDMY(p.startDate)} → ${formatDateDMY(p.endDate)}`,
       billability: idx % 3 === 2 ? "Non-Billable" : "Billable",
       resourceType: idx % 2 === 0 ? "Dedicated" : "Shared Resource",
     };

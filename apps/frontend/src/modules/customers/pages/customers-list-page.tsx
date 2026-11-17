@@ -798,8 +798,8 @@ export function CustomersListPage() {
           })}
         </div>
       ) : (
-        <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
-          <table className="w-max table-fixed border-separate border-spacing-0 text-sm">
+        <div className="w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
+          <table className="w-full min-w-[86rem] table-fixed border-separate border-spacing-0 text-sm">
             <colgroup>
               {CUSTOMER_LIST_COL_WIDTHS.map((width, idx) => (
                 <col key={CUSTOMER_LIST_COLUMNS[idx].key} style={{ width }} />
@@ -2196,18 +2196,12 @@ export function NewClientModal({
                 />
               </Field>
               <Field label="Billing Medium" required>
-                <select
-                  className={inputCls}
+                <SearchableSelect
                   value={s.billingMedium}
-                  onChange={(e) => u("billingMedium", e.target.value)}
-                >
-                  <option value="">Select billing medium</option>
-                  {BILLING_MEDIUMS.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => u("billingMedium", value)}
+                  placeholder="Select billing medium"
+                  options={BILLING_MEDIUMS}
+                />
               </Field>
               <SearchableSelect
                 label="Country / Region"
@@ -2282,12 +2276,13 @@ export function NewClientModal({
                 onChange={(name) => u("industry", name)}
               />
               <Field label="Business Type">
-                <select className={readOnlyCls} value={s.businessType} disabled>
-                  <option value="">Select business type</option>
-                  {["Enterprise", "Mid-Market", "SMB", "Public Sector"].map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={s.businessType}
+                  placeholder="Select business type"
+                  options={["Enterprise", "Mid-Market", "SMB", "Public Sector"]}
+                  disabled
+                  clearable={false}
+                />
               </Field>
               <Field label="Created At">
                 <input
@@ -2312,18 +2307,12 @@ export function NewClientModal({
                 {selectedExisting.billingMedium ? (
                   <input className={readOnlyCls} value={selectedExisting.billingMedium} readOnly />
                 ) : (
-                  <select
-                    className={inputCls}
+                  <SearchableSelect
                     value={s.billingMedium}
-                    onChange={(e) => u("billingMedium", e.target.value)}
-                  >
-                    <option value="">Select billing medium</option>
-                    {BILLING_MEDIUMS.map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => u("billingMedium", value)}
+                    placeholder="Select billing medium"
+                    options={BILLING_MEDIUMS}
+                  />
                 )}
               </Field>
               <Field label="Created By">
@@ -2401,18 +2390,12 @@ export function NewClientModal({
                   onChange={(name) => updateContact(idx, "contactType", name)}
                 />
                 <Field label="Country / Region" required>
-                  <select
-                    className={inputCls}
+                  <SearchableSelect
                     value={ct.country}
-                    onChange={(e) => updateContact(idx, "country", e.target.value)}
-                  >
-                    <option value="">Select country</option>
-                    {countries.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => updateContact(idx, "country", value)}
+                    placeholder="Select country"
+                    options={countries.map((c) => ({ value: c.name, label: c.name }))}
+                  />
                 </Field>
                 <Field label="Phone" required error={contactPhoneErr}>
                   <div className="relative flex rounded-md">
