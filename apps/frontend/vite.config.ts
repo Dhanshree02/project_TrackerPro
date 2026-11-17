@@ -34,6 +34,12 @@ export default defineConfig(({ command, mode }) => {
         ? [cloudflare({ viteEnvironment: { name: "ssr" } })]
         : []),
       tanstackStart({
+        router: {
+          // Each screen loads its own file. The project, action centre, and
+          // employee pages are large, and pulling them into every screen made
+          // those screens wait.
+          autoCodeSplitting: true,
+        },
         importProtection: {
           behavior: "error",
           client: {

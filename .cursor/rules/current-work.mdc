@@ -7,6 +7,14 @@ alwaysApply: true
 
 **Last updated:** 2026-11-17
 
+- **Screens open without waiting on the whole app.** Admin no longer sits on “Loading permissions…” before the page is drawn. Each screen loads its own file, so the project, customer, and Action Centre pages are not pulled into every other screen. A screen that has already opened comes back immediately.
+
+- **UAT is cleared for a fresh test.** `pms_uat` on `pms_uat_postgres` keeps one employee, Admin User `TK-0004` (`admin@talakunchi.com`, Functional - IT Administration / IT Admin), and the matching login. Customers, sub-ventures, projects, timesheets, and every Action Centre tab (Bucket List, Approvals, Alerts, Notifications) are empty. Masters, roles, and SLA policies stay. `database/pms_uat.sql` was dumped from that database. One repository document is still there.
+
+- **`pms_uat` on `pms_uat_postgres` matches `database/pms_uat.sql`.** The previous database was saved at `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/db-split-backups/2026-11-17/pms_uat_before_pms_uat_sql.sql`. The database was recreated and loaded from the dump. Counts: 4 clients, 8 projects, 109 employees, 30 leave-calendar rows, 10 departments, 88 designations.
+
+- **Working branch `uat` is fast-forwarded to `origin/development` at `9fe8eff`.** `database/pms_uat.sql` is the same PostgreSQL 16 dump as `database/pms_development.sql`. Counts: 4 clients, 8 projects, 109 employees, 30 leave-calendar rows, 10 departments, 88 designations, 94 tables. The file is updated in the working tree and is not committed.
+
 - **Engagement Mgr in the project list stays the normal text color on hover.** `apps/frontend/src/modules/projects/pages/projects-list-page.tsx`.
 
 - **Export WBS is hidden on WBS Management System.** Save Draft and Create WBS stay on the workflow bar. `apps/frontend/src/modules/projects/pages/project-onboarding-page.tsx`.
