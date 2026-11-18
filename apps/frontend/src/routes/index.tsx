@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MisDashboardPage } from "@/modules/dashboard/pages/mis-dashboard-page";
+import { MisDashboardPage } from "@/modules/dashboard";
 
 export const Route = createFileRoute("/")({
   head: () => ({

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { RepositoryRoute } from "@/modules/repository/pages/repository-page";
+import { RepositoryRoute } from "@/modules/repository";
 
 export const Route = createFileRoute("/repository")({
   head: () => ({

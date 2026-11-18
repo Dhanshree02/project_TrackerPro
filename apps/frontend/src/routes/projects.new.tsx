@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ProjectOnboardingPage } from "@/modules/projects/pages/project-onboarding-page";
+import { ProjectOnboardingPage } from "@/modules/projects";
 
 export const Route = createFileRoute("/projects/new")({
   validateSearch: (search: Record<string, unknown>): { draftId?: string } => ({

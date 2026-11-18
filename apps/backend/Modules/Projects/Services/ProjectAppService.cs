@@ -1182,12 +1182,20 @@ public sealed partial class ProjectAppService(
 
 
         // Recalculate project totals
-
         await RecalculateProjectRollupsAsync(projectId, ct);
-
         await RecalculateProjectProgressAsync(projectId, ct);
 
+        if (!service.IsReady)
+        {
+            await notificationService.StartServicePrerequisiteSlaWorkflowAsync(projectId, service.Id, ct);
+        }
 
+        await notificationService.NotifyServiceAddedAsync(
+            projectId,
+            service.ServiceName,
+            $"Service '{service.ServiceName}' was added to project with Qty: {service.Qty}, Department: '{service.Department}'.",
+            currentUser.Name,
+            ct);
 
         return (await GetProjectServiceByIdAsync(projectId, service.Id, ct))!;
 
@@ -1386,12 +1394,19 @@ public sealed partial class ProjectAppService(
 
 
         // Recalculate project totals
-
         await RecalculateProjectRollupsAsync(projectId, ct);
-
         await RecalculateProjectProgressAsync(projectId, ct);
 
+        var modDetails = request.AsPendingModification
+            ? $"Service '{service.ServiceName}' modification requested with Target Qty: {service.PendingQty}, Resource Level: '{service.PendingResourceLevel}'."
+            : $"Service '{service.ServiceName}' modified with Qty: {service.Qty}, Unit Price: {service.UnitPrice}.";
 
+        await notificationService.NotifyServiceModifiedAsync(
+            projectId,
+            service.ServiceName,
+            modDetails,
+            currentUser.Name,
+            ct);
 
         return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
 
@@ -1488,11 +1503,13 @@ public sealed partial class ProjectAppService(
 
 
         if (becameReady)
-
         {
-
             await taskService.GenerateMissingTasksAsync(projectId, ct);
-
+            await notificationService.NotifyServiceStartedAsync(projectId, serviceId, currentUser.Name, ct);
+        }
+        else if (request.IsReady.HasValue && !request.IsReady.Value)
+        {
+            await notificationService.StartServicePrerequisiteSlaWorkflowAsync(projectId, serviceId, ct);
         }
 
 
@@ -1679,7 +1696,12 @@ public sealed partial class ProjectAppService(
 
         await RecalculateProjectRollupsAsync(projectId, ct);
 
-
+        await notificationService.NotifyServiceModifiedAsync(
+            projectId,
+            service.ServiceName,
+            $"Service '{service.ServiceName}' modification applied with Approved Qty: {service.Qty}, Resource Level: '{service.ResourceLevel}'.",
+            currentUser.Name,
+            ct);
 
         return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
 
@@ -1751,9 +1773,16 @@ public sealed partial class ProjectAppService(
 
 
 
+        var serviceName = service.ServiceName;
         db.ProjectServices.Remove(service);
-
         await db.SaveChangesAsync(ct);
+        await notificationService.CancelServicePrerequisiteSlaWorkflowAsync(serviceId, ct);
+
+        await notificationService.NotifyServiceDeletedAsync(
+            projectId,
+            serviceName,
+            currentUser.Name,
+            ct);
 
 
 
@@ -4617,10 +4646,13 @@ public sealed partial class ProjectAppService(
 
 
                 db.ProjectServices.Add(newService);
-
                 await db.SaveChangesAsync(ct);
-
                 serviceIdMapping[os.Id] = newService.Id;
+
+                if (!newService.IsReady)
+                {
+                    await notificationService.StartServicePrerequisiteSlaWorkflowAsync(renewedProject.Id, newService.Id, ct);
+                }
 
             }
 

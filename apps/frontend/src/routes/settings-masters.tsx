@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { SettingsMastersPage } from "@/modules/settings/pages/settings-masters-page";
+import { SettingsMastersPage } from "@/modules/settings";
 
 export const Route = createFileRoute("/settings-masters")({
   head: () => ({

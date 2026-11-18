@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ActionCentrePage } from "@/modules/action-centre/pages/action-centre-page";
+import { ActionCentrePage } from "@/modules/action-centre";
 
 export const Route = createFileRoute("/action-centre")({
   head: () => ({

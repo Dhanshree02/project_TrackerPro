@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { TimesheetsPage } from "@/modules/timesheets/pages/timesheets-page";
+import { TimesheetsPage } from "@/modules/timesheets";
 
 export const Route = createFileRoute("/my-team/timesheets")({
   head: () => ({

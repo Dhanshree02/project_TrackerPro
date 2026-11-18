@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ProjectDetailPage } from "@/modules/projects/pages/project-detail-page";
+import { ProjectDetailPage } from "@/modules/projects";
 import { loadProjectDetail } from "@/modules/projects/loaders/project-detail-loader";
 
 export const Route = createFileRoute("/projects/$projectId")({

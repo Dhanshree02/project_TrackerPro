@@ -300,10 +300,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   }, [user?.role, demoRole]);
 
   const refreshPermissions = async () => {
-    if (!activeRoleName) {
-      setLoading(false);
-      return;
-    }
+    if (!activeRoleName) return;
     setLoading(true);
     try {
       const roles = await fetchRoles();
