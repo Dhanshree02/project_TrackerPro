@@ -32,4 +32,19 @@ public interface IActionNotificationService
 
     [JobDisplayName("Project Allocation | Same-Day Pending Assignment Alert | HOD | {1} | {2}")]
     Task ExecuteSameDayHodCheckJobAsync(Guid projectId, string projectName, string wbsId);
+
+    Task NotifyServiceStartedAsync(Guid projectId, Guid serviceId, string? performerName = null, CancellationToken ct = default);
+    Task StartServicePrerequisiteSlaWorkflowAsync(Guid projectId, Guid serviceId, CancellationToken ct = default);
+    Task CancelServicePrerequisiteSlaWorkflowAsync(Guid serviceId, CancellationToken ct = default);
+
+    [JobDisplayName("Service Prerequisite | 1st Level Breach Escalation | PM | {0} | {1}")]
+    Task ExecuteServicePrerequisiteL1EscalationJobAsync(Guid projectId, Guid serviceId);
+
+    [JobDisplayName("Service Prerequisite | 2nd Level Breach Escalation | HOD | {0} | {1}")]
+    Task ExecuteServicePrerequisiteL2EscalationJobAsync(Guid projectId, Guid serviceId);
+
+    Task NotifyServiceEditedAsync(Guid projectId, string serviceName, string action, string? details = null, string? performerName = null, CancellationToken ct = default);
+    Task NotifyServiceModifiedAsync(Guid projectId, string serviceName, string? details = null, string? performerName = null, CancellationToken ct = default);
+    Task NotifyServiceDeletedAsync(Guid projectId, string serviceName, string? performerName = null, CancellationToken ct = default);
+    Task NotifyServiceAddedAsync(Guid projectId, string serviceName, string? details = null, string? performerName = null, CancellationToken ct = default);
 }

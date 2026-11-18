@@ -21,10 +21,13 @@ public sealed class ActionNotificationService(
     IFileStorageService storage,
     ISlaTrackingService slaTrackingService,
     ISlaRecipientResolver? slaRecipientResolver = null,
+    ISlaDeadlineCalculator? deadlineCalculator = null,
     ILogger<ActionNotificationService>? logger = null) : IActionNotificationService
 {
     private static readonly ConcurrentDictionary<Guid, string> s_activeReminderJobs = new();
     private static readonly ConcurrentDictionary<Guid, string> s_activeHodJobs = new();
+    private static readonly ConcurrentDictionary<Guid, string> s_activeServiceL1Jobs = new();
+    private static readonly ConcurrentDictionary<Guid, string> s_activeServiceL2Jobs = new();
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -1681,6 +1684,82 @@ public sealed class ActionNotificationService(
         TrySyncNotificationsToOtherDatabase(addedList);
     }
 
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveCustomerEditNotificationRecipientsAsync(
+        Guid? clientId = null,
+        Guid? engagementManagerId = null,
+        string? engagementManager = null,
+        CancellationToken ct = default)
+    {
+        // 1. If customer's Engagement Manager is not passed, resolve from DB using clientId
+        if (clientId.HasValue && (!engagementManagerId.HasValue && string.IsNullOrWhiteSpace(engagementManager)))
+        {
+            var c = await db.Clients.AsNoTracking().FirstOrDefaultAsync(x => x.Id == clientId.Value, ct);
+            if (c != null)
+            {
+                engagementManagerId = c.EngagementManagerId;
+                engagementManager = c.EngagementManager;
+            }
+        }
+
+        // 2. Fetch all active employees
+        var candidates = await db.Employees
+            .Include(e => e.SubDepartmentRef)
+            .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")))
+            .ToListAsync(ct);
+
+        var desigIds = candidates.Where(e => e.DesignationId.HasValue).Select(e => e.DesignationId!.Value).Distinct().ToList();
+        var floorRoleList = await db.OnFloorRoles
+            .Where(r => desigIds.Contains(r.DesignationId) && r.DeletedAtUtc == null)
+            .Select(r => new { r.DesignationId, r.Name })
+            .ToListAsync(ct);
+
+        var floorRoles = new Dictionary<Guid, string>();
+        foreach (var fr in floorRoleList)
+        {
+            if (!floorRoles.ContainsKey(fr.DesignationId) && !string.IsNullOrWhiteSpace(fr.Name))
+            {
+                floorRoles[fr.DesignationId] = fr.Name;
+            }
+        }
+
+        var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        // 3. Add all active employees whose On Floor Role is `Head Of Department`
+        foreach (var e in candidates)
+        {
+            string roleFromFloor = string.Empty;
+            if (e.DesignationId.HasValue && floorRoles.TryGetValue(e.DesignationId.Value, out var mappedRole))
+            {
+                roleFromFloor = mappedRole;
+            }
+
+            var rLower = roleFromFloor.Trim().ToLowerInvariant();
+            var roleFieldLower = (e.Role ?? "").Trim().ToLowerInvariant();
+
+            // Strictly exclude Team Leader
+            var isTeamLeader = rLower.Contains("team leader") || roleFieldLower.Contains("team leader");
+            if (isTeamLeader) continue;
+
+            // Check if On Floor Role is Head Of Department
+            var isHod = rLower == "head of department" || rLower.Contains("head of department") ||
+                        roleFieldLower == "head of department" || roleFieldLower.Contains("head of department") ||
+                        roleFieldLower.EndsWith("-hod") || roleFieldLower == "hod";
+
+            if (isHod)
+            {
+                if (!recipients.Any(r => r.Id == e.Id))
+                {
+                    recipients.Add(e);
+                }
+            }
+        }
+
+        // 4. Resolve and add customer's assigned Engagement Manager
+        AddCandidateIfFound(recipients, candidates, engagementManagerId, engagementManager);
+
+        return recipients;
+    }
+
     public async Task NotifyCustomerEditedAsync(
         Guid clientId,
         string clientName,
@@ -1693,21 +1772,18 @@ public sealed class ActionNotificationService(
         string? salesManager = null,
         CancellationToken ct = default)
     {
-        var recipients = await ResolveCustomerNotificationRecipientsAsync(
+        var recipients = await ResolveCustomerEditNotificationRecipientsAsync(
             clientId,
             engagementManagerId,
             engagementManager,
-            salesManagerId,
-            salesManager,
-            null,
-            null,
             ct);
         if (recipients.Count == 0) return;
 
         var distinctChanges = modifiedFields?.Where(f => !string.IsNullOrWhiteSpace(f)).Distinct().ToList() ?? [];
         var fieldsText = distinctChanges.Count > 0 ? string.Join(", ", distinctChanges) : null;
+        var verb = distinctChanges.Count > 1 ? "are edited" : "is edited";
         var title = fieldsText != null
-            ? $"{clientName} {fieldsText} is edited"
+            ? $"{clientName} {fieldsText} {verb}"
             : $"{clientName} is edited";
         if (title.Length > 255) title = title[..255];
 
@@ -1716,7 +1792,7 @@ public sealed class ActionNotificationService(
             : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
 
         var detailsText = fieldsText != null
-            ? $"{clientName} {fieldsText} is edited by {editorName}."
+            ? $"{clientName} {fieldsText} {verb} by {editorName}."
             : $"{clientName} is edited by {editorName}.";
 
         var addedList = new List<ActionNotification>();
@@ -1767,21 +1843,18 @@ public sealed class ActionNotificationService(
         string? salesManager = null,
         CancellationToken ct = default)
     {
-        var recipients = await ResolveCustomerNotificationRecipientsAsync(
+        var recipients = await ResolveCustomerEditNotificationRecipientsAsync(
             clientId,
             engagementManagerId,
             engagementManager,
-            salesManagerId,
-            salesManager,
-            null,
-            null,
             ct);
         if (recipients.Count == 0) return;
 
         var distinctChanges = modifiedFields?.Where(f => !string.IsNullOrWhiteSpace(f)).Distinct().ToList() ?? [];
         var fieldsText = distinctChanges.Count > 0 ? string.Join(", ", distinctChanges) : null;
+        var verb = distinctChanges.Count > 1 ? "are edited" : "is edited";
         var title = fieldsText != null
-            ? $"{subVentureName} {fieldsText} is edited"
+            ? $"{subVentureName} {fieldsText} {verb}"
             : $"{subVentureName} is edited";
         if (title.Length > 255) title = title[..255];
 
@@ -1790,7 +1863,7 @@ public sealed class ActionNotificationService(
             : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name : "System");
 
         var detailsText = fieldsText != null
-            ? $"{subVentureName} {fieldsText} is edited by {editorName}."
+            ? $"{subVentureName} {fieldsText} {verb} by {editorName}."
             : $"{subVentureName} is edited by {editorName}.";
 
         var addedList = new List<ActionNotification>();
@@ -1835,10 +1908,41 @@ public sealed class ActionNotificationService(
         string? createdByName,
         CancellationToken ct = default)
     {
-        // Criteria:
-        // 1. Resources whose Sub-Department is `EM (Engagement Manager)` or `PMO (Project Management Office)`
-        // AND
-        // 2. Resources whose On Floor Role is `Head Of Department`
+        var project = await db.Projects
+            .Include(p => p.Client)
+                .ThenInclude(c => c!.SalesManagerRef)
+            .Include(p => p.Client)
+                .ThenInclude(c => c!.EngagementManagerRef)
+            .Include(p => p.EngagementManagerRef)
+            .Include(p => p.SalesPersonRef)
+            .FirstOrDefaultAsync(p => p.Id == projectId, ct);
+
+        var recipients = new Dictionary<Guid, PMS.API.Modules.Resources.Models.Employee>();
+
+        // 1. Assigned Engagement Manager of the project
+        if (project != null)
+        {
+            var emRecipients = await ResolveProjectEngagementManagersAsync(project, ct);
+            foreach (var em in emRecipients)
+            {
+                if (em.DeletedAtUtc == null && !recipients.ContainsKey(em.Id))
+                {
+                    recipients[em.Id] = em;
+                }
+            }
+        }
+
+        // 2. Sales Manager or the person
+        var salesRecipients = await ResolveProjectSalesPersonsAsync(project, ct);
+        foreach (var s in salesRecipients)
+        {
+            if (s.DeletedAtUtc == null && !recipients.ContainsKey(s.Id))
+            {
+                recipients[s.Id] = s;
+            }
+        }
+
+        // Resolve HOD whose Sub-Department is EM and PMO
         var emSubDeptId = Guid.Parse("63bc0f54-4d35-4279-bb62-4daeff6ceeaa");
         var pmoSubDeptId = Guid.Parse("fd84aa38-11ef-46af-ade7-241f2a2c08fd");
 
@@ -1847,65 +1951,109 @@ public sealed class ActionNotificationService(
             .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")))
             .ToListAsync(ct);
 
-        if (candidates.Count == 0) return;
-
-        var desigIds = candidates.Where(e => e.DesignationId.HasValue).Select(e => e.DesignationId!.Value).Distinct().ToList();
-        var floorRoleList = await db.OnFloorRoles
-            .Where(r => desigIds.Contains(r.DesignationId) && r.DeletedAtUtc == null)
-            .Select(r => new { r.DesignationId, r.Name })
-            .ToListAsync(ct);
-
-        var floorRoles = new Dictionary<Guid, string>();
-        foreach (var fr in floorRoleList)
+        if (candidates.Count > 0)
         {
-            if (!floorRoles.ContainsKey(fr.DesignationId) && !string.IsNullOrWhiteSpace(fr.Name))
+            var desigIds = candidates.Where(e => e.DesignationId.HasValue).Select(e => e.DesignationId!.Value).Distinct().ToList();
+            var floorRoleList = await db.OnFloorRoles
+                .Where(r => desigIds.Contains(r.DesignationId) && r.DeletedAtUtc == null)
+                .Select(r => new { r.DesignationId, r.Name })
+                .ToListAsync(ct);
+
+            var floorRoles = new Dictionary<Guid, string>();
+            foreach (var fr in floorRoleList)
             {
-                floorRoles[fr.DesignationId] = fr.Name;
+                if (!floorRoles.ContainsKey(fr.DesignationId) && !string.IsNullOrWhiteSpace(fr.Name))
+                {
+                    floorRoles[fr.DesignationId] = fr.Name;
+                }
+            }
+
+            foreach (var e in candidates)
+            {
+                var subDept = (e.SubDepartment ?? e.SubDepartmentRef?.Name ?? "").Trim().ToLowerInvariant();
+                var subDeptCode = (e.SubDepartmentRef?.Code ?? "").Trim().ToLowerInvariant();
+
+                string roleFromFloor = string.Empty;
+                if (e.DesignationId.HasValue && floorRoles.TryGetValue(e.DesignationId.Value, out var mappedRole))
+                {
+                    roleFromFloor = mappedRole;
+                }
+
+                var rLower = roleFromFloor.Trim().ToLowerInvariant();
+                var roleFieldLower = (e.Role ?? "").Trim().ToLowerInvariant();
+
+                var isTeamLeader = rLower.Contains("team leader") || roleFieldLower.Contains("team leader");
+
+                // 3. HOD whose Sub-Department is `EM (Engagement Manager)`
+                var isEm = e.SubDepartmentId == emSubDeptId ||
+                           subDept == "em (engagement manager)" ||
+                           subDeptCode == "em_engagement_manager" ||
+                           subDept.Contains("engagement manager") ||
+                           subDept == "em" || subDept.StartsWith("em ") || subDept.StartsWith("em-");
+
+                var isHod = (rLower == "head of department" || rLower == "hod" || rLower.Contains("head of department") ||
+                             roleFieldLower == "head of department" || roleFieldLower == "hod" || roleFieldLower.Contains("head of department")) && !isTeamLeader;
+
+                if (isEm && isHod)
+                {
+                    if (!recipients.ContainsKey(e.Id))
+                    {
+                        recipients[e.Id] = e;
+                    }
+                }
+
+                // 4. PMO
+                var isPmo = e.SubDepartmentId == pmoSubDeptId ||
+                            subDept == "pmo (project management office)" ||
+                            subDept == "pmo" ||
+                            subDeptCode == "pmo_project_management_office" ||
+                            subDept.Contains("project management office") ||
+                            subDept.StartsWith("pmo ") || subDept.StartsWith("pmo-") ||
+                            (!string.IsNullOrWhiteSpace(e.PmoDepartment) && e.PmoDepartment.Trim().ToLowerInvariant().Contains("pmo")) ||
+                            roleFieldLower == "pmo" || roleFieldLower.Contains("pmo") ||
+                            rLower == "pmo" || rLower.Contains("pmo");
+
+                if (isPmo)
+                {
+                    if (!recipients.ContainsKey(e.Id))
+                    {
+                        recipients[e.Id] = e;
+                    }
+                }
             }
         }
 
-        var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
-        foreach (var e in candidates)
+        // Check for users with Role PMO whose employee records might not have PMO string in fields
+        var pmoUsers = await db.Users
+            .Include(u => u.Role)
+            .Where(u => u.IsActive && u.Role != null && u.Role.Name.ToUpper() == "PMO")
+            .ToListAsync(ct);
+
+        if (pmoUsers.Count > 0)
         {
-            var subDept = (e.SubDepartment ?? e.SubDepartmentRef?.Name ?? "").Trim().ToLowerInvariant();
-            var subDeptCode = (e.SubDepartmentRef?.Code ?? "").Trim().ToLowerInvariant();
-            var isEmOrPmo = e.SubDepartmentId == emSubDeptId || e.SubDepartmentId == pmoSubDeptId ||
-                            subDept == "em (engagement manager)" || subDept == "pmo (project management office)" ||
-                            subDeptCode == "em_engagement_manager" || subDeptCode == "pmo_project_management_office" ||
-                            subDept.Contains("engagement manager") || subDept.Contains("project management office") ||
-                            subDept == "em" || subDept == "pmo" || subDept.StartsWith("em ") || subDept.StartsWith("pmo ") ||
-                            subDept.StartsWith("em-") || subDept.StartsWith("pmo-");
+            var pmoUserEmails = pmoUsers.Select(u => u.Email.Trim().ToLower()).Where(em => !string.IsNullOrEmpty(em)).ToHashSet();
+            var pmoEmpCodes = pmoUsers.Select(u => u.EmployeeId.Trim().ToLower()).Where(c => !string.IsNullOrEmpty(c)).ToHashSet();
 
-            string roleFromFloor = string.Empty;
-            if (e.DesignationId.HasValue && floorRoles.TryGetValue(e.DesignationId.Value, out var mappedRole))
+            foreach (var cand in candidates)
             {
-                roleFromFloor = mappedRole;
-            }
+                if (recipients.ContainsKey(cand.Id)) continue;
 
-            var rLower = roleFromFloor.Trim().ToLowerInvariant();
-            var roleFieldLower = (e.Role ?? "").Trim().ToLowerInvariant();
-
-            var isTeamLeader = rLower.Contains("team leader") || roleFieldLower.Contains("team leader");
-            if (isTeamLeader) continue;
-
-            var isHod = rLower == "head of department" || rLower == "hod" || rLower.Contains("head of department") ||
-                        roleFieldLower == "head of department" || roleFieldLower == "hod" || roleFieldLower.Contains("head of department");
-
-            // Strict AND: Sub-Department is (EM or PMO) AND On Floor Role is Head Of Department
-            if (isEmOrPmo && isHod)
-            {
-                if (!recipients.Any(r => r.Id == e.Id))
+                var cEmail = (cand.WorkEmail ?? cand.PersonalEmail ?? "").Trim().ToLower();
+                var cCode = (cand.EmployeeCode ?? "").Trim().ToLower();
+                if ((!string.IsNullOrEmpty(cEmail) && pmoUserEmails.Contains(cEmail)) ||
+                    (!string.IsNullOrEmpty(cCode) && pmoEmpCodes.Contains(cCode)) ||
+                    pmoEmpCodes.Contains(cand.Id.ToString().ToLower()))
                 {
-                    recipients.Add(e);
+                    recipients[cand.Id] = cand;
                 }
             }
         }
 
         if (recipients.Count > 0)
         {
-            var title = $"WBS or the Project is Created with the {projectName}";
+            var title = $"{projectName} is onboarded";
             var addedList = new List<ActionNotification>();
-            foreach (var recipient in recipients)
+            foreach (var recipient in recipients.Values)
             {
                 var notif = new ActionNotification
                 {
@@ -1928,7 +2076,7 @@ public sealed class ActionNotificationService(
                         {
                             status = "Created",
                             at = DateTime.UtcNow.ToString("o"),
-                            details = $"WBS or the Project is Created with the {projectName}"
+                            details = $"{projectName} is onboarded"
                         }
                     })
                 };
@@ -3598,5 +3746,712 @@ public sealed class ActionNotificationService(
 
     #endregion
 
+    #region WBS Service Wise Prerequisite Tracking Notifications & SLA Escalations
+
+    public async Task NotifyServiceStartedAsync(Guid projectId, Guid serviceId, string? performerName = null, CancellationToken ct = default)
+    {
+        // 1. Cancel pending SLA escalation jobs for this service
+        await CancelServicePrerequisiteSlaWorkflowAsync(serviceId, ct);
+
+        var service = await db.ProjectServices
+            .Include(s => s.Project)
+                .ThenInclude(p => p.Client)
+            .FirstOrDefaultAsync(s => s.Id == serviceId && s.ProjectId == projectId && s.DeletedAtUtc == null, ct);
+
+        if (service?.Project == null) return;
+        var project = service.Project;
+
+        var recipients = await ResolveServiceStartedRecipientsAsync(project, ct);
+        if (recipients.Count == 0) return;
+
+        var title = $"Service Started: {service.ServiceName} | {project.Name}";
+        var details = $"Service '{service.ServiceName}' has been started from Service wise Prerequisite Tracking for project '{project.Name}'.";
+
+        var addedList = new List<ActionNotification>();
+        foreach (var recipient in recipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                ProjectId = project.Id,
+                ProjectCode = project.ProjectCode,
+                ProjectName = project.Name,
+                Title = title,
+                Type = "Service Started",
+                Priority = "Low",
+                Status = "Started",
+                Unread = true,
+                RaisedByName = performerName ?? currentUser.Name ?? "System",
+                RelatedTask = service.ServiceName,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = "Started",
+                        serviceId = service.Id.ToString(),
+                        serviceName = service.ServiceName,
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = details
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(addedList);
+    }
+
+    public async Task StartServicePrerequisiteSlaWorkflowAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
+    {
+        var service = await db.ProjectServices
+            .Include(s => s.Project)
+            .FirstOrDefaultAsync(s => s.Id == serviceId && s.ProjectId == projectId && s.DeletedAtUtc == null, ct);
+
+        if (service == null || service.IsReady) return;
+
+        if (s_activeServiceL1Jobs.ContainsKey(serviceId)) return;
+
+        DateTime l1DeadlineUtc;
+        if (deadlineCalculator != null)
+        {
+            l1DeadlineUtc = deadlineCalculator.CalculateTargetDeadline(
+                service.CreatedAtUtc != default ? service.CreatedAtUtc : DateTime.UtcNow,
+                1080, // 2 working days (2 * 540 min) to EOD in IST
+                SlaCalculationMode.EndOfDay,
+                useBusinessTimeZone: true);
+        }
+        else
+        {
+            var ist = ResolveIstTimeZone();
+            var nowIst = TimeZoneInfo.ConvertTimeFromUtc(service.CreatedAtUtc != default ? service.CreatedAtUtc : DateTime.UtcNow, ist);
+            var targetIst = nowIst.Date.AddDays(2).AddHours(18);
+            l1DeadlineUtc = TimeZoneInfo.ConvertTimeToUtc(targetIst, ist);
+        }
+
+        var delay = l1DeadlineUtc > DateTime.UtcNow ? l1DeadlineUtc - DateTime.UtcNow : TimeSpan.FromMinutes(1);
+
+        var jobId = BackgroundJob.Schedule<IActionNotificationService>(
+            s => s.ExecuteServicePrerequisiteL1EscalationJobAsync(projectId, serviceId),
+            delay);
+        s_activeServiceL1Jobs[serviceId] = jobId;
+    }
+
+    public Task CancelServicePrerequisiteSlaWorkflowAsync(Guid serviceId, CancellationToken ct = default)
+    {
+        if (s_activeServiceL1Jobs.TryRemove(serviceId, out var l1JobId))
+        {
+            try
+            {
+                BackgroundJob.Delete(l1JobId);
+                logger?.LogInformation("Deleted Service Prerequisite L1 job {JobId} for service {ServiceId}.", l1JobId, serviceId);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed deleting Service Prerequisite L1 job {JobId} for service {ServiceId}.", l1JobId, serviceId);
+            }
+        }
+
+        if (s_activeServiceL2Jobs.TryRemove(serviceId, out var l2JobId))
+        {
+            try
+            {
+                BackgroundJob.Delete(l2JobId);
+                logger?.LogInformation("Deleted Service Prerequisite L2 job {JobId} for service {ServiceId}.", l2JobId, serviceId);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed deleting Service Prerequisite L2 job {JobId} for service {ServiceId}.", l2JobId, serviceId);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    [JobDisplayName("Service Prerequisite | 1st Level Breach Escalation | PM | {0} | {1}")]
+    public async Task ExecuteServicePrerequisiteL1EscalationJobAsync(Guid projectId, Guid serviceId)
+    {
+        var service = await db.ProjectServices
+            .Include(s => s.Project)
+                .ThenInclude(p => p.Client)
+            .FirstOrDefaultAsync(s => s.Id == serviceId && s.ProjectId == projectId && s.DeletedAtUtc == null);
+
+        if (service?.Project == null || service.IsReady)
+        {
+            logger?.LogInformation("Service {ServiceId} in project {ProjectId} is already started, deleted, or missing project. Terminating L1 escalation.", serviceId, projectId);
+            s_activeServiceL1Jobs.TryRemove(serviceId, out _);
+            return;
+        }
+
+        var alreadySent = await db.ActionNotifications.AnyAsync(n =>
+            n.ProjectId == projectId &&
+            n.Type == "Service Prerequisite Escalation" &&
+            n.HistoryJson.Contains(serviceId.ToString()) &&
+            n.HistoryJson.Contains("\"level\":1") &&
+            n.DeletedAtUtc == null);
+
+        if (!alreadySent)
+        {
+            var pmRecipients = await ResolveAssignedProjectManagersAsync(service.Project);
+            if (pmRecipients.Count > 0)
+            {
+                var title = $"1st Level Breach Escalation: Service Not Started | {service.ServiceName} | {service.Project.Name}";
+                var details = $"1st level breach escalation: Service '{service.ServiceName}' in project '{service.Project.Name}' has not been started within 2 days from Service wise Prerequisite Tracking.";
+
+                var addedList = new List<ActionNotification>();
+                foreach (var pm in pmRecipients)
+                {
+                    var notif = new ActionNotification
+                    {
+                        Id = Guid.NewGuid(),
+                        RecipientEmployeeId = pm.Id,
+                        ProjectId = service.ProjectId,
+                        ProjectCode = service.Project.ProjectCode,
+                        ProjectName = service.Project.Name,
+                        Title = title,
+                        Type = "Service Prerequisite Escalation",
+                        Priority = "High",
+                        Status = "Escalated",
+                        Unread = true,
+                        RaisedByName = "System / SLA Engine",
+                        RelatedTask = service.ServiceName,
+                        CreatedAtUtc = DateTime.UtcNow,
+                        HistoryJson = JsonSerializer.Serialize(new[]
+                        {
+                            new
+                            {
+                                status = "Escalated",
+                                level = 1,
+                                serviceId = service.Id.ToString(),
+                                serviceName = service.ServiceName,
+                                at = DateTime.UtcNow.ToString("o"),
+                                details = details
+                            }
+                        })
+                    };
+                    db.ActionNotifications.Add(notif);
+                    addedList.Add(notif);
+                }
+
+                await db.SaveChangesAsync();
+                TrySyncNotificationsToOtherDatabase(addedList);
+            }
+        }
+
+        s_activeServiceL1Jobs.TryRemove(serviceId, out _);
+
+        // Schedule 2nd Level Escalation Job at next working day EOD
+        DateTime l2DeadlineUtc;
+        if (deadlineCalculator != null)
+        {
+            l2DeadlineUtc = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(DateTime.UtcNow);
+        }
+        else
+        {
+            var ist = ResolveIstTimeZone();
+            var nowIst = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ist);
+            var targetIst = nowIst.Date.AddDays(1).AddHours(18);
+            l2DeadlineUtc = TimeZoneInfo.ConvertTimeToUtc(targetIst, ist);
+        }
+
+        var l2Delay = l2DeadlineUtc > DateTime.UtcNow ? l2DeadlineUtc - DateTime.UtcNow : TimeSpan.FromMinutes(1);
+
+        var l2JobId = BackgroundJob.Schedule<IActionNotificationService>(
+            s => s.ExecuteServicePrerequisiteL2EscalationJobAsync(projectId, serviceId),
+            l2Delay);
+        s_activeServiceL2Jobs[serviceId] = l2JobId;
+    }
+
+    [JobDisplayName("Service Prerequisite | 2nd Level Breach Escalation | HOD | {0} | {1}")]
+    public async Task ExecuteServicePrerequisiteL2EscalationJobAsync(Guid projectId, Guid serviceId)
+    {
+        var service = await db.ProjectServices
+            .Include(s => s.Project)
+                .ThenInclude(p => p.Client)
+            .FirstOrDefaultAsync(s => s.Id == serviceId && s.ProjectId == projectId && s.DeletedAtUtc == null);
+
+        if (service?.Project == null || service.IsReady)
+        {
+            logger?.LogInformation("Service {ServiceId} in project {ProjectId} is already started, deleted, or missing project. Terminating L2 escalation.", serviceId, projectId);
+            s_activeServiceL2Jobs.TryRemove(serviceId, out _);
+            return;
+        }
+
+        var alreadySent = await db.ActionNotifications.AnyAsync(n =>
+            n.ProjectId == projectId &&
+            n.Type == "Service Prerequisite Escalation" &&
+            n.HistoryJson.Contains(serviceId.ToString()) &&
+            n.HistoryJson.Contains("\"level\":2") &&
+            n.DeletedAtUtc == null);
+
+        if (!alreadySent)
+        {
+            var hodIds = await ResolveServiceHodAsync(service, service.Project);
+            if (hodIds.Count > 0)
+            {
+                var title = $"2nd Level Breach Escalation: Service Not Started | {service.ServiceName} | {service.Project.Name}";
+                var details = $"2nd level breach escalation: Service '{service.ServiceName}' in project '{service.Project.Name}' remains not started after 1st level breach escalation.";
+
+                var addedList = new List<ActionNotification>();
+                foreach (var hodId in hodIds)
+                {
+                    var notif = new ActionNotification
+                    {
+                        Id = Guid.NewGuid(),
+                        RecipientEmployeeId = hodId,
+                        ProjectId = service.ProjectId,
+                        ProjectCode = service.Project.ProjectCode,
+                        ProjectName = service.Project.Name,
+                        Title = title,
+                        Type = "Service Prerequisite Escalation",
+                        Priority = "Critical",
+                        Status = "Escalated",
+                        Unread = true,
+                        RaisedByName = "System / SLA Engine",
+                        RelatedTask = service.ServiceName,
+                        CreatedAtUtc = DateTime.UtcNow,
+                        HistoryJson = JsonSerializer.Serialize(new[]
+                        {
+                            new
+                            {
+                                status = "Escalated",
+                                level = 2,
+                                serviceId = service.Id.ToString(),
+                                serviceName = service.ServiceName,
+                                at = DateTime.UtcNow.ToString("o"),
+                                details = details
+                            }
+                        })
+                    };
+                    db.ActionNotifications.Add(notif);
+                    addedList.Add(notif);
+                }
+
+                await db.SaveChangesAsync();
+                TrySyncNotificationsToOtherDatabase(addedList);
+            }
+        }
+
+        s_activeServiceL2Jobs.TryRemove(serviceId, out _);
+    }
+
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveServiceStartedRecipientsAsync(
+        Project project, CancellationToken ct = default)
+    {
+        var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        // 1. Assigned Project Manager
+        var pmList = await ResolveAssignedProjectManagersAsync(project, ct);
+        foreach (var pm in pmList)
+        {
+            if (!recipients.Any(r => r.Id == pm.Id)) recipients.Add(pm);
+        }
+
+        // 2. Assigned Engagement Manager
+        var emId = await ResolveEngagementManagerIdAsync(project, ct);
+        if (emId.HasValue && !recipients.Any(r => r.Id == emId.Value))
+        {
+            var em = await db.Employees.FirstOrDefaultAsync(e => e.Id == emId.Value && e.DeletedAtUtc == null, ct);
+            if (em != null) recipients.Add(em);
+        }
+
+        // 3. Assigned Team Lead
+        var tlList = await ResolveAssignedTeamLeadsAsync(project, ct);
+        foreach (var tl in tlList)
+        {
+            if (!recipients.Any(r => r.Id == tl.Id)) recipients.Add(tl);
+        }
+
+        return recipients;
+    }
+
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveAssignedProjectManagersAsync(
+        Project project, CancellationToken ct = default)
+    {
+        var pms = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        if (project.ProjectManager != null && !pms.Any(p => p.Id == project.ProjectManager.Id))
+        {
+            pms.Add(project.ProjectManager);
+        }
+
+        if (project.ProjectManagerId.HasValue && !pms.Any(p => p.Id == project.ProjectManagerId.Value))
+        {
+            var pm = await db.Employees.FirstOrDefaultAsync(e => e.Id == project.ProjectManagerId.Value && e.DeletedAtUtc == null, ct);
+            if (pm != null && !pms.Any(p => p.Id == pm.Id)) pms.Add(pm);
+        }
+
+        var tmPms = await db.ProjectTeamMembers
+            .Include(m => m.Employee)
+            .Where(m => m.ProjectId == project.Id && m.DeletedAtUtc == null &&
+                        (m.MemberRole == ProjectMemberRoles.ProjectManager ||
+                         m.MemberRole.ToLower().Contains("project manager") ||
+                         m.MemberRole.ToLower() == "pm"))
+            .ToListAsync(ct);
+
+        foreach (var tm in tmPms)
+        {
+            if (tm.Employee != null && tm.Employee.DeletedAtUtc == null && !pms.Any(p => p.Id == tm.Employee.Id))
+            {
+                pms.Add(tm.Employee);
+            }
+        }
+
+        return pms;
+    }
+
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveAssignedTeamLeadsAsync(
+        Project project, CancellationToken ct = default)
+    {
+        var tls = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        if (project.TeamLead != null && !tls.Any(t => t.Id == project.TeamLead.Id))
+        {
+            tls.Add(project.TeamLead);
+        }
+
+        if (project.TeamLeadId.HasValue && !tls.Any(t => t.Id == project.TeamLeadId.Value))
+        {
+            var tl = await db.Employees.FirstOrDefaultAsync(e => e.Id == project.TeamLeadId.Value && e.DeletedAtUtc == null, ct);
+            if (tl != null && !tls.Any(t => t.Id == tl.Id)) tls.Add(tl);
+        }
+
+        var tmTls = await db.ProjectTeamMembers
+            .Include(m => m.Employee)
+            .Where(m => m.ProjectId == project.Id && m.DeletedAtUtc == null &&
+                        (m.IsTeamLead ||
+                         m.MemberRole == "TeamLead" ||
+                         m.MemberRole == "Team Lead" ||
+                         m.MemberRole == "Team Leader" ||
+                         m.MemberRole.ToLower().Contains("team lead") ||
+                         m.MemberRole.ToLower().Contains("team leader") ||
+                         m.MemberRole.ToLower() == "tl"))
+            .ToListAsync(ct);
+
+        foreach (var tm in tmTls)
+        {
+            if (tm.Employee != null && tm.Employee.DeletedAtUtc == null && !tls.Any(t => t.Id == tm.Employee.Id))
+            {
+                tls.Add(tm.Employee);
+            }
+        }
+
+        return tls;
+    }
+
+    private async Task<List<Guid>> ResolveServiceHodAsync(
+        ProjectServiceEntity service, Project project, CancellationToken ct = default)
+    {
+        var hodIds = new List<Guid>();
+
+        Guid? serviceDeptId = null;
+        if (service.ServiceCatalog?.SubDepartment != null && service.ServiceCatalog.SubDepartment.DepartmentId != Guid.Empty)
+        {
+            serviceDeptId = service.ServiceCatalog.SubDepartment.DepartmentId;
+        }
+        else if (!string.IsNullOrWhiteSpace(service.Department))
+        {
+            var dept = await db.Departments.FirstOrDefaultAsync(d => d.Name.ToLower() == service.Department.ToLower() && d.DeletedAtUtc == null, ct);
+            if (dept != null) serviceDeptId = dept.Id;
+        }
+
+        var hodRoles = await db.OnFloorRoles
+            .AsNoTracking()
+            .Where(o => o.DeletedAtUtc == null && (
+                o.Name.ToLower() == "head of department" ||
+                o.Name.ToLower() == "hod" ||
+                o.Name.ToLower().Contains("head of department")
+            ))
+            .ToListAsync(ct);
+
+        var hodDesigIds = hodRoles.Select(o => o.DesignationId).Distinct().ToList();
+
+        var candidates = await db.Employees
+            .AsNoTracking()
+            .Include(e => e.Department)
+            .Include(e => e.SubDepartmentRef)
+            .Where(e => e.DeletedAtUtc == null &&
+                        (e.Status == null || !e.Status.ToLower().StartsWith("inactive")))
+            .Where(e => e.DesignationId.HasValue && hodDesigIds.Contains(e.DesignationId.Value))
+            .ToListAsync(ct);
+
+        candidates = candidates.Where(c =>
+        {
+            var rLower = (c.Role ?? "").ToLowerInvariant();
+            return !rLower.Contains("team leader") && !rLower.Contains("team lead");
+        }).ToList();
+
+        if (serviceDeptId.HasValue || !string.IsNullOrWhiteSpace(service.SubDepartment))
+        {
+            foreach (var c in candidates)
+            {
+                bool deptMatch = serviceDeptId.HasValue && c.DepartmentId == serviceDeptId.Value;
+                bool subDeptMatch = !string.IsNullOrWhiteSpace(service.SubDepartment) &&
+                    ((c.SubDepartment != null && c.SubDepartment.Equals(service.SubDepartment, StringComparison.OrdinalIgnoreCase)) ||
+                     (c.SubDepartmentRef != null && c.SubDepartmentRef.Name.Equals(service.SubDepartment, StringComparison.OrdinalIgnoreCase)));
+
+                if (deptMatch || subDeptMatch)
+                {
+                    hodIds.Add(c.Id);
+                }
+            }
+        }
+
+        if (hodIds.Count == 0)
+        {
+            var projectHodIds = await ResolveProjectHodAsync(project, ct);
+            hodIds.AddRange(projectHodIds);
+        }
+
+        if (hodIds.Count == 0 && candidates.Count > 0)
+        {
+            hodIds.AddRange(candidates.Select(c => c.Id));
+        }
+
+        return hodIds.Distinct().ToList();
+    }
+
+    public async Task NotifyServiceEditedAsync(
+        Guid projectId,
+        string serviceName,
+        string action,
+        string? details = null,
+        string? performerName = null,
+        CancellationToken ct = default)
+    {
+        var project = await db.Projects
+            .Include(p => p.Client)
+            .Include(p => p.EngagementManagerRef)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.DeletedAtUtc == null, ct);
+
+        if (project == null)
+        {
+            logger?.LogWarning("Project {ProjectId} not found or deleted. Service edit notification cannot be dispatched.", projectId);
+            return;
+        }
+
+        var emRecipients = await ResolveProjectEngagementManagersAsync(project, ct);
+        if (emRecipients.Count == 0)
+        {
+            logger?.LogWarning("No Engagement Manager resolved for project {ProjectId} ('{ProjectName}'). Service edit notification cannot be dispatched.", projectId, project.Name);
+            return;
+        }
+
+        var act = (action ?? "modify").Trim().ToLowerInvariant();
+        string actionWord;
+        string notifType;
+        if (act.Contains("del"))
+        {
+            actionWord = "deleted";
+            notifType = "Service Deleted";
+        }
+        else if (act.Contains("add"))
+        {
+            actionWord = "added";
+            notifType = "Service Added";
+        }
+        else
+        {
+            actionWord = "modify";
+            notifType = "Service Modified";
+        }
+
+        var title = $"The {project.Name} service is {actionWord}";
+        var meaningfulDetails = !string.IsNullOrWhiteSpace(details)
+            ? details
+            : $"Service '{serviceName}' was {actionWord} in project '{project.Name}'.";
+
+        var addedList = new List<ActionNotification>();
+        foreach (var em in emRecipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = em.Id,
+                ProjectId = project.Id,
+                ProjectCode = project.ProjectCode,
+                ProjectName = project.Name,
+                Title = title,
+                Type = notifType,
+                Priority = "Medium",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = performerName ?? currentUser.Name ?? "System",
+                RelatedTask = serviceName,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = actionWord,
+                        action = actionWord,
+                        serviceName = serviceName,
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = meaningfulDetails
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(addedList);
+    }
+
+    public Task NotifyServiceModifiedAsync(Guid projectId, string serviceName, string? details = null, string? performerName = null, CancellationToken ct = default)
+        => NotifyServiceEditedAsync(projectId, serviceName, "modify", details, performerName, ct);
+
+    public Task NotifyServiceDeletedAsync(Guid projectId, string serviceName, string? performerName = null, CancellationToken ct = default)
+        => NotifyServiceEditedAsync(projectId, serviceName, "deleted", null, performerName, ct);
+
+    public Task NotifyServiceAddedAsync(Guid projectId, string serviceName, string? details = null, string? performerName = null, CancellationToken ct = default)
+        => NotifyServiceEditedAsync(projectId, serviceName, "added", details, performerName, ct);
+
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveProjectEngagementManagersAsync(
+        Project project, CancellationToken ct = default)
+    {
+        var ems = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        if (project.EngagementManagerRef != null && project.EngagementManagerRef.DeletedAtUtc == null)
+        {
+            ems.Add(project.EngagementManagerRef);
+        }
+
+        if (project.EngagementManagerId.HasValue && project.EngagementManagerId.Value != Guid.Empty && !ems.Any(e => e.Id == project.EngagementManagerId.Value))
+        {
+            var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == project.EngagementManagerId.Value && e.DeletedAtUtc == null, ct);
+            if (emp != null) ems.Add(emp);
+        }
+
+        if (project.Client?.EngagementManagerId.HasValue == true && project.Client.EngagementManagerId.Value != Guid.Empty && !ems.Any(e => e.Id == project.Client.EngagementManagerId.Value))
+        {
+            var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == project.Client.EngagementManagerId.Value && e.DeletedAtUtc == null, ct);
+            if (emp != null) ems.Add(emp);
+        }
+
+        var tmEms = await db.ProjectTeamMembers
+            .Include(m => m.Employee)
+            .Where(m => m.ProjectId == project.Id && m.DeletedAtUtc == null &&
+                        (m.MemberRole.ToLower().Contains("engagement") || m.MemberRole.ToLower() == "em"))
+            .ToListAsync(ct);
+
+        foreach (var tm in tmEms)
+        {
+            if (tm.Employee != null && tm.Employee.DeletedAtUtc == null && !ems.Any(e => e.Id == tm.Employee.Id))
+            {
+                ems.Add(tm.Employee);
+            }
+        }
+
+        if (ems.Count == 0)
+        {
+            var emName = !string.IsNullOrWhiteSpace(project.EngagementManager)
+                ? project.EngagementManager
+                : project.Client?.EngagementManager;
+
+            if (!string.IsNullOrWhiteSpace(emName))
+            {
+                var trimmed = emName.Trim().ToLower();
+                var emp = await db.Employees.FirstOrDefaultAsync(e =>
+                    e.DeletedAtUtc == null &&
+                    ((e.FirstName + " " + e.LastName).Trim().ToLower() == trimmed ||
+                     (e.WorkEmail != null && e.WorkEmail.ToLower() == trimmed) ||
+                     (e.PersonalEmail != null && e.PersonalEmail.ToLower() == trimmed)), ct);
+                if (emp != null && !ems.Any(p => p.Id == emp.Id)) ems.Add(emp);
+            }
+        }
+
+        return ems;
+    }
+
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveProjectSalesPersonsAsync(
+        Project? project, CancellationToken ct = default)
+    {
+        var sales = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        if (project != null)
+        {
+            // 1. Direct project.SalesPersonRef
+            if (project.SalesPersonRef != null && project.SalesPersonRef.DeletedAtUtc == null)
+            {
+                sales.Add(project.SalesPersonRef);
+            }
+
+            // 2. Direct project.SalesPersonId
+            if (project.SalesPersonId.HasValue && project.SalesPersonId.Value != Guid.Empty && !sales.Any(e => e.Id == project.SalesPersonId.Value))
+            {
+                var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == project.SalesPersonId.Value && e.DeletedAtUtc == null, ct);
+                if (emp != null) sales.Add(emp);
+            }
+
+            // 3. Client.SalesManagerRef
+            if (project.Client?.SalesManagerRef != null && project.Client.SalesManagerRef.DeletedAtUtc == null && !sales.Any(e => e.Id == project.Client.SalesManagerRef.Id))
+            {
+                sales.Add(project.Client.SalesManagerRef);
+            }
+
+            // 4. Client.SalesManagerId
+            if (project.Client?.SalesManagerId.HasValue == true && project.Client.SalesManagerId.Value != Guid.Empty && !sales.Any(e => e.Id == project.Client.SalesManagerId.Value))
+            {
+                var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == project.Client.SalesManagerId.Value && e.DeletedAtUtc == null, ct);
+                if (emp != null) sales.Add(emp);
+            }
+
+            // 5. ProjectTeamMembers with sales role
+            var tmSales = await db.ProjectTeamMembers
+                .Include(m => m.Employee)
+                .Where(m => m.ProjectId == project.Id && m.DeletedAtUtc == null &&
+                            (m.MemberRole.ToLower().Contains("sales") || m.MemberRole.ToLower().Contains("sale")))
+                .ToListAsync(ct);
+
+            foreach (var tm in tmSales)
+            {
+                if (tm.Employee != null && tm.Employee.DeletedAtUtc == null && !sales.Any(e => e.Id == tm.Employee.Id))
+                {
+                    sales.Add(tm.Employee);
+                }
+            }
+
+            // 6. Name match on project.SalesPerson or Client.SalesManager
+            var salesName = !string.IsNullOrWhiteSpace(project.SalesPerson)
+                ? project.SalesPerson
+                : project.Client?.SalesManager;
+
+            if (!string.IsNullOrWhiteSpace(salesName))
+            {
+                var trimmed = salesName.Trim().ToLower();
+                var emp = await db.Employees.FirstOrDefaultAsync(e =>
+                    e.DeletedAtUtc == null &&
+                    ((e.FirstName + " " + e.LastName).Trim().ToLower() == trimmed ||
+                     (e.WorkEmail != null && e.WorkEmail.ToLower() == trimmed) ||
+                     (e.PersonalEmail != null && e.PersonalEmail.ToLower() == trimmed)), ct);
+                if (emp != null && !sales.Any(p => p.Id == emp.Id)) sales.Add(emp);
+            }
+        }
+
+        // 7. Fallback if no specific sales person is assigned on project or customer:
+        // include active employees whose Role is Sales Manager or Sales Person or SubDepartment contains Sales
+        if (sales.Count == 0)
+        {
+            var generalSales = await db.Employees
+                .Where(e => e.DeletedAtUtc == null && (e.Status == null || e.Status.ToLower().StartsWith("active")) &&
+                            ((e.Role != null && (e.Role.ToLower().Contains("sales manager") || e.Role.ToLower().Contains("sales person"))) ||
+                             (e.SubDepartment != null && e.SubDepartment.ToLower().Contains("sales"))))
+                .ToListAsync(ct);
+
+            foreach (var s in generalSales)
+            {
+                if (!sales.Any(e => e.Id == s.Id)) sales.Add(s);
+            }
+        }
+
+        return sales;
+    }
+
+    #endregion
 }
 
