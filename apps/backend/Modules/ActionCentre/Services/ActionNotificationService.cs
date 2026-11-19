@@ -5013,6 +5013,106 @@ public sealed class ActionNotificationService(
         TrySyncNotificationsToOtherDatabase(addedList);
     }
 
+    [JobDisplayName("Dedicated Allocation | 2-Day Daily EOD Reminder | PMO")]
+    public async Task ExecuteDedicatedAllocationPmoDailyEodCheckAsync()
+    {
+        var twoDaysAgo = DateTime.UtcNow.AddDays(-2);
+        var pendingRequests = await db.ProjectResourceAllocationRequests
+            .Include(r => r.Project)
+            .Include(r => r.Employee)
+            .Where(r => r.DeletedAtUtc == null &&
+                        r.Status == "Pending" &&
+                        r.ResourceType == "Dedicated" &&
+                        r.CreatedAtUtc <= twoDaysAgo)
+            .ToListAsync();
+
+        if (pendingRequests.Count == 0) return;
+
+        var pmoEmployees = await db.Employees
+            .AsNoTracking()
+            .Where(e => e.DeletedAtUtc == null &&
+                ((e.Role != null && e.Role.Contains("PMO")) ||
+                 (e.SubDepartment != null && e.SubDepartment.ToLower().Contains("pmo")) ||
+                 e.Role == "Admin"))
+            .ToListAsync();
+
+        var pmoUsers = await db.Users
+            .Include(u => u.Role)
+            .Where(u => u.IsActive && u.Role != null && u.Role.Name.ToUpper() == "PMO")
+            .ToListAsync();
+
+        var pmoIds = new HashSet<Guid>(pmoEmployees.Select(e => e.Id));
+        foreach (var u in pmoUsers)
+        {
+            if (Guid.TryParse(u.EmployeeId, out var empGuid))
+            {
+                pmoIds.Add(empGuid);
+            }
+        }
+
+        if (pmoIds.Count == 0) return;
+
+        var todayUtc = DateTime.UtcNow.Date;
+        var addedNotifs = new List<ActionNotification>();
+
+        foreach (var req in pendingRequests)
+        {
+            var allocTaskCode = $"ALLOC-{req.Id.ToString()[..8].ToUpper()}";
+
+            var alreadySentToday = await db.ActionNotifications.AnyAsync(n =>
+                n.RelatedTask == allocTaskCode &&
+                n.Type == "PMO Allocation Reminder" &&
+                n.CreatedAtUtc >= todayUtc &&
+                n.DeletedAtUtc == null);
+
+            if (alreadySentToday) continue;
+
+            var candidateName = req.Employee != null ? $"{req.Employee.FirstName} {req.Employee.LastName}".Trim() : "Resource";
+            var projectName = req.Project?.Name ?? "Project";
+            var title = $"{projectName}: Dedicated Resource Allocation Request for {candidateName} is pending PMO approval";
+
+            foreach (var pmoId in pmoIds)
+            {
+                var notif = new ActionNotification
+                {
+                    Id = Guid.NewGuid(),
+                    RecipientEmployeeId = pmoId,
+                    ProjectId = req.ProjectId,
+                    ProjectCode = req.Project?.ProjectCode,
+                    ProjectName = projectName,
+                    Title = title,
+                    Type = "PMO Allocation Reminder",
+                    Priority = "High",
+                    Status = "Pending",
+                    Unread = true,
+                    RaisedByName = "System Reminder",
+                    RelatedTask = allocTaskCode,
+                    HistoryJson = JsonSerializer.Serialize(new[]
+                    {
+                        new
+                        {
+                            action = "Reminder: Dedicated resource allocation request has been pending for over 2 days without decision.",
+                            date = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+                            time = DateTime.UtcNow.ToString("HH:mm:ss"),
+                            by = "System Reminder",
+                            status = "Pending",
+                            at = DateTime.UtcNow.ToString("o")
+                        }
+                    }, JsonOptions)
+                };
+
+                db.ActionNotifications.Add(notif);
+                addedNotifs.Add(notif);
+            }
+        }
+
+        if (addedNotifs.Count > 0)
+        {
+            await db.SaveChangesAsync();
+            TrySyncNotificationsToOtherDatabase(addedNotifs);
+        }
+    }
+
     #endregion
 }
 

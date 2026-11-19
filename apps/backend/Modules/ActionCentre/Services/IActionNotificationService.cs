@@ -66,4 +66,7 @@ public interface IActionNotificationService
         string? performerName = null,
         Guid? performerEmployeeId = null,
         CancellationToken ct = default);
+
+    [JobDisplayName("Dedicated Allocation | 2-Day Daily EOD Reminder | PMO")]
+    Task ExecuteDedicatedAllocationPmoDailyEodCheckAsync();
 }

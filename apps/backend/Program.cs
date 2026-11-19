@@ -219,6 +219,19 @@ catch (Exception ex)
     Log.Warning(ex, "Failed to schedule recurring Hangfire job for service prerequisite daily EOD reminders.");
 }
 
+// Register Recurring Dedicated Allocation PMO Daily EOD Reminder Job (Daily at EOD / 18:30 IST = 13:00 UTC)
+try
+{
+    RecurringJob.AddOrUpdate<PMS.API.Modules.ActionCentre.Services.IActionNotificationService>(
+        "dedicated-allocation-pmo-daily-eod-reminders",
+        job => job.ExecuteDedicatedAllocationPmoDailyEodCheckAsync(),
+        "0 13 * * *");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to schedule recurring Hangfire job for dedicated allocation PMO daily EOD reminders.");
+}
+
 app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();
 if (app.Environment.IsDevelopment())

@@ -2,7 +2,7 @@ import { getRouteApi, Link, Navigate, notFound } from "@tanstack/react-router";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Loader2, ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, CheckCircle2, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2 } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, CheckCircle2, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2, RotateCw } from "lucide-react";
 
 import { toast } from "sonner";
 
@@ -162,6 +162,7 @@ import {
   formatAllocationDuration,
 
   fetchEmployeeAllocations,
+  fetchProjectAllocationRequests,
   fetchEmployeeWorkload,
   type EmployeeWorkloadDto,
 
@@ -170,6 +171,7 @@ import {
   type ApiProjectTeamCandidate,
 
   type EmployeeAllocationBooking,
+  type ProjectResourceAllocationRequestDto,
 
 } from "@/modules/projects/api/project-team-members";
 
@@ -531,6 +533,8 @@ function DateRangePicker({
 
   bookings = [],
 
+  allowDedicatedSelection = false,
+
 }: {
 
   value: string;
@@ -548,6 +552,10 @@ function DateRangePicker({
   /** Other projects this person is already booked on. */
 
   bookings?: EmployeeAllocationBooking[];
+
+  /** When true, allows selecting dates overlapping dedicated bookings for PMO approval */
+
+  allowDedicatedSelection?: boolean;
 
 }) {
 
@@ -693,7 +701,7 @@ function DateRangePicker({
 
   const rejectDedicated = (clash: EmployeeAllocationBooking | undefined) => {
 
-    if (!clash) return false;
+    if (!clash || allowDedicatedSelection) return false;
 
     toast.error(dedicatedClashMessage(clash));
 
@@ -887,7 +895,7 @@ function DateRangePicker({
 
     if (projectEnd && isAfterDay(day, projectEnd)) return true;
 
-    return isDedicatedDay(day);
+    return !allowDedicatedSelection && isDedicatedDay(day);
 
   };
 
@@ -907,7 +915,7 @@ function DateRangePicker({
 
     if (projectEnd && isAfterDay(day, projectEnd)) return true;
 
-    return isDedicatedDay(day);
+    return !allowDedicatedSelection && isDedicatedDay(day);
 
   };
 
@@ -962,6 +970,16 @@ function DateRangePicker({
             ))}
 
           </ul>
+
+          {bookings.some(isDedicatedBooking) && (
+
+            <div className="mt-1.5 rounded bg-amber-500/10 border border-amber-500/20 px-2 py-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+
+              Note: This resource is dedicated on another project. You have to get approval from the PMO.
+
+            </div>
+
+          )}
 
         </div>
 
@@ -12730,11 +12748,17 @@ type ProjectTeamRow = {
 
   memberRole?: string;
 
+  deletedAtUtc?: string | null;
+
+  isActive?: boolean;
+
 };
 
 
 
 function teamDisplayRank(row: ProjectTeamRow): number {
+
+  if (row.deletedAtUtc || row.isActive === false) return 4;
 
   if (row.memberRole === "SeniorProjectManager") return 0;
 
@@ -12795,6 +12819,10 @@ function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
     isShadowTeam: m.isShadowTeam,
 
     memberRole: m.memberRole || (m.isShadowTeam ? "ShadowTeam" : "ProjectTeam"),
+
+    deletedAtUtc: m.deletedAtUtc ?? null,
+
+    isActive: m.isActive ?? (m.deletedAtUtc ? false : true),
 
   };
 
@@ -12897,6 +12925,7 @@ function DhTeamTab({
   const [action, setAction] = useState<{ type: ActionType; person: Person | null }>({ type: null, person: null });
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showRequestsModal, setShowRequestsModal] = useState(false);
 
   const [apiTeamRows, setApiTeamRows] = useState<ProjectTeamRow[] | null>(null);
 
@@ -13501,19 +13530,21 @@ function DhTeamTab({
         </div>
 
         {!readOnly && (
-
-        <button
-
-          onClick={() => setShowAddModal(true)}
-
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-
-        >
-
-          <Plus className="h-3.5 w-3.5" /> Add Team Member
-
-        </button>
-
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowRequestsModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
+          >
+            <Eye className="h-3.5 w-3.5" /> View Requests
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add Team Member
+          </button>
+        </div>
         )}
 
       </div>
@@ -13555,8 +13586,8 @@ function DhTeamTab({
             {!teamLoading && (teamTab === "project" ? rows : shadowRows).map((r) => {
 
               const managerLabel = teamTab === "project" ? managerRoleLabel(r.memberRole) : null;
-
-              const actionsLocked = Boolean(managerLabel);
+              const isTransferred = Boolean(r.deletedAtUtc) || r.isActive === false;
+              const actionsLocked = Boolean(managerLabel) || isTransferred;
 
               const allocationLabel = managerLabel && project.startDate && project.endDate
 
@@ -13566,7 +13597,7 @@ function DhTeamTab({
 
               return (
 
-              <tr key={r.person.id} className="hover:bg-accent/30">
+              <tr key={r.person.id} className={cn("hover:bg-accent/30", isTransferred && "opacity-60 bg-muted/20")}>
 
                 {/* Resource — left aligned with avatar */}
 
@@ -13581,6 +13612,12 @@ function DhTeamTab({
                       <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
 
                         {r.person.name}
+
+                        {isTransferred && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full border border-muted-foreground/30 bg-muted px-1.5 py-0 text-[10px] font-semibold text-muted-foreground">
+                            Transferred
+                          </span>
+                        )}
 
                         {managerLabel && (
 
@@ -13980,6 +14017,14 @@ function DhTeamTab({
 
 
 
+      {showRequestsModal && (
+        <ProjectAllocationRequestsModal
+          projectId={project.id}
+          projectName={project.name}
+          onClose={() => setShowRequestsModal(false)}
+        />
+      )}
+
       {showAddModal && (
 
         <AddTeamMemberModal
@@ -13988,7 +14033,7 @@ function DhTeamTab({
 
           teamType={teamTab}
 
-          existingPersonIds={(teamTab === "project" ? rows : shadowRows).map((r) => r.person.id)}
+          existingPersonIds={(teamTab === "project" ? rows : shadowRows).filter((r) => !r.deletedAtUtc && r.isActive !== false).map((r) => r.person.id)}
 
           onClose={() => setShowAddModal(false)}
 
@@ -14048,8 +14093,9 @@ function DhTeamTab({
                       ],
                     }]);
                   }
+                  const targetApprover = req.approverName || (newRow.resourceType === "Dedicated" ? "PMO" : "Reporting Manager");
                   toast.success(
-                    `Allocation approval request sent to ${req.approverName || "Reporting Manager"} for approval`
+                    `Allocation approval request sent to ${targetApprover} for approval`
                   );
                   setShowAddModal(false);
                 } catch (err) {
@@ -15165,7 +15211,7 @@ function AddTeamMemberModal({
 
     const clash = dedicatedClash(bookingDay(dates.start), bookingDay(dates.end), allocationBookings);
 
-    if (clash) {
+    if (clash && resourceType !== "Dedicated") {
 
       toast.error(dedicatedClashMessage(clash));
 
@@ -15363,6 +15409,8 @@ function AddTeamMemberModal({
 
             bookings={allocationBookings}
 
+            allowDedicatedSelection={resourceType === "Dedicated"}
+
           />
 
         </Field>
@@ -15516,6 +15564,171 @@ function AddTeamMemberModal({
 
   );
 
+}
+
+
+
+function ProjectAllocationRequestsModal({
+  projectId,
+  projectName,
+  onClose,
+}: {
+  projectId: string;
+  projectName: string;
+  onClose: () => void;
+}) {
+  const [requests, setRequests] = useState<ProjectResourceAllocationRequestDto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadRequests = () => {
+    setLoading(true);
+    fetchProjectAllocationRequests(projectId)
+      .then((items) => setRequests(items))
+      .catch((err) => {
+        console.warn("Failed to load allocation requests", err);
+        toast.error("Could not load allocation requests");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, [projectId]);
+
+  return (
+    <Modal title={`Allocation Requests — ${projectName}`} onClose={onClose} wide draggable>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Status and decision updates from PMO and Reporting Managers for resource allocation requests.
+          </p>
+          <button
+            type="button"
+            onClick={loadRequests}
+            className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-muted"
+          >
+            <RotateCw className={cn("h-3 w-3", loading && "animate-spin")} /> Refresh
+          </button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left font-medium">Resource</th>
+                <th className="px-3 py-2 text-center font-medium">Type</th>
+                <th className="px-3 py-2 text-center font-medium">Duration</th>
+                <th className="px-3 py-2 text-center font-medium">Approver</th>
+                <th className="px-3 py-2 text-center font-medium">Status</th>
+                <th className="px-3 py-2 text-left font-medium">Notes & Feedback</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {loading && requests.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                    Loading requests…
+                  </td>
+                </tr>
+              ) : requests.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                    No allocation requests found for this project.
+                  </td>
+                </tr>
+              ) : (
+                requests.map((req) => {
+                  const statusNormalized = (req.status || "Pending").trim();
+                  const statusBadgeClass =
+                    statusNormalized === "Approved"
+                      ? "bg-success/10 border-success/30 text-success"
+                      : statusNormalized === "Rejected"
+                      ? "bg-destructive/10 border-destructive/30 text-destructive"
+                      : statusNormalized === "Hold" || statusNormalized === "Request Changes"
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                      : "bg-muted border-border text-muted-foreground";
+
+                  let latestComment = "";
+                  if (req.commentsJson) {
+                    try {
+                      const comments = JSON.parse(req.commentsJson);
+                      if (Array.isArray(comments) && comments.length > 0) {
+                        const last = comments[comments.length - 1];
+                        latestComment = last.text || last.comment || "";
+                      }
+                    } catch {}
+                  }
+                  if (!latestComment && (req as any).historyJson) {
+                    try {
+                      const hist = JSON.parse((req as any).historyJson);
+                      if (Array.isArray(hist) && hist.length > 0) {
+                        const last = hist[hist.length - 1];
+                        latestComment = last.comment || last.details || last.action || "";
+                      }
+                    } catch {}
+                  }
+
+                  return (
+                    <tr key={req.id} className="hover:bg-accent/20">
+                      <td className="px-3 py-2.5">
+                        <div className="font-medium text-foreground">{req.employeeName}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {[req.employeeCode, req.employeeRole, req.department].filter(Boolean).join(" · ")}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                            req.resourceType === "Dedicated"
+                              ? "bg-primary/10 border-primary/30 text-primary"
+                              : "bg-info/10 border-info/30 text-info"
+                          )}
+                        >
+                          {req.resourceType}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-xs text-muted-foreground whitespace-nowrap">
+                        {formatToDayMonthYear(req.allocationStartDate)} → {formatToDayMonthYear(req.allocationEndDate)}
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-xs">
+                        <span className="font-medium text-foreground">
+                          {req.approverName || (req.resourceType === "Dedicated" ? "PMO" : "Reporting Manager")}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                            statusBadgeClass
+                          )}
+                        >
+                          {statusNormalized}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-xs truncate" title={latestComment}>
+                        {latestComment || "—"}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-input bg-card px-4 py-1.5 text-sm font-medium hover:bg-accent"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 
 

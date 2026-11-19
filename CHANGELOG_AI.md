@@ -1,3 +1,60 @@
+# Changelog - Database Synchronization: pms_uat.sql and pms_development.sql from Live Database
+
+## Summary of Changes
+- **Database Dump Synchronization**:
+  - Cleared and regenerated both `database/pms_uat.sql` and `database/pms_development.sql` directly from the active local PostgreSQL database (`pms_uat` on `127.0.0.1:5432`).
+  - Generated complete schema, tables, constraints, foreign keys, sequences, and data using `pg_dump --no-owner --no-acl`.
+  - Filtered out PostgreSQL 18-specific `\restrict` and `\unrestrict` session tokens for cross-version PostgreSQL compatibility.
+- **Verification & Data Audit**:
+  - Audited all 11 schemas, 94 base tables, and 5,330 total rows directly from the live database.
+  - Confirmed 0 mismatches: 100% of tables and records are identically represented in both SQL files.
+  - Both files have identical file size (1,688,353 bytes), identical line count (11,805 lines), and identical SHA-256 hash (`4931f5b7d4f8f2ce42bb98dc751865ff8efeb544f93fa8c1cb9374101251a285`).
+  - Verified 94 `CREATE TABLE` statements and 94 `COPY` statements matching the 94 base tables.
+- **Affected Files**:
+  - `database/pms_uat.sql`
+  - `database/pms_development.sql`
+- **Database Changes and Migrations**:
+  - None.
+- **Existing Functionality Preserved**:
+  - No application code, business logic, or UI modified.
+
+---
+
+# Changelog - Dedicated Resource PMO Approval Flow, Transferred Team Member Status, EOD Reminder & Requests View
+
+## Summary of Changes
+- **Dedicated Resource PMO Approval Workflow**:
+  - **PMO Note & Selection**: When adding a team member with `Dedicated` resource type where the person is already dedicated on another project, displayed an informational banner: `"Note: This resource is dedicated on another project. You have to get approval from the PMO."` directly below the dedicated project allocation bookings in `DateRangePicker`.
+  - **Non-blocking Date Selection**: Added `allowDedicatedSelection` to `DateRangePicker` and updated `AddTeamMemberModal` so that dedicated clashes do not prevent selecting allocation dates for PMO approval submission.
+  - **Approval Routing to PMO**: In `ProjectTeamMemberService.RequestAllocationAsync`, requests for dedicated resources route approval directly to PMO users/employees (`approverName = "PMO"`) and dispatch notifications to PMO, while shared resources continue routing to the employee's Reporting Manager.
+  - **Approval & Project Transfer**: In `TakeAllocationActionAsync`, when PMO approves a dedicated resource allocation request:
+    - The employee is added as an active team member to the new project.
+    - Any prior dedicated membership on another project has its `AllocationEndDate` updated to the day before the new project's start date (`AllocationStartDate.AddDays(-1)`), with `DeletedAtUtc` set to `DateTime.UtcNow`.
+  - **Lighted / Dimmed Transferred Row**: In the previous project's Team tab, transferred members are displayed with dimmed opacity (`opacity-60 bg-muted/20`), a `"Transferred"` badge, their historical allocation duration (`StartDate → EndDate`), and action buttons disabled.
+  - **Reporting Manager Notification**: In `NotifyLeadershipOnAllocationStatusChangeAsync`, when PMO approves or rejects a dedicated resource request, an approval or rejection notification is dispatched to the candidate's Reporting Manager.
+  - **Daily EOD Hangfire Reminder**: Implemented `ExecuteDedicatedAllocationPmoDailyEodCheckAsync` in `ActionNotificationService` and registered recurring job `dedicated-allocation-pmo-daily-eod-reminders` running daily at EOD (18:30 IST / 13:00 UTC). If PMO has not approved, held, or rejected a dedicated allocation request within 2 days, a daily high-priority reminder notification is sent to PMO until decision.
+  - **"View Requests" Button & Modal**: Added a `"View Requests"` button in the Team Tab beside `"Add Team Member"`. It opens `ProjectAllocationRequestsModal` displaying the project's allocation requests, resource details, duration, approver name (PMO or Reporting Manager), status badges (Pending, Approved, Hold, Rejected), and latest decision comments/feedback.
+- **Affected Files**:
+  - `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+  - `apps/backend/Modules/Projects/DTOs/ProjectTeamMemberDtos.cs`
+  - `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`
+  - `apps/backend/Program.cs`
+  - `apps/frontend/src/modules/projects/api/project-team-members.ts`
+  - `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
+- **Database Changes and Migrations**:
+  - None required. Utilizes existing columns (`DeletedAtUtc`, `AllocationEndDate`) on `project.tbl_project_team_members` and the existing partial index (`WHERE "DeletedAtUtc" IS NULL`).
+- **Existing Functionality Preserved**:
+  - Preserved standard Shared Resource allocation routing to the resource's Reporting Manager.
+  - Preserved WBS Project Allocation leadership rules and manager row locks.
+  - Maintained complete UI consistency and responsive styling.
+  - Strictly observed zero test/mock data creation in the database or UI.
+- **Verification**:
+  - Backend `PMS.API.csproj` built cleanly with **0 errors**.
+  - Frontend built cleanly with **0 errors** across client and SSR bundles.
+
+---
+
 # Changelog - Accurate Synchronization of pms_uat.sql and pms_development.sql from Live Local Database
 
 ## Summary of Changes

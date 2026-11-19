@@ -20,6 +20,8 @@ export interface ApiProjectTeamMember {
   memberRole?: string | null;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
+  deletedAtUtc?: string | null;
+  isActive?: boolean;
 }
 
 export interface EmployeeAllocationBooking {
@@ -85,6 +87,8 @@ export interface ProjectResourceAllocationRequestDto {
   commentsJson?: string | null;
   createdAtUtc: string;
   updatedAtUtc?: string | null;
+  deletedAtUtc?: string | null;
+  isActive?: boolean;
 }
 
 export async function fetchProjectTeamMembers(
