@@ -2871,6 +2871,73 @@ dc5f3ece-6d33-4332-8b6f-0cb90d8090a2	f01f614a-af85-4225-a3b4-3c463fb97bdf	\N	\N	
 df0c270d-0fdf-4ec5-b0d6-62f16d4dd996	0a46bda6-6481-4bbe-8689-18fe959fa98a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Deepak Singh, Reyansh Patel - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"03:50:12","by":"System","details":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 09:20:12.070976+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T03:50:12.0709765Z"}]	27314	\N
 f6faaa55-7de1-4480-8726-346d9f66cc08	818ae1ea-5842-4adb-b475-ac12dba9fd2a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"03:50:12","by":"System","details":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 09:20:12.070976+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T03:50:12.0709765Z"}]	27315	\N
 fce1afbc-5476-463b-afef-54a5416a2ba3	818ae1ea-5842-4adb-b475-ac12dba9fd2a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Aditi Roy, Advait Gupta, Aditya Menon - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"03:50:12","by":"System","details":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 09:20:12.070976+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T03:50:12.0709765Z"}]	27316	\N
+0f85072e-5214-414b-af59-a412535e7e1e	d17be428-1602-4e09-a164-c3c2666fad73	\N	\N	-	Pending Team Availability & Shift Coverage: Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 15 reportee(s) (Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 15 reportee(s) (Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27317	\N
+260e9d61-2511-435b-a737-513dbeee7114	0a46bda6-6481-4bbe-8689-18fe959fa98a	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Ishaan Pansare, Nidhi Bose, Amit Gaikwad - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 3 reportee(s) (Ishaan Pansare, Nidhi Bose, Amit Gaikwad) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Ishaan Pansare, Nidhi Bose, Amit Gaikwad) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27318	\N
+3eb84b0d-387c-4204-a24f-6b938653d175	818ae1ea-5842-4adb-b475-ac12dba9fd2a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27319	\N
+426cd1c4-9c77-4219-9492-b5a22b3dcc99	0a46bda6-6481-4bbe-8689-18fe959fa98a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Men	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 27 reportee(s) (Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Menon, Lakshmi Kadam, Kunal Iyer, Arjun Sawant, Aditya Pillai, Vihaan Iyer, Alok Deshpande, Kavya Roy, Rohan Deshpande, Reyansh Mathur, Divya Deshmukh, Siddharth Deshpande, Manish Malhotra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 27 reportee(s) (Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Menon, Lakshmi Kadam, Kunal Iyer, Arjun Sawant, Aditya Pillai, Vihaan Iyer, Alok Deshpande, Kavya Roy, Rohan Deshpande, Reyansh Mathur, Divya Deshmukh, Siddharth Deshpande, Manish Malhotra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27320	\N
+44beb873-d294-4d2e-bd03-0a5cd11885c3	bbdc4c49-4262-4c1a-a270-1bfe3c550644	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 8 reportee(s) (Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 8 reportee(s) (Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27321	\N
+4f9303da-3ebb-481f-8717-e1384dcfb1aa	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 8 reportee(s) (Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 8 reportee(s) (Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27322	\N
+69de34b5-1467-43ba-9c3e-a03eb559d42a	f01f614a-af85-4225-a3b4-3c463fb97bdf	\N	\N	-	Pending Team Availability & Shift Coverage: Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 7 reportee(s) (Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 7 reportee(s) (Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27323	\N
+79e214e6-effb-4dff-b3fe-3b2f5cfc8df5	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	-	Pending Team Availability & Shift Coverage: Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 4 reportee(s) (Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 4 reportee(s) (Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27324	\N
+a933296d-cedd-48ee-a646-27e1605458cf	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 5 reportee(s) (Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 5 reportee(s) (Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27325	\N
+afd0c1b9-32e0-48e2-9dd3-e51d1e3a1689	818ae1ea-5842-4adb-b475-ac12dba9fd2a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Aditi Roy, Advait Gupta, Aditya Menon - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27326	\N
+c54a847e-2c79-4ad4-816a-f4b100de77cc	d94878fd-4650-46bc-b84c-753c841e7404	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Abhi Mistry - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 1 reportee(s) (Abhi Mistry) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 1 reportee(s) (Abhi Mistry) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27327	\N
+fc16efee-13f6-4e33-a8eb-faad0394b34f	0a46bda6-6481-4bbe-8689-18fe959fa98a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Deepak Singh, Reyansh Patel - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"05:30:15","by":"System","details":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 11:00:15.074078+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T05:30:15.0740788Z"}]	27328	\N
+1778e8ab-1f5e-41ee-9580-27f2757803e3	e09daabd-8da2-4dc9-89b4-03f4b79583de	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (11:00 AM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"11:00 AM Project Leadership Alert","date":"2026-11-19","time":"05:30:15","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 11:00:15.14031+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T05:30:15.1403100Z"}]	27329	\N
+380b6407-f994-41b3-bd14-bfac6530f4b0	900ed2a0-d8b3-439f-af86-7383cdebcd05	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (11:00 AM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"11:00 AM Project Leadership Alert","date":"2026-11-19","time":"05:30:15","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 11:00:15.14031+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T05:30:15.1403100Z"}]	27330	\N
+88379256-6786-460d-bea3-7e03dd88aec8	ffcdc44f-996b-4ef6-90e6-db858823a4c4	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (11:00 AM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"11:00 AM Project Leadership Alert","date":"2026-11-19","time":"05:30:15","by":"System","details":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026."}]	2026-11-19 11:00:15.14031+05:30	\N	\N	\N	\N	[{"text":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026.","by":"System","at":"2026-11-19T05:30:15.1403100Z"}]	27331	\N
+940d608f-2b63-4809-a02b-3d6000f30a54	238c3cb7-75cf-4478-a48e-fe47465d20b6	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (11:00 AM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"11:00 AM Project Leadership Alert","date":"2026-11-19","time":"05:30:15","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 11:00:15.14031+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T05:30:15.1403100Z"}]	27332	\N
+9fb8c15c-afe4-4f77-8a92-a32426608688	2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (11:00 AM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"11:00 AM Project Leadership Alert","date":"2026-11-19","time":"05:30:15","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 11:00:15.14031+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T05:30:15.1403100Z"}]	27333	\N
+b81130fb-2216-483a-b383-2f4341664daa	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (11:00 AM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"11:00 AM Project Leadership Alert","date":"2026-11-19","time":"05:30:15","by":"System","details":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026."}]	2026-11-19 11:00:15.14031+05:30	\N	\N	\N	\N	[{"text":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026.","by":"System","at":"2026-11-19T05:30:15.1403100Z"}]	27334	\N
+c6d93dd4-5259-4f59-8e2f-69ae042eb8e6	26fd3209-693a-49d1-9224-8f7e2f3a1c58	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (11:00 AM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"11:00 AM Project Leadership Alert","date":"2026-11-19","time":"05:30:15","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 11:00:15.14031+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T05:30:15.1403100Z"}]	27335	\N
+d1cb2eb2-4d0f-4bce-9a9c-8e99e0bbc3c6	df8f375a-d0b0-40c0-8ada-264fc2275f4f	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (11:00 AM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"11:00 AM Project Leadership Alert","date":"2026-11-19","time":"05:30:15","by":"System","details":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026."}]	2026-11-19 11:00:15.14031+05:30	\N	\N	\N	\N	[{"text":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026.","by":"System","at":"2026-11-19T05:30:15.1403100Z"}]	27336	\N
+0a964097-4188-4dac-99ec-c8bef3d3a0e9	df8f375a-d0b0-40c0-8ada-264fc2275f4f	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (12:00 PM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"12:00 PM Project Leadership Alert","date":"2026-11-19","time":"06:30:02","by":"System","details":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026."}]	2026-11-19 12:00:02.584012+05:30	\N	\N	\N	\N	[{"text":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026.","by":"System","at":"2026-11-19T06:30:02.5840124Z"}]	27337	\N
+4c807a66-11b2-4050-a626-db6e4acaff18	2285ceea-ffbf-4bf4-bb2e-bd9e0427beeb	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (12:00 PM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"12:00 PM Project Leadership Alert","date":"2026-11-19","time":"06:30:02","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 12:00:02.584012+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T06:30:02.5840124Z"}]	27338	\N
+6ee82b09-6068-4778-80b3-37c19ea79a25	900ed2a0-d8b3-439f-af86-7383cdebcd05	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (12:00 PM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"12:00 PM Project Leadership Alert","date":"2026-11-19","time":"06:30:02","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 12:00:02.584012+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T06:30:02.5840124Z"}]	27339	\N
+8ea0cbbd-70e1-4b21-ba91-61b0730de8a5	e09daabd-8da2-4dc9-89b4-03f4b79583de	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (12:00 PM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"12:00 PM Project Leadership Alert","date":"2026-11-19","time":"06:30:02","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 12:00:02.584012+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T06:30:02.5840124Z"}]	27340	\N
+c5396b52-8120-4dfa-b2d2-2c10fbdb4516	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (12:00 PM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"12:00 PM Project Leadership Alert","date":"2026-11-19","time":"06:30:02","by":"System","details":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026."}]	2026-11-19 12:00:02.584012+05:30	\N	\N	\N	\N	[{"text":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026.","by":"System","at":"2026-11-19T06:30:02.5840124Z"}]	27341	\N
+d3f1625f-845b-48f5-b5ce-1236e3b26316	ffcdc44f-996b-4ef6-90e6-db858823a4c4	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (12:00 PM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"12:00 PM Project Leadership Alert","date":"2026-11-19","time":"06:30:02","by":"System","details":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026."}]	2026-11-19 12:00:02.584012+05:30	\N	\N	\N	\N	[{"text":"6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026.","by":"System","at":"2026-11-19T06:30:02.5840124Z"}]	27342	\N
+da902a35-8fc0-4585-902c-81fa199cbda3	26fd3209-693a-49d1-9224-8f7e2f3a1c58	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (12:00 PM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"12:00 PM Project Leadership Alert","date":"2026-11-19","time":"06:30:02","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 12:00:02.584012+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T06:30:02.5840124Z"}]	27343	\N
+f2e1b87e-e99d-43ab-b198-3b506640609f	238c3cb7-75cf-4478-a48e-fe47465d20b6	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Alert: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (12:00 PM)	Project Shift & Availability Alert	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"12:00 PM Project Leadership Alert","date":"2026-11-19","time":"06:30:02","by":"System","details":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 12:00:02.584012+05:30	\N	\N	\N	\N	[{"text":"3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) allocated to 'Aaditya Birla(Aaditya Birla)_Mixed_01' have NOT been updated by their reporting manager(s) (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T06:30:02.5840124Z"}]	27344	\N
+07d07abd-c5f1-4120-9501-a758117e1df3	bbdc4c49-4262-4c1a-a270-1bfe3c550644	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 8 reportee(s) (Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 8 reportee(s) (Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27345	\N
+0a1779c9-0ba2-42f3-8f99-db4c61af9f40	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 8 reportee(s) (Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 8 reportee(s) (Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27346	\N
+22634dde-6cc7-47fc-ab58-8273b62381be	818ae1ea-5842-4adb-b475-ac12dba9fd2a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27347	\N
+34f31d07-5164-4745-874f-524705dcd99d	818ae1ea-5842-4adb-b475-ac12dba9fd2a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Aditi Roy, Advait Gupta, Aditya Menon - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27348	\N
+54772894-aa8f-4471-8511-ccd4430e0dbe	0a46bda6-6481-4bbe-8689-18fe959fa98a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Men	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 27 reportee(s) (Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Menon, Lakshmi Kadam, Kunal Iyer, Arjun Sawant, Aditya Pillai, Vihaan Iyer, Alok Deshpande, Kavya Roy, Rohan Deshpande, Reyansh Mathur, Divya Deshmukh, Siddharth Deshpande, Manish Malhotra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 27 reportee(s) (Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Menon, Lakshmi Kadam, Kunal Iyer, Arjun Sawant, Aditya Pillai, Vihaan Iyer, Alok Deshpande, Kavya Roy, Rohan Deshpande, Reyansh Mathur, Divya Deshmukh, Siddharth Deshpande, Manish Malhotra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27349	\N
+56fdf431-70a6-4b33-a2a1-9f0784faaa79	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 5 reportee(s) (Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 5 reportee(s) (Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27350	\N
+7917e586-206f-4a7d-8bca-fe2e98d3ea4a	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	-	Pending Team Availability & Shift Coverage: Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 4 reportee(s) (Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 4 reportee(s) (Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27351	\N
+9a28bf21-c22d-469f-af15-99f5252c83ce	0a46bda6-6481-4bbe-8689-18fe959fa98a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Deepak Singh, Reyansh Patel - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27352	\N
+a4b6e648-ce68-447b-ad8c-15d100684d96	d94878fd-4650-46bc-b84c-753c841e7404	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Abhi Mistry - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 1 reportee(s) (Abhi Mistry) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 1 reportee(s) (Abhi Mistry) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27353	\N
+c2cf0866-115e-4ebb-9019-996b46e04dc7	f01f614a-af85-4225-a3b4-3c463fb97bdf	\N	\N	-	Pending Team Availability & Shift Coverage: Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 7 reportee(s) (Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 7 reportee(s) (Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27354	\N
+e65d0aa6-5ed0-4c11-aa77-7d441f342e1f	0a46bda6-6481-4bbe-8689-18fe959fa98a	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Ishaan Pansare, Nidhi Bose, Amit Gaikwad - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 3 reportee(s) (Ishaan Pansare, Nidhi Bose, Amit Gaikwad) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Ishaan Pansare, Nidhi Bose, Amit Gaikwad) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27355	\N
+f789a678-23e2-42f6-a3fc-8fd82ef62cfe	d17be428-1602-4e09-a164-c3c2666fad73	\N	\N	-	Pending Team Availability & Shift Coverage: Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"07:30:05","by":"System","details":"Reminder: You have 15 reportee(s) (Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 13:00:05.033977+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 15 reportee(s) (Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T07:30:05.0339773Z"}]	27356	\N
+1db6d2df-69c5-4b69-9e01-ceffa31fd26f	dd200677-337b-440b-afcb-3a661406f98b	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Escalation: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (1:00 PM)	SPM Shift & Availability Escalation	High	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"1:00 PM SPM Daily Escalation Alert","date":"2026-11-19","time":"07:30:05","by":"System","details":"As of 1:00 PM, 6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) under 'Aaditya Birla(Aaditya Birla)_Mixed_01' still have NOT been updated by their reporting managers (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026."}]	2026-11-19 13:00:05.057083+05:30	\N	\N	\N	\N	[{"text":"As of 1:00 PM, 6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) under 'Aaditya Birla(Aaditya Birla)_Mixed_01' still have NOT been updated by their reporting managers (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026.","by":"System","at":"2026-11-19T07:30:05.0570835Z"}]	27357	\N
+4019a4ac-a5ac-4a8f-bb96-717955ef8c83	8f3346d4-6f76-4575-af6d-a69527694680	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Escalation: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (1:00 PM)	SPM Shift & Availability Escalation	High	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"1:00 PM SPM Daily Escalation Alert","date":"2026-11-19","time":"07:30:05","by":"System","details":"As of 1:00 PM, 6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) under 'Aaditya Birla(Aaditya Birla)_Mixed_01' still have NOT been updated by their reporting managers (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026."}]	2026-11-19 13:00:05.057083+05:30	\N	\N	\N	\N	[{"text":"As of 1:00 PM, 6 of 6 resource(s) (Deepak Singh, Aditi Roy, Reyansh Patel, Advait Gupta, Aditya Menon, Abhi Mistry) under 'Aaditya Birla(Aaditya Birla)_Mixed_01' still have NOT been updated by their reporting managers (Trisha Pillai, Vihaan Bose, Nikhil Saxena) for 19-Nov-2026.","by":"System","at":"2026-11-19T07:30:05.0570835Z"}]	27358	\N
+a1661dee-78c5-440b-ad0c-2c7b11ee98c3	bfb55863-c987-497b-9a1b-9a7bc56a9509	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Escalation: Pending Resource Availability & Shift Coverage - Aaditya Birla(Aaditya Birla)_Mixed_01 (1:00 PM)	SPM Shift & Availability Escalation	High	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"1:00 PM SPM Daily Escalation Alert","date":"2026-11-19","time":"07:30:05","by":"System","details":"As of 1:00 PM, 3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) under 'Aaditya Birla(Aaditya Birla)_Mixed_01' still have NOT been updated by their reporting managers (Trisha Pillai) for 19-Nov-2026."}]	2026-11-19 13:00:05.057083+05:30	\N	\N	\N	\N	[{"text":"As of 1:00 PM, 3 of 3 resource(s) (Nidhi Bose, Ishaan Pansare, Amit Gaikwad) under 'Aaditya Birla(Aaditya Birla)_Mixed_01' still have NOT been updated by their reporting managers (Trisha Pillai) for 19-Nov-2026.","by":"System","at":"2026-11-19T07:30:05.0570835Z"}]	27359	\N
+0167e472-5b07-4d59-a300-3ccf8d622dcc	0a46bda6-6481-4bbe-8689-18fe959fa98a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Deepak Singh, Reyansh Patel - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27360	\N
+0260a467-df04-4c0d-a194-7555bed09a83	d17be428-1602-4e09-a164-c3c2666fad73	\N	\N	-	Pending Team Availability & Shift Coverage: Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 15 reportee(s) (Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 15 reportee(s) (Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27361	\N
+1e9a4d40-ac7d-475e-a14a-2dc0795f28e2	d94878fd-4650-46bc-b84c-753c841e7404	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Abhi Mistry - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 1 reportee(s) (Abhi Mistry) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 1 reportee(s) (Abhi Mistry) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27362	\N
+31f44dbd-8089-4771-83ce-59fdb67e89d7	f01f614a-af85-4225-a3b4-3c463fb97bdf	\N	\N	-	Pending Team Availability & Shift Coverage: Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 7 reportee(s) (Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 7 reportee(s) (Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27363	\N
+342a6f60-52db-4261-b621-867c089ce1cc	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	-	Pending Team Availability & Shift Coverage: Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 4 reportee(s) (Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 4 reportee(s) (Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27364	\N
+6b21b796-7449-4963-b3eb-4d9a023f8a66	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 5 reportee(s) (Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 5 reportee(s) (Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27365	\N
+7b96d318-751d-4d0f-bad9-237979955022	bbdc4c49-4262-4c1a-a270-1bfe3c550644	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 8 reportee(s) (Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 8 reportee(s) (Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27366	\N
+a5cf3ed3-5494-450e-8081-25067ef717c4	818ae1ea-5842-4adb-b475-ac12dba9fd2a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Aditi Roy, Advait Gupta, Aditya Menon - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27367	\N
+b46f9f1d-c481-4448-a1a6-8bff4f6dca4b	0a46bda6-6481-4bbe-8689-18fe959fa98a	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Ishaan Pansare, Nidhi Bose, Amit Gaikwad - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 3 reportee(s) (Ishaan Pansare, Nidhi Bose, Amit Gaikwad) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Ishaan Pansare, Nidhi Bose, Amit Gaikwad) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27368	\N
+c0def142-b037-4d74-87d1-5396ee9b208d	818ae1ea-5842-4adb-b475-ac12dba9fd2a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27369	\N
+c354d3c3-9024-4100-b19f-1c4bf072fc2d	0a46bda6-6481-4bbe-8689-18fe959fa98a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Men	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 27 reportee(s) (Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Menon, Lakshmi Kadam, Kunal Iyer, Arjun Sawant, Aditya Pillai, Vihaan Iyer, Alok Deshpande, Kavya Roy, Rohan Deshpande, Reyansh Mathur, Divya Deshmukh, Siddharth Deshpande, Manish Malhotra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 27 reportee(s) (Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Menon, Lakshmi Kadam, Kunal Iyer, Arjun Sawant, Aditya Pillai, Vihaan Iyer, Alok Deshpande, Kavya Roy, Rohan Deshpande, Reyansh Mathur, Divya Deshmukh, Siddharth Deshpande, Manish Malhotra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27370	\N
+eabd720d-3748-4010-bc18-3562dbd9a22d	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"09:30:09","by":"System","details":"Reminder: You have 8 reportee(s) (Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 15:00:09.961887+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 8 reportee(s) (Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T09:30:09.9618876Z"}]	27371	\N
+0af95099-f1a8-47cc-86f0-f50b8fd0e274	0a46bda6-6481-4bbe-8689-18fe959fa98a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Men	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 27 reportee(s) (Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Menon, Lakshmi Kadam, Kunal Iyer, Arjun Sawant, Aditya Pillai, Vihaan Iyer, Alok Deshpande, Kavya Roy, Rohan Deshpande, Reyansh Mathur, Divya Deshmukh, Siddharth Deshpande, Manish Malhotra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 27 reportee(s) (Ishaan Desai, Rahul Pillai, Varun Gaikwad, Harsh Gupta, Advait Gaikwad, Kabir Sawant, Siddharth Iyer, Amit Pillai, Dev Roy, Reyansh Wardhan, Atharv Malhotra, Siddharth Bose, Nikhil Joshi, Vihaan Joshi, Arjun Menon, Lakshmi Kadam, Kunal Iyer, Arjun Sawant, Aditya Pillai, Vihaan Iyer, Alok Deshpande, Kavya Roy, Rohan Deshpande, Reyansh Mathur, Divya Deshmukh, Siddharth Deshpande, Manish Malhotra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27372	\N
+4686d989-ac0e-4328-b18e-3a0b86feaf16	f01f614a-af85-4225-a3b4-3c463fb97bdf	\N	\N	-	Pending Team Availability & Shift Coverage: Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 7 reportee(s) (Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 7 reportee(s) (Arjun Wardhan, Aarav Desai, Vihaan Bose, Suresh Desai, Yash Wardhan, Amit Wardhan, Trisha Pillai) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27373	\N
+46ad46c4-a452-4d22-980b-d3167160cb5e	0a46bda6-6481-4bbe-8689-18fe959fa98a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Deepak Singh, Reyansh Patel - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 2 reportee(s) (Deepak Singh, Reyansh Patel) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27374	\N
+52524429-0fde-4567-84d0-a8c7ce9abb4a	818ae1ea-5842-4adb-b475-ac12dba9fd2a	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Aditi Roy, Advait Gupta, Aditya Menon - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Aditi Roy, Advait Gupta, Aditya Menon) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27375	\N
+58375236-155a-43d9-91a0-156d338c19f3	e96df572-92a2-4aa3-a3b4-6f52cfcb5293	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 5 reportee(s) (Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 5 reportee(s) (Vihaan Kadam, Aarav Bose, Advait Singh, Tanvi Gaikwadi, Rajesh Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27376	\N
+5ea146ad-fa80-423d-a4c9-f795868f5a60	0a46bda6-6481-4bbe-8689-18fe959fa98a	dc2fc3c7-3299-4a51-a0f7-1315d13881cc	P002	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Ishaan Pansare, Nidhi Bose, Amit Gaikwad - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 3 reportee(s) (Ishaan Pansare, Nidhi Bose, Amit Gaikwad) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 3 reportee(s) (Ishaan Pansare, Nidhi Bose, Amit Gaikwad) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27377	\N
+97a6bac5-f7ca-4be0-987c-3404795e960b	d94878fd-4650-46bc-b84c-753c841e7404	bb33549a-a3da-476e-8cc0-534e86d050ef	P001	Aaditya Birla(Aaditya Birla)_Mixed_01	Pending Team Availability & Shift Coverage: Abhi Mistry - Aaditya Birla(Aaditya Birla)_Mixed_01	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 1 reportee(s) (Abhi Mistry) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 1 reportee(s) (Abhi Mistry) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27378	\N
+9f4f44d2-fcc1-42a8-97ac-58ee00ca1f50	d9584ade-2bc0-42c2-91c0-d5cb3cf0f09c	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 8 reportee(s) (Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 8 reportee(s) (Vihaan Mathur, Priya Mishra, Anita Pandey, Kunal Rao, Aarav Rao, Krishna Pandey, Atharv Reddy, Rahul Mishra) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27379	\N
+c6567e3a-a1b9-45e1-8177-057640cd29e8	049ac489-bbd3-4153-b933-aec7b7baec89	\N	\N	-	Pending Team Availability & Shift Coverage: Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 4 reportee(s) (Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 4 reportee(s) (Kavya Mathur, Harsh Wardhan, Harsh Pandey, Pallavi Sawant) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27380	\N
+d45ab3a5-06e3-4cce-851a-72e521e95b34	d17be428-1602-4e09-a164-c3c2666fad73	\N	\N	-	Pending Team Availability & Shift Coverage: Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 15 reportee(s) (Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 15 reportee(s) (Sana Pillai, Nikhil Saxena, Reyansh Sawant, Omkar Reddy, Krishna Joshi, Aarav Mathur, Reyansh Chopra, Arjun Joshi, Dev Bose, Amit Deshmukh, Nikhil Malhotra, Karan Wardhan, Amit Sawant, Ananya Joshi, Aditya Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27381	\N
+daaa8a6c-c1a4-4c48-8853-45edb616f0cc	bbdc4c49-4262-4c1a-a270-1bfe3c550644	\N	\N	-	Pending Team Availability & Shift Coverage: Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 8 reportee(s) (Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 8 reportee(s) (Vihaan Gaikwad, Aarav Reddy, Karan Mehra, Ira Bose, Pooja Bose, Arjun Mathur, Krishna Saxena, Yash Sharma) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27382	\N
+f56963ab-f58d-4557-b722-f646d036dc1c	818ae1ea-5842-4adb-b475-ac12dba9fd2a	\N	\N	-	Pending Team Availability & Shift Coverage: Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy	Team Availability Reminder	Medium	Pending	t	\N	System	Team Availability & Shift Coverage	\N	[{"action":"Reminder Dispatched","date":"2026-11-19","time":"11:30:14","by":"System","details":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees."}]	2026-11-19 17:00:14.974654+05:30	\N	\N	\N	\N	[{"text":"Reminder: You have 12 reportee(s) (Ishita Patel, Krishna Bose, Varun Pandey, Vihaan Wardhan, Priya Mathur, Meera Joshi, Sana Rao, Vivaan Mathur, Arjun Pillai, Anita Iyer, Sneha Choudhary, Vikram Roy) pending Team Availability and Shift Coverage updates for 19-Nov-2026. Please update them under My Team -> Team Dashboard -> My Reportees.","by":"System","at":"2026-11-19T11:30:14.9746547Z"}]	27383	\N
 \.
 
 
@@ -4549,33 +4616,30 @@ COPY hangfire.aggregatedcounter (id, key, value, expireat) FROM stdin;
 3	stats:deleted:2026-11-12	3	2026-12-12 20:17:27.982132+05:30
 11	stats:succeeded:2026-11-15	1	2026-12-16 02:21:01.736437+05:30
 5	stats:deleted:2026-11-15	21	2026-12-16 03:52:56.730431+05:30
-528	stats:succeeded:2026-11-18-10	4	2026-11-19 16:15:11.704459+05:30
 566	stats:succeeded:2026-11-18-17	13	2026-11-19 23:15:10.766641+05:30
 21	stats:succeeded:2026-11-16	85	2026-12-16 20:19:12.896464+05:30
 24	stats:deleted:2026-11-16	635	2026-12-16 21:00:28.079826+05:30
-456	stats:succeeded:2026-11-18-06	5	2026-11-19 12:15:00.268313+05:30
+657	stats:succeeded:2026-11-19-07	6	2026-11-20 13:15:05.588937+05:30
 363	stats:deleted:2026-11-17	45	2026-12-17 17:33:40.338919+05:30
 361	stats:succeeded:2026-11-17	14	2026-12-17 17:45:12.528431+05:30
 601	stats:succeeded:2026-11-18-18	8	2026-11-20 00:15:05.827164+05:30
-423	stats:succeeded:2026-11-18-04	8	2026-11-19 10:15:03.885661+05:30
-460	stats:deleted:2026-11-18-06	33	2026-11-19 12:23:58.716776+05:30
+668	stats:succeeded:2026-11-19-08	4	2026-11-20 14:15:08.041739+05:30
 615	stats:succeeded:2026-11-18-20	10	2026-11-20 01:31:00.421443+05:30
-492	stats:deleted:2026-11-18-07	3	2026-11-19 12:30:49.804242+05:30
-540	stats:succeeded:2026-11-18-11	5	2026-11-19 17:15:14.413184+05:30
 616	stats:succeeded:2026-11-19-03	7	2026-11-20 09:20:12.119508+05:30
 617	stats:succeeded:2026-11-18-19	1	2026-11-20 00:30:06.366202+05:30
 422	stats:succeeded:2026-11-18	85	2026-12-19 01:30:59.421443+05:30
-613	stats:succeeded:2026-11-19	8	2026-12-19 09:30:10.251006+05:30
-13	stats:succeeded	193	\N
-621	stats:succeeded:2026-11-19-04	1	2026-11-20 09:30:11.251006+05:30
-491	stats:succeeded:2026-11-18-07	6	2026-11-19 13:15:10.213258+05:30
-435	stats:deleted:2026-11-18-05	17	2026-11-19 11:17:08.667548+05:30
-428	stats:succeeded:2026-11-18-05	6	2026-11-19 11:15:06.56572+05:30
 561	stats:succeeded:2026-11-18-16	1	2026-11-19 22:25:30.52264+05:30
 552	stats:succeeded:2026-11-18-12	8	2026-11-19 18:16:42.491921+05:30
 563	stats:succeeded:2026-11-18-13	1	2026-11-19 19:16:51.939616+05:30
-505	stats:succeeded:2026-11-18-08	4	2026-11-19 14:15:03.883614+05:30
-515	stats:succeeded:2026-11-18-09	5	2026-11-19 15:15:09.123236+05:30
+680	stats:succeeded:2026-11-19-09	5	2026-11-20 15:15:10.586354+05:30
+621	stats:succeeded:2026-11-19-04	4	2026-11-20 10:15:13.143175+05:30
+692	stats:succeeded:2026-11-19-10	4	2026-11-20 16:15:13.081105+05:30
+633	stats:succeeded:2026-11-19-05	6	2026-11-20 11:15:00.678137+05:30
+703	stats:succeeded:2026-11-19-11	5	2026-11-20 17:15:00.548049+05:30
+613	stats:succeeded:2026-11-19	47	2026-12-19 17:30:00.173723+05:30
+644	stats:succeeded:2026-11-19-06	5	2026-11-20 12:15:03.160209+05:30
+13	stats:succeeded	232	\N
+717	stats:succeeded:2026-11-19-12	1	2026-11-20 17:30:01.173723+05:30
 436	stats:deleted:2026-11-18	63	2026-12-18 23:08:33.839472+05:30
 2	stats:deleted	753	\N
 585	stats:deleted:2026-11-18-17	10	2026-11-19 23:08:34.839472+05:30
@@ -4587,9 +4651,6 @@ COPY hangfire.aggregatedcounter (id, key, value, expireat) FROM stdin;
 --
 
 COPY hangfire.counter (id, key, value, expireat) FROM stdin;
-2904	stats:succeeded:2026-11-19	1	2026-12-19 09:45:10.898214+05:30
-2905	stats:succeeded:2026-11-19-04	1	2026-11-20 09:45:11.898214+05:30
-2906	stats:succeeded	1	\N
 \.
 
 
@@ -4650,33 +4711,33 @@ COPY hangfire.hash (id, key, field, value, expireat, updatecount) FROM stdin;
 65	recurring-job:team-availability-hod-eod	LastExecution	1795005001075	\N	0
 59	recurring-job:team-availability-hod-eod	NextExecution	1795091400000	\N	0
 73	recurring-job:service-prerequisite-daily-eod-reminders	Queue	default	\N	0
-45	recurring-job:team-availability-leadership-12pm	NextExecution	1795069800000	\N	0
-63	recurring-job:team-availability-2hour-reminders	LastExecution	1795060210665	\N	0
-31	recurring-job:team-availability-2hour-reminders	NextExecution	1795066200000	\N	0
+63	recurring-job:team-availability-2hour-reminders	LastExecution	1795087814935	\N	0
+38	recurring-job:team-availability-leadership-11am	NextExecution	1795152600000	\N	0
+45	recurring-job:team-availability-leadership-12pm	NextExecution	1795156200000	\N	0
 15	recurring-job:timesheet-submission-reminders	LastExecution	1795060210665	\N	0
 6	recurring-job:timesheet-submission-reminders	NextExecution	1795145400000	\N	0
+52	recurring-job:team-availability-spm-1pm	NextExecution	1795159800000	\N	0
 74	recurring-job:service-prerequisite-daily-eod-reminders	Cron	30 12 * * 1-5	\N	0
-38	recurring-job:team-availability-leadership-11am	NextExecution	1795066200000	\N	0
-52	recurring-job:team-availability-spm-1pm	NextExecution	1795073400000	\N	0
+31	recurring-job:team-availability-2hour-reminders	NextExecution	1795145400000	\N	0
 75	recurring-job:service-prerequisite-daily-eod-reminders	TimeZoneId	UTC	\N	0
 66	recurring-job:team-availability-hod-eod	LastJobId	1525	\N	0
-67	recurring-job:team-availability-leadership-11am	LastExecution	1794979805743	\N	0
-68	recurring-job:team-availability-leadership-11am	LastJobId	1439	\N	0
+67	recurring-job:team-availability-leadership-11am	LastExecution	1795066215003	\N	0
+68	recurring-job:team-availability-leadership-11am	LastJobId	1599	\N	0
 76	recurring-job:service-prerequisite-daily-eod-reminders	Job	{"t":"PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API","m":"ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync"}	\N	0
 77	recurring-job:service-prerequisite-daily-eod-reminders	CreatedAt	1795023140870	\N	0
 78	recurring-job:service-prerequisite-daily-eod-reminders	NextExecution	1795091400000	\N	0
-69	recurring-job:team-availability-leadership-12pm	LastExecution	1794983414643	\N	0
-70	recurring-job:team-availability-leadership-12pm	LastJobId	1476	\N	0
 79	recurring-job:service-prerequisite-daily-eod-reminders	V	2	\N	0
-71	recurring-job:team-availability-spm-1pm	LastExecution	1794987009468	\N	0
-72	recurring-job:team-availability-spm-1pm	LastJobId	1497	\N	0
+69	recurring-job:team-availability-leadership-12pm	LastExecution	1795069802525	\N	0
+70	recurring-job:team-availability-leadership-12pm	LastJobId	1604	\N	0
 13	recurring-job:employee-offboarding-reminders	NextExecution	1795145400000	\N	0
 18	recurring-job:employee-offboarding-reminders	LastJobId	1588	\N	0
 16	recurring-job:timesheet-submission-reminders	LastJobId	1589	\N	0
-64	recurring-job:team-availability-2hour-reminders	LastJobId	1590	\N	0
-61	recurring-job:bucket-task-auto-pause	LastExecution	1795061711841	\N	0
-24	recurring-job:bucket-task-auto-pause	NextExecution	1795062600000	\N	0
-62	recurring-job:bucket-task-auto-pause	LastJobId	1592	\N	0
+71	recurring-job:team-availability-spm-1pm	LastExecution	1795073404969	\N	0
+72	recurring-job:team-availability-spm-1pm	LastJobId	1610	\N	0
+64	recurring-job:team-availability-2hour-reminders	LastJobId	1627	\N	0
+61	recurring-job:bucket-task-auto-pause	LastExecution	1795089601141	\N	0
+24	recurring-job:bucket-task-auto-pause	NextExecution	1795090500000	\N	0
+62	recurring-job:bucket-task-auto-pause	LastJobId	1630	\N	0
 \.
 
 
@@ -4690,76 +4751,60 @@ COPY hangfire.job (id, stateid, statename, invocationdata, arguments, createdat,
 1534	2720	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 23:02:24.63301+05:30	2026-11-19 23:02:24.823256+05:30	0
 1580	2778	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 23:15:10.629209+05:30	2026-11-19 23:15:10.766641+05:30	0
 1591	2859	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 09:30:11.188688+05:30	2026-11-20 09:30:11.251006+05:30	0
-1435	2467	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"0fa701c1-d949-425a-ae7a-84fcc4004e36\\\\\\"\\",\\"\\\\\\"48beed8a-a103-455f-b91f-717d0c9e8dbe\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"0fa701c1-d949-425a-ae7a-84fcc4004e36\\"", "\\"48beed8a-a103-455f-b91f-717d0c9e8dbe\\""]	2026-11-18 10:58:32.242932+05:30	2026-11-19 11:07:42.707616+05:30	0
+1602	2892	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 11:45:01.931606+05:30	2026-11-20 11:45:01.984386+05:30	0
 1533	2715	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"aed62c99-7916-4e8f-a559-f8a6fd81bd9d\\\\\\"\\",\\"\\\\\\"ecf6c8b0-dff9-4ade-a8ee-f1905058a0ac\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"aed62c99-7916-4e8f-a559-f8a6fd81bd9d\\"", "\\"ecf6c8b0-dff9-4ade-a8ee-f1905058a0ac\\"", "2"]	2026-11-18 22:55:43.645989+05:30	\N	0
+1611	2919	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 13:15:05.539376+05:30	2026-11-20 13:15:05.588937+05:30	0
 1444	2688	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"2b4e9575-590b-4f83-a9aa-73cde4461a9d\\\\\\"\\",\\"\\\\\\"f64eb520-242a-497a-9ce2-5f36bb6bdde4\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"2b4e9575-590b-4f83-a9aa-73cde4461a9d\\"", "\\"f64eb520-242a-497a-9ce2-5f36bb6bdde4\\"", "1"]	2026-11-18 11:09:47.586555+05:30	2026-11-19 22:31:26.713435+05:30	0
 1532	2700	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"4accc6a3-28a9-49e3-932a-726903be6e12\\\\\\"\\",\\"\\\\\\"a6fbcbbe-de2b-4f2e-af5c-c94faef028f3\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"4accc6a3-28a9-49e3-932a-726903be6e12\\"", "\\"a6fbcbbe-de2b-4f2e-af5c-c94faef028f3\\"", "2"]	2026-11-18 22:50:51.801944+05:30	\N	0
 1542	2728	Scheduled	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL2EscalationJobAsync", "Arguments": "[\\"\\\\\\"0d59c7d3-2649-423d-a725-1cc2c792a5b3\\\\\\"\\",\\"\\\\\\"1b1595ec-f942-4f6e-95e7-642ad6d672c3\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"0d59c7d3-2649-423d-a725-1cc2c792a5b3\\"", "\\"1b1595ec-f942-4f6e-95e7-642ad6d672c3\\""]	2026-11-18 23:08:30.281003+05:30	\N	0
-1516	2635	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 16:15:11.613649+05:30	2026-11-19 16:15:11.704459+05:30	0
-1419	2429	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 10:45:05.112807+05:30	2026-11-19 10:45:05.14793+05:30	0
+1622	2952	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 15:45:11.779224+05:30	2026-11-20 15:45:11.8089+05:30	0
 1422	2432	Scheduled	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL1EscalationJobAsync", "Arguments": "[\\"\\\\\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\\\\\"\\",\\"\\\\\\"b1f600e5-a531-4dab-b61e-7870ff2d75fa\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\"", "\\"b1f600e5-a531-4dab-b61e-7870ff2d75fa\\""]	2026-11-18 10:49:02.211231+05:30	\N	0
-1420	2437	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\\\\\"\\",\\"\\\\\\"Aaditya Birla(Aaditya Birla)_Mixed_01\\\\\\"\\",\\"\\\\\\"IN-2026-27/C001-01/P001\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\"", "\\"Aaditya Birla(Aaditya Birla)_Mixed_01\\"", "\\"IN-2026-27/C001-01/P001\\"", "1"]	2026-11-18 10:49:01.9726+05:30	2026-11-19 10:51:18.333339+05:30	0
 1543	2729	Scheduled	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL2EscalationJobAsync", "Arguments": "[\\"\\\\\\"0d59c7d3-2649-423d-a725-1cc2c792a5b3\\\\\\"\\",\\"\\\\\\"1b1595ec-f942-4f6e-95e7-642ad6d672c3\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"0d59c7d3-2649-423d-a725-1cc2c792a5b3\\"", "\\"1b1595ec-f942-4f6e-95e7-642ad6d672c3\\""]	2026-11-18 23:08:30.295386+05:30	\N	0
 1540	2734	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"ed560a7e-b5a2-4fa9-accb-b385b90c6328\\\\\\"\\",\\"\\\\\\"701bfd43-c76b-432f-8009-da164c7919d6\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"ed560a7e-b5a2-4fa9-accb-b385b90c6328\\"", "\\"701bfd43-c76b-432f-8009-da164c7919d6\\""]	2026-11-18 23:08:30.253996+05:30	2026-11-19 23:08:30.948754+05:30	0
-1521	2650	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 17:15:14.221056+05:30	2026-11-19 17:15:14.413184+05:30	0
 1523	2656	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 17:45:00.47335+05:30	2026-11-19 17:45:00.596368+05:30	0
 1526	2668	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"f9b49fa6-7434-49c3-9c26-2a4143c8f55e\\\\\\"\\",\\"\\\\\\"b37bcd38-8170-481c-82f1-3c560df4542f\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"f9b49fa6-7434-49c3-9c26-2a4143c8f55e\\"", "\\"b37bcd38-8170-481c-82f1-3c560df4542f\\"", "2"]	2026-11-18 18:01:01.62961+05:30	\N	0
 1535	2721	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"c18dd2a1-519d-49dc-ae88-486cc2241785\\\\\\"\\",\\"\\\\\\"f58a76e1-937a-43a6-98a5-b6c6e7cdc02f\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"c18dd2a1-519d-49dc-ae88-486cc2241785\\"", "\\"f58a76e1-937a-43a6-98a5-b6c6e7cdc02f\\""]	2026-11-18 23:08:29.677483+05:30	\N	0
 1530	2687	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"2b4e9575-590b-4f83-a9aa-73cde4461a9d\\\\\\"\\",\\"\\\\\\"132e5f7e-7312-45ae-aa35-4ebf11e772c6\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"2b4e9575-590b-4f83-a9aa-73cde4461a9d\\"", "\\"132e5f7e-7312-45ae-aa35-4ebf11e772c6\\"", "2"]	2026-11-18 22:31:26.699587+05:30	\N	0
 1450	2716	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"aed62c99-7916-4e8f-a559-f8a6fd81bd9d\\\\\\"\\",\\"\\\\\\"f09ce107-6b5b-44d5-8c71-be09a8551a71\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"aed62c99-7916-4e8f-a559-f8a6fd81bd9d\\"", "\\"f09ce107-6b5b-44d5-8c71-be09a8551a71\\"", "1"]	2026-11-18 11:09:51.537156+05:30	2026-11-19 22:55:43.703561+05:30	0
-1424	2470	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL1EscalationJobAsync", "Arguments": "[\\"\\\\\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\\\\\"\\",\\"\\\\\\"0125eb65-652e-47e4-835d-5b1642094e90\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\"", "\\"0125eb65-652e-47e4-835d-5b1642094e90\\""]	2026-11-18 10:49:02.466617+05:30	2026-11-19 11:09:18.198337+05:30	0
+1612	2922	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 13:30:06.248691+05:30	2026-11-20 13:30:06.274821+05:30	0
 1581	2781	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 23:30:03.663385+05:30	2026-11-19 23:30:03.780725+05:30	0
+1623	2955	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 16:00:12.414038+05:30	2026-11-20 16:00:12.440368+05:30	0
 1544	2730	Scheduled	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL1EscalationJobAsync", "Arguments": "[\\"\\\\\\"afda4c8f-d817-4166-95fa-c0195a6a2f8f\\\\\\"\\",\\"\\\\\\"0e2ef898-a079-4c68-b7f5-e7ffaf03a2dc\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"afda4c8f-d817-4166-95fa-c0195a6a2f8f\\"", "\\"0e2ef898-a079-4c68-b7f5-e7ffaf03a2dc\\""]	2026-11-18 23:08:30.665259+05:30	\N	0
 1545	2731	Scheduled	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisitePendingReminderJobAsync", "Arguments": "[\\"\\\\\\"afda4c8f-d817-4166-95fa-c0195a6a2f8f\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"afda4c8f-d817-4166-95fa-c0195a6a2f8f\\"", "1"]	2026-11-18 23:08:30.680676+05:30	\N	0
 1539	2732	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"ed560a7e-b5a2-4fa9-accb-b385b90c6328\\\\\\"\\",\\"\\\\\\"34867f37-fe8b-407c-8c75-2e305a69a447\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"ed560a7e-b5a2-4fa9-accb-b385b90c6328\\"", "\\"34867f37-fe8b-407c-8c75-2e305a69a447\\""]	2026-11-18 23:08:30.245113+05:30	2026-11-19 23:08:30.903651+05:30	0
+1603	2897	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 12:00:02.528077+05:30	2026-11-20 12:00:02.579532+05:30	0
 1541	2733	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"ed560a7e-b5a2-4fa9-accb-b385b90c6328\\\\\\"\\",\\"\\\\\\"f18842a4-5c42-4cb4-a45d-a7821b748c01\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"ed560a7e-b5a2-4fa9-accb-b385b90c6328\\"", "\\"f18842a4-5c42-4cb4-a45d-a7821b748c01\\"", "1"]	2026-11-18 23:08:30.264657+05:30	2026-11-19 23:08:30.928757+05:30	0
-1465	2502	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 11:30:07.168874+05:30	2026-11-19 11:30:07.304268+05:30	0
-1499	2592	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 13:15:10.155881+05:30	2026-11-19 13:15:10.213258+05:30	0
-1496	2586	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 13:00:09.475438+05:30	2026-11-19 13:00:09.723128+05:30	0
+1604	2898	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityLeadershipAlertJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[\\"12\\",null]", "ParameterTypes": "[\\"System.Int32\\",\\"System.Threading.CancellationToken, mscorlib\\"]"}	["12", null]	2026-11-19 12:00:02.537814+05:30	2026-11-20 12:00:02.622233+05:30	0
 1547	2736	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"3d8e401c-352c-4495-9e33-6e48c1031752\\\\\\"\\",\\"\\\\\\"123a73d7-df63-4b7f-b176-6abec96b79e3\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"3d8e401c-352c-4495-9e33-6e48c1031752\\"", "\\"123a73d7-df63-4b7f-b176-6abec96b79e3\\""]	2026-11-18 23:08:31.770135+05:30	\N	0
 1546	2738	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"3d8e401c-352c-4495-9e33-6e48c1031752\\\\\\"\\",\\"\\\\\\"53070edf-ba21-46cc-aba5-88cb79439a10\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"3d8e401c-352c-4495-9e33-6e48c1031752\\"", "\\"53070edf-ba21-46cc-aba5-88cb79439a10\\""]	2026-11-18 23:08:31.731801+05:30	2026-11-19 23:08:32.0243+05:30	0
 1550	2740	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"3d8e401c-352c-4495-9e33-6e48c1031752\\\\\\"\\",\\"\\\\\\"f7acb879-a690-4ef8-9656-f3539524b979\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"3d8e401c-352c-4495-9e33-6e48c1031752\\"", "\\"f7acb879-a690-4ef8-9656-f3539524b979\\""]	2026-11-18 23:08:32.095844+05:30	\N	0
 1555	2754	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"56f16e47-6d56-467d-a323-9298ce52bb05\\\\\\"\\",\\"\\\\\\"c8918415-01df-41cf-8d0f-0b38b7c2db1d\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"56f16e47-6d56-467d-a323-9298ce52bb05\\"", "\\"c8918415-01df-41cf-8d0f-0b38b7c2db1d\\""]	2026-11-18 23:08:32.641403+05:30	2026-11-19 23:08:33.297933+05:30	0
 1449	2672	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"aed62c99-7916-4e8f-a559-f8a6fd81bd9d\\\\\\"\\",\\"\\\\\\"52ae449d-1011-4b26-b347-1684258b26dd\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"aed62c99-7916-4e8f-a559-f8a6fd81bd9d\\"", "\\"52ae449d-1011-4b26-b347-1684258b26dd\\""]	2026-11-18 11:09:51.497786+05:30	2026-11-19 18:01:21.242916+05:30	0
-1428	2557	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"f96851da-2416-4ab1-9bba-2c4016e20cb9\\\\\\"\\",\\"\\\\\\"adc5440c-dbf0-4b9c-bc30-cc1464370d8b\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"f96851da-2416-4ab1-9bba-2c4016e20cb9\\"", "\\"adc5440c-dbf0-4b9c-bc30-cc1464370d8b\\""]	2026-11-18 10:55:39.032036+05:30	2026-11-19 12:13:59.191293+05:30	0
-1429	2558	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"f96851da-2416-4ab1-9bba-2c4016e20cb9\\\\\\"\\",\\"\\\\\\"47a1f040-bd98-46c3-948e-a040b3724b41\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"f96851da-2416-4ab1-9bba-2c4016e20cb9\\"", "\\"47a1f040-bd98-46c3-948e-a040b3724b41\\"", "1"]	2026-11-18 10:55:39.054079+05:30	2026-11-19 12:13:59.199096+05:30	0
-1411	2410	Succeeded	{"Type": "PMS.API.Modules.Timesheets.Jobs.TimesheetReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 10:02:18.359383+05:30	2026-11-19 10:02:19.090206+05:30	0
+1613	2925	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 13:45:06.891153+05:30	2026-11-20 13:45:06.942166+05:30	0
+1624	2958	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 16:15:13.025893+05:30	2026-11-20 16:15:13.081105+05:30	0
+1605	2901	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 12:15:03.110757+05:30	2026-11-20 12:15:03.160209+05:30	0
 1531	2697	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 22:45:01.361777+05:30	2026-11-19 22:45:01.444485+05:30	0
 1425	2435	Scheduled	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL1EscalationJobAsync", "Arguments": "[\\"\\\\\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\\\\\"\\",\\"\\\\\\"d2d0763c-4cfd-4525-82d8-f10304c576d7\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\"", "\\"d2d0763c-4cfd-4525-82d8-f10304c576d7\\""]	2026-11-18 10:49:02.594577+05:30	\N	0
-1500	2595	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 13:30:01.536371+05:30	2026-11-19 13:30:01.596846+05:30	0
-1423	2436	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL1EscalationJobAsync", "Arguments": "[\\"\\\\\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\\\\\"\\",\\"\\\\\\"14755fde-fe11-4199-8fec-113997b28557\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\"", "\\"14755fde-fe11-4199-8fec-113997b28557\\""]	2026-11-18 10:49:02.372531+05:30	2026-11-19 10:50:57.621635+05:30	0
 1582	2784	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 23:45:04.170096+05:30	2026-11-19 23:45:04.352218+05:30	0
-1421	2438	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteSameDayHodCheckJobAsync", "Arguments": "[\\"\\\\\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\\\\\"\\",\\"\\\\\\"Aaditya Birla(Aaditya Birla)_Mixed_01\\\\\\"\\",\\"\\\\\\"IN-2026-27/C001-01/P001\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\"]"}	["\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\"", "\\"Aaditya Birla(Aaditya Birla)_Mixed_01\\"", "\\"IN-2026-27/C001-01/P001\\""]	2026-11-18 10:49:01.980165+05:30	2026-11-19 10:51:18.343877+05:30	0
 1430	2704	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"1782ace8-f2e5-49a1-aefe-6678ce00113b\\\\\\"\\",\\"\\\\\\"4c652e48-5100-44d7-8eb1-912e988a0ce6\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"1782ace8-f2e5-49a1-aefe-6678ce00113b\\"", "\\"4c652e48-5100-44d7-8eb1-912e988a0ce6\\""]	2026-11-18 10:58:32.071346+05:30	2026-11-19 22:54:12.503529+05:30	0
-1390	2406	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"fe42dc87-4afc-4fd3-a57b-605910874475\\\\\\"\\",\\"\\\\\\"f4e82bbd-1f63-4384-b4ec-6bda41178217\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"fe42dc87-4afc-4fd3-a57b-605910874475\\"", "\\"f4e82bbd-1f63-4384-b4ec-6bda41178217\\""]	2026-11-17 15:58:22.575339+05:30	2026-11-19 10:02:19.060854+05:30	0
-1409	2407	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityHodEscalationJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 10:02:18.317346+05:30	2026-11-19 10:02:19.068536+05:30	0
-1410	2416	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 10:02:18.349566+05:30	2026-11-19 10:02:19.96125+05:30	0
-1412	2412	Succeeded	{"Type": "PMS.API.Modules.Resources.Jobs.EmployeeOffboardingReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 10:02:18.368337+05:30	2026-11-19 10:02:19.480228+05:30	0
-1413	2414	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 10:02:18.378787+05:30	2026-11-19 10:02:19.686024+05:30	0
-1371	2420	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"f0c3e00c-14c8-4acf-84b9-39968dd089fb\\\\\\"\\",\\"\\\\\\"69877731-3464-49dd-8092-a97e41d34bf8\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"f0c3e00c-14c8-4acf-84b9-39968dd089fb\\"", "\\"69877731-3464-49dd-8092-a97e41d34bf8\\""]	2026-11-17 15:15:06.427016+05:30	2026-11-19 10:07:09.362652+05:30	0
-1417	2423	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 10:15:03.858419+05:30	2026-11-19 10:15:03.885661+05:30	0
-1418	2426	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 10:30:04.493131+05:30	2026-11-19 10:30:04.525571+05:30	0
 1536	2722	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"c18dd2a1-519d-49dc-ae88-486cc2241785\\\\\\"\\",\\"\\\\\\"29615275-a203-4faf-a9ed-cfd4b2b5bd3c\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"c18dd2a1-519d-49dc-ae88-486cc2241785\\"", "\\"29615275-a203-4faf-a9ed-cfd4b2b5bd3c\\""]	2026-11-18 23:08:29.754115+05:30	\N	0
 1537	2723	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"c18dd2a1-519d-49dc-ae88-486cc2241785\\\\\\"\\",\\"\\\\\\"e474c745-8670-4242-9dd1-a9a8d461bd86\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"c18dd2a1-519d-49dc-ae88-486cc2241785\\"", "\\"e474c745-8670-4242-9dd1-a9a8d461bd86\\"", "1"]	2026-11-18 23:08:29.771376+05:30	\N	0
-1434	2466	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"0fa701c1-d949-425a-ae7a-84fcc4004e36\\\\\\"\\",\\"\\\\\\"4dcfe3a0-b37a-487f-9b8a-79e51cd89bf4\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"0fa701c1-d949-425a-ae7a-84fcc4004e36\\"", "\\"4dcfe3a0-b37a-487f-9b8a-79e51cd89bf4\\""]	2026-11-18 10:58:32.233849+05:30	2026-11-19 11:07:42.689812+05:30	0
-1437	2469	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"0fa701c1-d949-425a-ae7a-84fcc4004e36\\\\\\"\\",\\"\\\\\\"52b6e32d-080c-4f0a-9544-25404bbe502a\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"0fa701c1-d949-425a-ae7a-84fcc4004e36\\"", "\\"52b6e32d-080c-4f0a-9544-25404bbe502a\\"", "1"]	2026-11-18 10:58:32.261142+05:30	2026-11-19 11:07:42.725331+05:30	0
-1426	2555	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"fd041ca7-056c-436c-8f7e-4f2898d93fbc\\\\\\"\\",\\"\\\\\\"b23f3008-8746-469e-9dd3-ee000167e438\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"fd041ca7-056c-436c-8f7e-4f2898d93fbc\\"", "\\"b23f3008-8746-469e-9dd3-ee000167e438\\""]	2026-11-18 10:51:52.726791+05:30	2026-11-19 12:07:43.129232+05:30	0
 1592	2862	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 09:45:11.844268+05:30	2026-11-20 09:45:11.898214+05:30	0
+1614	2928	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 14:00:07.430218+05:30	2026-11-20 14:00:07.487231+05:30	0
+1606	2904	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 12:30:03.703935+05:30	2026-11-20 12:30:03.727323+05:30	0
+1625	2961	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 16:30:13.639497+05:30	2026-11-20 16:30:13.669062+05:30	0
 1527	2678	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 19:16:51.789226+05:30	2026-11-19 19:16:51.939616+05:30	0
-1432	2455	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"1b054e20-c3cf-4c2b-a4eb-0015cca26029\\\\\\"\\",\\"\\\\\\"d043f596-8bb8-421e-a616-551be9d96645\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"1b054e20-c3cf-4c2b-a4eb-0015cca26029\\"", "\\"d043f596-8bb8-421e-a616-551be9d96645\\""]	2026-11-18 10:58:32.133044+05:30	2026-11-19 10:59:33.051246+05:30	0
-1433	2456	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"1b054e20-c3cf-4c2b-a4eb-0015cca26029\\\\\\"\\",\\"\\\\\\"10434ebc-df7b-4a30-8461-0061f64133dc\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"1b054e20-c3cf-4c2b-a4eb-0015cca26029\\"", "\\"10434ebc-df7b-4a30-8461-0061f64133dc\\"", "1"]	2026-11-18 10:58:32.149928+05:30	2026-11-19 10:59:33.058059+05:30	0
+1593	2865	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 10:00:12.45732+05:30	2026-11-20 10:00:12.510163+05:30	0
 1447	2477	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"5e61ee71-f845-42bf-a68b-eaf4dbdea462\\\\\\"\\",\\"\\\\\\"de2ac594-50b2-4a98-b60d-1f2c80e070fa\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"5e61ee71-f845-42bf-a68b-eaf4dbdea462\\"", "\\"de2ac594-50b2-4a98-b60d-1f2c80e070fa\\""]	2026-11-18 11:09:47.703272+05:30	\N	0
 1451	2855	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"92ed562b-4f5a-4c50-9eca-115a2d554495\\\\\\"\\",\\"\\\\\\"aa8de8ea-600f-4441-8be8-9f1b3e0fb7eb\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"92ed562b-4f5a-4c50-9eca-115a2d554495\\"", "\\"aa8de8ea-600f-4441-8be8-9f1b3e0fb7eb\\""]	2026-11-18 11:09:51.594337+05:30	2026-11-20 09:20:11.968107+05:30	0
 1441	2707	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"f9b49fa6-7434-49c3-9c26-2a4143c8f55e\\\\\\"\\",\\"\\\\\\"17d730d3-6f85-4fbd-b726-f27103356d8a\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"f9b49fa6-7434-49c3-9c26-2a4143c8f55e\\"", "\\"17d730d3-6f85-4fbd-b726-f27103356d8a\\""]	2026-11-18 11:09:47.512616+05:30	2026-11-19 22:55:24.118333+05:30	0
 1453	2483	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"92ed562b-4f5a-4c50-9eca-115a2d554495\\\\\\"\\",\\"\\\\\\"564d28b0-d181-43ef-b3b6-b4d224c27c9f\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"92ed562b-4f5a-4c50-9eca-115a2d554495\\"", "\\"564d28b0-d181-43ef-b3b6-b4d224c27c9f\\""]	2026-11-18 11:09:51.616654+05:30	\N	0
 1455	2717	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"4accc6a3-28a9-49e3-932a-726903be6e12\\\\\\"\\",\\"\\\\\\"a155650c-7737-4455-856e-7dc195968f42\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"4accc6a3-28a9-49e3-932a-726903be6e12\\"", "\\"a155650c-7737-4455-856e-7dc195968f42\\""]	2026-11-18 11:09:55.629773+05:30	2026-11-19 22:55:43.718364+05:30	0
-1438	2462	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 11:00:05.745362+05:30	2026-11-19 11:00:05.793873+05:30	0
-1440	2464	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 11:00:05.76073+05:30	2026-11-19 11:00:05.96364+05:30	0
-1439	2465	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityLeadershipAlertJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[\\"11\\",null]", "ParameterTypes": "[\\"System.Int32\\",\\"System.Threading.CancellationToken, mscorlib\\"]"}	["11", null]	2026-11-18 11:00:05.752907+05:30	2026-11-19 11:00:05.995773+05:30	0
-1517	2638	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 16:30:12.308893+05:30	2026-11-19 16:30:12.394348+05:30	0
-1436	2468	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"0fa701c1-d949-425a-ae7a-84fcc4004e36\\\\\\"\\",\\"\\\\\\"70fafb81-40b8-42eb-b4d7-ba8745cd7ea2\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"0fa701c1-d949-425a-ae7a-84fcc4004e36\\"", "\\"70fafb81-40b8-42eb-b4d7-ba8745cd7ea2\\""]	2026-11-18 10:58:32.25218+05:30	2026-11-19 11:07:42.71604+05:30	0
 1583	2799	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 00:00:05.196734+05:30	2026-11-20 00:00:05.318016+05:30	0
-1466	2515	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"c98fa656-372e-434a-ae59-04e52a27d94d\\\\\\"\\",\\"\\\\\\"e930f18b-0ab8-404a-829e-dcdbd03ae63a\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"c98fa656-372e-434a-ae59-04e52a27d94d\\"", "\\"e930f18b-0ab8-404a-829e-dcdbd03ae63a\\""]	2026-11-18 11:32:44.490728+05:30	2026-11-19 11:35:12.767097+05:30	0
+1615	2931	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 14:15:08.016776+05:30	2026-11-20 14:15:08.041739+05:30	0
+1607	2907	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 12:45:04.381231+05:30	2026-11-20 12:45:04.406523+05:30	0
+1594	2868	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 10:15:13.091834+05:30	2026-11-20 10:15:13.143175+05:30	0
+1626	2964	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 16:45:14.209222+05:30	2026-11-20 16:45:14.240856+05:30	0
 1448	2478	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"5e61ee71-f845-42bf-a68b-eaf4dbdea462\\\\\\"\\",\\"\\\\\\"b1a8d51b-6867-49c3-8b24-fe53a559c62e\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"5e61ee71-f845-42bf-a68b-eaf4dbdea462\\"", "\\"b1a8d51b-6867-49c3-8b24-fe53a559c62e\\"", "1"]	2026-11-18 11:09:47.716619+05:30	\N	0
 1443	2675	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"2b4e9575-590b-4f83-a9aa-73cde4461a9d\\\\\\"\\",\\"\\\\\\"a897b6b2-7923-4b01-a80b-ad2a6ef9529e\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"2b4e9575-590b-4f83-a9aa-73cde4461a9d\\"", "\\"a897b6b2-7923-4b01-a80b-ad2a6ef9529e\\""]	2026-11-18 11:09:47.572992+05:30	2026-11-19 18:16:42.491921+05:30	0
 1454	2484	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"92ed562b-4f5a-4c50-9eca-115a2d554495\\\\\\"\\",\\"\\\\\\"94195216-8241-4067-bc0c-86c6f518fa95\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"92ed562b-4f5a-4c50-9eca-115a2d554495\\"", "\\"94195216-8241-4067-bc0c-86c6f518fa95\\"", "1"]	2026-11-18 11:09:51.626403+05:30	\N	0
@@ -4767,72 +4812,35 @@ COPY hangfire.job (id, stateid, statename, invocationdata, arguments, createdat,
 1459	2489	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"54e9f9d0-5984-401a-9135-c532f072af0f\\\\\\"\\",\\"\\\\\\"9cf0d3b2-1aa7-4e8a-bfb1-00eca28dcc5d\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"54e9f9d0-5984-401a-9135-c532f072af0f\\"", "\\"9cf0d3b2-1aa7-4e8a-bfb1-00eca28dcc5d\\""]	2026-11-18 11:09:55.70205+05:30	\N	0
 1460	2490	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"54e9f9d0-5984-401a-9135-c532f072af0f\\\\\\"\\",\\"\\\\\\"2c6c7c57-3915-4efe-995b-261c93a8d025\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"54e9f9d0-5984-401a-9135-c532f072af0f\\"", "\\"2c6c7c57-3915-4efe-995b-261c93a8d025\\"", "1"]	2026-11-18 11:09:55.710071+05:30	\N	0
 1452	2691	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"92ed562b-4f5a-4c50-9eca-115a2d554495\\\\\\"\\",\\"\\\\\\"dd3d4183-6b07-4a71-aaab-bc3065058815\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"92ed562b-4f5a-4c50-9eca-115a2d554495\\"", "\\"dd3d4183-6b07-4a71-aaab-bc3065058815\\""]	2026-11-18 11:09:51.606383+05:30	2026-11-19 22:31:36.718396+05:30	0
-1461	2493	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 11:15:06.502423+05:30	2026-11-19 11:15:06.56572+05:30	0
 1458	2694	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"54e9f9d0-5984-401a-9135-c532f072af0f\\\\\\"\\",\\"\\\\\\"b5253fa9-b981-4324-9177-49642658c79d\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"54e9f9d0-5984-401a-9135-c532f072af0f\\"", "\\"b5253fa9-b981-4324-9177-49642658c79d\\""]	2026-11-18 11:09:55.693334+05:30	2026-11-19 22:32:06.955889+05:30	0
-1462	2497	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"dc2fc3c7-3299-4a51-a0f7-1315d13881cc\\\\\\"\\",\\"\\\\\\"Aaditya Birla(Aaditya Birla)_Mixed_01\\\\\\"\\",\\"\\\\\\"IN-2026-27/C001-01/P002\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"dc2fc3c7-3299-4a51-a0f7-1315d13881cc\\"", "\\"Aaditya Birla(Aaditya Birla)_Mixed_01\\"", "\\"IN-2026-27/C001-01/P002\\"", "1"]	2026-11-18 11:16:20.202696+05:30	2026-11-19 11:17:03.622109+05:30	0
 1456	2701	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"4accc6a3-28a9-49e3-932a-726903be6e12\\\\\\"\\",\\"\\\\\\"4284fb8f-df33-4473-811f-76c87e38fd1a\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"4accc6a3-28a9-49e3-932a-726903be6e12\\"", "\\"4284fb8f-df33-4473-811f-76c87e38fd1a\\"", "1"]	2026-11-18 11:09:55.641274+05:30	2026-11-19 22:50:51.822273+05:30	0
 1446	2713	Succeeded	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"5e61ee71-f845-42bf-a68b-eaf4dbdea462\\\\\\"\\",\\"\\\\\\"b6dd268a-31fd-4b57-8893-ef0b154c1be0\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"5e61ee71-f845-42bf-a68b-eaf4dbdea462\\"", "\\"b6dd268a-31fd-4b57-8893-ef0b154c1be0\\""]	2026-11-18 11:09:47.674075+05:30	2026-11-19 22:55:43.591437+05:30	0
-1478	2548	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"fabf3b70-7062-467c-8b67-13d98cf50a51\\\\\\"\\",\\"\\\\\\"672aadef-63e1-49ee-b2a4-32eaab02d598\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"fabf3b70-7062-467c-8b67-13d98cf50a51\\"", "\\"672aadef-63e1-49ee-b2a4-32eaab02d598\\""]	2026-11-18 12:00:46.924704+05:30	2026-11-19 12:01:38.803212+05:30	0
-1479	2549	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"fabf3b70-7062-467c-8b67-13d98cf50a51\\\\\\"\\",\\"\\\\\\"da36b3f4-0fcc-4316-8e43-6d23f6fb4858\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"fabf3b70-7062-467c-8b67-13d98cf50a51\\"", "\\"da36b3f4-0fcc-4316-8e43-6d23f6fb4858\\""]	2026-11-18 12:00:46.931468+05:30	2026-11-19 12:01:38.809568+05:30	0
-1501	2598	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 13:45:02.602616+05:30	2026-11-19 13:45:02.653599+05:30	0
-1463	2498	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteSameDayHodCheckJobAsync", "Arguments": "[\\"\\\\\\"dc2fc3c7-3299-4a51-a0f7-1315d13881cc\\\\\\"\\",\\"\\\\\\"Aaditya Birla(Aaditya Birla)_Mixed_01\\\\\\"\\",\\"\\\\\\"IN-2026-27/C001-01/P002\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\"]"}	["\\"dc2fc3c7-3299-4a51-a0f7-1315d13881cc\\"", "\\"Aaditya Birla(Aaditya Birla)_Mixed_01\\"", "\\"IN-2026-27/C001-01/P002\\""]	2026-11-18 11:16:20.210933+05:30	2026-11-19 11:17:03.636131+05:30	0
-1464	2499	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL1EscalationJobAsync", "Arguments": "[\\"\\\\\\"dc2fc3c7-3299-4a51-a0f7-1315d13881cc\\\\\\"\\",\\"\\\\\\"778f4656-8392-4ad8-9312-2bc8ebf6d274\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"dc2fc3c7-3299-4a51-a0f7-1315d13881cc\\"", "\\"778f4656-8392-4ad8-9312-2bc8ebf6d274\\""]	2026-11-18 11:16:20.558929+05:30	2026-11-19 11:17:08.667548+05:30	0
-1491	2574	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"df595c09-8eb3-4a18-b682-cd4a915af38c\\\\\\"\\",\\"\\\\\\"f236b458-6b48-442c-82ad-1f66c693d1b0\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"df595c09-8eb3-4a18-b682-cd4a915af38c\\"", "\\"f236b458-6b48-442c-82ad-1f66c693d1b0\\""]	2026-11-18 12:30:13.537304+05:30	2026-11-19 12:30:49.786442+05:30	0
-1467	2516	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"c98fa656-372e-434a-ae59-04e52a27d94d\\\\\\"\\",\\"\\\\\\"7b128558-14fd-492e-9508-a8bad8053435\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"c98fa656-372e-434a-ae59-04e52a27d94d\\"", "\\"7b128558-14fd-492e-9508-a8bad8053435\\""]	2026-11-18 11:32:44.507832+05:30	2026-11-19 11:35:12.773957+05:30	0
-1468	2517	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"c98fa656-372e-434a-ae59-04e52a27d94d\\\\\\"\\",\\"\\\\\\"f114bfc6-cb34-4781-8d8b-1e64089a72a4\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"c98fa656-372e-434a-ae59-04e52a27d94d\\"", "\\"f114bfc6-cb34-4781-8d8b-1e64089a72a4\\"", "1"]	2026-11-18 11:32:44.541904+05:30	2026-11-19 11:35:12.780394+05:30	0
-1472	2520	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 11:45:07.786741+05:30	2026-11-19 11:45:07.89102+05:30	0
-1469	2524	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"56620c3b-2c61-44d1-85dc-9331d8cc9697\\\\\\"\\",\\"\\\\\\"03007e65-639c-4f5d-b459-5a9c7e60009e\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"56620c3b-2c61-44d1-85dc-9331d8cc9697\\"", "\\"03007e65-639c-4f5d-b459-5a9c7e60009e\\""]	2026-11-18 11:33:06.797178+05:30	2026-11-19 11:58:28.982396+05:30	0
-1470	2525	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"56620c3b-2c61-44d1-85dc-9331d8cc9697\\\\\\"\\",\\"\\\\\\"6df3a6f3-3cd3-4b99-a282-bc0b2bb7c645\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"56620c3b-2c61-44d1-85dc-9331d8cc9697\\"", "\\"6df3a6f3-3cd3-4b99-a282-bc0b2bb7c645\\""]	2026-11-18 11:33:06.810231+05:30	2026-11-19 11:58:29.002584+05:30	0
-1471	2526	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"56620c3b-2c61-44d1-85dc-9331d8cc9697\\\\\\"\\",\\"\\\\\\"3cbb2d08-98d8-46c0-a654-3c1050a4a38d\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"56620c3b-2c61-44d1-85dc-9331d8cc9697\\"", "\\"3cbb2d08-98d8-46c0-a654-3c1050a4a38d\\"", "1"]	2026-11-18 11:33:06.822059+05:30	2026-11-19 11:58:29.012733+05:30	0
-1473	2530	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"39286d4c-3f36-43bf-819d-09ede3c2f0b3\\\\\\"\\",\\"\\\\\\"5bf8d035-1263-4e37-bbb4-e217c3d42f2b\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"39286d4c-3f36-43bf-819d-09ede3c2f0b3\\"", "\\"5bf8d035-1263-4e37-bbb4-e217c3d42f2b\\""]	2026-11-18 11:59:19.446409+05:30	2026-11-19 11:59:55.132477+05:30	0
-1474	2531	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"39286d4c-3f36-43bf-819d-09ede3c2f0b3\\\\\\"\\",\\"\\\\\\"d84bac84-8ff5-41b3-bad8-9ad0a658ad1e\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"39286d4c-3f36-43bf-819d-09ede3c2f0b3\\"", "\\"d84bac84-8ff5-41b3-bad8-9ad0a658ad1e\\""]	2026-11-18 11:59:19.471722+05:30	2026-11-19 11:59:55.144404+05:30	0
-1475	2532	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"39286d4c-3f36-43bf-819d-09ede3c2f0b3\\\\\\"\\",\\"\\\\\\"28a3d8ed-8775-4859-a577-068f3aa46b87\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"39286d4c-3f36-43bf-819d-09ede3c2f0b3\\"", "\\"28a3d8ed-8775-4859-a577-068f3aa46b87\\"", "1"]	2026-11-18 11:59:19.483303+05:30	2026-11-19 11:59:55.153959+05:30	0
-1477	2537	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 12:00:14.670977+05:30	2026-11-19 12:00:14.748709+05:30	0
-1476	2538	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityLeadershipAlertJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[\\"12\\",null]", "ParameterTypes": "[\\"System.Int32\\",\\"System.Threading.CancellationToken, mscorlib\\"]"}	["12", null]	2026-11-18 12:00:14.657517+05:30	2026-11-19 12:00:14.839264+05:30	0
+1616	2934	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 14:30:08.570788+05:30	2026-11-20 14:30:08.618802+05:30	0
+1627	2969	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 17:00:14.937777+05:30	2026-11-20 17:00:15.003149+05:30	0
+1628	2970	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 17:00:14.946238+05:30	2026-11-20 17:00:15.019653+05:30	0
+1609	2913	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 13:00:04.982041+05:30	2026-11-20 13:00:05.034257+05:30	0
+1608	2915	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 13:00:04.972026+05:30	2026-11-20 13:00:05.053056+05:30	0
+1610	2916	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilitySpmAlertJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 13:00:04.990124+05:30	2026-11-20 13:00:05.137928+05:30	0
 1538	2724	Scheduled	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL2EscalationJobAsync", "Arguments": "[\\"\\\\\\"317bb65f-1593-4a56-baa8-db9435c7bfcd\\\\\\"\\",\\"\\\\\\"d2929910-9f93-4df9-84fd-71bddeb98a52\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"317bb65f-1593-4a56-baa8-db9435c7bfcd\\"", "\\"d2929910-9f93-4df9-84fd-71bddeb98a52\\""]	2026-11-18 23:08:29.857684+05:30	\N	0
-1480	2550	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"fabf3b70-7062-467c-8b67-13d98cf50a51\\\\\\"\\",\\"\\\\\\"d8f35458-a21e-4e97-9900-cfb057c0cebb\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"fabf3b70-7062-467c-8b67-13d98cf50a51\\"", "\\"d8f35458-a21e-4e97-9900-cfb057c0cebb\\"", "1"]	2026-11-18 12:00:46.938799+05:30	2026-11-19 12:01:38.81459+05:30	0
-1484	2553	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"2a687e0f-2714-4568-8b79-26fefc69190e\\\\\\"\\",\\"\\\\\\"676397cb-e74e-4cff-8a54-0a7c57f9120d\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"2a687e0f-2714-4568-8b79-26fefc69190e\\"", "\\"676397cb-e74e-4cff-8a54-0a7c57f9120d\\""]	2026-11-18 12:04:33.279923+05:30	2026-11-19 12:04:59.483793+05:30	0
-1427	2556	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"fd041ca7-056c-436c-8f7e-4f2898d93fbc\\\\\\"\\",\\"\\\\\\"569ce00d-9e7d-4ff1-929b-01e2ac713700\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"fd041ca7-056c-436c-8f7e-4f2898d93fbc\\"", "\\"569ce00d-9e7d-4ff1-929b-01e2ac713700\\"", "1"]	2026-11-18 10:51:52.740947+05:30	2026-11-19 12:07:43.137215+05:30	0
-1518	2641	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 16:45:12.862718+05:30	2026-11-19 16:45:13.00506+05:30	0
-1481	2545	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"750da3d7-6800-4b8d-ba14-4e3480166bfb\\\\\\"\\",\\"\\\\\\"e772d953-2d32-475e-bf8b-fbb3f3f41909\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"750da3d7-6800-4b8d-ba14-4e3480166bfb\\"", "\\"e772d953-2d32-475e-bf8b-fbb3f3f41909\\""]	2026-11-18 12:00:51.828066+05:30	2026-11-19 12:00:52.06824+05:30	0
-1482	2546	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"750da3d7-6800-4b8d-ba14-4e3480166bfb\\\\\\"\\",\\"\\\\\\"068dc2a2-a5b5-48aa-91ac-32b87dbc666c\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"750da3d7-6800-4b8d-ba14-4e3480166bfb\\"", "\\"068dc2a2-a5b5-48aa-91ac-32b87dbc666c\\""]	2026-11-18 12:00:51.838567+05:30	2026-11-19 12:00:52.074079+05:30	0
-1502	2601	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 14:00:03.225993+05:30	2026-11-19 14:00:03.302336+05:30	0
+1617	2937	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 14:45:09.369067+05:30	2026-11-20 14:45:09.3939+05:30	0
+1629	2973	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 17:15:00.516079+05:30	2026-11-20 17:15:00.548049+05:30	0
 1506	2607	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"07f085bc-ee4b-4e85-83ef-0c3097a99b11\\\\\\"\\",\\"\\\\\\"4deb61c7-1cf6-4ffb-963a-0ef0d45aef6c\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"07f085bc-ee4b-4e85-83ef-0c3097a99b11\\"", "\\"4deb61c7-1cf6-4ffb-963a-0ef0d45aef6c\\""]	2026-11-18 14:16:35.542067+05:30	\N	0
-1487	2565	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"0b1c3d70-cbd0-4568-aa29-06301808ed45\\\\\\"\\",\\"\\\\\\"b7eea635-cf14-4d78-99b5-c46795fa8dac\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"0b1c3d70-cbd0-4568-aa29-06301808ed45\\"", "\\"b7eea635-cf14-4d78-99b5-c46795fa8dac\\""]	2026-11-18 12:23:25.613756+05:30	2026-11-19 12:23:58.696895+05:30	0
-1489	2566	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"0b1c3d70-cbd0-4568-aa29-06301808ed45\\\\\\"\\",\\"\\\\\\"7486213c-5774-4166-a643-875fb24762ff\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"0b1c3d70-cbd0-4568-aa29-06301808ed45\\"", "\\"7486213c-5774-4166-a643-875fb24762ff\\"", "1"]	2026-11-18 12:23:25.678331+05:30	2026-11-19 12:23:58.710522+05:30	0
-1508	2611	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 14:30:04.441569+05:30	2026-11-19 14:30:04.511561+05:30	0
-1492	2576	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"df595c09-8eb3-4a18-b682-cd4a915af38c\\\\\\"\\",\\"\\\\\\"2abbe884-4feb-4f41-8571-73968311e54b\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"df595c09-8eb3-4a18-b682-cd4a915af38c\\"", "\\"2abbe884-4feb-4f41-8571-73968311e54b\\""]	2026-11-18 12:30:13.554744+05:30	2026-11-19 12:30:49.804242+05:30	0
 1494	2577	Scheduled	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteServicePrerequisiteL1EscalationJobAsync", "Arguments": "[\\"\\\\\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\\\\\"\\",\\"\\\\\\"7f9c502c-7a9d-403a-9457-2623f60a7e34\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"bb33549a-a3da-476e-8cc0-534e86d050ef\\"", "\\"7f9c502c-7a9d-403a-9457-2623f60a7e34\\""]	2026-11-18 12:43:34.646007+05:30	\N	0
-1510	2620	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 15:00:05.73854+05:30	2026-11-19 15:00:06.122275+05:30	0
-1511	2619	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 15:00:05.750648+05:30	2026-11-19 15:00:05.859345+05:30	0
-1497	2589	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilitySpmAlertJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 13:00:09.491777+05:30	2026-11-19 13:00:09.892455+05:30	0
-1498	2588	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 13:00:09.504264+05:30	2026-11-19 13:00:09.817815+05:30	0
-1512	2623	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 15:15:08.887512+05:30	2026-11-19 15:15:09.123236+05:30	0
-1514	2629	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 15:45:10.268467+05:30	2026-11-19 15:45:10.374664+05:30	0
-1485	2554	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"2a687e0f-2714-4568-8b79-26fefc69190e\\\\\\"\\",\\"\\\\\\"2da4e52c-1c21-42b5-a2fd-28f58f3ca995\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"2a687e0f-2714-4568-8b79-26fefc69190e\\"", "\\"2da4e52c-1c21-42b5-a2fd-28f58f3ca995\\"", "1"]	2026-11-18 12:04:33.291378+05:30	2026-11-19 12:04:59.490121+05:30	0
 1503	2602	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"562f657d-5690-421f-ac6b-b4e3c0b26fc7\\\\\\"\\",\\"\\\\\\"d8fa3afc-d377-43d9-bd50-8d32375fa0cd\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"562f657d-5690-421f-ac6b-b4e3c0b26fc7\\"", "\\"d8fa3afc-d377-43d9-bd50-8d32375fa0cd\\""]	2026-11-18 14:14:05.1298+05:30	\N	0
-1483	2547	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"750da3d7-6800-4b8d-ba14-4e3480166bfb\\\\\\"\\",\\"\\\\\\"5e4443a0-4ce0-4a6b-b8bf-ccbf464d0282\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"750da3d7-6800-4b8d-ba14-4e3480166bfb\\"", "\\"5e4443a0-4ce0-4a6b-b8bf-ccbf464d0282\\"", "1"]	2026-11-18 12:00:51.850513+05:30	2026-11-19 12:00:52.079967+05:30	0
 1529	2684	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 22:30:00.708398+05:30	2026-11-19 22:30:00.777086+05:30	0
-1490	2570	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 12:30:08.028514+05:30	2026-11-19 12:30:08.192692+05:30	0
 1504	2603	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"562f657d-5690-421f-ac6b-b4e3c0b26fc7\\\\\\"\\",\\"\\\\\\"284d23bf-3bf1-451f-b2a8-bbd16ff756d7\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"562f657d-5690-421f-ac6b-b4e3c0b26fc7\\"", "\\"284d23bf-3bf1-451f-b2a8-bbd16ff756d7\\"", "1"]	2026-11-18 14:14:05.165844+05:30	\N	0
-1486	2561	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 12:15:00.231408+05:30	2026-11-19 12:15:00.268313+05:30	0
-1505	2606	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 14:15:03.824324+05:30	2026-11-19 14:15:03.883614+05:30	0
+1630	2976	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 17:30:01.143825+05:30	2026-11-20 17:30:01.173723+05:30	0
 1584	2802	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 00:15:05.799458+05:30	2026-11-20 00:15:05.827164+05:30	0
 1507	2608	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"07f085bc-ee4b-4e85-83ef-0c3097a99b11\\\\\\"\\",\\"\\\\\\"94c4e31a-2ba1-4a6b-874d-e74b419e7bba\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"07f085bc-ee4b-4e85-83ef-0c3097a99b11\\"", "\\"94c4e31a-2ba1-4a6b-874d-e74b419e7bba\\"", "1"]	2026-11-18 14:16:35.599945+05:30	\N	0
-1488	2567	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"0b1c3d70-cbd0-4568-aa29-06301808ed45\\\\\\"\\",\\"\\\\\\"65befcce-5a2d-467f-b6ff-651b7b7455d3\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"0b1c3d70-cbd0-4568-aa29-06301808ed45\\"", "\\"65befcce-5a2d-467f-b6ff-651b7b7455d3\\""]	2026-11-18 12:23:25.666287+05:30	2026-11-19 12:23:58.716776+05:30	0
-1520	2646	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 17:00:13.631259+05:30	2026-11-19 17:00:13.786233+05:30	0
-1509	2614	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 14:45:05.073117+05:30	2026-11-19 14:45:05.144444+05:30	0
-1519	2647	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 17:00:13.617967+05:30	2026-11-19 17:00:14.320791+05:30	0
-1493	2575	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"df595c09-8eb3-4a18-b682-cd4a915af38c\\\\\\"\\",\\"\\\\\\"261c5a75-4eba-43b7-ad85-e2c1f29a3b52\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"df595c09-8eb3-4a18-b682-cd4a915af38c\\"", "\\"261c5a75-4eba-43b7-ad85-e2c1f29a3b52\\"", "1"]	2026-11-18 12:30:13.568699+05:30	2026-11-19 12:30:49.796787+05:30	0
+1619	2943	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 15:00:09.935591+05:30	2026-11-20 15:00:09.98981+05:30	0
 1522	2653	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 17:30:14.793008+05:30	2026-11-19 17:30:14.912108+05:30	0
-1513	2626	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 15:30:09.540343+05:30	2026-11-19 15:30:10.029322+05:30	0
-1495	2580	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 12:45:08.74065+05:30	2026-11-19 12:45:08.779049+05:30	0
-1515	2632	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 16:00:10.874383+05:30	2026-11-19 16:00:11.168962+05:30	0
 1524	2661	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 18:00:01.078357+05:30	2026-11-19 18:00:01.185305+05:30	0
 1525	2662	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityHodEscalationJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-18 18:00:01.092423+05:30	2026-11-19 18:00:03.364366+05:30	0
 1548	2737	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"3d8e401c-352c-4495-9e33-6e48c1031752\\\\\\"\\",\\"\\\\\\"ea0fbabe-0d2b-40a3-8556-0d6fb94b894d\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"3d8e401c-352c-4495-9e33-6e48c1031752\\"", "\\"ea0fbabe-0d2b-40a3-8556-0d6fb94b894d\\"", "1"]	2026-11-18 23:08:31.787095+05:30	\N	0
 1549	2739	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"3d8e401c-352c-4495-9e33-6e48c1031752\\\\\\"\\",\\"\\\\\\"225111e7-a0ca-4edb-9aac-63de56e85eaa\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"3d8e401c-352c-4495-9e33-6e48c1031752\\"", "\\"225111e7-a0ca-4edb-9aac-63de56e85eaa\\"", "2"]	2026-11-18 23:08:32.061578+05:30	\N	0
 1551	2741	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"045ed8a6-35d5-4706-95d1-c830ecee1749\\\\\\"\\",\\"\\\\\\"217fa937-80e5-480e-ae01-6c7f077c2e3f\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"045ed8a6-35d5-4706-95d1-c830ecee1749\\"", "\\"217fa937-80e5-480e-ae01-6c7f077c2e3f\\""]	2026-11-18 23:08:32.501367+05:30	\N	0
+1595	2871	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 10:30:13.734789+05:30	2026-11-20 10:30:13.758498+05:30	0
+1618	2942	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 15:00:09.926436+05:30	2026-11-20 15:00:09.982254+05:30	0
 1585	2805	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 00:30:06.300754+05:30	2026-11-20 00:30:06.366202+05:30	0
 1574	2770	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteSameDayHodCheckJobAsync", "Arguments": "[\\"\\\\\\"7795c46e-5bdf-4389-a3ce-48526d437080\\\\\\"\\",\\"\\\\\\"Test_Project_cf422067\\\\\\"\\",\\"\\\\\\"WBS-CF422067\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\"]"}	["\\"7795c46e-5bdf-4389-a3ce-48526d437080\\"", "\\"Test_Project_cf422067\\"", "\\"WBS-CF422067\\""]	2026-11-18 23:08:34.293003+05:30	2026-11-19 23:08:34.839472+05:30	0
 1565	2823	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"1f78a4a5-01f0-41bd-a56a-a29f4c8eacea\\\\\\"\\",\\"\\\\\\"Test_Project_f80c397b\\\\\\"\\",\\"\\\\\\"WBS-F80C397B\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"1f78a4a5-01f0-41bd-a56a-a29f4c8eacea\\"", "\\"Test_Project_f80c397b\\"", "\\"WBS-F80C397B\\"", "2"]	2026-11-18 23:08:33.562158+05:30	2026-11-20 01:31:00.23275+05:30	0
@@ -4840,14 +4848,20 @@ COPY hangfire.job (id, stateid, statename, invocationdata, arguments, createdat,
 1556	2746	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"56f16e47-6d56-467d-a323-9298ce52bb05\\\\\\"\\",\\"\\\\\\"49d03828-0c94-480c-9938-bedbd4dabae7\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"56f16e47-6d56-467d-a323-9298ce52bb05\\"", "\\"49d03828-0c94-480c-9938-bedbd4dabae7\\"", "1"]	2026-11-18 23:08:32.65701+05:30	\N	0
 1572	2797	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteSameDayHodCheckJobAsync", "Arguments": "[\\"\\\\\\"8efd3324-9fa5-4541-b412-928d9cbede9c\\\\\\"\\",\\"\\\\\\"Test_Project_94c00550\\\\\\"\\",\\"\\\\\\"WBS-94C00550\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\"]"}	["\\"8efd3324-9fa5-4541-b412-928d9cbede9c\\"", "\\"Test_Project_94c00550\\"", "\\"WBS-94C00550\\""]	2026-11-18 23:08:34.054302+05:30	2026-11-20 00:00:05.293534+05:30	0
 1566	2760	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"a785e2e2-116b-4230-a808-4b25f113b2bf\\\\\\"\\",\\"\\\\\\"0c9b0b02-fe54-4628-b40e-94fa82593dff\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"a785e2e2-116b-4230-a808-4b25f113b2bf\\"", "\\"0c9b0b02-fe54-4628-b40e-94fa82593dff\\""]	2026-11-18 23:08:33.717328+05:30	\N	0
+1596	2874	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 10:45:14.37204+05:30	2026-11-20 10:45:14.424564+05:30	0
+1620	2946	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 15:15:10.534776+05:30	2026-11-20 15:15:10.586354+05:30	0
 1576	2831	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"9cde62c8-79e5-482f-a94b-870b252014dd\\\\\\"\\",\\"\\\\\\"Test_Project_9383834a\\\\\\"\\",\\"\\\\\\"WBS-9383834A\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"9cde62c8-79e5-482f-a94b-870b252014dd\\"", "\\"Test_Project_9383834a\\"", "\\"WBS-9383834A\\"", "1"]	2026-11-18 23:08:35.073258+05:30	2026-11-20 01:31:00.360905+05:30	0
 1586	2835	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 01:30:59.976262+05:30	2026-11-20 01:31:00.421443+05:30	0
 1553	2743	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"045ed8a6-35d5-4706-95d1-c830ecee1749\\\\\\"\\",\\"\\\\\\"2e3e4a46-2107-43d8-98a1-3b7d7e6d1465\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"045ed8a6-35d5-4706-95d1-c830ecee1749\\"", "\\"2e3e4a46-2107-43d8-98a1-3b7d7e6d1465\\"", "1"]	2026-11-18 23:08:32.551568+05:30	\N	0
 1563	2793	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteSameDayHodCheckJobAsync", "Arguments": "[\\"\\\\\\"1f78a4a5-01f0-41bd-a56a-a29f4c8eacea\\\\\\"\\",\\"\\\\\\"Test_Project_f80c397b\\\\\\"\\",\\"\\\\\\"WBS-F80C397B\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\"]"}	["\\"1f78a4a5-01f0-41bd-a56a-a29f4c8eacea\\"", "\\"Test_Project_f80c397b\\"", "\\"WBS-F80C397B\\""]	2026-11-18 23:08:33.493275+05:30	2026-11-20 00:00:05.26908+05:30	0
 1554	2747	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"56f16e47-6d56-467d-a323-9298ce52bb05\\\\\\"\\",\\"\\\\\\"269bb861-de36-419c-829c-a71dd695a24b\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"56f16e47-6d56-467d-a323-9298ce52bb05\\"", "\\"269bb861-de36-419c-829c-a71dd695a24b\\""]	2026-11-18 23:08:32.612331+05:30	2026-11-19 23:08:32.732431+05:30	0
+1621	2949	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 15:30:11.165227+05:30	2026-11-20 15:30:11.215785+05:30	0
 1569	2826	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"3e992d53-c73d-43d1-b60d-6a1bcc8520d8\\\\\\"\\",\\"\\\\\\"Test_Project_696fc6f4\\\\\\"\\",\\"\\\\\\"WBS-696FC6F4\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"3e992d53-c73d-43d1-b60d-6a1bcc8520d8\\"", "\\"Test_Project_696fc6f4\\"", "\\"WBS-696FC6F4\\"", "1"]	2026-11-18 23:08:33.971348+05:30	2026-11-20 01:31:00.293411+05:30	0
+1598	2881	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 11:00:15.014874+05:30	2026-11-20 11:00:15.114608+05:30	0
+1597	2879	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 11:00:15.005208+05:30	2026-11-20 11:00:15.097552+05:30	0
 1573	2769	Deleted	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"7795c46e-5bdf-4389-a3ce-48526d437080\\\\\\"\\",\\"\\\\\\"Test_Project_cf422067\\\\\\"\\",\\"\\\\\\"WBS-CF422067\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"7795c46e-5bdf-4389-a3ce-48526d437080\\"", "\\"Test_Project_cf422067\\"", "\\"WBS-CF422067\\"", "1"]	2026-11-18 23:08:34.267042+05:30	2026-11-19 23:08:34.760386+05:30	0
 1575	2771	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"a785e2e2-116b-4230-a808-4b25f113b2bf\\\\\\"\\",\\"\\\\\\"dcce134e-ed77-48f6-9364-4173ce0df349\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"a785e2e2-116b-4230-a808-4b25f113b2bf\\"", "\\"dcce134e-ed77-48f6-9364-4173ce0df349\\"", "2"]	2026-11-18 23:08:34.878071+05:30	\N	0
+1599	2883	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityLeadershipAlertJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[\\"11\\",null]", "ParameterTypes": "[\\"System.Int32\\",\\"System.Threading.CancellationToken, mscorlib\\"]"}	["11", null]	2026-11-19 11:00:15.023765+05:30	2026-11-20 11:00:15.212498+05:30	0
 1588	2849	Succeeded	{"Type": "PMS.API.Modules.Resources.Jobs.EmployeeOffboardingReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 09:20:10.68813+05:30	2026-11-20 09:20:10.884385+05:30	0
 1587	2842	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 09:20:10.67056+05:30	2026-11-20 09:20:10.76977+05:30	0
 1589	2845	Succeeded	{"Type": "PMS.API.Modules.Timesheets.Jobs.TimesheetReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 09:20:10.703933+05:30	2026-11-20 09:20:10.809637+05:30	0
@@ -4856,11 +4870,13 @@ COPY hangfire.job (id, stateid, statename, invocationdata, arguments, createdat,
 1590	2856	Succeeded	{"Type": "PMS.API.Modules.MyTeam.Jobs.TeamAvailabilityTwoHourReminderJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 09:20:10.719335+05:30	2026-11-20 09:20:12.119508+05:30	0
 1557	2748	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteEscalationAsync", "Arguments": "[\\"\\\\\\"56f16e47-6d56-467d-a323-9298ce52bb05\\\\\\"\\",\\"\\\\\\"5090d8cd-749e-4bb3-8a65-ea3414e774c6\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\",\\"System.Int32\\"]"}	["\\"56f16e47-6d56-467d-a323-9298ce52bb05\\"", "\\"5090d8cd-749e-4bb3-8a65-ea3414e774c6\\"", "2"]	2026-11-18 23:08:32.760097+05:30	\N	0
 1577	2792	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteSameDayHodCheckJobAsync", "Arguments": "[\\"\\\\\\"9cde62c8-79e5-482f-a94b-870b252014dd\\\\\\"\\",\\"\\\\\\"Test_Project_9383834a\\\\\\"\\",\\"\\\\\\"WBS-9383834A\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\"]"}	["\\"9cde62c8-79e5-482f-a94b-870b252014dd\\"", "\\"Test_Project_9383834a\\"", "\\"WBS-9383834A\\""]	2026-11-18 23:08:35.085025+05:30	2026-11-20 00:00:05.256899+05:30	0
+1600	2886	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 11:15:00.627388+05:30	2026-11-20 11:15:00.678137+05:30	0
 1561	2814	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"889dae6a-a3df-43df-b8c3-b6bcaf69ad68\\\\\\"\\",\\"\\\\\\"Test_Project_693ee0f7\\\\\\"\\",\\"\\\\\\"WBS-693EE0F7\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"889dae6a-a3df-43df-b8c3-b6bcaf69ad68\\"", "\\"Test_Project_693ee0f7\\"", "\\"WBS-693EE0F7\\"", "2"]	2026-11-18 23:08:33.208864+05:30	2026-11-20 01:31:00.129436+05:30	0
 1564	2822	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"1f78a4a5-01f0-41bd-a56a-a29f4c8eacea\\\\\\"\\",\\"\\\\\\"Test_Project_f80c397b\\\\\\"\\",\\"\\\\\\"WBS-F80C397B\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"1f78a4a5-01f0-41bd-a56a-a29f4c8eacea\\"", "\\"Test_Project_f80c397b\\"", "\\"WBS-F80C397B\\"", "2"]	2026-11-18 23:08:33.54098+05:30	2026-11-20 01:31:00.194354+05:30	0
 1558	2750	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"56f16e47-6d56-467d-a323-9298ce52bb05\\\\\\"\\",\\"\\\\\\"8afa7fd5-67b3-4996-bd8f-75d463b83a75\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"56f16e47-6d56-467d-a323-9298ce52bb05\\"", "\\"8afa7fd5-67b3-4996-bd8f-75d463b83a75\\""]	2026-11-18 23:08:32.779181+05:30	2026-11-19 23:08:32.947542+05:30	0
 1578	2830	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"9cde62c8-79e5-482f-a94b-870b252014dd\\\\\\"\\",\\"\\\\\\"Test_Project_9383834a\\\\\\"\\",\\"\\\\\\"WBS-9383834A\\\\\\"\\",\\"2\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"9cde62c8-79e5-482f-a94b-870b252014dd\\"", "\\"Test_Project_9383834a\\"", "\\"WBS-9383834A\\"", "2"]	2026-11-18 23:08:35.114469+05:30	2026-11-20 01:31:00.356429+05:30	0
 1567	2761	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteBreachCheckAsync", "Arguments": "[\\"\\\\\\"a785e2e2-116b-4230-a808-4b25f113b2bf\\\\\\"\\",\\"\\\\\\"22ccc678-daf6-4919-9379-b687b6d9c6c4\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"a785e2e2-116b-4230-a808-4b25f113b2bf\\"", "\\"22ccc678-daf6-4919-9379-b687b6d9c6c4\\""]	2026-11-18 23:08:33.739706+05:30	\N	0
+1601	2889	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Jobs.BucketTaskAutoPauseJob, PMS.API", "Method": "ExecuteAsync", "Arguments": "[null]", "ParameterTypes": "[\\"System.Threading.CancellationToken, mscorlib\\"]"}	[null]	2026-11-19 11:30:01.367844+05:30	2026-11-20 11:30:01.393319+05:30	0
 1559	2751	Scheduled	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"56f16e47-6d56-467d-a323-9298ce52bb05\\\\\\"\\",\\"\\\\\\"9b131055-c17f-4ce2-9100-923471b02b7f\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"56f16e47-6d56-467d-a323-9298ce52bb05\\"", "\\"9b131055-c17f-4ce2-9100-923471b02b7f\\""]	2026-11-18 23:08:32.979262+05:30	\N	0
 1562	2816	Succeeded	{"Type": "PMS.API.Modules.ActionCentre.Services.IActionNotificationService, PMS.API", "Method": "ExecuteProjectAllocationReminderJobAsync", "Arguments": "[\\"\\\\\\"1f78a4a5-01f0-41bd-a56a-a29f4c8eacea\\\\\\"\\",\\"\\\\\\"Test_Project_f80c397b\\\\\\"\\",\\"\\\\\\"WBS-F80C397B\\\\\\"\\",\\"1\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.String\\",\\"System.String\\",\\"System.Int32\\"]"}	["\\"1f78a4a5-01f0-41bd-a56a-a29f4c8eacea\\"", "\\"Test_Project_f80c397b\\"", "\\"WBS-F80C397B\\"", "1"]	2026-11-18 23:08:33.48616+05:30	2026-11-20 01:31:00.136612+05:30	0
 1560	2755	Deleted	{"Type": "PMS.API.Modules.Sla.Jobs.SlaBackgroundJobWorker, PMS.API", "Method": "ExecuteReminderAsync", "Arguments": "[\\"\\\\\\"56f16e47-6d56-467d-a323-9298ce52bb05\\\\\\"\\",\\"\\\\\\"3146efe1-e6ee-497e-a559-f99c912a03c5\\\\\\"\\"]", "ParameterTypes": "[\\"System.Guid, mscorlib\\",\\"System.Guid, mscorlib\\"]"}	["\\"56f16e47-6d56-467d-a323-9298ce52bb05\\"", "\\"3146efe1-e6ee-497e-a559-f99c912a03c5\\""]	2026-11-18 23:08:33.139573+05:30	2026-11-19 23:08:33.31845+05:30	0
@@ -4876,90 +4892,58 @@ COPY hangfire.job (id, stateid, statename, invocationdata, arguments, createdat,
 --
 
 COPY hangfire.jobparameter (id, jobid, name, value, updatecount) FROM stdin;
-2734	1371	CurrentCulture	"en-IN"	0
-2735	1371	CurrentUICulture	"en-US"	0
-2776	1390	CurrentCulture	"en-IN"	0
-2777	1390	CurrentUICulture	"en-US"	0
-2832	1409	RecurringJobId	"team-availability-hod-eod"	0
-2833	1409	Time	1794976338	0
-2834	1409	CurrentCulture	"en-IN"	0
-2835	1409	CurrentUICulture	"en-US"	0
-2836	1410	RecurringJobId	"bucket-task-auto-pause"	0
-2837	1410	Time	1794976338	0
-2838	1410	CurrentCulture	"en-IN"	0
-2839	1410	CurrentUICulture	"en-US"	0
-2840	1411	RecurringJobId	"timesheet-submission-reminders"	0
-2841	1411	Time	1794976338	0
-2842	1411	CurrentCulture	"en-IN"	0
-2843	1411	CurrentUICulture	"en-US"	0
-2844	1412	RecurringJobId	"employee-offboarding-reminders"	0
-2845	1412	Time	1794976338	0
-2846	1412	CurrentCulture	"en-IN"	0
-2847	1412	CurrentUICulture	"en-US"	0
-2848	1413	RecurringJobId	"team-availability-2hour-reminders"	0
-2849	1413	Time	1794976338	0
-2850	1413	CurrentCulture	"en-IN"	0
-2851	1413	CurrentUICulture	"en-US"	0
-2858	1417	RecurringJobId	"bucket-task-auto-pause"	0
-2859	1417	Time	1794977103	0
-2860	1417	CurrentCulture	"en-IN"	0
-2861	1417	CurrentUICulture	"en-US"	0
-2862	1418	RecurringJobId	"bucket-task-auto-pause"	0
-2863	1418	Time	1794978004	0
-2864	1418	CurrentCulture	"en-IN"	0
-2865	1418	CurrentUICulture	"en-US"	0
-2866	1419	RecurringJobId	"bucket-task-auto-pause"	0
-2867	1419	Time	1794978905	0
-2868	1419	CurrentCulture	"en-IN"	0
-2869	1419	CurrentUICulture	"en-US"	0
-2870	1420	CurrentCulture	"en-IN"	0
-2871	1420	CurrentUICulture	"en-US"	0
-2872	1421	CurrentCulture	"en-IN"	0
-2873	1421	CurrentUICulture	"en-US"	0
+3358	1601	RecurringJobId	"bucket-task-auto-pause"	0
+3359	1601	Time	1795068001	0
+3360	1601	CurrentCulture	"en-IN"	0
+3361	1601	CurrentUICulture	"en-US"	0
+3398	1611	RecurringJobId	"bucket-task-auto-pause"	0
+3399	1611	Time	1795074305	0
+3400	1611	CurrentCulture	"en-IN"	0
+3401	1611	CurrentUICulture	"en-US"	0
+3426	1618	RecurringJobId	"team-availability-2hour-reminders"	0
+3427	1618	Time	1795080609	0
+3428	1618	CurrentCulture	"en-IN"	0
+3429	1618	CurrentUICulture	"en-US"	0
+3430	1619	RecurringJobId	"bucket-task-auto-pause"	0
+3431	1619	Time	1795080609	0
+3432	1619	CurrentCulture	"en-IN"	0
+3433	1619	CurrentUICulture	"en-US"	0
+3438	1621	RecurringJobId	"bucket-task-auto-pause"	0
+3439	1621	Time	1795082411	0
+3440	1621	CurrentCulture	"en-IN"	0
+3441	1621	CurrentUICulture	"en-US"	0
+3470	1629	RecurringJobId	"bucket-task-auto-pause"	0
+3471	1629	Time	1795088700	0
+3472	1629	CurrentCulture	"en-IN"	0
+3473	1629	CurrentUICulture	"en-US"	0
+3362	1602	RecurringJobId	"bucket-task-auto-pause"	0
+3363	1602	Time	1795068901	0
+3364	1602	CurrentCulture	"en-IN"	0
+3365	1602	CurrentUICulture	"en-US"	0
+3402	1612	RecurringJobId	"bucket-task-auto-pause"	0
+3403	1612	Time	1795075206	0
+3404	1612	CurrentCulture	"en-IN"	0
+3405	1612	CurrentUICulture	"en-US"	0
+3434	1620	RecurringJobId	"bucket-task-auto-pause"	0
+3435	1620	Time	1795081510	0
+3436	1620	CurrentCulture	"en-IN"	0
+3437	1620	CurrentUICulture	"en-US"	0
+3442	1622	RecurringJobId	"bucket-task-auto-pause"	0
+3443	1622	Time	1795083311	0
+3444	1622	CurrentCulture	"en-IN"	0
+3445	1622	CurrentUICulture	"en-US"	0
+3474	1630	RecurringJobId	"bucket-task-auto-pause"	0
+3475	1630	Time	1795089601	0
+3476	1630	CurrentCulture	"en-IN"	0
+3477	1630	CurrentUICulture	"en-US"	0
 2874	1422	CurrentCulture	"en-IN"	0
 2875	1422	CurrentUICulture	"en-US"	0
-2876	1423	CurrentCulture	"en-IN"	0
-2877	1423	CurrentUICulture	"en-US"	0
-2878	1424	CurrentCulture	"en-IN"	0
-2879	1424	CurrentUICulture	"en-US"	0
 2880	1425	CurrentCulture	"en-IN"	0
 2881	1425	CurrentUICulture	"en-US"	0
-2882	1426	CurrentCulture	"en-IN"	0
-2883	1426	CurrentUICulture	"en-US"	0
-2884	1427	CurrentCulture	"en-IN"	0
-2885	1427	CurrentUICulture	"en-US"	0
-2886	1428	CurrentCulture	"en-IN"	0
-2887	1428	CurrentUICulture	"en-US"	0
-2888	1429	CurrentCulture	"en-IN"	0
-2889	1429	CurrentUICulture	"en-US"	0
 2890	1430	CurrentCulture	"en-IN"	0
 2891	1430	CurrentUICulture	"en-US"	0
 2892	1431	CurrentCulture	"en-IN"	0
 2893	1431	CurrentUICulture	"en-US"	0
-2894	1432	CurrentCulture	"en-IN"	0
-2895	1432	CurrentUICulture	"en-US"	0
-2896	1433	CurrentCulture	"en-IN"	0
-2897	1433	CurrentUICulture	"en-US"	0
-2898	1434	CurrentCulture	"en-IN"	0
-2899	1434	CurrentUICulture	"en-US"	0
-2900	1435	CurrentCulture	"en-IN"	0
-2901	1435	CurrentUICulture	"en-US"	0
-2902	1436	CurrentCulture	"en-IN"	0
-2903	1436	CurrentUICulture	"en-US"	0
-2904	1437	CurrentCulture	"en-IN"	0
-2905	1437	CurrentUICulture	"en-US"	0
-2906	1438	RecurringJobId	"bucket-task-auto-pause"	0
-2907	1438	Time	1794979805	0
-2908	1438	CurrentCulture	"en-IN"	0
-2909	1438	CurrentUICulture	"en-US"	0
-2910	1439	RecurringJobId	"team-availability-leadership-11am"	0
-2911	1439	Time	1794979805	0
-2912	1439	CurrentCulture	"en-IN"	0
-2913	1439	CurrentUICulture	"en-US"	0
-2914	1440	RecurringJobId	"team-availability-2hour-reminders"	0
-2915	1440	Time	1794979805	0
-2916	1440	CurrentCulture	"en-IN"	0
-2917	1440	CurrentUICulture	"en-US"	0
 2918	1441	CurrentCulture	"en-IN"	0
 2919	1441	CurrentUICulture	"en-US"	0
 2920	1442	CurrentCulture	"en-IN"	0
@@ -4986,202 +4970,90 @@ COPY hangfire.jobparameter (id, jobid, name, value, updatecount) FROM stdin;
 2943	1453	CurrentUICulture	"en-US"	0
 2946	1455	CurrentCulture	"en-IN"	0
 2947	1455	CurrentUICulture	"en-US"	0
+3366	1603	RecurringJobId	"bucket-task-auto-pause"	0
+3367	1603	Time	1795069802	0
+3368	1603	CurrentCulture	"en-IN"	0
+3369	1603	CurrentUICulture	"en-US"	0
+3370	1604	RecurringJobId	"team-availability-leadership-12pm"	0
+3371	1604	Time	1795069802	0
+3372	1604	CurrentCulture	"en-IN"	0
+3373	1604	CurrentUICulture	"en-US"	0
+3406	1613	RecurringJobId	"bucket-task-auto-pause"	0
+3407	1613	Time	1795076106	0
+3408	1613	CurrentCulture	"en-IN"	0
+3409	1613	CurrentUICulture	"en-US"	0
+3446	1623	RecurringJobId	"bucket-task-auto-pause"	0
+3447	1623	Time	1795084212	0
+3448	1623	CurrentCulture	"en-IN"	0
+3449	1623	CurrentUICulture	"en-US"	0
 2940	1452	CurrentCulture	"en-IN"	0
 2941	1452	CurrentUICulture	"en-US"	0
 2944	1454	CurrentCulture	"en-IN"	0
 2945	1454	CurrentUICulture	"en-US"	0
 2948	1456	CurrentCulture	"en-IN"	0
 2949	1456	CurrentUICulture	"en-US"	0
+3374	1605	RecurringJobId	"bucket-task-auto-pause"	0
+3375	1605	Time	1795070703	0
+3376	1605	CurrentCulture	"en-IN"	0
+3377	1605	CurrentUICulture	"en-US"	0
+3410	1614	RecurringJobId	"bucket-task-auto-pause"	0
+3411	1614	Time	1795077007	0
+3412	1614	CurrentCulture	"en-IN"	0
+3413	1614	CurrentUICulture	"en-US"	0
+3450	1624	RecurringJobId	"bucket-task-auto-pause"	0
+3451	1624	Time	1795085113	0
+3452	1624	CurrentCulture	"en-IN"	0
+3453	1624	CurrentUICulture	"en-US"	0
 2950	1457	CurrentCulture	"en-IN"	0
 2951	1457	CurrentUICulture	"en-US"	0
 2954	1459	CurrentCulture	"en-IN"	0
 2955	1459	CurrentUICulture	"en-US"	0
+3378	1606	RecurringJobId	"bucket-task-auto-pause"	0
+3379	1606	Time	1795071603	0
+3380	1606	CurrentCulture	"en-IN"	0
+3381	1606	CurrentUICulture	"en-US"	0
+3414	1615	RecurringJobId	"bucket-task-auto-pause"	0
+3415	1615	Time	1795077908	0
+3416	1615	CurrentCulture	"en-IN"	0
+3417	1615	CurrentUICulture	"en-US"	0
+3454	1625	RecurringJobId	"bucket-task-auto-pause"	0
+3455	1625	Time	1795086013	0
+3456	1625	CurrentCulture	"en-IN"	0
+3457	1625	CurrentUICulture	"en-US"	0
 2952	1458	CurrentCulture	"en-IN"	0
 2953	1458	CurrentUICulture	"en-US"	0
 2956	1460	CurrentCulture	"en-IN"	0
 2957	1460	CurrentUICulture	"en-US"	0
-2958	1461	RecurringJobId	"bucket-task-auto-pause"	0
-2959	1461	Time	1794980706	0
-2960	1461	CurrentCulture	"en-IN"	0
-2961	1461	CurrentUICulture	"en-US"	0
-2962	1462	CurrentCulture	"en-IN"	0
-2963	1462	CurrentUICulture	"en-US"	0
-2964	1463	CurrentCulture	"en-IN"	0
-2965	1463	CurrentUICulture	"en-US"	0
-2966	1464	CurrentCulture	"en-IN"	0
-2967	1464	CurrentUICulture	"en-US"	0
-2968	1465	RecurringJobId	"bucket-task-auto-pause"	0
-2969	1465	Time	1794981607	0
-2970	1465	CurrentCulture	"en-IN"	0
-2971	1465	CurrentUICulture	"en-US"	0
-2972	1466	CurrentCulture	"en-IN"	0
-2973	1466	CurrentUICulture	"en-US"	0
-2974	1467	CurrentCulture	"en-IN"	0
-2975	1467	CurrentUICulture	"en-US"	0
-2976	1468	CurrentCulture	"en-IN"	0
-2977	1468	CurrentUICulture	"en-US"	0
-2978	1469	CurrentCulture	"en-IN"	0
-2979	1469	CurrentUICulture	"en-US"	0
-2980	1470	CurrentCulture	"en-IN"	0
-2981	1470	CurrentUICulture	"en-US"	0
-2982	1471	CurrentCulture	"en-IN"	0
-2983	1471	CurrentUICulture	"en-US"	0
-2984	1472	RecurringJobId	"bucket-task-auto-pause"	0
-2985	1472	Time	1794982507	0
-2986	1472	CurrentCulture	"en-IN"	0
-2987	1472	CurrentUICulture	"en-US"	0
-2988	1473	CurrentCulture	"en-IN"	0
-2989	1473	CurrentUICulture	"en-US"	0
-2990	1474	CurrentCulture	"en-IN"	0
-2991	1474	CurrentUICulture	"en-US"	0
-2992	1475	CurrentCulture	"en-IN"	0
-2993	1475	CurrentUICulture	"en-US"	0
-2994	1476	RecurringJobId	"team-availability-leadership-12pm"	0
-2995	1476	Time	1794983414	0
-2996	1476	CurrentCulture	"en-IN"	0
-2997	1476	CurrentUICulture	"en-US"	0
-2998	1477	RecurringJobId	"bucket-task-auto-pause"	0
-2999	1477	Time	1794983414	0
-3000	1477	CurrentCulture	"en-IN"	0
-3001	1477	CurrentUICulture	"en-US"	0
-3002	1478	CurrentCulture	"en-IN"	0
-3003	1478	CurrentUICulture	"en-US"	0
-3004	1479	CurrentCulture	"en-IN"	0
-3005	1479	CurrentUICulture	"en-US"	0
-3006	1480	CurrentCulture	"en-IN"	0
-3007	1480	CurrentUICulture	"en-US"	0
-3008	1481	CurrentCulture	"en-IN"	0
-3009	1481	CurrentUICulture	"en-US"	0
-3010	1482	CurrentCulture	"en-IN"	0
-3011	1482	CurrentUICulture	"en-US"	0
-3012	1483	CurrentCulture	"en-IN"	0
-3013	1483	CurrentUICulture	"en-US"	0
-3014	1484	CurrentCulture	"en-IN"	0
-3015	1484	CurrentUICulture	"en-US"	0
-3016	1485	CurrentCulture	"en-IN"	0
-3017	1485	CurrentUICulture	"en-US"	0
-3018	1486	RecurringJobId	"bucket-task-auto-pause"	0
-3019	1486	Time	1794984300	0
-3020	1486	CurrentCulture	"en-IN"	0
-3021	1486	CurrentUICulture	"en-US"	0
-3022	1487	CurrentCulture	"en-IN"	0
-3023	1487	CurrentUICulture	"en-US"	0
-3024	1488	CurrentCulture	"en-IN"	0
-3025	1488	CurrentUICulture	"en-US"	0
-3026	1489	CurrentCulture	"en-IN"	0
-3027	1489	CurrentUICulture	"en-US"	0
-3028	1490	RecurringJobId	"bucket-task-auto-pause"	0
-3029	1490	Time	1794985207	0
-3030	1490	CurrentCulture	"en-IN"	0
-3031	1490	CurrentUICulture	"en-US"	0
-3032	1491	CurrentCulture	"en-IN"	0
-3033	1491	CurrentUICulture	"en-US"	0
-3034	1492	CurrentCulture	"en-IN"	0
-3035	1492	CurrentUICulture	"en-US"	0
-3036	1493	CurrentCulture	"en-IN"	0
-3037	1493	CurrentUICulture	"en-US"	0
+3382	1607	RecurringJobId	"bucket-task-auto-pause"	0
+3383	1607	Time	1795072504	0
+3384	1607	CurrentCulture	"en-IN"	0
+3385	1607	CurrentUICulture	"en-US"	0
+3418	1616	RecurringJobId	"bucket-task-auto-pause"	0
+3419	1616	Time	1795078808	0
+3420	1616	CurrentCulture	"en-IN"	0
+3421	1616	CurrentUICulture	"en-US"	0
+3458	1626	RecurringJobId	"bucket-task-auto-pause"	0
+3459	1626	Time	1795086914	0
+3460	1626	CurrentCulture	"en-IN"	0
+3461	1626	CurrentUICulture	"en-US"	0
 3038	1494	CurrentCulture	"en-IN"	0
 3039	1494	CurrentUICulture	"en-US"	0
-3040	1495	RecurringJobId	"bucket-task-auto-pause"	0
-3041	1495	Time	1794986108	0
-3042	1495	CurrentCulture	"en-IN"	0
-3043	1495	CurrentUICulture	"en-US"	0
-3044	1496	RecurringJobId	"team-availability-2hour-reminders"	0
-3045	1496	Time	1794987009	0
-3046	1496	CurrentCulture	"en-IN"	0
-3047	1496	CurrentUICulture	"en-US"	0
-3048	1497	RecurringJobId	"team-availability-spm-1pm"	0
-3049	1497	Time	1794987009	0
-3050	1497	CurrentCulture	"en-IN"	0
-3051	1497	CurrentUICulture	"en-US"	0
-3052	1498	RecurringJobId	"bucket-task-auto-pause"	0
-3053	1498	Time	1794987009	0
-3054	1498	CurrentCulture	"en-IN"	0
-3055	1498	CurrentUICulture	"en-US"	0
-3056	1499	RecurringJobId	"bucket-task-auto-pause"	0
-3057	1499	Time	1794987910	0
-3058	1499	CurrentCulture	"en-IN"	0
-3059	1499	CurrentUICulture	"en-US"	0
-3060	1500	RecurringJobId	"bucket-task-auto-pause"	0
-3061	1500	Time	1794988801	0
-3062	1500	CurrentCulture	"en-IN"	0
-3063	1500	CurrentUICulture	"en-US"	0
-3064	1501	RecurringJobId	"bucket-task-auto-pause"	0
-3065	1501	Time	1794989702	0
-3066	1501	CurrentCulture	"en-IN"	0
-3067	1501	CurrentUICulture	"en-US"	0
-3068	1502	RecurringJobId	"bucket-task-auto-pause"	0
-3069	1502	Time	1794990603	0
-3070	1502	CurrentCulture	"en-IN"	0
-3071	1502	CurrentUICulture	"en-US"	0
+3462	1627	RecurringJobId	"team-availability-2hour-reminders"	0
+3463	1627	Time	1795087814	0
+3464	1627	CurrentCulture	"en-IN"	0
+3465	1627	CurrentUICulture	"en-US"	0
+3466	1628	RecurringJobId	"bucket-task-auto-pause"	0
+3467	1628	Time	1795087814	0
+3468	1628	CurrentCulture	"en-IN"	0
+3469	1628	CurrentUICulture	"en-US"	0
 3072	1503	CurrentCulture	"en-IN"	0
 3073	1503	CurrentUICulture	"en-US"	0
 3074	1504	CurrentCulture	"en-IN"	0
 3075	1504	CurrentUICulture	"en-US"	0
-3076	1505	RecurringJobId	"bucket-task-auto-pause"	0
-3077	1505	Time	1794991503	0
-3078	1505	CurrentCulture	"en-IN"	0
-3079	1505	CurrentUICulture	"en-US"	0
 3080	1506	CurrentCulture	"en-IN"	0
 3081	1506	CurrentUICulture	"en-US"	0
 3082	1507	CurrentCulture	"en-IN"	0
 3083	1507	CurrentUICulture	"en-US"	0
-3084	1508	RecurringJobId	"bucket-task-auto-pause"	0
-3085	1508	Time	1794992404	0
-3086	1508	CurrentCulture	"en-IN"	0
-3087	1508	CurrentUICulture	"en-US"	0
-3088	1509	RecurringJobId	"bucket-task-auto-pause"	0
-3089	1509	Time	1794993305	0
-3090	1509	CurrentCulture	"en-IN"	0
-3091	1509	CurrentUICulture	"en-US"	0
-3092	1510	RecurringJobId	"team-availability-2hour-reminders"	0
-3093	1510	Time	1794994205	0
-3094	1510	CurrentCulture	"en-IN"	0
-3095	1510	CurrentUICulture	"en-US"	0
-3096	1511	RecurringJobId	"bucket-task-auto-pause"	0
-3097	1511	Time	1794994205	0
-3098	1511	CurrentCulture	"en-IN"	0
-3099	1511	CurrentUICulture	"en-US"	0
-3100	1512	RecurringJobId	"bucket-task-auto-pause"	0
-3101	1512	Time	1794995108	0
-3102	1512	CurrentCulture	"en-IN"	0
-3103	1512	CurrentUICulture	"en-US"	0
-3104	1513	RecurringJobId	"bucket-task-auto-pause"	0
-3105	1513	Time	1794996009	0
-3106	1513	CurrentCulture	"en-IN"	0
-3107	1513	CurrentUICulture	"en-US"	0
-3108	1514	RecurringJobId	"bucket-task-auto-pause"	0
-3109	1514	Time	1794996910	0
-3110	1514	CurrentCulture	"en-IN"	0
-3111	1514	CurrentUICulture	"en-US"	0
-3112	1515	RecurringJobId	"bucket-task-auto-pause"	0
-3113	1515	Time	1794997810	0
-3114	1515	CurrentCulture	"en-IN"	0
-3115	1515	CurrentUICulture	"en-US"	0
-3116	1516	RecurringJobId	"bucket-task-auto-pause"	0
-3117	1516	Time	1794998711	0
-3118	1516	CurrentCulture	"en-IN"	0
-3119	1516	CurrentUICulture	"en-US"	0
-3120	1517	RecurringJobId	"bucket-task-auto-pause"	0
-3121	1517	Time	1794999612	0
-3122	1517	CurrentCulture	"en-IN"	0
-3123	1517	CurrentUICulture	"en-US"	0
-3124	1518	RecurringJobId	"bucket-task-auto-pause"	0
-3125	1518	Time	1795000512	0
-3126	1518	CurrentCulture	"en-IN"	0
-3127	1518	CurrentUICulture	"en-US"	0
-3128	1519	RecurringJobId	"team-availability-2hour-reminders"	0
-3129	1519	Time	1795001413	0
-3130	1519	CurrentCulture	"en-IN"	0
-3131	1519	CurrentUICulture	"en-US"	0
-3132	1520	RecurringJobId	"bucket-task-auto-pause"	0
-3133	1520	Time	1795001413	0
-3134	1520	CurrentCulture	"en-IN"	0
-3135	1520	CurrentUICulture	"en-US"	0
-3136	1521	RecurringJobId	"bucket-task-auto-pause"	0
-3137	1521	Time	1795002314	0
-3138	1521	CurrentCulture	"en-IN"	0
-3139	1521	CurrentUICulture	"en-US"	0
 3140	1522	RecurringJobId	"bucket-task-auto-pause"	0
 3141	1522	Time	1795003214	0
 3142	1522	CurrentCulture	"en-IN"	0
@@ -5368,6 +5240,54 @@ COPY hangfire.jobparameter (id, jobid, name, value, updatecount) FROM stdin;
 3323	1592	Time	1795061711	0
 3324	1592	CurrentCulture	"en-IN"	0
 3325	1592	CurrentUICulture	"en-US"	0
+3326	1593	RecurringJobId	"bucket-task-auto-pause"	0
+3327	1593	Time	1795062612	0
+3328	1593	CurrentCulture	"en-IN"	0
+3329	1593	CurrentUICulture	"en-US"	0
+3330	1594	RecurringJobId	"bucket-task-auto-pause"	0
+3331	1594	Time	1795063513	0
+3332	1594	CurrentCulture	"en-IN"	0
+3333	1594	CurrentUICulture	"en-US"	0
+3334	1595	RecurringJobId	"bucket-task-auto-pause"	0
+3335	1595	Time	1795064413	0
+3336	1595	CurrentCulture	"en-IN"	0
+3337	1595	CurrentUICulture	"en-US"	0
+3338	1596	RecurringJobId	"bucket-task-auto-pause"	0
+3339	1596	Time	1795065314	0
+3340	1596	CurrentCulture	"en-IN"	0
+3341	1596	CurrentUICulture	"en-US"	0
+3342	1597	RecurringJobId	"team-availability-2hour-reminders"	0
+3343	1597	Time	1795066215	0
+3344	1597	CurrentCulture	"en-IN"	0
+3345	1597	CurrentUICulture	"en-US"	0
+3346	1598	RecurringJobId	"bucket-task-auto-pause"	0
+3347	1598	Time	1795066215	0
+3348	1598	CurrentCulture	"en-IN"	0
+3349	1598	CurrentUICulture	"en-US"	0
+3350	1599	RecurringJobId	"team-availability-leadership-11am"	0
+3351	1599	Time	1795066215	0
+3352	1599	CurrentCulture	"en-IN"	0
+3353	1599	CurrentUICulture	"en-US"	0
+3354	1600	RecurringJobId	"bucket-task-auto-pause"	0
+3355	1600	Time	1795067100	0
+3356	1600	CurrentCulture	"en-IN"	0
+3357	1600	CurrentUICulture	"en-US"	0
+3386	1608	RecurringJobId	"team-availability-2hour-reminders"	0
+3387	1608	Time	1795073404	0
+3388	1608	CurrentCulture	"en-IN"	0
+3389	1608	CurrentUICulture	"en-US"	0
+3390	1609	RecurringJobId	"bucket-task-auto-pause"	0
+3391	1609	Time	1795073404	0
+3392	1609	CurrentCulture	"en-IN"	0
+3393	1609	CurrentUICulture	"en-US"	0
+3394	1610	RecurringJobId	"team-availability-spm-1pm"	0
+3395	1610	Time	1795073404	0
+3396	1610	CurrentCulture	"en-IN"	0
+3397	1610	CurrentUICulture	"en-US"	0
+3422	1617	RecurringJobId	"bucket-task-auto-pause"	0
+3423	1617	Time	1795079709	0
+3424	1617	CurrentCulture	"en-IN"	0
+3425	1617	CurrentUICulture	"en-US"	0
 \.
 
 
@@ -5409,7 +5329,7 @@ COPY hangfire.schema (version) FROM stdin;
 --
 
 COPY hangfire.server (id, data, lastheartbeat, updatecount) FROM stdin;
-projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca	{"Queues": ["default", "default"], "StartedAt": "2026-11-18T18:09:18.7405125Z", "WorkerCount": 2}	2026-11-19 09:46:38.360012+05:30	0
+projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca	{"Queues": ["default", "default"], "StartedAt": "2026-11-18T18:09:18.7405125Z", "WorkerCount": 2}	2026-11-19 17:35:18.029111+05:30	0
 \.
 
 
@@ -5512,6 +5432,7 @@ COPY hangfire.set (id, key, score, value, expireat, updatecount) FROM stdin;
 1455	schedule	1795091400	1447	\N	0
 1502	schedule	1795177800	1494	\N	0
 1342	schedule	1795091400	1340	\N	0
+1371	recurring-jobs	1795090500	bucket-task-auto-pause	\N	0
 1351	schedule	1795091400	1349	\N	0
 1552	schedule	1795091400	1543	\N	0
 1553	schedule	1795177800	1544	\N	0
@@ -5521,10 +5442,10 @@ COPY hangfire.set (id, key, score, value, expireat, updatecount) FROM stdin;
 1376	recurring-jobs	1795091400	team-availability-hod-eod	\N	0
 1363	schedule	1795091400	1361	\N	0
 17	recurring-jobs	1795145400	timesheet-submission-reminders	\N	0
-1372	recurring-jobs	1795066200	team-availability-2hour-reminders	\N	0
-1371	recurring-jobs	1795062600	bucket-task-auto-pause	\N	0
+1373	recurring-jobs	1795152600	team-availability-leadership-11am	\N	0
 1433	schedule	1795177800	1425	\N	0
-1373	recurring-jobs	1795066200	team-availability-leadership-11am	\N	0
+1374	recurring-jobs	1795156200	team-availability-leadership-12pm	\N	0
+1375	recurring-jobs	1795159800	team-availability-spm-1pm	\N	0
 1456	schedule	1795091400	1448	\N	0
 1388	schedule	1802734008	1380	\N	0
 1389	schedule	1810470600	1381	\N	0
@@ -5532,8 +5453,7 @@ COPY hangfire.set (id, key, score, value, expireat, updatecount) FROM stdin;
 1391	schedule	1810557000	1383	\N	0
 1411	schedule	1795091400	1403	\N	0
 1412	schedule	1795091400	1404	\N	0
-1374	recurring-jobs	1795069800	team-availability-leadership-12pm	\N	0
-1375	recurring-jobs	1795073400	team-availability-spm-1pm	\N	0
+1372	recurring-jobs	1795145400	team-availability-2hour-reminders	\N	0
 1511	schedule	1795177800	1503	\N	0
 1512	schedule	1795177800	1504	\N	0
 \.
@@ -5544,10 +5464,10 @@ COPY hangfire.set (id, key, score, value, expireat, updatecount) FROM stdin;
 --
 
 COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM stdin;
-2317	1371	Scheduled	\N	2026-11-17 15:15:06.43067+05:30	{"EnqueueAt": "1794918600012", "ScheduledAt": "1794908706426"}	0
-2353	1390	Scheduled	\N	2026-11-17 15:58:22.582907+05:30	{"EnqueueAt": "1794918600022", "ScheduledAt": "1794911302575"}	0
-2550	1480	Deleted	\N	2026-11-18 12:01:38.815349+05:30	{"DeletedAt": "1794983498812"}	0
-2554	1485	Deleted	\N	2026-11-18 12:04:59.491139+05:30	{"DeletedAt": "1794983699488"}	0
+2887	1601	Enqueued	Triggered by recurring job scheduler	2026-11-19 11:30:01.37105+05:30	{"Queue": "default", "EnqueuedAt": "1795068001370"}	0
+2947	1621	Enqueued	Triggered by recurring job scheduler	2026-11-19 15:30:11.168435+05:30	{"Queue": "default", "EnqueuedAt": "1795082411168"}	0
+2948	1621	Processing	\N	2026-11-19 15:30:11.202575+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795082411200"}	0
+2949	1621	Succeeded	\N	2026-11-19 15:30:11.216701+05:30	{"Latency": "38", "SucceededAt": "1795082411213", "PerformanceDuration": "9"}	0
 2738	1546	Deleted	\N	2026-11-18 23:08:32.028039+05:30	{"DeletedAt": "1795023512016"}	0
 2747	1554	Deleted	\N	2026-11-18 23:08:32.735222+05:30	{"DeletedAt": "1795023512727"}	0
 2750	1558	Deleted	\N	2026-11-18 23:08:32.948312+05:30	{"DeletedAt": "1795023512943"}	0
@@ -5556,77 +5476,35 @@ COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM
 2764	1570	Scheduled	\N	2026-11-18 23:08:33.993909+05:30	{"EnqueueAt": "1795026599000", "ScheduledAt": "1795023513978"}	0
 2768	1574	Scheduled	\N	2026-11-18 23:08:34.296193+05:30	{"EnqueueAt": "1795026599000", "ScheduledAt": "1795023514292"}	0
 2769	1573	Deleted	\N	2026-11-18 23:08:34.773243+05:30	{"DeletedAt": "1795023514742"}	0
-2397	1390	Enqueued	Triggered by DelayedJobScheduler	2026-11-18 10:02:18.322476+05:30	{"Queue": "default", "EnqueuedAt": "1794976338255"}	0
-2398	1409	Enqueued	Triggered by recurring job scheduler	2026-11-18 10:02:18.336161+05:30	{"Queue": "default", "EnqueuedAt": "1794976338334"}	0
-2399	1390	Processing	\N	2026-11-18 10:02:18.342809+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "03e4acb5-d944-4cc6-910e-a7f6574c1b16", "StartedAt": "1794976338338"}	0
-2400	1410	Enqueued	Triggered by recurring job scheduler	2026-11-18 10:02:18.351878+05:30	{"Queue": "default", "EnqueuedAt": "1794976338351"}	0
-2401	1411	Enqueued	Triggered by recurring job scheduler	2026-11-18 10:02:18.360864+05:30	{"Queue": "default", "EnqueuedAt": "1794976338360"}	0
-2402	1412	Enqueued	Triggered by recurring job scheduler	2026-11-18 10:02:18.37081+05:30	{"Queue": "default", "EnqueuedAt": "1794976338370"}	0
-2403	1413	Enqueued	Triggered by recurring job scheduler	2026-11-18 10:02:18.380518+05:30	{"Queue": "default", "EnqueuedAt": "1794976338380"}	0
-2404	1409	Processing	\N	2026-11-18 10:02:18.394988+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "381a4321-a8b1-48f8-8fa0-9aee846b8f84", "StartedAt": "1794976338392"}	0
-2406	1390	Succeeded	\N	2026-11-18 10:02:19.062926+05:30	{"Latency": "65035771", "SucceededAt": "1794976339052", "PerformanceDuration": "688"}	0
-2407	1409	Succeeded	\N	2026-11-18 10:02:19.069285+05:30	{"Latency": "79", "SucceededAt": "1794976339065", "PerformanceDuration": "668"}	0
-2408	1410	Processing	\N	2026-11-18 10:02:19.073755+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "03e4acb5-d944-4cc6-910e-a7f6574c1b16", "StartedAt": "1794976339071"}	0
-2409	1411	Processing	\N	2026-11-18 10:02:19.075519+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "381a4321-a8b1-48f8-8fa0-9aee846b8f84", "StartedAt": "1794976339073"}	0
-2410	1411	Succeeded	\N	2026-11-18 10:02:19.090786+05:30	{"Latency": "717", "SucceededAt": "1794976339086", "PerformanceDuration": "9"}	0
-2411	1412	Processing	\N	2026-11-18 10:02:19.098801+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "381a4321-a8b1-48f8-8fa0-9aee846b8f84", "StartedAt": "1794976339096"}	0
-2412	1412	Succeeded	\N	2026-11-18 10:02:19.48185+05:30	{"Latency": "733", "SucceededAt": "1794976339474", "PerformanceDuration": "373"}	0
-2413	1413	Processing	\N	2026-11-18 10:02:19.49243+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "381a4321-a8b1-48f8-8fa0-9aee846b8f84", "StartedAt": "1794976339489"}	0
-2414	1413	Succeeded	\N	2026-11-18 10:02:19.6865+05:30	{"Latency": "1116", "SucceededAt": "1794976339681", "PerformanceDuration": "186"}	0
-2416	1410	Succeeded	\N	2026-11-18 10:02:19.961756+05:30	{"Latency": "726", "SucceededAt": "1794976339957", "PerformanceDuration": "882"}	0
-2418	1371	Processing	\N	2026-11-18 10:07:09.305802+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "381a4321-a8b1-48f8-8fa0-9aee846b8f84", "StartedAt": "1794976629303"}	0
-2417	1371	Enqueued	Triggered by DelayedJobScheduler	2026-11-18 10:07:09.300289+05:30	{"Queue": "default", "EnqueuedAt": "1794976629297"}	0
-2420	1371	Succeeded	\N	2026-11-18 10:07:09.363379+05:30	{"Latency": "67922880", "SucceededAt": "1794976629359", "PerformanceDuration": "51"}	0
-2421	1417	Enqueued	Triggered by recurring job scheduler	2026-11-18 10:15:03.860356+05:30	{"Queue": "default", "EnqueuedAt": "1794977103860"}	0
-2422	1417	Processing	\N	2026-11-18 10:15:03.867657+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "03e4acb5-d944-4cc6-910e-a7f6574c1b16", "StartedAt": "1794977103865"}	0
-2423	1417	Succeeded	\N	2026-11-18 10:15:03.886405+05:30	{"Latency": "11", "SucceededAt": "1794977103882", "PerformanceDuration": "12"}	0
-2424	1418	Enqueued	Triggered by recurring job scheduler	2026-11-18 10:30:04.495721+05:30	{"Queue": "default", "EnqueuedAt": "1794978004495"}	0
-2425	1418	Processing	\N	2026-11-18 10:30:04.505074+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "381a4321-a8b1-48f8-8fa0-9aee846b8f84", "StartedAt": "1794978004501"}	0
-2426	1418	Succeeded	\N	2026-11-18 10:30:04.526998+05:30	{"Latency": "14", "SucceededAt": "1794978004520", "PerformanceDuration": "12"}	0
-2427	1419	Enqueued	Triggered by recurring job scheduler	2026-11-18 10:45:05.11649+05:30	{"Queue": "default", "EnqueuedAt": "1794978905116"}	0
-2428	1419	Processing	\N	2026-11-18 10:45:05.126974+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "03e4acb5-d944-4cc6-910e-a7f6574c1b16", "StartedAt": "1794978905122"}	0
-2429	1419	Succeeded	\N	2026-11-18 10:45:05.149044+05:30	{"Latency": "17", "SucceededAt": "1794978905144", "PerformanceDuration": "13"}	0
-2430	1420	Scheduled	\N	2026-11-18 10:49:01.975705+05:30	{"EnqueueAt": "1794986341970", "ScheduledAt": "1794979141970"}	0
-2431	1421	Scheduled	\N	2026-11-18 10:49:01.983478+05:30	{"EnqueueAt": "1795005000000", "ScheduledAt": "1794979141980"}	0
+2888	1601	Processing	\N	2026-11-19 11:30:01.379649+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795068001377"}	0
+2950	1622	Enqueued	Triggered by recurring job scheduler	2026-11-19 15:45:11.782754+05:30	{"Queue": "default", "EnqueuedAt": "1795083311782"}	0
+2889	1601	Succeeded	\N	2026-11-19 11:30:01.393947+05:30	{"Latency": "13", "SucceededAt": "1795068001390", "PerformanceDuration": "9"}	0
+2951	1622	Processing	\N	2026-11-19 15:45:11.792259+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795083311788"}	0
+2890	1602	Enqueued	Triggered by recurring job scheduler	2026-11-19 11:45:01.935189+05:30	{"Queue": "default", "EnqueuedAt": "1795068901935"}	0
+2891	1602	Processing	\N	2026-11-19 11:45:01.971661+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795068901970"}	0
+2892	1602	Succeeded	\N	2026-11-19 11:45:01.985183+05:30	{"Latency": "41", "SucceededAt": "1795068901981", "PerformanceDuration": "9"}	0
+2952	1622	Succeeded	\N	2026-11-19 15:45:11.810421+05:30	{"Latency": "15", "SucceededAt": "1795083311804", "PerformanceDuration": "9"}	0
+2893	1603	Enqueued	Triggered by recurring job scheduler	2026-11-19 12:00:02.531305+05:30	{"Queue": "default", "EnqueuedAt": "1795069802531"}	0
+2894	1604	Enqueued	Triggered by recurring job scheduler	2026-11-19 12:00:02.539934+05:30	{"Queue": "default", "EnqueuedAt": "1795069802539"}	0
+2895	1603	Processing	\N	2026-11-19 12:00:02.56701+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795069802565"}	0
+2896	1604	Processing	\N	2026-11-19 12:00:02.574949+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795069802573"}	0
+2897	1603	Succeeded	\N	2026-11-19 12:00:02.580539+05:30	{"Latency": "40", "SucceededAt": "1795069802577", "PerformanceDuration": "8"}	0
+2898	1604	Succeeded	\N	2026-11-19 12:00:02.622654+05:30	{"Latency": "39", "SucceededAt": "1795069802619", "PerformanceDuration": "43"}	0
+2953	1623	Enqueued	Triggered by recurring job scheduler	2026-11-19 16:00:12.417548+05:30	{"Queue": "default", "EnqueuedAt": "1795084212417"}	0
+2954	1623	Processing	\N	2026-11-19 16:00:12.42522+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795084212422"}	0
+2955	1623	Succeeded	\N	2026-11-19 16:00:12.441379+05:30	{"Latency": "13", "SucceededAt": "1795084212437", "PerformanceDuration": "10"}	0
+2899	1605	Enqueued	Triggered by recurring job scheduler	2026-11-19 12:15:03.113728+05:30	{"Queue": "default", "EnqueuedAt": "1795070703113"}	0
+2900	1605	Processing	\N	2026-11-19 12:15:03.147561+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795070703145"}	0
+2901	1605	Succeeded	\N	2026-11-19 12:15:03.160943+05:30	{"Latency": "38", "SucceededAt": "1795070703157", "PerformanceDuration": "8"}	0
+2956	1624	Enqueued	Triggered by recurring job scheduler	2026-11-19 16:15:13.02897+05:30	{"Queue": "default", "EnqueuedAt": "1795085113028"}	0
+2957	1624	Processing	\N	2026-11-19 16:15:13.065032+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795085113063"}	0
+2958	1624	Succeeded	\N	2026-11-19 16:15:13.081984+05:30	{"Latency": "40", "SucceededAt": "1795085113078", "PerformanceDuration": "11"}	0
+2902	1606	Enqueued	Triggered by recurring job scheduler	2026-11-19 12:30:03.706606+05:30	{"Queue": "default", "EnqueuedAt": "1795071603706"}	0
+2959	1625	Enqueued	Triggered by recurring job scheduler	2026-11-19 16:30:13.642894+05:30	{"Queue": "default", "EnqueuedAt": "1795086013642"}	0
 2432	1422	Scheduled	\N	2026-11-18 10:49:02.213469+05:30	{"EnqueueAt": "1795177800000", "ScheduledAt": "1794979142210"}	0
-2433	1423	Scheduled	\N	2026-11-18 10:49:02.375633+05:30	{"EnqueueAt": "1795177800000", "ScheduledAt": "1794979142372"}	0
-2434	1424	Scheduled	\N	2026-11-18 10:49:02.470202+05:30	{"EnqueueAt": "1795177800000", "ScheduledAt": "1794979142466"}	0
 2435	1425	Scheduled	\N	2026-11-18 10:49:02.597891+05:30	{"EnqueueAt": "1795177800000", "ScheduledAt": "1794979142594"}	0
-2436	1423	Deleted	\N	2026-11-18 10:50:57.623937+05:30	{"DeletedAt": "1794979257616"}	0
-2437	1420	Deleted	\N	2026-11-18 10:51:18.334849+05:30	{"DeletedAt": "1794979278326"}	0
-2438	1421	Deleted	\N	2026-11-18 10:51:18.345584+05:30	{"DeletedAt": "1794979278338"}	0
-2439	1426	Scheduled	\N	2026-11-18 10:51:52.730354+05:30	{"EnqueueAt": "1795177800016", "ScheduledAt": "1794979312725"}	0
-2440	1427	Scheduled	\N	2026-11-18 10:51:52.744224+05:30	{"EnqueueAt": "1795177800031", "ScheduledAt": "1794979312739"}	0
-2441	1426	Deleted	\N	2026-11-18 10:52:30.794033+05:30	{"DeletedAt": "1794979350786"}	0
-2442	1427	Deleted	\N	2026-11-18 10:52:30.803052+05:30	{"DeletedAt": "1794979350797"}	0
-2443	1428	Scheduled	\N	2026-11-18 10:55:39.036147+05:30	{"EnqueueAt": "1795177800008", "ScheduledAt": "1794979539031"}	0
-2444	1429	Scheduled	\N	2026-11-18 10:55:39.056858+05:30	{"EnqueueAt": "1795177800030", "ScheduledAt": "1794979539053"}	0
-2445	1428	Deleted	\N	2026-11-18 10:56:35.240899+05:30	{"DeletedAt": "1794979595234"}	0
-2446	1429	Deleted	\N	2026-11-18 10:56:35.248741+05:30	{"DeletedAt": "1794979595243"}	0
 2447	1430	Scheduled	\N	2026-11-18 10:58:32.073885+05:30	{"EnqueueAt": "1795005000009", "ScheduledAt": "1794979712071"}	0
 2448	1431	Scheduled	\N	2026-11-18 10:58:32.096156+05:30	{"EnqueueAt": "1795005000029", "ScheduledAt": "1794979712091"}	0
-2449	1432	Scheduled	\N	2026-11-18 10:58:32.135841+05:30	{"EnqueueAt": "1795005000009", "ScheduledAt": "1794979712132"}	0
-2450	1433	Scheduled	\N	2026-11-18 10:58:32.152626+05:30	{"EnqueueAt": "1795005000026", "ScheduledAt": "1794979712149"}	0
-2451	1434	Scheduled	\N	2026-11-18 10:58:32.236639+05:30	{"EnqueueAt": "1795208355998", "ScheduledAt": "1794979712232"}	0
-2452	1435	Scheduled	\N	2026-11-18 10:58:32.245103+05:30	{"EnqueueAt": "1795350600027", "ScheduledAt": "1794979712241"}	0
-2453	1436	Scheduled	\N	2026-11-18 10:58:32.254461+05:30	{"EnqueueAt": "1795437000037", "ScheduledAt": "1794979712252"}	0
-2454	1437	Scheduled	\N	2026-11-18 10:58:32.264097+05:30	{"EnqueueAt": "1795437000046", "ScheduledAt": "1794979712261"}	0
-2455	1432	Deleted	\N	2026-11-18 10:59:33.052974+05:30	{"DeletedAt": "1794979773046"}	0
-2456	1433	Deleted	\N	2026-11-18 10:59:33.059633+05:30	{"DeletedAt": "1794979773055"}	0
-2457	1438	Enqueued	Triggered by recurring job scheduler	2026-11-18 11:00:05.74713+05:30	{"Queue": "default", "EnqueuedAt": "1794979805747"}	0
-2458	1438	Processing	\N	2026-11-18 11:00:05.753324+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "381a4321-a8b1-48f8-8fa0-9aee846b8f84", "StartedAt": "1794979805751"}	0
-2459	1439	Enqueued	Triggered by recurring job scheduler	2026-11-18 11:00:05.75449+05:30	{"Queue": "default", "EnqueuedAt": "1794979805754"}	0
-2460	1440	Enqueued	Triggered by recurring job scheduler	2026-11-18 11:00:05.761808+05:30	{"Queue": "default", "EnqueuedAt": "1794979805761"}	0
-2461	1439	Processing	\N	2026-11-18 11:00:05.762077+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "03e4acb5-d944-4cc6-910e-a7f6574c1b16", "StartedAt": "1794979805760"}	0
-2462	1438	Succeeded	\N	2026-11-18 11:00:05.794786+05:30	{"Latency": "9", "SucceededAt": "1794979805789", "PerformanceDuration": "34"}	0
-2463	1440	Processing	\N	2026-11-18 11:00:05.805026+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "381a4321-a8b1-48f8-8fa0-9aee846b8f84", "StartedAt": "1794979805802"}	0
-2464	1440	Succeeded	\N	2026-11-18 11:00:05.964878+05:30	{"Latency": "46", "SucceededAt": "1794979805960", "PerformanceDuration": "153"}	0
-2465	1439	Succeeded	\N	2026-11-18 11:00:05.997351+05:30	{"Latency": "11", "SucceededAt": "1794979805991", "PerformanceDuration": "227"}	0
-2466	1434	Deleted	\N	2026-11-18 11:07:42.693688+05:30	{"DeletedAt": "1794980262682"}	0
-2467	1435	Deleted	\N	2026-11-18 11:07:42.710131+05:30	{"DeletedAt": "1794980262700"}	0
-2468	1436	Deleted	\N	2026-11-18 11:07:42.718326+05:30	{"DeletedAt": "1794980262713"}	0
-2469	1437	Deleted	\N	2026-11-18 11:07:42.727794+05:30	{"DeletedAt": "1794980262720"}	0
-2470	1424	Deleted	\N	2026-11-18 11:09:18.199752+05:30	{"DeletedAt": "1794980358194"}	0
 2471	1441	Scheduled	\N	2026-11-18 11:09:47.51636+05:30	{"EnqueueAt": "1795005000011", "ScheduledAt": "1794980387512"}	0
 2472	1442	Scheduled	\N	2026-11-18 11:09:47.526584+05:30	{"EnqueueAt": "1795005000022", "ScheduledAt": "1794980387523"}	0
 2473	1443	Scheduled	\N	2026-11-18 11:09:47.576087+05:30	{"EnqueueAt": "1795005000012", "ScheduledAt": "1794980387572"}	0
@@ -5634,177 +5512,56 @@ COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM
 2475	1445	Scheduled	\N	2026-11-18 11:09:47.666795+05:30	{"EnqueueAt": "1795035893703", "ScheduledAt": "1794980387663"}	0
 2477	1447	Scheduled	\N	2026-11-18 11:09:47.706796+05:30	{"EnqueueAt": "1795091400052", "ScheduledAt": "1794980387703"}	0
 2486	1456	Scheduled	\N	2026-11-18 11:09:55.644219+05:30	{"EnqueueAt": "1795005000022", "ScheduledAt": "1794980395641"}	0
+2903	1606	Processing	\N	2026-11-19 12:30:03.713634+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795071603711"}	0
+2904	1606	Succeeded	\N	2026-11-19 12:30:03.728086+05:30	{"Latency": "11", "SucceededAt": "1795071603725", "PerformanceDuration": "9"}	0
+2960	1625	Processing	\N	2026-11-19 16:30:13.651094+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795086013648"}	0
+2961	1625	Succeeded	\N	2026-11-19 16:30:13.670101+05:30	{"Latency": "14", "SucceededAt": "1795086013666", "PerformanceDuration": "11"}	0
 2476	1446	Scheduled	\N	2026-11-18 11:09:47.677142+05:30	{"EnqueueAt": "1795005000023", "ScheduledAt": "1794980387673"}	0
 2478	1448	Scheduled	\N	2026-11-18 11:09:47.719362+05:30	{"EnqueueAt": "1795091400065", "ScheduledAt": "1794980387716"}	0
 2480	1450	Scheduled	\N	2026-11-18 11:09:51.539903+05:30	{"EnqueueAt": "1795005000053", "ScheduledAt": "1794980391537"}	0
+2905	1607	Enqueued	Triggered by recurring job scheduler	2026-11-19 12:45:04.385311+05:30	{"Queue": "default", "EnqueuedAt": "1795072504385"}	0
+2906	1607	Processing	\N	2026-11-19 12:45:04.393097+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795072504390"}	0
+2907	1607	Succeeded	\N	2026-11-19 12:45:04.407274+05:30	{"Latency": "13", "SucceededAt": "1795072504403", "PerformanceDuration": "9"}	0
+2962	1626	Enqueued	Triggered by recurring job scheduler	2026-11-19 16:45:14.212358+05:30	{"Queue": "default", "EnqueuedAt": "1795086914212"}	0
 2479	1449	Scheduled	\N	2026-11-18 11:09:51.499965+05:30	{"EnqueueAt": "1795005000014", "ScheduledAt": "1794980391497"}	0
+2908	1608	Enqueued	Triggered by recurring job scheduler	2026-11-19 13:00:04.975374+05:30	{"Queue": "default", "EnqueuedAt": "1795073404975"}	0
+2909	1609	Enqueued	Triggered by recurring job scheduler	2026-11-19 13:00:04.983633+05:30	{"Queue": "default", "EnqueuedAt": "1795073404983"}	0
+2910	1610	Enqueued	Triggered by recurring job scheduler	2026-11-19 13:00:04.991793+05:30	{"Queue": "default", "EnqueuedAt": "1795073404991"}	0
+2911	1608	Processing	\N	2026-11-19 13:00:05.010492+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795073405009"}	0
+2912	1609	Processing	\N	2026-11-19 13:00:05.01739+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795073405015"}	0
+2915	1608	Succeeded	\N	2026-11-19 13:00:05.053845+05:30	{"Latency": "40", "SucceededAt": "1795073405050", "PerformanceDuration": "38"}	0
+2963	1626	Processing	\N	2026-11-19 16:45:14.221657+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795086914218"}	0
+2964	1626	Succeeded	\N	2026-11-19 16:45:14.241744+05:30	{"Latency": "16", "SucceededAt": "1795086914238", "PerformanceDuration": "12"}	0
 2481	1451	Scheduled	\N	2026-11-18 11:09:51.598262+05:30	{"EnqueueAt": "1795035895715", "ScheduledAt": "1794980391594"}	0
 2483	1453	Scheduled	\N	2026-11-18 11:09:51.619049+05:30	{"EnqueueAt": "1795091400036", "ScheduledAt": "1794980391616"}	0
 2487	1457	Scheduled	\N	2026-11-18 11:09:55.686245+05:30	{"EnqueueAt": "1795035897741", "ScheduledAt": "1794980395683"}	0
 2489	1459	Scheduled	\N	2026-11-18 11:09:55.703893+05:30	{"EnqueueAt": "1795091400032", "ScheduledAt": "1794980395701"}	0
+2913	1609	Succeeded	\N	2026-11-19 13:00:05.0355+05:30	{"Latency": "37", "SucceededAt": "1795073405029", "PerformanceDuration": "10"}	0
+2916	1610	Succeeded	\N	2026-11-19 13:00:05.138233+05:30	{"Latency": "56", "SucceededAt": "1795073405135", "PerformanceDuration": "88"}	0
+2965	1627	Enqueued	Triggered by recurring job scheduler	2026-11-19 17:00:14.940384+05:30	{"Queue": "default", "EnqueuedAt": "1795087814940"}	0
+2966	1628	Enqueued	Triggered by recurring job scheduler	2026-11-19 17:00:14.94766+05:30	{"Queue": "default", "EnqueuedAt": "1795087814947"}	0
+2968	1628	Processing	\N	2026-11-19 17:00:14.9912+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795087814989"}	0
+2969	1627	Succeeded	\N	2026-11-19 17:00:15.004514+05:30	{"Latency": "13", "SucceededAt": "1795087815000", "PerformanceDuration": "49"}	0
 2482	1452	Scheduled	\N	2026-11-18 11:09:51.609983+05:30	{"EnqueueAt": "1795005000026", "ScheduledAt": "1794980391606"}	0
 2484	1454	Scheduled	\N	2026-11-18 11:09:51.629433+05:30	{"EnqueueAt": "1795091400046", "ScheduledAt": "1794980391626"}	0
 2488	1458	Scheduled	\N	2026-11-18 11:09:55.695474+05:30	{"EnqueueAt": "1795005000023", "ScheduledAt": "1794980395693"}	0
 2490	1460	Scheduled	\N	2026-11-18 11:09:55.712218+05:30	{"EnqueueAt": "1795091400040", "ScheduledAt": "1794980395710"}	0
+2914	1610	Processing	\N	2026-11-19 13:00:05.043388+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795073405040"}	0
+2967	1627	Processing	\N	2026-11-19 17:00:14.948692+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795087814945"}	0
+2970	1628	Succeeded	\N	2026-11-19 17:00:15.020697+05:30	{"Latency": "47", "SucceededAt": "1795087815016", "PerformanceDuration": "22"}	0
 2485	1455	Scheduled	\N	2026-11-18 11:09:55.632475+05:30	{"EnqueueAt": "1795005000010", "ScheduledAt": "1794980395629"}	0
-2491	1461	Enqueued	Triggered by recurring job scheduler	2026-11-18 11:15:06.504322+05:30	{"Queue": "default", "EnqueuedAt": "1794980706504"}	0
-2492	1461	Processing	\N	2026-11-18 11:15:06.511252+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "03e4acb5-d944-4cc6-910e-a7f6574c1b16", "StartedAt": "1794980706508"}	0
-2493	1461	Succeeded	\N	2026-11-18 11:15:06.567648+05:30	{"Latency": "11", "SucceededAt": "1794980706559", "PerformanceDuration": "44"}	0
-2494	1462	Scheduled	\N	2026-11-18 11:16:20.206391+05:30	{"EnqueueAt": "1794987980202", "ScheduledAt": "1794980780202"}	0
-2495	1463	Scheduled	\N	2026-11-18 11:16:20.214645+05:30	{"EnqueueAt": "1795005000000", "ScheduledAt": "1794980780210"}	0
-2496	1464	Scheduled	\N	2026-11-18 11:16:20.562303+05:30	{"EnqueueAt": "1795177800000", "ScheduledAt": "1794980780558"}	0
-2497	1462	Deleted	\N	2026-11-18 11:17:03.624888+05:30	{"DeletedAt": "1794980823616"}	0
-2498	1463	Deleted	\N	2026-11-18 11:17:03.638287+05:30	{"DeletedAt": "1794980823630"}	0
-2499	1464	Deleted	\N	2026-11-18 11:17:08.671251+05:30	{"DeletedAt": "1794980828661"}	0
-2500	1465	Enqueued	Triggered by recurring job scheduler	2026-11-18 11:30:07.178194+05:30	{"Queue": "default", "EnqueuedAt": "1794981607177"}	0
-2501	1465	Processing	\N	2026-11-18 11:30:07.195038+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "03e4acb5-d944-4cc6-910e-a7f6574c1b16", "StartedAt": "1794981607189"}	0
-2502	1465	Succeeded	\N	2026-11-18 11:30:07.307476+05:30	{"Latency": "30", "SucceededAt": "1794981607297", "PerformanceDuration": "97"}	0
-2503	1466	Scheduled	\N	2026-11-18 11:32:44.493083+05:30	{"EnqueueAt": "1795091400022", "ScheduledAt": "1794981764487"}	0
-2504	1467	Scheduled	\N	2026-11-18 11:32:44.510506+05:30	{"EnqueueAt": "1795177800042", "ScheduledAt": "1794981764507"}	0
-2505	1468	Scheduled	\N	2026-11-18 11:32:44.544421+05:30	{"EnqueueAt": "1795177800076", "ScheduledAt": "1794981764541"}	0
-2506	1469	Scheduled	\N	2026-11-18 11:33:06.800525+05:30	{"EnqueueAt": "1795091400017", "ScheduledAt": "1794981786795"}	0
-2507	1470	Scheduled	\N	2026-11-18 11:33:06.812504+05:30	{"EnqueueAt": "1795177800031", "ScheduledAt": "1794981786810"}	0
-2508	1471	Scheduled	\N	2026-11-18 11:33:06.823823+05:30	{"EnqueueAt": "1795177800043", "ScheduledAt": "1794981786821"}	0
-2509	1469	Deleted	\N	2026-11-18 11:33:24.743658+05:30	{"DeletedAt": "1794981804737"}	0
-2510	1470	Deleted	\N	2026-11-18 11:33:24.753452+05:30	{"DeletedAt": "1794981804747"}	0
-2511	1471	Deleted	\N	2026-11-18 11:33:24.758979+05:30	{"DeletedAt": "1794981804755"}	0
-2512	1469	Deleted	\N	2026-11-18 11:34:00.369155+05:30	{"DeletedAt": "1794981840361"}	0
-2513	1470	Deleted	\N	2026-11-18 11:34:00.375184+05:30	{"DeletedAt": "1794981840371"}	0
-2514	1471	Deleted	\N	2026-11-18 11:34:00.379659+05:30	{"DeletedAt": "1794981840376"}	0
-2515	1466	Deleted	\N	2026-11-18 11:35:12.768332+05:30	{"DeletedAt": "1794981912763"}	0
-2516	1467	Deleted	\N	2026-11-18 11:35:12.775513+05:30	{"DeletedAt": "1794981912770"}	0
-2517	1468	Deleted	\N	2026-11-18 11:35:12.781475+05:30	{"DeletedAt": "1794981912778"}	0
-2518	1472	Enqueued	Triggered by recurring job scheduler	2026-11-18 11:45:07.789849+05:30	{"Queue": "default", "EnqueuedAt": "1794982507789"}	0
-2519	1472	Processing	\N	2026-11-18 11:45:07.797699+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:13096:cd34b37c-ae87-4fce-b394-67a2bbf4d76b", "WorkerId": "03e4acb5-d944-4cc6-910e-a7f6574c1b16", "StartedAt": "1794982507794"}	0
-2520	1472	Succeeded	\N	2026-11-18 11:45:07.893397+05:30	{"Latency": "14", "SucceededAt": "1794982507883", "PerformanceDuration": "81"}	0
-2521	1469	Deleted	\N	2026-11-18 11:45:20.130871+05:30	{"DeletedAt": "1794982520124"}	0
-2522	1470	Deleted	\N	2026-11-18 11:45:20.139572+05:30	{"DeletedAt": "1794982520134"}	0
-2523	1471	Deleted	\N	2026-11-18 11:45:20.145502+05:30	{"DeletedAt": "1794982520142"}	0
-2524	1469	Deleted	\N	2026-11-18 11:58:28.98571+05:30	{"DeletedAt": "1794983308916"}	0
-2525	1470	Deleted	\N	2026-11-18 11:58:29.00405+05:30	{"DeletedAt": "1794983308998"}	0
-2526	1471	Deleted	\N	2026-11-18 11:58:29.014396+05:30	{"DeletedAt": "1794983309006"}	0
-2527	1473	Scheduled	\N	2026-11-18 11:59:19.45953+05:30	{"EnqueueAt": "1795091400034", "ScheduledAt": "1794983359442"}	0
-2528	1474	Scheduled	\N	2026-11-18 11:59:19.474341+05:30	{"EnqueueAt": "1795177800062", "ScheduledAt": "1794983359470"}	0
-2529	1475	Scheduled	\N	2026-11-18 11:59:19.486215+05:30	{"EnqueueAt": "1795177800074", "ScheduledAt": "1794983359482"}	0
-2530	1473	Deleted	\N	2026-11-18 11:59:55.136333+05:30	{"DeletedAt": "1794983395125"}	0
-2531	1474	Deleted	\N	2026-11-18 11:59:55.146643+05:30	{"DeletedAt": "1794983395140"}	0
-2532	1475	Deleted	\N	2026-11-18 11:59:55.155597+05:30	{"DeletedAt": "1794983395149"}	0
-2533	1476	Enqueued	Triggered by recurring job scheduler	2026-11-18 12:00:14.661872+05:30	{"Queue": "default", "EnqueuedAt": "1794983414660"}	0
-2534	1477	Enqueued	Triggered by recurring job scheduler	2026-11-18 12:00:14.672584+05:30	{"Queue": "default", "EnqueuedAt": "1794983414672"}	0
-2535	1476	Processing	\N	2026-11-18 12:00:14.675451+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:16252:d84e6c2e-bc89-4fe2-b256-54dbfbdf7ff4", "WorkerId": "0dbfda88-7c8a-45ba-a839-20f79026380e", "StartedAt": "1794983414672"}	0
-2536	1477	Processing	\N	2026-11-18 12:00:14.679669+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:16252:d84e6c2e-bc89-4fe2-b256-54dbfbdf7ff4", "WorkerId": "f05e78e4-5daf-4819-877c-63f30fa0db2e", "StartedAt": "1794983414676"}	0
-2537	1477	Succeeded	\N	2026-11-18 12:00:14.749921+05:30	{"Latency": "11", "SucceededAt": "1794983414743", "PerformanceDuration": "60"}	0
-2538	1476	Succeeded	\N	2026-11-18 12:00:14.839727+05:30	{"Latency": "22", "SucceededAt": "1794983414836", "PerformanceDuration": "156"}	0
-2539	1478	Scheduled	\N	2026-11-18 12:00:46.926567+05:30	{"EnqueueAt": "1795091400010", "ScheduledAt": "1794983446923"}	0
-2540	1479	Scheduled	\N	2026-11-18 12:00:46.933443+05:30	{"EnqueueAt": "1795177800017", "ScheduledAt": "1794983446931"}	0
-2541	1480	Scheduled	\N	2026-11-18 12:00:46.941227+05:30	{"EnqueueAt": "1795177800025", "ScheduledAt": "1794983446938"}	0
-2542	1481	Scheduled	\N	2026-11-18 12:00:51.831425+05:30	{"EnqueueAt": "1795091400008", "ScheduledAt": "1794983451827"}	0
-2543	1482	Scheduled	\N	2026-11-18 12:00:51.841294+05:30	{"EnqueueAt": "1795177800018", "ScheduledAt": "1794983451838"}	0
-2544	1483	Scheduled	\N	2026-11-18 12:00:51.852725+05:30	{"EnqueueAt": "1795177800030", "ScheduledAt": "1794983451850"}	0
-2545	1481	Deleted	\N	2026-11-18 12:00:52.06917+05:30	{"DeletedAt": "1794983452064"}	0
-2546	1482	Deleted	\N	2026-11-18 12:00:52.074878+05:30	{"DeletedAt": "1794983452071"}	0
-2547	1483	Deleted	\N	2026-11-18 12:00:52.081043+05:30	{"DeletedAt": "1794983452076"}	0
-2548	1478	Deleted	\N	2026-11-18 12:01:38.805092+05:30	{"DeletedAt": "1794983498799"}	0
-2549	1479	Deleted	\N	2026-11-18 12:01:38.810358+05:30	{"DeletedAt": "1794983498807"}	0
-2551	1484	Scheduled	\N	2026-11-18 12:04:33.283111+05:30	{"EnqueueAt": "1795177800011", "ScheduledAt": "1794983673279"}	0
-2552	1485	Scheduled	\N	2026-11-18 12:04:33.294393+05:30	{"EnqueueAt": "1795177800023", "ScheduledAt": "1794983673291"}	0
-2553	1484	Deleted	\N	2026-11-18 12:04:59.485261+05:30	{"DeletedAt": "1794983699480"}	0
-2555	1426	Deleted	\N	2026-11-18 12:07:43.130822+05:30	{"DeletedAt": "1794983863125"}	0
-2556	1427	Deleted	\N	2026-11-18 12:07:43.138008+05:30	{"DeletedAt": "1794983863134"}	0
-2557	1428	Deleted	\N	2026-11-18 12:13:59.192487+05:30	{"DeletedAt": "1794984239184"}	0
-2558	1429	Deleted	\N	2026-11-18 12:13:59.200061+05:30	{"DeletedAt": "1794984239195"}	0
-2559	1486	Enqueued	Triggered by recurring job scheduler	2026-11-18 12:15:00.233618+05:30	{"Queue": "default", "EnqueuedAt": "1794984300233"}	0
-2560	1486	Processing	\N	2026-11-18 12:15:00.243362+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:16252:d84e6c2e-bc89-4fe2-b256-54dbfbdf7ff4", "WorkerId": "f05e78e4-5daf-4819-877c-63f30fa0db2e", "StartedAt": "1794984300239"}	0
-2561	1486	Succeeded	\N	2026-11-18 12:15:00.269396+05:30	{"Latency": "15", "SucceededAt": "1794984300262", "PerformanceDuration": "15"}	0
-2562	1487	Scheduled	\N	2026-11-18 12:23:25.644078+05:30	{"EnqueueAt": "1795091400075", "ScheduledAt": "1794984805600"}	0
-2563	1488	Scheduled	\N	2026-11-18 12:23:25.66933+05:30	{"EnqueueAt": "1795177800140", "ScheduledAt": "1794984805665"}	0
-2564	1489	Scheduled	\N	2026-11-18 12:23:25.680086+05:30	{"EnqueueAt": "1795177800152", "ScheduledAt": "1794984805677"}	0
-2565	1487	Deleted	\N	2026-11-18 12:23:58.700593+05:30	{"DeletedAt": "1794984838669"}	0
-2566	1489	Deleted	\N	2026-11-18 12:23:58.71161+05:30	{"DeletedAt": "1794984838705"}	0
-2567	1488	Deleted	\N	2026-11-18 12:23:58.718043+05:30	{"DeletedAt": "1794984838713"}	0
-2568	1490	Enqueued	Triggered by recurring job scheduler	2026-11-18 12:30:08.063315+05:30	{"Queue": "default", "EnqueuedAt": "1794985208054"}	0
-2569	1490	Processing	\N	2026-11-18 12:30:08.096974+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1794985208083"}	0
-2570	1490	Succeeded	\N	2026-11-18 12:30:08.194567+05:30	{"Latency": "72", "SucceededAt": "1794985208184", "PerformanceDuration": "83"}	0
-2571	1491	Scheduled	\N	2026-11-18 12:30:13.544147+05:30	{"EnqueueAt": "1795091400084", "ScheduledAt": "1794985213533"}	0
-2572	1492	Scheduled	\N	2026-11-18 12:30:13.557718+05:30	{"EnqueueAt": "1795177800104", "ScheduledAt": "1794985213553"}	0
-2573	1493	Scheduled	\N	2026-11-18 12:30:13.571035+05:30	{"EnqueueAt": "1795177800117", "ScheduledAt": "1794985213567"}	0
-2574	1491	Deleted	\N	2026-11-18 12:30:49.788821+05:30	{"DeletedAt": "1794985249779"}	0
-2575	1493	Deleted	\N	2026-11-18 12:30:49.798503+05:30	{"DeletedAt": "1794985249791"}	0
-2576	1492	Deleted	\N	2026-11-18 12:30:49.805906+05:30	{"DeletedAt": "1794985249800"}	0
+2917	1611	Enqueued	Triggered by recurring job scheduler	2026-11-19 13:15:05.542269+05:30	{"Queue": "default", "EnqueuedAt": "1795074305542"}	0
+2918	1611	Processing	\N	2026-11-19 13:15:05.576528+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795074305575"}	0
+2919	1611	Succeeded	\N	2026-11-19 13:15:05.589628+05:30	{"Latency": "38", "SucceededAt": "1795074305586", "PerformanceDuration": "8"}	0
+2971	1629	Enqueued	Triggered by recurring job scheduler	2026-11-19 17:15:00.519901+05:30	{"Queue": "default", "EnqueuedAt": "1795088700519"}	0
+2972	1629	Processing	\N	2026-11-19 17:15:00.528726+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795088700525"}	0
+2973	1629	Succeeded	\N	2026-11-19 17:15:00.548789+05:30	{"Latency": "15", "SucceededAt": "1795088700544", "PerformanceDuration": "13"}	0
 2577	1494	Scheduled	\N	2026-11-18 12:43:34.651315+05:30	{"EnqueueAt": "1795177800000", "ScheduledAt": "1794986014644"}	0
-2578	1495	Enqueued	Triggered by recurring job scheduler	2026-11-18 12:45:08.744493+05:30	{"Queue": "default", "EnqueuedAt": "1794986108744"}	0
-2579	1495	Processing	\N	2026-11-18 12:45:08.754825+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794986108751"}	0
-2580	1495	Succeeded	\N	2026-11-18 12:45:08.780686+05:30	{"Latency": "18", "SucceededAt": "1794986108774", "PerformanceDuration": "15"}	0
-2581	1496	Enqueued	Triggered by recurring job scheduler	2026-11-18 13:00:09.479575+05:30	{"Queue": "default", "EnqueuedAt": "1794987009479"}	0
-2582	1496	Processing	\N	2026-11-18 13:00:09.492269+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1794987009488"}	0
-2583	1497	Enqueued	Triggered by recurring job scheduler	2026-11-18 13:00:09.494174+05:30	{"Queue": "default", "EnqueuedAt": "1794987009494"}	0
-2584	1497	Processing	\N	2026-11-18 13:00:09.505239+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794987009502"}	0
-2585	1498	Enqueued	Triggered by recurring job scheduler	2026-11-18 13:00:09.507582+05:30	{"Queue": "default", "EnqueuedAt": "1794987009507"}	0
-2586	1496	Succeeded	\N	2026-11-18 13:00:09.724864+05:30	{"Latency": "20", "SucceededAt": "1794987009718", "PerformanceDuration": "222"}	0
-2587	1498	Processing	\N	2026-11-18 13:00:09.737362+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1794987009733"}	0
-2588	1498	Succeeded	\N	2026-11-18 13:00:09.819293+05:30	{"Latency": "237", "SucceededAt": "1794987009812", "PerformanceDuration": "71"}	0
-2589	1497	Succeeded	\N	2026-11-18 13:00:09.893387+05:30	{"Latency": "16", "SucceededAt": "1794987009887", "PerformanceDuration": "379"}	0
-2590	1499	Enqueued	Triggered by recurring job scheduler	2026-11-18 13:15:10.161435+05:30	{"Queue": "default", "EnqueuedAt": "1794987910161"}	0
-2591	1499	Processing	\N	2026-11-18 13:15:10.179733+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1794987910172"}	0
-2592	1499	Succeeded	\N	2026-11-18 13:15:10.215808+05:30	{"Latency": "27", "SucceededAt": "1794987910206", "PerformanceDuration": "22"}	0
-2593	1500	Enqueued	Triggered by recurring job scheduler	2026-11-18 13:30:01.547718+05:30	{"Queue": "default", "EnqueuedAt": "1794988801547"}	0
-2594	1500	Processing	\N	2026-11-18 13:30:01.561674+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794988801556"}	0
-2595	1500	Succeeded	\N	2026-11-18 13:30:01.598255+05:30	{"Latency": "29", "SucceededAt": "1794988801589", "PerformanceDuration": "23"}	0
-2596	1501	Enqueued	Triggered by recurring job scheduler	2026-11-18 13:45:02.606823+05:30	{"Queue": "default", "EnqueuedAt": "1794989702606"}	0
-2597	1501	Processing	\N	2026-11-18 13:45:02.618955+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1794989702615"}	0
-2598	1501	Succeeded	\N	2026-11-18 13:45:02.654975+05:30	{"Latency": "20", "SucceededAt": "1794989702648", "PerformanceDuration": "25"}	0
-2599	1502	Enqueued	Triggered by recurring job scheduler	2026-11-18 14:00:03.230392+05:30	{"Queue": "default", "EnqueuedAt": "1794990603230"}	0
-2600	1502	Processing	\N	2026-11-18 14:00:03.241461+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794990603238"}	0
-2601	1502	Succeeded	\N	2026-11-18 14:00:03.304294+05:30	{"Latency": "19", "SucceededAt": "1794990603296", "PerformanceDuration": "50"}	0
 2602	1503	Scheduled	\N	2026-11-18 14:14:05.135449+05:30	{"EnqueueAt": "1795177800024", "ScheduledAt": "1794991445127"}	0
 2603	1504	Scheduled	\N	2026-11-18 14:14:05.168288+05:30	{"EnqueueAt": "1795177800062", "ScheduledAt": "1794991445165"}	0
-2604	1505	Enqueued	Triggered by recurring job scheduler	2026-11-18 14:15:03.82714+05:30	{"Queue": "default", "EnqueuedAt": "1794991503827"}	0
-2605	1505	Processing	\N	2026-11-18 14:15:03.839369+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1794991503833"}	0
-2606	1505	Succeeded	\N	2026-11-18 14:15:03.885326+05:30	{"Latency": "18", "SucceededAt": "1794991503877", "PerformanceDuration": "35"}	0
+2974	1630	Enqueued	Triggered by recurring job scheduler	2026-11-19 17:30:01.14688+05:30	{"Queue": "default", "EnqueuedAt": "1795089601146"}	0
 2607	1506	Scheduled	\N	2026-11-18 14:16:35.546412+05:30	{"EnqueueAt": "1795177800012", "ScheduledAt": "1794991595541"}	0
 2608	1507	Scheduled	\N	2026-11-18 14:16:35.604937+05:30	{"EnqueueAt": "1795177800070", "ScheduledAt": "1794991595599"}	0
-2609	1508	Enqueued	Triggered by recurring job scheduler	2026-11-18 14:30:04.444464+05:30	{"Queue": "default", "EnqueuedAt": "1794992404444"}	0
-2610	1508	Processing	\N	2026-11-18 14:30:04.455445+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794992404451"}	0
-2611	1508	Succeeded	\N	2026-11-18 14:30:04.513549+05:30	{"Latency": "18", "SucceededAt": "1794992404505", "PerformanceDuration": "45"}	0
-2612	1509	Enqueued	Triggered by recurring job scheduler	2026-11-18 14:45:05.075983+05:30	{"Queue": "default", "EnqueuedAt": "1794993305075"}	0
-2613	1509	Processing	\N	2026-11-18 14:45:05.086091+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1794993305082"}	0
-2614	1509	Succeeded	\N	2026-11-18 14:45:05.145967+05:30	{"Latency": "17", "SucceededAt": "1794993305139", "PerformanceDuration": "48"}	0
-2615	1510	Enqueued	Triggered by recurring job scheduler	2026-11-18 15:00:05.742427+05:30	{"Queue": "default", "EnqueuedAt": "1794994205742"}	0
-2616	1510	Processing	\N	2026-11-18 15:00:05.751561+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794994205749"}	0
-2617	1511	Enqueued	Triggered by recurring job scheduler	2026-11-18 15:00:05.752477+05:30	{"Queue": "default", "EnqueuedAt": "1794994205752"}	0
-2618	1511	Processing	\N	2026-11-18 15:00:05.760973+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1794994205757"}	0
-2619	1511	Succeeded	\N	2026-11-18 15:00:05.861018+05:30	{"Latency": "14", "SucceededAt": "1794994205853", "PerformanceDuration": "87"}	0
-2620	1510	Succeeded	\N	2026-11-18 15:00:06.12315+05:30	{"Latency": "15", "SucceededAt": "1794994206118", "PerformanceDuration": "364"}	0
-2621	1512	Enqueued	Triggered by recurring job scheduler	2026-11-18 15:15:08.890381+05:30	{"Queue": "default", "EnqueuedAt": "1794995108890"}	0
-2622	1512	Processing	\N	2026-11-18 15:15:08.901725+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794995108896"}	0
-2623	1512	Succeeded	\N	2026-11-18 15:15:09.127172+05:30	{"Latency": "19", "SucceededAt": "1794995109109", "PerformanceDuration": "202"}	0
-2624	1513	Enqueued	Triggered by recurring job scheduler	2026-11-18 15:30:09.545517+05:30	{"Queue": "default", "EnqueuedAt": "1794996009545"}	0
-2625	1513	Processing	\N	2026-11-18 15:30:09.562755+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794996009556"}	0
-2626	1513	Succeeded	\N	2026-11-18 15:30:10.032452+05:30	{"Latency": "28", "SucceededAt": "1794996010021", "PerformanceDuration": "452"}	0
-2627	1514	Enqueued	Triggered by recurring job scheduler	2026-11-18 15:45:10.272284+05:30	{"Queue": "default", "EnqueuedAt": "1794996910272"}	0
-2628	1514	Processing	\N	2026-11-18 15:45:10.335034+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794996910331"}	0
-2629	1514	Succeeded	\N	2026-11-18 15:45:10.376384+05:30	{"Latency": "69", "SucceededAt": "1794996910368", "PerformanceDuration": "30"}	0
-2630	1515	Enqueued	Triggered by recurring job scheduler	2026-11-18 16:00:10.87916+05:30	{"Queue": "default", "EnqueuedAt": "1794997810879"}	0
-2631	1515	Processing	\N	2026-11-18 16:00:10.961324+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794997810957"}	0
-2632	1515	Succeeded	\N	2026-11-18 16:00:11.171944+05:30	{"Latency": "91", "SucceededAt": "1794997811163", "PerformanceDuration": "197"}	0
-2633	1516	Enqueued	Triggered by recurring job scheduler	2026-11-18 16:15:11.617657+05:30	{"Queue": "default", "EnqueuedAt": "1794998711617"}	0
-2634	1516	Processing	\N	2026-11-18 16:15:11.670641+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794998711668"}	0
-2635	1516	Succeeded	\N	2026-11-18 16:15:11.707238+05:30	{"Latency": "59", "SucceededAt": "1794998711699", "PerformanceDuration": "25"}	0
-2636	1517	Enqueued	Triggered by recurring job scheduler	2026-11-18 16:30:12.312821+05:30	{"Queue": "default", "EnqueuedAt": "1794999612312"}	0
-2637	1517	Processing	\N	2026-11-18 16:30:12.323396+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1794999612319"}	0
-2638	1517	Succeeded	\N	2026-11-18 16:30:12.396482+05:30	{"Latency": "18", "SucceededAt": "1794999612388", "PerformanceDuration": "60"}	0
-2639	1518	Enqueued	Triggered by recurring job scheduler	2026-11-18 16:45:12.866987+05:30	{"Queue": "default", "EnqueuedAt": "1795000512866"}	0
-2640	1518	Processing	\N	2026-11-18 16:45:12.943851+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1795000512940"}	0
-2641	1518	Succeeded	\N	2026-11-18 16:45:13.007937+05:30	{"Latency": "84", "SucceededAt": "1795000512995", "PerformanceDuration": "48"}	0
-2642	1519	Enqueued	Triggered by recurring job scheduler	2026-11-18 17:00:13.622197+05:30	{"Queue": "default", "EnqueuedAt": "1795001413622"}	0
-2643	1520	Enqueued	Triggered by recurring job scheduler	2026-11-18 17:00:13.63527+05:30	{"Queue": "default", "EnqueuedAt": "1795001413635"}	0
-2644	1519	Processing	\N	2026-11-18 17:00:13.648202+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "2e19df6f-a893-442d-bab0-c1bf9aa08b22", "StartedAt": "1795001413643"}	0
-2645	1520	Processing	\N	2026-11-18 17:00:13.689441+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1795001413685"}	0
-2646	1520	Succeeded	\N	2026-11-18 17:00:13.789434+05:30	{"Latency": "63", "SucceededAt": "1795001413780", "PerformanceDuration": "85"}	0
-2647	1519	Succeeded	\N	2026-11-18 17:00:14.322077+05:30	{"Latency": "34", "SucceededAt": "1795001414315", "PerformanceDuration": "662"}	0
-2648	1521	Enqueued	Triggered by recurring job scheduler	2026-11-18 17:15:14.227405+05:30	{"Queue": "default", "EnqueuedAt": "1795002314227"}	0
-2649	1521	Processing	\N	2026-11-18 17:15:14.350811+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1795002314345"}	0
-2650	1521	Succeeded	\N	2026-11-18 17:15:14.416294+05:30	{"Latency": "134", "SucceededAt": "1795002314405", "PerformanceDuration": "50"}	0
 2651	1522	Enqueued	Triggered by recurring job scheduler	2026-11-18 17:30:14.799834+05:30	{"Queue": "default", "EnqueuedAt": "1795003214799"}	0
 2652	1522	Processing	\N	2026-11-18 17:30:14.821273+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1795003214814"}	0
 2653	1522	Succeeded	\N	2026-11-18 17:30:14.914662+05:30	{"Latency": "34", "SucceededAt": "1795003214906", "PerformanceDuration": "79"}	0
@@ -5844,7 +5601,15 @@ COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM
 2687	1530	Scheduled	\N	2026-11-18 22:31:26.702082+05:30	{"EnqueueAt": "1795091400048", "ScheduledAt": "1795021286699"}	0
 2688	1444	Succeeded	\N	2026-11-18 22:31:26.715085+05:30	{"Latency": "40898951", "SucceededAt": "1795021286709", "PerformanceDuration": "170"}	0
 2691	1452	Succeeded	\N	2026-11-18 22:31:36.718747+05:30	{"Latency": "40904963", "SucceededAt": "1795021296715", "PerformanceDuration": "146"}	0
+2920	1612	Enqueued	Triggered by recurring job scheduler	2026-11-19 13:30:06.251535+05:30	{"Queue": "default", "EnqueuedAt": "1795075206251"}	0
+2921	1612	Processing	\N	2026-11-19 13:30:06.259264+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795075206256"}	0
+2922	1612	Succeeded	\N	2026-11-19 13:30:06.275813+05:30	{"Latency": "12", "SucceededAt": "1795075206271", "PerformanceDuration": "10"}	0
+2975	1630	Processing	\N	2026-11-19 17:30:01.155501+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795089601151"}	0
 2689	1452	Enqueued	Triggered by DelayedJobScheduler	2026-11-18 22:31:36.559679+05:30	{"Queue": "default", "EnqueuedAt": "1795021296556"}	0
+2923	1613	Enqueued	Triggered by recurring job scheduler	2026-11-19 13:45:06.894387+05:30	{"Queue": "default", "EnqueuedAt": "1795076106894"}	0
+2924	1613	Processing	\N	2026-11-19 13:45:06.929083+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795076106927"}	0
+2925	1613	Succeeded	\N	2026-11-19 13:45:06.942773+05:30	{"Latency": "39", "SucceededAt": "1795076106940", "PerformanceDuration": "9"}	0
+2976	1630	Succeeded	\N	2026-11-19 17:30:01.174884+05:30	{"Latency": "14", "SucceededAt": "1795089601170", "PerformanceDuration": "12"}	0
 2690	1452	Processing	\N	2026-11-18 22:31:36.566439+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1795021296564"}	0
 2692	1458	Enqueued	Triggered by DelayedJobScheduler	2026-11-18 22:32:06.711849+05:30	{"Queue": "default", "EnqueuedAt": "1795021326709"}	0
 2693	1458	Processing	\N	2026-11-18 22:32:06.71998+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:14180:2bcb279d-1840-4144-82ab-a4a7c6dceecf", "WorkerId": "9c4dceaa-8933-4661-b7b0-7d707c82f646", "StartedAt": "1795021326717"}	0
@@ -5893,12 +5658,18 @@ COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM
 2736	1547	Scheduled	\N	2026-11-18 23:08:31.774081+05:30	{"EnqueueAt": "1795177800099", "ScheduledAt": "1795023511769"}	0
 2737	1548	Scheduled	\N	2026-11-18 23:08:31.791174+05:30	{"EnqueueAt": "1795177800116", "ScheduledAt": "1795023511786"}	0
 2739	1549	Scheduled	\N	2026-11-18 23:08:32.064835+05:30	{"EnqueueAt": "1795091400056", "ScheduledAt": "1795023512060"}	0
+2926	1614	Enqueued	Triggered by recurring job scheduler	2026-11-19 14:00:07.433493+05:30	{"Queue": "default", "EnqueuedAt": "1795077007433"}	0
+2927	1614	Processing	\N	2026-11-19 14:00:07.471521+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795077007469"}	0
+2928	1614	Succeeded	\N	2026-11-19 14:00:07.488502+05:30	{"Latency": "43", "SucceededAt": "1795077007484", "PerformanceDuration": "10"}	0
 2740	1550	Scheduled	\N	2026-11-18 23:08:32.09869+05:30	{"EnqueueAt": "1795177800091", "ScheduledAt": "1795023512094"}	0
 2741	1551	Scheduled	\N	2026-11-18 23:08:32.515009+05:30	{"EnqueueAt": "1795091400021", "ScheduledAt": "1795023512499"}	0
 2745	1555	Scheduled	\N	2026-11-18 23:08:32.644362+05:30	{"EnqueueAt": "1795177800041", "ScheduledAt": "1795023512641"}	0
 2752	1560	Scheduled	\N	2026-11-18 23:08:33.142078+05:30	{"EnqueueAt": "1795437000031", "ScheduledAt": "1795023513138"}	0
 2761	1567	Scheduled	\N	2026-11-18 23:08:33.754375+05:30	{"EnqueueAt": "1795177800042", "ScheduledAt": "1795023513739"}	0
 2772	1576	Scheduled	\N	2026-11-18 23:08:35.08092+05:30	{"EnqueueAt": "1795030715073", "ScheduledAt": "1795023515073"}	0
+2929	1615	Enqueued	Triggered by recurring job scheduler	2026-11-19 14:15:08.019845+05:30	{"Queue": "default", "EnqueuedAt": "1795077908019"}	0
+2930	1615	Processing	\N	2026-11-19 14:15:08.027289+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795077908025"}	0
+2931	1615	Succeeded	\N	2026-11-19 14:15:08.042574+05:30	{"Latency": "12", "SucceededAt": "1795077908038", "PerformanceDuration": "9"}	0
 2742	1552	Scheduled	\N	2026-11-18 23:08:32.53074+05:30	{"EnqueueAt": "1795177800047", "ScheduledAt": "1795023512526"}	0
 2743	1553	Scheduled	\N	2026-11-18 23:08:32.555076+05:30	{"EnqueueAt": "1795177800072", "ScheduledAt": "1795023512551"}	0
 2744	1554	Scheduled	\N	2026-11-18 23:08:32.616139+05:30	{"EnqueueAt": "1795091400012", "ScheduledAt": "1795023512612"}	0
@@ -5906,8 +5677,12 @@ COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM
 2765	1571	Scheduled	\N	2026-11-18 23:08:34.039635+05:30	{"EnqueueAt": "1795030714035", "ScheduledAt": "1795023514035"}	0
 2767	1573	Scheduled	\N	2026-11-18 23:08:34.279238+05:30	{"EnqueueAt": "1795030714266", "ScheduledAt": "1795023514266"}	0
 2773	1577	Scheduled	\N	2026-11-18 23:08:35.087928+05:30	{"EnqueueAt": "1795026599000", "ScheduledAt": "1795023515084"}	0
+2932	1616	Enqueued	Triggered by recurring job scheduler	2026-11-19 14:30:08.572982+05:30	{"Queue": "default", "EnqueuedAt": "1795078808572"}	0
+2933	1616	Processing	\N	2026-11-19 14:30:08.606658+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795078808605"}	0
+2934	1616	Succeeded	\N	2026-11-19 14:30:08.619544+05:30	{"Latency": "37", "SucceededAt": "1795078808616", "PerformanceDuration": "9"}	0
 2746	1556	Scheduled	\N	2026-11-18 23:08:32.660615+05:30	{"EnqueueAt": "1795177800056", "ScheduledAt": "1795023512656"}	0
 2754	1555	Deleted	\N	2026-11-18 23:08:33.300841+05:30	{"DeletedAt": "1795023513292"}	0
+2935	1617	Enqueued	Triggered by recurring job scheduler	2026-11-19 14:45:09.372328+05:30	{"Queue": "default", "EnqueuedAt": "1795079709372"}	0
 2748	1557	Scheduled	\N	2026-11-18 23:08:32.762834+05:30	{"EnqueueAt": "1795091400036", "ScheduledAt": "1795023512760"}	0
 2749	1558	Scheduled	\N	2026-11-18 23:08:32.782459+05:30	{"EnqueueAt": "1795177800055", "ScheduledAt": "1795023512778"}	0
 2751	1559	Scheduled	\N	2026-11-18 23:08:32.981936+05:30	{"EnqueueAt": "1795177800057", "ScheduledAt": "1795023512977"}	0
@@ -5917,6 +5692,8 @@ COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM
 2770	1574	Deleted	\N	2026-11-18 23:08:34.850428+05:30	{"DeletedAt": "1795023514828"}	0
 2774	1578	Scheduled	\N	2026-11-18 23:08:35.117324+05:30	{"EnqueueAt": "1795030715114", "ScheduledAt": "1795023515114"}	0
 2775	1579	Scheduled	\N	2026-11-18 23:08:35.267874+05:30	{"EnqueueAt": "1795030715262", "ScheduledAt": "1795023515262"}	0
+2936	1617	Processing	\N	2026-11-19 14:45:09.380754+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795079709377"}	0
+2937	1617	Succeeded	\N	2026-11-19 14:45:09.394614+05:30	{"Latency": "13", "SucceededAt": "1795079709391", "PerformanceDuration": "8"}	0
 2756	1562	Scheduled	\N	2026-11-18 23:08:33.489225+05:30	{"EnqueueAt": "1795030713483", "ScheduledAt": "1795023513483"}	0
 2757	1563	Scheduled	\N	2026-11-18 23:08:33.496239+05:30	{"EnqueueAt": "1795026599000", "ScheduledAt": "1795023513493"}	0
 2758	1564	Scheduled	\N	2026-11-18 23:08:33.543727+05:30	{"EnqueueAt": "1795030713540", "ScheduledAt": "1795023513540"}	0
@@ -5967,15 +5744,21 @@ COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM
 2830	1578	Succeeded	\N	2026-11-19 01:31:00.358058+05:30	{"Latency": "8545218", "SucceededAt": "1795032060348", "PerformanceDuration": "15"}	0
 2833	1586	Processing	\N	2026-11-19 01:31:00.378066+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795032060373"}	0
 2835	1586	Succeeded	\N	2026-11-19 01:31:00.422821+05:30	{"Latency": "407", "SucceededAt": "1795032060414", "PerformanceDuration": "31"}	0
+2938	1618	Enqueued	Triggered by recurring job scheduler	2026-11-19 15:00:09.929328+05:30	{"Queue": "default", "EnqueuedAt": "1795080609929"}	0
+2940	1619	Enqueued	Triggered by recurring job scheduler	2026-11-19 15:00:09.936867+05:30	{"Queue": "default", "EnqueuedAt": "1795080609936"}	0
 2815	1571	Enqueued	Triggered by DelayedJobScheduler	2026-11-19 01:31:00.140704+05:30	{"Queue": "default", "EnqueuedAt": "1795032060132"}	0
 2817	1579	Enqueued	Triggered by DelayedJobScheduler	2026-11-19 01:31:00.158351+05:30	{"Queue": "default", "EnqueuedAt": "1795032060148"}	0
 2820	1576	Enqueued	Triggered by DelayedJobScheduler	2026-11-19 01:31:00.17288+05:30	{"Queue": "default", "EnqueuedAt": "1795032060165"}	0
 2821	1578	Enqueued	Triggered by DelayedJobScheduler	2026-11-19 01:31:00.188994+05:30	{"Queue": "default", "EnqueuedAt": "1795032060178"}	0
 2823	1565	Succeeded	\N	2026-11-19 01:31:00.236014+05:30	{"Latency": "8546610", "SucceededAt": "1795032060200", "PerformanceDuration": "28"}	0
 2827	1571	Succeeded	\N	2026-11-19 01:31:00.296711+05:30	{"Latency": "8546229", "SucceededAt": "1795032060287", "PerformanceDuration": "22"}	0
+2939	1618	Processing	\N	2026-11-19 15:00:09.93651+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795080609934"}	0
+2941	1619	Processing	\N	2026-11-19 15:00:09.97381+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795080609971"}	0
+2942	1618	Succeeded	\N	2026-11-19 15:00:09.983256+05:30	{"Latency": "12", "SucceededAt": "1795080609979", "PerformanceDuration": "40"}	0
 2816	1562	Succeeded	\N	2026-11-19 01:31:00.145958+05:30	{"Latency": "8546619", "SucceededAt": "1795032060129", "PerformanceDuration": "23"}	0
 2825	1571	Processing	\N	2026-11-19 01:31:00.258631+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795032060250"}	0
 2829	1578	Processing	\N	2026-11-19 01:31:00.327596+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795032060322"}	0
+2943	1619	Succeeded	\N	2026-11-19 15:00:09.990773+05:30	{"Latency": "40", "SucceededAt": "1795080609986", "PerformanceDuration": "10"}	0
 2818	1564	Processing	\N	2026-11-19 01:31:00.15964+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795032060154"}	0
 2822	1564	Succeeded	\N	2026-11-19 01:31:00.198442+05:30	{"Latency": "8546626", "SucceededAt": "1795032060187", "PerformanceDuration": "19"}	0
 2826	1569	Succeeded	\N	2026-11-19 01:31:00.295777+05:30	{"Latency": "8546278", "SucceededAt": "1795032060286", "PerformanceDuration": "37"}	0
@@ -6009,6 +5792,33 @@ COPY hangfire.state (id, jobid, name, reason, createdat, data, updatecount) FROM
 2860	1592	Enqueued	Triggered by recurring job scheduler	2026-11-19 09:45:11.847341+05:30	{"Queue": "default", "EnqueuedAt": "1795061711847"}	0
 2861	1592	Processing	\N	2026-11-19 09:45:11.884802+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795061711882"}	0
 2862	1592	Succeeded	\N	2026-11-19 09:45:11.898914+05:30	{"Latency": "42", "SucceededAt": "1795061711895", "PerformanceDuration": "8"}	0
+2863	1593	Enqueued	Triggered by recurring job scheduler	2026-11-19 10:00:12.459454+05:30	{"Queue": "default", "EnqueuedAt": "1795062612459"}	0
+2864	1593	Processing	\N	2026-11-19 10:00:12.495553+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795062612493"}	0
+2865	1593	Succeeded	\N	2026-11-19 10:00:12.510727+05:30	{"Latency": "39", "SucceededAt": "1795062612507", "PerformanceDuration": "10"}	0
+2866	1594	Enqueued	Triggered by recurring job scheduler	2026-11-19 10:15:13.09467+05:30	{"Queue": "default", "EnqueuedAt": "1795063513094"}	0
+2867	1594	Processing	\N	2026-11-19 10:15:13.130566+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795063513128"}	0
+2868	1594	Succeeded	\N	2026-11-19 10:15:13.144072+05:30	{"Latency": "40", "SucceededAt": "1795063513140", "PerformanceDuration": "8"}	0
+2869	1595	Enqueued	Triggered by recurring job scheduler	2026-11-19 10:30:13.737509+05:30	{"Queue": "default", "EnqueuedAt": "1795064413737"}	0
+2870	1595	Processing	\N	2026-11-19 10:30:13.744782+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795064413742"}	0
+2871	1595	Succeeded	\N	2026-11-19 10:30:13.759166+05:30	{"Latency": "11", "SucceededAt": "1795064413756", "PerformanceDuration": "9"}	0
+2872	1596	Enqueued	Triggered by recurring job scheduler	2026-11-19 10:45:14.374736+05:30	{"Queue": "default", "EnqueuedAt": "1795065314374"}	0
+2873	1596	Processing	\N	2026-11-19 10:45:14.410648+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795065314408"}	0
+2874	1596	Succeeded	\N	2026-11-19 10:45:14.425666+05:30	{"Latency": "40", "SucceededAt": "1795065314421", "PerformanceDuration": "9"}	0
+2875	1597	Enqueued	Triggered by recurring job scheduler	2026-11-19 11:00:15.008436+05:30	{"Queue": "default", "EnqueuedAt": "1795066215008"}	0
+2876	1598	Enqueued	Triggered by recurring job scheduler	2026-11-19 11:00:15.016427+05:30	{"Queue": "default", "EnqueuedAt": "1795066215016"}	0
+2877	1599	Enqueued	Triggered by recurring job scheduler	2026-11-19 11:00:15.024883+05:30	{"Queue": "default", "EnqueuedAt": "1795066215024"}	0
+2878	1597	Processing	\N	2026-11-19 11:00:15.051848+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795066215050"}	0
+2879	1597	Succeeded	\N	2026-11-19 11:00:15.09845+05:30	{"Latency": "47", "SucceededAt": "1795066215094", "PerformanceDuration": "41"}	0
+2880	1598	Processing	\N	2026-11-19 11:00:15.104462+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795066215103"}	0
+2881	1598	Succeeded	\N	2026-11-19 11:00:15.115151+05:30	{"Latency": "90", "SucceededAt": "1795066215112", "PerformanceDuration": "7"}	0
+2882	1599	Processing	\N	2026-11-19 11:00:15.120063+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "a0d3cd2c-dd01-4e25-aa0a-1a22e59726ae", "StartedAt": "1795066215118"}	0
+2883	1599	Succeeded	\N	2026-11-19 11:00:15.212798+05:30	{"Latency": "97", "SucceededAt": "1795066215210", "PerformanceDuration": "89"}	0
+2884	1600	Enqueued	Triggered by recurring job scheduler	2026-11-19 11:15:00.630152+05:30	{"Queue": "default", "EnqueuedAt": "1795067100630"}	0
+2885	1600	Processing	\N	2026-11-19 11:15:00.665214+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795067100663"}	0
+2886	1600	Succeeded	\N	2026-11-19 11:15:00.678804+05:30	{"Latency": "39", "SucceededAt": "1795067100676", "PerformanceDuration": "9"}	0
+2944	1620	Enqueued	Triggered by recurring job scheduler	2026-11-19 15:15:10.538392+05:30	{"Queue": "default", "EnqueuedAt": "1795081510538"}	0
+2945	1620	Processing	\N	2026-11-19 15:15:10.572943+05:30	{"ServerId": "projectcompass-pms-desktop-ro7pilu:19104:1b7e1ff4-732e-4499-8a19-d1a7e52f77ca", "WorkerId": "49e33859-b0c6-4417-9123-047665f0dd8a", "StartedAt": "1795081510570"}	0
+2946	1620	Succeeded	\N	2026-11-19 15:15:10.587286+05:30	{"Latency": "39", "SucceededAt": "1795081510583", "PerformanceDuration": "9"}	0
 \.
 
 
@@ -6439,23 +6249,6 @@ bcbd68c8-c3f3-4396-abb0-0b0e13637958	functional_accounts	Functional - Accounts	t
 3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	services_operations	Services - Operations	t	2026-09-02 15:54:51.872711+05:30	\N	\N	\N	\N
 be8e036d-ad13-4c79-89ec-294e490a6816	services_consulting	Services - Consulting	t	2026-09-02 15:54:51.907068+05:30	\N	\N	\N	\N
 0aed67b8-c454-439a-a07f-4f46d46d58af	services_testing	Services - Testing	t	2026-09-02 15:54:51.926627+05:30	\N	\N	\N	\N
-8b5493e3-00e9-4807-836c-2455abea442e	D_14c39ccb	Dept_14c39ccb	t	2026-11-18 23:08:28.988865+05:30	2026-11-18 23:08:28.988918+05:30	\N	\N	\N
-4f9415e4-0034-44bf-a775-9f28ec9d5a68	D_3ebe9a17	Dept_3ebe9a17	t	2026-11-18 23:08:29.64983+05:30	2026-11-18 23:08:29.64983+05:30	\N	\N	\N
-91d32f68-2c58-408f-915e-0f45952ef1ad	D_3a3f3505	Dept_3a3f3505	t	2026-11-18 23:08:29.759539+05:30	2026-11-18 23:08:29.759539+05:30	\N	\N	\N
-a9672bc2-0efa-4ca7-8dce-c21d299510cd	D_0039d079	Dept_0039d079	t	2026-11-18 23:08:29.873323+05:30	2026-11-18 23:08:29.873323+05:30	\N	\N	\N
-1bfc60be-0562-4c92-8229-5f012cb0ca1e	D_dcf1cf93	Dept_dcf1cf93	t	2026-11-18 23:08:30.206839+05:30	2026-11-18 23:08:30.206839+05:30	\N	\N	\N
-a9731e2d-91e6-475b-8a74-64a77a1104c2	D_913296b0	Dept_913296b0	t	2026-11-18 23:08:30.378053+05:30	2026-11-18 23:08:30.378053+05:30	\N	\N	\N
-92cf6395-c574-4fb7-8c52-b18b01b2bf1a	D_b1eb074c	Dept_b1eb074c	t	2026-11-18 23:08:30.761083+05:30	2026-11-18 23:08:30.761084+05:30	\N	\N	\N
-0b00f2da-15f3-45ca-b41c-4d255bcb2c87	D_49ea4976	Dept_49ea4976	t	2026-11-18 23:08:31.177502+05:30	2026-11-18 23:08:31.177502+05:30	\N	\N	\N
-a21eb110-7fc5-4145-914b-b9208309e348	D_2d53e54d	Dept_2d53e54d	t	2026-11-18 23:08:31.521369+05:30	2026-11-18 23:08:31.521369+05:30	\N	\N	\N
-5a2d4dd5-e8bf-4769-ac4f-03018490e611	D_693ee0f7	Dept_693ee0f7	t	2026-11-18 23:08:33.03992+05:30	2026-11-18 23:08:33.03992+05:30	\N	\N	\N
-60aed420-551a-4f3f-9adf-5c0ef5974566	D_102fc80f	Dept_102fc80f	t	2026-11-18 23:08:33.231159+05:30	2026-11-18 23:08:33.231159+05:30	\N	\N	\N
-71780212-0aaf-45d6-af4d-a18cdac1035c	D_f80c397b	Dept_f80c397b	t	2026-11-18 23:08:33.38042+05:30	2026-11-18 23:08:33.38042+05:30	\N	\N	\N
-817277b7-f122-472f-9811-1eb3cfc339f9	D_696fc6f4	Dept_696fc6f4	t	2026-11-18 23:08:33.696733+05:30	2026-11-18 23:08:33.696733+05:30	\N	\N	\N
-4366f647-618b-41b7-b9e7-84d64a6c33a5	D_94c00550	Dept_94c00550	t	2026-11-18 23:08:33.816279+05:30	2026-11-18 23:08:33.816279+05:30	\N	\N	\N
-89246236-8ede-4b7d-99bc-8dbf6063d95e	D_cf422067	Dept_cf422067	t	2026-11-18 23:08:34.118342+05:30	2026-11-18 23:08:34.118342+05:30	\N	\N	\N
-029662a1-175e-4f34-b987-055b0bf8a95a	D_9383834a	Dept_9383834a	t	2026-11-18 23:08:34.978538+05:30	2026-11-18 23:08:34.978538+05:30	\N	\N	\N
-57457615-e61b-453f-baee-0b3e2e63565d	D_243beac3	Dept_243beac3	t	2026-11-18 23:08:35.14754+05:30	2026-11-18 23:08:35.14754+05:30	\N	\N	\N
 \.
 
 
@@ -6591,13 +6384,10 @@ COPY master.mst_designations ("Id", "Code", "Name", "IsActive", "DepartmentId", 
 0b6ab354-1fcf-4a00-9be3-e58e99c425ed	services_testing_pentester_ii	PenTester - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 15:54:51.930296+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
 0c1a5ef4-7fca-45dc-8253-87afa21a1df9	services_operations_soc_analyst_iv	SOC Analyst - IV	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 15:54:51.880491+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
 138434a2-625f-4df5-836d-fcf0cfceef79	functional_project_m_senior_pmo_ii	Senior PMO - II	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 15:54:51.851761+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	PMO (Project Management Office)	2acf8b94-0756-4db8-bb6f-8372ac04a2d1
-946ae3f9-70e4-4f32-bed9-1f206c10024e	HOD_14c39ccb	Head of Department_14c39ccb	t	\N	2026-11-18 23:08:28.991993+05:30	2026-11-18 23:08:28.991993+05:30	\N	\N	\N	\N	\N
 0b8dfaba-3f3f-4f5f-8812-46144a90aeaf	services_operations_intern	Intern	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 15:54:51.904989+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
 9050e021-7d84-4401-820e-c0e768abb1ab	functional_project_m_intern	Intern	t	8e4e88f1-e294-4554-80cc-92ed6169caeb	2026-09-02 15:54:51.861092+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	Functional - Project Management	64e2ea37-cbd7-4127-b65b-3b003235981a
 bb7ccd5f-2f60-49fb-b984-f11fc47add22	rd_research_and_deve_intern	Intern	t	898c36e9-1cb7-4c56-9148-a3b6893c0149	2026-09-02 15:54:51.870785+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	R&D (Research & Development)	f5c742d1-e0cc-4bf8-b860-a673ac407393
 caa227a1-2dcf-4195-ab9c-8f76d1862daa	functional_accounts_intern	Intern	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 15:54:51.809802+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
-97c70626-b600-4dfa-bd4c-698e153b1d9d	HOD_0039d079	Head of Department_0039d079	t	\N	2026-11-18 23:08:29.874+05:30	2026-11-18 23:08:29.874001+05:30	\N	\N	\N	\N	\N
-0219d522-a89d-4506-9e42-93fa521fe450	HOD_913296b0	Head of Department_913296b0	t	\N	2026-11-18 23:08:30.378543+05:30	2026-11-18 23:08:30.378543+05:30	\N	\N	\N	\N	\N
 2076a9b1-e432-46a9-99b1-36e732159856	services_consulting_intern	Intern	t	be8e036d-ad13-4c79-89ec-294e490a6816	2026-09-02 15:54:51.924658+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	Services - Consulting	768a11f9-ded7-4f6f-ba86-073e279255d9
 47dbf38f-c022-47bc-8444-d0dfb35ff3fd	services_testing_intern	Intern	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 15:54:52.004312+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra, Services - Testing - DevSecOps, Services - Testing - Red Team, Services - Testing - Cloud & AI	92aa9169-28d9-4754-a570-553b067642ed
 0a60fb48-99c4-44d0-8d97-ff687ccffc9f	services_testing_red_team_practitioner_ii	Red Team Practitioner - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 15:54:51.986648+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Services - Testing - Red Team	92aa9169-28d9-4754-a570-553b067642ed
@@ -6627,8 +6417,6 @@ caa227a1-2dcf-4195-ab9c-8f76d1862daa	functional_accounts_intern	Intern	t	bcbd68c
 632bf06c-f646-4edd-bf2d-e3cd2e034c7f	services_testing_senior_pentester_i	Senior Pentester - I	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 15:54:51.936785+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
 6d25ff6d-e13d-440f-b775-215547af7acb	services_operations_soc_analyst_i	SOC Analyst - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 15:54:51.874793+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
 6e606c29-2ebf-4ab8-8006-aaedd5680009	functional_accounts_accountant_iii	Accountant - III	t	bcbd68c8-c3f3-4396-abb0-0b0e13637958	2026-09-02 15:54:51.801711+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869
-2387cee7-fe1b-4d38-b52a-e6de9c7bdf16	HOD_b1eb074c	Head of Department_b1eb074c	t	\N	2026-11-18 23:08:30.761812+05:30	2026-11-18 23:08:30.761812+05:30	\N	\N	\N	\N	\N
-c53df44a-d506-4eb1-b56b-b3e5eec61efd	HOD_2d53e54d	Head of Department_2d53e54d	t	\N	2026-11-18 23:08:31.522225+05:30	2026-11-18 23:08:31.522226+05:30	\N	\N	\N	\N	\N
 73b4d4e6-d6d3-4f2c-bf85-a9f71def8b09	services_operations_soc_consultant_i	SOC Consultant - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 15:54:51.890218+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
 73bd55bb-5d0e-4381-8ad2-2238377fca93	functional_it_admini_desktop_support_engineer_ii	Desktop Support Engineer - II	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 15:54:51.792134+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa
 767a00dd-6f09-4f64-a44e-8fbe901222af	services_testing_devsecops_practitioner_iii	DevSecOps Practitioner - III	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 15:54:51.976579+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Services - Testing - DevSecOps	92aa9169-28d9-4754-a570-553b067642ed
@@ -6669,7 +6457,6 @@ e228c999-bf54-48b4-a373-d2bc9db88554	services_testing_associate_manager_i	Associ
 e2b4be77-2b20-4064-974d-e6322e7240b4	services_testing_associate_ai_engineer_contractual	Associate AI Engineer - Contractual	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 15:54:52.001242+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Services - Testing - Cloud & AI	92aa9169-28d9-4754-a570-553b067642ed
 e2c675a7-92dc-4477-be75-9a304cbe4def	functional_sales_sales_associate	Sales Associate	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 15:54:51.83517+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
 e36018c5-bf48-4f93-bef7-93e8864a0b51	services_operations_siem_admin_iv	SIEM Admin - IV	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 15:54:51.888229+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Services - Operations	aba61e5b-422a-4461-b9da-8dba8f6d3f85
-2bfead8b-edd6-4812-bba3-db0f33aeb167	HOD_3ebe9a17	Head of Department_3ebe9a17	t	\N	2026-11-18 23:08:29.650596+05:30	2026-11-18 23:08:29.650596+05:30	\N	\N	\N	\N	\N
 e4e20503-cd55-4393-83fd-6c7e7d7d0a49	functional_hr_senior_hr_executive_ii	Senior HR Executive - II	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 15:54:51.8227+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
 e8d42654-b7f5-4a4e-a8e0-a07dd8fd3c85	services_testing_senior_pentester_ii	Senior Pentester - II	t	0aed67b8-c454-439a-a07f-4f46d46d58af	2026-09-02 15:54:51.93907+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Service - Testing - AppSec, Service - Testing - Mobile, Service - Testing - Infra	92aa9169-28d9-4754-a570-553b067642ed
 ea315f7d-d597-41b3-a999-4f3851bcd020	services_operations_siem_admin_i	SIEM Admin - I	t	3b4eaac4-3d54-4f3a-8fc5-c7385cd0ba60	2026-09-02 15:54:51.88251+05:30	2026-10-18 13:18:56.513137+05:30	\N	\N	\N	Services - Operations	1a62b1f8-1810-464d-a67b-168d7e419827
@@ -6681,17 +6468,6 @@ ffed7aa1-e88f-4281-919f-8d49fbabf5a5	core_director_and_chief_operating_officer	D
 e2b10def-c91d-45da-94c5-f5530e743aa2	functional_sales_intern	Intern	t	13c91c98-00ae-4211-acb8-d06e35953806	2026-09-02 15:54:51.841726+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	Functional - Sales	7cc8753c-f3b0-4fc9-b63b-efd00e2c5325
 e8c22eff-0daf-4690-a537-c8b0b6110a01	functional_hr_intern	Intern	t	310a2f16-15f6-4b82-95f6-ab18b5b429f5	2026-09-02 15:54:51.824863+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	Functional - HR	bb568e26-548b-4ca5-9221-fefb9c9143b3
 f8502c44-b289-49e4-8401-3dcad4d5bbe0	functional_it_admini_intern	Intern	t	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	2026-09-02 15:54:51.794108+05:30	2026-10-21 15:07:57.796708+05:30	\N	\N	\N	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa
-e9f81210-043f-4306-86ae-2dd54562b2d6	HOD_3a3f3505	Head of Department_3a3f3505	t	\N	2026-11-18 23:08:29.760125+05:30	2026-11-18 23:08:29.760125+05:30	\N	\N	\N	\N	\N
-4a7b6a64-856a-4fb5-8800-90b4e276ded2	HOD_dcf1cf93	Head of Department_dcf1cf93	t	\N	2026-11-18 23:08:30.207434+05:30	2026-11-18 23:08:30.207434+05:30	\N	\N	\N	\N	\N
-f77294e3-9a7c-4b7f-a96b-4d0f5e7f0e49	HOD_49ea4976	Head of Department_49ea4976	t	\N	2026-11-18 23:08:31.178261+05:30	2026-11-18 23:08:31.178261+05:30	\N	\N	\N	\N	\N
-908b8a45-8386-4ac5-b59d-377ee078dbe9	HOD_693ee0f7	Head of Department_693ee0f7	t	\N	2026-11-18 23:08:33.040914+05:30	2026-11-18 23:08:33.040914+05:30	\N	\N	\N	\N	\N
-5b54dc7b-575d-48bf-b893-0cb646ce0960	HOD_102fc80f	Head of Department_102fc80f	t	\N	2026-11-18 23:08:33.231652+05:30	2026-11-18 23:08:33.231652+05:30	\N	\N	\N	\N	\N
-e1cae6ca-52c2-4f37-8c37-e4e84d4f03e6	HOD_f80c397b	Head of Department_f80c397b	t	\N	2026-11-18 23:08:33.381663+05:30	2026-11-18 23:08:33.381663+05:30	\N	\N	\N	\N	\N
-8f2750df-534c-4ebb-a5d1-9309147251ea	HOD_696fc6f4	Head of Department_696fc6f4	t	\N	2026-11-18 23:08:33.697342+05:30	2026-11-18 23:08:33.697342+05:30	\N	\N	\N	\N	\N
-38571764-a809-452c-946b-4ddffbfa0f18	HOD_94c00550	Head of Department_94c00550	t	\N	2026-11-18 23:08:33.816487+05:30	2026-11-18 23:08:33.816487+05:30	\N	\N	\N	\N	\N
-067f990f-82fc-487c-a69c-2e199b9124c1	HOD_cf422067	Head of Department_cf422067	t	\N	2026-11-18 23:08:34.124889+05:30	2026-11-18 23:08:34.124889+05:30	\N	\N	\N	\N	\N
-77f91eaf-161b-42b6-a076-629bfee0b7bb	HOD_9383834a	Head of Department_9383834a	t	\N	2026-11-18 23:08:34.979061+05:30	2026-11-18 23:08:34.979061+05:30	\N	\N	\N	\N	\N
-173f19b8-1c2d-4b71-94e3-c678a221c265	HOD_243beac3	Head of Department_243beac3	t	\N	2026-11-18 23:08:35.148209+05:30	2026-11-18 23:08:35.148209+05:30	\N	\N	\N	\N	\N
 \.
 
 
@@ -8332,23 +8108,6 @@ b7425734-5262-4802-9a10-5e3141b11d6c	Team Member	310a2f16-15f6-4b82-95f6-ab18b5b
 bce667dd-cae2-404d-8013-49194e0f48d9	Team Member	bcbd68c8-c3f3-4396-abb0-0b0e13637958	caa227a1-2dcf-4195-ab9c-8f76d1862daa	Functional - Accounts	cd2a32ed-32fc-47bc-88a9-e6fc48863869	2026-10-20 21:42:25.847811+05:30	2026-10-22 13:21:07.556154+05:30	\N	\N	\N
 ce7509b0-415c-4d04-a2d8-43c3ee382a72	Team Member	8e4e88f1-e294-4554-80cc-92ed6169caeb	9050e021-7d84-4401-820e-c0e768abb1ab	Functional - Project Management	64e2ea37-cbd7-4127-b65b-3b003235981a	2026-10-20 21:42:25.847811+05:30	2026-10-22 13:21:07.556154+05:30	\N	\N	\N
 ec4a89e1-35a6-495a-83c9-b6a34ee00402	Team Member	f7e882f6-2fa8-45e1-9137-2bc4b70f016a	f8502c44-b289-49e4-8401-3dcad4d5bbe0	Functional - IT Administration	b552183f-2695-41f9-860e-16d5fe94c4aa	2026-10-20 21:42:25.847811+05:30	2026-10-22 13:21:07.556154+05:30	\N	\N	\N
-cb073dac-41e4-4871-beee-1ccbae8e2c7b	Head of Department	8b5493e3-00e9-4807-836c-2455abea442e	946ae3f9-70e4-4f32-bed9-1f206c10024e	\N	\N	2026-11-18 23:08:28.994821+05:30	2026-11-18 23:08:28.994821+05:30	\N	\N	\N
-e4dbe97e-402e-4150-8092-940dcefa18e8	Head of Department	4f9415e4-0034-44bf-a775-9f28ec9d5a68	2bfead8b-edd6-4812-bba3-db0f33aeb167	\N	\N	2026-11-18 23:08:29.650685+05:30	2026-11-18 23:08:29.650686+05:30	\N	\N	\N
-e4c9dde3-0863-4cc6-97ef-88ce418fca3f	Head of Department	91d32f68-2c58-408f-915e-0f45952ef1ad	e9f81210-043f-4306-86ae-2dd54562b2d6	\N	\N	2026-11-18 23:08:29.76019+05:30	2026-11-18 23:08:29.76019+05:30	\N	\N	\N
-0e5e6fe8-7634-488e-aaba-d4c9b69ef8b3	Head of Department	a9672bc2-0efa-4ca7-8dce-c21d299510cd	97c70626-b600-4dfa-bd4c-698e153b1d9d	\N	\N	2026-11-18 23:08:29.874079+05:30	2026-11-18 23:08:29.874079+05:30	\N	\N	\N
-e3520df7-08f5-435a-8dc9-b62b1a0ef5f7	Head of Department	1bfc60be-0562-4c92-8229-5f012cb0ca1e	4a7b6a64-856a-4fb5-8800-90b4e276ded2	\N	\N	2026-11-18 23:08:30.207548+05:30	2026-11-18 23:08:30.207548+05:30	\N	\N	\N
-e53f8cfa-200c-4fe9-8b83-cd7e10d37c43	Head of Department	a9731e2d-91e6-475b-8a74-64a77a1104c2	0219d522-a89d-4506-9e42-93fa521fe450	\N	\N	2026-11-18 23:08:30.378602+05:30	2026-11-18 23:08:30.378602+05:30	\N	\N	\N
-deab5fff-9709-4658-a351-c9ce7895eb56	Head of Department	92cf6395-c574-4fb7-8c52-b18b01b2bf1a	2387cee7-fe1b-4d38-b52a-e6de9c7bdf16	\N	\N	2026-11-18 23:08:30.761894+05:30	2026-11-18 23:08:30.761894+05:30	\N	\N	\N
-f68d7083-8a74-4aef-af7a-2bf10a34493c	Head of Department	0b00f2da-15f3-45ca-b41c-4d255bcb2c87	f77294e3-9a7c-4b7f-a96b-4d0f5e7f0e49	\N	\N	2026-11-18 23:08:31.178345+05:30	2026-11-18 23:08:31.178345+05:30	\N	\N	\N
-ff6eae64-9ea9-4541-98fc-a5a48bd81db2	Head of Department	a21eb110-7fc5-4145-914b-b9208309e348	c53df44a-d506-4eb1-b56b-b3e5eec61efd	\N	\N	2026-11-18 23:08:31.522334+05:30	2026-11-18 23:08:31.522334+05:30	\N	\N	\N
-e0b0b448-c7c6-4597-8bb9-a01f05856d7e	Head of Department	5a2d4dd5-e8bf-4769-ac4f-03018490e611	908b8a45-8386-4ac5-b59d-377ee078dbe9	\N	\N	2026-11-18 23:08:33.041034+05:30	2026-11-18 23:08:33.041034+05:30	\N	\N	\N
-665a4e59-935f-4219-aae7-3f6c60a73813	Head of Department	60aed420-551a-4f3f-9adf-5c0ef5974566	5b54dc7b-575d-48bf-b893-0cb646ce0960	\N	\N	2026-11-18 23:08:33.231721+05:30	2026-11-18 23:08:33.231721+05:30	\N	\N	\N
-e0bff2dd-9595-458b-995f-c79cca1a6e18	Head of Department	71780212-0aaf-45d6-af4d-a18cdac1035c	e1cae6ca-52c2-4f37-8c37-e4e84d4f03e6	\N	\N	2026-11-18 23:08:33.381853+05:30	2026-11-18 23:08:33.381853+05:30	\N	\N	\N
-c26bdb68-78fc-4d96-93b6-5b5493c2ac14	Head of Department	817277b7-f122-472f-9811-1eb3cfc339f9	8f2750df-534c-4ebb-a5d1-9309147251ea	\N	\N	2026-11-18 23:08:33.697491+05:30	2026-11-18 23:08:33.697491+05:30	\N	\N	\N
-80092726-8d8f-4afb-9719-dbc2dc0b14f6	Head of Department	4366f647-618b-41b7-b9e7-84d64a6c33a5	38571764-a809-452c-946b-4ddffbfa0f18	\N	\N	2026-11-18 23:08:33.8166+05:30	2026-11-18 23:08:33.8166+05:30	\N	\N	\N
-e2f9f13e-87a2-4ec5-9d7a-c625322ac1f9	Head of Department	89246236-8ede-4b7d-99bc-8dbf6063d95e	067f990f-82fc-487c-a69c-2e199b9124c1	\N	\N	2026-11-18 23:08:34.125056+05:30	2026-11-18 23:08:34.125056+05:30	\N	\N	\N
-f6189c79-9f33-4cce-867f-dd5c28c3bb97	Head of Department	029662a1-175e-4f34-b987-055b0bf8a95a	77f91eaf-161b-42b6-a076-629bfee0b7bb	\N	\N	2026-11-18 23:08:34.979149+05:30	2026-11-18 23:08:34.979149+05:30	\N	\N	\N
-5852f597-73b5-462b-a3c8-9046c1d1f678	Head of Department	57457615-e61b-453f-baee-0b3e2e63565d	173f19b8-1c2d-4b71-94e3-c678a221c265	\N	\N	2026-11-18 23:08:35.14831+05:30	2026-11-18 23:08:35.14831+05:30	\N	\N	\N
 \.
 
 
@@ -8608,21 +8367,21 @@ aa038ef3-185b-483b-8e30-0c2417d94c25	df8f375a-d0b0-40c0-8ada-264fc2275f4f	2026-1
 -- Name: tbl_notifications_number_seq; Type: SEQUENCE SET; Schema: action; Owner: -
 --
 
-SELECT pg_catalog.setval('action.tbl_notifications_number_seq', 27316, true);
+SELECT pg_catalog.setval('action.tbl_notifications_number_seq', 27383, true);
 
 
 --
 -- Name: aggregatedcounter_id_seq; Type: SEQUENCE SET; Schema: hangfire; Owner: -
 --
 
-SELECT pg_catalog.setval('hangfire.aggregatedcounter_id_seq', 621, true);
+SELECT pg_catalog.setval('hangfire.aggregatedcounter_id_seq', 717, true);
 
 
 --
 -- Name: counter_id_seq; Type: SEQUENCE SET; Schema: hangfire; Owner: -
 --
 
-SELECT pg_catalog.setval('hangfire.counter_id_seq', 2906, true);
+SELECT pg_catalog.setval('hangfire.counter_id_seq', 3020, true);
 
 
 --
@@ -8636,21 +8395,21 @@ SELECT pg_catalog.setval('hangfire.hash_id_seq', 79, true);
 -- Name: job_id_seq; Type: SEQUENCE SET; Schema: hangfire; Owner: -
 --
 
-SELECT pg_catalog.setval('hangfire.job_id_seq', 1592, true);
+SELECT pg_catalog.setval('hangfire.job_id_seq', 1630, true);
 
 
 --
 -- Name: jobparameter_id_seq; Type: SEQUENCE SET; Schema: hangfire; Owner: -
 --
 
-SELECT pg_catalog.setval('hangfire.jobparameter_id_seq', 3325, true);
+SELECT pg_catalog.setval('hangfire.jobparameter_id_seq', 3477, true);
 
 
 --
 -- Name: jobqueue_id_seq; Type: SEQUENCE SET; Schema: hangfire; Owner: -
 --
 
-SELECT pg_catalog.setval('hangfire.jobqueue_id_seq', 194, true);
+SELECT pg_catalog.setval('hangfire.jobqueue_id_seq', 232, true);
 
 
 --
@@ -8664,14 +8423,14 @@ SELECT pg_catalog.setval('hangfire.list_id_seq', 1, false);
 -- Name: set_id_seq; Type: SEQUENCE SET; Schema: hangfire; Owner: -
 --
 
-SELECT pg_catalog.setval('hangfire.set_id_seq', 1601, true);
+SELECT pg_catalog.setval('hangfire.set_id_seq', 1639, true);
 
 
 --
 -- Name: state_id_seq; Type: SEQUENCE SET; Schema: hangfire; Owner: -
 --
 
-SELECT pg_catalog.setval('hangfire.state_id_seq', 2862, true);
+SELECT pg_catalog.setval('hangfire.state_id_seq', 2976, true);
 
 
 --

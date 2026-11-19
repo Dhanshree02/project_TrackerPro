@@ -6,9 +6,10 @@
   - Exported complete schema, tables, constraints, foreign keys, sequences, and data using `pg_dump --no-owner --no-acl`.
   - Filtered out PostgreSQL 18-specific `\restrict` and `\unrestrict` session tokens for cross-version PostgreSQL compatibility.
 - **Verification & Data Audit**:
-  - Audited all 11 schemas, 94 base tables, and 5,394 rows against the live local database.
+  - Audited all 11 schemas, 94 base tables, and 5,153 rows against the live local database.
   - Confirmed 0 mismatches: 100% of tables and records are identically represented in both SQL files.
-  - Verified identical file sizes (1,504,634 bytes) and line counts (11,869 lines).
+  - Verified identical file sizes (1,531,407 bytes) and line counts (11,628 lines).
+  - Reflects the active, clean organizational structure (10 departments, 88 designations, 88 on-floor roles) and latest action notifications.
 - **Affected Files**:
   - `database/pms_uat.sql`
   - `database/pms_development.sql`

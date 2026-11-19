@@ -4447,7 +4447,7 @@ function WbsTab({
 
                       <td className="px-4 py-2.5 whitespace-nowrap">{svc.tools ?? "—"}</td>
 
-                      <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">{svc.billingModel || wbsDetails.accounts.billingModel || "—"}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">-</td>
 
                       <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.startDate || "—"}</td>
 
@@ -4457,41 +4457,9 @@ function WbsTab({
 
                       <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{(svc as any).durationHours ?? (svc.duration ? svc.duration * 8 : "—")}</td>
 
-                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">-</td>
 
-                        {isModPending && svc.pendingQty ? (
-
-                          <span className="text-amber-700 font-bold">
-
-                            {Number(svc.pendingQty) * Number((svc as any).durationDays ?? svc.duration ?? 5)}
-
-                          </span>
-
-                        ) : (
-
-                          svc.totalDays ?? "—"
-
-                        )}
-
-                      </td>
-
-                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">
-
-                        {isModPending && svc.pendingQty ? (
-
-                          <span className="text-amber-700 font-bold">
-
-                            {Number(svc.pendingQty) * Number((svc as any).durationHours ?? ((svc as any).durationDays ?? svc.duration ?? 5) * 8)}
-
-                          </span>
-
-                        ) : (
-
-                          svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")
-
-                        )}
-
-                      </td>
+                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">-</td>
 
                     </tr>
 
@@ -4711,7 +4679,7 @@ function WbsTab({
 
                   <td className="px-4 py-2.5 whitespace-nowrap">{svc.tools}</td>
 
-                  <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">{svc.billing}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">-</td>
 
                   <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.start}</td>
 
@@ -4721,9 +4689,9 @@ function WbsTab({
 
                   <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{svc.durHrs}</td>
 
-                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalDays}</td>
+                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">-</td>
 
-                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalHrs}</td>
+                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">-</td>
 
                 </tr>
 
@@ -4745,7 +4713,7 @@ function WbsTab({
 
         <div className="text-xs font-medium text-muted-foreground mb-1">Total Days</div>
 
-        <div className="text-lg font-semibold">35 days</div>
+        <div className="text-lg font-semibold">-</div>
 
       </div>
 
@@ -5638,11 +5606,11 @@ function OverviewTab({
 
                 { label: "Currency", value: currency },
 
-                { label: "Billing Model", value: wbs?.accounts?.billingModel },
+                { label: "Billing Model", value: wbs?.accounts?.billingModel ? "-" : "" },
 
-                { label: "Payment Terms", value: wbs?.accounts?.paymentTerms },
+                { label: "Payment Terms", value: wbs?.accounts?.paymentTerms ? "-" : "" },
 
-                { label: "PO Status", value: overviewPoStatus(wbs?.accounts?.poStatus, Boolean(poDocName)) },
+                { label: "PO Status", value: overviewPoStatus(wbs?.accounts?.poStatus, Boolean(poDocName)) ? "-" : "" },
 
               ]
 
@@ -5666,7 +5634,7 @@ function OverviewTab({
 
                     <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Days</div>
 
-                    <div className="text-sm font-semibold">{displayDays} days</div>
+                    <div className="text-sm font-semibold">-</div>
 
                   </div>
 
@@ -5678,7 +5646,7 @@ function OverviewTab({
 
                     <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Hours</div>
 
-                    <div className="text-sm font-semibold">{displayHours} hrs</div>
+                    <div className="text-sm font-semibold">-</div>
 
                   </div>
 

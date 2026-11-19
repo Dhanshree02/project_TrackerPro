@@ -5,7 +5,13 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-19
+
+- **My Reportees allocation filters.** On Leave is not in All Allocation Statuses on My Reportees. A Billable / Non-Billable filter sits after All Allocation Types and uses each employee’s billable status. `apps/frontend/src/modules/my-team/index.tsx`, `teamDataService.ts`.
+
+- **Numbered generated departments and designations were removed from `pms_uat`.** 17 `Dept_` rows and 17 `Head of Department_` rows, created on 18 Nov 2026, are gone from `master.mst_departments` and `master.mst_designations`. Their on-floor role rows went with the designations. No employees used them. The 10 real departments stayed.
+
+- **New Project hides Section B and the Section A money totals.** Section B: Accounts Team Details is not shown. Section A hides Unit Price, Total, Subtotal, Tax (%), Invoice Target, Total Hours, and Total Days. Those fields still save on the project. Create WBS no longer asks for the hidden accounts fields. On the project, Billing Model, Payment Terms, PO Status, Total Days, and Total Hours show as `-`. `project-onboarding-page.tsx`, `project-detail-page.tsx`.
 
 - **Approvals Tab request actions (Approve / Reject / Hold / Request Changes) reliably persist in PostgreSQL `pms_uat`.**
   - Resolved root cause where brittle exact string comparisons in `handleAction` skipped API calls and only modified optimistic local state.

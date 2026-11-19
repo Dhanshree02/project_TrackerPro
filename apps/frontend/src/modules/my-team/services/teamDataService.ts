@@ -103,6 +103,7 @@ function normalizeAllocationStatus(val?: string | null): PoolAllocationStatus | 
 type EmployeeOnFloorRoleLookup = {
   nameByEmployeeId: Map<string, string>;
   roleIdByEmployeeId: Map<string, string>;
+  billableByEmployeeId: Map<string, string>;
 };
 
 let employeeOnFloorRoleById: Promise<EmployeeOnFloorRoleLookup> | null = null;
@@ -113,13 +114,16 @@ async function loadEmployeeOnFloorRoleById(): Promise<EmployeeOnFloorRoleLookup>
       .then((rows) => {
         const nameByEmployeeId = new Map<string, string>();
         const roleIdByEmployeeId = new Map<string, string>();
+        const billableByEmployeeId = new Map<string, string>();
         for (const row of rows) {
           const role = (row.jobRoleName ?? row.jobRole ?? "").trim();
           if (role) nameByEmployeeId.set(row.id, role);
           const roleId = row.jobRoleId?.trim();
           if (roleId) roleIdByEmployeeId.set(row.id, roleId);
+          const billable = (row.billableStatus ?? "").trim();
+          if (billable) billableByEmployeeId.set(row.id, billable);
         }
-        return { nameByEmployeeId, roleIdByEmployeeId };
+        return { nameByEmployeeId, roleIdByEmployeeId, billableByEmployeeId };
       })
       .catch((error) => {
         employeeOnFloorRoleById = null;
@@ -131,17 +135,28 @@ async function loadEmployeeOnFloorRoleById(): Promise<EmployeeOnFloorRoleLookup>
 
 async function attachOnFloorRoles(members: TeamMember[]): Promise<TeamMember[]> {
   if (members.length === 0) return members;
-  if (members.every((m) => m.jobRoleName && m.jobRoleId)) return members;
+  const needsRosterFields = members.some(
+    (member) => !member.jobRoleName || !member.jobRoleId || !member.billableStatus,
+  );
+  if (!needsRosterFields) return members;
 
-  const lookup = await loadEmployeeOnFloorRoleById();
+  let lookup: EmployeeOnFloorRoleLookup;
+  try {
+    lookup = await loadEmployeeOnFloorRoleById();
+  } catch (error) {
+    if (members.every((member) => member.jobRoleName && member.jobRoleId)) return members;
+    throw error;
+  }
   return members.map((member) => {
     const jobRoleName = member.jobRoleName ?? lookup.nameByEmployeeId.get(member.id);
     const jobRoleId = member.jobRoleId ?? lookup.roleIdByEmployeeId.get(member.id);
-    if (!jobRoleName && !jobRoleId) return member;
+    const billableStatus = member.billableStatus ?? lookup.billableByEmployeeId.get(member.id);
+    if (!jobRoleName && !jobRoleId && !billableStatus) return member;
     return {
       ...member,
       ...(jobRoleName ? { jobRoleName } : {}),
       ...(jobRoleId ? { jobRoleId } : {}),
+      ...(billableStatus ? { billableStatus } : {}),
     };
   });
 }

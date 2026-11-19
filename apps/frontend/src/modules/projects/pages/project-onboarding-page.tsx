@@ -1397,8 +1397,6 @@ export function ProjectOnboardingPage() {
       if (!r.durationHrs || r.durationHrs <= 0) return `Row ${n}${sName}: Duration (Hrs) is required`;
       if (!r.totalDays || r.totalDays <= 0) return `Row ${n}${sName}: Total Days is required`;
       if (!r.totalHrs || r.totalHrs <= 0) return `Row ${n}${sName}: Total Hrs is required`;
-      if (r.unitPrice === undefined || r.unitPrice === null || r.unitPrice <= 0)
-        return `Row ${n}${sName}: Unit Price is required and must be greater than 0`;
     }
     return null;
   }
@@ -1946,74 +1944,6 @@ export function ProjectOnboardingPage() {
       return serviceErr;
     }
 
-    // Tax percentage
-    if (taxPercent === undefined || taxPercent === null || isNaN(taxPercent) || taxPercent < 0) {
-      return "Tax (%) is required and must be 0 or greater";
-    }
-
-    // 11. Section B: Accounts Team Details
-    if (!billingModel.trim()) {
-      return "Please select Billing Model in Section B";
-    }
-
-    if (billingModel === "Custom") {
-      if (customPayments.length === 0) {
-        return "Please add at least one custom payment term";
-      }
-      for (let i = 0; i < customPayments.length; i++) {
-        const cp = customPayments[i];
-        if (!cp.label.trim()) {
-          return `Custom payment term #${i + 1} name is required`;
-        }
-        if (cp.pct === undefined || cp.pct === null || isNaN(cp.pct) || cp.pct <= 0) {
-          return `Custom payment term "${cp.label}" percentage must be greater than 0%`;
-        }
-      }
-      const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
-      if (total !== 100) {
-        return `Custom payment terms must total 100% (currently ${total}%)`;
-      }
-    }
-
-    if (!currency.trim()) {
-      return "Currency is required";
-    }
-
-    if (!poStatus.trim()) {
-      return "Please select PO Status in Section B";
-    }
-
-    if (poStatus === "PO Received" && !poFile) {
-      return "Please attach PO Document when PO Status is 'PO Received'";
-    }
-
-    // Invoices schedule
-    if (invoiceRows.length === 0) {
-      return "Invoice scheduling rows must be generated for the selected Billing Model";
-    }
-
-    for (let i = 0; i < invoiceRows.length; i++) {
-      const inv = invoiceRows[i];
-      const desc = `${inv.serviceName} (${inv.milestone})`;
-      if (!inv.targetDate) {
-        return `Please select Invoice Target Date for "${desc}"`;
-      }
-      if (!inv.invoiceStatus) {
-        return `Please select Invoice Status for "${desc}"`;
-      }
-      if (inv.invoiceStatus === "Raised") {
-        if (!inv.invoiceNumber.trim()) {
-          return `Please enter Invoice Number for raised milestone: "${desc}"`;
-        }
-        if (!inv.paymentStatus) {
-          return `Please select Payment Status for "${desc}"`;
-        }
-        if (inv.paymentStatus === "Received" && !inv.paymentDate) {
-          return `Please enter Date of Payment Received for "${desc}"`;
-        }
-      }
-    }
-
     return null;
   }
 
@@ -2296,19 +2226,6 @@ export function ProjectOnboardingPage() {
     }
     const rowErr = validateServiceRows();
     if (rowErr) return rowErr;
-    for (const inv of invoiceRows) {
-      if (inv.invoiceStatus === "Raised" && !inv.invoiceNumber.trim()) {
-        return `Please enter Invoice Number for raised milestone: ${inv.milestone}`;
-      }
-    }
-    if (!billingModel) return "Please select Billing Model";
-    if (billingModel === "Custom") {
-      const total = customPayments.reduce((s, p) => s + (Number(p.pct) || 0), 0);
-      if (total !== 100) {
-        return `Custom payment terms must total 100% (currently ${total}%)`;
-      }
-    }
-    if (!poStatus) return "Please select PO Status";
     return null;
   }
 
@@ -3372,8 +3289,8 @@ export function ProjectOnboardingPage() {
                   <th style={{ ...thStyle, minWidth: 80 }}>Duration (Hrs)</th>
                   <th style={{ ...thStyle, minWidth: 80 }}>Total Days</th>
                   <th style={{ ...thStyle, minWidth: 80 }}>Total Hrs</th>
-                  <th style={{ ...thStyle, minWidth: 100 }}>Unit Price</th>
-                  <th style={{ ...thStyle, minWidth: 100 }}>Total</th>
+                  <th style={{ ...thStyle, minWidth: 100, display: "none" }}>Unit Price</th>
+                  <th style={{ ...thStyle, minWidth: 100, display: "none" }}>Total</th>
                   <th style={{ ...thStyle, minWidth: 50 }}></th>
                 </tr>
               </thead>
@@ -3673,7 +3590,7 @@ export function ProjectOnboardingPage() {
                           }}
                         />
                       </td>
-                      <td style={tdStyle}>
+                      <td style={{ ...tdStyle, display: "none" }}>
                         <input
                           type="number"
                           value={r.unitPrice}
@@ -3682,7 +3599,7 @@ export function ProjectOnboardingPage() {
                           style={{ ...req(r.unitPrice), minWidth: 100 }}
                         />
                       </td>
-                      <td style={tdStyle}>
+                      <td style={{ ...tdStyle, display: "none" }}>
                         <input
                           type="number"
                           value={r.total}
@@ -3722,7 +3639,7 @@ export function ProjectOnboardingPage() {
                 padding: 12,
                 borderRadius: 6,
                 marginTop: 16,
-                display: "flex",
+                display: "none",
                 justifyContent: "space-around",
                 alignItems: "center",
                 fontSize: 14,
@@ -3784,7 +3701,8 @@ export function ProjectOnboardingPage() {
           </div>
         </Card>
 
-        {/* ── Section B ── */}
+        {/* ── Section B — hidden on New Project. Values still save on the project. ── */}
+        <div hidden>
         <Card title="Section B: Accounts Team Details">
           <div
             style={{
@@ -4301,6 +4219,7 @@ export function ProjectOnboardingPage() {
             />
           </div>
         </Card>
+        </div>
 
         {/* ── Workflow & Approval ── */}
         <Card title="Workflow & Approval Status">
