@@ -170,13 +170,24 @@ export async function takeResourceAllocationAction(
   status: "Approved" | "Rejected" | "Hold" | "Request Changes",
   comment?: string,
 ): Promise<ProjectResourceAllocationRequestDto> {
-  return apiFetch<ProjectResourceAllocationRequestDto>(
-    `/api/v1/projects/${projectId}/allocation-requests/${requestId}/action`,
-    {
-      method: "POST",
-      body: JSON.stringify({ status, comment }),
-    },
-  );
+  try {
+    return await apiFetch<ProjectResourceAllocationRequestDto>(
+      `/api/v1/projects/${projectId}/allocation-requests/${requestId}/action`,
+      {
+        method: "POST",
+        body: JSON.stringify({ status, comment }),
+      },
+    );
+  } catch {
+    const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+    return await apiFetch<ProjectResourceAllocationRequestDto>(
+      `/api/v1/action-centre/allocation-approvals/${encodeURIComponent(requestId)}/action${query}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ status, comment }),
+      },
+    );
+  }
 }
 
 export async function updateProjectTeamMember(

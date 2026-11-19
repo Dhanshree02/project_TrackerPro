@@ -944,6 +944,19 @@ public sealed class ProjectTeamMemberService(
         CancellationToken ct = default)
     {
         var cleanId = (identifier ?? "").Trim();
+        if (cleanId.StartsWith("APP-ALLOC-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("APP-ALLOC-".Length).Trim();
+        }
+        else if (cleanId.StartsWith("ALLOC-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("ALLOC-".Length).Trim();
+        }
+        else if (cleanId.StartsWith("APP-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("APP-".Length).Trim();
+        }
+
         ProjectResourceAllocationRequest? entity = null;
 
         if (Guid.TryParse(cleanId, out var parsedGuid))
@@ -971,7 +984,7 @@ public sealed class ProjectTeamMemberService(
 
                     if (!string.IsNullOrWhiteSpace(notif.RelatedTask))
                     {
-                        var taskPrefix = notif.RelatedTask.Replace("ALLOC-", "", StringComparison.OrdinalIgnoreCase).Trim().ToUpper();
+                        var taskPrefix = notif.RelatedTask.Replace("ALLOC-", "", StringComparison.OrdinalIgnoreCase).Replace("APP-", "", StringComparison.OrdinalIgnoreCase).Trim().ToUpper();
                         entity = await db.ProjectResourceAllocationRequests
                             .Include(r => r.Project)
                             .Include(r => r.Employee)
@@ -985,7 +998,7 @@ public sealed class ProjectTeamMemberService(
         // 3. Match by task code e.g. "ALLOC-7F8C43E1" or prefix "7F8C43E1"
         if (entity == null && !string.IsNullOrWhiteSpace(cleanId))
         {
-            var taskPrefix = cleanId.Replace("ALLOC-", "", StringComparison.OrdinalIgnoreCase).Trim().ToUpper();
+            var taskPrefix = cleanId.Replace("ALLOC-", "", StringComparison.OrdinalIgnoreCase).Replace("APP-", "", StringComparison.OrdinalIgnoreCase).Trim().ToUpper();
             if (taskPrefix.Length >= 4)
             {
                 entity = await db.ProjectResourceAllocationRequests
@@ -1405,6 +1418,7 @@ public sealed class ProjectTeamMemberService(
 
     private static void TrySyncAllocationRequestToOtherDatabase(ProjectResourceAllocationRequest req)
     {
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
         {
             using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");
@@ -1447,6 +1461,7 @@ public sealed class ProjectTeamMemberService(
 
     private static void TrySyncTeamMemberToOtherDatabase(ProjectTeamMember m)
     {
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
         {
             using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");
@@ -1485,6 +1500,7 @@ public sealed class ProjectTeamMemberService(
         string? relatedTask = null,
         string? newStatus = null)
     {
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
         {
             using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");

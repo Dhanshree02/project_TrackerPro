@@ -24,6 +24,8 @@ public sealed class EmployeeService(
     IOffboardingNotificationService? offboardingNotificationService = null,
     ILogger<EmployeeService>? logger = null) : IEmployeeService
 {
+    private Dictionary<Guid, MstOrgRoleMap>? orgRoleMapCache;
+
     private (string Email, string Name) GetCurrentPerformer()
     {
         var email = !string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email.Trim() : "admin@talakunchi.com";
@@ -254,9 +256,21 @@ public sealed class EmployeeService(
     public Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default) =>
         CreateEmployeeAsync(request, checkIdentity: true, ct);
 
+    public Task<EmployeeDetailDto> CreateEmployeeForBulkAsync(
+        CreateEmployeeRequest request,
+        CancellationToken ct) =>
+        CreateEmployeeCoreAsync(request, checkIdentity: false, notify: false, ct);
+
     public async Task<EmployeeDetailDto> CreateEmployeeAsync(
         CreateEmployeeRequest request,
         bool checkIdentity,
+        CancellationToken ct) =>
+        await CreateEmployeeCoreAsync(request, checkIdentity, notify: true, ct);
+
+    private async Task<EmployeeDetailDto> CreateEmployeeCoreAsync(
+        CreateEmployeeRequest request,
+        bool checkIdentity,
+        bool notify,
         CancellationToken ct)
     {
         var empCode = EmployeeCodeRules.Normalize(request.EmployeeCode);
@@ -389,36 +403,120 @@ public sealed class EmployeeService(
         await OrgRoleMatrixSync.AssignEmployeeSubDepartmentAsync(db, entity, ct);
 
         db.Employees.Add(entity);
+        var (performerEmail, performerName) = GetCurrentPerformer();
+        db.EmployeeActivityLogs.Add(new EmployeeActivityLog
+        {
+            Id = Guid.NewGuid(),
+            EmployeeId = entity.Id,
+            Action = "Created",
+            PerformedByEmail = performerEmail,
+            PerformedByName = performerName,
+            Details = $"Profile created for {entity.FirstName} {entity.LastName} ({entity.EmployeeCode})",
+            CreatedAtUtc = DateTime.UtcNow
+        });
         try
         {
-            await db.SaveChangesAsync(ct);
-
-            var (performerEmail, performerName) = GetCurrentPerformer();
-            db.EmployeeActivityLogs.Add(new EmployeeActivityLog
+            if (notify)
             {
-                Id = Guid.NewGuid(),
-                EmployeeId = entity.Id,
-                Action = "Created",
-                PerformedByEmail = performerEmail,
-                PerformedByName = performerName,
-                Details = $"Profile created for {entity.FirstName} {entity.LastName} ({entity.EmployeeCode})",
-                CreatedAtUtc = DateTime.UtcNow
-            });
-            await db.SaveChangesAsync(ct);
-            await SyncLinkedUserAsync(entity, ct);
-
-            await notificationService.NotifyResourceOnboardedAsync(
-                entity.Id,
-                $"{entity.FirstName} {entity.LastName}".Trim(),
-                entity.EmployeeCode,
-                entity.ReportingManagerId,
-                performerName,
-                ct);
+                await db.SaveChangesAsync(ct);
+                await SyncLinkedUserAsync(entity, ct);
+                await notificationService.NotifyResourceOnboardedAsync(
+                    entity.Id,
+                    $"{entity.FirstName} {entity.LastName}".Trim(),
+                    entity.EmployeeCode,
+                    entity.ReportingManagerId,
+                    performerName,
+                    ct);
+            }
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
             throw new ConflictException(
                 "Duplicate employee data. Work email, personal email, phone number, PAN, Aadhaar, and UAN must be unique.");
+        }
+
+        if (!notify)
+        {
+            return new EmployeeDetailDto(
+                entity.Id,
+                entity.EmployeeCode,
+                entity.FirstName,
+                entity.LastName,
+                entity.WorkEmail,
+                entity.PersonalEmail,
+                entity.Phone,
+                entity.AltPhone,
+                entity.Gender,
+                entity.DateOfBirth,
+                entity.Address,
+                entity.EmergencyContact,
+                entity.EmergencyContactName,
+                entity.EmergencyContactRelation,
+                entity.MaritalStatus,
+                entity.Nationality,
+                null,
+                null,
+                entity.Role,
+                entity.ReportingManagerId,
+                null,
+                entity.BusinessUnit,
+                entity.WorkLocation,
+                entity.OfficeBranch,
+                entity.Category,
+                entity.Team,
+                entity.JoiningDate,
+                entity.Status,
+                entity.ConfirmationStatus,
+                entity.ProbationStatus,
+                entity.Experience,
+                entity.PreviousCompany,
+                entity.EmploymentType,
+                entity.ContractType,
+                entity.BondStatus,
+                entity.NoticePeriod,
+                entity.ProjectSite,
+                entity.AssetId,
+                entity.ExitType,
+                entity.ExitReason,
+                entity.Education,
+                entity.Skills,
+                entity.Certifications,
+                entity.Languages,
+                entity.KpiScore,
+                entity.QuarterlyKpi,
+                entity.AnnualRating,
+                entity.GoalCompletion,
+                entity.Attendance,
+                entity.ReportingEfficiency,
+                entity.PromotionReadiness,
+                entity.ManagerFeedback,
+                entity.Pan,
+                entity.Aadhaar,
+                entity.BankAccount,
+                entity.SalaryBand,
+                entity.PfUan,
+                entity.TaxRegime,
+                entity.ComplianceStatus,
+                entity.PmoDepartment,
+                entity.SubDepartment,
+                entity.BillableStatus,
+                entity.ClientLocation,
+                entity.ProjectType,
+                entity.ProjectAllocated,
+                entity.ClientEngManagerMapping,
+                entity.GradDegree,
+                entity.GradYear,
+                entity.PostGradDegree,
+                entity.PostGradYear,
+                entity.ExpType,
+                entity.PriorTotalExp,
+                entity.PriorRelevantExp,
+                entity.BondDelivered,
+                entity.BondDurationMonths,
+                entity.BondExpiryDate,
+                entity.EmployeeStatusId,
+                entity.DepartmentId,
+                entity.DesignationId);
         }
 
         return (await GetEmployeeAsync(entity.Id.ToString(), ct))!;
@@ -1743,7 +1841,8 @@ public sealed class EmployeeService(
         // Department → Designation → RBAC Role is one row in master.mst_org_role_map.
         if (entity.DesignationId is Guid desigId)
         {
-            var maps = await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
+            orgRoleMapCache ??= await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
+            var maps = orgRoleMapCache;
             if (maps.TryGetValue(desigId, out var map))
             {
                 if (map.DepartmentId is Guid mapDeptId)

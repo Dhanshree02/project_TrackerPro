@@ -489,6 +489,7 @@ public sealed partial class ProjectAppService(
             ct);
 
         await notificationService.StartProjectAllocationReminderWorkflowAsync(project.Id, ct);
+        await notificationService.StartProjectServicePrerequisiteReminderWorkflowAsync(project.Id, ct);
 
 
 
@@ -1188,6 +1189,7 @@ public sealed partial class ProjectAppService(
         if (!service.IsReady)
         {
             await notificationService.StartServicePrerequisiteSlaWorkflowAsync(projectId, service.Id, ct);
+            await notificationService.StartProjectServicePrerequisiteReminderWorkflowAsync(projectId, ct);
         }
 
         await notificationService.NotifyServiceAddedAsync(
@@ -1414,6 +1416,11 @@ public sealed partial class ProjectAppService(
 
 
 
+    private static bool IsResourceService(string? serviceModel, string? collectionStatus) =>
+        string.Equals(serviceModel, "Resource", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(serviceModel, "NA", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(collectionStatus, "NA", StringComparison.OrdinalIgnoreCase);
+
     public async Task<ProjectServiceDto> UpdateServicePrerequisiteAsync(
 
         Guid projectId,
@@ -1438,7 +1445,15 @@ public sealed partial class ProjectAppService(
 
         if (request.ValidationStatus != null) service.ValidationStatus = request.ValidationStatus;
 
-        if (request.BillingStatus != null) service.BillingStatus = request.BillingStatus;
+        if (request.BillingStatus != null)
+        {
+            var collection = request.CollectionStatus ?? service.CollectionStatus;
+            var validation = request.ValidationStatus ?? service.ValidationStatus;
+            var scopeService = !IsResourceService(service.ServiceModel, collection);
+            if (scopeService && (collection != "Collected" || validation != "Validated"))
+                throw new BadRequestException("Billing status can be changed only after collection is Collected and validation is Validated.");
+            service.BillingStatus = request.BillingStatus;
+        }
 
 
 
@@ -1482,7 +1497,15 @@ public sealed partial class ProjectAppService(
 
         if (request.ModValidationStatus != null) service.ModValidationStatus = request.ModValidationStatus;
 
-        if (request.ModBillingStatus != null) service.ModBillingStatus = request.ModBillingStatus;
+        if (request.ModBillingStatus != null)
+        {
+            var collection = request.ModCollectionStatus ?? service.ModCollectionStatus;
+            var validation = request.ModValidationStatus ?? service.ModValidationStatus;
+            var scopeService = !IsResourceService(service.ServiceModel, collection);
+            if (scopeService && (collection != "Collected" || validation != "Validated"))
+                throw new BadRequestException("Billing status can be changed only after collection is Collected and validation is Validated.");
+            service.ModBillingStatus = request.ModBillingStatus;
+        }
 
 
 
@@ -1510,6 +1533,7 @@ public sealed partial class ProjectAppService(
         else if (request.IsReady.HasValue && !request.IsReady.Value)
         {
             await notificationService.StartServicePrerequisiteSlaWorkflowAsync(projectId, serviceId, ct);
+            await notificationService.StartProjectServicePrerequisiteReminderWorkflowAsync(projectId, ct);
         }
 
 
@@ -1518,7 +1542,9 @@ public sealed partial class ProjectAppService(
 
         {
 
-            return await ApplyServiceModificationAsync(projectId, serviceId, ct);
+            var res = await ApplyServiceModificationAsync(projectId, serviceId, ct);
+            await notificationService.NotifyServiceStartedAsync(projectId, serviceId, currentUser.Name, ct);
+            return res;
 
         }
 
@@ -2909,6 +2935,23 @@ public sealed partial class ProjectAppService(
                 {
                     await slaTrackingService.CompleteTrackingAsync(a.Id, "Task Pause", ct);
                 }
+            }
+            catch { }
+        }
+
+        if (stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await notificationService.NotifyProjectTaskLifecycleAsync(
+                    projectId,
+                    taskId,
+                    task.Title,
+                    null,
+                    "completed",
+                    currentUser.Name,
+                    null,
+                    ct);
             }
             catch { }
         }
@@ -4652,6 +4695,7 @@ public sealed partial class ProjectAppService(
                 if (!newService.IsReady)
                 {
                     await notificationService.StartServicePrerequisiteSlaWorkflowAsync(renewedProject.Id, newService.Id, ct);
+                    await notificationService.StartProjectServicePrerequisiteReminderWorkflowAsync(renewedProject.Id, ct);
                 }
 
             }

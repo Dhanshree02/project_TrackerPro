@@ -1137,9 +1137,9 @@ export function EmployeeDirectoryPage() {
 
       {/* Row 2: Filter and Search Bar (matching Exit Summary card design) */}
       <div className="mb-4 rounded-xl border border-border bg-card p-3.5 shadow-xs">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2.5">
+        <div className="grid grid-cols-1 items-center gap-2.5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.35fr)_repeat(5,minmax(0,1fr))]">
           {/* Search input */}
-          <div className="relative flex-1 min-w-[220px]">
+          <div className="relative min-w-0">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -1161,7 +1161,7 @@ export function EmployeeDirectoryPage() {
           </div>
 
           {/* Department Filter */}
-          <div className="w-full md:w-44 shrink-0">
+          <div className="min-w-0">
             <FilterSelect
               value={dept}
               onChange={(value) => {
@@ -1175,7 +1175,7 @@ export function EmployeeDirectoryPage() {
           </div>
 
           {/* Designation Filter */}
-          <div className="w-full md:w-48 shrink-0">
+          <div className="min-w-0">
             <FilterSelect
               value={desig}
               onChange={(value) => {
@@ -1188,7 +1188,7 @@ export function EmployeeDirectoryPage() {
           </div>
 
           {/* Sub-Department Filter */}
-          <div className="w-full md:w-52 shrink-0">
+          <div className="min-w-0">
             <FilterSelect
               value={subDept}
               onChange={setSubDept}
@@ -1197,7 +1197,7 @@ export function EmployeeDirectoryPage() {
             />
           </div>
 
-          <div className="w-full md:w-44 shrink-0">
+          <div className="min-w-0">
             <FilterSelect
               value={onFloorRole}
               onChange={setOnFloorRole}
@@ -1207,7 +1207,7 @@ export function EmployeeDirectoryPage() {
           </div>
 
           {/* Status Filter */}
-          <div className="w-full md:w-36 shrink-0">
+          <div className="min-w-0">
             <FilterSelect
               value={status}
               onChange={setStatus}
@@ -1216,19 +1216,16 @@ export function EmployeeDirectoryPage() {
             />
           </div>
 
-          {/* Reset Button */}
-          <div className="w-20 shrink-0 flex items-center">
-            {hasActiveFilters && (
-              <button
-                type="button"
-                onClick={clearAllFilters}
-                className="h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-dashed border-border px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Reset</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1236,7 +1233,7 @@ export function EmployeeDirectoryPage() {
       {tab === "directory" ? (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
-            <table className="w-max text-sm">
+            <table className="w-full min-w-max text-sm">
               <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
                   {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col, idx, arr) => (

@@ -1110,8 +1110,8 @@ export function ProjectMastersSection({
             </p>
           </div>
         ) : (
-          <div className="w-fit max-w-full overflow-x-auto rounded-lg border border-border flex flex-col">
-            <table className="app-columns text-left text-xs">
+          <div className="w-full overflow-x-auto rounded-lg border border-border flex flex-col">
+            <table className="w-full min-w-[760px] text-left text-xs">
               <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
                   <th className="py-2.5 px-3 font-semibold text-muted-foreground">Contract Type</th>

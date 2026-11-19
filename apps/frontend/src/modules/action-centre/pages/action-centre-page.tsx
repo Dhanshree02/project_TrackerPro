@@ -131,6 +131,7 @@ import {
   approveProjectAdditionalRequirement,
   rejectProjectAdditionalRequirement,
   takeProjectAdditionalRequirementAction,
+  takeCentralApprovalAction,
 } from "@/modules/projects/api/project-additional-requirements";
 
 import {
@@ -170,33 +171,116 @@ import { TablePaginationFooter } from "@/components/table-pagination-footer";
 
 
 function formatToDayMonthYear(val?: string | null): string {
-
   if (!val) return "";
-
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
-
-  if (match) {
-
-    return `${match[3]}-${match[2]}-${match[1]}`;
-
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const [y, m, d] = val.split("-");
+    return `${d}-${m}-${y}`;
   }
-
   const d = new Date(val);
-
   if (!isNaN(d.getTime())) {
-
     const day = String(d.getDate()).padStart(2, "0");
-
     const month = String(d.getMonth() + 1).padStart(2, "0");
-
     const year = d.getFullYear();
-
     return `${day}-${month}-${year}`;
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+  return val;
+}
 
+export function formatTimelineDateTime(
+  h?: { at?: string; date?: string; time?: string } | any,
+  fallbackCreatedAt?: string
+): { dateStr: string; timeStr: string } {
+  if (!h) {
+    if (fallbackCreatedAt) {
+      const d = new Date(fallbackCreatedAt);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return {
+          dateStr: `${day}-${month}-${year}`,
+          timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+    return { dateStr: "—", timeStr: "" };
   }
 
-  return val;
+  // 1. If full ISO timestamp `at` is present
+  if (h.at) {
+    const d = new Date(h.at);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
 
+  // 2. If both date and time are provided
+  if (h.date && h.time) {
+    if (/am|pm/i.test(h.time)) {
+      return {
+        dateStr: formatToDayMonthYear(h.date),
+        timeStr: h.time.trim()
+      };
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(h.date) && /^\d{1,2}:\d{2}(:\d{2})?/.test(h.time)) {
+      const utcIso = `${h.date}T${h.time}${h.time.endsWith("Z") ? "" : "Z"}`;
+      const d = new Date(utcIso);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return {
+          dateStr: `${day}-${month}-${year}`,
+          timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+  }
+
+  // 3. If date is provided (could be ISO string)
+  if (h.date) {
+    const d = new Date(h.date);
+    if (!isNaN(d.getTime()) && (h.date.includes("T") || h.date.includes("Z"))) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+    return {
+      dateStr: formatToDayMonthYear(h.date),
+      timeStr: h.time || ""
+    };
+  }
+
+  // 4. Fallback to fallbackCreatedAt
+  if (fallbackCreatedAt) {
+    const d = new Date(fallbackCreatedAt);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
+
+  return { dateStr: "—", timeStr: "" };
 }
 
 
@@ -2124,11 +2208,21 @@ function ApprovalsTab() {
     }
 
     const currentApp = store.approvals.find((a) => a.id === selectedAppId);
+    const reqType = (currentApp?.requestType || "").toLowerCase();
+    const appId = (currentApp?.id || selectedAppId || "").trim();
+    const projectId = currentApp?.projectId || "";
+
+    const isRequirement = reqType.includes("requirement") || reqType.includes("customer") || appId.includes("-REQ-") || appId.startsWith("APP-REQ");
+    const isAllocation = reqType.includes("allocation") || reqType.includes("resource") || appId.includes("-ALLOC-") || appId.startsWith("APP-ALLOC");
+    const isExtension = reqType.includes("extension") || reqType.includes("timeline") || appId.includes("-EXT-") || appId.startsWith("APP-EXT");
+    const isFeedback = reqType.includes("feedback") || appId.includes("-FDBK-") || appId.startsWith("APP-FDBK");
+
     let handledByApi = false;
-    if (currentApp && currentApp.requestType === "Customer Requirement Approval") {
+
+    if (isRequirement) {
       try {
-        const rawReqId = currentApp.id.replace(/^APP-REQ-/, "");
-        const updated = await takeProjectAdditionalRequirementAction(currentApp.projectId, rawReqId, status, appComment);
+        const rawReqId = appId.replace(/^APP-(?:REQ-)?/i, "").trim();
+        const updated = await takeProjectAdditionalRequirementAction(projectId, rawReqId, status, appComment);
         if (updated) {
           dhStore.updateRequirementStatus(updated.id, status as any, user.id, user.name);
           const reqInStore = ((dhStore as any).getState?.().requirements || []).find((r: any) => r.id === updated.id || r.requirementId === updated.requirementId);
@@ -2144,47 +2238,55 @@ function ApprovalsTab() {
         toast.error(err?.message || "Failed to update additional requirement approval on backend");
         return;
       }
-    }
-
-    if (currentApp && currentApp.requestType === "Resource Allocation Approval") {
+    } else if (isAllocation) {
       try {
-        const rawAllocId = currentApp.id.replace(/^APP-ALLOC-/, "");
-        await takeResourceAllocationAction(currentApp.projectId, rawAllocId, status, appComment);
+        const rawAllocId = appId.replace(/^APP-(?:ALLOC-)?/i, "").trim();
+        await takeResourceAllocationAction(projectId, rawAllocId, status, appComment);
         await loadApprovals();
         handledByApi = true;
       } catch (err: any) {
         console.error("Failed to update resource allocation approval on backend:", err);
+        toast.error(err?.message || "Failed to update resource allocation approval on backend");
+        return;
       }
-    }
-
-    if (currentApp && currentApp.requestType === "Timeline Extension Approval") {
+    } else if (isExtension) {
       try {
-        const rawExtId = currentApp.id.replace(/^APP-EXT-/, "");
-        const updatedExt = await takeProjectExtensionRequestAction(currentApp.projectId, rawExtId, status, appComment);
+        const rawExtId = appId.replace(/^APP-(?:EXT-)?/i, "").trim();
+        const updatedExt = await takeProjectExtensionRequestAction(projectId, rawExtId, status, appComment);
         if (status === "Approved" && updatedExt?.requestedEndDate) {
-          dhStore.updateProjectEndDate(currentApp.projectId, updatedExt.requestedEndDate);
+          dhStore.updateProjectEndDate(projectId, updatedExt.requestedEndDate);
         }
         await loadApprovals();
         handledByApi = true;
       } catch (err: any) {
         console.error("Failed to update extension request approval on backend:", err);
+        toast.error(err?.message || "Failed to update extension request approval on backend");
+        return;
       }
-    }
-
-    if (currentApp && currentApp.requestType === "Feedback Request Approval") {
+    } else if (isFeedback) {
       try {
-        const rawFdbkId = currentApp.id.replace(/^APP-FDBK-/, "");
+        const rawFdbkId = appId.replace(/^APP-(?:FDBK-)?/i, "").trim();
         await takeFeedbackApprovalAction(rawFdbkId, { status, comment: appComment });
         await loadApprovals();
         handledByApi = true;
       } catch (err: any) {
         console.error("Failed to update feedback request approval on backend:", err);
+        toast.error(err?.message || "Failed to update feedback request approval on backend");
+        return;
+      }
+    } else {
+      try {
+        await takeCentralApprovalAction(appId, status, appComment, projectId);
+        await loadApprovals();
+        handledByApi = true;
+      } catch (err: any) {
+        console.error("Failed to update approval on backend:", err);
+        toast.error(err?.message || "Failed to update approval on backend");
+        return;
       }
     }
 
-    if (!handledByApi) {
-      dhStore.updateCentralApprovalStatus(selectedAppId, status, appComment, user.name, user.id);
-    }
+    dhStore.updateCentralApprovalStatus(selectedAppId, status, appComment, user.name, user.id);
     toast.success(`Success: Approval Request marked as ${status}!`);
     setAppComment("");
     setSelectedAppId(null);
@@ -3806,60 +3908,62 @@ function AlertsTab() {
 
               {/* Status Transitions Timeline (Format: day-month-year) */}
 
-              {selectedAlert.history && selectedAlert.history.length > 0 && (
+              {(() => {
+                const historyList = (selectedAlert.history && selectedAlert.history.length > 0)
+                  ? selectedAlert.history
+                  : (selectedAlert.createdAt
+                      ? [{ action: "Notification created", at: selectedAlert.createdAt, by: selectedAlert.raisedByName || "System" }]
+                      : []);
 
-                <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                if (historyList.length === 0) return null;
 
-                  <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                return (
+                  <div className="rounded-lg border border-border p-3 bg-card space-y-2">
+                    <span className="font-semibold text-[10px] text-muted-foreground uppercase block border-b border-border pb-1">
+                      Status Transitions Timeline
+                    </span>
+                    <div className="space-y-2 pl-1 max-h-36 overflow-y-auto pr-1">
+                      {historyList.map((h: any, idx: number) => {
+                        const { dateStr, timeStr } = formatTimelineDateTime(h, selectedAlert.createdAt);
+                        const rawText = h.action || h.details || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
 
-                    Status Transitions Timeline
+                        let action = rawText;
+                        let remark = "";
+                        if (rawText.includes(" — ")) {
+                          const parts = rawText.split(" — ");
+                          action = parts[0];
+                          remark = parts.slice(1).join(" — ").replace(/^["']|["']$/g, "").trim();
+                        } else if (rawText.includes(". Comment: ")) {
+                          const parts = rawText.split(". Comment: ");
+                          action = parts[0] + ".";
+                          remark = parts.slice(1).join(". Comment: ").replace(/^["']|["']$/g, "").trim();
+                        } else if (rawText.startsWith("Comment added: \"") && rawText.endsWith("\"")) {
+                          action = "Comment added:";
+                          remark = rawText.slice(15, -1).trim();
+                        }
 
-                  </span>
-
-                  <div className="space-y-2 pl-1 max-h-36 overflow-y-auto pr-1">
-                    {(selectedAlert.history || []).map((h: any, idx) => {
-                      const dateStr = formatToDayMonthYear(h.at || h.date);
-                      const timeStr = h.at ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : (h.time || "");
-                      const rawText = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
-
-                      let action = rawText;
-                      let remark = "";
-                      if (rawText.includes(" — ")) {
-                        const parts = rawText.split(" — ");
-                        action = parts[0];
-                        remark = parts.slice(1).join(" — ").replace(/^["']|["']$/g, "").trim();
-                      } else if (rawText.includes(". Comment: ")) {
-                        const parts = rawText.split(". Comment: ");
-                        action = parts[0] + ".";
-                        remark = parts.slice(1).join(". Comment: ").replace(/^["']|["']$/g, "").trim();
-                      } else if (rawText.startsWith("Comment added: \"") && rawText.endsWith("\"")) {
-                        action = "Comment added:";
-                        remark = rawText.slice(15, -1).trim();
-                      }
-
-                      return (
-                        <div key={idx} className="flex items-start gap-2 text-[11px] leading-relaxed">
-                          <span className="shrink-0 font-medium text-muted-foreground tabular-nums whitespace-nowrap">
-                            {dateStr} {timeStr}:
-                          </span>
-                          <span className="min-w-0 flex-1 break-words text-foreground/90">
-                            {remark ? (
-                              <>
-                                <span className="font-semibold text-foreground">{action}</span>{" "}
-                                <span className="text-muted-foreground font-normal italic">"{remark}"</span>
-                              </>
-                            ) : (
-                              <span className="font-medium">{action}</span>
-                            )}
-                          </span>
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div key={idx} className="flex items-start gap-2 text-[11px] leading-relaxed">
+                            <span className="shrink-0 font-medium text-muted-foreground tabular-nums whitespace-nowrap">
+                              {dateStr} {timeStr}:
+                            </span>
+                            <span className="min-w-0 flex-1 break-words text-foreground/90">
+                              {remark ? (
+                                <>
+                                  <span className="font-semibold text-foreground">{action}</span>{" "}
+                                  <span className="text-muted-foreground font-normal italic">"{remark}"</span>
+                                </>
+                              ) : (
+                                <span className="font-medium">{action}</span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-
-                </div>
-
-              )}
+                );
+              })()}
 
             </div>
 
@@ -5135,6 +5239,16 @@ const NOTIFICATION_TYPES = [
 
   "Additional Customer Requirement",
 
+  "Service Started",
+
+  "Service Prerequisite Reminder",
+
+  "Service Modified",
+
+  "Service Deleted",
+
+  "Service Added",
+
   "Approval Request",
 
   "Timesheet Submitted",
@@ -5165,7 +5279,11 @@ const NOTIFICATION_TYPES = [
 
   "Task Paused",
 
+  "Task Resumed",
+
   "Task Stopped",
+
+  "Task Completed",
 
   "Task Pause Reminder",
 

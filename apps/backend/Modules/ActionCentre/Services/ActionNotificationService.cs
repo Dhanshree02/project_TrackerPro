@@ -28,6 +28,7 @@ public sealed class ActionNotificationService(
     private static readonly ConcurrentDictionary<Guid, string> s_activeHodJobs = new();
     private static readonly ConcurrentDictionary<Guid, string> s_activeServiceL1Jobs = new();
     private static readonly ConcurrentDictionary<Guid, string> s_activeServiceL2Jobs = new();
+    private static readonly ConcurrentDictionary<Guid, string> s_activeServicePrereqReminderJobs = new();
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -185,7 +186,8 @@ public sealed class ActionNotificationService(
 
                 Time = timeStr,
 
-                By = "System"
+                By = "System",
+                At = now.ToString("o")
 
             });
 
@@ -267,7 +269,8 @@ public sealed class ActionNotificationService(
 
             Time = timeStr,
 
-            By = userName
+            By = userName,
+            At = now.ToString("o")
 
         });
 
@@ -809,7 +812,8 @@ public sealed class ActionNotificationService(
 
                     Time = timeStr,
 
-                    By = userName
+                    By = userName,
+            At = now.ToString("o")
 
                 });
 
@@ -897,7 +901,8 @@ public sealed class ActionNotificationService(
 
             Time = timeStr,
 
-            By = userName
+            By = userName,
+            At = now.ToString("o")
 
         });
 
@@ -1176,27 +1181,75 @@ public sealed class ActionNotificationService(
 
 
     private static List<NotificationHistoryItemDto> ParseHistory(string? json)
-
     {
-
         if (string.IsNullOrWhiteSpace(json)) return [];
-
         try
-
         {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array) return [];
 
-            return JsonSerializer.Deserialize<List<NotificationHistoryItemDto>>(json, JsonOptions) ?? [];
+            var list = new List<NotificationHistoryItemDto>();
+            foreach (var elem in doc.RootElement.EnumerateArray())
+            {
+                if (elem.ValueKind != JsonValueKind.Object) continue;
 
+                var item = new NotificationHistoryItemDto();
+
+                if (elem.TryGetProperty("action", out var pAction) && pAction.ValueKind == JsonValueKind.String)
+                    item.Action = pAction.GetString() ?? "";
+
+                if (elem.TryGetProperty("details", out var pDetails) && pDetails.ValueKind == JsonValueKind.String)
+                {
+                    item.Details = pDetails.GetString();
+                    if (string.IsNullOrWhiteSpace(item.Action))
+                        item.Action = item.Details ?? "";
+                }
+
+                if (elem.TryGetProperty("status", out var pStatus) && pStatus.ValueKind == JsonValueKind.String)
+                {
+                    item.Status = pStatus.GetString();
+                    if (string.IsNullOrWhiteSpace(item.Action))
+                        item.Action = $"Status: {item.Status}";
+                }
+
+                if (elem.TryGetProperty("by", out var pBy) && pBy.ValueKind == JsonValueKind.String)
+                    item.By = pBy.GetString() ?? "";
+                else if (elem.TryGetProperty("updatedBy", out var pUpBy) && pUpBy.ValueKind == JsonValueKind.String)
+                    item.By = pUpBy.GetString() ?? "";
+
+                if (elem.TryGetProperty("at", out var pAt) && pAt.ValueKind == JsonValueKind.String)
+                {
+                    item.At = pAt.GetString();
+                    if (DateTime.TryParse(item.At, null, System.Globalization.DateTimeStyles.RoundtripKind, out var dtAt))
+                    {
+                        var utc = dtAt.Kind == DateTimeKind.Utc ? dtAt : dtAt.ToUniversalTime();
+                        item.Date = utc.ToString("yyyy-MM-dd");
+                        item.Time = utc.ToString("HH:mm:ss");
+                    }
+                }
+
+                if (elem.TryGetProperty("date", out var pDate) && pDate.ValueKind == JsonValueKind.String)
+                    item.Date = pDate.GetString() ?? "";
+
+                if (elem.TryGetProperty("time", out var pTime) && pTime.ValueKind == JsonValueKind.String)
+                    item.Time = pTime.GetString() ?? "";
+
+                if (string.IsNullOrWhiteSpace(item.At) && !string.IsNullOrWhiteSpace(item.Date) && !string.IsNullOrWhiteSpace(item.Time))
+                {
+                    if (DateTime.TryParse($"{item.Date} {item.Time}", out var parsedDt))
+                    {
+                        item.At = DateTime.SpecifyKind(parsedDt, DateTimeKind.Utc).ToString("o");
+                    }
+                }
+
+                list.Add(item);
+            }
+            return list;
         }
-
         catch
-
         {
-
             return [];
-
         }
-
     }
 
 
@@ -1212,6 +1265,19 @@ public sealed class ActionNotificationService(
         var notifCode = n.NotificationNumber > 0
             ? $"NOT-{n.NotificationNumber:D4}"
             : $"NOT-{n.Id.ToString()[..8].ToUpper()}";
+
+        var notifHistory = ParseHistory(n.HistoryJson);
+        if (notifHistory.Count == 0)
+        {
+            notifHistory.Add(new NotificationHistoryItemDto
+            {
+                Action = "Notification created",
+                Date = n.CreatedAtUtc.ToString("yyyy-MM-dd"),
+                Time = n.CreatedAtUtc.ToString("HH:mm:ss"),
+                By = n.RaisedByName,
+                At = n.CreatedAtUtc.ToString("o")
+            });
+        }
 
         return new ActionNotificationDto
         {
@@ -1229,7 +1295,7 @@ public sealed class ActionNotificationService(
             Unread = n.Unread,
             CreatedBy = n.RaisedByName,
             CreatedDate = n.CreatedAtUtc.ToString("yyyy-MM-dd"),
-            History = ParseHistory(n.HistoryJson),
+            History = notifHistory,
             Comments = ParseComments(n.CommentsJson),
             ProjectId = n.ProjectId,
             IssueId = n.IssueId,
@@ -1340,6 +1406,19 @@ public sealed class ActionNotificationService(
 
 
 
+        var alertHistory = ParseHistory(a.HistoryJson);
+        if (alertHistory.Count == 0)
+        {
+            alertHistory.Add(new NotificationHistoryItemDto
+            {
+                Action = "Notification created",
+                Date = a.CreatedAtUtc.ToString("yyyy-MM-dd"),
+                Time = a.CreatedAtUtc.ToString("HH:mm:ss"),
+                By = a.RaisedByName,
+                At = a.CreatedAtUtc.ToString("o")
+            });
+        }
+
         return new ActionAlertDto
 
         {
@@ -1390,7 +1469,7 @@ public sealed class ActionNotificationService(
 
             StatusChangedAtUtc = a.StatusChangedAtUtc,
 
-            History = ParseHistory(a.HistoryJson),
+            History = alertHistory,
 
             Comments = ParseComments(a.ChatJson),
 
@@ -3803,6 +3882,226 @@ public sealed class ActionNotificationService(
 
         await db.SaveChangesAsync(ct);
         TrySyncNotificationsToOtherDatabase(addedList);
+
+        // 2. Check if all services in this project are now started
+        var remainingUnstarted = await db.ProjectServices
+            .AnyAsync(s => s.ProjectId == projectId && s.Id != serviceId && !s.IsReady && s.DeletedAtUtc == null, ct);
+
+        if (!remainingUnstarted)
+        {
+            await CancelProjectServicePrerequisiteReminderWorkflowAsync(projectId, ct);
+        }
+    }
+
+    public async Task StartProjectServicePrerequisiteReminderWorkflowAsync(Guid projectId, CancellationToken ct = default)
+    {
+        var project = await db.Projects
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.DeletedAtUtc == null, ct);
+
+        if (project == null) return;
+
+        var hasUnstartedServices = await db.ProjectServices
+            .AnyAsync(s => s.ProjectId == projectId && !s.IsReady && s.DeletedAtUtc == null, ct);
+        if (!hasUnstartedServices) return;
+
+        if (s_activeServicePrereqReminderJobs.ContainsKey(projectId)) return;
+
+        DateTime deadlineUtc;
+        if (deadlineCalculator != null)
+        {
+            deadlineUtc = deadlineCalculator.CalculateTargetDeadline(
+                project.CreatedAtUtc != default ? project.CreatedAtUtc : DateTime.UtcNow,
+                1080, // 2 working days (2 * 540 min) to EOD in IST
+                SlaCalculationMode.EndOfDay,
+                useBusinessTimeZone: true);
+        }
+        else
+        {
+            var ist = ResolveIstTimeZone();
+            var nowIst = TimeZoneInfo.ConvertTimeFromUtc(project.CreatedAtUtc != default ? project.CreatedAtUtc : DateTime.UtcNow, ist);
+            var targetIst = nowIst.Date.AddDays(2).AddHours(18); // 18:00 IST
+            deadlineUtc = TimeZoneInfo.ConvertTimeToUtc(targetIst, ist);
+        }
+
+        var delay = deadlineUtc > DateTime.UtcNow ? deadlineUtc - DateTime.UtcNow : TimeSpan.FromMinutes(1);
+
+        var jobId = BackgroundJob.Schedule<IActionNotificationService>(
+            s => s.ExecuteServicePrerequisitePendingReminderJobAsync(projectId, 1),
+            delay);
+        s_activeServicePrereqReminderJobs[projectId] = jobId;
+    }
+
+    public Task CancelProjectServicePrerequisiteReminderWorkflowAsync(Guid projectId, CancellationToken ct = default)
+    {
+        if (s_activeServicePrereqReminderJobs.TryRemove(projectId, out var jobId))
+        {
+            try
+            {
+                BackgroundJob.Delete(jobId);
+                logger?.LogInformation("Deleted Service Prerequisite Reminder job {JobId} for project {ProjectId}.", jobId, projectId);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "Failed deleting Service Prerequisite Reminder job {JobId} for project {ProjectId}.", jobId, projectId);
+            }
+        }
+        return Task.CompletedTask;
+    }
+
+    [JobDisplayName("Service Prerequisite | 2-Day Daily EOD Reminder | PMO & EM | {0} | Day {1}")]
+    public async Task ExecuteServicePrerequisitePendingReminderJobAsync(Guid projectId, int reminderDay)
+    {
+        var project = await db.Projects
+            .Include(p => p.Client)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.DeletedAtUtc == null);
+
+        if (project == null)
+        {
+            s_activeServicePrereqReminderJobs.TryRemove(projectId, out _);
+            return;
+        }
+
+        var unstartedServices = await db.ProjectServices
+            .Where(s => s.ProjectId == projectId && !s.IsReady && s.DeletedAtUtc == null)
+            .ToListAsync();
+
+        if (unstartedServices.Count == 0)
+        {
+            logger?.LogInformation("All services started for project {ProjectId}. Terminating prerequisite reminder workflow.", projectId);
+            s_activeServicePrereqReminderJobs.TryRemove(projectId, out _);
+            return;
+        }
+
+        await DispatchServicePrerequisitePendingReminderAsync(project, unstartedServices, reminderDay);
+
+        s_activeServicePrereqReminderJobs.TryRemove(projectId, out _);
+
+        // Schedule next daily EOD reminder at 18:00 IST
+        DateTime nextEodUtc;
+        if (deadlineCalculator != null)
+        {
+            nextEodUtc = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(DateTime.UtcNow);
+        }
+        else
+        {
+            var ist = ResolveIstTimeZone();
+            var nowIst = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ist);
+            var targetIst = nowIst.Date.AddDays(1).AddHours(18);
+            nextEodUtc = TimeZoneInfo.ConvertTimeToUtc(targetIst, ist);
+        }
+
+        var delay = nextEodUtc > DateTime.UtcNow ? nextEodUtc - DateTime.UtcNow : TimeSpan.FromDays(1);
+        var nextJobId = BackgroundJob.Schedule<IActionNotificationService>(
+            s => s.ExecuteServicePrerequisitePendingReminderJobAsync(projectId, reminderDay + 1),
+            delay);
+        s_activeServicePrereqReminderJobs[projectId] = nextJobId;
+    }
+
+    private async Task DispatchServicePrerequisitePendingReminderAsync(Project project, List<ProjectServiceEntity> unstartedServices, int reminderDay)
+    {
+        var todayUtc = DateTime.UtcNow.Date;
+        var alreadySentToday = await db.ActionNotifications.AnyAsync(n =>
+            n.ProjectId == project.Id &&
+            n.Type == "Service Prerequisite Reminder" &&
+            n.CreatedAtUtc >= todayUtc &&
+            n.DeletedAtUtc == null);
+
+        if (alreadySentToday)
+        {
+            logger?.LogInformation("Service prerequisite reminder already sent today for project {ProjectId}.", project.Id);
+            return;
+        }
+
+        var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        // 1. PMO
+        var pmoList = await ResolvePmoEmployeesAsync();
+        foreach (var pmo in pmoList)
+        {
+            if (!recipients.Any(r => r.Id == pmo.Id)) recipients.Add(pmo);
+        }
+
+        // 2. Assigned Engagement Manager
+        var emId = await ResolveEngagementManagerIdAsync(project);
+        if (emId.HasValue)
+        {
+            var em = await db.Employees.FirstOrDefaultAsync(e => e.Id == emId.Value && e.DeletedAtUtc == null);
+            if (em != null && !recipients.Any(r => r.Id == em.Id))
+            {
+                recipients.Add(em);
+            }
+        }
+
+        if (recipients.Count == 0) return;
+
+        var title = $"{project.Name} Service wise Prerequisite Tracking is still pending";
+        var details = $"Service wise Prerequisite Tracking is still pending for project '{project.Name}'. The following {unstartedServices.Count} service(s) have not been started within 2 days: {string.Join(", ", unstartedServices.Select(s => s.ServiceName))}.";
+
+        var addedList = new List<ActionNotification>();
+        foreach (var recipient in recipients)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recipient.Id,
+                ProjectId = project.Id,
+                ProjectCode = project.ProjectCode,
+                ProjectName = project.Name,
+                Title = title,
+                Type = "Service Prerequisite Reminder",
+                Priority = "Medium",
+                Status = "Pending",
+                Unread = true,
+                RaisedByName = "System / Automation Engine",
+                RelatedTask = project.Name,
+                CreatedAtUtc = DateTime.UtcNow,
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        status = "Pending",
+                        day = reminderDay,
+                        unstartedCount = unstartedServices.Count,
+                        unstartedServices = unstartedServices.Select(s => s.ServiceName).ToArray(),
+                        at = DateTime.UtcNow.ToString("o"),
+                        details = details
+                    }
+                })
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync();
+        TrySyncNotificationsToOtherDatabase(addedList);
+    }
+
+    [JobDisplayName("Service Prerequisite | Daily EOD Check All Projects | PMO & EM")]
+    public async Task ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync()
+    {
+        var cutoffUtc = DateTime.UtcNow.AddDays(-2); // At least 2 days old
+        var unstartedProjectIds = await db.ProjectServices
+            .Where(s => !s.IsReady && s.DeletedAtUtc == null)
+            .Select(s => s.ProjectId)
+            .Distinct()
+            .ToListAsync();
+
+        var candidateProjects = await db.Projects
+            .Include(p => p.Client)
+            .Where(p => unstartedProjectIds.Contains(p.Id) && p.DeletedAtUtc == null && p.CreatedAtUtc <= cutoffUtc)
+            .ToListAsync();
+
+        foreach (var project in candidateProjects)
+        {
+            var unstartedServices = await db.ProjectServices
+                .Where(s => s.ProjectId == project.Id && !s.IsReady && s.DeletedAtUtc == null)
+                .ToListAsync();
+
+            if (unstartedServices.Count > 0)
+            {
+                await DispatchServicePrerequisitePendingReminderAsync(project, unstartedServices, 1);
+            }
+        }
     }
 
     public async Task StartServicePrerequisiteSlaWorkflowAsync(Guid projectId, Guid serviceId, CancellationToken ct = default)
@@ -4050,7 +4349,14 @@ public sealed class ActionNotificationService(
             if (!recipients.Any(r => r.Id == pm.Id)) recipients.Add(pm);
         }
 
-        // 2. Assigned Engagement Manager
+        // 2. Assigned Senior Project Manager
+        var spmList = await ResolveAssignedSeniorProjectManagersAsync(project, ct);
+        foreach (var spm in spmList)
+        {
+            if (!recipients.Any(r => r.Id == spm.Id)) recipients.Add(spm);
+        }
+
+        // 3. Assigned Engagement Manager
         var emId = await ResolveEngagementManagerIdAsync(project, ct);
         if (emId.HasValue && !recipients.Any(r => r.Id == emId.Value))
         {
@@ -4058,7 +4364,7 @@ public sealed class ActionNotificationService(
             if (em != null) recipients.Add(em);
         }
 
-        // 3. Assigned Team Lead
+        // 4. Assigned Team Lead
         var tlList = await ResolveAssignedTeamLeadsAsync(project, ct);
         foreach (var tl in tlList)
         {
@@ -4066,6 +4372,52 @@ public sealed class ActionNotificationService(
         }
 
         return recipients;
+    }
+
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveAssignedSeniorProjectManagersAsync(
+        Project project, CancellationToken ct = default)
+    {
+        var spms = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        var tmSpms = await db.ProjectTeamMembers
+            .Include(m => m.Employee)
+            .Where(m => m.ProjectId == project.Id && m.DeletedAtUtc == null &&
+                        (m.MemberRole == ProjectMemberRoles.SeniorProjectManager ||
+                         m.MemberRole == "Senior Project Manager" ||
+                         m.MemberRole.ToLower().Contains("senior project manager") ||
+                         m.MemberRole.ToLower() == "spm" ||
+                         m.MemberRole.ToLower() == "senior pm"))
+            .ToListAsync(ct);
+
+        foreach (var tm in tmSpms)
+        {
+            if (tm.Employee != null && tm.Employee.DeletedAtUtc == null && !spms.Any(p => p.Id == tm.Employee.Id))
+            {
+                spms.Add(tm.Employee);
+            }
+        }
+
+        return spms;
+    }
+
+    private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolvePmoEmployeesAsync(CancellationToken ct = default)
+    {
+        var key = "pmo (project management office)";
+        var pmoList = await db.Employees
+            .AsNoTracking()
+            .Include(e => e.SubDepartmentRef)
+            .Include(e => e.Department)
+            .Where(e => e.DeletedAtUtc == null &&
+                        (e.Status == null || e.Status.ToLower().StartsWith("active")) &&
+                        ((e.SubDepartment != null && e.SubDepartment.Trim().ToLower() == key) ||
+                         (e.SubDepartmentRef != null && e.SubDepartmentRef.Name.Trim().ToLower() == key) ||
+                         (e.SubDepartment != null && e.SubDepartment.Trim().ToLower() == "pmo") ||
+                         (e.SubDepartmentRef != null && e.SubDepartmentRef.Name.Trim().ToLower() == "pmo") ||
+                         (e.Role != null && e.Role.Trim().ToLower() == "pmo") ||
+                         (e.Department != null && e.Department.Name.Trim().ToLower() == "pmo")))
+            .ToListAsync(ct);
+
+        return pmoList;
     }
 
     private async Task<List<PMS.API.Modules.Resources.Models.Employee>> ResolveAssignedProjectManagersAsync(
@@ -4233,10 +4585,25 @@ public sealed class ActionNotificationService(
             return;
         }
 
+        var recipients = new List<PMS.API.Modules.Resources.Models.Employee>();
+
+        // 1. Assigned Engagement Manager(s)
         var emRecipients = await ResolveProjectEngagementManagersAsync(project, ct);
-        if (emRecipients.Count == 0)
+        foreach (var em in emRecipients)
         {
-            logger?.LogWarning("No Engagement Manager resolved for project {ProjectId} ('{ProjectName}'). Service edit notification cannot be dispatched.", projectId, project.Name);
+            if (!recipients.Any(r => r.Id == em.Id)) recipients.Add(em);
+        }
+
+        // 2. PMO (Project Management Office)
+        var pmoList = await ResolvePmoEmployeesAsync(ct);
+        foreach (var pmo in pmoList)
+        {
+            if (!recipients.Any(r => r.Id == pmo.Id)) recipients.Add(pmo);
+        }
+
+        if (recipients.Count == 0)
+        {
+            logger?.LogWarning("No Engagement Manager or PMO resolved for project {ProjectId} ('{ProjectName}'). Service edit notification cannot be dispatched.", projectId, project.Name);
             return;
         }
 
@@ -4262,15 +4629,24 @@ public sealed class ActionNotificationService(
         var title = $"The {project.Name} service is {actionWord}";
         var meaningfulDetails = !string.IsNullOrWhiteSpace(details)
             ? details
-            : $"Service '{serviceName}' was {actionWord} in project '{project.Name}'.";
+            : (actionWord == "deleted"
+                ? $"Service '{serviceName}' was deleted from project '{project.Name}'."
+                : (actionWord == "added"
+                    ? $"Service '{serviceName}' was added to project '{project.Name}'."
+                    : $"Service '{serviceName}' was modified in project '{project.Name}'."));
+
+        var now = DateTime.UtcNow;
+        var dateStr = now.ToString("yyyy-MM-dd");
+        var timeStr = now.ToString("HH:mm:ss");
+        var byUser = performerName ?? currentUser.Name ?? "System";
 
         var addedList = new List<ActionNotification>();
-        foreach (var em in emRecipients)
+        foreach (var recipient in recipients)
         {
             var notif = new ActionNotification
             {
                 Id = Guid.NewGuid(),
-                RecipientEmployeeId = em.Id,
+                RecipientEmployeeId = recipient.Id,
                 ProjectId = project.Id,
                 ProjectCode = project.ProjectCode,
                 ProjectName = project.Name,
@@ -4279,17 +4655,20 @@ public sealed class ActionNotificationService(
                 Priority = "Medium",
                 Status = "Pending",
                 Unread = true,
-                RaisedByName = performerName ?? currentUser.Name ?? "System",
+                RaisedByName = byUser,
                 RelatedTask = serviceName,
-                CreatedAtUtc = DateTime.UtcNow,
+                CreatedAtUtc = now,
                 HistoryJson = JsonSerializer.Serialize(new[]
                 {
                     new
                     {
                         status = actionWord,
-                        action = actionWord,
+                        action = meaningfulDetails,
                         serviceName = serviceName,
-                        at = DateTime.UtcNow.ToString("o"),
+                        at = now.ToString("o"),
+                        date = dateStr,
+                        time = timeStr,
+                        by = byUser,
                         details = meaningfulDetails
                     }
                 })
@@ -4306,7 +4685,7 @@ public sealed class ActionNotificationService(
         => NotifyServiceEditedAsync(projectId, serviceName, "modify", details, performerName, ct);
 
     public Task NotifyServiceDeletedAsync(Guid projectId, string serviceName, string? performerName = null, CancellationToken ct = default)
-        => NotifyServiceEditedAsync(projectId, serviceName, "deleted", null, performerName, ct);
+        => NotifyServiceEditedAsync(projectId, serviceName, "deleted", $"Service '{serviceName}' was deleted from project.", performerName, ct);
 
     public Task NotifyServiceAddedAsync(Guid projectId, string serviceName, string? details = null, string? performerName = null, CancellationToken ct = default)
         => NotifyServiceEditedAsync(projectId, serviceName, "added", details, performerName, ct);
@@ -4450,6 +4829,188 @@ public sealed class ActionNotificationService(
         }
 
         return sales;
+    }
+
+    public async Task NotifyProjectTaskLifecycleAsync(
+        Guid projectId,
+        Guid taskId,
+        string taskTitle,
+        string? serviceName,
+        string action,
+        string? performerName = null,
+        Guid? performerEmployeeId = null,
+        CancellationToken ct = default)
+    {
+        var project = await db.Projects
+            .Include(p => p.Client)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.DeletedAtUtc == null, ct);
+
+        if (project == null)
+        {
+            logger?.LogWarning("Project {ProjectId} not found or deleted. Task lifecycle notification cannot be dispatched.", projectId);
+            return;
+        }
+
+        // 1. Resolve actual Service Name if missing or general
+        if (string.IsNullOrWhiteSpace(serviceName) || serviceName.Equals("General", StringComparison.OrdinalIgnoreCase))
+        {
+            var task = await db.ProjectTasks
+                .Include(t => t.ProjectService)
+                .FirstOrDefaultAsync(t => t.Id == taskId, ct);
+            if (task?.ProjectService != null)
+            {
+                serviceName = task.ProjectService.ServiceName;
+            }
+            else
+            {
+                var firstService = await db.ProjectServices
+                    .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+                    .OrderBy(s => s.SortOrder)
+                    .FirstOrDefaultAsync(ct);
+                serviceName = firstService?.ServiceName?.Trim() ?? "General";
+            }
+        }
+        if (string.IsNullOrWhiteSpace(serviceName)) serviceName = "General";
+
+        // 2. Resolve performer resource name
+        string resourceName = performerName ?? "";
+        if (string.IsNullOrWhiteSpace(resourceName) && performerEmployeeId.HasValue)
+        {
+            var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == performerEmployeeId.Value && e.DeletedAtUtc == null, ct);
+            if (emp != null)
+            {
+                resourceName = $"{emp.FirstName} {emp.LastName}".Trim();
+            }
+        }
+        if (string.IsNullOrWhiteSpace(resourceName))
+        {
+            resourceName = currentUser.Name ?? "Assigned Resource";
+        }
+
+        // 3. Format Title, Type, and Content according to user specification
+        var act = (action ?? "").Trim().ToLowerInvariant();
+        string title;
+        string notifType;
+        string content;
+
+        if (act.Contains("pause"))
+        {
+            title = $"{project.Name} : {taskTitle} of {serviceName} is paused by {resourceName}";
+            notifType = "Task Paused";
+            content = $"{resourceName} has paused the task '{taskTitle}' under the service '{serviceName}' in project '{project.Name}'.";
+        }
+        else if (act.Contains("resume") || act.Contains("start"))
+        {
+            title = $"{project.Name} : {taskTitle} of {serviceName} is resume by {resourceName}";
+            notifType = "Task Resumed";
+            content = $"{resourceName} has resumed the task '{taskTitle}' under the service '{serviceName}' in project '{project.Name}'.";
+        }
+        else if (act.Contains("stop"))
+        {
+            title = $"{project.Name} : {taskTitle} of {serviceName} is stop by {resourceName}";
+            notifType = "Task Stopped";
+            content = $"{resourceName} has stopped the task '{taskTitle}' under the service '{serviceName}' in project '{project.Name}'.";
+        }
+        else if (act.Contains("complete"))
+        {
+            title = $"{project.Name} : {taskTitle} of {serviceName} is completed";
+            notifType = "Task Completed";
+            content = $"Task '{taskTitle}' under the service '{serviceName}' in project '{project.Name}' is completed.";
+        }
+        else
+        {
+            title = $"{project.Name} : {taskTitle} of {serviceName} is {action}";
+            notifType = "Task Updated";
+            content = $"Task '{taskTitle}' in project '{project.Name}' is {action}.";
+        }
+
+        // 4. Resolve Leadership Recipients: Assigned Project Manager, Assigned Engagement Manager, Project Team Leader
+        var recipientIds = new HashSet<Guid>();
+        if (slaRecipientResolver != null)
+        {
+            var resolved = await slaRecipientResolver.ResolveLeadershipRecipientsAsync(
+                projectId,
+                ["Assigned Engagement Manager", "Assigned Project Manager", "Project Team Leader"],
+                ct);
+            foreach (var id in resolved) recipientIds.Add(id);
+        }
+
+        if (project.ProjectManagerId.HasValue && project.ProjectManagerId.Value != Guid.Empty)
+            recipientIds.Add(project.ProjectManagerId.Value);
+
+        if (project.TeamLeadId.HasValue && project.TeamLeadId.Value != Guid.Empty)
+            recipientIds.Add(project.TeamLeadId.Value);
+
+        var emId = project.EngagementManagerId ?? project.Client?.EngagementManagerId;
+        if (emId.HasValue && emId.Value != Guid.Empty)
+            recipientIds.Add(emId.Value);
+
+        var tmLeaders = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(m => m.ProjectId == projectId && m.DeletedAtUtc == null &&
+                        (m.IsTeamLead ||
+                         m.MemberRole.ToLower().Contains("manager") ||
+                         m.MemberRole.ToLower().Contains("lead") ||
+                         m.MemberRole.ToLower() == "pm" ||
+                         m.MemberRole.ToLower() == "em" ||
+                         m.MemberRole.ToLower() == "tl"))
+            .Select(m => m.EmployeeId)
+            .ToListAsync(ct);
+
+        foreach (var id in tmLeaders) recipientIds.Add(id);
+
+        if (recipientIds.Count == 0)
+        {
+            logger?.LogWarning("No leadership recipients (PM, EM, TL) resolved for project {ProjectId} ('{ProjectName}'). Task notification cannot be dispatched.", projectId, project.Name);
+            return;
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        var dateStr = nowUtc.ToString("yyyy-MM-dd");
+        var timeStr = nowUtc.ToString("HH:mm:ss");
+
+        var addedList = new List<ActionNotification>();
+        foreach (var recId in recipientIds)
+        {
+            var notif = new ActionNotification
+            {
+                Id = Guid.NewGuid(),
+                RecipientEmployeeId = recId,
+                ProjectId = project.Id,
+                ProjectCode = project.ProjectCode,
+                ProjectName = project.Name,
+                Title = title,
+                Type = notifType,
+                Priority = "Medium",
+                Status = "Pending",
+                Unread = true,
+                RelatedTask = taskTitle,
+                RaisedByName = resourceName,
+                RaisedByEmployeeId = performerEmployeeId,
+                CreatedAtUtc = nowUtc,
+                CommentsJson = JsonSerializer.Serialize(new[]
+                {
+                    new { text = content, by = resourceName, at = nowUtc.ToString("o") }
+                }, JsonOptions),
+                HistoryJson = JsonSerializer.Serialize(new[]
+                {
+                    new
+                    {
+                        action = title,
+                        date = dateStr,
+                        time = timeStr,
+                        by = resourceName,
+                        details = content,
+                        at = nowUtc.ToString("o")
+                    }
+                }, JsonOptions)
+            };
+            db.ActionNotifications.Add(notif);
+            addedList.Add(notif);
+        }
+
+        await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(addedList);
     }
 
     #endregion

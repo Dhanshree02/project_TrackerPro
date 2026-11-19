@@ -1,4 +1,5 @@
 using PMS.API.Infrastructure.Logging;
+using PMS.API.Infrastructure.Persistence;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -44,6 +45,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerDocs();
 
 // ---- Application services (persistence, security, features, validators) ----
+DatabaseSyncHelper.Initialize(builder.Configuration.GetConnectionString("DefaultConnection"));
 builder.Services.AddApplicationServices(builder.Configuration);
 
 // ---- CORS (restricted to configured frontend origins) ----
@@ -202,6 +204,19 @@ try
 catch (Exception ex)
 {
     Log.Warning(ex, "Failed to schedule recurring Hangfire jobs for team availability & shift notifications.");
+}
+
+// Register Recurring Service Prerequisite Daily EOD Reminder Job (Daily at 18:00 IST / 12:30 UTC Mon-Fri)
+try
+{
+    RecurringJob.AddOrUpdate<PMS.API.Modules.ActionCentre.Services.IActionNotificationService>(
+        "service-prerequisite-daily-eod-reminders",
+        job => job.ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync(),
+        "30 12 * * 1-5");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Failed to schedule recurring Hangfire job for service prerequisite daily EOD reminders.");
 }
 
 app.MapControllers();

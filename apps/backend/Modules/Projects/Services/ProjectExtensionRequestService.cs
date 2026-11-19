@@ -964,7 +964,7 @@ public sealed class ProjectExtensionRequestService(
     private static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications)
 
     {
-
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
 
         {
@@ -1038,7 +1038,7 @@ public sealed class ProjectExtensionRequestService(
     private void TrySyncEndDateToOtherDatabase(Guid projectId, DateOnly newEndDate)
 
     {
-
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
 
         {
@@ -1235,6 +1235,60 @@ public sealed class ProjectExtensionRequestService(
 
         await db.SaveChangesAsync(ct);
         return Map(ext);
+    }
+
+    public async Task<ProjectExtensionRequestDto> TakeActionByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        TakeExtensionActionRequest request,
+        CancellationToken ct = default)
+    {
+        var cleanId = (identifier ?? "").Trim();
+        if (cleanId.StartsWith("APP-EXT-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("APP-EXT-".Length).Trim();
+        }
+        else if (cleanId.StartsWith("EXT-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("EXT-".Length).Trim();
+        }
+        else if (cleanId.StartsWith("APP-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("APP-".Length).Trim();
+        }
+
+        ProjectExtensionRequest? ext = null;
+
+        if (Guid.TryParse(cleanId, out var parsedGuid))
+        {
+            ext = await db.ProjectExtensionRequests
+                .Include(x => x.Approvers)
+                .Include(x => x.Project)
+                .FirstOrDefaultAsync(x => x.Id == parsedGuid && (projectId == null || projectId == Guid.Empty || x.ProjectId == projectId.Value) && x.DeletedAtUtc == null, ct);
+        }
+
+        if (ext == null && cleanId.Length >= 4)
+        {
+            var hex = cleanId.Replace("-", "").ToUpperInvariant();
+            var candidates = await db.ProjectExtensionRequests
+                .Include(x => x.Approvers)
+                .Include(x => x.Project)
+                .Where(x => (projectId == null || projectId == Guid.Empty || x.ProjectId == projectId.Value) && x.DeletedAtUtc == null)
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .Take(20)
+                .ToListAsync(ct);
+
+            ext = candidates.FirstOrDefault(x =>
+                x.Id.ToString().Replace("-", "").ToUpperInvariant().StartsWith(hex) ||
+                $"EXT-{x.Id.ToString("N")[..8].ToUpperInvariant()}".Contains(hex));
+        }
+
+        if (ext == null)
+        {
+            throw new NotFoundException($"Extension request '{identifier}' was not found.");
+        }
+
+        return await TakeActionAsync(ext.ProjectId, ext.Id, request, ct);
     }
 
     public async Task<ProjectExtensionRequestDto> AddCommentAsync(

@@ -6791,10 +6791,7 @@ const visibleApprovers = useMemo(() => {
                   </span>
                   <div className="space-y-2 pl-1 max-h-36 overflow-y-auto pr-1">
                     {parsedHistory.map((h: any, idx: number) => {
-                      const dateStr = formatToDayMonthYear(h.at || h.date);
-                      const timeStr = h.at
-                        ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                        : (h.time || "");
+                      const { dateStr, timeStr } = formatTimelineDateTime(h, selectedExt.createdAtUtc);
                       const rawText = h.details || h.action || `Status transitioned to ${h.status || ""}${h.updatedBy ? ` by ${h.updatedBy}` : ""}${h.comment ? ` — "${h.comment}"` : ""}`;
 
                       let action = rawText;
@@ -16236,33 +16233,112 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
 
 
 function formatToDayMonthYear(val?: string | null): string {
-
   if (!val) return "";
-
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
-
-  if (match) {
-
-    return `${match[3]}-${match[2]}-${match[1]}`;
-
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const [y, m, d] = val.split("-");
+    return `${d}-${m}-${y}`;
   }
-
   const d = new Date(val);
-
   if (!isNaN(d.getTime())) {
-
     const day = String(d.getDate()).padStart(2, "0");
-
     const month = String(d.getMonth() + 1).padStart(2, "0");
-
     const year = d.getFullYear();
-
     return `${day}-${month}-${year}`;
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+  return String(val);
+}
 
+function formatTimelineDateTime(
+  h?: { at?: string; date?: string; time?: string } | any,
+  fallbackCreatedAt?: string
+): { dateStr: string; timeStr: string } {
+  if (!h) {
+    if (fallbackCreatedAt) {
+      const d = new Date(fallbackCreatedAt);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return {
+          dateStr: `${day}-${month}-${year}`,
+          timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+    return { dateStr: "—", timeStr: "" };
   }
 
-  return String(val);
+  if (h.at) {
+    const d = new Date(h.at);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
 
+  if (h.date && h.time) {
+    if (/am|pm/i.test(h.time)) {
+      return {
+        dateStr: formatToDayMonthYear(h.date),
+        timeStr: h.time.trim()
+      };
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(h.date) && /^\d{1,2}:\d{2}(:\d{2})?/.test(h.time)) {
+      const utcIso = `${h.date}T${h.time}${h.time.endsWith("Z") ? "" : "Z"}`;
+      const d = new Date(utcIso);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return {
+          dateStr: `${day}-${month}-${year}`,
+          timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+  }
+
+  if (h.date) {
+    const d = new Date(h.date);
+    if (!isNaN(d.getTime()) && (h.date.includes("T") || h.date.includes("Z"))) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+    return {
+      dateStr: formatToDayMonthYear(h.date),
+      timeStr: h.time || ""
+    };
+  }
+
+  if (fallbackCreatedAt) {
+    const d = new Date(fallbackCreatedAt);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
+
+  return { dateStr: "—", timeStr: "" };
 }
 
 
@@ -17033,11 +17109,8 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                     {parsedHistory.map((h: any, idx: number) => {
 
-                      const dateStr = formatToDayMonthYear(h.at || h.date);
-
-                      const timeStr = h.at ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : (h.time || "");
-
-                      const rawText = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
+                      const { dateStr, timeStr } = formatTimelineDateTime(h, selectedEsc.createdAtUtc);
+                      const rawText = h.action || h.details || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
 
                       let action = rawText;
                       let remark = "";
@@ -20728,7 +20801,7 @@ function WbsPrerequisiteSection({
 
                             <SearchableSelect
                               value={svc.billingStatus ?? "Advance Pending"}
-                              disabled={effectiveReadOnly || isDeleted || isReady}
+                              disabled={effectiveReadOnly || isDeleted || isReady || (!isResourceDept && (!isCollected || !isValidated))}
                               onChange={(value) => handleServiceChange(svc.serviceId, "billingStatus", value)}
                               options={["Advance Pending", "Advance Received", "Advance Not Required"]}
                               clearable={false}
@@ -21009,7 +21082,7 @@ function WbsPrerequisiteSection({
 
                               <SearchableSelect
                                 value={localServiceStatus[svc.serviceId]?.modBillingStatus ?? wbsSvc.modBillingStatus ?? "Advance Pending"}
-                                disabled={effectiveReadOnly || Boolean(isModified && wbsSvc.modIsReady)}
+                                disabled={effectiveReadOnly || Boolean(isModified && wbsSvc.modIsReady) || (!isResourceDept && ((localServiceStatus[svc.serviceId]?.modCollectionStatus ?? wbsSvc.modCollectionStatus) !== "Collected" || (localServiceStatus[svc.serviceId]?.modValidationStatus ?? wbsSvc.modValidationStatus) !== "Validated"))}
                                 options={["Advance Pending", "Advance Received", "Advance Not Required"]}
                                 clearable={false}
                                 showSearch={false}

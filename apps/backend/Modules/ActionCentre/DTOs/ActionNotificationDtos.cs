@@ -15,6 +15,15 @@ public class NotificationHistoryItemDto
 
     [JsonPropertyName("by")]
     public string By { get; set; } = string.Empty;
+
+    [JsonPropertyName("at")]
+    public string? At { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
+
+    [JsonPropertyName("details")]
+    public string? Details { get; set; }
 }
 
 public class ActionNotificationDto

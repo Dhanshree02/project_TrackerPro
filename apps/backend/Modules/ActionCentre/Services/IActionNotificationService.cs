@@ -37,6 +37,15 @@ public interface IActionNotificationService
     Task StartServicePrerequisiteSlaWorkflowAsync(Guid projectId, Guid serviceId, CancellationToken ct = default);
     Task CancelServicePrerequisiteSlaWorkflowAsync(Guid serviceId, CancellationToken ct = default);
 
+    Task StartProjectServicePrerequisiteReminderWorkflowAsync(Guid projectId, CancellationToken ct = default);
+    Task CancelProjectServicePrerequisiteReminderWorkflowAsync(Guid projectId, CancellationToken ct = default);
+
+    [JobDisplayName("Service Prerequisite | 2-Day Daily EOD Reminder | PMO & EM | {0} | Day {1}")]
+    Task ExecuteServicePrerequisitePendingReminderJobAsync(Guid projectId, int reminderDay);
+
+    [JobDisplayName("Service Prerequisite | Daily EOD Check All Projects | PMO & EM")]
+    Task ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync();
+
     [JobDisplayName("Service Prerequisite | 1st Level Breach Escalation | PM | {0} | {1}")]
     Task ExecuteServicePrerequisiteL1EscalationJobAsync(Guid projectId, Guid serviceId);
 
@@ -47,4 +56,14 @@ public interface IActionNotificationService
     Task NotifyServiceModifiedAsync(Guid projectId, string serviceName, string? details = null, string? performerName = null, CancellationToken ct = default);
     Task NotifyServiceDeletedAsync(Guid projectId, string serviceName, string? performerName = null, CancellationToken ct = default);
     Task NotifyServiceAddedAsync(Guid projectId, string serviceName, string? details = null, string? performerName = null, CancellationToken ct = default);
+
+    Task NotifyProjectTaskLifecycleAsync(
+        Guid projectId,
+        Guid taskId,
+        string taskTitle,
+        string? serviceName,
+        string action,
+        string? performerName = null,
+        Guid? performerEmployeeId = null,
+        CancellationToken ct = default);
 }

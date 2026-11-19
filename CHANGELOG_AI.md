@@ -1,3 +1,241 @@
+# Changelog - Accurate Synchronization of pms_uat.sql and pms_development.sql from Live Local Database
+
+## Summary of Changes
+- **Database Dump Synchronization**:
+  - Cleared and regenerated both `database/pms_uat.sql` and `database/pms_development.sql` directly from the active local PostgreSQL database (`pms_uat` on `localhost:5432`).
+  - Exported complete schema, tables, constraints, foreign keys, sequences, and data using `pg_dump --no-owner --no-acl`.
+  - Filtered out PostgreSQL 18-specific `\restrict` and `\unrestrict` session tokens for cross-version PostgreSQL compatibility.
+- **Verification & Data Audit**:
+  - Audited all 11 schemas, 94 base tables, and 5,394 rows against the live local database.
+  - Confirmed 0 mismatches: 100% of tables and records are identically represented in both SQL files.
+  - Verified identical file sizes (1,504,634 bytes) and line counts (11,869 lines).
+- **Affected Files**:
+  - `database/pms_uat.sql`
+  - `database/pms_development.sql`
+- **Database Changes and Migrations**:
+  - None.
+- **Existing Functionality Preserved**:
+  - No business logic, APIs, or UI modified.
+
+---
+
+# Changelog - Accurate Date and Time for Notification Audit History & Alert Status Transitions Timeline
+
+## Summary of Changes
+- **Date & Time Synchronization and Accuracy**:
+  - **Notification Audit History (View Button)**:
+    - Fixed UTC discrepancy where timeline history logs displayed raw 24-hr UTC timestamps (`HH:mm:ss`), creating a 5.5-hour mismatch with the localized `Created Time` header (`11:32 AM` vs `06:02:44`).
+    - Handled flexible history record structures (including records with `at`, `details`, `status`, `updatedBy` as well as `action`, `date`, `time`, `by`) so that timeline entries are never blank or missing details.
+    - Added fallback to the notification's `createdAt` when history items have no individual timestamp or when `history` is empty, ensuring an accurate initial creation log is always rendered.
+    - Synchronized `formatNotifDate` and `formatNotifTime` to accurately parse `YYYY-MM-DD` dates without timezone shift and convert ISO timestamps to user local timezone.
+  - **Alert Status Transitions Timeline (Review Details Button)**:
+    - Fixed raw UTC time display in `Status Transitions Timeline` in `action-centre-page.tsx` and `project-detail-page.tsx`.
+    - Introduced `formatTimelineDateTime` which accurately handles ISO timestamps (`at`), UTC `date` + `time` strings from backend, and pre-formatted 12-hour timestamps.
+    - Fixed `formatToDayMonthYear` regex bug where strings starting with `YYYY-MM-DD` bypassed timezone conversion, ensuring dates that cross UTC midnight reflect the correct local day.
+- **Backend Enhancements**:
+  - `apps/backend/Modules/ActionCentre/DTOs/ActionNotificationDtos.cs`:
+    - Extended `NotificationHistoryItemDto` with `At`, `Status`, and `Details` properties.
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+    - Rewrote `ParseHistory` using `JsonDocument` to flexibly parse diverse history JSON payloads (`status`, `details`, `at`, `updatedBy`, `action`, `date`, `time`, `by`), automatically reconstructing `At` (ISO-8601 UTC) when only `date` and `time` are stored.
+    - Ensured `MapDto` and `MapAlertDto` provide a default "Notification created" history entry if history is empty.
+    - Included `At = now.ToString("o")` across all new history records created during mark as read, archive, comment addition, and governance updates.
+  - `apps/backend/Modules/Projects/Services/ProjectIssueService.cs`:
+    - Added `At = now.ToString("o")` to default alert history and status transition logs.
+- **Affected Files**:
+  - `apps/backend/Modules/ActionCentre/DTOs/ActionNotificationDtos.cs`
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+  - `apps/backend/Modules/Projects/Services/ProjectIssueService.cs`
+  - `apps/backend/Modules/ActionCentre/Services/BucketTaskService.cs`
+  - `apps/frontend/src/components/notification-detail-modal.tsx`
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+  - `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
+- **Existing Functionality & UI Preserved**:
+  - No changes made to business logic, status transitions, approval/alert workflows, or UI layouts.
+- **Database & Data Integrity**:
+  - Zero database schema migrations required.
+  - Strict user constraint observed: 0 customers, departments, notifications, alert requests, approval requests, bucket tasks, or resources were added to the database or UI.
+- **Verification**:
+  - Backend compiled with **0 errors**.
+  - Frontend compiled with **0 errors**.
+  - Backend verified running and Healthy at `http://localhost:5194/health`.
+  - Database row counts verified against baseline.
+
+---
+
+# Changelog - Project Task Lifecycle Notifications from Bucket List & Project Tasks Tab
+
+## Summary of Changes
+- **Business Logic & Notification Dispatch**:
+  - **Bucket List Task Lifecycle Notifications**:
+    - When a project task is paused, resumed, stopped, or completed from the bucket list:
+      - Notifications are dispatched to the **Assigned Project Manager**, **Assigned Engagement Manager**, and **Project Team Leader**.
+      - Notification Title formats match exact specification:
+        - **Paused**: `"{Project_name} : {Task name} of {Service name} is paused by {Resource name}"` (Type: `"Task Paused"`, Priority: `"Low"`)
+        - **Resume**: `"{Project_name} : {Task name} of {Service name} is resume by {Resource name}"` (Type: `"Task Resumed"`, Priority: `"Low"`)
+        - **Stop**: `"{Project_name} : {Task name} of {Service name} is stop by {Resource name}"` (Type: `"Task Stopped"`, Priority: `"Medium"`)
+        - **Completed**: `"{Project_name} : {Task name} of {Service name} is completed"` (Type: `"Task Completed"`, Priority: `"Low"`)
+      - Recipient resolution logic covers `ISlaRecipientResolver.ResolveLeadershipRecipientsAsync`, direct project entity fields (`ProjectManagerId`, `EngagementManagerId`, `TeamLeadId`), and project team member allocations (`tbl_project_team_members`) with leadership roles or `IsTeamLead` flag.
+      - Service name resolution queries the task's linked `ProjectService` or the project's primary service.
+      - Resource performer name is resolved from the employee record or current session context.
+  - **Project Task Tab Completion Reflection**:
+    - In `ProjectAppService.UpdateTaskStageAsync`, when a task stage is updated to `"Completed"`, it reflects as completed across bucket tasks and automatically invokes `NotifyProjectTaskLifecycleAsync` with action `"completed"`.
+    - Notification Title: `"{Project_name} : {Task name} of {Service name} is completed"`.
+- **API & Service Changes**:
+  - `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`:
+    - Added `NotifyProjectTaskLifecycleAsync(Guid projectId, Guid taskId, string taskTitle, string? serviceName, string action, string? performerName = null, Guid? performerEmployeeId = null, CancellationToken ct = default)`.
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+    - Implemented `NotifyProjectTaskLifecycleAsync` resolving service name, leadership recipients (PM, EM, TL), performer details, formatting user-specified titles, and inserting audit history and comments.
+  - `apps/backend/Modules/ActionCentre/Services/BucketTaskService.cs`:
+    - Injected `IActionNotificationService` and wired up notification dispatches for `StartBucketTaskTimerAsync` (resume), `PauseBucketTaskTimerAsync` (paused), `StopBucketTaskTimerAsync` (stop), `CompleteBucketTaskAsync` (completed), and `UpdateBucketTaskStatusAsync`.
+  - `apps/backend/Modules/Projects/Services/ProjectAppService.cs`:
+    - Hooked `UpdateTaskStageAsync` to invoke `NotifyProjectTaskLifecycleAsync` upon completion.
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+    - Added `"Task Resumed"` and `"Task Completed"` to `NOTIFICATION_TYPES` filter.
+  - `apps/frontend/src/components/notification-detail-modal.tsx`:
+    - Added UI badges, styling, and status icon rendering for `"paused"`, `"resumed"`, and `"stopped"`.
+- **Existing Functionality Preserved**:
+  - No modifications to existing bucket task timer mechanics, status update logic, or task tab workflows.
+  - Preserved all existing UI layouts, forms, buttons, and behavior without alteration.
+- **Database & Migrations**:
+  - Zero database schema migrations required; existing `ActionNotification` schema utilized.
+  - Data integrity strictly maintained: 0 customers, projects, notifications, alerts, approvals, or resources were added to the database during implementation and testing.
+- **Verification**:
+  - Backend compiled with **0 errors**.
+  - Frontend compiled with **0 errors** (`dist/client` and `dist/server` built).
+  - Backend healthy at `http://localhost:5194/health`.
+  - Database baseline counts verified.
+
+---
+
+# Changelog - WBS Edit Service Notifications for Assigned Engagement Manager & PMO
+
+## Summary of Changes
+- **Business Logic & Notification Dispatch**:
+  - **Service Edited Workflow (Add, Modify, Delete)**:
+    - From the WBS tab of a project, editing services via the "Edit Services" modal triggers backend service operations (`AddProjectServiceAsync`, `UpdateProjectServiceAsync`, `DeleteProjectServiceAsync` in `ProjectAppService.cs`).
+    - Extended `NotifyServiceEditedAsync` in `ActionNotificationService.cs` to resolve and dispatch notifications to **both**:
+      1. **Assigned Engagement Manager(s)** of the project (resolved via `project.EngagementManagerRef`, `project.EngagementManagerId`, `project.Client.EngagementManagerId`, team member role assignments, or name/email matching).
+      2. **PMO (Project Management Office)** (resolved from active employees whose sub-department, department, or role matches `PMO`).
+  - **Notification Titles & Meaningful Context**:
+    - **Modify**: Title: `$"The {project.Name} service is modify"`, Type: `"Service Modified"`.
+      - History/Action: Descriptive details including service name, requested modifications (`Target Qty`, `Resource Level`), performer, and timestamp.
+    - **Delete**: Title: `$"The {project.Name} service is deleted"`, Type: `"Service Deleted"`.
+      - History/Action: `$"Service '{serviceName}' was deleted from project '{project.Name}'."`.
+    - **Add**: Title: `$"The {project.Name} service is added"`, Type: `"Service Added"`.
+      - History/Action: `$"Service '{service.ServiceName}' was added to project with Qty: {service.Qty}, Department: '{service.Department}'."`.
+- **Affected Files**:
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+    - Updated `NotifyServiceEditedAsync` to deliver notifications to both the Assigned Engagement Manager(s) and PMO employees.
+    - Formatted `HistoryJson` with `action: meaningfulDetails`, `status: actionWord`, `date`, `time`, and `by` for full audit traceability.
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+    - Added `"Service Modified"`, `"Service Deleted"`, and `"Service Added"` to `NOTIFICATION_TYPES`.
+  - `apps/frontend/src/components/notification-detail-modal.tsx`:
+    - Added styling, status pills, and icons for `Service Modified`, `Service Deleted`, and `Service Added`.
+- **Existing Functionality Preserved**:
+  - Zero changes to the Edit Service business logic, calculations, stage tracking, or modal functionality.
+  - Preserved all existing unit/integration test contracts.
+- **Database & Data Integrity**:
+  - No database migrations or schema alterations required.
+  - User constraint honored: **Zero customers, projects, notifications, alerts, approvals, or resources were added to the database or UI**.
+- **Verification**:
+  - Backend compiled with **0 errors**.
+  - Frontend compiled with **0 errors**.
+  - Verified backend service status at `http://localhost:5194/health` (Healthy).
+
+---
+
+# Changelog - WBS Service Wise Prerequisite Tracking: Service Started Notifications & 2-Day Daily EOD Reminders
+
+## Summary of Changes
+- **Business Logic & Workflow Implementation**:
+  - **Service Started Notifications**:
+    - From the project WBS tab (Service wise Prerequisite Tracking), when a service status is transitioned to "Started" (`IsReady` = true or `ModIsReady` = true):
+      - Dispatches immediate notifications to the **Assigned Project Manager (PM)**, **Assigned Senior Project Manager (SPM)**, **Assigned Engagement Manager (EM)**, and **Assigned Team Lead (TL)**.
+      - Notification Title: `$"Service Started: {service.ServiceName} | {project.Name}"`
+      - Related Task: `{service.ServiceName}`, Related Project: `{project.Name}`.
+      - Automatically cancels pending SLA breach escalation jobs for that service.
+      - Checks whether all services for the project are now started; if so, automatically cancels all active 2-day reminder workflows for the project.
+  - **2-Day Daily EOD Reminder Workflow (PMO & EM)**:
+    - If all services for a project are not started from the Service wise Prerequisite Tracking section within 2 days:
+      - Dispatches a daily End-of-Day (EOD) reminder notification to the **PMO (Project Management Office)** and the **Assigned Engagement Manager (EM)** in their Action Centre notification tab at 18:00 IST (12:30 UTC).
+      - Reminder Title: `$"{project.Name} Service wise Prerequisite Tracking is still pending"`.
+      - Related Task / Project: `{project.Name}`.
+      - Type: `"Service Prerequisite Reminder"`.
+      - Prevents duplicate reminders on the same day for the same project.
+      - Evaluated daily Mon–Fri at 18:00 IST via Hangfire recurring job `service-prerequisite-daily-eod-reminders` (`ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync`), as well as project-specific scheduled delays.
+- **Affected Files**:
+  - `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`: Declared `StartProjectServicePrerequisiteReminderWorkflowAsync`, `CancelProjectServicePrerequisiteReminderWorkflowAsync`, `ExecuteServicePrerequisitePendingReminderJobAsync`, and `ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync`.
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+    - Implemented `NotifyServiceStartedAsync` targeting PM, SPM, EM, and TL.
+    - Implemented `ResolveAssignedSeniorProjectManagersAsync`, `ResolveAssignedTeamLeadsAsync`, and `ResolvePmoEmployeesAsync`.
+    - Implemented `StartProjectServicePrerequisiteReminderWorkflowAsync`, `CancelProjectServicePrerequisiteReminderWorkflowAsync`, `ExecuteServicePrerequisitePendingReminderJobAsync`, `DispatchServicePrerequisitePendingReminderAsync`, and `ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync`.
+  - `apps/backend/Modules/Projects/Services/ProjectAppService.cs`: Wired prerequisite reminder initiation on project creation, service addition, project renewal, and prerequisite updates (`!IsReady`). Triggered `NotifyServiceStartedAsync` upon service ready state change (`becameReady` or `modBecameReady`).
+  - `apps/backend/Program.cs`: Registered Hangfire recurring job `"service-prerequisite-daily-eod-reminders"` running at `30 12 * * 1-5` (18:00 IST Mon–Fri).
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`: Added `"Service Started"` and `"Service Prerequisite Reminder"` to the Action Centre notification type filters.
+  - `apps/frontend/src/components/notification-detail-modal.tsx`: Configured visual styling, status badges, and icons for `"Service Started"` and `"Service Prerequisite Reminder"`.
+- **Database & Data Integrity**:
+  - No database migrations or schema alterations required.
+  - Strictly respected user constraints: **Zero test customers, projects, notifications, alerts, approvals, or resources were added to the database or UI**.
+- **Verification**:
+  - Backend project compiled with **0 errors and 0 warnings**.
+  - Frontend built cleanly for both client and SSR bundles with **0 errors**.
+  - Backend daemon verified and responsive at `http://localhost:5194/health` returning `Healthy`.
+
+---
+
+# Changelog - Fix Approvals Tab Request Status Database Persistence
+
+## Summary of Changes
+- **Root Cause Analysis (Approvals Tab Status Not Updating in Database)**:
+  - **Fragile Frontend Type Matching**: `handleAction` in `action-centre-page.tsx` relied on exact string matches (`currentApp.requestType === "Customer Requirement Approval"` etc.). Approvals originating from store state or notification items had different labels (e.g., `"Additional Customer Requirement"` or `"Extension Request"`), causing all conditions to evaluate to `false`. Execution fell through to `!handledByApi`, which merely called in-memory `dhStore.updateCentralApprovalStatus(...)` and displayed `toast.success`, misleading users while zero API calls were dispatched to the backend.
+  - **Identifier Prefix Mismatch**: Central approval items use `APP-` followed by an 8-character hash or GUID (e.g., `APP-4B988935`, `APP-D472CC0E`, `APP-6C99804A`). In `ProjectTeamMemberService.cs`, `TakeAllocationActionAsync` stripped only `ALLOC-` but not `APP-` or `APP-ALLOC-`, preventing partial GUID matching against `project.tbl_resource_allocation_requests`.
+  - **Missing Dedicated Extension Approval Route**: `ActionCentreController` had endpoints for requirements and allocations, but lacked a dedicated action endpoint for timeline extension requests.
+- **Backend Enhancements**:
+  - **Polymorphic Action Endpoint**: Upgraded `[HttpPost("approvals/{identifier}/action")]` in `ActionCentreController.cs` into an intelligent multi-domain handler that resolves customer requirements, extension requests, resource allocations, and feedbacks by identifier, GUID, or prefix.
+  - **Dedicated Extension Approval Endpoint**: Added `[HttpPost("extension-approvals/{identifier}/action")]` in `ActionCentreController.cs` and `TakeActionByIdentifierAsync` in `IProjectExtensionRequestService.cs` / `ProjectExtensionRequestService.cs`.
+  - **Robust Prefix Stripping**: Updated `ProjectTeamMemberService.cs` and `ProjectExtensionRequestService.cs` to cleanly normalize identifiers prefixed with `APP-`, `APP-ALLOC-`, `ALLOC-`, `APP-EXT-`, or `EXT-`.
+- **Frontend Refinements**:
+  - In `action-centre-page.tsx`, rewritten `handleAction` to use case-insensitive fuzzy keyword matching (`requirement`, `customer`, `allocation`, `resource`, `extension`, `timeline`, `feedback`) and universal fallback to `takeCentralApprovalAction`.
+  - Updated API helpers in `project-extension-requests.ts`, `project-team-members.ts`, and `project-additional-requirements.ts` to seamlessly route through the Central Action Centre endpoints with proper error propagation.
+- **Verification**:
+  - Backend compiles with **0 warnings and 0 errors**.
+  - Verified live status updates via direct PostgreSQL queries in `pms_uat`:
+    - `project.tbl_project_additional_requirements`: Verified `Approved` persistence.
+    - `project.tbl_project_extension_requests`: Verified transitions between `Hold` and `Approved`.
+    - `project.tbl_resource_allocation_requests`: Verified transitions between `Hold` and `Approved`.
+  - Zero new employees, resources, or departments added to the database.
+
+---
+
+# Changelog - Fix Duplicate Key Constraint (pk_tbl_notifications) & Extension/Requirement Approval Status Updates
+
+## Summary of Changes
+- **Root Cause Analysis (PostgreSQL 23505 Duplicate Key Error)**:
+  - Discovered that secondary database sync routines (`TrySyncNotificationsToOtherDatabase`, `TrySyncEndDateToOtherDatabase`, `TrySyncAllocationRequestToOtherDatabase`, `TrySyncTeamMemberToOtherDatabase`) across backend services connected directly to `Database=pms_uat` via hardcoded ADO.NET connections.
+  - When the primary `DefaultConnection` database is already `pms_uat`, these routines connected to the exact same database outside the EF Core transaction before `await db.SaveChangesAsync(ct)` completed.
+  - As a result, notification entities were inserted into `action.tbl_notifications` ahead of EF Core. When EF Core subsequently attempted to insert the same entity ID, PostgreSQL threw `23505: duplicate key value violates unique constraint "pk_tbl_notifications"`.
+  - This error caused EF Core to abort and roll back the entire transaction, leaving the database records (extension request status, requirement status, interview status) in `Pending` state while the out-of-transaction notifications remained stranded.
+- **Architectural Fix**:
+  - Created `DatabaseSyncHelper.cs` (`apps/backend/Infrastructure/Persistence/DatabaseSyncHelper.cs`) and initialized it with `Configuration.GetConnectionString("DefaultConnection")` in `Program.cs`.
+  - When `DatabaseSyncHelper.IsPrimaryPmsUat` is true (i.e. running against `pms_uat`), all `TrySync` routines immediately return to prevent self-syncing, duplicate insertions, and constraint violations.
+  - In `ProjectAdditionalRequirementService` and `ProjectInterviewService`, reordered notification syncing to execute strictly **after** `await db.SaveChangesAsync(ct)` completes.
+  - Applied the `DatabaseSyncHelper.IsPrimaryPmsUat` guard across:
+    - `ProjectAdditionalRequirementService.cs`
+    - `ProjectInterviewService.cs`
+    - `ProjectExtensionRequestService.cs`
+    - `ProjectTeamMemberService.cs`
+    - `ActionNotificationService.cs`
+    - `TimesheetNotificationService.cs`
+- **Frontend Action Centre Reliability**:
+  - In `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`, updated error handling for Extension Requests, Resource Allocations, and Customer Requirements to display `toast.error(err?.message)` and return early on backend failure, preventing optimistic local state from falsely displaying approval success when the backend rolled back.
+- **Verification & Test Results**:
+  - Rebuilt backend cleanly with **0 errors**.
+  - Verified Extension Request approval (`d472cc0e-9477-4619-b504-aac3809a64df`): Status cleanly updated to `Approved` in `project.tbl_project_extension_requests`, approver marked `Approved` in `project.tbl_project_extension_approvers`, and project `EndDate` updated to `2028-06-17` in `project.tbl_projects`.
+  - Verified Additional Customer Requirement: Created requirement (`APP-6C99804A`), added comment, and approved status with **0 duplicate key errors**; database persisted status `Approved`.
+  - Verified Schedule Interview: Scheduled interview for team member and updated status to `Selected` with **0 duplicate key errors**; database persisted status `Selected` and notifications synchronized.
+
+---
+
 # Changelog - Synchronize pms_uat.sql from Local Database and Push Development Updates
 
 ## Summary of Changes

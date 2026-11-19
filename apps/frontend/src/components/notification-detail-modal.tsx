@@ -22,19 +22,110 @@ export function formatNotificationId(id?: string | null): string {
   return `NOT-${clean.slice(0, 8).toUpperCase()}`;
 }
 
-export const formatNotifDate = (dateStr: string): string => {
+export const formatNotifDate = (dateStr?: string | null): string => {
   if (!dateStr) return "—";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split("-");
+    return `${d}-${m}-${y}`;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return formatDateDMY(d);
 };
 
-export const formatNotifTime = (dateStr: string): string => {
+export const formatNotifTime = (dateStr?: string | null): string => {
   if (!dateStr) return "—";
+  if (/am|pm/i.test(dateStr)) return dateStr.trim();
+  if (/^\d{1,2}:\d{2}(:\d{2})?/.test(dateStr)) {
+    const today = new Date().toISOString().slice(0, 10);
+    const d = new Date(`${today}T${dateStr}${dateStr.endsWith("Z") ? "" : "Z"}`);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+    }
+    return dateStr;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 };
+
+export function formatHistoryDateTime(
+  h?: { at?: string; date?: string; time?: string } | any,
+  fallbackCreatedAt?: string
+): { dateStr: string; timeStr: string } {
+  if (!h) {
+    if (fallbackCreatedAt) {
+      const d = new Date(fallbackCreatedAt);
+      if (!isNaN(d.getTime())) {
+        return {
+          dateStr: formatDateDMY(d),
+          timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+    return { dateStr: "—", timeStr: "" };
+  }
+
+  // 1. If full ISO timestamp `at` is present
+  if (h.at) {
+    const d = new Date(h.at);
+    if (!isNaN(d.getTime())) {
+      return {
+        dateStr: formatDateDMY(d),
+        timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
+
+  // 2. If both date and time are provided
+  if (h.date && h.time) {
+    if (/am|pm/i.test(h.time)) {
+      return {
+        dateStr: formatNotifDate(h.date),
+        timeStr: h.time.trim()
+      };
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(h.date) && /^\d{1,2}:\d{2}(:\d{2})?/.test(h.time)) {
+      const utcIso = `${h.date}T${h.time}${h.time.endsWith("Z") ? "" : "Z"}`;
+      const d = new Date(utcIso);
+      if (!isNaN(d.getTime())) {
+        return {
+          dateStr: formatDateDMY(d),
+          timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+  }
+
+  // 3. If date is provided (could be ISO string)
+  if (h.date) {
+    const d = new Date(h.date);
+    if (!isNaN(d.getTime()) && (h.date.includes("T") || h.date.includes("Z"))) {
+      return {
+        dateStr: formatDateDMY(d),
+        timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+    return {
+      dateStr: formatNotifDate(h.date),
+      timeStr: h.time ? formatNotifTime(h.time) : ""
+    };
+  }
+
+  // 4. Fallback to notification's createdAt
+  if (fallbackCreatedAt) {
+    const d = new Date(fallbackCreatedAt);
+    if (!isNaN(d.getTime())) {
+      return {
+        dateStr: formatDateDMY(d),
+        timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
+
+  return { dateStr: "—", timeStr: "" };
+}
 
 export const getTypeStyles = (type: string) => {
   const t = (type || "").toLowerCase();
@@ -42,8 +133,11 @@ export const getTypeStyles = (type: string) => {
     return "bg-indigo-50 text-indigo-700 border border-indigo-200";
   } else if (t.includes("wbs")) {
     return "bg-orange-50 text-orange-700 border border-orange-200";
+  } else if (t.includes("deleted") || t.includes("stopped")) {
+    return "bg-red-50 text-red-700 border border-red-200";
   } else if (
     t.includes("ready") ||
+    t.includes("started") ||
     t.includes("completed") ||
     t.includes("resolved") ||
     t.includes("approved") ||
@@ -52,7 +146,7 @@ export const getTypeStyles = (type: string) => {
     return "bg-emerald-50 text-emerald-700 border border-emerald-200";
   } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal")) {
     return "bg-red-50 text-red-700 border border-red-200";
-  } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed")) {
+  } else if (t.includes("modify") || t.includes("paused") || t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("prerequisite") || t.includes("reminder")) {
     return "bg-amber-50 text-amber-700 border border-amber-200";
   } else if (t.includes("appreciation") || t.includes("feedback")) {
     return "bg-purple-50 text-purple-700 border border-purple-200";
@@ -61,7 +155,9 @@ export const getTypeStyles = (type: string) => {
     t.includes("shuffle") ||
     t.includes("allocation") ||
     t.includes("assignment") ||
-    t.includes("assigned")
+    t.includes("assigned") ||
+    t.includes("added") ||
+    t.includes("resumed")
   ) {
     return "bg-sky-50 text-sky-700 border border-sky-200";
   }
@@ -70,17 +166,17 @@ export const getTypeStyles = (type: string) => {
 
 export const getNotifStatusStyles = (status: string) => {
   const s = (status || "").toLowerCase().trim();
-  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done") {
+  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done" || s === "started") {
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
   }
   if (s === "assigned") {
     return "bg-indigo-50 text-indigo-700 border-indigo-200";
   }
-  if (s === "created") {
+  if (s === "created" || s === "added") {
     return "bg-sky-50 text-sky-700 border-sky-200";
   }
-  if (s === "edited") {
-    return "bg-blue-50 text-blue-700 border-blue-200";
+  if (s === "edited" || s === "modify" || s === "modified") {
+    return "bg-amber-50 text-amber-700 border-amber-200";
   }
   if (s === "upload" || s === "uploaded") {
     return "bg-teal-50 text-teal-700 border-teal-200";
@@ -88,7 +184,7 @@ export const getNotifStatusStyles = (status: string) => {
   if (s === "hold" || s === "on hold" || s === "postponed") {
     return "bg-amber-50 text-amber-700 border-amber-200";
   }
-  if (s === "rejected" || s === "cancelled") {
+  if (s === "rejected" || s === "cancelled" || s === "deleted") {
     return "bg-red-50 text-red-700 border-red-200";
   }
   if (s === "request change" || s === "request changes" || s === "requested changes" || s === "change_requested") {
@@ -99,16 +195,19 @@ export const getNotifStatusStyles = (status: string) => {
 
 export const renderNotifStatusIcon = (status: string) => {
   const s = (status || "").toLowerCase().trim();
-  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done") {
+  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done" || s === "started") {
     return <CheckCircle2 className="h-3 w-3 text-emerald-600" />;
   }
   if (s === "assigned") {
     return <CheckCircle2 className="h-3 w-3 text-indigo-600" />;
   }
-  if (s === "hold" || s === "on hold" || s === "postponed") {
+  if (s === "created" || s === "added") {
+    return <CheckCircle2 className="h-3 w-3 text-sky-600" />;
+  }
+  if (s === "hold" || s === "on hold" || s === "postponed" || s === "modify" || s === "modified") {
     return <Clock className="h-3 w-3 text-amber-600" />;
   }
-  if (s === "rejected" || s === "cancelled") {
+  if (s === "rejected" || s === "cancelled" || s === "deleted") {
     return <XCircle className="h-3 w-3 text-red-600" />;
   }
   if (s === "request change" || s === "request changes" || s === "requested changes" || s === "change_requested") {
@@ -386,30 +485,51 @@ export function NotificationDetailModal({
 
           {/* Chronological Timeline History Log */}
           <div className="relative pl-4 border-l border-border/60 space-y-3 mt-4">
-            {(notification.history || []).map((h, idx) => (
-              <div key={idx} className="relative flex items-start gap-2">
-                <span className="absolute -left-[20.5px] top-1.5 h-2 w-2 rounded-full border border-primary bg-card" />
-                <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground font-mono text-[10px]">
-                      {formatNotifDate(h.date)} {h.time}
-                    </span>
-                    <span className="font-semibold text-gray-700">
-                      {h.action.includes("Remarks:") ? (
-                        <>
-                          Notification acknowledged by <strong>{h.by}</strong>
-                          <span className="block text-muted-foreground font-normal mt-0.5 italic">
-                            Remarks: {h.action.split("Remarks:")[1]?.replace(/"/g, "")}
-                          </span>
-                        </>
-                      ) : (
-                        `${h.action} by ${h.by}`
-                      )}
-                    </span>
+            {(() => {
+              const historyItems = (notification.history && notification.history.length > 0)
+                ? notification.history
+                : [
+                    {
+                      action: "Notification created",
+                      at: notification.createdAt,
+                      date: notification.createdDate,
+                      by: notification.createdBy || notification.raisedBy || "System"
+                    }
+                  ];
+
+              return historyItems.map((h, idx) => {
+                const { dateStr, timeStr } = formatHistoryDateTime(h, notification.createdAt);
+                const actionText = h.action || (h as any).details || ((h as any).status ? `Status: ${(h as any).status}` : "Notification updated");
+                const performer = h.by || (h as any).updatedBy || notification.createdBy || "System";
+
+                return (
+                  <div key={idx} className="relative flex items-start gap-2">
+                    <span className="absolute -left-[20.5px] top-1.5 h-2 w-2 rounded-full border border-primary bg-card" />
+                    <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground font-mono text-[10px] whitespace-nowrap">
+                          {dateStr} {timeStr}
+                        </span>
+                        <span className="font-semibold text-gray-700">
+                          {actionText.includes("Remarks:") ? (
+                            <>
+                              Notification acknowledged by <strong>{performer}</strong>
+                              <span className="block text-muted-foreground font-normal mt-0.5 italic">
+                                Remarks: {actionText.split("Remarks:")[1]?.replace(/"/g, "")}
+                              </span>
+                            </>
+                          ) : actionText.toLowerCase().includes(`by ${performer.toLowerCase()}`) ? (
+                            actionText
+                          ) : (
+                            `${actionText} by ${performer}`
+                          )}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              });
+            })()}
           </div>
         </div>
 

@@ -310,19 +310,82 @@ public class ActionCentreController : ControllerBase
     }
 
     /// <summary>
-    /// Takes action (Approve, Reject, Hold, Request Changes) on a customer requirement approval request.
-    /// Supports GUID requirementId, or task code (e.g. APP-XXXXXXXX or APP-REQ-guid).
+    /// Takes action (Approve, Reject, Hold, Request Changes) on a central approval request.
+    /// Supports Requirement ID, Extension Request ID, Allocation Request ID, or Notification task code.
     /// </summary>
     [HttpPost("approvals/{identifier}/action")]
-    public async Task<ActionResult<ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>>> TakeCustomerRequirementApprovalAction(
+    public async Task<ActionResult<ApiResponse<object>>> TakeCentralApprovalAction(
         string identifier,
         [FromQuery] Guid? projectId,
         [FromBody] PMS.API.Modules.Projects.DTOs.AdditionalRequirementActionRequest request,
         [FromServices] PMS.API.Modules.Projects.Services.IProjectAdditionalRequirementService requirementService,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectExtensionRequestService extensionRequestService,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectTeamMemberService teamMemberService,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectFeedbackService feedbackService,
         CancellationToken ct = default)
     {
-        var result = await requirementService.TakeActionByIdentifierAsync(projectId, identifier, request, ct);
-        return Ok(ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>.Ok(result));
+        var clean = (identifier ?? "").Trim();
+        if (clean.StartsWith("EXT-", StringComparison.OrdinalIgnoreCase) || clean.StartsWith("APP-EXT-", StringComparison.OrdinalIgnoreCase))
+        {
+            var extResult = await extensionRequestService.TakeActionByIdentifierAsync(projectId, clean, new PMS.API.Modules.Projects.DTOs.TakeExtensionActionRequest(request.Status, request.Comment), ct);
+            return Ok(ApiResponse<object>.Ok(extResult));
+        }
+
+        if (clean.StartsWith("ALLOC-", StringComparison.OrdinalIgnoreCase) || clean.StartsWith("APP-ALLOC-", StringComparison.OrdinalIgnoreCase))
+        {
+            var allocResult = await teamMemberService.TakeAllocationActionAsync(projectId, clean, new PMS.API.Modules.Projects.DTOs.ResourceAllocationActionRequest(request.Status, request.Comment), ct);
+            return Ok(ApiResponse<object>.Ok(allocResult));
+        }
+
+        if (clean.StartsWith("FDBK-", StringComparison.OrdinalIgnoreCase) || clean.StartsWith("APP-FDBK-", StringComparison.OrdinalIgnoreCase))
+        {
+            var rawId = clean.Replace("APP-FDBK-", "", StringComparison.OrdinalIgnoreCase).Replace("FDBK-", "", StringComparison.OrdinalIgnoreCase);
+            if (Guid.TryParse(rawId, out var fdbkGuid))
+            {
+                var fdbkResult = await feedbackService.TakeApprovalActionAsync(fdbkGuid, new PMS.API.Modules.Projects.DTOs.FeedbackApprovalActionRequest(request.Status, request.Comment), ct);
+                return Ok(ApiResponse<object>.Ok(fdbkResult));
+            }
+        }
+
+        try
+        {
+            var result = await requirementService.TakeActionByIdentifierAsync(projectId, identifier, request, ct);
+            return Ok(ApiResponse<object>.Ok(result));
+        }
+        catch
+        {
+            try
+            {
+                var extRes = await extensionRequestService.TakeActionByIdentifierAsync(projectId, identifier, new PMS.API.Modules.Projects.DTOs.TakeExtensionActionRequest(request.Status, request.Comment), ct);
+                return Ok(ApiResponse<object>.Ok(extRes));
+            }
+            catch {}
+
+            try
+            {
+                var allocRes = await teamMemberService.TakeAllocationActionAsync(projectId, identifier, new PMS.API.Modules.Projects.DTOs.ResourceAllocationActionRequest(request.Status, request.Comment), ct);
+                return Ok(ApiResponse<object>.Ok(allocRes));
+            }
+            catch {}
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Takes action (Approve, Reject, Hold, Request Changes) on a timeline extension request.
+    /// Supports GUID extensionRequestId, or task code (e.g. EXT-XXXXXXXX or APP-EXT-guid).
+    /// </summary>
+    [HttpPost("extension-approvals/{identifier}/action")]
+    public async Task<ActionResult<ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectExtensionRequestDto>>> TakeExtensionApprovalAction(
+        string identifier,
+        [FromQuery] Guid? projectId,
+        [FromBody] PMS.API.Modules.Projects.DTOs.TakeExtensionActionRequest request,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectExtensionRequestService extensionRequestService,
+        CancellationToken ct = default)
+    {
+        var result = await extensionRequestService.TakeActionByIdentifierAsync(projectId, identifier, request, ct);
+        return Ok(ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectExtensionRequestDto>.Ok(result));
     }
 
     /// <summary>

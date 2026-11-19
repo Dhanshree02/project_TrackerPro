@@ -371,7 +371,7 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="app-columns text-left text-xs">
+              <table className="w-full text-left text-xs">
                 <thead className="app-columns-head">
                   <tr className="border-b border-border bg-card/95 font-semibold text-muted-foreground">
                     <th className="py-2.5 px-4 w-56">Date</th>

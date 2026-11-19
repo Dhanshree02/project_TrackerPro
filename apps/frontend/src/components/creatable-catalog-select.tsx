@@ -216,7 +216,7 @@ export function SearchableSelect({
           aria-expanded={isOpen}
           aria-invalid={Boolean(error)}
         >
-          <span className="truncate">
+          <span className="min-w-0 truncate">
             {selectedOption
               ? selectedOption.label
               : disabled
@@ -251,8 +251,9 @@ export function SearchableSelect({
           createPortal(
           <div
             ref={menuRef}
+            data-searchable-select-menu=""
             style={menuStyle}
-            className="max-h-60 min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden"
+            className="pointer-events-auto z-[100000] max-h-60 min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden"
             role="listbox"
           >
             {/* Search Input */}

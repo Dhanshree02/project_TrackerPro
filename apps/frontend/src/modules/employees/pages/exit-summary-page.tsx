@@ -76,8 +76,8 @@ const EXIT_COLUMNS: { label: string; key: ExitSortKey; className?: string }[] = 
   { label: "Department", key: "departmentName", className: "w-48 min-w-[150px]" },
   { label: "Exit Type", key: "exitType", className: "w-36 min-w-[130px]" },
   { label: "Exit Reason", key: "exitReason", className: "w-64 min-w-[200px]" },
-  { label: "Last Working Day", key: "lastWorkingDay", className: "w-48 min-w-[170px]" },
-  { label: "Exited On", key: "exitedAtUtc", className: "w-36 min-w-[130px]" },
+  { label: "Last Working Day", key: "lastWorkingDay", className: "w-44 min-w-[160px]" },
+  { label: "Exited On", key: "exitedAtUtc", className: "w-40 min-w-[140px]" },
 ];
 
 function sortBlank(value?: string | null): string {
@@ -132,7 +132,7 @@ function SortableTh({
   return (
     <th
       className={cn(
-        "relative whitespace-nowrap px-4 py-3 font-semibold",
+        "relative whitespace-nowrap px-4 py-3.5 font-semibold",
         className,
       )}
     >
@@ -557,9 +557,9 @@ export function ExitSummaryPage() {
         </div>
 
         {/* Table Container */}
-        <div className="w-fit max-w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
+        <div className="w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
-            <table className="w-max table-fixed text-sm">
+            <table className="w-full min-w-[1100px] text-sm">
               <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
                   {EXIT_COLUMNS.map((col, idx, arr) => (
@@ -607,10 +607,10 @@ export function ExitSummaryPage() {
                       <td className="w-64 min-w-[200px] px-4 py-3.5">
                         <div className="h-3.5 w-32 rounded bg-muted" />
                       </td>
-                      <td className="w-36 min-w-[130px] px-4 py-3.5">
+                      <td className="w-44 min-w-[160px] px-4 py-3.5">
                         <div className="h-3.5 w-20 rounded bg-muted" />
                       </td>
-                      <td className="w-36 min-w-[130px] px-4 py-3.5">
+                      <td className="w-40 min-w-[140px] px-4 py-3.5">
                         <div className="h-3.5 w-20 rounded bg-muted" />
                       </td>
                     </tr>
@@ -622,12 +622,12 @@ export function ExitSummaryPage() {
                       className="group transition-colors hover:bg-accent/30"
                     >
                       {/* TK ID */}
-                      <td className="w-36 min-w-[125px] whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground font-medium truncate" title={e.employeeCode}>
+                      <td className="w-36 min-w-[125px] whitespace-nowrap px-4 py-3.5 font-mono text-xs text-muted-foreground font-medium truncate" title={e.employeeCode}>
                         {e.employeeCode}
                       </td>
 
                       {/* Employee Profile */}
-                      <td className="w-64 min-w-[200px] whitespace-nowrap px-4 py-3 font-medium">
+                      <td className="w-64 min-w-[200px] whitespace-nowrap px-4 py-3.5 font-medium">
                         <div className="flex items-center gap-2.5 text-foreground min-w-0">
                           <Avatar name={e.fullName} size={30} />
                           <div className="truncate">
@@ -640,26 +640,26 @@ export function ExitSummaryPage() {
                       </td>
 
                       {/* Department */}
-                      <td className="w-48 min-w-[150px] whitespace-nowrap px-4 py-3 truncate">
+                      <td className="w-48 min-w-[150px] whitespace-nowrap px-4 py-3.5 truncate">
                         <span className="text-xs font-medium text-foreground truncate block" title={e.departmentName || "—"}>
                           {e.departmentName || "—"}
                         </span>
                       </td>
 
                       {/* Exit Type */}
-                      <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3">
+                      <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3.5">
                         <ExitTypeBadge type={e.exitType} />
                       </td>
 
                       {/* Exit Reason */}
-                      <td className="w-64 min-w-[200px] px-4 py-3">
+                      <td className="w-64 min-w-[200px] px-4 py-3.5">
                         <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed" title={exitReasonOf(e)}>
                           {exitReasonOf(e)}
                         </div>
                       </td>
 
                       {/* Last Working Day */}
-                      <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3 text-xs font-medium text-foreground/90">
+                      <td className="w-44 min-w-[160px] whitespace-nowrap px-4 py-3.5 text-xs font-medium text-foreground/90">
                         {e.lastWorkingDay ? (
                           <span className="inline-flex items-center gap-1">
                             <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -671,7 +671,7 @@ export function ExitSummaryPage() {
                       </td>
 
                       {/* Exited On */}
-                      <td className="w-36 min-w-[130px] whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                      <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3.5 text-xs text-muted-foreground">
                         {formatDate(e.exitedAtUtc)}
                       </td>
                     </tr>
@@ -713,7 +713,7 @@ export function ExitSummaryPage() {
 
           {/* Frozen / Sticky Pagination Footer */}
           {!isLoading && filtered.length > 0 && (
-            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card/95 backdrop-blur-md px-4 py-3 text-xs text-muted-foreground shadow-xs">
+            <div className="sticky bottom-0 z-20 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border bg-card/95 backdrop-blur-md px-4 py-3.5 text-xs text-muted-foreground shadow-xs">
               <div className="flex items-center gap-3">
                 <span>
                   Showing <strong className="font-semibold text-foreground">{pageRange.from}</strong>–

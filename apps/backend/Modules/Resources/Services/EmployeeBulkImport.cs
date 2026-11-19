@@ -1183,7 +1183,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
             {
                 foreach (var item in pending)
                 {
-                    var createdEmp = await employees.CreateEmployeeAsync(item.Request, checkIdentity: false, ct);
+                    var createdEmp = await employees.CreateEmployeeForBulkAsync(item.Request, ct);
                     created++;
                     createdEntries.Add(new BulkCreatedEmployeeEntry(
                         item.ExcelRow,
@@ -1197,6 +1197,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                         createdEmp.Status ?? "Active"));
                 }
 
+                await db.SaveChangesAsync(ct);
                 await tx.CommitAsync(ct);
             }
             catch (Exception ex)

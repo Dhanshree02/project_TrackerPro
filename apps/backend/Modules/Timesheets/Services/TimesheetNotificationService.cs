@@ -524,6 +524,7 @@ public sealed class TimesheetNotificationService(
 
     private static void TrySyncNotificationsToSecondaryDb()
     {
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
         {
             using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");

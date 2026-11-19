@@ -18,5 +18,7 @@ public interface IProjectExtensionRequestService
 
     Task<ProjectExtensionRequestDto> TakeActionAsync(Guid projectId, Guid extensionRequestId, TakeExtensionActionRequest request, CancellationToken ct = default);
 
+    Task<ProjectExtensionRequestDto> TakeActionByIdentifierAsync(Guid? projectId, string identifier, TakeExtensionActionRequest request, CancellationToken ct = default);
+
     Task<ProjectExtensionRequestDto> AddCommentAsync(Guid projectId, Guid extensionRequestId, AddExtensionCommentRequest request, CancellationToken ct = default);
 }

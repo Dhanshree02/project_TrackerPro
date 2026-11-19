@@ -153,8 +153,6 @@ public sealed class ProjectAdditionalRequirementService(
             createdNotifs.Add(notif);
         }
 
-        TrySyncNotificationsToOtherDatabase(createdNotifs);
-
         // Start SLA tracking for Additional Customer Requirement
         try
         {
@@ -175,6 +173,7 @@ public sealed class ProjectAdditionalRequirementService(
         }
 
         await db.SaveChangesAsync(ct);
+        TrySyncNotificationsToOtherDatabase(createdNotifs);
         logger.LogInformation("Logged Additional Customer Requirement {ReqId} for project {ProjectId}. Notified {Count} sales approvers.",
             approvalId, projectId, notifyRecipients.Count);
 
@@ -350,15 +349,23 @@ public sealed class ProjectAdditionalRequirementService(
 
         requirement.HistoryJson = AppendHistory(requirement.HistoryJson, mappedStatus, performerName, request.Comment, $"{mappedStatus} by {performerName}");
 
+        List<ActionNotification>? statusNotifs = null;
         var project = requirement.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
         if (project != null)
         {
-            await NotifyLeadershipOnStatusChangeAsync(requirement, project, mappedStatus, performerName, performer?.Id, request.Comment, ct);
+            statusNotifs = await NotifyLeadershipOnStatusChangeAsync(requirement, project, mappedStatus, performerName, performer?.Id, request.Comment, ct);
         }
 
         // NOTE: For "Hold", do NOT complete SLA tracking! The SLA workflow, daily reminders, and escalation schedule continue active.
 
         await db.SaveChangesAsync(ct);
+        if (statusNotifs != null && statusNotifs.Count > 0)
+        {
+            var approvalId = !string.IsNullOrWhiteSpace(requirement.RequirementId)
+                ? requirement.RequirementId
+                : $"APP-{requirement.Id.ToString("N")[..8].ToUpperInvariant()}";
+            TrySyncNotificationsToOtherDatabase(statusNotifs, approvalId, mappedStatus);
+        }
         logger.LogInformation("Action {Status} taken on requirement {ReqId} by {PerformerName}.", mappedStatus, requirement.RequirementId, performerName);
         return MapToDto(requirement);
     }
@@ -389,6 +396,7 @@ public sealed class ProjectAdditionalRequirementService(
 
         requirement.CommentsJson = AppendComment(requirement.CommentsJson, request.Text, authorId, authorName);
 
+        var createdNotifs = new List<ActionNotification>();
         var project = requirement.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
         if (project != null)
         {
@@ -427,7 +435,6 @@ public sealed class ProjectAdditionalRequirementService(
             {
                 var commentSnippet = request.Text.Length > 80 ? request.Text.Substring(0, 77) + "..." : request.Text;
                 var notifTitle = $"New Message on Requirement {requirement.RequirementId}: {requirement.Title} — {project.Name}";
-                var createdNotifs = new List<ActionNotification>();
 
                 foreach (var recipient in recipients)
                 {
@@ -462,12 +469,14 @@ public sealed class ProjectAdditionalRequirementService(
                     db.ActionNotifications.Add(notif);
                     createdNotifs.Add(notif);
                 }
-
-                TrySyncNotificationsToOtherDatabase(createdNotifs);
             }
         }
 
         await db.SaveChangesAsync(ct);
+        if (createdNotifs.Count > 0)
+        {
+            TrySyncNotificationsToOtherDatabase(createdNotifs);
+        }
         logger.LogInformation("Comment added to requirement {ReqId} by {AuthorName}.", requirement.RequirementId, authorName);
         return MapToDto(requirement);
     }
@@ -642,7 +651,7 @@ public sealed class ProjectAdditionalRequirementService(
         return null;
     }
 
-    private async Task NotifyLeadershipOnStatusChangeAsync(
+    private async Task<List<ActionNotification>> NotifyLeadershipOnStatusChangeAsync(
         ProjectAdditionalRequirement requirement,
         Project project,
         string status,
@@ -755,7 +764,7 @@ public sealed class ProjectAdditionalRequirementService(
             existing.Status = status;
         }
 
-        if (recipientIds.Count == 0) return;
+        if (recipientIds.Count == 0) return new List<ActionNotification>();
 
         var notifTitle = $"Additional Customer Requirement Status Updated | {project.Name} | {approvalId}";
         var commentDetail = !string.IsNullOrWhiteSpace(comment) ? $". Comment: {comment.Trim()}" : string.Empty;
@@ -796,7 +805,7 @@ public sealed class ProjectAdditionalRequirementService(
             createdNotifs.Add(notif);
         }
 
-        TrySyncNotificationsToOtherDatabase(createdNotifs, approvalId, status);
+        return createdNotifs;
     }
 
     private static int notifyRecipientsCount(HashSet<Guid> set) => set.Count;
@@ -915,6 +924,7 @@ public sealed class ProjectAdditionalRequirementService(
 
     private static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications, string? relatedTask = null, string? newStatus = null)
     {
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
         {
             using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");

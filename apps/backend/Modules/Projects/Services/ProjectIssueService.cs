@@ -283,7 +283,8 @@ public sealed class ProjectIssueService(
                 action = "Notification created",
                 date = dateStr,
                 time = timeStr,
-                by = raiserName
+                by = raiserName,
+                at = now.ToString("o")
             }
         });
 
@@ -441,7 +442,8 @@ public sealed class ProjectIssueService(
                 Action = $"Comment added: \"{commentText}\"",
                 Date = now.ToString("yyyy-MM-dd"),
                 Time = now.ToString("HH:mm:ss"),
-                By = userName
+                By = userName,
+                At = now.ToString("o")
             });
         }
 
@@ -461,7 +463,8 @@ public sealed class ProjectIssueService(
                 Action = $"Issue reopened (Status transitioned from '{previousIssueStatus}' to '{normalizedStatus}'). SLA history preserved (Audit Only).",
                 Date = now.ToString("yyyy-MM-dd"),
                 Time = now.ToString("HH:mm:ss"),
-                By = userName
+                By = userName,
+                At = now.ToString("o")
             });
         }
         else
@@ -471,7 +474,8 @@ public sealed class ProjectIssueService(
                 Action = $"Status transitioned to {normalizedStatus}",
                 Date = now.ToString("yyyy-MM-dd"),
                 Time = now.ToString("HH:mm:ss"),
-                By = userName
+                By = userName,
+                At = now.ToString("o")
             });
         }
         alert.HistoryJson = JsonSerializer.Serialize(history);

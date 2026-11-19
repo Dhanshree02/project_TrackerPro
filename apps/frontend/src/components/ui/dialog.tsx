@@ -39,14 +39,32 @@ interface DialogContentProps
   disableAnimation?: boolean;
 }
 
+function isSearchableSelectMenu(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest("[data-searchable-select-menu]"));
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
->(({ className, overlayClassName, disableAnimation, children, ...props }, ref) => (
+>(({ className, overlayClassName, disableAnimation, children, onPointerDownOutside, onFocusOutside, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay className={overlayClassName} disableAnimation={disableAnimation} />
     <DialogPrimitive.Content
       ref={ref}
+      onPointerDownOutside={(event) => {
+        if (isSearchableSelectMenu(event.target)) {
+          event.preventDefault();
+          return;
+        }
+        onPointerDownOutside?.(event);
+      }}
+      onFocusOutside={(event) => {
+        if (isSearchableSelectMenu(event.target)) {
+          event.preventDefault();
+          return;
+        }
+        onFocusOutside?.(event);
+      }}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:rounded-lg",
         !disableAnimation &&

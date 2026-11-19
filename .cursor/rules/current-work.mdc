@@ -5,7 +5,37 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-17
+**Last updated:** 2026-11-18
+
+- **Approvals Tab request actions (Approve / Reject / Hold / Request Changes) reliably persist in PostgreSQL `pms_uat`.**
+  - Resolved root cause where brittle exact string comparisons in `handleAction` skipped API calls and only modified optimistic local state.
+  - Normalized approval item identifiers (`APP-`, `APP-ALLOC-`, `ALLOC-`, `APP-EXT-`, `EXT-`) across `ProjectTeamMemberService.cs`, `ProjectExtensionRequestService.cs`, and `ProjectAdditionalRequirementService.cs`.
+  - Added polymorphic action dispatch in `ActionCentreController.cs` (`/api/v1/action-centre/approvals/{identifier}/action` and `/extension-approvals/{identifier}/action`) with universal fallback ensuring every action sent from the Central Action Centre updates PostgreSQL records directly.
+  - No new employees, resources, or departments were added to the database.
+
+- **Duplicate key constraint violation on `pk_tbl_notifications` fixed.** `DatabaseSyncHelper.IsPrimaryPmsUat` prevents secondary database self-syncing when connected directly to `pms_uat`, and sync calls execute strictly post-`SaveChangesAsync`. Extension requests, additional requirements, and interviews complete without 23505 errors.
+
+- **Employee Directory filters stay inside the bar.** Search and the department, designation, sub-department, on-floor role, and status lists share one row and shrink to the card. All Statuses no longer sits past the card edge. `employee-directory-page.tsx`.
+
+- **Resource Masters no longer has a Department Hierarchy tab.** All Masters Overview and the category tabs list Work Email Domain, Business Unit, Work Location, Graduation Degree, Post Graduation, Certifications, and Address City. Department, designation, sub-department, and RBAC mapping stay in the database for onboarding. The Resource Masters count leaves those hierarchy rows out. `resource-masters-section.tsx`, `resource-masters.ts`.
+
+- **On a scope service, Billing status opens only after Collection is Collected and Validation is Validated.** The same rule is checked when the status is saved. Resource services are unchanged. `project-detail-page.tsx`, `ProjectAppService.UpdateServicePrerequisiteAsync`.
+
+- **Manage Project Services dropdowns can be used inside the window.** Department, Sub-Department, Service Name, Service Model, Delivery Model, and Final Delivery Format open above the dialog and save on `project.tbl_project_services`. `dialog.tsx`, `creatable-catalog-select.tsx`.
+
+- **Exit Summary test rows are gone from `pms_uat`.** 44 generated exits were removed. Aarav Roy (`TK-0007`), Nikhil Saxena (`TK-0008`), and Vihaan Saxena (`TK-0009`) stayed. The Exit Summary table and the empty Employee Directory table fill the card. `exit-summary-page.tsx`, `employee-directory-page.tsx`.
+
+- **Numbered generated designations were removed from Resource Masters.** 77 rows named `Head of Department_` plus a code are gone from `master.mst_designations` on `pms_uat` and `trackerpro`. Real designations stayed. No employees used those rows.
+
+- **Numbered generated departments were removed from `master.mst_departments` on `pms_uat`.** That is the database the running API is using. The same rows were already removed from `trackerpro`. The 10 real departments stayed.
+
+- **Numbered generated departments were removed from `master.mst_departments` on local `trackerpro`.** The 10 real departments stayed: Core, the Functional departments, R&D, and the Services departments.
+
+- **Employee bulk upload saves the file in one write.** It no longer sends an onboarding notice and reloads the whole employee list for every row. Restart the API so the running process picks this up. `EmployeeService.CreateEmployeeForBulkAsync`.
+
+- **The holiday calendar list fills the card.** Date, holiday name, and actions stretch across the table. `apps/frontend/src/modules/settings/components/masters/leave-calendar-section.tsx`.
+
+- **Employee onboarding TK ID and work-email domain sit inside the same field again.** The Existing Project Masters table uses the full width. `apps/frontend/src/components/tk-id-field.tsx`, `apps/frontend/src/components/work-email-field.tsx`, `apps/frontend/src/modules/settings/components/masters/project-masters-section.tsx`.
 
 - **Engagement Mgr in the project list stays the normal text color on hover.** `apps/frontend/src/modules/projects/pages/projects-list-page.tsx`.
 

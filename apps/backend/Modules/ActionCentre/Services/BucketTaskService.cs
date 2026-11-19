@@ -25,6 +25,7 @@ public class BucketTaskService : IBucketTaskService
     private readonly ISlaTrackingService _slaTrackingService;
     private readonly ISlaRecipientResolver _slaRecipientResolver;
     private readonly ISlaDeadlineCalculator _slaDeadlineCalculator;
+    private readonly IActionNotificationService? _notificationService;
     private readonly ILogger<BucketTaskService>? _logger;
 
     public BucketTaskService(
@@ -33,6 +34,7 @@ public class BucketTaskService : IBucketTaskService
         ISlaTrackingService slaTrackingService,
         ISlaRecipientResolver slaRecipientResolver,
         ISlaDeadlineCalculator slaDeadlineCalculator,
+        IActionNotificationService? notificationService = null,
         ILogger<BucketTaskService>? logger = null)
     {
         _db = db;
@@ -40,6 +42,7 @@ public class BucketTaskService : IBucketTaskService
         _slaTrackingService = slaTrackingService;
         _slaRecipientResolver = slaRecipientResolver;
         _slaDeadlineCalculator = slaDeadlineCalculator;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -281,6 +284,27 @@ public class BucketTaskService : IBucketTaskService
             catch { }
         }
 
+        if (_notificationService != null)
+        {
+            try
+            {
+                var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct);
+                await _notificationService.NotifyProjectTaskLifecycleAsync(
+                    bucketTask.ProjectId,
+                    bucketTask.TaskId,
+                    bucketTask.TaskTitle,
+                    null,
+                    "resume",
+                    empName,
+                    bucketTask.EmployeeId,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Error triggering Task Resume notification for Task {TaskId}", bucketTask.TaskId);
+            }
+        }
+
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
 
@@ -386,43 +410,59 @@ public class BucketTaskService : IBucketTaskService
             var taskTitle = bucketTask.TaskTitle;
             var projectName = bucketTask.ProjectName ?? task?.Project?.Name ?? "Project";
 
-            var pauseTitle = $"{empName} Task Paused: {taskTitle} - {serviceName}";
-            var pauseContent = $"{empName} has paused the task '{taskTitle}' under the service '{serviceName}' in project '{projectName}'.";
-
-            foreach (var recId in leadershipRecipients)
+            if (_notificationService != null)
             {
-                _db.ActionNotifications.Add(new ActionNotification
-                {
-                    RecipientEmployeeId = recId,
-                    ProjectId = bucketTask.ProjectId,
-                    ProjectCode = task?.Project?.ProjectCode,
-                    ProjectName = projectName,
-                    Title = pauseTitle,
-                    Type = "Task Paused",
-                    Priority = "Low",
-                    Status = "Pending",
-                    Unread = true,
-                    RelatedTask = taskTitle,
-                    RaisedByName = empName,
-                    RaisedByEmployeeId = bucketTask.EmployeeId,
-                    CreatedAtUtc = nowUtc,
-                    CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
-                    {
-                        new { text = pauseContent, by = empName, at = nowUtc.ToString("o") }
-                    }, s_jsonOptions),
-                    HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
-                    {
-                        new
-                        {
-                            action = "Task Paused",
-                            date = nowUtc.ToString("yyyy-MM-dd"),
-                            time = nowUtc.ToString("HH:mm:ss"),
-                            by = empName
-                        }
-                    }, s_jsonOptions)
-                });
+                await _notificationService.NotifyProjectTaskLifecycleAsync(
+                    bucketTask.ProjectId,
+                    bucketTask.TaskId,
+                    taskTitle,
+                    serviceName,
+                    "paused",
+                    empName,
+                    bucketTask.EmployeeId,
+                    ct);
             }
-            await _db.SaveChangesAsync(ct);
+            else
+            {
+                var pauseTitle = $"{projectName} : {taskTitle} of {serviceName} is paused by {empName}";
+                var pauseContent = $"{empName} has paused the task '{taskTitle}' under the service '{serviceName}' in project '{projectName}'.";
+
+                foreach (var recId in leadershipRecipients)
+                {
+                    _db.ActionNotifications.Add(new ActionNotification
+                    {
+                        RecipientEmployeeId = recId,
+                        ProjectId = bucketTask.ProjectId,
+                        ProjectCode = task?.Project?.ProjectCode,
+                        ProjectName = projectName,
+                        Title = pauseTitle,
+                        Type = "Task Paused",
+                        Priority = "Medium",
+                        Status = "Pending",
+                        Unread = true,
+                        RelatedTask = taskTitle,
+                        RaisedByName = empName,
+                        RaisedByEmployeeId = bucketTask.EmployeeId,
+                        CreatedAtUtc = nowUtc,
+                        CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                        {
+                            new { text = pauseContent, by = empName, at = nowUtc.ToString("o") }
+                        }, s_jsonOptions),
+                        HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                        {
+                            new
+                            {
+                                action = pauseTitle,
+                                date = nowUtc.ToString("yyyy-MM-dd"),
+                                time = nowUtc.ToString("HH:mm:ss"),
+                                by = empName,
+                                at = nowUtc.ToString("o")
+                            }
+                        }, s_jsonOptions)
+                    });
+                }
+                await _db.SaveChangesAsync(ct);
+            }
 
             var pauseEntityId = bucketTask.AssignmentId ?? assignment?.Id ?? bucketTask.Id;
 
@@ -565,43 +605,59 @@ public class BucketTaskService : IBucketTaskService
             var taskTitle = bucketTask.TaskTitle;
             var projectName = bucketTask.ProjectName ?? task?.Project?.Name ?? "Project";
 
-            var stopTitle = $"{empName} Task Stopped: {taskTitle} - {serviceName}";
-            var stopContent = $"{empName} has stopped the task '{taskTitle}' under the service '{serviceName}' in project '{projectName}'.";
-
-            foreach (var recId in leadershipRecipients)
+            if (_notificationService != null)
             {
-                _db.ActionNotifications.Add(new ActionNotification
-                {
-                    RecipientEmployeeId = recId,
-                    ProjectId = bucketTask.ProjectId,
-                    ProjectCode = task?.Project?.ProjectCode,
-                    ProjectName = projectName,
-                    Title = stopTitle,
-                    Type = "Task Stopped",
-                    Priority = "Low",
-                    Status = "Pending",
-                    Unread = true,
-                    RelatedTask = taskTitle,
-                    RaisedByName = empName,
-                    RaisedByEmployeeId = bucketTask.EmployeeId,
-                    CreatedAtUtc = nowUtc,
-                    CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
-                    {
-                        new { text = stopContent, by = empName, at = nowUtc.ToString("o") }
-                    }, s_jsonOptions),
-                    HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
-                    {
-                        new
-                        {
-                            action = "Task Stopped",
-                            date = nowUtc.ToString("yyyy-MM-dd"),
-                            time = nowUtc.ToString("HH:mm:ss"),
-                            by = empName
-                        }
-                    }, s_jsonOptions)
-                });
+                await _notificationService.NotifyProjectTaskLifecycleAsync(
+                    bucketTask.ProjectId,
+                    bucketTask.TaskId,
+                    taskTitle,
+                    serviceName,
+                    "stop",
+                    empName,
+                    bucketTask.EmployeeId,
+                    ct);
             }
-            await _db.SaveChangesAsync(ct);
+            else
+            {
+                var stopTitle = $"{projectName} : {taskTitle} of {serviceName} is stop by {empName}";
+                var stopContent = $"{empName} has stopped the task '{taskTitle}' under the service '{serviceName}' in project '{projectName}'.";
+
+                foreach (var recId in leadershipRecipients)
+                {
+                    _db.ActionNotifications.Add(new ActionNotification
+                    {
+                        RecipientEmployeeId = recId,
+                        ProjectId = bucketTask.ProjectId,
+                        ProjectCode = task?.Project?.ProjectCode,
+                        ProjectName = projectName,
+                        Title = stopTitle,
+                        Type = "Task Stopped",
+                        Priority = "Medium",
+                        Status = "Pending",
+                        Unread = true,
+                        RelatedTask = taskTitle,
+                        RaisedByName = empName,
+                        RaisedByEmployeeId = bucketTask.EmployeeId,
+                        CreatedAtUtc = nowUtc,
+                        CommentsJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                        {
+                            new { text = stopContent, by = empName, at = nowUtc.ToString("o") }
+                        }, s_jsonOptions),
+                        HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
+                        {
+                            new
+                            {
+                                action = stopTitle,
+                                date = nowUtc.ToString("yyyy-MM-dd"),
+                                time = nowUtc.ToString("HH:mm:ss"),
+                                by = empName,
+                                at = nowUtc.ToString("o")
+                            }
+                        }, s_jsonOptions)
+                    });
+                }
+                await _db.SaveChangesAsync(ct);
+            }
         }
         catch (Exception ex)
         {
@@ -692,6 +748,27 @@ public class BucketTaskService : IBucketTaskService
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "[BucketTaskService] Error completing Task Deadline/Pause SLA for Task {TaskId}", task.Id);
+            }
+        }
+
+        if (_notificationService != null)
+        {
+            try
+            {
+                var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct);
+                await _notificationService.NotifyProjectTaskLifecycleAsync(
+                    bucketTask.ProjectId,
+                    bucketTask.TaskId,
+                    bucketTask.TaskTitle,
+                    null,
+                    "completed",
+                    empName,
+                    bucketTask.EmployeeId,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Error triggering Task Completed notification for Task {TaskId}", bucketTask.TaskId);
             }
         }
 
@@ -794,6 +871,39 @@ public class BucketTaskService : IBucketTaskService
         }
 
         await _db.SaveChangesAsync(ct);
+
+        if (_notificationService != null)
+        {
+            try
+            {
+                var empName = await GetEmployeeNameAsync(bucketTask.EmployeeId, ct);
+                string? actionKey = status.ToLowerInvariant() switch
+                {
+                    "paused" => "paused",
+                    "stopped" => "stop",
+                    "completed" => "completed",
+                    "ongoing" or "in progress" => "resume",
+                    _ => null
+                };
+
+                if (actionKey != null)
+                {
+                    await _notificationService.NotifyProjectTaskLifecycleAsync(
+                        bucketTask.ProjectId,
+                        bucketTask.TaskId,
+                        bucketTask.TaskTitle,
+                        null,
+                        actionKey,
+                        empName,
+                        bucketTask.EmployeeId,
+                        ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[BucketTaskService] Error triggering notification for task {TaskId} status update", bucketTask.TaskId);
+            }
+        }
 
         return MapToDto(bucketTask, await GetEmployeeNameAsync(bucketTask.EmployeeId, ct));
     }
