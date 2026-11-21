@@ -25,6 +25,7 @@ import { TimesheetStatusPill, Avatar } from "@/components/pills";
 import { fetchProjects, fetchProjectTasks } from "@/modules/projects/api/projects";
 import { fyFromWbs, inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { cn, formatDateDMY } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { toast } from "sonner";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
@@ -210,26 +211,15 @@ function TimesheetTab() {
 
   return (
     <div>
-      <div className="mb-4 flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm w-fit">
-        {visibleTabs.map((st) => (
-          <button
-            key={st.id}
-            type="button"
-            onClick={() => {
-              if (st.label === "My Timesheet") setOpenedWeek(null);
-              setSubTab(st.label);
-            }}
-            className={cn(
-              "rounded-md px-3 py-1.5 font-medium",
-              subTab === st.label
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {st.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        className="mb-4"
+        value={subTab}
+        onChange={(label) => {
+          if (label === "My Timesheet") setOpenedWeek(null);
+          setSubTab(label);
+        }}
+        options={visibleTabs.map((st) => ({ value: st.label, label: st.label }))}
+      />
       {subTab === "My Timesheet" && visibleTabs.some((t) => t.label === "My Timesheet") ? (
         <MyTimesheetView key={openedWeek ?? "current"} initialWeek={openedWeek} />
       ) : subTab === "Timesheet History" && visibleTabs.some((t) => t.label === "Timesheet History") ? (

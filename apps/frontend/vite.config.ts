@@ -57,9 +57,10 @@ export default defineConfig(({ command, mode }) => {
       },
       watch: {
         usePolling: true,
+        interval: 1000,
         awaitWriteFinish: {
-          stabilityThreshold: 1000,
-          pollInterval: 100,
+          stabilityThreshold: 200,
+          pollInterval: 1000,
         },
       },
       proxy: {

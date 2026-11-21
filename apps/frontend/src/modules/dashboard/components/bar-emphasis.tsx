@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useState, type ReactElement, type ReactNode } from "react";
 import type { BarProps, RectangleProps } from "recharts";
 import { barRectFromEvent, type BarTipAnchorContextValue } from "@/modules/dashboard/components/graph-frame";
-import { LEGEND_BAR_LAYOUT_MS } from "@/modules/dashboard/components/toggle-chart-legend";
 
 type BarActiveShape = (props: unknown) => ReactElement;
 
@@ -47,8 +46,6 @@ export function categoryKeyFromPayload(payload: Record<string, unknown> | undefi
 type ShapeProps = RectangleProps & { payload?: Record<string, unknown> };
 
 /** Position only — do not animate height/width (that reads as bars “dropping” before hide). */
-const LAYOUT_TRANSITION = `transform ${LEGEND_BAR_LAYOUT_MS}ms ease-out`;
-
 export const HORIZONTAL_STACK_BAR_RADIUS = 4;
 
 /** [topLeft, topRight, bottomRight, bottomLeft] for `layout="vertical"` horizontal bars. */
@@ -152,7 +149,7 @@ function MisBarRect({
   };
 
   return (
-    <g style={{ transform: `translate(${x}px, ${y}px)`, transition: LAYOUT_TRANSITION }}>
+    <g style={{ transform: `translate(${x}px, ${y}px)` }}>
       {cornerRadii ? (
         <path
           className="mis-dashboard-bar"

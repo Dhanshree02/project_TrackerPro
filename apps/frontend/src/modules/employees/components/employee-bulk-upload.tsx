@@ -153,7 +153,7 @@ export function EmployeeBulkUploadMenu({
                 </DialogTitle>
               </div>
               <DialogDescription className="text-xs text-muted-foreground">
-                Import multiple resource records at once using the pre-formatted Excel template.
+                Import multiple resource records at once. The Login Access column chooses Employee and login or Employee only for each row.
               </DialogDescription>
             </DialogHeader>
           </div>

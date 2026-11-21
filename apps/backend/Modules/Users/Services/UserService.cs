@@ -551,24 +551,6 @@ public sealed class UserService(
             user.RoleId = targetRole.Id;
             user.UpdatedAtUtc = DateTime.UtcNow;
         }
-        else
-        {
-            user = new User
-            {
-                Id = Guid.NewGuid(),
-                Email = employee.WorkEmail.Trim().ToLowerInvariant(),
-                Name = $"{employee.FirstName} {employee.LastName}".Trim(),
-                EmployeeId = employee.EmployeeCode.Trim(),
-                Department = employee.Department?.Name,
-                Designation = employee.Designation?.Name,
-                RoleId = targetRole.Id,
-                IsActive = true,
-                MustChangePassword = false,
-                CreatedAtUtc = DateTime.UtcNow,
-            };
-            db.Users.Add(user);
-            employee.UserId = user.Id;
-        }
 
         await db.SaveChangesAsync(ct);
 

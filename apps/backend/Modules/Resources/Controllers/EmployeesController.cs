@@ -25,7 +25,7 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         CancellationToken ct = default)
     {
         page = Math.Max(1, page);
-        perPage = Math.Clamp(perPage, 1, 100);
+        perPage = Math.Clamp(perPage, 1, 500);
         var result = await employees.GetEmployeesAsync(page, perPage, search, departmentId, designationId, status, onFloorRole, role, ct);
         return Ok(ApiResponse<PagedResult<EmployeeListItemDto>>.Ok(result, new ApiMeta
         {
@@ -298,6 +298,20 @@ public class EmployeesController(IEmployeeService employees) : ControllerBase
         await using var stream = file.OpenReadStream();
         var result = await employees.BulkUploadAsync(stream, file.FileName, ct);
         return Ok(ApiResponse<EmployeeBulkUploadResult>.Ok(result));
+    }
+
+    [HttpPost("login-access")]
+    [RequireRbac("employee-directory", RbacAccessType.Manage, "resources")]
+    public async Task<ActionResult<ApiResponse<SetEmployeeLoginAccessResult>>> SetLoginAccess(
+        SetEmployeeLoginAccessRequest request,
+        CancellationToken ct)
+    {
+        if (request.EmployeeIds is null || request.EmployeeIds.Count == 0)
+            return BadRequest(ApiResponse<SetEmployeeLoginAccessResult>.Fail(
+                "VALIDATION_ERROR", "Select at least one employee."));
+
+        var result = await employees.SetLoginAccessManyAsync(request, ct);
+        return Ok(ApiResponse<SetEmployeeLoginAccessResult>.Ok(result));
     }
 
     [HttpPost]

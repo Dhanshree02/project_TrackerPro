@@ -32,6 +32,7 @@ import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProje
 import { isRenewedProject } from "@/lib/project-renewal";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/project-helpers";
 import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useDraggable } from "@/hooks/use-draggable";
 import { paginateSlice } from "@/lib/pagination";
 import { TablePaginationFooter } from "@/components/table-pagination-footer";
@@ -280,22 +281,11 @@ export function ProjectsListPage() {
   return (
     <AppShell title="Projects" subtitle="Active, archived and all projects across your portfolio">
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "rounded-md px-3 py-1.5 font-medium",
-                tab === t
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          value={tab}
+          onChange={setTab}
+          options={tabs.map((t) => ({ value: t, label: t }))}
+        />
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -324,32 +314,15 @@ export function ProjectsListPage() {
               )}
             </button>
           )}
-          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
-            <button
-              onClick={() => setView("card")}
-              aria-label="Grid view"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
-                view === "card"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" /> Grid
-            </button>
-            <button
-              onClick={() => setView("list")}
-              aria-label="List view"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
-                view === "list"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <List className="h-3.5 w-3.5" /> List
-            </button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "card", label: <><LayoutGrid className="h-3.5 w-3.5" /> Grid</> },
+              { value: "list", label: <><List className="h-3.5 w-3.5" /> List</> },
+            ]}
+          />
           {canManageProjects && (
             <button
               onClick={() => navigate({ to: "/projects/new" })}

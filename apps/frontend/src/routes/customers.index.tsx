@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { CustomersListPage } from "@/modules/customers";
 
 export const Route = createFileRoute("/customers/")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Customers — Pulse PMO" },

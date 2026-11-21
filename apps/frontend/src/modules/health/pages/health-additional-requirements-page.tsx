@@ -9,6 +9,7 @@ import { Avatar } from "@/components/pills";
 import { FormRow } from "@/components/form-row";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useDhStore, dhStore, type RequirementStatus, type DhPriority, type DhComment, type DhAdditionalRequirement } from "@/lib/workspace-store";
 
 const requirementStatuses: RequirementStatus[] = ["Open", "Under Review", "Approved", "Rejected", "Implemented"];
@@ -64,20 +65,17 @@ export function HealthAdditionalRequirementsPage() {
             className="h-9 w-full rounded-md border border-input bg-card pl-8 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1 text-xs">
-          <Filter className="ml-1 h-3.5 w-3.5 text-muted-foreground" />
-          {(["all", ...requirementStatuses] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={cn(
-                "rounded-md px-2.5 py-1 capitalize",
-                statusFilter === s ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {s === "all" ? "All" : s}
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5">
+          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+          <SegmentedControl
+            size="sm"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={(["all", ...requirementStatuses] as const).map((s) => ({
+              value: s,
+              label: s === "all" ? "All" : s,
+            }))}
+          />
         </div>
         <button
           onClick={() => setShowForm(true)}

@@ -16,7 +16,6 @@ import { useFinancialYear } from "@/lib/financial-year";
 import { ColumnBarHoverScope, rowBarProps, useColumnBarHover } from "@/modules/dashboard/components/bar-emphasis";
 import {
   ConfigToggleLegend,
-  LEGEND_BAR_GROW_MS,
   useLegendSeriesToggle,
 } from "@/modules/dashboard/components/toggle-chart-legend";
 import {
@@ -261,7 +260,7 @@ function ProjectCountChart({
   truncateProjectNames?: boolean;
 }) {
   const { hover, setHover, clear } = useColumnBarHover();
-  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden } = useLegendSeriesToggle();
   const chartConfig = {
     m0: { label: months[0]?.month ?? "Month 1", color: "var(--chart-1)" },
     m1: { label: months[1]?.month ?? "Month 2", color: "var(--chart-2)" },
@@ -297,8 +296,7 @@ function ProjectCountChart({
             label={yAxisLabel("Project")}
           />
           <Bar
-            isAnimationActive={isGrowingIn("m0")}
-            animationDuration={LEGEND_BAR_GROW_MS}
+            isAnimationActive={false}
             minPointSize={6}
             maxBarSize={16}
             dataKey="m0"
@@ -308,8 +306,7 @@ function ProjectCountChart({
             {...rowBarProps("m0", setHover, "var(--color-m0)", 4, tipAnchor, chartSeriesLabel(chartConfig, "m0"))}
           />
           <Bar
-            isAnimationActive={isGrowingIn("m1")}
-            animationDuration={LEGEND_BAR_GROW_MS}
+            isAnimationActive={false}
             minPointSize={6}
             maxBarSize={16}
             dataKey="m1"
@@ -319,8 +316,7 @@ function ProjectCountChart({
             {...rowBarProps("m1", setHover, "var(--color-m1)", 4, tipAnchor, chartSeriesLabel(chartConfig, "m1"))}
           />
           <Bar
-            isAnimationActive={isGrowingIn("m2")}
-            animationDuration={LEGEND_BAR_GROW_MS}
+            isAnimationActive={false}
             minPointSize={6}
             maxBarSize={16}
             dataKey="m2"

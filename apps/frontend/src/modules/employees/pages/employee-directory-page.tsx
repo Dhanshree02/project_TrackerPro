@@ -24,6 +24,7 @@ import { usePermissions } from "@/lib/permissions";
 import { inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   ALLOWED_WORK_EMAIL_DOMAINS,
   ALLOWED_WORK_EMAIL_DOMAIN_OPTIONS,
@@ -57,6 +58,7 @@ import { formatOnFloorRoleDisplay, normalizeOnFloorRole, uniqueOnFloorRoleLabels
 import {
   createEmployee,
   fetchAllEmployees,
+  setEmployeeLoginAccess,
   fetchBusinessUnitOptions,
   fetchDepartmentOptions,
   fetchDesignationOptions,
@@ -851,6 +853,8 @@ export function EmployeeDirectoryPage() {
 
   // Pool modal states
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [loginBusy, setLoginBusy] = useState(false);
   const [allocReqEmployee, setAllocReqEmployee] = useState<Employee | null>(null);
 
   const setTab = (newTab: "directory" | "pool") => {
@@ -1051,6 +1055,46 @@ export function EmployeeDirectoryPage() {
   const currentPage = Math.min(page, totalPages);
   const pageRows = paginateSlice(activeRows, currentPage, pageSize);
   const pageRange = paginationRange(currentPage, pageSize, activeRows.length);
+  const pageIds = pageRows.map((e) => e.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const togglePageSelected = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allPageSelected) pageIds.forEach((id) => next.delete(id));
+      else pageIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const applyLoginAccess = async (createLogin: boolean) => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setLoginBusy(true);
+    try {
+      const result = await setEmployeeLoginAccess(ids, createLogin);
+      const label = createLogin ? "Employee and login" : "Employee only";
+      toast.success(`${result.updated} ${result.updated === 1 ? "employee" : "employees"} set to ${label}`);
+      if (result.notFound.length > 0) {
+        toast.error(`${result.notFound.length} selected ${result.notFound.length === 1 ? "person was" : "people were"} not found`);
+      }
+      setSelectedIds(new Set());
+      await loadEmployees();
+    } catch (error: any) {
+      toast.error(error?.message ?? "Could not update login access");
+    } finally {
+      setLoginBusy(false);
+    }
+  };
 
   // Reset page when filters, tab, or pageSize change
   useEffect(() => {
@@ -1083,34 +1127,15 @@ export function EmployeeDirectoryPage() {
         {/* Left: [Directory] / [Resource Pool] view switcher */}
         <div>
           {!basicDirectoryView && ENABLE_RESOURCE_POOL && (
-            <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
-              <button
-                onClick={() => setTab("directory")}
-                aria-label="Directory view"
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
-                  tab === "directory"
-                    ? "bg-blue-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Users className="h-3.5 w-3.5" />
-                Directory
-              </button>
-              <button
-                onClick={() => setTab("pool")}
-                aria-label="Pool view"
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
-                  tab === "pool"
-                    ? "bg-blue-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Activity className="h-3.5 w-3.5" />
-                Resource Pool
-              </button>
-            </div>
+            <SegmentedControl
+              size="sm"
+              value={tab}
+              onChange={setTab}
+              options={[
+                { value: "directory", label: <><Users className="h-3.5 w-3.5" /> Directory</> },
+                { value: "pool", label: <><Activity className="h-3.5 w-3.5" /> Resource Pool</> },
+              ]}
+            />
           )}
         </div>
 
@@ -1229,6 +1254,36 @@ export function EmployeeDirectoryPage() {
         </div>
       </div>
 
+      {canManageDirectory && tab === "directory" && selectedIds.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-4 py-3">
+          <span className="text-sm font-medium text-foreground">{selectedIds.size} selected</span>
+          <button
+            type="button"
+            disabled={loginBusy}
+            onClick={() => void applyLoginAccess(true)}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          >
+            Employee and login
+          </button>
+          <button
+            type="button"
+            disabled={loginBusy}
+            onClick={() => void applyLoginAccess(false)}
+            className="rounded-md border border-input bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent disabled:opacity-60"
+          >
+            Employee only
+          </button>
+          <button
+            type="button"
+            disabled={loginBusy}
+            onClick={() => setSelectedIds(new Set())}
+            className="rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Directory Table / Pool Table */}
       {tab === "directory" ? (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
@@ -1236,6 +1291,16 @@ export function EmployeeDirectoryPage() {
             <table className="w-full min-w-max text-sm">
               <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
+                  {canManageDirectory && (
+                    <th className="w-10 px-3 py-3.5">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all employees on this page"
+                        checked={allPageSelected}
+                        onChange={togglePageSelected}
+                      />
+                    </th>
+                  )}
                   {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col, idx, arr) => (
                     <SortableTh
                       key={col.key}
@@ -1264,6 +1329,16 @@ export function EmployeeDirectoryPage() {
                     }
                     className="cursor-pointer transition-colors hover:bg-accent/30"
                   >
+                    {canManageDirectory && (
+                      <td className="w-10 px-3 py-3.5" onClick={(event) => event.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={`Select ${e.firstName} ${e.lastName}`}
+                          checked={selectedIds.has(e.id)}
+                          onChange={() => toggleSelected(e.id)}
+                        />
+                      </td>
+                    )}
                     <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-muted-foreground" title={e.id}>
                       {e.id}
                     </td>
@@ -1327,7 +1402,7 @@ export function EmployeeDirectoryPage() {
                 {pageRows.length === 0 && (
                   <tr>
                     <td
-                      colSpan={basicDirectoryView ? 6 : 11}
+                      colSpan={(basicDirectoryView ? 6 : 11) + (canManageDirectory ? 1 : 0)}
                       className="px-4 py-10 text-center text-sm text-muted-foreground"
                     >
                       {isLoading

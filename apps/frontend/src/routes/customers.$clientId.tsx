@@ -6,6 +6,7 @@ import {
 } from "@/modules/customers/loaders/customer-detail-loader";
 
 export const Route = createFileRoute("/customers/$clientId")({
+  ssr: false,
   validateSearch: validateCustomerDetailSearch,
   loader: async ({ params }) => loadCustomerDetail(params.clientId),
   head: ({ loaderData }) => ({

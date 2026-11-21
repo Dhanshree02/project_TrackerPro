@@ -146,6 +146,7 @@ export interface ApiEmployeeDetail {
   designationId?: string | null;
   jobRoleId?: string | null;
   jobRoleName?: string | null;
+  hasLogin?: boolean;
 }
 
 export interface ApiExitedEmployee {
@@ -290,6 +291,16 @@ export async function uploadEmployeeBulk(file: File): Promise<EmployeeBulkUpload
   return apiFetch<EmployeeBulkUploadResult>("/api/v1/employees/bulk", {
     method: "POST",
     body: formData,
+  });
+}
+
+export async function setEmployeeLoginAccess(
+  employeeIds: string[],
+  createLogin: boolean,
+): Promise<{ updated: number; notFound: string[] }> {
+  return apiFetch<{ updated: number; notFound: string[] }>("/api/v1/employees/login-access", {
+    method: "POST",
+    body: JSON.stringify({ employeeIds, createLogin }),
   });
 }
 
@@ -474,10 +485,10 @@ export async function fetchAllExitedEmployees(): Promise<ApiExitedEmployee[]> {
 }
 
 export async function fetchAllEmployees(): Promise<ApiEmployeeListItem[]> {
-  const first = await fetchEmployees({ page: 1, perPage: 100 });
+  const first = await fetchEmployees({ page: 1, perPage: 500 });
   const all = [...(first.items ?? [])];
   for (let p = 2; p <= first.totalPages; p++) {
-    const next = await fetchEmployees({ page: p, perPage: 100 });
+    const next = await fetchEmployees({ page: p, perPage: 500 });
     all.push(...(next.items ?? []));
   }
   return all;
@@ -669,6 +680,7 @@ export function toUiEmployee(detail: ApiEmployeeDetail): Employee {
     reportingManagerId: detail.reportingManagerId ?? "",
     workerType: detail.employmentType ?? "",
     complianceStatus: (detail.complianceStatus as Employee["complianceStatus"]) || "Pending",
+    hasLogin: detail.hasLogin === true,
   };
 }
 

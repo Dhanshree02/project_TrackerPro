@@ -42,8 +42,7 @@ public sealed class DevelopmentAuthBypassMiddleware(RequestDelegate next)
                     e.DeletedAtUtc == null && (
                         (e.WorkEmail != null && e.WorkEmail.ToLower() == normalizedEmail) ||
                         (e.PersonalEmail != null && e.PersonalEmail.ToLower() == normalizedEmail) ||
-                        (!string.IsNullOrWhiteSpace(userIdStr) && e.EmployeeCode.ToLower() == userIdStr.ToLower()) ||
-                        normalizedEmail.Contains(e.EmployeeCode.ToLower())
+                        (!string.IsNullOrWhiteSpace(userIdStr) && e.EmployeeCode.ToLower() == userIdStr.ToLower())
                     ));
             }
 

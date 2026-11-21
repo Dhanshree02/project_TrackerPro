@@ -38,6 +38,7 @@ import {
   type ApiUserRoleAccess,
 } from "@/lib/api/users";
 import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 type ModuleAccess = "view" | "view-manage";
 type AccessKind = "module" | "submodule" | "widget" | "tab";
@@ -431,34 +432,15 @@ export function RolesPermissionsPage() {
       <div className="space-y-6">
         {/* Internal Tabs Switcher: Rolewise Access vs Userwise Access */}
         <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
-            <button
-              type="button"
-              onClick={() => setActiveTab("rolewise")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
-                activeTab === "rolewise"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Rolewise Access
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("userwise")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
-                activeTab === "userwise"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Users className="h-3.5 w-3.5" />
-              Userwise Access
-            </button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={activeTab}
+            onChange={setActiveTab}
+            options={[
+              { value: "rolewise", label: <><ShieldCheck className="h-3.5 w-3.5" /> Rolewise Access</> },
+              { value: "userwise", label: <><Users className="h-3.5 w-3.5" /> Userwise Access</> },
+            ]}
+          />
         </div>
 
         {activeTab === "rolewise" ? (

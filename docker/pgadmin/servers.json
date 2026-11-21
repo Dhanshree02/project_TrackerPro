@@ -1,41 +1,11 @@
 {
   "Servers": {
     "1": {
-      "Name": "PMS shared Postgres",
+      "Name": "pms-development",
       "Group": "Servers",
-      "Host": "pms_uat_db",
-      "Port": 5432,
-      "MaintenanceDB": "postgres",
-      "Username": "postgres",
-      "Password": "clockit",
-      "SSLMode": "prefer"
-    },
-    "2": {
-      "Name": "Development",
-      "Group": "Servers",
-      "Host": "pms_development_db",
+      "Host": "db",
       "Port": 5432,
       "MaintenanceDB": "pms_development",
-      "Username": "postgres",
-      "Password": "clockit",
-      "SSLMode": "prefer"
-    },
-    "3": {
-      "Name": "UAT",
-      "Group": "Servers",
-      "Host": "pms_uat_postgres",
-      "Port": 5432,
-      "MaintenanceDB": "pms_uat",
-      "Username": "postgres",
-      "Password": "clockit",
-      "SSLMode": "prefer"
-    },
-    "4": {
-      "Name": "Production",
-      "Group": "Servers",
-      "Host": "pms_production_db",
-      "Port": 5432,
-      "MaintenanceDB": "pms_production",
       "Username": "postgres",
       "Password": "clockit",
       "SSLMode": "prefer"

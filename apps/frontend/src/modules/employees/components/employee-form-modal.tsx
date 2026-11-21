@@ -350,6 +350,7 @@ export function EmployeeFormModal({
   const [form, setForm] = useState<OnboardValues>(EMPTY_ONBOARD);
   const [errors, setErrors] = useState<OnboardErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createLogin, setCreateLogin] = useState(true);
   const [uniquenessIndex, setUniquenessIndex] = useState<EmployeeUniquenessIndex | null>(null);
 
   // Metadata catalogs
@@ -505,10 +506,12 @@ export function EmployeeFormModal({
       setForm(EMPTY_ONBOARD);
       setErrors({});
       setIsSubmitting(false);
+      setCreateLogin(true);
       return;
     }
 
     setErrors({});
+    setCreateLogin(mode === "edit" ? initialEmployee?.hasLogin !== false : true);
 
     // Initialize values based on mode
     if (mode === "edit" && initialEmployee) {
@@ -1148,6 +1151,7 @@ export function EmployeeFormModal({
         projectType: blankToNull(form.projectType),
         projectAllocated: blankToNull(form.projectAllocated),
         clientEngManagerMapping: blankToNull(form.clientEngManagerMapping),
+        createLogin,
       };
 
       let savedResult: Employee | undefined;
@@ -1918,6 +1922,33 @@ export function EmployeeFormModal({
                 </div>
               </FormSection>
             )}
+          </div>
+
+          <div className="mt-6 rounded-lg border border-border bg-muted/30 px-4 py-4">
+            <p className="text-sm font-medium text-foreground">Login access</p>
+            {/* <p className="mt-1 text-xs text-muted-foreground">
+              Employee only keeps the person in the directory and takes their name off the login list. Employee and login puts the name back. Sign-in rules stay as they are until Microsoft 365.
+            </p> */}
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-6">
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name="createLogin"
+                  checked={createLogin}
+                  onChange={() => setCreateLogin(true)}
+                />
+                Employee and login
+              </label>
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name="createLogin"
+                  checked={!createLogin}
+                  onChange={() => setCreateLogin(false)}
+                />
+                Employee only
+              </label>
+            </div>
           </div>
 
           {/* footer */}

@@ -14,7 +14,7 @@ import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { UnderlineTabs } from "@/components/ui/underline-tabs";
 import { useMastersStore } from "@/modules/settings/masters/use-masters";
 import { ProjectMastersSection } from "@/modules/settings/components/masters/project-masters-section";
 import { CustomerMastersSection } from "@/modules/settings/components/masters/customer-masters-section";
@@ -73,112 +73,65 @@ export function SettingsMastersPage() {
       subtitle="Centralized configuration and master data management"
     >
       {/* ── Top Tabs & Actions (Project Masters, Customer Masters, Resource Masters) ─ */}
-      <div className="mb-6 flex items-center justify-between border-b border-border">
-        <div className="flex items-center">
-          <button
-            onClick={() => setActiveTab("projects")}
-            className={cn(
-              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
-              activeTab === "projects"
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <FolderKanban className="h-4 w-4" />
-            <span>Project Masters</span>
-            <Badge
-              variant="secondary"
-              className={cn(
-                "text-[10px] px-1.5 py-0",
-                activeTab === "projects" ? "bg-primary/15 text-primary font-semibold" : "",
-              )}
-            >
-              {projectMasters.length}
-            </Badge>
-            {activeTab === "projects" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("customers")}
-            className={cn(
-              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
-              activeTab === "customers"
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Building2 className="h-4 w-4" />
-            <span>Customer Masters</span>
-            <Badge
-              variant="secondary"
-              className={cn(
-                "text-[10px] px-1.5 py-0",
-                activeTab === "customers" ? "bg-primary/15 text-primary font-semibold" : "",
-              )}
-            >
-              {totalCustomerItems}
-            </Badge>
-            {activeTab === "customers" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("resources")}
-            className={cn(
-              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
-              activeTab === "resources"
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Users className="h-4 w-4" />
-            <span>Resource Masters</span>
-            {resourceCount !== null && (
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "text-[10px] px-1.5 py-0",
-                  activeTab === "resources" ? "bg-primary/15 text-primary font-semibold" : "",
-                )}
-              >
-                {resourceCount}
-              </Badge>
-            )}
-            {activeTab === "resources" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab("leave-calendar")}
-            className={cn(
-              "relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
-              activeTab === "leave-calendar"
-                ? "text-primary font-semibold"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <CalendarDays className="h-4 w-4" />
-            <span>Holiday Calendar</span>
-            {leaveCalendarCount !== null && (
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "text-[10px] px-1.5 py-0",
-                  activeTab === "leave-calendar" ? "bg-primary/15 text-primary font-semibold" : "",
-                )}
-              >
-                {leaveCalendarCount}
-              </Badge>
-            )}
-            {activeTab === "leave-calendar" && (
-              <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-            )}
-          </button>
-        </div>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <UnderlineTabs
+          value={activeTab}
+          onChange={setActiveTab}
+          options={[
+            {
+              value: "projects",
+              label: (
+                <>
+                  <FolderKanban className="h-4 w-4" />
+                  Project Masters
+                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                    {projectMasters.length}
+                  </Badge>
+                </>
+              ),
+            },
+            {
+              value: "customers",
+              label: (
+                <>
+                  <Building2 className="h-4 w-4" />
+                  Customer Masters
+                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                    {totalCustomerItems}
+                  </Badge>
+                </>
+              ),
+            },
+            {
+              value: "resources",
+              label: (
+                <>
+                  <Users className="h-4 w-4" />
+                  Resource Masters
+                  {resourceCount !== null && (
+                    <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                      {resourceCount}
+                    </Badge>
+                  )}
+                </>
+              ),
+            },
+            {
+              value: "leave-calendar",
+              label: (
+                <>
+                  <CalendarDays className="h-4 w-4" />
+                  Holiday Calendar
+                  {leaveCalendarCount !== null && (
+                    <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                      {leaveCalendarCount}
+                    </Badge>
+                  )}
+                </>
+              ),
+            },
+          ]}
+        />
 
         <Button
           variant="outline"

@@ -36,6 +36,7 @@ import { TablePaginationFooter } from "@/components/table-pagination-footer";
 import { paginateSlice } from "@/lib/pagination";
 
 import { cn } from "@/lib/utils";
+import { UnderlineTabs } from "@/components/ui/underline-tabs";
 
 import { deriveProjectDates } from "@/lib/project-dates";
 import { computeOverallProjectProgress, calculateServiceProgressFromTasks, isActiveService, type ServiceProgressItem } from "@/lib/project-progress";
@@ -3347,43 +3348,12 @@ export function ProjectDetailPage() {
 
         {/* Primary tabs */}
 
-        <div className="flex gap-1 overflow-x-auto border-b border-border/70 bg-muted/20 px-2">
-
-          {visibleTabs.map((t) => (
-
-            <button
-
-              key={t}
-
-              onClick={() => setTab(t)}
-
-              className={cn(
-
-                "relative px-3.5 py-3 text-[13px] font-medium transition-colors",
-
-                tab === t
-
-                  ? "text-foreground"
-
-                  : "text-muted-foreground hover:text-foreground",
-
-              )}
-
-            >
-
-              {t}
-
-              {tab === t && (
-
-                <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
-
-              )}
-
-            </button>
-
-          ))}
-
-        </div>
+        <UnderlineTabs
+          className="overflow-x-auto"
+          value={tab}
+          onChange={setTab}
+          options={visibleTabs.map((t) => ({ value: t, label: t }))}
+        />
 
 
 

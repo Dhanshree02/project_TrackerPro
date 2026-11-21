@@ -14,6 +14,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
@@ -1337,27 +1338,15 @@ export function MyTeamPage() {
       subtitle="Reporting team, availability, and leave visibility"
     >
       <div className="space-y-4">
-        <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner w-fit">
-          {visibleRosterTabs.map((tab) => {
+        <SegmentedControl
+          size="sm"
+          value={roster}
+          onChange={selectRoster}
+          options={visibleRosterTabs.map((tab) => {
             const Icon = tab.scope === "all" ? UsersRound : Users;
-            return (
-              <button
-                key={tab.code}
-                type="button"
-                onClick={() => selectRoster(tab.scope)}
-                aria-label={tab.name}
-                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150 ${
-                  roster === tab.scope
-                    ? "bg-blue-600 text-white shadow-xs"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {tab.name}
-              </button>
-            );
+            return { value: tab.scope, label: <><Icon className="h-3.5 w-3.5" /> {tab.name}</> };
           })}
-        </div>
+        />
         {loading && teamMembers.length === 0 && (
           <p className="text-sm text-muted-foreground">Loading team calendar…</p>
         )}

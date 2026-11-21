@@ -55,6 +55,7 @@ import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { dhStore, useDhStore } from "@/lib/workspace-store";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { paginateSlice } from "@/lib/pagination";
 import { TablePaginationFooter } from "@/components/table-pagination-footer";
 import {
@@ -466,32 +467,15 @@ export function CustomersListPage() {
           />
         </div>
         <div className="ml-auto flex items-center gap-2.5">
-          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
-            <button
-              onClick={() => setView("card")}
-              aria-label="Grid view"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
-                view === "card"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" /> Grid
-            </button>
-            <button
-              onClick={() => setView("list")}
-              aria-label="List view"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
-                view === "list"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <List className="h-3.5 w-3.5" /> List
-            </button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "card", label: <><LayoutGrid className="h-3.5 w-3.5" /> Grid</> },
+              { value: "list", label: <><List className="h-3.5 w-3.5" /> List</> },
+            ]}
+          />
           {canCreateClient && (
             <button
               onClick={() => setOpenNew(true)}

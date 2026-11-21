@@ -4,6 +4,7 @@ import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 
 export const Route = createFileRoute("/my-team/")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "My Team — Pulse PMO" },

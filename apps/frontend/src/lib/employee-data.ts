@@ -116,6 +116,8 @@ export interface Employee {
   pfUan: string;
   taxRegime: string;
   complianceStatus: ComplianceStatus;
+  /** False means the person is in the directory only and cannot sign in. */
+  hasLogin?: boolean;
   calendarOverrides?: Record<
     string,
     {

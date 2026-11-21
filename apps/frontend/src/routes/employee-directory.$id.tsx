@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { EmployeeProfilePage } from "@/modules/employees";
 
 export const Route = createFileRoute("/employee-directory/$id")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Employee Profile — Pulse PMO" },

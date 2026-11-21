@@ -9,7 +9,7 @@ import {
   useStackedBarHover,
 } from "@/modules/dashboard/components/bar-emphasis";
 import { DashboardBarCallout } from "@/modules/dashboard/components/dashboard-bar-callout";
-import { barRectFromEvent, placeBarTipFlushAbove, useGraphZoomMotion, xAxisLabel, yAxisLabel } from "@/modules/dashboard/components/graph-frame";
+import { barRectFromEvent, placeBarTipFlushAbove, xAxisLabel, yAxisLabel } from "@/modules/dashboard/components/graph-frame";
 
 const SEGMENT_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-4)"];
 
@@ -75,7 +75,6 @@ export function StackedMonthChart({
   } satisfies ChartConfig;
   const height = Math.max(220, rows.length * 36 + 28);
   const rootRef = useRef<HTMLDivElement>(null);
-  const zoom = useGraphZoomMotion();
   const { hover, setHover, clear: clearHover } = useStackedBarHover();
   const [tip, setTip] = useState<{
     name: string;
@@ -84,13 +83,6 @@ export function StackedMonthChart({
     left: number;
     top: number;
   } | null>(null);
-  const [intro, setIntro] = useState(true);
-
-  useEffect(() => {
-    const id = window.setTimeout(() => setIntro(false), 900);
-    return () => window.clearTimeout(id);
-  }, []);
-
   useEffect(() => {
     const onScroll = () => {
       setTip(null);
@@ -163,8 +155,7 @@ export function StackedMonthChart({
               fill={SEGMENT_COLORS[index]}
               shape={getStackedSegmentShape(index, SEGMENT_COLORS[index], months.length || 3)}
               radius={horizontalStackSegmentRadii(index, months.length || 3)}
-              isAnimationActive={!zoom && intro}
-              animationDuration={800}
+              isAnimationActive={false}
               onMouseEnter={(entry, _rowIndex, e) => {
                 if (!entry || typeof entry !== "object" || !("name" in entry)) return;
                 openFromBar(index, entry as (typeof data)[number], e);

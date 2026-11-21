@@ -124,6 +124,7 @@ import {
 import { apiFetch, apiFetchBlob } from "@/lib/api-client";
 
 import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 import { toast } from "sonner";
 import {
@@ -360,22 +361,12 @@ export function ActionCentrePage() {
         </div>
       ) : (
         <>
-          <div className="mb-4 inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
-            {visibleTabs.map((tab) => (
-              <button
-                key={tab.code}
-                onClick={() => setTabCode(tab.code)}
-                className={cn(
-                  "rounded-md px-3 py-1.5 font-medium transition-colors whitespace-nowrap flex items-center gap-1.5",
-                  activeTab?.code === tab.code
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            className="mb-4"
+            value={activeTab?.code ?? visibleTabs[0].code}
+            onChange={setTabCode}
+            options={visibleTabs.map((tab) => ({ value: tab.code, label: tab.name }))}
+          />
 
           {activeTab?.code === "bucket-list" && <BucketList />}
           {activeTab?.code === "approvals" && <ApprovalsTab />}
@@ -1433,91 +1424,38 @@ function BucketList() {
 
         {/* Status Filter Bar */}
 
-        <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
-
-          <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0 mx-1" />
-
-          {(["all", "todo", "in_progress", "on_hold", "done"] as const).map((s) => (
-
-            <button
-
-              key={s}
-
-              onClick={() => setStatusFilter(s)}
-
-              className={cn(
-
-                "h-7 rounded-sm px-2.5 py-0.5 capitalize text-xs font-medium transition-colors cursor-pointer",
-
-                statusFilter === s
-
-                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/40",
-
-              )}
-
-            >
-
-              {s === "all"
-
-                ? "All"
-
-                : s === "todo"
-
-                ? "To Do"
-
-                : s === "in_progress"
-
-                ? "In Progress"
-
-                : s === "on_hold"
-
-                ? "On Hold"
-
-                : "Done"}
-
-            </button>
-
-          ))}
-
+        <div className="flex items-center gap-1.5">
+          <Filter className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <SegmentedControl
+            size="sm"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: "all", label: "All" },
+              { value: "todo", label: "To Do" },
+              { value: "in_progress", label: "In Progress" },
+              { value: "on_hold", label: "On Hold" },
+              { value: "done", label: "Done" },
+            ]}
+          />
         </div>
 
 
 
         {/* Priority Filter */}
 
-        <div className="flex h-9 items-center gap-1 rounded-md border border-input bg-card px-2 text-xs">
-
-          {(["all", "Low", "Medium", "High", "Critical"] as const).map((p) => (
-
-            <button
-
-              key={p}
-
-              onClick={() => setPriorityFilter(p)}
-
-              className={cn(
-
-                "h-7 rounded-sm px-2 text-xs font-medium transition-colors cursor-pointer",
-
-                priorityFilter === p
-
-                  ? "bg-primary text-primary-foreground font-semibold shadow-2xs"
-
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/40",
-
-              )}
-
-            >
-
-              {p === "all" ? "All priority" : p}
-
-            </button>
-
-          ))}
-
-        </div>
+        <SegmentedControl
+          size="sm"
+          value={priorityFilter}
+          onChange={setPriorityFilter}
+          options={[
+            { value: "all", label: "All priority" },
+            { value: "Low", label: "Low" },
+            { value: "Medium", label: "Medium" },
+            { value: "High", label: "High" },
+            { value: "Critical", label: "Critical" },
+          ]}
+        />
 
 
 

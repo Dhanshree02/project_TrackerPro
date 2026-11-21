@@ -32,15 +32,11 @@ export function yAxisLabel(value: string) {
 }
 
 const CHART_TIP_STYLE = `[data-chart-tip] .recharts-bar-rectangle,[data-month-chart] .recharts-bar-rectangle{cursor:default}
-[data-chart-tip] .mis-dashboard-bar,[data-month-chart] .mis-dashboard-bar{cursor:pointer}
-@keyframes graph-bar-grow-y{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@keyframes graph-bar-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-[data-graph-zoom] .recharts-bar-rectangle{transform-box:fill-box;transform-origin:50% 100%;animation:graph-bar-grow-y .8s ease-out both}
-[data-graph-zoom] [data-bar-axis="x"] .recharts-bar-rectangle{transform-origin:0 50%;animation:graph-bar-grow-x .8s ease-out both}`;
+[data-chart-tip] .mis-dashboard-bar,[data-month-chart] .mis-dashboard-bar{cursor:pointer}`;
 
 const GraphZoomMotionContext = createContext(false);
 
-/** True while the chart is drawn inside the expanded window, so those bars play their entrance animation. */
+/** True while the chart is drawn inside the expanded window. */
 export function useGraphZoomMotion() {
   return useContext(GraphZoomMotionContext);
 }

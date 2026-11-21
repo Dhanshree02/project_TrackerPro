@@ -90,6 +90,11 @@
   --input: oklch(0.923 0.007 286.3);
   --ring: oklch(0.603 0.218 257.4);
   --success: oklch(0.73 0.194 147.4);
+  /* Apple system green and the iOS switch track. */
+  --switch-on: #34c759;
+  --switch-off: #e9e9ea;
+  --segment-track: rgba(120, 120, 128, 0.12);
+  --segment-thumb: #ffffff;
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.765 0.175 62.6);
   --warning-foreground: oklch(0.232 0.004 286.1);
@@ -134,6 +139,10 @@
   --input: oklch(0.349 0.003 286.2);
   --ring: oklch(0.624 0.206 255.5);
   --success: oklch(0.756 0.208 147);
+  --switch-on: #30d158;
+  --switch-off: #39393d;
+  --segment-track: rgba(118, 118, 128, 0.24);
+  --segment-thumb: #636366;
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.782 0.171 67.2);
   --warning-foreground: oklch(0.227 0.004 286.1);

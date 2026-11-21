@@ -59,6 +59,7 @@ internal static class EmployeeBulkWorkbook
         "Prior Relevant Exp (Years)",      // 33
         "Prior Relevant Exp (Months)",     // 34 (Dropdown: 0..11)
         "Certification Details",           // 35
+        "Login Access",                    // 36 (Dropdown: Employee and login / Employee only)
     ];
 
     /// <summary>
@@ -399,6 +400,7 @@ internal static class EmployeeBulkWorkbook
             "2",                                                      // 33. Prior Relevant Exp (Years)
             "0",                                                      // 34. Prior Relevant Exp (Months)
             "ISO 27001, CEH",                                         // 35. Certification Details
+            "Employee only",                                          // 36. Login Access
         };
 
         sheet.Row(2).Height = 22;
@@ -490,6 +492,8 @@ internal static class EmployeeBulkWorkbook
         var countPostGradYears = WriteLookupColumn(lCol++, "PostGraduationPassingYear", postGradYears);
         var countExpTypes = WriteLookupColumn(lCol++, "ExpFresher", expTypes);
         var countExpMonths = WriteLookupColumn(lCol++, "ExpMonths", expMonthOptions);
+        var loginAccessCol = lCol;
+        var countLoginAccess = WriteLookupColumn(lCol++, "LoginAccess", ["Employee and login", "Employee only"]);
 
         // Unique department names for the Employees dropdown. The visible Department
         // column repeats a name once per designation, so this list stays separate.
@@ -655,6 +659,7 @@ internal static class EmployeeBulkWorkbook
         SetListValidation(14, 6, countBusinessUnits, "Business Unit");
         SetListValidation(15, 7, countManagers, "Reporting Manager Code");
         SetListValidation(16, 8, countWorkLocations, "Work Location");
+        SetListValidation(Headers.Length, loginAccessCol, countLoginAccess, "Login Access");
 
         // 3. Employment Information dropdowns
         SetListValidation(20, 9, countStatuses, "Employee Status");
@@ -707,6 +712,7 @@ internal static class EmployeeBulkWorkbook
             "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
             "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
             "11. Maximum Rows: Up to 500 rows can be imported in a single upload file.",
+            "12. Login Access: Choose \"Employee and login\" to create a sign-in account, or \"Employee only\" to keep the person in the directory. A blank cell means Employee only.",
         ];
 
         for (var i = 0; i < instructions.Length; i++)
@@ -995,6 +1001,23 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     }
                 }
 
+                var loginAccess = GetValue(values, "loginaccess");
+                bool createLogin;
+                if (string.IsNullOrWhiteSpace(loginAccess)
+                    || loginAccess.Equals("Employee only", StringComparison.OrdinalIgnoreCase))
+                {
+                    createLogin = false;
+                }
+                else if (loginAccess.Equals("Employee and login", StringComparison.OrdinalIgnoreCase))
+                {
+                    createLogin = true;
+                }
+                else
+                {
+                    rowErrors.Add("Login Access must be \"Employee and login\" or \"Employee only\".");
+                    createLogin = false;
+                }
+
                 if (rowErrors.Count > 0)
                 {
                     errors.Add(new EmployeeBulkRowError(excelRow, NullIfEmpty(code), string.Join(" ", rowErrors)));
@@ -1164,7 +1187,8 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                     PostGradYear: postGradYear,
                     ExpType: expType,
                     PriorTotalExp: priorTotalExp,
-                    PriorRelevantExp: priorRelevantExp);
+                    PriorRelevantExp: priorRelevantExp,
+                    CreateLogin: createLogin);
 
                 pending.Add((excelRow, code.Trim(), request));
             }

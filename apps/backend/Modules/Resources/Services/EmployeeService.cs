@@ -2,11 +2,14 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Modules.Resources.Models;
+using PMS.API.Modules.Users.Models;
+using PMS.API.Modules.Users.Services;
 using PMS.API.Modules.Resources.Validators;
 using PMS.API.Infrastructure.Storage;
 using PMS.API.Shared.Common.Wrappers;
@@ -20,6 +23,7 @@ public sealed class EmployeeService(
     AppDbContext db,
     IFileStorageService storage,
     ICurrentUserService currentUser,
+    IPasswordHasher passwordHasher,
     PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService,
     IOffboardingNotificationService? offboardingNotificationService = null,
     ILogger<EmployeeService>? logger = null) : IEmployeeService
@@ -92,18 +96,19 @@ public sealed class EmployeeService(
         }
 
         var total = await query.CountAsync(ct);
-        var items = await query
+        var rows = await query
             .OrderBy(e => e.FirstName).ThenBy(e => e.LastName)
             .Skip((page - 1) * perPage)
             .Take(perPage)
-            .Select(e => new EmployeeListItemDto(
+            .Select(e => new
+            {
                 e.Id,
                 e.EmployeeCode,
-                e.FirstName + " " + e.LastName,
+                FullName = e.FirstName + " " + e.LastName,
                 e.WorkEmail,
-                e.Department != null ? e.Department.Name : null,
-                e.Designation != null ? e.Designation.Name : null,
-                e.ReportingManager != null
+                Department = e.Department != null ? e.Department.Name : null,
+                Designation = e.Designation != null ? e.Designation.Name : null,
+                ReportingManagerName = e.ReportingManager != null
                     ? e.ReportingManager.FirstName + " " + e.ReportingManager.LastName
                     : null,
                 e.JoiningDate,
@@ -127,7 +132,7 @@ public sealed class EmployeeService(
                 e.Skills,
                 e.Certifications,
                 e.Languages,
-                !string.IsNullOrWhiteSpace(e.Role)
+                Role = !string.IsNullOrWhiteSpace(e.Role)
                     ? e.Role
                     : (e.User != null && e.User.Role != null ? (e.User.Role.DisplayName ?? e.User.Role.Name) : null),
                 e.BusinessUnit,
@@ -141,19 +146,56 @@ public sealed class EmployeeService(
                 e.ProjectType,
                 e.ProjectAllocated,
                 e.ClientEngManagerMapping,
-                db.OnFloorRoles
+                Floor = db.OnFloorRoles
                     .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
-                    .Select(r => r.Name)
+                    .Select(r => new { r.Id, r.Name })
                     .FirstOrDefault(),
-                db.OnFloorRoles
-                    .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
-                    .Select(r => r.Name)
-                    .FirstOrDefault(),
-                db.OnFloorRoles
-                    .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
-                    .Select(r => (Guid?)r.Id)
-                    .FirstOrDefault()))
+            })
             .ToListAsync(ct);
+        var items = rows.Select(e => new EmployeeListItemDto(
+            e.Id,
+            e.EmployeeCode,
+            e.FullName,
+            e.WorkEmail,
+            e.Department,
+            e.Designation,
+            e.ReportingManagerName,
+            e.JoiningDate,
+            e.WorkLocation,
+            e.OfficeBranch,
+            e.Category,
+            e.ProjectSite,
+            e.KpiScore,
+            e.Status,
+            e.CreatedAtUtc,
+            e.PersonalEmail,
+            e.Phone,
+            e.AltPhone,
+            e.EmergencyContact,
+            e.EmergencyContactName,
+            e.EmergencyContactRelation,
+            e.Pan,
+            e.BankAccount,
+            e.PfUan,
+            e.Education,
+            e.Skills,
+            e.Certifications,
+            e.Languages,
+            e.Role,
+            e.BusinessUnit,
+            e.Team,
+            e.Experience,
+            e.PreviousCompany,
+            e.PmoDepartment,
+            e.SubDepartment,
+            e.BillableStatus,
+            e.ClientLocation,
+            e.ProjectType,
+            e.ProjectAllocated,
+            e.ClientEngManagerMapping,
+            e.Floor != null ? e.Floor.Name : null,
+            e.Floor != null ? e.Floor.Name : null,
+            e.Floor != null ? e.Floor.Id : null)).ToList();
 
         if (items.Count > 0)
         {
@@ -235,13 +277,14 @@ public sealed class EmployeeService(
             .Include(e => e.NationalityRef)
             .Include(e => e.SalaryBandRef)
             .Include(e => e.ReportingManager)
+            .Include(e => e.User)
             .FirstOrDefaultAsync(ct);
 
         if (entity is null) return null;
         var floor = entity.DesignationId is Guid designationId
             ? await db.OnFloorRoles.AsNoTracking().FirstOrDefaultAsync(r => r.DesignationId == designationId, ct)
             : null;
-        return MapDetail(entity, floor);
+        return MapDetail(entity, floor, await HasActiveLoginAsync(entity, ct));
     }
 
     public Task<byte[]> GetBulkSampleExcelAsync(CancellationToken ct = default) =>
@@ -259,18 +302,19 @@ public sealed class EmployeeService(
     public Task<EmployeeDetailDto> CreateEmployeeForBulkAsync(
         CreateEmployeeRequest request,
         CancellationToken ct) =>
-        CreateEmployeeCoreAsync(request, checkIdentity: false, notify: false, ct);
+        CreateEmployeeCoreAsync(request, checkIdentity: false, notify: false, createLogin: request.CreateLogin == true, ct);
 
     public async Task<EmployeeDetailDto> CreateEmployeeAsync(
         CreateEmployeeRequest request,
         bool checkIdentity,
         CancellationToken ct) =>
-        await CreateEmployeeCoreAsync(request, checkIdentity, notify: true, ct);
+        await CreateEmployeeCoreAsync(request, checkIdentity, notify: true, createLogin: request.CreateLogin ?? true, ct);
 
     private async Task<EmployeeDetailDto> CreateEmployeeCoreAsync(
         CreateEmployeeRequest request,
         bool checkIdentity,
         bool notify,
+        bool createLogin,
         CancellationToken ct)
     {
         var empCode = EmployeeCodeRules.Normalize(request.EmployeeCode);
@@ -420,6 +464,8 @@ public sealed class EmployeeService(
             {
                 await db.SaveChangesAsync(ct);
                 await SyncLinkedUserAsync(entity, ct);
+                if (createLogin)
+                    await SetLoginAccessAsync(entity, enabled: true, ct);
                 await notificationService.NotifyResourceOnboardedAsync(
                     entity.Id,
                     $"{entity.FirstName} {entity.LastName}".Trim(),
@@ -437,6 +483,8 @@ public sealed class EmployeeService(
 
         if (!notify)
         {
+            if (createLogin)
+                await SetLoginAccessAsync(entity, enabled: true, ct);
             return new EmployeeDetailDto(
                 entity.Id,
                 entity.EmployeeCode,
@@ -520,6 +568,34 @@ public sealed class EmployeeService(
         }
 
         return (await GetEmployeeAsync(entity.Id.ToString(), ct))!;
+    }
+
+    public async Task<SetEmployeeLoginAccessResult> SetLoginAccessManyAsync(
+        SetEmployeeLoginAccessRequest request,
+        CancellationToken ct = default)
+    {
+        var updated = 0;
+        var notFound = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var raw in request.EmployeeIds)
+        {
+            var id = raw?.Trim();
+            if (string.IsNullOrWhiteSpace(id) || !seen.Add(id)) continue;
+            var entity = await BuildEmployeeLookupQuery(id)
+                .Include(e => e.Department)
+                .Include(e => e.Designation)
+                .FirstOrDefaultAsync(ct);
+            if (entity is null)
+            {
+                notFound.Add(id);
+                continue;
+            }
+
+            await SetLoginAccessAsync(entity, request.CreateLogin, ct);
+            updated++;
+        }
+
+        return new SetEmployeeLoginAccessResult(updated, notFound);
     }
 
     public async Task<EmployeeDetailDto?> UpdateEmployeeAsync(string idOrCode, UpdateEmployeeRequest request, CancellationToken ct = default)
@@ -1060,6 +1136,8 @@ public sealed class EmployeeService(
             }
             await db.SaveChangesAsync(ct);
             await SyncLinkedUserAsync(entity, ct);
+            if (request.CreateLogin is bool createLogin)
+                await SetLoginAccessAsync(entity, createLogin, ct);
 
             if (distinctChanges.Count > 0 && entity.ReportingManagerId.HasValue && entity.ReportingManagerId.Value != Guid.Empty)
             {
@@ -1721,7 +1799,112 @@ public sealed class EmployeeService(
         e.ClearanceCompleted,
         e.ExitRating);
 
-    private static EmployeeDetailDto MapDetail(Employee e, OnFloorRole? floor = null) => new(
+    private async Task<bool> HasActiveLoginAsync(Employee entity, CancellationToken ct)
+    {
+        if (entity.User is { IsActive: true, DeletedAtUtc: null }) return true;
+        var email = entity.WorkEmail.Trim().ToLowerInvariant();
+        var code = entity.EmployeeCode.Trim().ToLowerInvariant();
+        return await db.Users.AsNoTracking().AnyAsync(u =>
+            u.DeletedAtUtc == null &&
+            u.IsActive &&
+            (u.Email.ToLower() == email || u.EmployeeId.ToLower() == code), ct);
+    }
+
+    private async Task SetLoginAccessAsync(Employee entity, bool enabled, CancellationToken ct)
+    {
+        var email = entity.WorkEmail.Trim().ToLowerInvariant();
+        var code = entity.EmployeeCode.Trim();
+        var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u =>
+            (entity.UserId != null && u.Id == entity.UserId) ||
+            u.Email.ToLower() == email ||
+            u.EmployeeId.ToLower() == code.ToLower(), ct);
+
+        if (!enabled)
+        {
+            if (user is null)
+            {
+                if (entity.UserId is not null)
+                {
+                    entity.UserId = null;
+                    await db.SaveChangesAsync(ct);
+                }
+                return;
+            }
+
+            user.DeletedAtUtc = DateTime.UtcNow;
+            user.UpdatedAtUtc = DateTime.UtcNow;
+            entity.UserId = null;
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        var roleId = await ResolveLoginRoleIdAsync(entity, ct);
+        string? deptName = entity.Department?.Name;
+        if (deptName is null && entity.DepartmentId is Guid deptId)
+            deptName = await db.Departments.Where(d => d.Id == deptId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+        string? desigName = entity.Designation?.Name;
+        if (desigName is null && entity.DesignationId is Guid desigId)
+            desigName = await db.Designations.Where(d => d.Id == desigId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+
+        if (user is null)
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                Name = $"{entity.FirstName} {entity.LastName}".Trim(),
+                EmployeeId = code,
+                Department = deptName,
+                SubDepartment = entity.SubDepartment,
+                Designation = desigName,
+                RoleId = roleId,
+                IsActive = true,
+                MustChangePassword = true,
+                PasswordHash = passwordHasher.Hash(UserService.TempPassword),
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            db.Users.Add(user);
+        }
+        else
+        {
+            user.Email = email;
+            user.Name = $"{entity.FirstName} {entity.LastName}".Trim();
+            user.EmployeeId = code;
+            user.Department = deptName;
+            user.SubDepartment = entity.SubDepartment;
+            user.Designation = desigName;
+            user.IsActive = true;
+            user.DeletedAtUtc = null;
+            user.UpdatedAtUtc = DateTime.UtcNow;
+            if (user.RoleId is null && roleId is Guid resolvedRole) user.RoleId = resolvedRole;
+            if (string.IsNullOrWhiteSpace(user.PasswordHash))
+            {
+                user.PasswordHash = passwordHasher.Hash(UserService.TempPassword);
+                user.MustChangePassword = true;
+            }
+        }
+
+        entity.UserId = user.Id;
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            throw new ConflictException("A login already exists for this email or TK ID.");
+        }
+    }
+
+    private async Task<Guid?> ResolveLoginRoleIdAsync(Employee entity, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(entity.Role)) return null;
+        var roleName = entity.Role.Trim();
+        var role = await db.Roles.FirstOrDefaultAsync(r =>
+            r.Name == roleName || r.DisplayName == roleName, ct);
+        return role?.Id;
+    }
+
+    private static EmployeeDetailDto MapDetail(Employee e, OnFloorRole? floor = null, bool hasLogin = false) => new(
         e.Id,
         e.EmployeeCode,
         e.FirstName,
@@ -1802,7 +1985,8 @@ public sealed class EmployeeService(
         e.DepartmentId,
         e.DesignationId,
         floor?.Id,
-        floor?.Name);
+        floor?.Name,
+        hasLogin);
 
     private static string MapDirectoryStatusFromEmployeeStatusName(string name)
     {
