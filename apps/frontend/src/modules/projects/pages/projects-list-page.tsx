@@ -35,6 +35,7 @@ import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useDraggable } from "@/hooks/use-draggable";
 import { paginateSlice } from "@/lib/pagination";
+import { SortableColumnHeader, compareSortValues, toggleColumnSort } from "@/components/sortable-column-header";
 import { TablePaginationFooter } from "@/components/table-pagination-footer";
 
 const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
@@ -253,16 +254,53 @@ export function ProjectsListPage() {
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
+  const [projectSortKey, setProjectSortKey] = useState<
+    "id" | "name" | "customer" | "status" | "progress" | "start" | "end" | "em" | "pm" | "tl"
+  >("name");
+  const [projectSortDir, setProjectSortDir] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     setTablePage(1);
   }, [tab, q, years]);
 
   const totalProjects = visible.length;
-  const pagedProjects = useMemo(
-    () => paginateSlice(visible, tablePage, tablePageSize),
-    [visible, tablePage, tablePageSize]
-  );
+  const pagedProjects = useMemo(() => {
+    const text = (value?: string | null) => value ?? "";
+    const firstName = (list: Person[]) => list[0]?.name ?? "";
+    const sorted = [...visible].sort((a, b) => {
+      switch (projectSortKey) {
+        case "id":
+          return compareSortValues(text(a.projectSeqId || a.id), text(b.projectSeqId || b.id), projectSortDir);
+        case "name":
+          return compareSortValues(text(a.name), text(b.name), projectSortDir);
+        case "customer":
+          return compareSortValues(
+            text(clients.find((c) => c.id === a.clientId)?.name),
+            text(clients.find((c) => c.id === b.clientId)?.name),
+            projectSortDir,
+          );
+        case "status":
+          return compareSortValues(text(a.status), text(b.status), projectSortDir);
+        case "progress":
+          return compareSortValues(a.progress ?? 0, b.progress ?? 0, projectSortDir);
+        case "start":
+          return compareSortValues(text(a.startDate), text(b.startDate), projectSortDir);
+        case "end":
+          return compareSortValues(text(a.endDate), text(b.endDate), projectSortDir);
+        case "em":
+          return compareSortValues(firstName(getCardEMs(a)), firstName(getCardEMs(b)), projectSortDir);
+        case "pm":
+          return compareSortValues(
+            firstName(getCardPMs(a, leadershipAssignments, prereqs)),
+            firstName(getCardPMs(b, leadershipAssignments, prereqs)),
+            projectSortDir,
+          );
+        case "tl":
+          return compareSortValues(firstName(getCardTLs(a)), firstName(getCardTLs(b)), projectSortDir);
+      }
+    });
+    return paginateSlice(sorted, tablePage, tablePageSize);
+  }, [visible, tablePage, tablePageSize, projectSortKey, projectSortDir, clients, leadershipAssignments, prereqs]);
 
   if (!canViewProjects) return <Navigate to="/" />;
 
@@ -498,16 +536,29 @@ export function ProjectsListPage() {
           <table className="w-full min-w-[1100px] text-sm">
             <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
               <tr>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Project ID</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Project</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Customer</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Status</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Progress</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Start</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">End</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Engagement Mgr</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Project Mgr</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Team Lead</th>
+                {(
+                  [
+                    ["id", "Project ID"],
+                    ["name", "Project"],
+                    ["customer", "Customer"],
+                    ["status", "Status"],
+                    ["progress", "Progress"],
+                    ["start", "Start"],
+                    ["end", "End"],
+                    ["em", "Engagement Mgr"],
+                    ["pm", "Project Mgr"],
+                    ["tl", "Team Lead"],
+                  ] as const
+                ).map(([column, label]) => (
+                  <SortableColumnHeader
+                    key={column}
+                    label={label}
+                    column={column}
+                    sortKey={projectSortKey}
+                    sortDir={projectSortDir}
+                    onSort={(next) => toggleColumnSort(next, projectSortKey, setProjectSortKey, setProjectSortDir)}
+                  />
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

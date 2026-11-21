@@ -7,9 +7,8 @@ export type SegmentOption<T extends string> = {
 };
 
 /**
- * Apple segmented control. The track is system gray. The selected piece is a
- * white pill in light mode and system gray in dark mode, and it slides to the
- * chosen option.
+ * Shared pill switch. The track is system gray. The selected piece is a white
+ * pill in both themes, with dark text, and it slides to the chosen option.
  */
 export function SegmentedControl<T extends string>({
   value,
@@ -17,12 +16,14 @@ export function SegmentedControl<T extends string>({
   options,
   size = "md",
   className,
+  ariaLabel,
 }: {
   value: T;
   onChange: (value: T) => void;
   options: SegmentOption<T>[];
   size?: "sm" | "md";
   className?: string;
+  ariaLabel?: string;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const seen = useRef(false);
@@ -58,15 +59,16 @@ export function SegmentedControl<T extends string>({
     <div
       ref={rootRef}
       role="tablist"
+      aria-label={ariaLabel}
       className={cn(
-        "relative inline-flex w-fit max-w-full items-center gap-0.5 rounded-[9px] bg-[var(--segment-track)] p-0.5",
+        "relative inline-flex w-fit max-w-full flex-wrap items-center gap-1 rounded-full bg-[var(--segment-track)] p-1",
         className,
       )}
     >
       {thumb && (
         <span
           aria-hidden
-          className="pointer-events-none absolute rounded-[7px] bg-[var(--segment-thumb)] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_2px_6px_rgba(0,0,0,0.08)]"
+          className="pointer-events-none absolute rounded-full bg-[var(--segment-thumb)] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.12)]"
           style={{
             left: thumb.x,
             top: thumb.y,
@@ -89,9 +91,9 @@ export function SegmentedControl<T extends string>({
             data-selected={selected ? "true" : "false"}
             onClick={() => onChange(option.value)}
             className={cn(
-              "relative z-10 inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] font-medium",
-              size === "sm" ? "px-2.5 py-1 text-xs" : "px-3 py-1.5 text-sm",
-              selected ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+              "relative z-10 inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium tracking-[-0.016em] transition-colors duration-200",
+              size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-4 py-2 text-sm",
+              selected ? "text-[var(--segment-thumb-foreground)]" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {option.label}

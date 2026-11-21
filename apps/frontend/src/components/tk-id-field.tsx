@@ -52,7 +52,7 @@ export function TkIdField({
               value={prefix}
               disabled={disabled}
               onChange={(e) => onChange(e.target.value as TkIdPrefix, digits)}
-              className="h-full w-full cursor-pointer appearance-none border-0 bg-transparent pl-3 pr-7 text-xs font-semibold text-foreground outline-none disabled:cursor-not-allowed"
+              className="h-full w-full cursor-pointer appearance-none border-0 bg-transparent bg-none pl-3 pr-7 text-xs font-semibold text-foreground outline-none disabled:cursor-not-allowed"
               aria-label="TK ID prefix"
             >
               {TK_ID_PREFIXES.map((item) => (

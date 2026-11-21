@@ -100,10 +100,10 @@ export function OnsiteProjectCountSection({
   const showTable = view !== "graph";
 
   return (
-    <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
+    <article className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold">Team Utilization – Onsite: Project-wise Resource Count</h3>
+          <h3 className="text-[15px] font-semibold tracking-[-0.016em]">Team Utilization – Onsite: Project-wise Resource Count</h3>
           <p className="text-xs text-muted-foreground">People assigned to the project's onsite services</p>
         </div>
         <div className="flex items-end gap-2">

@@ -2,12 +2,12 @@ import { useState, useRef, useId } from "react";
 import * as XLSX from "xlsx";
 import {
   Upload,
-  FileSpreadsheet,
+  UploadCloud,
   Download,
   X,
   AlertCircle,
   CheckCircle2,
-  FileText,
+  FileCheck2,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,10 +16,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
   bulkCreateLeaveCalendarHolidays,
@@ -392,109 +392,95 @@ export function HolidayBulkUploadDialog({
       <DialogContent
         disableAnimation
         overlayClassName="!duration-0 !animate-none"
-        className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 overflow-hidden !duration-0 !animate-none"
+        className="flex max-h-[90vh] max-w-xl flex-col gap-0 overflow-hidden rounded-[20px] border-border/70 bg-card p-0 shadow-2xl !duration-0 !animate-none sm:max-w-xl"
       >
-        <DialogHeader className="p-6 pb-4 border-b border-border/60">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <FileSpreadsheet className="h-5 w-5" />
-            </div>
-            <div>
-              <DialogTitle className="text-base font-bold text-foreground">
-                Bulk Upload Holidays
-              </DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                Import full year holidays using an Excel sheet (.xlsx, .xls, .csv).
-              </DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+        <div className="px-6 pb-2 pt-6">
+          <DialogHeader className="space-y-1.5 text-left">
+            <DialogTitle className="text-[17px] font-semibold tracking-[-0.022em] text-foreground">
+              Bulk Upload Holidays
+            </DialogTitle>
+            <DialogDescription className="text-[13px] leading-snug text-muted-foreground">
+              Import a year of holidays from Excel or CSV. Each row needs a date and a holiday name.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* ── Sample Excel Download Card ── */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-900 dark:text-emerald-200">
-                <FileText className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>Sample Excel Template</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground">
-                Download a pre-formatted template with columns: <strong className="font-semibold text-foreground">Date</strong> and <strong className="font-semibold text-foreground">Holiday Name</strong>.
+        <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 space-y-1">
+              <h4 className="text-[15px] font-semibold tracking-[-0.016em] text-foreground">
+                Download a sample
+              </h4>
+              <p className="text-[13px] leading-snug text-muted-foreground">
+                Start from the template. The columns are Date and Holiday Name.
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadSample}
-              className="h-8 text-xs shrink-0 border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 gap-1.5 font-medium"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span>Download Sample (.xlsx)</span>
+            <Button type="button" variant="outline" size="sm" onClick={handleDownloadSample} className="shrink-0">
+              <Download />
+              Download
             </Button>
           </div>
 
-          {/* ── File Upload Dropzone ── */}
-          {!selectedFile ? (
-            <div
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`relative flex flex-col items-center justify-center p-8 rounded-xl border-2 border-dashed cursor-pointer ${
-                isDragging
-                  ? "border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20"
-                  : "border-border/80 hover:border-emerald-500/60 bg-muted/20 hover:bg-muted/40"
-              }`}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                id={fileInputId}
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 mb-3">
-                <Upload className="h-6 w-6" />
-              </div>
-              <p className="text-xs font-semibold text-foreground">
-                Click to browse or drag and drop your file here
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Supports Microsoft Excel (.xlsx, .xls) and CSV (Max 5 MB)
-              </p>
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <h4 className="text-[15px] font-semibold tracking-[-0.016em] text-foreground">
+                Add the file
+              </h4>
+              <span className="text-[13px] text-muted-foreground">Excel or CSV, up to 5 MB</span>
             </div>
-          ) : (
-            /* ── File Selected & Preview Mode ── */
-            <div className="space-y-4">
-              {/* File Info Bar */}
-              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600">
-                    <FileSpreadsheet className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-foreground truncate max-w-xs sm:max-w-sm">
-                      {selectedFile.name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {(selectedFile.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={resetState}
-                  disabled={importing}
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  title="Remove and choose another file"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+
+            {!selectedFile ? (
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={cn(
+                  "flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border px-6 py-8 text-center",
+                  isDragging ? "border-primary bg-primary/10" : "border-border bg-muted/30 hover:bg-muted/50",
+                )}
+              >
+                <input
+                  id={fileInputId}
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <UploadCloud className="mx-auto h-7 w-7 text-muted-foreground" strokeWidth={1.75} />
+                <p className="mt-2 text-[15px] font-semibold tracking-[-0.016em] text-foreground">
+                  Drop a file here, or <span className="text-primary">browse</span>
+                </p>
+                <p className="mt-1 text-[13px] text-muted-foreground">.xlsx, .xls, or .csv up to 5 MB</p>
               </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-muted/40 px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+                      <FileCheck2 className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-semibold tracking-[-0.016em] text-foreground">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-[13px] text-muted-foreground">
+                        {(selectedFile.size / 1024).toFixed(1)} KB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetState}
+                    disabled={importing}
+                    aria-label="Remove file"
+                  >
+                    <X />
+                  </Button>
+                </div>
 
               {parsing ? (
                 <div className="py-8 flex flex-col items-center justify-center text-xs text-muted-foreground gap-2">
@@ -510,7 +496,7 @@ export function HolidayBulkUploadDialog({
                 <>
                   {/* Summary Badges */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs px-2.5 py-1 flex items-center gap-1.5">
+                    <Badge variant="outline" className="flex items-center gap-1.5 border-success/40 bg-success/10 px-2.5 py-1 text-xs text-success">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       <span>{validRows.length} valid holiday{validRows.length === 1 ? "" : "s"} ready</span>
                     </Badge>
@@ -568,7 +554,7 @@ export function HolidayBulkUploadDialog({
                               </td>
                               <td className="py-2 px-3 text-right">
                                 {row.isValid ? (
-                                  <span className="inline-flex items-center text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                  <span className="inline-flex items-center text-[13px] font-semibold text-success">
                                     Valid
                                   </span>
                                 ) : (
@@ -590,40 +576,27 @@ export function HolidayBulkUploadDialog({
               )}
             </div>
           )}
+          </div>
         </div>
 
-        <DialogFooter className="p-4 border-t border-border/60 bg-muted/20 flex flex-row items-center justify-between sm:justify-between gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleClose}
-            disabled={importing}
-            className="h-8 text-xs"
-          >
+        <div className="flex items-center justify-end gap-2 border-t border-border/70 px-6 py-4">
+          <Button type="button" variant="outline" onClick={handleClose} disabled={importing}>
             Cancel
           </Button>
-
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleImport}
-            disabled={importing || validRows.length === 0}
-            className="h-8 text-xs gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
-          >
+          <Button type="button" onClick={handleImport} disabled={importing || validRows.length === 0}>
             {importing ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Importing...</span>
+                <Loader2 className="animate-spin" />
+                Importing…
               </>
             ) : (
               <>
-                <Upload className="h-3.5 w-3.5" />
-                <span>Import {validRows.length} Holiday{validRows.length === 1 ? "" : "s"}</span>
+                <Upload />
+                Import
               </>
             )}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

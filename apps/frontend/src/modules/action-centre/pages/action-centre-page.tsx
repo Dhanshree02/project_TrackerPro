@@ -3,6 +3,7 @@ import { Link, Navigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 
 import { NotificationDetailModal, formatNotificationId } from "@/components/notification-detail-modal";
+import { SortableColumnHeader, compareSortValues, toggleColumnSort } from "@/components/sortable-column-header";
 
 import {
 
@@ -1386,7 +1387,27 @@ function BucketList() {
   }, [q, statusFilter, priorityFilter]);
 
   const totalTasks = apiTasks.length;
-  const pageTasks = useMemo(() => paginateSlice(apiTasks, page, pageSize), [apiTasks, page, pageSize]);
+  const [taskSortKey, setTaskSortKey] = useState<"task" | "project" | "priority" | "due" | "status" | "by">("due");
+  const [taskSortDir, setTaskSortDir] = useState<"asc" | "desc">("desc");
+  const pageTasks = useMemo(() => {
+    const sorted = [...apiTasks].sort((a, b) => {
+      switch (taskSortKey) {
+        case "task":
+          return compareSortValues(a.taskTitle, b.taskTitle, taskSortDir);
+        case "project":
+          return compareSortValues(a.projectName, b.projectName, taskSortDir);
+        case "priority":
+          return compareSortValues(a.priority, b.priority, taskSortDir);
+        case "due":
+          return compareSortValues(a.dueDate ?? "", b.dueDate ?? "", taskSortDir);
+        case "status":
+          return compareSortValues(a.status, b.status, taskSortDir);
+        case "by":
+          return compareSortValues(a.assignedByName ?? "", b.assignedByName ?? "", taskSortDir);
+      }
+    });
+    return paginateSlice(sorted, page, pageSize);
+  }, [apiTasks, page, pageSize, taskSortKey, taskSortDir]);
 
 
 
@@ -1492,13 +1513,26 @@ function BucketList() {
           </colgroup>
           <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Task</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Priority</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Due Date</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Assigned By</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Actions & Timer</th>
+              {(
+                [
+                  ["task", "Task"],
+                  ["project", "Project"],
+                  ["priority", "Priority"],
+                  ["due", "Due Date"],
+                  ["status", "Status"],
+                  ["by", "Assigned By"],
+                ] as const
+              ).map(([column, label]) => (
+                <SortableColumnHeader
+                  key={column}
+                  label={label}
+                  column={column}
+                  sortKey={taskSortKey}
+                  sortDir={taskSortDir}
+                  onSort={(next) => toggleColumnSort(next, taskSortKey, setTaskSortKey, setTaskSortDir)}
+                />
+              ))}
+              <th className="px-3 py-3.5 text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">Actions & Timer</th>
             </tr>
           </thead>
 
@@ -2129,7 +2163,27 @@ function ApprovalsTab() {
   }, [projectFilter, typeFilter, statusFilter, approvalSearchQuery]);
 
   const totalApprovals = filteredApprovals.length;
-  const pageApprovals = useMemo(() => paginateSlice(filteredApprovals, approvalPage, approvalPageSize), [filteredApprovals, approvalPage, approvalPageSize]);
+  const [approvalSortKey, setApprovalSortKey] = useState<"id" | "project" | "type" | "by" | "date" | "status">("date");
+  const [approvalSortDir, setApprovalSortDir] = useState<"asc" | "desc">("desc");
+  const pageApprovals = useMemo(() => {
+    const sorted = [...filteredApprovals].sort((a, b) => {
+      switch (approvalSortKey) {
+        case "id":
+          return compareSortValues(a.id, b.id, approvalSortDir);
+        case "project":
+          return compareSortValues(a.projectName, b.projectName, approvalSortDir);
+        case "type":
+          return compareSortValues(a.requestType, b.requestType, approvalSortDir);
+        case "by":
+          return compareSortValues(a.requestedBy ?? "", b.requestedBy ?? "", approvalSortDir);
+        case "date":
+          return compareSortValues(a.requestedDate ?? "", b.requestedDate ?? "", approvalSortDir);
+        case "status":
+          return compareSortValues(a.status, b.status, approvalSortDir);
+      }
+    });
+    return paginateSlice(sorted, approvalPage, approvalPageSize);
+  }, [filteredApprovals, approvalPage, approvalPageSize, approvalSortKey, approvalSortDir]);
 
 
 
@@ -2339,12 +2393,25 @@ function ApprovalsTab() {
 
           <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Approval ID</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Request Type</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Requested By</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Date</th>
-              <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
+              {(
+                [
+                  ["id", "Approval ID"],
+                  ["project", "Project"],
+                  ["type", "Request Type"],
+                  ["by", "Requested By"],
+                  ["date", "Date"],
+                  ["status", "Status"],
+                ] as const
+              ).map(([column, label]) => (
+                <SortableColumnHeader
+                  key={column}
+                  label={label}
+                  column={column}
+                  sortKey={approvalSortKey}
+                  sortDir={approvalSortDir}
+                  onSort={(next) => toggleColumnSort(next, approvalSortKey, setApprovalSortKey, setApprovalSortDir)}
+                />
+              ))}
               {canManageApprovals && (
                 <th className="px-3 py-2.5 font-semibold text-muted-foreground text-right">Actions</th>
               )}
@@ -2898,7 +2965,31 @@ function AlertsTab() {
   }, [projFilter, clientFilter, prioFilter, typeFilter, statusFilter, alertSearchQuery]);
 
   const totalAlerts = filtered.length;
-  const pageAlerts = useMemo(() => paginateSlice(filtered, page, pageSize), [filtered, page, pageSize]);
+  const [alertSortKey, setAlertSortKey] = useState<"title" | "project" | "type" | "priority" | "by" | "date" | "status">("date");
+  const [alertSortDir, setAlertSortDir] = useState<"asc" | "desc">("desc");
+  const pageAlerts = useMemo(() => {
+    const sorted = [...filtered].sort((a, b) => {
+      const projectName = (alert: (typeof filtered)[number]) =>
+        alert.projectName || projectsList.find((p) => p.id === alert.projectId)?.name || "";
+      switch (alertSortKey) {
+        case "title":
+          return compareSortValues(a.title, b.title, alertSortDir);
+        case "project":
+          return compareSortValues(projectName(a), projectName(b), alertSortDir);
+        case "type":
+          return compareSortValues(a.alertType || a.kind, b.alertType || b.kind, alertSortDir);
+        case "priority":
+          return compareSortValues(a.priority, b.priority, alertSortDir);
+        case "by":
+          return compareSortValues(a.raisedByName ?? "", b.raisedByName ?? "", alertSortDir);
+        case "date":
+          return compareSortValues(a.createdAt ?? "", b.createdAt ?? "", alertSortDir);
+        case "status":
+          return compareSortValues(a.status, b.status, alertSortDir);
+      }
+    });
+    return paginateSlice(sorted, page, pageSize);
+  }, [filtered, page, pageSize, alertSortKey, alertSortDir, projectsList]);
 
 
 
@@ -3352,14 +3443,27 @@ function AlertsTab() {
 
               <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Alert Title</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Project Name</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Alert Type</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Priority</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised By</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised Date</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
-                  <th className="px-3 py-2.5 font-semibold text-muted-foreground text-right">Actions</th>
+                  {(
+                    [
+                      ["title", "Alert Title"],
+                      ["project", "Project Name"],
+                      ["type", "Alert Type"],
+                      ["priority", "Priority"],
+                      ["by", "Raised By"],
+                      ["date", "Raised Date"],
+                      ["status", "Status"],
+                    ] as const
+                  ).map(([column, label]) => (
+                    <SortableColumnHeader
+                      key={column}
+                      label={label}
+                      column={column}
+                      sortKey={alertSortKey}
+                      sortDir={alertSortDir}
+                      onSort={(next) => toggleColumnSort(next, alertSortKey, setAlertSortKey, setAlertSortDir)}
+                    />
+                  ))}
+                  <th className="px-3 py-3.5 text-right text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -4545,7 +4649,29 @@ function NotificationsTab() {
   }, [subTab, searchQuery, typeFilter, priorityFilter, dateFilter, statusFilter]);
 
   const totalNotifications = filteredNotifications.length;
-  const pageNotifications = useMemo(() => paginateSlice(filteredNotifications, page, pageSize), [filteredNotifications, page, pageSize]);
+  const [notifSortKey, setNotifSortKey] = useState<"title" | "type" | "project" | "by" | "time" | "status" | "priority">("time");
+  const [notifSortDir, setNotifSortDir] = useState<"asc" | "desc">("desc");
+  const pageNotifications = useMemo(() => {
+    const sorted = [...filteredNotifications].sort((a, b) => {
+      switch (notifSortKey) {
+        case "title":
+          return compareSortValues(a.title, b.title, notifSortDir);
+        case "type":
+          return compareSortValues(a.type, b.type, notifSortDir);
+        case "project":
+          return compareSortValues(a.relatedProject ?? "", b.relatedProject ?? "", notifSortDir);
+        case "by":
+          return compareSortValues(a.raisedBy, b.raisedBy, notifSortDir);
+        case "time":
+          return compareSortValues(a.createdAt ?? "", b.createdAt ?? "", notifSortDir);
+        case "status":
+          return compareSortValues(a.status, b.status, notifSortDir);
+        case "priority":
+          return compareSortValues(a.priority, b.priority, notifSortDir);
+      }
+    });
+    return paginateSlice(sorted, page, pageSize);
+  }, [filteredNotifications, page, pageSize, notifSortKey, notifSortDir]);
 
 
 
@@ -4889,21 +5015,28 @@ function NotificationsTab() {
 
               <tr>
 
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Notification Title</th>
+                {(
+                  [
+                    ["title", "Notification Title"],
+                    ["type", "Type"],
+                    ["project", "Related Project"],
+                    ["by", "Raised By"],
+                    ["time", "Timestamp"],
+                    ["status", "Status"],
+                    ["priority", "Priority"],
+                  ] as const
+                ).map(([column, label]) => (
+                  <SortableColumnHeader
+                    key={column}
+                    label={label}
+                    column={column}
+                    sortKey={notifSortKey}
+                    sortDir={notifSortDir}
+                    onSort={(next) => toggleColumnSort(next, notifSortKey, setNotifSortKey, setNotifSortDir)}
+                  />
+                ))}
 
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Type</th>
-
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Related Project</th>
-
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Raised By</th>
-
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Timestamp</th>
-
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Status</th>
-
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground">Priority</th>
-
-                <th className="px-3 py-2.5 font-semibold text-muted-foreground text-right">Actions</th>
+                <th className="px-3 py-3.5 text-right text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">Actions</th>
 
               </tr>
 

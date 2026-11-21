@@ -123,12 +123,12 @@ export function GlobalNotificationBell() {
         <PopoverContent
           align="end"
           sideOffset={8}
-          className="w-80 sm:w-96 p-0 shadow-2xl border border-border bg-popover text-popover-foreground z-[70] rounded-xl overflow-hidden"
+          className="w-80 sm:w-[400px] p-0 shadow-2xl border border-border/70 bg-popover text-popover-foreground z-[70] rounded-[20px] overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/20">
+          <div className="flex items-center justify-between border-b border-border/70 px-4 py-4">
             <div className="flex items-center gap-2">
-              <h4 className="text-sm font-bold text-foreground">Notifications</h4>
+              <h4 className="text-[17px] font-semibold tracking-[-0.022em] text-foreground">Notifications</h4>
               {unreadCount > 0 ? (
                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
                   {unreadCount} new
@@ -162,7 +162,7 @@ export function GlobalNotificationBell() {
           </div>
 
           {/* Notifications List - View-Only */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-border/50">
+          <div className="max-h-[420px] space-y-1.5 overflow-y-auto p-2">
             {isLoading && sortedNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin text-primary mb-2" />
@@ -183,38 +183,37 @@ export function GlobalNotificationBell() {
                 <div
                   key={notif.id}
                   className={cn(
-                    "w-full text-left p-3 transition-colors flex items-start gap-2.5 select-text",
-                    notif.unread ? "bg-primary/[0.04]" : "hover:bg-muted/30",
+                    "flex w-full items-start gap-3 rounded-2xl px-3.5 py-3 text-left select-text",
+                    notif.unread ? "bg-foreground/[0.04]" : "hover:bg-foreground/[0.03]",
                   )}
                 >
-                  {/* Unread indicator dot */}
                   <span
                     className={cn(
-                      "h-2 w-2 rounded-full mt-1.5 shrink-0 transition-opacity",
-                      notif.unread ? "bg-primary" : "bg-transparent opacity-0",
+                      "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+                      notif.unread ? "bg-primary" : "bg-transparent",
                     )}
                     title={notif.unread ? "Unread" : "Read"}
                   />
 
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p
                       className={cn(
-                        "text-xs leading-snug line-clamp-2 select-text",
-                        notif.unread ? "font-bold text-foreground" : "font-medium text-foreground/80",
+                        "line-clamp-2 text-[13px] leading-snug tracking-[-0.012em] select-text",
+                        notif.unread ? "font-semibold text-foreground" : "font-medium text-foreground/80",
                       )}
                     >
                       {notif.title}
                     </p>
 
-                    <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>
-                        {formatNotifDate(notif.createdAt)} • {formatNotifTime(notif.createdAt)}
+                        {formatNotifDate(notif.createdAt)} · {formatNotifTime(notif.createdAt)}
                       </span>
 
                       {notif.status && (
                         <span
                           className={cn(
-                            "inline-flex rounded-full px-1.5 py-0.5 text-[8.5px] font-semibold border",
+                            "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium",
                             getNotifStatusStyles(notif.status),
                           )}
                         >

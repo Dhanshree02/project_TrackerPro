@@ -34,6 +34,7 @@ import { AppShell } from "@/components/app-shell";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
+import { SortableColumnHeader, compareSortValues, toggleColumnSort } from "@/components/sortable-column-header";
 import { toast } from "sonner";
 import { DocumentContentViewer } from "@/modules/repository/components/document-content-viewer";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
@@ -1151,6 +1152,8 @@ function MyOrgPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [docSortKey, setDocSortKey] = useState<"file" | "category" | "departments" | "size" | "updated" | "by">("file");
+  const [docSortDir, setDocSortDir] = useState<"asc" | "desc">("asc");
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const locationHash = useRouterState({ select: (state) => state.location.hash });
   const [searchQuery, setSearchQuery] = useState(() => {
@@ -1383,6 +1386,29 @@ function MyOrgPage() {
 
   const canDeleteDoc = (_doc: RepositoryItem) => canManageRepository;
 
+  const sortedDocuments = useMemo(() => {
+    return [...documents].sort((a, b) => {
+      switch (docSortKey) {
+        case "file":
+          return compareSortValues(a.fileName, b.fileName, docSortDir);
+        case "category":
+          return compareSortValues(a.category, b.category, docSortDir);
+        case "departments":
+          return compareSortValues(
+            a.departments?.map((d) => d.name).join(", ") ?? "",
+            b.departments?.map((d) => d.name).join(", ") ?? "",
+            docSortDir,
+          );
+        case "size":
+          return compareSortValues(a.size, b.size, docSortDir);
+        case "updated":
+          return compareSortValues(a.lastUpdated || a.createdAtUtc, b.lastUpdated || b.createdAtUtc, docSortDir);
+        case "by":
+          return compareSortValues(a.uploadedBy, b.uploadedBy, docSortDir);
+      }
+    });
+  }, [documents, docSortKey, docSortDir]);
+
   const totalRepoDocuments = categories.reduce((sum, c) => sum + c.count, 0);
 
   return (
@@ -1445,13 +1471,28 @@ function MyOrgPage() {
               <table className="w-full min-w-[900px] text-sm">
                 <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                   <tr>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">File Name</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">Category</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">Departments</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">Size</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">Last Updated</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">Uploaded By</th>
-                    <th className="px-4 py-3 text-right font-semibold text-muted-foreground">Actions</th>
+                    {(
+                      [
+                        ["file", "File Name"],
+                        ["category", "Category"],
+                        ["departments", "Departments"],
+                        ["size", "Size"],
+                        ["updated", "Last Updated"],
+                        ["by", "Uploaded By"],
+                      ] as const
+                    ).map(([column, label]) => (
+                      <SortableColumnHeader
+                        key={column}
+                        label={label}
+                        column={column}
+                        sortKey={docSortKey}
+                        sortDir={docSortDir}
+                        onSort={(next) => toggleColumnSort(next, docSortKey, setDocSortKey, setDocSortDir)}
+                      />
+                    ))}
+                    <th className="px-4 py-3.5 text-right text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -1468,7 +1509,7 @@ function MyOrgPage() {
                       </td>
                     </tr>
                   ) : (
-                    documents.map((doc) => {
+                    sortedDocuments.map((doc) => {
                       const fileInfo = getFileIconInfo(doc.fileName);
                       const FileIcon = fileInfo.Icon;
                       const docExt = doc.fileName.split(".").pop()?.toLowerCase() ?? "";

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -271,48 +272,38 @@ export function ResourceMastersSection({ onCountChange }: ResourceMastersSection
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-muted/60 p-1">
-        <button
-          type="button"
-          onClick={() => setActiveCategory("all")}
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all",
-            activeCategory === "all"
-              ? "border border-border/80 bg-card font-semibold text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <Layers className="h-3.5 w-3.5" />
-          <span>All Masters Overview</span>
-        </button>
-        {categories.map((cat) => {
-          const Icon = cat.icon;
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setActiveCategory(cat.id)}
-              className={cn(
-                "flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-medium transition-all",
-                activeCategory === cat.id
-                  ? "border border-border/80 bg-card font-semibold text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              <span>{cat.title}</span>
-              <span
-                className={cn(
-                  "ml-0.5 rounded-full px-1.5 py-0.2 text-[10px]",
-                  activeCategory === cat.id ? "bg-primary/15 font-semibold text-primary" : "bg-muted text-muted-foreground",
-                )}
-              >
-                {cat.count}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        ariaLabel="Resource masters"
+        value={activeCategory}
+        onChange={setActiveCategory}
+        options={[
+          {
+            value: "all",
+            label: (
+              <>
+                <Layers className="h-3.5 w-3.5" />
+                All Masters Overview
+              </>
+            ),
+          },
+          ...categories.map((cat) => {
+            const Icon = cat.icon;
+            const selected = activeCategory === cat.id;
+            return {
+              value: cat.id,
+              label: (
+                <>
+                  <Icon className="h-3.5 w-3.5" />
+                  {cat.title}
+                  <span className={cn("text-[10px]", selected ? "font-semibold text-primary" : "text-muted-foreground")}>
+                    {cat.count}
+                  </span>
+                </>
+              ),
+            };
+          }),
+        ]}
+      />
 
       {activeCategory === "all" ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

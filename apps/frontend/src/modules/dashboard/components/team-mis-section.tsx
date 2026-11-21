@@ -5,6 +5,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { usePermissions } from "@/lib/permissions";
 import { useFinancialYear } from "@/lib/financial-year";
 import {
@@ -146,30 +147,19 @@ export function TeamMisSection() {
     <section className="mt-6 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">MIS</h2>
+          <h2 className="text-[17px] font-semibold tracking-[-0.022em]">MIS</h2>
           <p className="text-xs text-muted-foreground">
             Team size and resource boarding
             {fyLabel ? ` · ${fyLabel}` : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5 text-xs" role="group" aria-label="Dashboard view">
-            {VIEWS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                aria-pressed={view === item.id}
-                onClick={() => setView(item.id)}
-                className={
-                  view === item.id
-                    ? "rounded-md bg-card px-3 py-1.5 font-medium text-foreground shadow-sm"
-                    : "rounded-md px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground"
-                }
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            ariaLabel="Dashboard view"
+            value={view}
+            onChange={setView}
+            options={VIEWS.map((item) => ({ value: item.id, label: item.label }))}
+          />
           <label htmlFor="mis-quarter" className="text-xs font-medium text-muted-foreground">
             Period
           </label>
@@ -185,7 +175,7 @@ export function TeamMisSection() {
       </div>
 
       {loading && !summary && (
-        <div className="rounded-xl border border-border bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-sm">
+        <div className="rounded-2xl border border-border/60 bg-card px-4 py-10 text-center text-sm text-muted-foreground shadow-sm">
           Loading {dashboardPeriodLabel(period)}…
         </div>
       )}
@@ -225,10 +215,10 @@ export function TeamMisSection() {
         {(showTotalTeam || showBoarding) && (
           <div className={`grid gap-6 ${showTotalTeam && showBoarding ? "lg:grid-cols-2" : "grid-cols-1"} ${loading || error ? "invisible" : ""}`}>
             {showTotalTeam && (
-              <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
+              <article className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold">Total Team Size</h3>
+                    <h3 className="text-[15px] font-semibold tracking-[-0.016em]">Total Team Size</h3>
                     <p className="text-xs text-muted-foreground">Onsite and offsite at each month end</p>
                   </div>
                   {view !== "list" && <GraphZoom title="Total Team Size" render={() => <TotalTeamChart months={months} />} />}
@@ -282,10 +272,10 @@ export function TeamMisSection() {
             )}
 
             {showBoarding && (
-              <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
+              <article className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-semibold">Resource Boarding Details</h3>
+                    <h3 className="text-[15px] font-semibold tracking-[-0.016em]">Resource Boarding Details</h3>
                     <p className="text-xs text-muted-foreground">Joins and last working days in each month</p>
                   </div>
                   {view !== "list" && <GraphZoom title="Resource Boarding Details" render={() => <BoardingChart months={months} />} />}
@@ -340,7 +330,7 @@ export function TeamMisSection() {
       {showOffsiteCap && <OffsiteCapacitySection period={period} view={view} />}
 
       {!hasAnyWidget && !loading && (
-        <div className="rounded-xl border border-border bg-card p-12 text-center text-muted-foreground shadow-sm">
+        <div className="rounded-2xl border border-border/60 bg-card p-12 text-center text-muted-foreground shadow-sm">
           <p className="text-sm font-medium">No dashboard widgets are permitted for your role.</p>
         </div>
       )}

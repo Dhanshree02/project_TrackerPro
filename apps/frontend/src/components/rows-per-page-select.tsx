@@ -19,6 +19,7 @@ export function RowsPerPageSelect({ value, onChange }: RowsPerPageSelectProps) {
       clearable={false}
       showSearch={false}
       className="w-[5.5rem] shrink-0"
+      menuMinWidth={0}
       buttonClassName="h-8 w-full cursor-pointer border-border bg-background px-2.5 font-medium text-foreground shadow-none hover:bg-accent"
     />
   );

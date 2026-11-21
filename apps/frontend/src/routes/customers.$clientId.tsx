@@ -1,14 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CustomerDetailPage } from "@/modules/customers";
-import {
-  loadCustomerDetail,
-  validateCustomerDetailSearch,
-} from "@/modules/customers/loaders/customer-detail-loader";
+import { CustomerDetailPage } from "@/modules/customers/pages/customer-detail-page";
+import { validateCustomerDetailSearch } from "@/modules/customers/loaders/customer-detail-loader";
 
 export const Route = createFileRoute("/customers/$clientId")({
   ssr: false,
   validateSearch: validateCustomerDetailSearch,
-  loader: async ({ params }) => loadCustomerDetail(params.clientId),
+  loader: () => ({ client: undefined }),
   head: ({ loaderData }) => ({
     meta: [
       { title: `${loaderData?.client?.name ?? "Customer"} — Customers — Pulse PMO` },

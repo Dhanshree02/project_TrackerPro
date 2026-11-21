@@ -108,10 +108,10 @@ export function RoleAllocationSection({
   ];
 
   return (
-    <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
+    <article className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold">Team Allocation Onsite/Offsite ({dashboardPeriodLabel(period)})</h3>
+          <h3 className="text-[15px] font-semibold tracking-[-0.016em]">Team Allocation Onsite/Offsite ({dashboardPeriodLabel(period)})</h3>
           <p className="text-xs text-muted-foreground">Role wise count</p>
         </div>
         {!loading && !error && data && view !== "list" && (

@@ -7,6 +7,7 @@ import { Loader2, ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, E
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
+import { DisclosureButtonIcon, DisclosureTriangleIcon } from "@/components/disclosure-controls";
 
 import { Button } from "@/components/ui/button";
 
@@ -346,23 +347,23 @@ function toDateInputValue(raw: string | undefined | null): string {
 
 
 
-/** Apple-like segmented control track / item (clarity + deference). */
+/** Same pill as the shared segmented control: white selected piece, dark label, in both themes. */
 
 const segmentTrackCls =
 
-  "inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted/55 p-1 ring-1 ring-border/50";
+  "inline-flex max-w-full flex-wrap items-center gap-1 overflow-x-auto rounded-full bg-[var(--segment-track)] p-1";
 
 function segmentItemCls(active: boolean, size: "sm" | "md" = "sm") {
 
   return cn(
 
-    "rounded-lg font-medium whitespace-nowrap transition-colors",
+    "rounded-full font-medium tracking-[-0.016em] whitespace-nowrap transition-colors duration-200",
 
-    size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
+    size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-4 py-2 text-sm",
 
     active
 
-      ? "bg-card text-foreground shadow-sm ring-1 ring-border/70"
+      ? "bg-[var(--segment-thumb)] text-[var(--segment-thumb-foreground)] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.12)]"
 
       : "text-muted-foreground hover:text-foreground",
 
@@ -1478,12 +1479,14 @@ export function ProjectDetailPage() {
   const [savedPo, setSavedPo] = useState<{ id: string; fileName: string } | null>(null);
 
   const [poLoaded, setPoLoaded] = useState(false);
+  const [projectLookupDone, setProjectLookupDone] = useState(false);
 
   const [poPreviewUrl, setPoPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
 
     let cancelled = false;
+    setProjectLookupDone(false);
 
     setLiveServiceDates(null);
 
@@ -1499,7 +1502,7 @@ export function ProjectDetailPage() {
 
     const rawIsGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
 
-    if (rawId && (rawIsGuid || rawId.length > 20)) {
+    if (rawId) {
 
       if (rawIsGuid) {
 
@@ -1587,8 +1590,12 @@ export function ProjectDetailPage() {
 
         }
 
-      }).catch(console.error);
+      }).catch(console.error).finally(() => {
+        if (!cancelled) setProjectLookupDone(true);
+      });
 
+    } else if (!cancelled) {
+      setProjectLookupDone(true);
     }
 
     async function loadProjectBilling(p: ApiProject) {
@@ -2039,6 +2046,17 @@ export function ProjectDetailPage() {
 
 
   if (!project) {
+
+    if (!projectLookupDone) {
+      return (
+        <AppShell title="Project" subtitle="Opening project">
+          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Opening project…</p>
+          </div>
+        </AppShell>
+      );
+    }
 
     return (
 
@@ -6307,6 +6325,8 @@ const visibleApprovers = useMemo(() => {
               <button
 
                 type="button"
+                aria-expanded={showSearch}
+                aria-label={showSearch ? "Hide PMO approver search" : "Show PMO approver search"}
 
                 onClick={() => setShowSearch((openList) => !openList)}
 
@@ -6348,7 +6368,7 @@ const visibleApprovers = useMemo(() => {
 
                 )}
 
-                <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-200", showSearch && "rotate-180 text-primary")} />
+                <DisclosureButtonIcon expanded={showSearch} className={cn(showSearch && "text-primary")} />
 
               </button>
 
@@ -6633,15 +6653,15 @@ const visibleApprovers = useMemo(() => {
               <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Project</span>
-                  <span className="font-semibold text-gray-800">{project.name}</span>
+                  <span className="font-semibold text-foreground">{project.name}</span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Customer</span>
-                  <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
+                  <span className="font-semibold text-foreground">{clientInfo?.name || "—"}</span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Current End Date</span>
-                  <span className="font-semibold text-gray-800">{formatToDayMonthYear(selectedExt.currentEndDate) || formatDate(selectedExt.currentEndDate)}</span>
+                  <span className="font-semibold text-foreground">{formatToDayMonthYear(selectedExt.currentEndDate) || formatDate(selectedExt.currentEndDate)}</span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Requested End Date</span>
@@ -6651,7 +6671,7 @@ const visibleApprovers = useMemo(() => {
 
               <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
                 <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Reason For Extension</span>
-                <p className="text-xs text-gray-700 leading-relaxed font-medium whitespace-pre-wrap">{selectedExt.reason || "No reason provided."}</p>
+                <p className="text-xs text-foreground leading-relaxed font-medium whitespace-pre-wrap">{selectedExt.reason || "No reason provided."}</p>
               </div>
 
               {/* Discussion Thread Chat */}
@@ -6792,7 +6812,7 @@ const visibleApprovers = useMemo(() => {
                 <div className="bg-muted/10 rounded-lg border border-border p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Requested By</span>
-                    <span className="font-semibold text-gray-800 truncate text-right">{selectedExt.requestedByName}</span>
+                    <span className="font-semibold text-foreground truncate text-right">{selectedExt.requestedByName}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Tagged Approvers</span>
@@ -6807,7 +6827,7 @@ const visibleApprovers = useMemo(() => {
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Created Date</span>
-                    <span className="font-semibold text-gray-800 truncate text-right">
+                    <span className="font-semibold text-foreground truncate text-right">
                       {formatToDayMonthYear(selectedExt.createdAtUtc)}
                     </span>
                   </div>
@@ -7765,7 +7785,7 @@ function ChangeLeaderPanel({
 
                       <div className="flex items-center justify-between gap-2">
 
-                        <span className="font-semibold text-gray-800 truncate">{p.name}</span>
+                        <span className="font-semibold text-foreground truncate">{p.name}</span>
 
                         {showWorkload && stats && (
 
@@ -8299,7 +8319,7 @@ function AvatarStack({ assignees }: { assignees: AvatarStackAssignee[] }) {
 
         {extra >= 1 && (
 
-          <span className="relative -ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-card bg-white px-1 text-[10px] font-bold text-foreground shadow-sm z-20 select-none">
+          <span className="relative -ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-card bg-white px-1 text-[10px] font-bold text-[#1d1d1f] shadow-sm z-20 select-none">
 
             +{extra}
 
@@ -10586,7 +10606,7 @@ function DhTasksTab({
 
                           >
 
-                            <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                            <DisclosureTriangleIcon expanded={isExpanded} />
 
                           </button>
 
@@ -10680,7 +10700,7 @@ function DhTasksTab({
 
                           >
 
-                            <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                            <DisclosureTriangleIcon expanded={isExpanded} />
 
                           </button>
 
@@ -10796,7 +10816,7 @@ function DhTasksTab({
 
                             >
 
-                              <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                              <DisclosureTriangleIcon expanded={isExpanded} />
 
                             </button>
 
@@ -10914,7 +10934,7 @@ function DhTasksTab({
 
                                           <div className="flex items-center justify-center gap-1.5 h-8" title={t.taskTitle || t.taskId}>
 
-                                            <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                            <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 
                                             <span className="font-semibold text-foreground/90 truncate max-w-[220px]">
 
@@ -14843,7 +14863,7 @@ function TeamActionModal({
                     onClick={() => setFeedback((s) => ({ ...s, rating: star }))}
                   />
                 ))}
-                <span className="ml-1 text-xs font-bold text-gray-700">{feedback.rating}/5</span>
+                <span className="ml-1 text-xs font-bold text-foreground">{feedback.rating}/5</span>
               </div>
             </div>
           </Field>
@@ -16241,7 +16261,7 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
 
     const s = (status || "").toLowerCase().trim();
 
-    let colorClasses = "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
+    let colorClasses = "bg-gray-100 text-foreground border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
 
     if (s === "resolved" || s === "solved" || s === "closed") {
 
@@ -17004,11 +17024,11 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
               return (
                 <tr key={esc.id} className="hover:bg-accent/30">
-                  <td className="px-3 py-2.5 font-mono font-bold text-gray-800">{escalationIdDisplay}</td>
-                  <td className="px-3 py-2.5 font-semibold text-gray-700">{esc.serviceName || "Core Project"}</td>
-                  <td className="px-3 py-2.5 text-gray-800 font-medium">{esc.subject}</td>
+                  <td className="px-3 py-2.5 font-mono font-bold text-foreground">{escalationIdDisplay}</td>
+                  <td className="px-3 py-2.5 font-semibold text-foreground">{esc.serviceName || "Core Project"}</td>
+                  <td className="px-3 py-2.5 text-foreground font-medium">{esc.subject}</td>
                   <td className="px-3 py-2.5">
-                    <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-gray-700">
+                    <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-foreground">
                       {esc.escalationType || "General"}
                     </span>
                   </td>
@@ -17086,7 +17106,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Project</span>
 
-                  <span className="font-semibold text-gray-800">{project.name}</span>
+                  <span className="font-semibold text-foreground">{project.name}</span>
 
                 </div>
 
@@ -17094,7 +17114,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Customer</span>
 
-                  <span className="font-semibold text-gray-800">{selectedEsc.customerName || clientInfo?.name || "—"}</span>
+                  <span className="font-semibold text-foreground">{selectedEsc.customerName || clientInfo?.name || "—"}</span>
 
                 </div>
 
@@ -17110,7 +17130,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Escalation Type</span>
 
-                  <span className="font-semibold text-gray-800">{selectedEsc.escalationType || "—"}</span>
+                  <span className="font-semibold text-foreground">{selectedEsc.escalationType || "—"}</span>
 
                 </div>
 
@@ -17122,11 +17142,11 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                 <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Subject</span>
 
-                <p className="text-xs text-gray-800 font-semibold">{selectedEsc.subject}</p>
+                <p className="text-xs text-foreground font-semibold">{selectedEsc.subject}</p>
 
                 <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1 pt-2">Description</span>
 
-                <p className="text-xs text-gray-700 leading-relaxed font-medium whitespace-pre-wrap">{selectedEsc.description || "No full description provided."}</p>
+                <p className="text-xs text-foreground leading-relaxed font-medium whitespace-pre-wrap">{selectedEsc.description || "No full description provided."}</p>
 
               </div>
 
@@ -17323,7 +17343,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Raised By</span>
 
-                    <span className="font-semibold text-gray-800 truncate text-right">{selectedEsc.raisedByName}</span>
+                    <span className="font-semibold text-foreground truncate text-right">{selectedEsc.raisedByName}</span>
 
                   </div>
 
@@ -17365,7 +17385,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Expected Resolution</span>
 
-                    <span className="font-semibold text-gray-800 truncate text-right">
+                    <span className="font-semibold text-foreground truncate text-right">
 
                       {formatToDayMonthYear(selectedEsc.expectedResolutionDate) || "—"}
 
@@ -17485,7 +17505,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Resolution & Outcome Notes</span>
 
-                  <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                  <p className="text-xs text-foreground leading-relaxed font-medium">
 
                     {selectedEsc.resolutionDetails || (linkedAlert as any)?.resolutionDetails || (selectedEsc.expectedResolutionDate ? `Expected Resolution Date: ${formatToDayMonthYear(selectedEsc.expectedResolutionDate)}` : "No resolution details provided.")}
 
@@ -18421,7 +18441,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
     <div className="space-y-3">
 
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Additional Requirements ({requirements.length})</h4>
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additional Requirements ({requirements.length})</h4>
         {canManage && (
           <button
             onClick={() => setShowModal(true)}
@@ -18916,9 +18936,9 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
           <div className="border-b border-border pb-3 mb-3">
 
-            <h4 className="font-semibold text-base text-gray-800">{req.title}</h4>
+            <h4 className="font-semibold text-base text-foreground">{req.title}</h4>
 
-            <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{req.description}</p>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{req.description}</p>
 
           </div>
 
@@ -18944,13 +18964,13 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
                   <div className="flex items-center justify-between mb-1">
 
-                    <span className="font-semibold text-gray-800">{c.authorName}</span>
+                    <span className="font-semibold text-foreground">{c.authorName}</span>
 
                     <span className="text-[10px] text-muted-foreground">{formatDate(c.at)} {new Date(c.at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</span>
 
                   </div>
 
-                  <p className="text-gray-700 leading-normal">{c.text}</p>
+                  <p className="text-foreground leading-normal">{c.text}</p>
 
                 </div>
 
@@ -20494,7 +20514,7 @@ function WbsPrerequisiteSection({
 
       <div className="border-t border-border pt-5">
 
-        <h3 className="text-sm font-semibold mb-4 text-gray-900">PMO Intake & Prerequisite Workflow</h3>
+        <h3 className="text-sm font-semibold mb-4 text-foreground">PMO Intake & Prerequisite Workflow</h3>
 
 
 
@@ -20516,7 +20536,7 @@ function WbsPrerequisiteSection({
 
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
 
-              <h4 className="text-xs font-bold text-gray-800">Customer Profile Information</h4>
+              <h4 className="text-xs font-bold text-foreground">Customer Profile Information</h4>
 
             </div>
 
@@ -20528,7 +20548,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-muted-foreground text-[11px]">Customer ID</span>
 
-                <span className="font-semibold text-gray-800 font-mono text-[11px]">
+                <span className="font-semibold text-foreground font-mono text-[11px]">
 
                   {formatCustomerId(client?.id || project.clientId)}
 
@@ -20556,7 +20576,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-muted-foreground text-[11px]">Customer Name</span>
 
-                <span className="font-semibold text-gray-800 truncate text-[11px]">{client?.name || clientInfo?.name || "Customer"}</span>
+                <span className="font-semibold text-foreground truncate text-[11px]">{client?.name || clientInfo?.name || "Customer"}</span>
 
               </div>
 
@@ -20612,7 +20632,7 @@ function WbsPrerequisiteSection({
 
                     <div key={idx} className="rounded-md border border-border bg-muted/20 p-2 text-xs space-y-1">
 
-                      <div className="flex items-center justify-between font-semibold text-gray-800 gap-1">
+                      <div className="flex items-center justify-between font-semibold text-foreground gap-1">
 
                         <span className="truncate text-[11px]">{spoc.name}</span>
 
@@ -20666,7 +20686,7 @@ function WbsPrerequisiteSection({
 
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-xs font-semibold text-purple-600">2</span>
 
-                <h4 className="text-xs font-bold text-gray-800">Project Allocation</h4>
+                <h4 className="text-xs font-bold text-foreground">Project Allocation</h4>
 
               </div>
 
@@ -20808,7 +20828,7 @@ function WbsPrerequisiteSection({
 
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-xs font-semibold text-orange-600">3</span>
 
-              <h4 className="text-sm font-bold text-gray-800">Service wise Prerequisite Tracking</h4>
+              <h4 className="text-sm font-bold text-foreground">Service wise Prerequisite Tracking</h4>
 
             </div>
 
@@ -20892,7 +20912,7 @@ function WbsPrerequisiteSection({
 
                         >
 
-                          <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">
+                          <td className="px-3 py-2.5 text-center align-middle font-semibold text-foreground">
 
                             <div className="flex items-center justify-center gap-1.5">
 
@@ -21109,7 +21129,7 @@ function WbsPrerequisiteSection({
 
                                 <div className="flex items-center justify-center gap-1.5">
 
-                                  <span className="font-semibold text-gray-800">{svc.serviceName}</span>
+                                  <span className="font-semibold text-foreground">{svc.serviceName}</span>
 
                                   <Badge
 
@@ -21429,7 +21449,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Project ID</span>
 
-                <span className="font-semibold text-gray-800">{project.projectSeqId || project.id}</span>
+                <span className="font-semibold text-foreground">{project.projectSeqId || project.id}</span>
 
               </div>
 
@@ -21437,7 +21457,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Project Name</span>
 
-                <span className="font-semibold text-gray-800">{project.name}</span>
+                <span className="font-semibold text-foreground">{project.name}</span>
 
               </div>
 
@@ -21445,7 +21465,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Customer Name</span>
 
-                <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
+                <span className="font-semibold text-foreground">{clientInfo?.name || "—"}</span>
 
               </div>
 
@@ -21467,7 +21487,7 @@ function WbsPrerequisiteSection({
 
               <div className="flex flex-col gap-1">
 
-                <label className="font-bold text-gray-700">Escalation Type <span className="text-destructive">*</span></label>
+                <label className="font-bold text-foreground">Escalation Type <span className="text-destructive">*</span></label>
 
                 <SearchableSelect
                   value={escType}
@@ -21494,7 +21514,7 @@ function WbsPrerequisiteSection({
 
               <div className="flex flex-col gap-1">
 
-                <label className="font-bold text-gray-700">Priority <span className="text-destructive">*</span></label>
+                <label className="font-bold text-foreground">Priority <span className="text-destructive">*</span></label>
 
                 <SearchableSelect
                   value={escPriority}
@@ -21514,7 +21534,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Subject <span className="text-destructive">*</span></label>
+              <label className="font-bold text-foreground">Subject <span className="text-destructive">*</span></label>
 
               <input
 
@@ -21538,7 +21558,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Description <span className="text-destructive">*</span></label>
+              <label className="font-bold text-foreground">Description <span className="text-destructive">*</span></label>
 
               <textarea
 
@@ -21562,7 +21582,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Attachment</label>
+              <label className="font-bold text-foreground">Attachment</label>
 
               <div className="flex items-center gap-2">
 
@@ -21612,7 +21632,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Escalate To (Select Stakeholders) <span className="text-destructive">*</span></label>
+              <label className="font-bold text-foreground">Escalate To (Select Stakeholders) <span className="text-destructive">*</span></label>
 
               <div className="border border-border rounded-md p-2 bg-card max-h-40 overflow-y-auto space-y-1">
 
@@ -21666,7 +21686,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Expected Resolution Date</label>
+              <label className="font-bold text-foreground">Expected Resolution Date</label>
 
               <input
 
@@ -22272,7 +22292,7 @@ function WbsAssignmentModal({
 
                           <div className="flex items-center justify-between">
 
-                            <span className="font-semibold text-gray-800">{p.name}</span>
+                            <span className="font-semibold text-foreground">{p.name}</span>
 
                             <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
 
@@ -22406,7 +22426,7 @@ function WbsAssignmentModal({
 
                           <div className="flex items-center justify-between">
 
-                            <span className="font-semibold text-gray-800">{p.name}</span>
+                            <span className="font-semibold text-foreground">{p.name}</span>
 
                             <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
 

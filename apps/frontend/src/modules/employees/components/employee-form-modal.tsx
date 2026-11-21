@@ -1924,12 +1924,12 @@ export function EmployeeFormModal({
             )}
           </div>
 
-          <div className="mt-6 rounded-lg border border-border bg-muted/30 px-4 py-4">
+          <div className="mt-2 rounded-lg border border-border bg-muted/30 px-4 py-4">
             <p className="text-sm font-medium text-foreground">Login access</p>
             {/* <p className="mt-1 text-xs text-muted-foreground">
               Employee only keeps the person in the directory and takes their name off the login list. Employee and login puts the name back. Sign-in rules stay as they are until Microsoft 365.
             </p> */}
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-6">
+            <div className="mt-3   flex flex-col gap-2 sm:flex-row sm:gap-6">
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input
                   type="radio"

@@ -4,7 +4,8 @@ import {
   FolderKanban,
   Users,
   Building2,
-  Building,
+  Library,
+  ContactRound,
   Settings,
   type LucideIcon,
 } from "lucide-react";
@@ -57,11 +58,11 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   { code: "customers", to: "/customers", label: "Customer", icon: Building2, permission: "customers.view" },
-  { code: "repository", to: "/repository", label: "Repository", icon: Building, permission: "repository.view" },
+  { code: "repository", to: "/repository", label: "Repository", icon: Library, permission: "repository.view" },
   {
     code: "my-team",
     label: "My Team",
-    icon: Users,
+    icon: ContactRound,
     permission: "my-team.view",
     subItems: [
       { code: "team-dashboard", to: "/my-team/", label: "Team Dashboard", permission: "team-dashboard.view" },

@@ -2,13 +2,13 @@ import { useRef, useState } from "react";
 import {
   Download,
   Upload,
-  FileSpreadsheet,
   X,
   UploadCloud,
   FileCheck2,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -139,70 +139,50 @@ export function EmployeeBulkUploadMenu({
         <DialogContent
           disableAnimation
           overlayClassName="!duration-0 !animate-none"
-          className="max-w-xl p-0 overflow-hidden border-border bg-card shadow-2xl rounded-xl !duration-0 !animate-none"
+          className="max-w-xl gap-0 overflow-hidden rounded-[20px] border-border/70 bg-card p-0 shadow-2xl !duration-0 !animate-none"
         >
-          {/* Header */}
-          <div className="border-b border-border/80 bg-muted/40 px-6 py-4">
-            <DialogHeader className="space-y-1">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <FileSpreadsheet className="h-4 w-4" />
-                </span>
-                <DialogTitle className="text-base font-semibold text-foreground">
-                  Bulk Upload Resources
-                </DialogTitle>
-              </div>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Import multiple resource records at once. The Login Access column chooses Employee and login or Employee only for each row.
+          <div className="px-6 pb-2 pt-6">
+            <DialogHeader className="space-y-1.5 text-left">
+              <DialogTitle className="text-[17px] font-semibold tracking-[-0.022em] text-foreground">
+                Bulk Upload Resources
+              </DialogTitle>
+              <DialogDescription className="text-[13px] leading-snug text-muted-foreground">
+                Import several people at once. The Login Access column chooses Employee and login or Employee only for each row.
               </DialogDescription>
             </DialogHeader>
           </div>
 
-          <div className="p-6 space-y-5">
-            {/* Step 1: Download Sample Template */}
-            <div className="rounded-lg border border-border/90 bg-muted/20 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                      1
-                    </span>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                      Download Sample Template
-                    </h4>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Get the standard Excel (.xlsx) template with predefined headers and sample data.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => void handleDownloadSample()}
-                  disabled={downloadingSample || uploading}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors cursor-pointer disabled:opacity-50 shadow-2xs"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  {downloadingSample ? "Downloading…" : "Download Sample (.xlsx)"}
-                </button>
+          <div className="space-y-6 px-6 py-5">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 space-y-1">
+                <h4 className="text-[15px] font-semibold tracking-[-0.016em] text-foreground">
+                  Download a sample
+                </h4>
+                <p className="text-[13px] leading-snug text-muted-foreground">
+                  Start from the Excel template. It already has the column names and one example row.
+                </p>
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void handleDownloadSample()}
+                disabled={downloadingSample || uploading}
+                className="shrink-0"
+              >
+                <Download />
+                {downloadingSample ? "Downloading…" : "Download"}
+              </Button>
             </div>
 
-            {/* Step 2: Drag & Drop Upload Dropzone */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    2
-                  </span>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                    Attach Excel File
-                  </h4>
-                </div>
-                <span className="text-[10px] text-muted-foreground">Max 5 MB (.xlsx only)</span>
+              <div className="flex items-baseline justify-between gap-3">
+                <h4 className="text-[15px] font-semibold tracking-[-0.016em] text-foreground">
+                  Add the file
+                </h4>
+                <span className="text-[13px] text-muted-foreground">Excel, up to 5 MB</span>
               </div>
 
-              {/* Hidden File Input */}
               <input
                 ref={fileInputRef}
                 type="file"
@@ -211,7 +191,6 @@ export function EmployeeBulkUploadMenu({
                 onChange={(e) => handleFileSelect(e.target.files?.[0])}
               />
 
-              {/* Dropzone Container */}
               <div
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -225,107 +204,88 @@ export function EmployeeBulkUploadMenu({
                 }}
                 onClick={() => !selectedFile && fileInputRef.current?.click()}
                 className={cn(
-                  "relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center cursor-pointer",
+                  "flex min-h-36 flex-col items-center justify-center rounded-2xl border px-6 py-8 text-center",
                   isDragging
                     ? "border-primary bg-primary/10"
                     : selectedFile
-                      ? "border-success/60 bg-success/5 cursor-default"
-                      : "border-border/90 bg-muted/10 hover:bg-muted/30 hover:border-primary/50",
+                      ? "cursor-default border-border bg-muted/40"
+                      : "cursor-pointer border-border bg-muted/30 hover:bg-muted/50",
                 )}
               >
                 {selectedFile ? (
                   <div className="flex w-full items-center justify-between gap-3 text-left">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-success/15 text-success">
-                        <FileCheck2 className="h-6 w-6" />
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/15 text-success">
+                        <FileCheck2 className="h-5 w-5" />
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-foreground">
+                        <p className="truncate text-[15px] font-semibold tracking-[-0.016em] text-foreground">
                           {selectedFile.name}
                         </p>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-[13px] text-muted-foreground">
                           {(selectedFile.size / 1024).toFixed(1)} KB · Ready to import
                         </p>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           fileInputRef.current?.click();
                         }}
-                        className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
-                        title="Change file"
                       >
-                        <RefreshCw className="h-3 w-3" /> Change
-                      </button>
-                      <button
+                        <RefreshCw />
+                        Change
+                      </Button>
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedFile(null);
                           if (fileInputRef.current) fileInputRef.current.value = "";
                         }}
-                        className="rounded-md p-1 hover:bg-destructive/10 hover:text-destructive text-muted-foreground transition-colors cursor-pointer"
-                        title="Remove file"
+                        aria-label="Remove file"
                       >
-                        <X className="h-4 w-4" />
-                      </button>
+                        <X />
+                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <div className="py-2 space-y-2">
-                    <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <UploadCloud className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-foreground">
-                        Drag and drop your Excel file here, or{" "}
-                        <span className="text-primary font-semibold underline underline-offset-2">
-                          browse
-                        </span>
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Supports standard Microsoft Excel (.xlsx) workbooks up to 5 MB
-                      </p>
-                    </div>
+                  <div className="space-y-2">
+                    <UploadCloud className="mx-auto h-7 w-7 text-muted-foreground" strokeWidth={1.75} />
+                    <p className="text-[15px] font-semibold tracking-[-0.016em] text-foreground">
+                      Drop an Excel file here, or{" "}
+                      <span className="text-primary">browse</span>
+                    </p>
+                    <p className="text-[13px] text-muted-foreground">.xlsx files up to 5 MB</p>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Footer Action Bar */}
-          <div className="flex items-center justify-between border-t border-border bg-muted/20 px-6 py-4">
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              disabled={uploading}
-              className="rounded-md border border-input bg-card px-4 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
-            >
+          <div className="flex items-center justify-end gap-2 border-t border-border/70 px-6 py-4">
+            <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={uploading}>
               Cancel
-            </button>
-
-            <button
-              type="button"
-              disabled={!selectedFile || uploading}
-              onClick={() => void handleUpload()}
-              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors shadow-2xs cursor-pointer"
-            >
+            </Button>
+            <Button type="button" disabled={!selectedFile || uploading} onClick={() => void handleUpload()}>
               {uploading ? (
                 <>
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                  Importing Resources…
+                  <RefreshCw className="animate-spin" />
+                  Importing…
                 </>
               ) : (
                 <>
-                  <Upload className="h-3.5 w-3.5" />
-                  Upload & Import Resources
+                  <Upload />
+                  Import
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

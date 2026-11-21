@@ -217,30 +217,30 @@ export function GraphZoom({ title, render }: { title: string; render: () => Reac
         aria-label={`Expand ${title}`}
         title="Expand"
         onClick={() => setOpen(true)}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <Maximize2 className="h-4 w-4" />
       </button>
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 sm:p-8"
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px] sm:p-8"
             onMouseDown={() => setOpen(false)}
           >
             <div
               role="dialog"
               aria-modal="true"
               aria-label={title}
-              className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
+              className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl"
               onMouseDown={(event) => event.stopPropagation()}
             >
               <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
-                <h3 className="text-sm font-semibold">{title}</h3>
+                <h3 className="text-[15px] font-semibold tracking-[-0.016em]">{title}</h3>
                 <button
                   type="button"
                   aria-label="Close"
                   onClick={() => setOpen(false)}
-                  className="grid h-8 w-8 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>

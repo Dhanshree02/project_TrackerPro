@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState, useCallback } from "react";
+import { DisclosureTriangleIcon } from "@/components/disclosure-controls";
 import {
   ChevronRight,
   ChevronLeft,
@@ -641,7 +642,7 @@ function AccessRows({
                   onClick={() => onToggle(row.id)}
                   className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
-                  <ChevronRight className={cn("size-4 transition-transform duration-200", open && "rotate-90")} />
+                  <DisclosureTriangleIcon expanded={open} className="size-4" />
                 </button>
               ) : (
                 <span className="size-6 shrink-0" aria-hidden />
@@ -1588,7 +1589,6 @@ function SortableUserTh<T extends string>({
   sortDir,
   onSort,
   className,
-  isLast,
 }: {
   label: string;
   column: T;
@@ -1600,40 +1600,25 @@ function SortableUserTh<T extends string>({
 }) {
   const active = sortKey === column;
   return (
-    <th className={cn("relative whitespace-nowrap px-4 py-3 font-semibold", className)}>
+    <th className={cn("whitespace-nowrap px-4 py-3.5 align-middle", className)}>
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none cursor-pointer",
-          active
-            ? "text-primary font-bold"
-            : "text-muted-foreground hover:text-foreground",
+          "inline-flex items-center gap-1.5 text-left text-[13px] font-semibold tracking-[-0.01em] select-none",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+        aria-label={`Sort by ${label}`}
       >
         <span>{label}</span>
-        <span
-          className={cn(
-            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
-            active
-              ? "bg-primary/15 text-primary"
-              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
-          )}
-        >
-          {active && sortDir === "desc" ? (
-            <ChevronDown className="h-3.5 w-3.5" />
+        {active &&
+          (sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <ChevronUp className="h-3.5 w-3.5" />
-          )}
-        </span>
+            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          ))}
       </button>
-      {!isLast && (
-        <span
-          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
-          aria-hidden="true"
-        />
-      )}
     </th>
   );
 }

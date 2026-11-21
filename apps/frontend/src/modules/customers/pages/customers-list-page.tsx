@@ -210,29 +210,19 @@ function SortableTh<T extends string>({
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-        "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
-          active
-            ? "text-primary font-bold"
-            : "text-muted-foreground hover:text-foreground",
+          "inline-flex items-center gap-1.5 text-left text-[13px] font-semibold tracking-[-0.01em] select-none",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
         aria-label={`Sort by ${label}`}
       >
         <span>{label}</span>
-        <span
-          className={cn(
-            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
-            active
-              ? "bg-primary/15 text-primary"
-              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
-          )}
-        >
-          {active && sortDir === "desc" ? (
-            <ChevronDown className="h-3.5 w-3.5" />
+        {active &&
+          (sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <ChevronUp className="h-3.5 w-3.5" />
-          )}
-        </span>
+            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          ))}
       </button>
       {!isLast ? (
         <span

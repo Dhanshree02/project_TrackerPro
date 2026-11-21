@@ -161,7 +161,7 @@ export const getTypeStyles = (type: string) => {
   ) {
     return "bg-sky-50 text-sky-700 border border-sky-200";
   }
-  return "bg-gray-50 text-gray-700 border border-gray-200";
+  return "bg-muted text-foreground border border-border";
 };
 
 export const getNotifStatusStyles = (status: string) => {
@@ -289,7 +289,7 @@ export function NotificationDetailModal({
             </span>
           </div>
 
-          <h3 className="text-base font-bold text-gray-800 leading-snug">
+          <h3 className="text-base font-bold text-foreground leading-snug">
             {notification.title}
           </h3>
           {notification.history?.[0]?.action && !notification.history[0].action.includes("Remarks:") && (
@@ -305,7 +305,7 @@ export function NotificationDetailModal({
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
               Related Project
             </span>
-            <span className="font-semibold text-gray-800">
+            <span className="font-semibold text-foreground">
               {notification.relatedProject}
             </span>
           </div>
@@ -314,7 +314,7 @@ export function NotificationDetailModal({
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
               Related Task
             </span>
-            <span className="font-semibold text-gray-800">
+            <span className="font-semibold text-foreground">
               {notification.relatedTask || "—"}
             </span>
           </div>
@@ -325,7 +325,7 @@ export function NotificationDetailModal({
             </span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <Avatar name={notification.raisedBy} size={18} />
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold text-foreground">
                 {notification.raisedBy}
               </span>
             </div>
@@ -335,7 +335,7 @@ export function NotificationDetailModal({
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
               Date
             </span>
-            <span className="font-medium text-gray-800">
+            <span className="font-medium text-foreground">
               {formatNotifDate(notification.createdAt)}
             </span>
           </div>
@@ -344,7 +344,7 @@ export function NotificationDetailModal({
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
               Time
             </span>
-            <span className="font-medium text-gray-800 font-mono">
+            <span className="font-medium text-foreground font-mono">
               {formatNotifTime(notification.createdAt)}
             </span>
           </div>
@@ -370,7 +370,7 @@ export function NotificationDetailModal({
                       ? "Subject"
                       : "Issue Title"}
                   </span>
-                  <span className="font-medium text-gray-800 text-xs">
+                  <span className="font-medium text-foreground text-xs">
                     {notification.issueTitle}
                   </span>
                 </div>
@@ -383,7 +383,7 @@ export function NotificationDetailModal({
                       ? "Escalation Type"
                       : "Issue Type"}
                   </span>
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-foreground">
                     {notification.issueType}
                   </span>
                 </div>
@@ -394,7 +394,7 @@ export function NotificationDetailModal({
                   <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
                     Description
                   </span>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap bg-muted/20 p-2.5 rounded-md border border-border/60">
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap bg-muted/20 p-2.5 rounded-md border border-border/60">
                     {notification.issueDescription}
                   </p>
                 </div>
@@ -461,7 +461,7 @@ export function NotificationDetailModal({
               <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
                 Created By
               </span>
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold text-foreground">
                 {notification.createdBy}
               </span>
             </div>
@@ -469,7 +469,7 @@ export function NotificationDetailModal({
               <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
                 Created Date
               </span>
-              <span className="font-medium text-gray-755">
+              <span className="font-medium text-foreground">
                 {formatNotifDate(notification.createdAt)}
               </span>
             </div>
@@ -477,7 +477,7 @@ export function NotificationDetailModal({
               <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
                 Created Time
               </span>
-              <span className="font-medium text-gray-755 font-mono">
+              <span className="font-medium text-foreground font-mono">
                 {formatNotifTime(notification.createdAt)}
               </span>
             </div>
@@ -510,7 +510,7 @@ export function NotificationDetailModal({
                         <span className="text-muted-foreground font-mono text-[10px] whitespace-nowrap">
                           {dateStr} {timeStr}
                         </span>
-                        <span className="font-semibold text-gray-700">
+                        <span className="font-semibold text-foreground">
                           {actionText.includes("Remarks:") ? (
                             <>
                               Notification acknowledged by <strong>{performer}</strong>

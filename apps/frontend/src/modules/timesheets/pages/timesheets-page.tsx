@@ -25,6 +25,7 @@ import { TimesheetStatusPill, Avatar } from "@/components/pills";
 import { fetchProjects, fetchProjectTasks } from "@/modules/projects/api/projects";
 import { fyFromWbs, inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { cn, formatDateDMY } from "@/lib/utils";
+import { SortableColumnHeader, compareSortValues, toggleColumnSort } from "@/components/sortable-column-header";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { toast } from "sonner";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
@@ -938,7 +939,6 @@ function ApprovalSortTh({
   onSort,
   className,
   align = "left",
-  isLast,
 }: {
   label: string;
   column: ApprovalSortKey;
@@ -951,42 +951,26 @@ function ApprovalSortTh({
 }) {
   const active = sortKey === column;
   return (
-    <th className={cn("relative whitespace-nowrap px-4 py-3 font-semibold", className)}>
+    <th className={cn("whitespace-nowrap px-4 py-3.5 align-middle", className)}>
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-xs font-semibold transition-colors select-none",
+          "inline-flex items-center gap-1.5 text-[13px] font-semibold tracking-[-0.01em] select-none",
           align === "right" ? "w-full justify-end text-right" : "text-left",
-          active
-            ? "text-primary font-bold"
-            : "text-muted-foreground hover:text-foreground",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
         aria-label={`Sort by ${label}`}
       >
         <span>{label}</span>
-        <span
-          className={cn(
-            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
-            active
-              ? "bg-primary/15 text-primary"
-              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
-          )}
-        >
-          {active && sortDir === "desc" ? (
-            <ChevronDown className="h-3.5 w-3.5" />
+        {active &&
+          (sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <ChevronUp className="h-3.5 w-3.5" />
-          )}
-        </span>
+            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          ))}
       </button>
-      {!isLast && (
-        <span
-          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
-          aria-hidden="true"
-        />
-      )}
     </th>
   );
 }
@@ -1005,6 +989,8 @@ type HistoryLogRow = {
 
 function TimesheetHistoryView({ onEditWeek }: { onEditWeek: (weekStart: string) => void }) {
   const [sheets, setSheets] = useState<ApprovalSheet[]>([]);
+  const [historySortKey, setHistorySortKey] = useState<"week" | "project" | "task" | "submitted" | "hours" | "status">("week");
+  const [historySortDir, setHistorySortDir] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     listMyTimesheetHistory()
@@ -1044,34 +1030,62 @@ function TimesheetHistoryView({ onEditWeek }: { onEditWeek: (weekStart: string) 
     return rows;
   }, [sheets]);
 
+  const sortedLogRows = useMemo(() => {
+    return [...logRows].sort((a, b) => {
+      switch (historySortKey) {
+        case "week":
+          return compareSortValues(a.weekStart, b.weekStart, historySortDir);
+        case "project":
+          return compareSortValues(a.projectName, b.projectName, historySortDir);
+        case "task":
+          return compareSortValues(a.taskName, b.taskName, historySortDir);
+        case "submitted":
+          return compareSortValues(a.submittedAt ?? "", b.submittedAt ?? "", historySortDir);
+        case "hours":
+          return compareSortValues(a.lineHours, b.lineHours, historySortDir);
+        case "status":
+          return compareSortValues(a.status, b.status, historySortDir);
+      }
+    });
+  }, [logRows, historySortKey, historySortDir]);
+
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="overflow-auto max-h-[calc(100vh-220px)] min-h-[420px]">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
-              {["Week", "Project", "Task", "Submitted", "Hours", "Status", "Approval note", "Action"].map(
-                (label, index, labels) => (
-                  <th
-                    key={label}
-                    className="relative whitespace-nowrap px-4 py-3 text-xs font-semibold text-muted-foreground"
-                  >
-                    {label}
-                    {index < labels.length - 1 && (
-                      <span
-                        className="pointer-events-none absolute bottom-2.5 right-0 top-2.5 w-[1.5px] bg-border"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </th>
-                ),
-              )}
+              {(
+                [
+                  ["week", "Week"],
+                  ["project", "Project"],
+                  ["task", "Task"],
+                  ["submitted", "Submitted"],
+                  ["hours", "Hours"],
+                  ["status", "Status"],
+                ] as const
+              ).map(([column, label]) => (
+                <SortableColumnHeader
+                  key={column}
+                  label={label}
+                  column={column}
+                  sortKey={historySortKey}
+                  sortDir={historySortDir}
+                  onSort={(next) => toggleColumnSort(next, historySortKey, setHistorySortKey, setHistorySortDir)}
+                />
+              ))}
+              <th className="whitespace-nowrap px-4 py-3.5 text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">
+                Approval note
+              </th>
+              <th className="whitespace-nowrap px-4 py-3.5 text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {(() => {
               const editShown = new Set<string>();
-              return logRows.map((row) => {
+              return sortedLogRows.map((row) => {
                 const showEdit = row.status === "change_requested" && !editShown.has(row.weekStart);
                 if (showEdit) editShown.add(row.weekStart);
                 return (

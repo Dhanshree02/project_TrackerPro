@@ -143,10 +143,10 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
   const categories = useMemo(() => Array.from(grouped.keys()), [grouped]);
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur md:px-6">
+    <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b border-border/70 bg-nav px-4 backdrop-blur-xl backdrop-saturate-[1.8] md:px-6">
       {/* Left: Page Title & Subtitle */}
       <div className="min-w-0 flex-1 md:flex-initial md:w-60 lg:w-72">
-        <h1 className="truncate text-base font-semibold leading-tight text-foreground">{title}</h1>
+        <h1 className="truncate text-[17px] font-semibold leading-tight tracking-[-0.022em] text-foreground">{title}</h1>
         {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
       </div>
 

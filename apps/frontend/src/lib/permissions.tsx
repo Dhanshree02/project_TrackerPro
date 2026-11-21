@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getDemoPersona } from "@/lib/user-personas";
 import { fetchRoles, fetchRolePermissions, type ApiRolePermission } from "@/lib/api/users";
@@ -540,18 +540,23 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     return valid.every((k) => hasPermission(k));
   };
 
-  const value = useMemo(
+  const fnRef = useRef({ canView, canManage, hasPermission, hasAny, hasAll, refreshPermissions });
+  fnRef.current = { canView, canManage, hasPermission, hasAny, hasAll, refreshPermissions };
+
+  // Keep the context identity stable between permission loads. New function
+  // identities on every render were forcing the whole shell to re-render.
+  const value = useMemo<PermissionsContextValue>(
     () => ({
       permissions: rolePermissions,
-      canView,
-      canManage,
-      hasPermission,
-      hasAny,
-      hasAll,
       loading,
-      refreshPermissions,
+      canView: (id) => fnRef.current.canView(id),
+      canManage: (id) => fnRef.current.canManage(id),
+      hasPermission: (key) => fnRef.current.hasPermission(key),
+      hasAny: (...keys) => fnRef.current.hasAny(...keys),
+      hasAll: (...keys) => fnRef.current.hasAll(...keys),
+      refreshPermissions: () => fnRef.current.refreshPermissions(),
     }),
-    [rolePermissions, permissionMap, codeToId, parentMap, activeRoleName, loading, refreshPermissions],
+    [rolePermissions, loading],
   );
 
   return <PermissionsContext.Provider value={value}>{children}</PermissionsContext.Provider>;

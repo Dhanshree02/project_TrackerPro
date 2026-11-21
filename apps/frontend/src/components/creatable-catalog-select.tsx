@@ -39,6 +39,7 @@ export function SearchableSelect({
   showSearch: showSearchProp,
   onSearchChange,
   menuZIndex,
+  menuMinWidth = 220,
 }: {
   id?: string;
   label?: string;
@@ -60,6 +61,7 @@ export function SearchableSelect({
   /** Fires when the dropdown search text changes (for live API filtering). */
   onSearchChange?: (query: string) => void;
   menuZIndex?: number;
+  menuMinWidth?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -73,7 +75,7 @@ export function SearchableSelect({
   const computeMenuStyle = (el: HTMLElement): CSSProperties => {
     const rect = el.getBoundingClientRect();
     const upward = window.innerHeight - rect.bottom < 260 && rect.top > 260;
-    const menuWidth = Math.max(rect.width, 220);
+    const menuWidth = Math.max(rect.width, menuMinWidth);
     let left = rect.left;
     if (typeof window !== "undefined" && left + menuWidth > window.innerWidth - 8) {
       left = Math.max(8, window.innerWidth - menuWidth - 8);
@@ -135,6 +137,7 @@ export function SearchableSelect({
     if (!isOpen) return;
     const placeMenu = () => {
       const el = buttonRef.current;
+      if (!el) return;
       setMenuStyle(computeMenuStyle(el));
     };
     placeMenu();
@@ -151,7 +154,7 @@ export function SearchableSelect({
       window.removeEventListener("scroll", placeMenu, true);
       if (focusTimer) clearTimeout(focusTimer);
     };
-  }, [isOpen, showSearch, menuZIndex]);
+  }, [isOpen, showSearch, menuZIndex, menuMinWidth]);
 
   const handleSelect = (val: string) => {
     onChange?.(val);

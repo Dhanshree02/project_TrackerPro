@@ -272,7 +272,6 @@ function SortableTh<T extends string>({
   sortDir,
   onSort,
   className,
-  isLast,
 }: {
   label: string;
   column: T;
@@ -280,52 +279,28 @@ function SortableTh<T extends string>({
   sortDir: SortDir;
   onSort: (column: T) => void;
   className?: string;
-  isLast?: boolean;
 }) {
   const active = sortKey === column;
   return (
-    <th
-      className={cn(
-        "relative whitespace-nowrap px-4 py-3 font-semibold",
-        className,
-      )}
-    >
+    <th className={cn("whitespace-nowrap px-4 py-3.5 text-left align-middle", className)}>
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 whitespace-nowrap text-left text-xs font-semibold transition-colors select-none",
-          active
-            ? "text-primary font-bold"
-            : "text-muted-foreground hover:text-foreground",
+          "inline-flex items-center gap-1.5 whitespace-nowrap text-left text-[13px] font-semibold tracking-[-0.01em] select-none",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
         aria-label={`Sort by ${label}`}
       >
         <span>{label}</span>
-        <span
-          className={cn(
-            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
-            active
-              ? "bg-primary/15 text-primary"
-              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
-          )}
-        >
-          {active && sortDir === "desc" ? (
-            <ChevronDown className="h-3.5 w-3.5" />
+        {active &&
+          (sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <ChevronUp className="h-3.5 w-3.5" />
-          )}
-        </span>
+            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          ))}
       </button>
-
-      {/* Explicit Apple macOS-style vertical column divider */}
-      {!isLast && (
-        <span
-          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
-          aria-hidden="true"
-        />
-      )}
     </th>
   );
 }
@@ -1289,7 +1264,7 @@ export function EmployeeDirectoryPage() {
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
             <table className="w-full min-w-max text-sm">
-              <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
+              <thead className="sticky top-0 z-10 border-b border-black/10 bg-[#E8E8ED] text-left dark:border-white/10 dark:bg-[#3A3A3C] [&_th]:bg-[#E8E8ED] dark:[&_th]:bg-[#3A3A3C]">
                 <tr>
                   {canManageDirectory && (
                     <th className="w-10 px-3 py-3.5">
@@ -1301,14 +1276,13 @@ export function EmployeeDirectoryPage() {
                       />
                     </th>
                   )}
-                  {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col, idx, arr) => (
+                  {(basicDirectoryView ? BASIC_DIRECTORY_COLUMNS : DIRECTORY_COLUMNS).map((col) => (
                     <SortableTh
                       key={col.key}
                       label={col.label}
                       column={col.key}
                       sortKey={sortKey}
                       sortDir={sortDir}
-                      isLast={idx === arr.length - 1}
                       onSort={(next) => {
                         if (sortKey === next) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
                         else {
@@ -1320,14 +1294,17 @@ export function EmployeeDirectoryPage() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {pageRows.map((e) => (
+              <tbody>
+                {pageRows.map((e, rowIndex) => (
                   <tr
                     key={e.id}
                     onClick={() =>
                       navigate({ to: "/employee-directory/$id", params: { id: e.id } })
                     }
-                    className="cursor-pointer transition-colors hover:bg-accent/30"
+                    className={cn(
+                      "cursor-pointer border-b border-black/[0.06] transition-colors last:border-b-0 hover:bg-primary/10 dark:border-white/[0.06]",
+                      rowIndex % 2 === 1 && "bg-black/[0.03] dark:bg-white/[0.04]",
+                    )}
                   >
                     {canManageDirectory && (
                       <td className="w-10 px-3 py-3.5" onClick={(event) => event.stopPropagation()}>
@@ -1465,9 +1442,9 @@ export function EmployeeDirectoryPage() {
         <div className="w-fit max-w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
           <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
             <table className="w-max table-fixed text-sm">
-              <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
+              <thead className="sticky top-0 z-10 border-b border-black/10 bg-[#E8E8ED] text-left dark:border-white/10 dark:bg-[#3A3A3C] [&_th]:bg-[#E8E8ED] dark:[&_th]:bg-[#3A3A3C]">
                 <tr>
-                  {POOL_COLUMNS.map((col, idx, arr) =>
+                  {POOL_COLUMNS.map((col) =>
                     col.key ? (
                       <SortableTh
                         key={col.label}
@@ -1476,7 +1453,6 @@ export function EmployeeDirectoryPage() {
                         sortKey={poolSortKey}
                         sortDir={poolSortDir}
                         className={col.className}
-                        isLast={idx === arr.length - 1}
                         onSort={(next) => {
                           if (poolSortKey === next) setPoolSortDir((d) => (d === "asc" ? "desc" : "asc"));
                           else {
@@ -1489,32 +1465,29 @@ export function EmployeeDirectoryPage() {
                       <th
                         key={col.label}
                         className={cn(
-                          "relative whitespace-nowrap px-4 py-3.5 font-semibold text-xs text-muted-foreground",
+                          "whitespace-nowrap px-4 py-3.5 text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground",
                           col.className,
                           col.align === "right" ? "text-right" : "text-left",
                         )}
                       >
                         {col.label}
-                        {idx < arr.length - 1 && (
-                          <span
-                            className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
-                            aria-hidden="true"
-                          />
-                        )}
                       </th>
                     ),
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {pageRows.map((e) => {
+              <tbody>
+                {pageRows.map((e, rowIndex) => {
                   return (
                     <tr
                       key={e.id}
                       onClick={() =>
                         navigate({ to: "/employee-directory/$id", params: { id: e.id } })
                       }
-                      className="cursor-pointer transition-colors hover:bg-accent/30"
+                      className={cn(
+                        "cursor-pointer border-b border-black/[0.06] transition-colors last:border-b-0 hover:bg-primary/10 dark:border-white/[0.06]",
+                        rowIndex % 2 === 1 && "bg-black/[0.03] dark:bg-white/[0.04]",
+                      )}
                     >
                       <td className="w-40 min-w-[140px] whitespace-nowrap px-4 py-3.5 font-semibold text-foreground/90 truncate" title={e.department}>
                         {dash(e.department)}
