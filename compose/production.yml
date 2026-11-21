@@ -1,18 +1,49 @@
 # Production stack. Microsoft sign-in. Header impersonation is off.
 # API image pms-backend:production. Entra values load from apps/backend/.env.
-# Database pms_production on the shared Postgres container pms_uat_db.
+# Database pms_production on its own Postgres container pms_production_db.
+# The shared container pms_uat_db stays up as the fallback and is not used by this app.
 #
 #   docker compose -f compose/production.yml -p pms-production up -d
 #
 # App http://localhost:39127    API http://localhost:52827/swagger
+# Postgres host port 41765
 
 name: pms-production
 
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: pms_production_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clockit
+      POSTGRES_DB: pms_production
+    ports:
+      - "41765:5432"
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=128MB
+      -c idle_session_timeout=300000
+      -c idle_in_transaction_session_timeout=60000
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pms_production"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+    networks:
+      - pms_shared
+
   backend:
     image: pms-backend:production
     container_name: pms-production-backend
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     env_file:
       - ../apps/backend/.env
     environment:
@@ -20,7 +51,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
       App__Stage: production
       Auth__AllowHeaderBypass: "false"
-      ConnectionStrings__DefaultConnection: Host=pms_uat_db;Port=5432;Database=pms_production;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
+      ConnectionStrings__DefaultConnection: Host=pms_production_db;Port=5432;Database=pms_production;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30
       Database__AutoMigrate: "false"
       Database__Seed: "false"
       Database__SyncSystemRoleBaselines: "false"
@@ -63,3 +94,5 @@ volumes:
   backend_storage:
     external: true
     name: pms-production-storage
+  postgres_data:
+    name: pms_production_postgres_data

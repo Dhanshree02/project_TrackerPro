@@ -22,9 +22,17 @@ The folders share Git history. They do not share working files. Start each stack
 | App | http://localhost:39107 | http://localhost:39117 | http://localhost:39127 |
 | API | http://localhost:52815 | http://localhost:52819 | http://localhost:52827 |
 
-Postgres container: `pms_uat_db` (host port 41763). pgAdmin: http://localhost:46382, server name **Pulse PMO**. The container name stays `pms_uat_db` because the live data volume is already attached to it.
+Each app uses its own Postgres container and volume.
 
-`pms_uat_clean` remains the snapshot these three databases were copied from. `pms_deployment` is the older extra database and is not one of the three stacks.
+| | Development | UAT | Production | Shared fallback |
+| --- | --- | --- | --- | --- |
+| Container | `pms_development_db` | `pms_uat_postgres` | `pms_production_db` | `pms_uat_db` |
+| Host port | 41761 | 41764 | 41765 | 41763 |
+| Database | `pms_development` | `pms_uat` | `pms_production` | the copy made before the split, plus `pms_uat_clean` and `pms_deployment` |
+
+`pms_uat_db` stays running with its existing volume. The apps connect to the containers in the first three columns. pgAdmin is http://localhost:46382, with one server for each container. The shared server is still named **PMS shared Postgres**.
+
+`pms_uat_clean` remains the snapshot these three databases were copied from. `pms_deployment` is the older extra database. Both stay on the shared container.
 
 ## What differs
 
@@ -34,13 +42,7 @@ Each stack has its own file volume. Uploads under `Documents/` are still the sha
 
 ## Commands
 
-Start the database first if it is not already running, from the development folder:
-
-```
-docker compose -f docker-compose.uat.yml -p pms_uat up -d db pgadmin
-```
-
-Then start each app from its own folder:
+Start each app from its own folder. That command also starts that folder's Postgres container:
 
 ```
 cd /Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/pms-development

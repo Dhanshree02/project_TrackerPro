@@ -558,7 +558,7 @@ export function ExitSummaryPage() {
 
         {/* Table Container */}
         <div className="w-fit max-w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
+          <div className="overflow-auto max-h-[calc(100vh-270px)]">
             <table className="w-max table-fixed text-sm">
               <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>

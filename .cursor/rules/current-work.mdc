@@ -5,7 +5,13 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-15
+**Last updated:** 2026-11-18
+
+- **Short lists no longer keep a tall empty band.** Repository, Employee Directory, the resource pool, and Exit Summary drop the minimum height on the list. A long list still scrolls inside the page.
+
+- **My Reportees shows for a person who has someone reporting to them.** The tab no longer waits for the role’s My Reportees choice. Sahil Lad’s role is R&D - Team member, and that choice is off, which hid the tab. Pradnya Avtare (TK-0546) reports to Sahil. Krsna Chandarana (TK-0621) reports to Omkar Gaikwad (TK-0001).
+
+- **Each environment has its own Postgres container.** Development is `pms_development_db` on host port 41761, UAT is `pms_uat_postgres` on 41764, and production is `pms_production_db` on 41765. Each has its own volume. The apps connect to those containers. The old `pms_uat_db` on 41763 is still running with the same volume, including `pms_uat_clean` and `pms_deployment`, and the apps no longer use it. Fresh dumps from before the switch are in `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/db-split-backups/2026-11-16/`. Every table row count on the new databases matches the source. UAT’s app is running on `:39117` and `:52819`.
 
 - **Team Dashboard search can match allocation status.** The status is read before the search text is checked, so typing in search no longer crashes the page.
 

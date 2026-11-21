@@ -619,10 +619,12 @@ export function MyTeamPage() {
         );
       }
       if (tab.scope === "reportees") {
-        // If employee has no direct reportees, never show "My Reportees" tab
+        // A person with no one reporting to them does not get this tab.
         if (hasDirectReports === false) return false;
+        // Someone who is a reporting manager sees their own people even when the role
+        // leaves the My Reportees choice empty.
+        if (hasDirectReports === true) return true;
         if (isAdmin || isDhanshree) return true;
-        // Strictly check RBAC permission: team member has no access by default unless admin granted
         return canView("my-reportees") || canView("b1e81c2a-34de-4dd4-b1f3-47387b8ed52b");
       }
       if (tab.scope === "all") {
@@ -951,7 +953,7 @@ export function MyTeamPage() {
   };
 
   useEffect(() => {
-    const canSeeReportees = isAdmin || isDhanshree || canView("my-reportees") || canView("b1e81c2a-34de-4dd4-b1f3-47387b8ed52b");
+    const canSeeReportees = hasDirectReports === true || isAdmin || isDhanshree || canView("my-reportees") || canView("b1e81c2a-34de-4dd4-b1f3-47387b8ed52b");
     if (hasDirectReports === true && canSeeReportees && !userHasPickedRoster.current && roster === "team") {
       let saved: string | null = null;
       try {
