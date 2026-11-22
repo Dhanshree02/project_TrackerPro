@@ -1,9 +1,118 @@
-# Start the two stacks separately. UAT owns the shared database, so start it first.
+# pms-development: frontend, backend, Postgres, and pgAdmin.
+# The database pms_development is created on first volume init from database/pms_development.sql.
 #
-#   docker compose -f docker-compose.uat.yml -p pms_uat up -d
-#   docker compose -f docker-compose.development.yml -p pms_development up -d
+#   docker compose -p pms-development up -d --build
+#   docker compose -p pms-development down
 #
-# Databases on pms_uat_db: pms_development, pms_uat, pms_deployment
-# SQL files: database/pms_development.sql, database/pms_uat.sql, database/pms_deployment.sql
+# App      http://localhost:43501
+# API      http://localhost:64785/swagger
+# DB       localhost:54440  database pms_development  user postgres  password clockit
+# pgAdmin  http://localhost:38932  admin@trackerpro.com / clockit
 
-services: {}
+name: pms-development
+
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: pms-development-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: clockit
+      POSTGRES_DB: pms_development
+    ports:
+      - "54440:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./database/pms_development.sql:/docker-entrypoint-initdb.d/01_pms_development.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pms_development"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 60s
+    networks:
+      - pms_development
+
+  backend:
+    image: pms-backend:development
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: pms-development-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=pms_development;Username=postgres;Password=clockit;Maximum Pool Size=50;Connection Idle Lifetime=30;Include Error Detail=true
+      Database__AutoMigrate: "false"
+      Database__Seed: "false"
+      Database__SyncSystemRoleBaselines: "false"
+      Cors__AllowedOrigins__0: http://localhost:43501
+      Storage__RootPath: /app/storage
+      Storage__DocumentsPath: /app/Documents
+    ports:
+      - "64785:8080"
+    volumes:
+      - backend_storage:/app/storage
+      - ./Documents:/app/Documents
+    networks:
+      - pms_development
+
+  frontend:
+    image: pms-frontend:development
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: pms-development-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_BACKEND_URL: http://backend:8080
+      VITE_API_URL: ""
+      VITE_HMR_CLIENT_PORT: "43501"
+    ports:
+      - "43501:3000"
+    volumes:
+      - ./apps/frontend:/app
+      - frontend_node_modules:/app/node_modules
+    networks:
+      - pms_development
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pms-development-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@trackerpro.com
+      PGADMIN_DEFAULT_PASSWORD: clockit
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: "True"
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    ports:
+      - "38932:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - pms_development
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  pms_development:
+    name: pms_development
+
+volumes:
+  postgres_data:
+    name: pms_development_postgres_data
+  backend_storage:
+    name: pms_development_backend_storage
+  frontend_node_modules:
+    name: pms_development_frontend_node_modules
+  pgadmin_data:
+    name: pms_development_pgadmin_data
