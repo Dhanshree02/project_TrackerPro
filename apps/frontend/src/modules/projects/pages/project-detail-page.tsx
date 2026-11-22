@@ -2045,63 +2045,6 @@ export function ProjectDetailPage() {
 
 
 
-  if (!project) {
-
-    if (!projectLookupDone) {
-      return (
-        <AppShell title="Project" subtitle="Opening project">
-          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            <p className="text-sm text-muted-foreground">Opening project…</p>
-          </div>
-        </AppShell>
-      );
-    }
-
-    return (
-
-      <AppShell>
-
-        <div className="flex min-h-[60vh] flex-col items-center justify-center text-center p-6">
-
-          <div className="rounded-full bg-muted p-4 mb-4">
-
-            <Folder className="h-8 w-8 text-muted-foreground" />
-
-          </div>
-
-          <h2 className="text-lg font-bold text-foreground">Project Not Found</h2>
-
-          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-
-            We couldn't find a project matching <span className="font-mono font-medium text-foreground">{rawId}</span>.
-
-          </p>
-
-          <div className="mt-5 flex gap-3">
-
-            <Link
-
-              to="/projects"
-
-              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-
-            >
-
-              Back to Projects
-
-            </Link>
-
-          </div>
-
-        </div>
-
-      </AppShell>
-
-    );
-
-  }
-
   const customerRouteId = useMemo(
 
     () => resolveCustomerRouteId(client.id, client.name, apiClients),
@@ -2126,25 +2069,11 @@ export function ProjectDetailPage() {
 
   const snapshotInvoices = useDhStore((s) => s.invoices);
 
-  const scheduleInvoices = (project.wbsDetails?.accounts?.invoices ?? []) as any[];
-
-  const raisedInvoices = scheduleInvoices.filter(
-
-    (i) => !i.isDeleted && !i.deletedAtUtc && (i.invoiceStatus === "Raised" || i.paymentStatus === "Received" || i.status === "Raised" || i.status === "Paid"),
-
-  );
-
   const [raiseModalOpen, setRaiseModalOpen] = useState(false);
 
   const [raiseInvoiceId, setRaiseInvoiceId] = useState<string | null>(null);
 
   const [invoiceNumberInput, setInvoiceNumberInput] = useState("");
-
-  // Employees only get Team / Tasks / Health — every other submodule is hidden.
-
-  // Accounts: Overview, WBS only.
-
-  // Invoice tab is hidden across the application.
 
   const tabCodes: Record<Tab, string> = {
     Overview: "project-overview",
@@ -2212,13 +2141,13 @@ export function ProjectDetailPage() {
     if (typeof window !== "undefined" && window.location.hash === "#tasks") {
       setTab("Tasks");
     }
-  }, [project.id]);
+  }, [project?.id]);
 
 
 
   useEffect(() => {
 
-    if (!isApiGuid(project.id)) return;
+    if (!project?.id || !isApiGuid(project.id)) return;
 
     let active = true;
 
@@ -2280,13 +2209,13 @@ export function ProjectDetailPage() {
 
     };
 
-  }, [project.id]);
+  }, [project?.id]);
 
   const [overviewExtRequests, setOverviewExtRequests] = useState<ProjectExtensionRequest[]>([]);
 
   useEffect(() => {
     let active = true;
-    if (isApiGuid(project.id)) {
+    if (project?.id && isApiGuid(project.id)) {
       fetchProjectExtensionRequests(project.id)
         .then((data) => {
           if (active) setOverviewExtRequests(data || []);
@@ -2296,17 +2225,13 @@ export function ProjectDetailPage() {
     return () => {
       active = false;
     };
-  }, [project.id]);
+  }, [project?.id]);
 
   const latestApprovedExt = useMemo(() => {
     const approved = overviewExtRequests.filter((r) => r.status === "Approved" && r.requestedEndDate);
     if (!approved.length) return null;
     return [...approved].sort((a, b) => new Date(a.createdAtUtc).getTime() - new Date(b.createdAtUtc).getTime()).pop() || null;
   }, [overviewExtRequests]);
-
-  const previousEndDate = latestApprovedExt ? latestApprovedExt.currentEndDate : null;
-
-
 
   const [closureErrorModalOpen, setClosureErrorModalOpen] = useState(false);
 
@@ -2320,273 +2245,7 @@ export function ProjectDetailPage() {
 
   }>({ stages: [], invoices: [], noInvoices: false });
 
-
-
-  const handleProjectClosure = () => {
-
-    if (project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived") {
-
-      toast.info("Project is already closed / archived.");
-
-      return;
-
-    }
-
-
-
-    // 1. Check if all 4 project stages are completed
-
-    const stageList = getStagesList(project.id);
-
-    const incompleteStages: string[] = [];
-
-    stageList.forEach((stg) => {
-
-      const isDone =
-
-        stg.isCompleted ||
-
-        stg.currentStatus === "Completed" ||
-
-        stg.currentStatus === "Payment Received" ||
-
-        stg.currentStatus === "Certification Released" ||
-
-        stg.currentStatus === "WBS Approval Completed" ||
-
-        stg.currentStatus === "Project Allocation Completed";
-
-      if (!isDone) {
-
-        incompleteStages.push(stg.stageName);
-
-      }
-
-    });
-
-
-
-    // 2. Check invoices payment status
-
-    const projInvoices = dbInvoices !== null
-
-      ? scheduleInvoices
-
-      : isDhanshree
-
-        ? snapshotInvoices.filter((i) => i.projectId === project.id)
-
-        : invoices.filter((i) => i.projectId === project.id);
-
-
-
-    const pendingInvoices = projInvoices.filter(
-
-      (inv) => inv.paymentStatus !== "Received" && inv.paymentStatus !== "completed"
-
-    );
-
-
-
-    const noInvoices = projInvoices.length === 0;
-
-
-
-    if (incompleteStages.length > 0 || pendingInvoices.length > 0 || noInvoices) {
-
-      setClosureErrors({
-
-        stages: incompleteStages,
-
-        invoices: pendingInvoices.map((inv, idx) => ({
-
-          id: (inv as { id?: string }).id ?? `mock-inv-${idx}`,
-
-          milestone: (inv as any).milestone,
-
-          invoiceNumber: (inv as any).invoiceNumber,
-
-          paymentStatus: inv.paymentStatus,
-
-        })),
-
-        noInvoices,
-
-      });
-
-      setClosureErrorModalOpen(true);
-
-    } else {
-
-      dhStore.archiveProject(project.id, user.id, user.name);
-
-      updateProjectStatus(project.id, "archived").catch((err) => {
-
-        console.warn("Failed to archive project on backend:", err);
-
-      });
-
-      toast.success("Project Closure Successful!", {
-
-        description: `Project "${project.name}" has been transferred to Archived Projects.`,
-
-      });
-
-    }
-
-  };
-
-
-
-  const pm = getPerson(project.pmId);
-
-  const tl = getPerson(project.tlId);
-
-  const team = project.teamIds.map(getPerson);
-
-
-
-  const poDoc = poDocuments[project.id];
-
-  const poFileName = savedPo?.fileName || project.wbsDetails?.accounts?.poFileName || poDoc?.fileName || "";
-
-  const poFileUrl = poLoaded ? "" : poDoc?.dataUrl || project.wbsDetails?.accounts?.poFileDataUrl || "";
-
-  const poStatus = project.wbsDetails?.accounts?.poStatus || "";
-
-  const showPoDocumentPanel = Boolean(project.wbsDetails?.accounts) && poStatus !== "PO Not Required";
-
-  const canAttachPo = (isDhanshree || isAccounts || isPmoFamily || isSales) && !isViewOnly;
-
-  const canViewPo = Boolean(savedPo || poFileUrl);
-
   const [poPreviewOpen, setPoPreviewOpen] = useState(false);
-
-
-
-  async function persistInvoicePatch(invoiceId: string, patch: Partial<ApiProjectInvoice>) {
-
-    if (!isApiGuid(project.id) || !isApiGuid(invoiceId)) {
-
-      toast.error("This invoice is not stored on the project yet");
-
-      return false;
-
-    }
-
-    const previous = (dbInvoices ?? scheduleInvoices).find((row) => row.id === invoiceId);
-
-    setDbInvoices((rows) => {
-
-      const source = rows ?? scheduleInvoices;
-
-      return source.map((row) => (row.id === invoiceId ? { ...row, ...patch } : row));
-
-    });
-
-    try {
-
-      const updated = await updateProjectInvoice(project.id, invoiceId, {
-
-        status: patch.status,
-
-        invoiceNumber: patch.invoiceNumber,
-
-        invoiceDate: patch.invoiceDate,
-
-        dueDate: patch.dueDate,
-
-        paymentDate: patch.paymentDate,
-
-        paymentStatus: patch.paymentStatus,
-
-      });
-
-      setDbInvoices((rows) => {
-
-        const source = rows ?? scheduleInvoices;
-
-        return source.map((row) => (row.id === invoiceId ? updated : row));
-
-      });
-
-      return true;
-
-    } catch (err) {
-
-      if (previous) {
-
-        setDbInvoices((rows) => {
-
-          const source = rows ?? scheduleInvoices;
-
-          return source.map((row) => (row.id === invoiceId ? previous : row));
-
-        });
-
-      }
-
-      toast.error(err instanceof Error ? err.message : "Could not save the invoice");
-
-      return false;
-
-    }
-
-  }
-
-
-
-  const saveInvoiceDate = (invoiceId: string, value: string) =>
-
-    persistInvoicePatch(invoiceId, { invoiceDate: value || null, dueDate: value || null });
-
-
-
-  const saveInvoiceRaised = (invoiceId: string, invoiceNumber: string) =>
-
-    persistInvoicePatch(invoiceId, {
-
-      status: "Raised",
-
-      invoiceNumber,
-
-      paymentStatus: "Not Received",
-
-    });
-
-
-
-  const saveInvoicePaid = (invoiceId: string, paymentDate?: string) => {
-
-    const today = new Date().toISOString().slice(0, 10);
-
-    return persistInvoicePatch(invoiceId, {
-
-      status: "Paid",
-
-      paymentStatus: "Received",
-
-      paymentDate: paymentDate || today,
-
-    });
-
-  };
-
-
-
-  const saveInvoiceUnpaid = (invoiceId: string) =>
-
-    persistInvoicePatch(invoiceId, {
-
-      status: "Raised",
-
-      paymentStatus: "Not Received",
-
-      paymentDate: null,
-
-    });
-
-
 
   const refreshProjectInvoices = useCallback(async () => {
 
@@ -2606,147 +2265,17 @@ export function ProjectDetailPage() {
 
   }, [project?.id]);
 
-
-
-  const handleDownloadPO = async () => {
-
-    if (savedPo) {
-
-      try {
-
-        await apiDownload(getProjectDocumentDownloadUrl(project.id, savedPo.id), savedPo.fileName);
-
-        toast.success("Download started", { description: savedPo.fileName });
-
-      } catch (err) {
-
-        toast.error(err instanceof Error ? err.message : "Could not download the PO document");
-
-      }
-
-      return;
-
-    }
-
-    if (!poFileName || !poFileUrl) {
-
-      toast.error("No PO document is attached");
-
-      return;
-
-    }
-
-    const element = document.createElement("a");
-
-    element.href = poFileUrl;
-
-    element.download = poFileName;
-
-    document.body.appendChild(element);
-
-    element.click();
-
-    document.body.removeChild(element);
-
-    toast.success("Download started", { description: poFileName });
-
-  };
-
-
-
-  const openPoPreview = async () => {
-
-    if (poPreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(poPreviewUrl);
-
-    if (savedPo) {
-
-      try {
-
-        const blob = await fetchProjectDocumentBlob(project.id, savedPo.id);
-
-        setPoPreviewUrl(URL.createObjectURL(blob));
-
-        setPoPreviewOpen(true);
-
-      } catch (err) {
-
-        toast.error(err instanceof Error ? err.message : "Could not open the PO document");
-
-      }
-
-      return;
-
-    }
-
-    if (!poFileUrl) {
-
-      toast.error("No PO document is attached");
-
-      return;
-
-    }
-
-    setPoPreviewUrl(poFileUrl);
-
-    setPoPreviewOpen(true);
-
-  };
-
-
-
-  const handleAttachPo = async (file: File | undefined) => {
-
-    if (!file) return;
-
-    if (!isApiGuid(project.id)) {
-
-      toast.error("This project is not saved in the database yet");
-
-      return;
-
-    }
-
-    try {
-
-      const uploaded = await uploadProjectDocument(project.id, file, "PO");
-
-      setSavedPo({ id: uploaded.id, fileName: poDocumentFileName(uploaded) });
-
-      setPoLoaded(true);
-
-      setDbProject((current) =>
-
-        current
-
-          ? { ...current, poStatus: current.poStatus === "PO Not Required" ? current.poStatus : "PO Received" }
-
-          : current,
-
-      );
-
-      toast.success("PO document attached", { description: file.name });
-
-    } catch (err) {
-
-      toast.error(err instanceof Error ? err.message : "Could not save the PO document");
-
-    }
-
-  };
-
-
-
   // Get project stages - call unconditionally to avoid Rules of Hooks violation
 
-  const stages = useMemo(() => getStagesList(project.id), [project.id]);
+  const stages = useMemo(() => (project ? getStagesList(project.id) : []), [project?.id]);
 
 
 
   // Subscribe to store for sub-status derivation (Dhanshree only)
 
-  const storePrereqs = useDhStore((s) => s.prereqs[project.id]);
+  const storePrereqs = useDhStore((s) => s.prereqs[project?.id ?? ""]);
 
-  const storeProjectStages = useDhStore((s) => s.projectStages[project.id]);
+  const storeProjectStages = useDhStore((s) => s.projectStages[project?.id ?? ""]);
 
 
 
@@ -2754,7 +2283,7 @@ export function ProjectDetailPage() {
 
   const subStatusMap = useMemo<Record<string, string>>(() => {
 
-    if (!isDhanshree) return {} as Record<string, string>;
+    if (!isDhanshree || !project) return {} as Record<string, string>;
 
     const prereq = storePrereqs;
 
@@ -2860,7 +2389,7 @@ export function ProjectDetailPage() {
 
     return { Sales: salesSub, PMO: pmoSub, Delivery: deliverySub, Accounts: acctSub };
 
-  }, [isDhanshree, storePrereqs, storeProjectStages, overallProjectProgress, project.status, project.contractType]);
+  }, [isDhanshree, storePrereqs, storeProjectStages, overallProjectProgress, project?.status, project?.contractType]);
 
 
 
@@ -2868,7 +2397,7 @@ export function ProjectDetailPage() {
 
   const subStagesMap = useMemo<Record<string, SubStageItem[]>>(() => {
 
-    if (!isDhanshree) return {} as Record<string, SubStageItem[]>;
+    if (!isDhanshree || !project) return {} as Record<string, SubStageItem[]>;
 
     const prereq = storePrereqs;
 
@@ -3158,7 +2687,486 @@ export function ProjectDetailPage() {
 
     };
 
-  }, [isDhanshree, storePrereqs, storeProjectStages, overallProjectProgress, project.status]);
+  }, [isDhanshree, storePrereqs, storeProjectStages, overallProjectProgress, project?.status]);
+
+  if (!project) {
+
+    if (!projectLookupDone) {
+      return (
+        <AppShell title="Project" subtitle="Opening project">
+          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Opening project…</p>
+          </div>
+        </AppShell>
+      );
+    }
+
+    return (
+
+      <AppShell>
+
+        <div className="flex min-h-[60vh] flex-col items-center justify-center text-center p-6">
+
+          <div className="rounded-full bg-muted p-4 mb-4">
+
+            <Folder className="h-8 w-8 text-muted-foreground" />
+
+          </div>
+
+          <h2 className="text-lg font-bold text-foreground">Project Not Found</h2>
+
+          <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+
+            We couldn't find a project matching <span className="font-mono font-medium text-foreground">{rawId}</span>.
+
+          </p>
+
+          <div className="mt-5 flex gap-3">
+
+            <Link
+
+              to="/projects"
+
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+
+            >
+
+              Back to Projects
+
+            </Link>
+
+          </div>
+
+        </div>
+
+      </AppShell>
+
+    );
+
+  }
+
+
+  const scheduleInvoices = (project.wbsDetails?.accounts?.invoices ?? []) as any[];
+
+  const raisedInvoices = scheduleInvoices.filter(
+
+    (i) => !i.isDeleted && !i.deletedAtUtc && (i.invoiceStatus === "Raised" || i.paymentStatus === "Received" || i.status === "Raised" || i.status === "Paid"),
+
+  );
+
+
+  // Employees only get Team / Tasks / Health — every other submodule is hidden.
+
+  // Accounts: Overview, WBS only.
+
+  // Invoice tab is hidden across the application.
+
+
+
+  const previousEndDate = latestApprovedExt ? latestApprovedExt.currentEndDate : null;
+
+
+
+
+
+
+  const handleProjectClosure = () => {
+
+    if (project.status === "completed" || project.status === "archived" || (project.status as any) === "Archived") {
+
+      toast.info("Project is already closed / archived.");
+
+      return;
+
+    }
+
+
+
+    // 1. Check if all 4 project stages are completed
+
+    const stageList = getStagesList(project.id);
+
+    const incompleteStages: string[] = [];
+
+    stageList.forEach((stg) => {
+
+      const isDone =
+
+        stg.isCompleted ||
+
+        stg.currentStatus === "Completed" ||
+
+        stg.currentStatus === "Payment Received" ||
+
+        stg.currentStatus === "Certification Released" ||
+
+        stg.currentStatus === "WBS Approval Completed" ||
+
+        stg.currentStatus === "Project Allocation Completed";
+
+      if (!isDone) {
+
+        incompleteStages.push(stg.stageName);
+
+      }
+
+    });
+
+
+
+    // 2. Check invoices payment status
+
+    const projInvoices = dbInvoices !== null
+
+      ? scheduleInvoices
+
+      : isDhanshree
+
+        ? snapshotInvoices.filter((i) => i.projectId === project.id)
+
+        : invoices.filter((i) => i.projectId === project.id);
+
+
+
+    const pendingInvoices = projInvoices.filter(
+
+      (inv) => inv.paymentStatus !== "Received" && inv.paymentStatus !== "completed"
+
+    );
+
+
+
+    const noInvoices = projInvoices.length === 0;
+
+
+
+    if (incompleteStages.length > 0 || pendingInvoices.length > 0 || noInvoices) {
+
+      setClosureErrors({
+
+        stages: incompleteStages,
+
+        invoices: pendingInvoices.map((inv, idx) => ({
+
+          id: (inv as { id?: string }).id ?? `mock-inv-${idx}`,
+
+          milestone: (inv as any).milestone,
+
+          invoiceNumber: (inv as any).invoiceNumber,
+
+          paymentStatus: inv.paymentStatus,
+
+        })),
+
+        noInvoices,
+
+      });
+
+      setClosureErrorModalOpen(true);
+
+    } else {
+
+      dhStore.archiveProject(project.id, user.id, user.name);
+
+      updateProjectStatus(project.id, "archived").catch((err) => {
+
+        console.warn("Failed to archive project on backend:", err);
+
+      });
+
+      toast.success("Project Closure Successful!", {
+
+        description: `Project "${project.name}" has been transferred to Archived Projects.`,
+
+      });
+
+    }
+
+  };
+
+
+
+  const pm = getPerson(project.pmId);
+
+  const tl = getPerson(project.tlId);
+
+  const team = project.teamIds.map(getPerson);
+
+
+
+  const poDoc = poDocuments[project.id];
+
+  const poFileName = savedPo?.fileName || project.wbsDetails?.accounts?.poFileName || poDoc?.fileName || "";
+
+  const poFileUrl = poLoaded ? "" : poDoc?.dataUrl || project.wbsDetails?.accounts?.poFileDataUrl || "";
+
+  const poStatus = project.wbsDetails?.accounts?.poStatus || "";
+
+  const showPoDocumentPanel = Boolean(project.wbsDetails?.accounts) && poStatus !== "PO Not Required";
+
+  const canAttachPo = (isDhanshree || isAccounts || isPmoFamily || isSales) && !isViewOnly;
+
+  const canViewPo = Boolean(savedPo || poFileUrl);
+
+
+
+
+  async function persistInvoicePatch(invoiceId: string, patch: Partial<ApiProjectInvoice>) {
+
+    if (!isApiGuid(project.id) || !isApiGuid(invoiceId)) {
+
+      toast.error("This invoice is not stored on the project yet");
+
+      return false;
+
+    }
+
+    const previous = (dbInvoices ?? scheduleInvoices).find((row) => row.id === invoiceId);
+
+    setDbInvoices((rows) => {
+
+      const source = rows ?? scheduleInvoices;
+
+      return source.map((row) => (row.id === invoiceId ? { ...row, ...patch } : row));
+
+    });
+
+    try {
+
+      const updated = await updateProjectInvoice(project.id, invoiceId, {
+
+        status: patch.status,
+
+        invoiceNumber: patch.invoiceNumber,
+
+        invoiceDate: patch.invoiceDate,
+
+        dueDate: patch.dueDate,
+
+        paymentDate: patch.paymentDate,
+
+        paymentStatus: patch.paymentStatus,
+
+      });
+
+      setDbInvoices((rows) => {
+
+        const source = rows ?? scheduleInvoices;
+
+        return source.map((row) => (row.id === invoiceId ? updated : row));
+
+      });
+
+      return true;
+
+    } catch (err) {
+
+      if (previous) {
+
+        setDbInvoices((rows) => {
+
+          const source = rows ?? scheduleInvoices;
+
+          return source.map((row) => (row.id === invoiceId ? previous : row));
+
+        });
+
+      }
+
+      toast.error(err instanceof Error ? err.message : "Could not save the invoice");
+
+      return false;
+
+    }
+
+  }
+
+
+
+  const saveInvoiceDate = (invoiceId: string, value: string) =>
+
+    persistInvoicePatch(invoiceId, { invoiceDate: value || null, dueDate: value || null });
+
+
+
+  const saveInvoiceRaised = (invoiceId: string, invoiceNumber: string) =>
+
+    persistInvoicePatch(invoiceId, {
+
+      status: "Raised",
+
+      invoiceNumber,
+
+      paymentStatus: "Not Received",
+
+    });
+
+
+
+  const saveInvoicePaid = (invoiceId: string, paymentDate?: string) => {
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    return persistInvoicePatch(invoiceId, {
+
+      status: "Paid",
+
+      paymentStatus: "Received",
+
+      paymentDate: paymentDate || today,
+
+    });
+
+  };
+
+
+
+  const saveInvoiceUnpaid = (invoiceId: string) =>
+
+    persistInvoicePatch(invoiceId, {
+
+      status: "Raised",
+
+      paymentStatus: "Not Received",
+
+      paymentDate: null,
+
+    });
+
+
+
+
+
+
+  const handleDownloadPO = async () => {
+
+    if (savedPo) {
+
+      try {
+
+        await apiDownload(getProjectDocumentDownloadUrl(project.id, savedPo.id), savedPo.fileName);
+
+        toast.success("Download started", { description: savedPo.fileName });
+
+      } catch (err) {
+
+        toast.error(err instanceof Error ? err.message : "Could not download the PO document");
+
+      }
+
+      return;
+
+    }
+
+    if (!poFileName || !poFileUrl) {
+
+      toast.error("No PO document is attached");
+
+      return;
+
+    }
+
+    const element = document.createElement("a");
+
+    element.href = poFileUrl;
+
+    element.download = poFileName;
+
+    document.body.appendChild(element);
+
+    element.click();
+
+    document.body.removeChild(element);
+
+    toast.success("Download started", { description: poFileName });
+
+  };
+
+
+
+  const openPoPreview = async () => {
+
+    if (poPreviewUrl?.startsWith("blob:")) URL.revokeObjectURL(poPreviewUrl);
+
+    if (savedPo) {
+
+      try {
+
+        const blob = await fetchProjectDocumentBlob(project.id, savedPo.id);
+
+        setPoPreviewUrl(URL.createObjectURL(blob));
+
+        setPoPreviewOpen(true);
+
+      } catch (err) {
+
+        toast.error(err instanceof Error ? err.message : "Could not open the PO document");
+
+      }
+
+      return;
+
+    }
+
+    if (!poFileUrl) {
+
+      toast.error("No PO document is attached");
+
+      return;
+
+    }
+
+    setPoPreviewUrl(poFileUrl);
+
+    setPoPreviewOpen(true);
+
+  };
+
+
+
+  const handleAttachPo = async (file: File | undefined) => {
+
+    if (!file) return;
+
+    if (!isApiGuid(project.id)) {
+
+      toast.error("This project is not saved in the database yet");
+
+      return;
+
+    }
+
+    try {
+
+      const uploaded = await uploadProjectDocument(project.id, file, "PO");
+
+      setSavedPo({ id: uploaded.id, fileName: poDocumentFileName(uploaded) });
+
+      setPoLoaded(true);
+
+      setDbProject((current) =>
+
+        current
+
+          ? { ...current, poStatus: current.poStatus === "PO Not Required" ? current.poStatus : "PO Received" }
+
+          : current,
+
+      );
+
+      toast.success("PO document attached", { description: file.name });
+
+    } catch (err) {
+
+      toast.error(err instanceof Error ? err.message : "Could not save the PO document");
+
+    }
+
+  };
+
+
+
 
 
 
