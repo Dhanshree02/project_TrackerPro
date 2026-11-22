@@ -370,14 +370,10 @@ public sealed class MyTeamService(
             return employee;
         }
 
-        var canManageReportees = !string.IsNullOrWhiteSpace(role) &&
-            (await rbacService.HasRoleAccessAsync(role, RbacCatalogCodes.MyReportees, RbacAccessType.Manage, ct) ||
-             await rbacService.HasRoleAccessAsync(role, RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, ct));
-
         var isDirectReport = await db.Employees.AnyAsync(
             e => e.DeletedAtUtc == null && e.Id == employee.Id && e.ReportingManagerId == caller.Id, ct);
 
-        if (canManageReportees && isDirectReport)
+        if (isDirectReport)
         {
             return employee;
         }

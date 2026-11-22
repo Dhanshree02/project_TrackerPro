@@ -50,7 +50,7 @@ public class MyTeamController(
     }
 
     [HttpPut("days")]
-    [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees)]
+    [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.View, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees, RbacCatalogCodes.MyTeamTab)]
     public async Task<ActionResult<ApiResponse<bool>>> UpsertDays(
         [FromBody] UpsertTeamDaysRequest request,
         CancellationToken ct)
@@ -60,7 +60,7 @@ public class MyTeamController(
     }
 
     [HttpPut("members/{employeeId:guid}/schedule")]
-    [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees)]
+    [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.View, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees, RbacCatalogCodes.MyTeamTab)]
     public async Task<ActionResult<ApiResponse<bool>>> SaveSchedule(
         Guid employeeId,
         [FromBody] SaveTeamScheduleRequest request,
