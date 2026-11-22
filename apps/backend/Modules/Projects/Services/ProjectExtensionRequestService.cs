@@ -1,37 +1,25 @@
 using System.Text.Json;
-
 using Microsoft.EntityFrameworkCore;
-
 using Microsoft.Extensions.Logging;
-
 using PMS.API.Infrastructure.Authorization;
-
 using PMS.API.Infrastructure.Persistence;
-
 using PMS.API.Modules.ActionCentre.Models;
-
 using PMS.API.Modules.Projects.DTOs;
-
 using PMS.API.Modules.Projects.Models;
-
 using PMS.API.Modules.Resources.Models;
-
+using PMS.API.Modules.Sla.DTOs;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Sla.Services;
 using PMS.API.Shared.Exceptions;
-
-
 
 namespace PMS.API.Modules.Projects.Services;
 
-
-
 public sealed class ProjectExtensionRequestService(
-
     AppDbContext db,
-
     ICurrentUserService currentUser,
-
+    ISlaTrackingService slaTrackingService,
+    ISlaRecipientResolver recipientResolver,
     ILogger<ProjectExtensionRequestService> logger) : IProjectExtensionRequestService
-
 {
 
     public const string PmoSubDepartment = "PMO (Project Management Office)";
@@ -200,80 +188,64 @@ public sealed class ProjectExtensionRequestService(
 
 
         // Notify tagged approvers about the extension approval request
-
-        var reqTitle = $"Timeline Extension Approval Request: {project.Name} (Requested: {request.RequestedEndDate:dd-MMM-yyyy})";
+        var reqId = $"EXT-{row.Id.ToString("N")[..8].ToUpperInvariant()}";
+        var reqTitle = $"Extension Request Approval Pending | {project.Name} | {reqId}";
 
         var createdNotifs = new List<ActionNotification>();
-
         foreach (var approver in people)
-
         {
-
             var notif = new ActionNotification
-
             {
-
                 Id = Guid.NewGuid(),
-
                 RecipientEmployeeId = approver.Id,
-
                 ProjectId = project.Id,
-
                 ProjectCode = project.ProjectCode,
-
                 ProjectName = project.Name,
-
                 Title = reqTitle,
-
-                Type = "Timeline Extension Approval",
-
-                Priority = "High",
-
+                Type = "Extension Request",
+                Priority = "Low",
                 Status = "Pending",
-
                 Unread = true,
-
                 RaisedByEmployeeId = requester?.Id,
-
                 RaisedByName = string.IsNullOrWhiteSpace(requesterName) ? "User" : requesterName,
-
-                RelatedTask = row.Id.ToString(),
-
+                RelatedTask = reqId,
                 CreatedAtUtc = DateTime.UtcNow,
-
                 HistoryJson = JsonSerializer.Serialize(new[]
-
                 {
-
                     new
-
                     {
-
                         status = "Pending",
-
                         at = DateTime.UtcNow.ToString("o"),
-
                         updatedBy = requesterName,
-
                         details = $"Requested timeline extension of {row.ExtensionDays} days to {row.RequestedEndDate:dd-MMM-yyyy}. Reason: {row.Reason}"
-
                     }
-
                 })
-
             };
-
             db.ActionNotifications.Add(notif);
-
             createdNotifs.Add(notif);
-
         }
 
-
-
         await db.SaveChangesAsync(ct);
-
         TrySyncNotificationsToOtherDatabase(createdNotifs);
+
+        try
+        {
+            await slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                Module: "Project",
+                ActivityType: "Extension Request",
+                EntityId: row.Id,
+                EntityReference: reqId,
+                Stage: "Pending",
+                Priority: SlaPriority.Low,
+                RecipientEmployeeId: people.FirstOrDefault()?.Id,
+                ProjectId: project.Id,
+                CustomStartTimeUtc: DateTime.UtcNow
+            ), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[ExtensionRequest] Failed to start SLA tracking for request {RequestId}", row.Id);
+        }
 
         return Map(row);
 
@@ -313,33 +285,35 @@ public sealed class ProjectExtensionRequestService(
 
 
 
+        var items = await query
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ThenByDescending(x => x.Id)
+            .ToListAsync(ct);
+
         if (!isSuperAdmin)
-
         {
-
             if (currentEmpId.HasValue)
-
             {
-
                 var empId = currentEmpId.Value;
+                var myNotifs = await db.ActionNotifications
+                    .AsNoTracking()
+                    .Where(n => n.RecipientEmployeeId == empId && n.DeletedAtUtc == null && n.Type == "Extension Request" && n.RelatedTask != null)
+                    .Select(n => n.RelatedTask!)
+                    .ToListAsync(ct);
 
-                query = query.Where(x => x.Approvers.Any(a => a.EmployeeId == empId));
+                var myNotifSet = myNotifs.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+                items = items.Where(x =>
+                    x.Approvers.Any(a => a.EmployeeId == empId) ||
+                    myNotifSet.Contains(x.Id.ToString()) ||
+                    myNotifSet.Contains($"EXT-{x.Id.ToString("N")[..8].ToUpperInvariant()}")
+                ).ToList();
             }
-
             else
-
             {
-
                 return Array.Empty<PendingExtensionApprovalDto>();
-
             }
-
         }
-
-
-
-        var items = await query.OrderByDescending(x => x.CreatedAtUtc).ToListAsync(ct);
 
 
 
@@ -536,8 +510,14 @@ public sealed class ProjectExtensionRequestService(
             await NotifyLeadershipAndPmoAsync(project, ext, "Approved", approverName, approverEmployeeId, request.Comment, ct);
         }
 
-
-
+        try
+        {
+            await slaTrackingService.CompleteTrackingAsync(ext.Id, "Extension Request", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[ExtensionRequest] Failed to complete SLA tracking for {ExtId}", ext.Id);
+        }
 
         await db.SaveChangesAsync(ct);
 
@@ -566,16 +546,15 @@ public sealed class ProjectExtensionRequestService(
     {
 
         var ext = await db.ProjectExtensionRequests
-
             .Include(x => x.Approvers)
-
             .Include(x => x.Project)
-
             .FirstOrDefaultAsync(x => x.Id == extensionRequestId && x.ProjectId == projectId && x.DeletedAtUtc == null, ct)
-
             ?? throw new NotFoundException($"Extension request '{extensionRequestId}' was not found.");
 
-
+        if (ext.Status == "Rejected")
+        {
+            return Map(ext);
+        }
 
         var currentEmp = await FindRequesterAsync(ct);
 
@@ -613,8 +592,14 @@ public sealed class ProjectExtensionRequestService(
             await NotifyLeadershipAndPmoAsync(project, ext, "Rejected", approverName, approverEmployeeId, request.Comment, ct);
         }
 
-
-
+        try
+        {
+            await slaTrackingService.CompleteTrackingAsync(ext.Id, "Extension Request", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[ExtensionRequest] Failed to complete SLA tracking for {ExtId}", ext.Id);
+        }
 
         await db.SaveChangesAsync(ct);
 
@@ -819,86 +804,143 @@ public sealed class ProjectExtensionRequestService(
         string? comment,
         CancellationToken ct)
     {
-        var recipients = new List<Employee>();
+        // ── Check Current SLA Escalation Stage ──
+        var slaInstance = await db.SlaInstances
+            .AsNoTracking()
+            .Include(i => i.Events)
+            .FirstOrDefaultAsync(i => i.EntityId == ext.Id &&
+                                      (i.ActivityType == "Extension Request" ||
+                                       i.ActivityType == "Project Extension Request" ||
+                                       i.ActivityType == "Timeline Extension Approval"), ct);
 
-        var tl = await ResolveTeamLeadAsync(project, ct);
-        if (tl != null) recipients.Add(tl);
-
-        var pm = await ResolveProjectManagerAsync(project, ct);
-        if (pm != null && !recipients.Any(r => r.Id == pm.Id)) recipients.Add(pm);
-
-        var spm = await ResolveSeniorProjectManagerAsync(project, ct);
-        if (spm != null && !recipients.Any(r => r.Id == spm.Id)) recipients.Add(spm);
-
-        var em = await ResolveEngagementManagerAsync(project, ct);
-        if (em != null && !recipients.Any(r => r.Id == em.Id)) recipients.Add(em);
-
-        var pmoTeam = await GetPmoTeamEmployeesAsync(ct);
-        foreach (var pmoMember in pmoTeam)
+        bool isL2 = false;
+        bool isL1 = false;
+        if (slaInstance != null)
         {
-            if (!recipients.Any(r => r.Id == pmoMember.Id))
-            {
-                recipients.Add(pmoMember);
-            }
+            isL2 = slaInstance.Events.Any(e => e.EventType == SlaEventType.EscalationL2 && e.Status == SlaEventStatus.Executed);
+            isL1 = !isL2 && slaInstance.Events.Any(e => e.EventType == SlaEventType.EscalationL1 && e.Status == SlaEventStatus.Executed);
         }
+
+        var recipientIds = new HashSet<Guid>();
+
+        // 1. Assigned Engagement Manager(s) (EM)
+        if (project.EngagementManagerId.HasValue && project.EngagementManagerId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.EngagementManagerId.Value);
+        }
+        if (project.Client != null && project.Client.EngagementManagerId.HasValue && project.Client.EngagementManagerId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.Client.EngagementManagerId.Value);
+        }
+        var emTeamMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.MemberRole == "EngagementManager" || tm.MemberRole == "EM" || tm.MemberRole == "Engagement Manager"))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in emTeamMembers) recipientIds.Add(id);
+        var emByName = await ResolveEngagementManagerAsync(project, ct);
+        if (emByName != null) recipientIds.Add(emByName.Id);
+
+        // 2. Assigned Project Manager(s) (PM)
+        if (project.ProjectManagerId.HasValue && project.ProjectManagerId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.ProjectManagerId.Value);
+        }
+        var pmTeamMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.MemberRole == "ProjectManager" || tm.MemberRole == "PM" || tm.MemberRole == "Project Manager"))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in pmTeamMembers) recipientIds.Add(id);
+        var pmByName = await ResolveProjectManagerAsync(project, ct);
+        if (pmByName != null) recipientIds.Add(pmByName.Id);
+
+        // 3. Project Team Lead(s) (TL)
+        if (project.TeamLeadId.HasValue && project.TeamLeadId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.TeamLeadId.Value);
+        }
+        var tlMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.IsTeamLead || tm.MemberRole == "TeamLead" || tm.MemberRole == "Team Leader" || (tm.MemberRole != null && tm.MemberRole.Contains("TeamLead"))))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in tlMembers) recipientIds.Add(id);
+        var tlByName = await ResolveTeamLeadAsync(project, ct);
+        if (tlByName != null) recipientIds.Add(tlByName.Id);
+
+        // 4. After L1 or L2 Escalation: Add Assigned Senior Project Manager (SPM)
+        if (isL1 || isL2)
+        {
+            var spmRecipients = await recipientResolver.ResolveLeadershipRecipientsAsync(project.Id, ["Assigned Senior Project Manager"], ct);
+            foreach (var id in spmRecipients) recipientIds.Add(id);
+            var spmByName = await ResolveSeniorProjectManagerAsync(project, ct);
+            if (spmByName != null) recipientIds.Add(spmByName.Id);
+        }
+
+        // 5. After L2 Escalation: Add Relevant Head of Department (HOD)
+        if (isL2)
+        {
+            var hodRecipients = await recipientResolver.ResolveLeadershipRecipientsAsync(project.Id, ["Head of Department"], ct);
+            foreach (var id in hodRecipients) recipientIds.Add(id);
+        }
+
+        // ── Exclude Performer/Actor (they must not receive notification for their own action) ──
+        if (actorEmployeeId.HasValue && actorEmployeeId.Value != Guid.Empty)
+        {
+            recipientIds.Remove(actorEmployeeId.Value);
+        }
+
+        var reqId = $"EXT-{ext.Id.ToString("N")[..8].ToUpperInvariant()}";
+        var notifTitle = $"Extension Request Status Updated | {project.Name} | {reqId}";
+
+        // Update all prior pending notifications for this extension request so old records in DB don't stay "Pending"
+        var extIdStr = ext.Id.ToString();
+        var existingNotifs = await db.ActionNotifications
+            .Where(n => (n.RelatedTask == extIdStr || n.RelatedTask == reqId) && n.DeletedAtUtc == null && n.Status == "Pending")
+            .ToListAsync(ct);
+        foreach (var n in existingNotifs)
+        {
+            n.Status = status;
+            n.Unread = false;
+            n.UpdatedAtUtc = DateTime.UtcNow;
+        }
+
+        if (recipientIds.Count == 0) return;
 
         var commentPart = string.IsNullOrWhiteSpace(comment) ? "" : $" Remarks: \"{comment.Trim()}\"";
-        string notifTitle;
-        string notifStatus = status;
-        string priority = "High";
-
-        if (status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
-        {
-            notifTitle = $"Timeline Extension Approved: {project.Name} extended to {ext.RequestedEndDate:dd-MMM-yyyy}.{commentPart}";
-            notifStatus = "Approved";
-            priority = "High";
-        }
-        else if (status.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
-        {
-            notifTitle = $"Timeline Extension Rejected: {project.Name}.{commentPart}";
-            notifStatus = "Rejected";
-            priority = "Medium";
-        }
-        else if (status.Equals("Hold", StringComparison.OrdinalIgnoreCase))
-        {
-            notifTitle = $"Timeline Extension On Hold: {project.Name}.{commentPart}";
-            notifStatus = "Hold";
-            priority = "Medium";
-        }
-        else
-        {
-            notifTitle = $"Timeline Extension Changes Requested: {project.Name}.{commentPart}";
-            notifStatus = "Request Changes";
-            priority = "Medium";
-        }
-
         var createdNotifs = new List<ActionNotification>();
-        foreach (var recipient in recipients)
+        var now = DateTime.UtcNow;
+
+        foreach (var recipientId in recipientIds)
         {
             var notif = new ActionNotification
             {
                 Id = Guid.NewGuid(),
-                RecipientEmployeeId = recipient.Id,
+                RecipientEmployeeId = recipientId,
                 ProjectId = project.Id,
                 ProjectCode = project.ProjectCode,
                 ProjectName = project.Name,
                 Title = notifTitle,
-                Type = "Timeline Extension",
-                Priority = priority,
-                Status = notifStatus,
+                Type = "Extension Request",
+                Priority = "Low",
+                Status = status,
                 Unread = true,
                 RaisedByEmployeeId = actorEmployeeId,
                 RaisedByName = actorName,
-                RelatedTask = ext.Id.ToString(),
-                CreatedAtUtc = DateTime.UtcNow,
+                RelatedTask = reqId,
+                CreatedAtUtc = now,
                 HistoryJson = JsonSerializer.Serialize(new[]
                 {
                     new
                     {
-                        status = notifStatus,
-                        at = DateTime.UtcNow.ToString("o"),
+                        status = status,
+                        at = now.ToString("o"),
                         updatedBy = actorName,
-                        details = $"{notifTitle}"
+                        details = $"Status updated to {status} by {actorName}.{commentPart}"
                     }
                 })
             };
@@ -922,7 +964,7 @@ public sealed class ProjectExtensionRequestService(
     private static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications)
 
     {
-
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
 
         {
@@ -996,7 +1038,7 @@ public sealed class ProjectExtensionRequestService(
     private void TrySyncEndDateToOtherDatabase(Guid projectId, DateOnly newEndDate)
 
     {
-
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
 
         {
@@ -1161,8 +1203,21 @@ public sealed class ProjectExtensionRequestService(
         var actorEmployeeId = currentEmp?.Id;
 
         var statusLabel = normalizedStatus.Equals("Hold", StringComparison.OrdinalIgnoreCase) ? "Hold" : "Request Changes";
+
+        // Prevent duplicate notifications if status is unchanged
+        if (string.Equals(ext.Status, statusLabel, StringComparison.OrdinalIgnoreCase))
+        {
+            return Map(ext);
+        }
+
         ext.Status = statusLabel;
         ext.UpdatedAtUtc = DateTime.UtcNow;
+
+        foreach (var app in ext.Approvers)
+        {
+            app.Status = statusLabel;
+            app.UpdatedAtUtc = DateTime.UtcNow;
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Comment))
         {
@@ -1176,8 +1231,64 @@ public sealed class ProjectExtensionRequestService(
             await NotifyLeadershipAndPmoAsync(project, ext, statusLabel, actorName, actorEmployeeId, request.Comment, ct);
         }
 
+        // Hold maintains active SLA tracking: do NOT complete tracking.
+
         await db.SaveChangesAsync(ct);
         return Map(ext);
+    }
+
+    public async Task<ProjectExtensionRequestDto> TakeActionByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        TakeExtensionActionRequest request,
+        CancellationToken ct = default)
+    {
+        var cleanId = (identifier ?? "").Trim();
+        if (cleanId.StartsWith("APP-EXT-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("APP-EXT-".Length).Trim();
+        }
+        else if (cleanId.StartsWith("EXT-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("EXT-".Length).Trim();
+        }
+        else if (cleanId.StartsWith("APP-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("APP-".Length).Trim();
+        }
+
+        ProjectExtensionRequest? ext = null;
+
+        if (Guid.TryParse(cleanId, out var parsedGuid))
+        {
+            ext = await db.ProjectExtensionRequests
+                .Include(x => x.Approvers)
+                .Include(x => x.Project)
+                .FirstOrDefaultAsync(x => x.Id == parsedGuid && (projectId == null || projectId == Guid.Empty || x.ProjectId == projectId.Value) && x.DeletedAtUtc == null, ct);
+        }
+
+        if (ext == null && cleanId.Length >= 4)
+        {
+            var hex = cleanId.Replace("-", "").ToUpperInvariant();
+            var candidates = await db.ProjectExtensionRequests
+                .Include(x => x.Approvers)
+                .Include(x => x.Project)
+                .Where(x => (projectId == null || projectId == Guid.Empty || x.ProjectId == projectId.Value) && x.DeletedAtUtc == null)
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .Take(20)
+                .ToListAsync(ct);
+
+            ext = candidates.FirstOrDefault(x =>
+                x.Id.ToString().Replace("-", "").ToUpperInvariant().StartsWith(hex) ||
+                $"EXT-{x.Id.ToString("N")[..8].ToUpperInvariant()}".Contains(hex));
+        }
+
+        if (ext == null)
+        {
+            throw new NotFoundException($"Extension request '{identifier}' was not found.");
+        }
+
+        return await TakeActionAsync(ext.ProjectId, ext.Id, request, ct);
     }
 
     public async Task<ProjectExtensionRequestDto> AddCommentAsync(

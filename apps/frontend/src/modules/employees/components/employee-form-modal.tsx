@@ -350,6 +350,7 @@ export function EmployeeFormModal({
   const [form, setForm] = useState<OnboardValues>(EMPTY_ONBOARD);
   const [errors, setErrors] = useState<OnboardErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createLogin, setCreateLogin] = useState(true);
   const [uniquenessIndex, setUniquenessIndex] = useState<EmployeeUniquenessIndex | null>(null);
 
   // Metadata catalogs
@@ -505,10 +506,12 @@ export function EmployeeFormModal({
       setForm(EMPTY_ONBOARD);
       setErrors({});
       setIsSubmitting(false);
+      setCreateLogin(true);
       return;
     }
 
     setErrors({});
+    setCreateLogin(mode === "edit" ? initialEmployee?.hasLogin !== false : true);
 
     // Initialize values based on mode
     if (mode === "edit" && initialEmployee) {
@@ -1051,10 +1054,50 @@ export function EmployeeFormModal({
       // Probation status resolution
       const probationStatus =
         mode === "edit"
-          ? form.probationStatus || (employeeStatusName === "Active - Probation" ? "Ongoing" : "Completed")
+          ? form.probationStatus || initialEmployee?.probationStatus || (employeeStatusName === "Active - Probation" ? "Ongoing" : "Completed")
           : employeeStatusName === "Active - Probation"
             ? "Ongoing"
             : "Completed";
+
+      let resolvedExperience = experienceString;
+      let resolvedPriorTotalExp =
+        formatExpDisplay(form.priorTotalExpYears, form.priorTotalExpMonths) || form.priorTotalExp || "0";
+      let resolvedPriorRelevantExp =
+        formatExpDisplay(form.priorRelevantExpYears, form.priorRelevantExpMonths) || form.priorRelevantExp || "0";
+      let resolvedBondStatus = bondStatus;
+      let resolvedBondExpiryDate = bondExpiryDate;
+      let resolvedCategory = calculatedCategory;
+
+      if (mode === "edit" && initialEmployee) {
+        const initVals = employeeToOnboardValues(initialEmployee);
+        const expUnchanged =
+          form.expType === initVals.expType &&
+          form.priorTotalExpYears === initVals.priorTotalExpYears &&
+          form.priorTotalExpMonths === initVals.priorTotalExpMonths &&
+          form.priorRelevantExpYears === initVals.priorRelevantExpYears &&
+          form.priorRelevantExpMonths === initVals.priorRelevantExpMonths;
+
+        if (expUnchanged) {
+          if (initialEmployee.experience) resolvedExperience = initialEmployee.experience;
+          if (initialEmployee.priorTotalExp) resolvedPriorTotalExp = initialEmployee.priorTotalExp;
+          if (initialEmployee.priorRelevantExp) resolvedPriorRelevantExp = initialEmployee.priorRelevantExp;
+        }
+
+        const bondUnchanged =
+          form.bondDelivered === initVals.bondDelivered &&
+          form.joiningDate === initVals.joiningDate &&
+          form.bondDurationMonths === initVals.bondDurationMonths;
+
+        if (bondUnchanged) {
+          if (initialEmployee.bondStatus) resolvedBondStatus = initialEmployee.bondStatus;
+          if (initialEmployee.bondExpiryDate) resolvedBondExpiryDate = initialEmployee.bondExpiryDate;
+        }
+
+        const workerTypeUnchanged = form.workerType === initVals.workerType;
+        if (workerTypeUnchanged && bondUnchanged && initialEmployee.category) {
+          resolvedCategory = initialEmployee.category;
+        }
+      }
 
       const payload: Record<string, unknown> = {
         employeeCode: empCode,
@@ -1077,19 +1120,19 @@ export function EmployeeFormModal({
         reportingManagerId: resolvedReportingManagerId,
         businessUnit: resolvedBusinessUnit,
         workLocation: resolvedWorkLocation,
-        category: calculatedCategory,
+        category: resolvedCategory,
         joiningDate: blankToNull(form.joiningDate),
         status: directoryStatusFromEmployeeStatusName(employeeStatusName),
         employeeStatusId: form.employeeStatusId || null,
         confirmationStatus: employeeStatusName,
-        probationStatus,
-        experience: experienceString,
+        probationStatus: blankToNull(probationStatus),
+        experience: resolvedExperience,
         previousCompany: blankToNull(form.previousCompany),
         employmentType: blankToNull(form.workerType),
         bondDelivered,
         bondDurationMonths,
-        bondExpiryDate,
-        bondStatus,
+        bondExpiryDate: resolvedBondExpiryDate,
+        bondStatus: resolvedBondStatus,
         projectSite: resolvedWorkLocation === "Onsite" ? blankToNull(form.projectSite) : null,
         assetId: blankToNull(form.assetId),
         education: educationString,
@@ -1098,8 +1141,8 @@ export function EmployeeFormModal({
         postGradDegree: form.postGradDegree === "NA" ? "NA" : blankToNull(form.postGradDegree),
         postGradYear: form.postGradYear === "NA" ? "NA" : blankToNull(form.postGradYear),
         expType: form.expType,
-        priorTotalExp: formatExpDisplay(form.priorTotalExpYears, form.priorTotalExpMonths) || form.priorTotalExp || "0",
-        priorRelevantExp: formatExpDisplay(form.priorRelevantExpYears, form.priorRelevantExpMonths) || form.priorRelevantExp || "0",
+        priorTotalExp: resolvedPriorTotalExp,
+        priorRelevantExp: resolvedPriorRelevantExp,
         certifications: csvToList(form.certifications),
         pmoDepartment: blankToNull(form.pmoDepartment),
         subDepartment: blankToNull(formatSubDepartmentDisplay(form.subDepartment) || form.subDepartment),
@@ -1108,6 +1151,7 @@ export function EmployeeFormModal({
         projectType: blankToNull(form.projectType),
         projectAllocated: blankToNull(form.projectAllocated),
         clientEngManagerMapping: blankToNull(form.clientEngManagerMapping),
+        createLogin,
       };
 
       let savedResult: Employee | undefined;
@@ -1878,6 +1922,33 @@ export function EmployeeFormModal({
                 </div>
               </FormSection>
             )}
+          </div>
+
+          <div className="mt-2 rounded-lg border border-border bg-muted/30 px-4 py-4">
+            <p className="text-sm font-medium text-foreground">Login access</p>
+            {/* <p className="mt-1 text-xs text-muted-foreground">
+              Employee only keeps the person in the directory and takes their name off the login list. Employee and login puts the name back. Sign-in rules stay as they are until Microsoft 365.
+            </p> */}
+            <div className="mt-3   flex flex-col gap-2 sm:flex-row sm:gap-6">
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name="createLogin"
+                  checked={createLogin}
+                  onChange={() => setCreateLogin(true)}
+                />
+                Employee and login
+              </label>
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="radio"
+                  name="createLogin"
+                  checked={!createLogin}
+                  onChange={() => setCreateLogin(false)}
+                />
+                Employee only
+              </label>
+            </div>
           </div>
 
           {/* footer */}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatDateDMY } from "@/lib/utils";
 import { X, FileText, CheckCircle2, ShieldCheck, Check, Loader2, Table2 } from "lucide-react";
 
 export interface KycDocPreviewModalProps {
@@ -443,7 +444,7 @@ export function KycDocPreviewModal({
                     <div>
                       <span className="text-muted-foreground text-[11px] block">Verification Date:</span>
                       <span className="font-medium text-foreground">
-                        {uploadDate || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        {uploadDate ? formatDateDMY(uploadDate) : formatDateDMY(new Date())}
                       </span>
                     </div>
                   </div>

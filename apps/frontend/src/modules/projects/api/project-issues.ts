@@ -55,8 +55,23 @@ export interface AssignedProjectSummary {
 }
 
 export async function fetchMyAssignedProjects(): Promise<AssignedProjectSummary[]> {
-  const res = await apiFetch<AssignedProjectSummary[]>("/api/v1/projects/my-assigned-projects");
-  return res ?? [];
+  try {
+    const res = await apiFetch<AssignedProjectSummary[]>("/api/v1/action-centre/bucket-list/assigned-projects");
+    return res ?? [];
+  } catch {
+    const res = await apiFetch<AssignedProjectSummary[]>("/api/v1/projects/my-assigned-projects");
+    return res ?? [];
+  }
+}
+
+export async function raiseBucketListIssue(
+  projectId: string,
+  payload: CreateProjectIssuePayload,
+): Promise<ProjectIssue> {
+  return apiFetch<ProjectIssue>("/api/v1/action-centre/bucket-list/issues", {
+    method: "POST",
+    body: JSON.stringify({ ...payload, projectId }),
+  });
 }
 
 export async function fetchProjectIssues(projectId: string): Promise<ProjectIssue[]> {

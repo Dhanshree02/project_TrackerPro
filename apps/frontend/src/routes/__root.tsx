@@ -79,6 +79,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Pages open in the browser immediately. Data loads inside the page
+  // instead of holding the navigation until the server and database respond.
+  ssr: false,
   head: () => ({
     meta: [
       { charSet: "utf-8" },

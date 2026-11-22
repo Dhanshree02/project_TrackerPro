@@ -98,7 +98,7 @@ public class LeaveCalendarController(ILeaveCalendarService leaveCalendarService)
     [HttpPost("bulk/upload")]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<LeaveCalendarHolidayDto>>>> BulkUpload(
-        [FromForm] IFormFile file,
+        IFormFile file,
         CancellationToken ct)
     {
         var created = await leaveCalendarService.UploadExcelAsync(file, ct);

@@ -21,7 +21,13 @@ export function AppShell({
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 300);
+    let showing = window.scrollY > 300;
+    const onScroll = () => {
+      const next = window.scrollY > 300;
+      if (next === showing) return;
+      showing = next;
+      setShowScrollTop(next);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -31,16 +37,16 @@ export function AppShell({
   const { permissionsReady, status } = useAuth();
   const landingItems = NAV_ITEMS;
 
-  // Wait for permissions to finish loading before evaluating route guards.
   if (status === "anonymous") return <Navigate to="/login" replace />;
 
+  // Wait for permissions to finish loading before evaluating route guards.
   if (status === "loading" || !permissionsReady || permissionsLoading) {
     return (
       <div className="flex min-h-screen w-full isolate bg-background text-foreground">
         <AppSidebar />
         <div className="relative flex min-w-0 flex-1 flex-col bg-background">
           <AppTopbar title={title} subtitle={subtitle} />
-          <main className="flex-1 overflow-x-hidden p-4 md:p-6">
+          <main className="flex-1 overflow-x-hidden p-4 md:p-6 lg:p-8">
             <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
               Loading permissions…
             </div>
@@ -95,7 +101,7 @@ export function AppShell({
       <AppSidebar />
       <div className="relative flex min-w-0 flex-1 flex-col bg-background">
         <AppTopbar title={title} subtitle={subtitle} />
-        <main className="flex-1 overflow-x-hidden p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-x-hidden p-4 md:p-6 lg:p-8">{children}</main>
         <MobileTabs />
       </div>
 
@@ -104,7 +110,7 @@ export function AppShell({
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         aria-label="Scroll to top"
         title="Scroll to top"
-        className="fixed bottom-8 right-6 z-[999] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-0 bg-primary text-primary-foreground shadow-lg"
+        className="fixed bottom-8 right-6 z-[999] flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-border/60 bg-nav text-foreground shadow-lg backdrop-blur-xl backdrop-saturate-[1.8]"
         style={{
           opacity: showScrollTop ? 1 : 0,
           pointerEvents: showScrollTop ? "auto" : "none",

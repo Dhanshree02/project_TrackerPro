@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const STORAGE_KEY = "pms-theme";
 
@@ -22,14 +23,16 @@ export function ThemeToggle() {
   }
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+    <label
+      className="inline-flex items-center gap-1.5 text-muted-foreground"
       title={dark ? "Light mode" : "Dark mode"}
-      className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-background text-foreground transition-colors hover:bg-accent"
     >
-      {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-    </button>
+      {dark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      <Switch
+        checked={dark}
+        onCheckedChange={() => toggle()}
+        aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      />
+    </label>
   );
 }

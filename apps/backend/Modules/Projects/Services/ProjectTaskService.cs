@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.ActionCentre.Services;
 using PMS.API.Modules.Projects.DTOs;
 using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Resources.Models;
@@ -543,10 +544,12 @@ public sealed class ProjectTaskService(
 
         await SyncBucketTasksForTaskAsync(projectId, taskId, addedIds, removedIds, ct);
 
+        var newNotifs = new List<ActionNotification>();
         if (addedIds.Count > 0)
         {
             var taskInfo = await db.ProjectTasks
                 .Include(t => t.Project)
+                .Include(t => t.ProjectService)
                 .FirstOrDefaultAsync(t => t.Id == taskId, ct);
 
             if (taskInfo != null)
@@ -562,16 +565,26 @@ public sealed class ProjectTaskService(
                     }
                 }
 
+                var serviceName = await ResolveServiceNameAsync(db, projectId, taskInfo, ct);
+
+                var employees = await db.Employees
+                    .Where(e => addedIds.Contains(e.Id))
+                    .ToListAsync(ct);
+                var empMap = employees.ToDictionary(e => e.Id, e => $"{e.FirstName} {e.LastName}".Trim());
+
                 foreach (var empId in addedIds)
                 {
-                    db.ActionNotifications.Add(new ActionNotification
+                    var resourceName = empMap.TryGetValue(empId, out var name) && !string.IsNullOrWhiteSpace(name) ? name : "Resource";
+                    var notifTitle = $"The {resourceName} is assigned to the {taskInfo.Title} of the {serviceName}";
+
+                    var notif = new ActionNotification
                     {
                         Id = Guid.NewGuid(),
                         RecipientEmployeeId = empId,
                         ProjectId = projectId,
                         ProjectCode = taskInfo.Project?.ProjectCode,
                         ProjectName = taskInfo.Project?.Name ?? "Project",
-                        Title = $"Task Assigned: {taskInfo.Title}",
+                        Title = notifTitle,
                         Type = "Task Assignment",
                         Priority = string.IsNullOrWhiteSpace(taskInfo.Priority) ? "Medium" : taskInfo.Priority,
                         Status = "Assigned",
@@ -586,17 +599,21 @@ public sealed class ProjectTaskService(
                                 status = "Assigned",
                                 at = nowUtc.ToString("O"),
                                 by = assigner,
-                                comment = $"Assigned to task '{taskInfo.Title}'"
+                                comment = notifTitle
                             }
                         })
-                    });
+                    };
+                    db.ActionNotifications.Add(notif);
+                    newNotifs.Add(notif);
                 }
             }
         }
 
-
-
         await db.SaveChangesAsync(ct);
+        if (newNotifs.Count > 0)
+        {
+            ActionNotificationService.TrySyncNotificationsToOtherDatabase(newNotifs);
+        }
 
         await DistributeProjectTeamHoursAsync(projectId, taskId, ct);
 
@@ -626,6 +643,7 @@ public sealed class ProjectTaskService(
     {
         var task = await db.ProjectTasks
             .Include(t => t.Project)
+            .Include(t => t.ProjectService)
             .FirstOrDefaultAsync(t => t.Id == taskId && t.ProjectId == projectId, ct);
 
         if (task == null) return;
@@ -667,9 +685,11 @@ public sealed class ProjectTaskService(
                         .ToListAsync(ct);
                     var empNamesStr = string.Join(", ", assignedEmployees);
 
-                    var leadershipTitle = $"Task Assigned: {taskTitle}";
-                    var leadershipContent = $"Task '{taskTitle}' in project '{projectName}' has been assigned to: {empNamesStr}.";
+                    var serviceName = await ResolveServiceNameAsync(db, projectId, task, ct);
+                    var leadershipTitle = $"The {empNamesStr} is assigned to the {taskTitle} of the {serviceName}";
+                    var leadershipContent = $"Task '{taskTitle}' under '{serviceName}' in project '{projectName}' has been assigned to: {empNamesStr}.";
 
+                    var leadershipNotifs = new List<ActionNotification>();
                     foreach (var recId in leadershipRecipients)
                     {
                         var alreadyNotified = await db.ActionNotifications.AnyAsync(n =>
@@ -682,7 +702,7 @@ public sealed class ProjectTaskService(
 
                         if (!alreadyNotified)
                         {
-                            db.ActionNotifications.Add(new ActionNotification
+                            var notif = new ActionNotification
                             {
                                 RecipientEmployeeId = recId,
                                 ProjectId = projectId,
@@ -700,10 +720,16 @@ public sealed class ProjectTaskService(
                                 {
                                     new { text = leadershipContent, by = assigner, at = nowUtc.ToString("o") }
                                 })
-                            });
+                            };
+                            db.ActionNotifications.Add(notif);
+                            leadershipNotifs.Add(notif);
                         }
                     }
                     await db.SaveChangesAsync(ct);
+                    if (leadershipNotifs.Count > 0)
+                    {
+                        ActionNotificationService.TrySyncNotificationsToOtherDatabase(leadershipNotifs);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1333,7 +1359,7 @@ public sealed class ProjectTaskService(
 
 
 
-    private static int QuarterCount(string? frequency)
+    internal static int QuarterCount(string? frequency)
 
     {
 
@@ -1367,7 +1393,7 @@ public sealed class ProjectTaskService(
 
 
 
-    private static List<(string Suffix, string Label)> TasksFromServiceModel(string? model)
+    internal static List<(string Suffix, string Label)> TasksFromServiceModel(string? model)
 
     {
 
@@ -1880,6 +1906,39 @@ public sealed class ProjectTaskService(
     }
 
 
+
+    public static async Task<string> ResolveServiceNameAsync(
+        AppDbContext db,
+        Guid projectId,
+        ProjectTask task,
+        CancellationToken ct = default)
+    {
+        var serviceName = task.ProjectService?.ServiceName?.Trim();
+        if (string.IsNullOrWhiteSpace(serviceName) && task.ProjectServiceId.HasValue)
+        {
+            var svc = await db.ProjectServices.FirstOrDefaultAsync(s => s.Id == task.ProjectServiceId.Value, ct);
+            serviceName = svc?.ServiceName?.Trim();
+        }
+        if (string.IsNullOrWhiteSpace(serviceName))
+        {
+            var firstService = await db.ProjectServices
+                .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null)
+                .OrderBy(s => s.SortOrder)
+                .FirstOrDefaultAsync(ct);
+            serviceName = firstService?.ServiceName?.Trim();
+        }
+        if (string.IsNullOrWhiteSpace(serviceName))
+        {
+            var projName = task.Project?.Name;
+            if (string.IsNullOrWhiteSpace(projName) && projectId != Guid.Empty)
+            {
+                var proj = await db.Projects.AsNoTracking().FirstOrDefaultAsync(p => p.Id == projectId, ct);
+                projName = proj?.Name;
+            }
+            serviceName = !string.IsNullOrWhiteSpace(projName) ? projName : "General";
+        }
+        return !string.IsNullOrWhiteSpace(serviceName) ? serviceName : "General";
+    }
 
     private sealed record TeamPerson(Guid EmployeeId, string Name, string Code, string? Role, bool IsShadow);
 

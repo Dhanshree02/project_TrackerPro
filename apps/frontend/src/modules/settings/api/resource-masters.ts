@@ -81,7 +81,6 @@ export function explainResourceMasterError(error: unknown, fallback: string): st
 
 export function countResourceMasters(snapshot: ResourceMastersSnapshot): number {
   return (
-    snapshot.hierarchy.rows.length +
     snapshot.emailDomains.length +
     snapshot.businessUnits.length +
     snapshot.workLocations.length +

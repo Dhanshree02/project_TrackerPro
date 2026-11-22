@@ -26,6 +26,8 @@ public interface IEmployeeService
 
     Task<EmployeeDetailDto?> UpdateEmployeeAsync(string idOrCode, UpdateEmployeeRequest request, CancellationToken ct = default);
 
+    Task<SetEmployeeLoginAccessResult> SetLoginAccessManyAsync(SetEmployeeLoginAccessRequest request, CancellationToken ct = default);
+
     Task<byte[]> GetBulkSampleExcelAsync(CancellationToken ct = default);
 
     Task<EmployeeBulkUploadResult> BulkUploadAsync(Stream stream, CancellationToken ct = default);

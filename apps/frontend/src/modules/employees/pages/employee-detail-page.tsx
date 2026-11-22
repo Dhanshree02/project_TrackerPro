@@ -7,7 +7,9 @@ import { useAuth } from "@/lib/auth-context";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { Avatar } from "@/components/pills";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { cn, formatDateDMY } from "@/lib/utils";
+import { UnderlineTabs } from "@/components/ui/underline-tabs";
 import { toast } from "sonner";
 import {
   employeeStatusDisplayLabel,
@@ -317,10 +319,10 @@ function OffboardConfirmDialog({
             <span className="mb-1 block text-xs font-medium text-muted-foreground">
               Employment Status <span className="text-destructive">*</span>
             </span>
-            <select
+            <SearchableSelect
               value={employeeStatusId}
-              onChange={(e) => {
-                setEmployeeStatusId(e.target.value);
+              onChange={(value) => {
+                setEmployeeStatusId(value);
                 if (errors.employeeStatusId) {
                   setErrors((prev) => {
                     const copy = { ...prev };
@@ -330,18 +332,13 @@ function OffboardConfirmDialog({
                 }
               }}
               disabled={isSubmitting || loadingStatuses}
-              className={cn(inputCls, errors.employeeStatusId && "border-destructive")}
-            >
-              {loadingStatuses ? (
-                <option value="">Loading employment statuses…</option>
-              ) : (
-                statusOptions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))
-              )}
-            </select>
+              disabledHint={loadingStatuses ? "Loading employment statuses…" : undefined}
+              placeholder="Select employment status"
+              options={statusOptions.map((s) => ({ value: s.id, label: s.name }))}
+              error={errors.employeeStatusId}
+              hideErrorText
+              clearable={false}
+            />
             {errors.employeeStatusId ? (
               <p className="mt-1 text-[11px] text-destructive">{errors.employeeStatusId}</p>
             ) : null}
@@ -655,6 +652,9 @@ export function EmployeeProfilePage() {
                   {emp.firstName} {emp.lastName}
                 </h1>
                 <EmpStatusBadge status={statusLabel} />
+                <span className="inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                  {emp.hasLogin ? "On login list" : "Directory only"}
+                </span>
               </div>
               <div className="mt-1 text-sm text-muted-foreground">
                 {emp.designation || "—"} · {emp.department || "—"}
@@ -689,22 +689,11 @@ export function EmployeeProfilePage() {
 
       {/* Tabs */}
       <div className="mt-6">
-        <div className="flex flex-wrap gap-1 border-b border-border">
-          {visibleTabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "relative -mb-px whitespace-nowrap px-4 py-2.5 text-sm font-medium transition-colors",
-                tab === t.id
-                  ? "border-b-2 border-primary text-foreground font-semibold"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <UnderlineTabs
+          value={tab}
+          onChange={setTab}
+          options={visibleTabs.map((t) => ({ value: t.id, label: t.label }))}
+        />
 
         {visibleTabs.length === 0 ? (
           <div className="mt-5 rounded-lg border border-border bg-card p-12 text-center text-sm text-muted-foreground shadow-2xs">

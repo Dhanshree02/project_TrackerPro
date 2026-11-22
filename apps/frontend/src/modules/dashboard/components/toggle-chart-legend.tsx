@@ -2,10 +2,7 @@ import { useCallback, useState } from "react";
 import type { ChartConfig } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
 
-/** Grouped-bar relayout when a legend series is hidden (see `bar-emphasis` layout transition). */
-export const LEGEND_BAR_LAYOUT_MS = 800;
-
-/** Recharts grow when a struck legend series is shown again. */
+/** Vertical grow when a struck legend series is shown again. */
 export const LEGEND_BAR_GROW_MS = 800;
 
 export function useLegendSeriesToggle() {

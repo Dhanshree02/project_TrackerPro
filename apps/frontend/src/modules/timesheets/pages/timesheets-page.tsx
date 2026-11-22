@@ -25,6 +25,8 @@ import { TimesheetStatusPill, Avatar } from "@/components/pills";
 import { fetchProjects, fetchProjectTasks } from "@/modules/projects/api/projects";
 import { fyFromWbs, inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { cn, formatDateDMY } from "@/lib/utils";
+import { SortableColumnHeader, compareSortValues, toggleColumnSort } from "@/components/sortable-column-header";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { toast } from "sonner";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
@@ -34,6 +36,8 @@ import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
 import {
   decideTimesheet,
+  getMyAssignedProjects,
+  getMyAssignedTasks,
   getMyTimesheet,
   getPreviousTimesheet,
   listMyTimesheetHistory,
@@ -208,26 +212,15 @@ function TimesheetTab() {
 
   return (
     <div>
-      <div className="mb-4 flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm w-fit">
-        {visibleTabs.map((st) => (
-          <button
-            key={st.id}
-            type="button"
-            onClick={() => {
-              if (st.label === "My Timesheet") setOpenedWeek(null);
-              setSubTab(st.label);
-            }}
-            className={cn(
-              "rounded-md px-3 py-1.5 font-medium",
-              subTab === st.label
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {st.label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        className="mb-4"
+        value={subTab}
+        onChange={(label) => {
+          if (label === "My Timesheet") setOpenedWeek(null);
+          setSubTab(label);
+        }}
+        options={visibleTabs.map((st) => ({ value: st.label, label: st.label }))}
+      />
       {subTab === "My Timesheet" && visibleTabs.some((t) => t.label === "My Timesheet") ? (
         <MyTimesheetView key={openedWeek ?? "current"} initialWeek={openedWeek} />
       ) : subTab === "Timesheet History" && visibleTabs.some((t) => t.label === "Timesheet History") ? (
@@ -249,7 +242,12 @@ function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
   const { years } = useFinancialYear();
   const { user: authUser } = useAuth();
   const { user, employeePersonId } = useRoleContext();
-  const effectiveEmployeeId = authUser?.employeeId || employeePersonId || (user as any)?.employeeId;
+  const effectiveEmployeeId =
+    authUser?.employeeId ||
+    employeePersonId ||
+    (user as any)?.employeeId ||
+    authUser?.id ||
+    (user as any)?.id;
 
   const [weekStart, setWeekStart] = useState(initialWeek || thisMonday());
   const [weekStatus, setWeekStatus] = useState<TimesheetWeek["status"]>("draft");
@@ -273,61 +271,102 @@ function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
   const dayTotals = days.map((_, di) => rows.reduce((s, r) => s + (Number(r.hours[di]) || 0), 0));
   const total = dayTotals.reduce((a, b) => a + b, 0);
 
-  // Load real tasks for a specific project from backend DB
+  // Load real tasks assigned to the current employee for a specific project from backend DB
   const loadTasksForProject = useCallback(async (projectId: string) => {
     if (!projectId) return;
     setLoadingTasks((prev) => ({ ...prev, [projectId]: true }));
     try {
-      const apiTasks = await fetchProjectTasks(projectId);
-      setTasksByProject((prev) => ({
-        ...prev,
-        [projectId]: apiTasks.map((t) => ({
+      let assignedTasks: Array<{ id: string; title: string; serviceName?: string; stage?: string; estimatedHours?: number }> = [];
+
+      // 1. Try dedicated endpoint for caller's assigned tasks
+      const mineTasks = await getMyAssignedTasks(projectId).catch(() => null);
+      if (mineTasks && Array.isArray(mineTasks) && mineTasks.length > 0) {
+        assignedTasks = mineTasks.map((t) => ({
           id: t.id,
           title: t.title,
           serviceName: t.serviceName?.trim() || undefined,
           stage: t.stage,
           estimatedHours: t.estimatedHours ?? undefined,
-        })),
+        }));
+      } else {
+        // 2. Query project tasks with employeeId filter
+        const apiTasks = await fetchProjectTasks(projectId, undefined, undefined, undefined, false, effectiveEmployeeId || undefined);
+        const filtered = effectiveEmployeeId
+          ? apiTasks.filter(
+              (t) =>
+                !t.assignments ||
+                t.assignments.length === 0 ||
+                t.assignments.some(
+                  (a) =>
+                    a.employeeId?.toLowerCase() === effectiveEmployeeId.toLowerCase() &&
+                    a.isActive !== false,
+                ),
+            )
+          : apiTasks;
+
+        assignedTasks = (filtered ?? []).map((t) => ({
+          id: t.id,
+          title: t.title,
+          serviceName: t.serviceName?.trim() || undefined,
+          stage: t.stage,
+          estimatedHours: t.estimatedHours ?? undefined,
+        }));
+      }
+
+      setTasksByProject((prev) => ({
+        ...prev,
+        [projectId]: assignedTasks,
       }));
     } catch (err) {
-      console.error(`Failed to load tasks for project ${projectId}:`, err);
+      console.error(`Failed to load assigned tasks for project ${projectId}:`, err);
     } finally {
       setLoadingTasks((prev) => ({ ...prev, [projectId]: false }));
     }
-  }, []);
+  }, [effectiveEmployeeId]);
 
-  // Load real projects from database (filtered to assigned employee, falling back to all active)
+  // Load real assigned projects from database for the current employee
   useEffect(() => {
     let cancelled = false;
     setLoadingProjects(true);
 
     async function loadProjects() {
       try {
-        let res = effectiveEmployeeId
-          ? await fetchProjects({ employeeId: effectiveEmployeeId, status: "active", perPage: 200 })
-          : null;
+        let projects: Array<{ id: string; name: string; projectCode?: string; startDate?: string | null; endDate?: string | null; wbsId?: string | null }> = [];
 
-        // If no assigned projects found, fallback to active projects so timesheet is loggable
-        if (!res || !res.items || res.items.length === 0) {
-          res = await fetchProjects({ status: "active", perPage: 200 });
-        }
-
-        if (!res || !res.items || res.items.length === 0) {
-          res = await fetchProjects({ perPage: 200 });
-        }
-
-        if (!cancelled && res?.items) {
-          setDbProjects(res.items.map((p) => ({
+        // 1. Try dedicated endpoint for caller's assigned projects
+        const mineRes = await getMyAssignedProjects().catch(() => null);
+        if (mineRes) {
+          const items = Array.isArray(mineRes) ? mineRes : (mineRes as any).items ?? [];
+          projects = items.map((p: any) => ({
             id: p.id,
             name: p.name,
             projectCode: p.projectCode,
             startDate: p.startDate,
             endDate: p.endDate,
             wbsId: p.wbsId,
-          })));
+          }));
+        }
+
+        // 2. Fallback to fetchProjects with employeeId filter if mine endpoint was empty
+        if (projects.length === 0 && effectiveEmployeeId) {
+          const res = await fetchProjects({ employeeId: effectiveEmployeeId, status: "active", perPage: 200 }).catch(() => null);
+          if (res?.items && res.items.length > 0) {
+            projects = res.items.map((p) => ({
+              id: p.id,
+              name: p.name,
+              projectCode: p.projectCode,
+              startDate: p.startDate,
+              endDate: p.endDate,
+              wbsId: p.wbsId,
+            }));
+          }
+        }
+
+        if (!cancelled) {
+          setDbProjects(projects);
         }
       } catch (err) {
-        console.error("Failed to load real projects from DB:", err);
+        console.error("Failed to load assigned projects from DB:", err);
       } finally {
         if (!cancelled) setLoadingProjects(false);
       }
@@ -585,9 +624,15 @@ function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
                           loadTasksForProject(projectId);
                         }
                       }}
-                      placeholder={loadingProjects ? "Loading projects…" : "Select project"}
+                      placeholder={
+                        loadingProjects
+                          ? "Loading projects…"
+                          : projectOptions.length === 0
+                            ? "No assigned projects"
+                            : "Select project"
+                      }
                       searchPlaceholder="Search projects…"
-                      disabled={locked}
+                      disabled={locked || (projectOptions.length === 0 && !loadingProjects)}
                     />
                   </td>
                   <td className="px-3 py-2 align-top">
@@ -620,7 +665,7 @@ function MyTimesheetView({ initialWeek }: { initialWeek?: string | null }) {
                               : isTaskLoading
                                 ? "Loading tasks…"
                                 : pTasks.length === 0
-                                  ? "No tasks in this project"
+                                  ? "No assigned tasks in this project"
                                   : "Select task"
                           }
                           searchPlaceholder="Search tasks…"
@@ -894,7 +939,6 @@ function ApprovalSortTh({
   onSort,
   className,
   align = "left",
-  isLast,
 }: {
   label: string;
   column: ApprovalSortKey;
@@ -907,42 +951,26 @@ function ApprovalSortTh({
 }) {
   const active = sortKey === column;
   return (
-    <th className={cn("relative whitespace-nowrap px-4 py-3 font-semibold", className)}>
+    <th className={cn("whitespace-nowrap px-4 py-3.5 align-middle", className)}>
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-xs font-semibold transition-colors select-none",
+          "inline-flex items-center gap-1.5 text-[13px] font-semibold tracking-[-0.01em] select-none",
           align === "right" ? "w-full justify-end text-right" : "text-left",
-          active
-            ? "text-primary font-bold"
-            : "text-muted-foreground hover:text-foreground",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
         aria-label={`Sort by ${label}`}
       >
         <span>{label}</span>
-        <span
-          className={cn(
-            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
-            active
-              ? "bg-primary/15 text-primary"
-              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
-          )}
-        >
-          {active && sortDir === "desc" ? (
-            <ChevronDown className="h-3.5 w-3.5" />
+        {active &&
+          (sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <ChevronUp className="h-3.5 w-3.5" />
-          )}
-        </span>
+            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          ))}
       </button>
-      {!isLast && (
-        <span
-          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
-          aria-hidden="true"
-        />
-      )}
     </th>
   );
 }
@@ -961,6 +989,8 @@ type HistoryLogRow = {
 
 function TimesheetHistoryView({ onEditWeek }: { onEditWeek: (weekStart: string) => void }) {
   const [sheets, setSheets] = useState<ApprovalSheet[]>([]);
+  const [historySortKey, setHistorySortKey] = useState<"week" | "project" | "task" | "submitted" | "hours" | "status">("week");
+  const [historySortDir, setHistorySortDir] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
     listMyTimesheetHistory()
@@ -1000,34 +1030,62 @@ function TimesheetHistoryView({ onEditWeek }: { onEditWeek: (weekStart: string) 
     return rows;
   }, [sheets]);
 
+  const sortedLogRows = useMemo(() => {
+    return [...logRows].sort((a, b) => {
+      switch (historySortKey) {
+        case "week":
+          return compareSortValues(a.weekStart, b.weekStart, historySortDir);
+        case "project":
+          return compareSortValues(a.projectName, b.projectName, historySortDir);
+        case "task":
+          return compareSortValues(a.taskName, b.taskName, historySortDir);
+        case "submitted":
+          return compareSortValues(a.submittedAt ?? "", b.submittedAt ?? "", historySortDir);
+        case "hours":
+          return compareSortValues(a.lineHours, b.lineHours, historySortDir);
+        case "status":
+          return compareSortValues(a.status, b.status, historySortDir);
+      }
+    });
+  }, [logRows, historySortKey, historySortDir]);
+
   return (
     <section className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="overflow-auto max-h-[calc(100vh-220px)] min-h-[420px]">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
             <tr>
-              {["Week", "Project", "Task", "Submitted", "Hours", "Status", "Approval note", "Action"].map(
-                (label, index, labels) => (
-                  <th
-                    key={label}
-                    className="relative whitespace-nowrap px-4 py-3 text-xs font-semibold text-muted-foreground"
-                  >
-                    {label}
-                    {index < labels.length - 1 && (
-                      <span
-                        className="pointer-events-none absolute bottom-2.5 right-0 top-2.5 w-[1.5px] bg-border"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </th>
-                ),
-              )}
+              {(
+                [
+                  ["week", "Week"],
+                  ["project", "Project"],
+                  ["task", "Task"],
+                  ["submitted", "Submitted"],
+                  ["hours", "Hours"],
+                  ["status", "Status"],
+                ] as const
+              ).map(([column, label]) => (
+                <SortableColumnHeader
+                  key={column}
+                  label={label}
+                  column={column}
+                  sortKey={historySortKey}
+                  sortDir={historySortDir}
+                  onSort={(next) => toggleColumnSort(next, historySortKey, setHistorySortKey, setHistorySortDir)}
+                />
+              ))}
+              <th className="whitespace-nowrap px-4 py-3.5 text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">
+                Approval note
+              </th>
+              <th className="whitespace-nowrap px-4 py-3.5 text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">
+                Action
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {(() => {
               const editShown = new Set<string>();
-              return logRows.map((row) => {
+              return sortedLogRows.map((row) => {
                 const showEdit = row.status === "change_requested" && !editShown.has(row.weekStart);
                 if (showEdit) editShown.add(row.weekStart);
                 return (
@@ -1308,7 +1366,6 @@ function TimesheetApprovalView() {
                 setPageSize(size);
                 setPage(1);
               }}
-              className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
             />
           </div>
         </div>

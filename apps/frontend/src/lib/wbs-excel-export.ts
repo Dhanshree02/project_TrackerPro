@@ -100,7 +100,7 @@ function toExcelDate(iso: string): Date | null {
   return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
 }
 
-const DATE_FMT = "dd-mmm-yyyy";
+const DATE_FMT = "dd-mm-yyyy";
 
 /** Excel number format for the workbook currency, e.g. '"₹" #,##0.00'. */
 function currencyFormat(symbol: string): string {

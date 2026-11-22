@@ -47,24 +47,21 @@ export function TkIdField({
             disabled && "cursor-not-allowed opacity-60",
           )}
         >
-          <div className="relative shrink-0 border-r border-input">
+          <div className="relative w-[4.75rem] shrink-0 border-r border-input bg-muted/40">
             <select
               value={prefix}
               disabled={disabled}
               onChange={(e) => onChange(e.target.value as TkIdPrefix, digits)}
-              className={cn(
-                "h-full appearance-none border-0 bg-muted/70 pl-3 pr-8 text-xs font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-0",
-                disabled ? "cursor-not-allowed" : "cursor-pointer",
-              )}
+              className="h-full w-full cursor-pointer appearance-none border-0 bg-transparent bg-none pl-3 pr-7 text-xs font-semibold text-foreground outline-none disabled:cursor-not-allowed"
               aria-label="TK ID prefix"
             >
-              {TK_ID_PREFIXES.map((p) => (
-                <option key={p} value={p}>
-                  {p}
+              {TK_ID_PREFIXES.map((item) => (
+                <option key={item} value={item}>
+                  {item}
                 </option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           </div>
           <span
             className="flex h-full shrink-0 items-center border-r border-input bg-muted/40 px-1.5 text-sm text-muted-foreground select-none"

@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DisclosureTriangleIcon } from "@/components/disclosure-controls";
 import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { filterNavItems, NAV_ITEMS, type NavItem, type NavSubItem } from "@/lib/navigation";
@@ -45,11 +46,30 @@ export function AppSidebar() {
 
   // Navigation is permission-driven: only modules the signed-in user may access
   // are rendered. Admin and Dhanshree get full super-admin workspace navigation.
-  const items: NavItem[] = filterNavItems(
-    NAV_ITEMS,
-    hasPermission,
-    hasAny,
-    { isAdmin, isItAdmin, isEmployee, isHr, isPmFamily, isPmoFamily, isAccounts, isSales },
+  const items: NavItem[] = useMemo(
+    () =>
+      filterNavItems(NAV_ITEMS, hasPermission, hasAny, {
+        isAdmin,
+        isItAdmin,
+        isEmployee,
+        isHr,
+        isPmFamily,
+        isPmoFamily,
+        isAccounts,
+        isSales,
+      }),
+    [
+      hasPermission,
+      hasAny,
+      isAdmin,
+      isItAdmin,
+      isEmployee,
+      isHr,
+      isPmFamily,
+      isPmoFamily,
+      isAccounts,
+      isSales,
+    ],
   );
 
   const isActive = (to?: string, exact?: boolean, subSearch?: Record<string, any>) => {
@@ -118,16 +138,18 @@ export function AppSidebar() {
           <div key={key} className="flex flex-col gap-0.5">
             <button
               type="button"
+              aria-expanded={open}
+              aria-label={`${open ? "Collapse" : "Expand"} ${sub.label}`}
               onClick={() => toggleDropdown(key)}
               className={cn(
-                "flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-xs",
+                "flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-xs",
                 flyout
                   ? "text-foreground/80 hover:bg-accent hover:text-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground",
+                  : "text-sidebar-foreground/70 hover:bg-foreground/5 hover:text-foreground",
               )}
             >
-              <span className="flex-1 truncate">{sub.label}</span>
-              <ChevronDown className={cn("h-3 w-3 shrink-0 transition-transform", open && "rotate-180")} />
+              <span className="min-w-0 flex-1 truncate">{sub.label}</span>
+              <DisclosureTriangleIcon expanded={open} size="xs" className="shrink-0 text-current opacity-70" />
             </button>
             {open && (
               <div className="ml-3 flex flex-col gap-0.5 border-l border-border/60 pl-2">
@@ -145,14 +167,14 @@ export function AppSidebar() {
           to={sub.to}
           search={sub.search as any}
           className={cn(
-            "flex items-center justify-between rounded-md px-3 py-1.5 text-xs transition-colors",
+            "flex items-center justify-between rounded-lg px-3 py-1.5 text-xs transition-colors",
             flyout
               ? subActive
                 ? "bg-primary/10 text-primary font-semibold"
                 : "text-foreground/80 hover:bg-accent hover:text-accent-foreground"
               : subActive
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground",
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-xs"
+                : "text-sidebar-foreground/70 hover:bg-foreground/5 hover:text-foreground",
           )}
         >
           <span>{sub.label}</span>
@@ -171,10 +193,10 @@ export function AppSidebar() {
       {/* Floating toggle button — sits half on sidebar, half on body */}
       <button
         onClick={toggleCollapse}
-        className="absolute right-0 top-1/2 z-50 flex h-7 w-7 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground shadow-md hover:bg-primary/80 hover:border-primary/80 transition-all duration-200"
+        className="absolute right-0 top-1/2 z-50 flex h-8 w-8 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-black/15 bg-white text-[#1d1d1f] shadow-[0_2px_10px_rgba(0,0,0,0.22)] transition-colors duration-200 hover:bg-[#f5f5f7] dark:border-white/25 dark:bg-[#48484a] dark:text-white dark:hover:bg-[#5c5c5e]"
         title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
       >
-        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        {isCollapsed ? <ChevronRight className="h-4 w-4" strokeWidth={2.75} /> : <ChevronLeft className="h-4 w-4" strokeWidth={2.75} />}
       </button>
       <div
         className={cn(
@@ -183,7 +205,7 @@ export function AppSidebar() {
         )}
       >
         <div className={cn("flex items-center", isCollapsed ? "" : "min-w-0 gap-2")}>
-          <div className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
+          <div className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-foreground text-sm font-semibold text-background">
             P
           </div>
           {!isCollapsed && (
@@ -197,7 +219,7 @@ export function AppSidebar() {
         </div>
       </div>
       <nav
-        className={cn("flex-1 p-2 space-y-1", isCollapsed ? "overflow-visible" : "overflow-y-auto")}
+        className={cn("flex-1 p-3 space-y-0.5", isCollapsed ? "overflow-visible" : "overflow-y-auto")}
       >
         {items.map((it) => {
           if (it.subItems) {
@@ -208,6 +230,13 @@ export function AppSidebar() {
             return (
               <div key={it.label} className="relative group/sidebar-item flex flex-col gap-1">
                 <button
+                  type="button"
+                  aria-expanded={!isCollapsed ? isExpanded : undefined}
+                  aria-label={
+                    isCollapsed
+                      ? `${it.label} (${it.subItems.length} submodules)`
+                      : `${isExpanded ? "Collapse" : "Expand"} ${it.label}`
+                  }
                   onClick={() => {
                     if (!isCollapsed) {
                       toggleDropdown(menuKey);
@@ -215,15 +244,17 @@ export function AppSidebar() {
                   }}
                   title={isCollapsed ? `${it.label} (${it.subItems.length} submodules)` : undefined}
                   className={cn(
-                    "group flex w-full items-center rounded-md transition-colors text-left outline-none",
+                    "group flex w-full items-center rounded-lg transition-colors text-left outline-none",
                     isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-2 text-sm",
                     isParentActive
-                      ? "bg-sidebar-accent/50 text-sidebar-accent-foreground font-medium"
-                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                      ? isCollapsed
+                        ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground shadow-xs"
+                        : "font-medium text-foreground"
+                      : "text-sidebar-foreground/80 hover:bg-foreground/5 hover:text-foreground",
                   )}
                 >
                   <div className="relative flex items-center justify-center">
-                    <it.icon className="h-4 w-4 shrink-0" />
+                    <it.icon className={cn("h-4 w-4 shrink-0", isParentActive && "text-primary")} />
                     {isCollapsed && (
                       <ChevronRight
                         className={cn(
@@ -236,13 +267,12 @@ export function AppSidebar() {
                       />
                     )}
                   </div>
-                  {!isCollapsed && <span className="flex-1 truncate">{it.label}</span>}
+                  {!isCollapsed && <span className="min-w-0 flex-1 truncate">{it.label}</span>}
                   {!isCollapsed && (
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 shrink-0 transition-transform duration-200 text-muted-foreground",
-                        isExpanded && "rotate-180",
-                      )}
+                    <DisclosureTriangleIcon
+                      expanded={isExpanded}
+                      size="sm"
+                      className={cn("shrink-0", isParentActive ? "text-primary" : "text-muted-foreground")}
                     />
                   )}
                 </button>
@@ -260,7 +290,7 @@ export function AppSidebar() {
 
                 {/* Expanded SubItems */}
                 {!isCollapsed && isExpanded && (
-                  <div className="ml-7 flex flex-col gap-1 border-l border-sidebar-border/60 pl-3">
+                  <div className="ml-4 flex flex-col gap-0.5 border-l border-sidebar-border/60 pl-3">
                     {renderSubItems(it.subItems)}
                   </div>
                 )}
@@ -281,14 +311,14 @@ export function AppSidebar() {
               <Link
                 to={it.to!}
                 className={cn(
-                  "group flex items-center rounded-md transition-colors",
+                  "group flex items-center rounded-lg transition-colors",
                   isCollapsed ? "justify-center p-2" : "gap-3 px-3 py-2 text-sm",
                   active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium shadow-xs"
+                    : "text-sidebar-foreground/80 hover:bg-foreground/5 hover:text-foreground",
                 )}
               >
-                <it.icon className="h-4 w-4 shrink-0" />
+                <it.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
                 {!isCollapsed && <span className="flex-1 truncate">{it.label}</span>}
                 {!isCollapsed && badge > 0 && (
                   <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">

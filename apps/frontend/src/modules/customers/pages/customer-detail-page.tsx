@@ -51,7 +51,7 @@ import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { fetchProjects, mapApiProjectToProject } from "@/modules/projects/api/projects";
 import { fyFromWbs, inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { type Client, type Project } from "@/lib/domain-models";
-import { cn } from "@/lib/utils";
+import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 
 async function fetchEmployeesByDesignation(designationId: string): Promise<ApiEmployeeListItem[]> {
@@ -413,9 +413,7 @@ export function CustomerDetailPage() {
   const archivedProjs = buckets.archived;
 
   // Customer Since comes from clients.CustomerSince (set to today on create).
-  const clientSinceDate = client.customerSince
-    ? new Date(`${client.customerSince}T00:00:00`).toLocaleDateString()
-    : "—";
+  const clientSinceDate = client.customerSince ? formatDateDMY(client.customerSince) : "—";
 
   // "New Customer" tag: shows when customer was onboarded within the last 6 months.
   // After 6 months from onboarding, the tag disappears from the customer profile.
@@ -874,7 +872,6 @@ export function CustomerDetailPage() {
                       setSvFilter(val || "all");
                       setSelectedSpoc(null);
                     }}
-                    buttonClassName="h-8 text-xs"
                     className="w-full"
                   />
                 ) : (
@@ -935,8 +932,8 @@ export function CustomerDetailPage() {
                   ]}
                   value={healthFilter}
                   onChange={(val) => setHealthFilter(((val || "all") as HealthFilter))}
-                  buttonClassName="h-8 min-w-[115px] text-xs font-medium"
                   clearable={false}
+                  className="min-w-[115px]"
                 />
               </div>
             </header>
@@ -976,20 +973,8 @@ export function CustomerDetailPage() {
                               : p.status === "ongoing" && p.progress === 0
                                 ? "New"
                                 : "Ongoing";
-                      const startLabel = p.startDate
-                        ? new Date(p.startDate).toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : null;
-                      const endLabel = p.endDate
-                        ? new Date(p.endDate).toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : null;
+                      const startLabel = p.startDate ? formatDateDMY(p.startDate) : null;
+                      const endLabel = p.endDate ? formatDateDMY(p.endDate) : null;
 
                       return (
                         <tr

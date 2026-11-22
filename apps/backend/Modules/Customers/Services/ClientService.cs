@@ -144,6 +144,10 @@ public sealed class ClientService(
             created.Name,
             clientCodes.GetValueOrDefault(created.Id) ?? created.ClientCode,
             created.CreatedByName,
+            created.EngagementManagerId,
+            created.EngagementManager,
+            created.SalesManagerId,
+            created.SalesManager,
             ct);
 
         foreach (var sv in created.SubVentures)
@@ -155,6 +159,10 @@ public sealed class ClientService(
                 sv.Name,
                 sv.SubVentureCode,
                 created.CreatedByName,
+                created.EngagementManagerId,
+                created.EngagementManager,
+                created.SalesManagerId,
+                created.SalesManager,
                 ct);
         }
 
@@ -169,29 +177,73 @@ public sealed class ClientService(
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
+        var previousEm = client.EngagementManager;
+        var previousEmId = client.EngagementManagerId;
+        var previousSm = client.SalesManager;
+        var previousSmId = client.SalesManagerId;
+        var emChanged = false;
+        var smChanged = false;
+        var clientProfileChanged = false;
+        var changedFields = new List<string>();
+
         if (request.Name is not null)
         {
-            client.Name = request.Name.Trim();
-            // Keep the logo in sync with the name (first + last letter).
-            client.Logo = Client.LogoFromName(client.Name);
+            var trimmedName = request.Name.Trim();
+            if (!string.Equals(client.Name, trimmedName, StringComparison.Ordinal))
+            {
+                client.Name = trimmedName;
+                client.Logo = Client.LogoFromName(client.Name);
+                clientProfileChanged = true;
+                changedFields.Add("Name");
+            }
         }
         if (request.Industry is not null)
         {
-            client.Industry = request.Industry.Trim();
-            client.IndustryId = await ResolveIndustryIdAsync(request.Industry, ct);
+            var trimmedIndustry = request.Industry.Trim();
+            if (!string.Equals(client.Industry, trimmedIndustry, StringComparison.Ordinal))
+            {
+                client.Industry = trimmedIndustry;
+                client.IndustryId = await ResolveIndustryIdAsync(request.Industry, ct);
+                clientProfileChanged = true;
+                changedFields.Add("Industry");
+            }
         }
-        if (request.Logo is not null) client.Logo = request.Logo;
-        if (request.ContactEmail is not null) client.ContactEmail = EmailRules.NullIfEmpty(request.ContactEmail);
-        if (request.ClientType is not null) client.ClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New;
+        if (request.Logo is not null && !string.Equals(client.Logo, request.Logo, StringComparison.Ordinal))
+        {
+            client.Logo = request.Logo;
+            clientProfileChanged = true;
+            changedFields.Add("Logo");
+        }
+        if (request.ContactEmail is not null)
+        {
+            var normalizedEmail = EmailRules.NullIfEmpty(request.ContactEmail);
+            if (!string.Equals(client.ContactEmail, normalizedEmail, StringComparison.OrdinalIgnoreCase))
+            {
+                client.ContactEmail = normalizedEmail;
+                clientProfileChanged = true;
+                changedFields.Add("Contact Email");
+            }
+        }
+        if (request.ClientType is not null)
+        {
+            var newClientType = request.ClientType == "OLD" ? ClientType.Old : ClientType.New;
+            if (client.ClientType != newClientType)
+            {
+                client.ClientType = newClientType;
+                clientProfileChanged = true;
+                changedFields.Add("Client Type");
+            }
+        }
         if (request.Status is not null &&
             Enum.TryParse<ClientStatus>(request.Status, ignoreCase: true, out var status))
         {
-            client.Status = status;
+            if (client.Status != status)
+            {
+                client.Status = status;
+                clientProfileChanged = true;
+                changedFields.Add("Status");
+            }
         }
-        var previousEm = client.EngagementManager;
-        var previousSm = client.SalesManager;
-        var emChanged = false;
-        var smChanged = false;
 
         if (request.EngagementManager is not null)
         {
@@ -213,39 +265,121 @@ public sealed class ClientService(
                 smChanged = true;
             }
         }
-        if (request.ContactName is not null) client.ContactName = request.ContactName;
-        if (request.ContactPhone is not null) client.ContactPhone = request.ContactPhone;
-        if (request.ContactDesignation is not null) client.ContactDesignation = request.ContactDesignation;
-        if (request.ContactType is not null) client.ContactType = request.ContactType;
-        if (request.Country is not null)
+        if (request.ContactName is not null && !string.Equals(client.ContactName, request.ContactName, StringComparison.Ordinal))
+        {
+            client.ContactName = request.ContactName;
+            clientProfileChanged = true;
+            changedFields.Add("Contact Name");
+        }
+        if (request.ContactPhone is not null && !string.Equals(client.ContactPhone, request.ContactPhone, StringComparison.Ordinal))
+        {
+            client.ContactPhone = request.ContactPhone;
+            clientProfileChanged = true;
+            changedFields.Add("Contact Phone");
+        }
+        if (request.ContactDesignation is not null && !string.Equals(client.ContactDesignation, request.ContactDesignation, StringComparison.Ordinal))
+        {
+            client.ContactDesignation = request.ContactDesignation;
+            clientProfileChanged = true;
+            changedFields.Add("Contact Designation");
+        }
+        if (request.ContactType is not null && !string.Equals(client.ContactType, request.ContactType, StringComparison.Ordinal))
+        {
+            client.ContactType = request.ContactType;
+            clientProfileChanged = true;
+            changedFields.Add("Contact Type");
+        }
+        if (request.Country is not null && !string.Equals(client.Country, request.Country, StringComparison.Ordinal))
         {
             client.Country = request.Country;
             client.CountryId = await ResolveCountryIdAsync(request.Country, ct);
+            clientProfileChanged = true;
+            changedFields.Add("Country");
         }
-        if (request.City is not null)
+        if (request.City is not null && !string.Equals(client.City, request.City, StringComparison.Ordinal))
         {
             client.City = request.City;
             client.CityId = await ResolveCityIdAsync(request.City, client.CountryId, ct);
+            clientProfileChanged = true;
+            changedFields.Add("City");
         }
-        if (request.BusinessType is not null) client.BusinessType = request.BusinessType;
-        if (request.BillingMedium is not null) client.BillingMedium = NormalizeBillingMedium(request.BillingMedium);
+        if (request.BusinessType is not null && !string.Equals(client.BusinessType, request.BusinessType, StringComparison.Ordinal))
+        {
+            client.BusinessType = request.BusinessType;
+            clientProfileChanged = true;
+            changedFields.Add("Business Type");
+        }
+        if (request.BillingMedium is not null)
+        {
+            var normalizedBilling = NormalizeBillingMedium(request.BillingMedium);
+            if (!string.Equals(client.BillingMedium, normalizedBilling, StringComparison.OrdinalIgnoreCase))
+            {
+                client.BillingMedium = normalizedBilling;
+                clientProfileChanged = true;
+                changedFields.Add("Billing Medium");
+            }
+        }
         if (request.GroupSpocName is not null)
         {
-            client.GroupSpocName = NormalizeManagerName(request.GroupSpocName);
-            client.ContactName = client.GroupSpocName;
+            var normSpoc = NormalizeManagerName(request.GroupSpocName);
+            if (!string.Equals(client.GroupSpocName, normSpoc, StringComparison.OrdinalIgnoreCase))
+            {
+                client.GroupSpocName = normSpoc;
+                client.ContactName = client.GroupSpocName;
+                clientProfileChanged = true;
+                changedFields.Add("Group SPOC Name");
+            }
         }
         if (request.GroupSpocContact is not null)
         {
-            client.GroupSpocContact = NormalizeManagerName(request.GroupSpocContact);
-            client.ContactPhone = client.GroupSpocContact;
+            var normContact = NormalizeManagerName(request.GroupSpocContact);
+            if (!string.Equals(client.GroupSpocContact, normContact, StringComparison.OrdinalIgnoreCase))
+            {
+                client.GroupSpocContact = normContact;
+                client.ContactPhone = client.GroupSpocContact;
+                clientProfileChanged = true;
+                changedFields.Add("Group SPOC Contact");
+            }
         }
         if (request.GroupSpocPhoneCode is not null)
-            client.GroupSpocPhoneCode = NormalizeManagerName(request.GroupSpocPhoneCode);
+        {
+            var normPhoneCode = NormalizeManagerName(request.GroupSpocPhoneCode);
+            if (!string.Equals(client.GroupSpocPhoneCode, normPhoneCode, StringComparison.OrdinalIgnoreCase))
+            {
+                client.GroupSpocPhoneCode = normPhoneCode;
+                clientProfileChanged = true;
+                changedFields.Add("Group SPOC Phone Code");
+            }
+        }
         if (request.CreatedByName is not null && string.IsNullOrWhiteSpace(client.CreatedByName))
+        {
             client.CreatedByName = NormalizeManagerName(request.CreatedByName);
-        if (request.Notes is not null) client.Notes = request.Notes;
-        if (request.KycDocumentName is not null) client.KycDocumentName = request.KycDocumentName;
+            clientProfileChanged = true;
+            changedFields.Add("Created By Name");
+        }
+        if (request.Notes is not null && !string.Equals(client.Notes, request.Notes, StringComparison.Ordinal))
+        {
+            client.Notes = request.Notes;
+            clientProfileChanged = true;
+            changedFields.Add("Notes");
+        }
+        if (request.KycDocumentName is not null && !string.Equals(client.KycDocumentName, request.KycDocumentName, StringComparison.Ordinal))
+        {
+            client.KycDocumentName = request.KycDocumentName;
+            clientProfileChanged = true;
+            changedFields.Add("KYC Document");
+        }
+        if (request.Contacts is not null)
+        {
+            if (ContactsHaveChanged(client.Contacts, request.Contacts))
+            {
+                clientProfileChanged = true;
+                changedFields.Add("Contacts");
+            }
+        }
+
         var newlyAddedSubVentures = new List<SubVenture>();
+        var editedSubVentures = new List<(SubVenture SubVenture, List<string> ChangedFields)>();
         if (request.SubVentures is not null)
         {
             // The incoming list is the full desired set. An id updates that row, including a rename.
@@ -280,9 +414,39 @@ public sealed class ClientService(
 
                 if (match is not null)
                 {
-                    match.Name = input.Name.Trim();
-                    if (input.Notes is not null)
-                        match.Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
+                    var trimmedName = input.Name.Trim();
+                    var trimmedNotes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim();
+                    var trimmedKyc = string.IsNullOrWhiteSpace(input.KycDocumentName) ? null : input.KycDocumentName.Trim();
+
+                    var svChangedFields = new List<string>();
+
+                    if (!string.Equals(match.Name, trimmedName, StringComparison.Ordinal))
+                    {
+                        match.Name = trimmedName;
+                        svChangedFields.Add("Name");
+                    }
+
+                    if (!string.Equals(match.Notes, trimmedNotes, StringComparison.Ordinal))
+                    {
+                        match.Notes = trimmedNotes;
+                        svChangedFields.Add("Notes");
+                    }
+
+                    if (input.KycDocumentName is not null && !string.Equals(match.KycDocumentName, trimmedKyc, StringComparison.Ordinal))
+                    {
+                        match.KycDocumentName = trimmedKyc;
+                        svChangedFields.Add("KYC Document");
+                    }
+
+                    if (input.Contacts is not null && ContactsHaveChanged(match.Contacts, input.Contacts))
+                    {
+                        svChangedFields.Add("Contacts");
+                    }
+
+                    if (svChangedFields.Count > 0)
+                    {
+                        editedSubVentures.Add((match, svChangedFields));
+                    }
                 }
                 else
                 {
@@ -291,6 +455,7 @@ public sealed class ClientService(
                         ClientId = client.Id,
                         Name = input.Name.Trim(),
                         Notes = string.IsNullOrWhiteSpace(input.Notes) ? null : input.Notes.Trim(),
+                        KycDocumentName = string.IsNullOrWhiteSpace(input.KycDocumentName) ? null : input.KycDocumentName.Trim()
                     };
                     db.SubVentures.Add(subVenture);
                     newlyAddedSubVentures.Add(subVenture);
@@ -320,6 +485,8 @@ public sealed class ClientService(
                 "Engagement Manager",
                 updated.EngagementManager,
                 updated.EngagementManagerId,
+                previousEm,
+                previousEmId,
                 currentUser.Name,
                 ct);
         }
@@ -333,7 +500,42 @@ public sealed class ClientService(
                 "Sales Manager",
                 updated.SalesManager,
                 updated.SalesManagerId,
+                previousSm,
+                previousSmId,
                 currentUser.Name,
+                ct);
+        }
+
+        if (clientProfileChanged)
+        {
+            await notificationService.NotifyCustomerEditedAsync(
+                updated.Id,
+                updated.Name,
+                clientCodes.GetValueOrDefault(updated.Id),
+                currentUser.Name,
+                changedFields,
+                updated.EngagementManagerId,
+                updated.EngagementManager,
+                updated.SalesManagerId,
+                updated.SalesManager,
+                ct);
+        }
+
+        foreach (var (sv, svChangedFields) in editedSubVentures)
+        {
+            var svCode = updated.SubVentures.FirstOrDefault(s => s.Id == sv.Id)?.SubVentureCode;
+            await notificationService.NotifySubVentureEditedAsync(
+                updated.Id,
+                updated.Name,
+                sv.Id,
+                sv.Name,
+                svCode,
+                currentUser.Name,
+                svChangedFields,
+                updated.EngagementManagerId,
+                updated.EngagementManager,
+                updated.SalesManagerId,
+                updated.SalesManager,
                 ct);
         }
 
@@ -347,6 +549,10 @@ public sealed class ClientService(
                 sv.Name,
                 svCode,
                 currentUser.Name,
+                updated.EngagementManagerId,
+                updated.EngagementManager,
+                updated.SalesManagerId,
+                updated.SalesManager,
                 ct);
         }
 
@@ -641,6 +847,53 @@ public sealed class ClientService(
         !string.IsNullOrWhiteSpace(c.Email) ||
         !string.IsNullOrWhiteSpace(c.Phone);
 
+    private static bool HasContactContent(ClientContactEntity c) =>
+        !string.IsNullOrWhiteSpace(c.Name) ||
+        !string.IsNullOrWhiteSpace(c.Email) ||
+        !string.IsNullOrWhiteSpace(c.Phone);
+
+    private static bool ContactsHaveChanged(
+        IEnumerable<ClientContactEntity>? existing,
+        IEnumerable<ClientContactDto>? incoming)
+    {
+        var exList = (existing ?? Enumerable.Empty<ClientContactEntity>())
+            .Where(c => c.DeletedAtUtc == null && HasContactContent(c))
+            .ToList();
+
+        var inList = (incoming ?? Enumerable.Empty<ClientContactDto>())
+            .Where(HasContactContent)
+            .ToList();
+
+        if (exList.Count != inList.Count)
+            return true;
+
+        var matched = new bool[exList.Count];
+        foreach (var n in inList)
+        {
+            var found = false;
+            for (int i = 0; i < exList.Count; i++)
+            {
+                if (matched[i]) continue;
+                var e = exList[i];
+                if (string.Equals(e.Name?.Trim(), n.Name?.Trim(), StringComparison.Ordinal) &&
+                    string.Equals(e.Email?.Trim(), n.Email?.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(e.Phone?.Trim(), n.Phone?.Trim(), StringComparison.Ordinal) &&
+                    string.Equals(e.Designation?.Trim(), n.Designation?.Trim(), StringComparison.Ordinal) &&
+                    string.Equals(e.ContactType?.Trim(), n.ContactType?.Trim(), StringComparison.Ordinal) &&
+                    string.Equals(e.Country?.Trim(), n.Country?.Trim(), StringComparison.Ordinal))
+                {
+                    matched[i] = true;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>
     /// Persists contacts as standalone rows with exactly one owner FK (ClientId XOR SubVentureId),
     /// bypassing EF navigation-collection fixup which would otherwise set both FKs and trip
@@ -660,11 +913,23 @@ public sealed class ClientService(
                 || (c.SubVentureId != null && subVentureIds.Contains(c.SubVentureId.Value)))
             .ToListAsync(ct);
 
+        var now = DateTime.UtcNow;
+        var userId = currentUser.UserId;
         foreach (var c in existing)
         {
-            db.ClientContacts.Remove(c); // SaveChanges converts to soft delete (DeletedAtUtc)
+            c.DeletedAtUtc = now;
+            c.UpdatedAtUtc = now;
+            c.UpdatedBy = userId;
         }
         await db.SaveChangesAsync(ct);
+
+        // Detach old soft-deleted contacts so that subsequent collection reassignments (e.g. sv.Contacts)
+        // do not cause EF Core relationship fixup to nullify SubVentureId / ClientId and trigger
+        // CK_client_contacts_exactly_one_owner during subsequent SaveChangesAsync calls (such as in notifications).
+        foreach (var c in existing)
+        {
+            db.Entry(c).State = EntityState.Detached;
+        }
 
         var toAdd = new List<ClientContactEntity>();
 
@@ -679,6 +944,7 @@ public sealed class ClientService(
             foreach (var input in subVentureInputs)
             {
                 var sv = client.SubVentures.FirstOrDefault(s =>
+                    (input.Id.HasValue && s.Id == input.Id.Value) ||
                     string.Equals(s.Name, input.Name.Trim(), StringComparison.OrdinalIgnoreCase));
                 if (sv is null) continue;
 
@@ -697,7 +963,7 @@ public sealed class ClientService(
             await db.SaveChangesAsync(ct);
         }
 
-        // Populate navigation collections for the DTO projection (no further save).
+        // Populate navigation collections for the DTO projection.
         client.Contacts = toAdd.Where(c => c.ClientId == client.Id).ToList();
         foreach (var sv in client.SubVentures)
         {
@@ -834,12 +1100,29 @@ public sealed class ClientService(
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (client is null) return null;
 
+        var kycChanged = !string.Equals(client.KycDocumentName, fileName?.Trim(), StringComparison.Ordinal);
         client.KycDocumentName = string.IsNullOrWhiteSpace(fileName) ? client.KycDocumentName : fileName.Trim();
         client.KycDocumentPath = string.IsNullOrWhiteSpace(relativePath) ? client.KycDocumentPath : relativePath.Trim();
         await db.SaveChangesAsync(ct);
 
         var reloaded = await LoadClientGraphAsync(client.Id, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
+
+        if (kycChanged)
+        {
+            await notificationService.NotifyCustomerEditedAsync(
+                reloaded.Id,
+                reloaded.Name,
+                clientCodes.GetValueOrDefault(reloaded.Id),
+                currentUser.Name,
+                new[] { "KYC Document" },
+                reloaded.EngagementManagerId,
+                reloaded.EngagementManager,
+                reloaded.SalesManagerId,
+                reloaded.SalesManager,
+                ct);
+        }
+
         return MapToDto(reloaded, clientCodes.GetValueOrDefault(reloaded.Id));
     }
 
@@ -862,12 +1145,31 @@ public sealed class ClientService(
         var sv = await db.SubVentures.FirstOrDefaultAsync(s => s.Id == subVentureId && s.ClientId == clientId, ct);
         if (sv is null) return null;
 
+        var kycChanged = !string.Equals(sv.KycDocumentName, fileName?.Trim(), StringComparison.Ordinal);
         sv.KycDocumentName = string.IsNullOrWhiteSpace(fileName) ? sv.KycDocumentName : fileName.Trim();
         sv.KycDocumentPath = string.IsNullOrWhiteSpace(relativePath) ? sv.KycDocumentPath : relativePath.Trim();
         await db.SaveChangesAsync(ct);
 
         var reloaded = await LoadClientGraphAsync(clientId, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
+
+        if (kycChanged)
+        {
+            await notificationService.NotifySubVentureEditedAsync(
+                reloaded.Id,
+                reloaded.Name,
+                sv.Id,
+                sv.Name,
+                sv.SubVentureCode,
+                currentUser.Name,
+                new[] { "KYC Document" },
+                reloaded.EngagementManagerId,
+                reloaded.EngagementManager,
+                reloaded.SalesManagerId,
+                reloaded.SalesManager,
+                ct);
+        }
+
         return MapToDto(reloaded, clientCodes.GetValueOrDefault(reloaded.Id));
     }
 

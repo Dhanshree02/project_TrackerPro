@@ -224,18 +224,12 @@ export function EditCustomerInfoModal({
             required
             error={submitted && !billingMedium ? "Billing medium is required" : undefined}
           >
-            <select
-              className={inputCls}
+            <SearchableSelect
               value={billingMedium}
-              onChange={(e) => setBillingMedium(e.target.value)}
-            >
-              <option value="">Select billing medium</option>
-              {BILLING_MEDIUMS.map((bm) => (
-                <option key={bm} value={bm}>
-                  {bm}
-                </option>
-              ))}
-            </select>
+              onChange={setBillingMedium}
+              placeholder="Select billing medium"
+              options={BILLING_MEDIUMS}
+            />
           </Field>
 
           {/* Industry */}

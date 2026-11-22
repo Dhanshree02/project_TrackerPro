@@ -55,6 +55,7 @@ import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { dhStore, useDhStore } from "@/lib/workspace-store";
 import { categorizeClientProjects } from "@/lib/client-project-counts";
 import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { paginateSlice } from "@/lib/pagination";
 import { TablePaginationFooter } from "@/components/table-pagination-footer";
 import {
@@ -209,29 +210,19 @@ function SortableTh<T extends string>({
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-        "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none",
-          active
-            ? "text-primary font-bold"
-            : "text-muted-foreground hover:text-foreground",
+          "inline-flex items-center gap-1.5 text-left text-[13px] font-semibold tracking-[-0.01em] select-none",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
         aria-label={`Sort by ${label}`}
       >
         <span>{label}</span>
-        <span
-          className={cn(
-            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
-            active
-              ? "bg-primary/15 text-primary"
-              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
-          )}
-        >
-          {active && sortDir === "desc" ? (
-            <ChevronDown className="h-3.5 w-3.5" />
+        {active &&
+          (sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <ChevronUp className="h-3.5 w-3.5" />
-          )}
-        </span>
+            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          ))}
       </button>
       {!isLast ? (
         <span
@@ -466,32 +457,15 @@ export function CustomersListPage() {
           />
         </div>
         <div className="ml-auto flex items-center gap-2.5">
-          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
-            <button
-              onClick={() => setView("card")}
-              aria-label="Grid view"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
-                view === "card"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" /> Grid
-            </button>
-            <button
-              onClick={() => setView("list")}
-              aria-label="List view"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
-                view === "list"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <List className="h-3.5 w-3.5" /> List
-            </button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "card", label: <><LayoutGrid className="h-3.5 w-3.5" /> Grid</> },
+              { value: "list", label: <><List className="h-3.5 w-3.5" /> List</> },
+            ]}
+          />
           {canCreateClient && (
             <button
               onClick={() => setOpenNew(true)}
@@ -798,8 +772,8 @@ export function CustomersListPage() {
           })}
         </div>
       ) : (
-        <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
-          <table className="w-max table-fixed border-separate border-spacing-0 text-sm">
+        <div className="w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
+          <table className="w-full min-w-[86rem] table-fixed border-separate border-spacing-0 text-sm">
             <colgroup>
               {CUSTOMER_LIST_COL_WIDTHS.map((width, idx) => (
                 <col key={CUSTOMER_LIST_COLUMNS[idx].key} style={{ width }} />
@@ -2196,18 +2170,12 @@ export function NewClientModal({
                 />
               </Field>
               <Field label="Billing Medium" required>
-                <select
-                  className={inputCls}
+                <SearchableSelect
                   value={s.billingMedium}
-                  onChange={(e) => u("billingMedium", e.target.value)}
-                >
-                  <option value="">Select billing medium</option>
-                  {BILLING_MEDIUMS.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => u("billingMedium", value)}
+                  placeholder="Select billing medium"
+                  options={BILLING_MEDIUMS}
+                />
               </Field>
               <SearchableSelect
                 label="Country / Region"
@@ -2282,12 +2250,13 @@ export function NewClientModal({
                 onChange={(name) => u("industry", name)}
               />
               <Field label="Business Type">
-                <select className={readOnlyCls} value={s.businessType} disabled>
-                  <option value="">Select business type</option>
-                  {["Enterprise", "Mid-Market", "SMB", "Public Sector"].map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
+                <SearchableSelect
+                  value={s.businessType}
+                  placeholder="Select business type"
+                  options={["Enterprise", "Mid-Market", "SMB", "Public Sector"]}
+                  disabled
+                  clearable={false}
+                />
               </Field>
               <Field label="Created At">
                 <input
@@ -2312,18 +2281,12 @@ export function NewClientModal({
                 {selectedExisting.billingMedium ? (
                   <input className={readOnlyCls} value={selectedExisting.billingMedium} readOnly />
                 ) : (
-                  <select
-                    className={inputCls}
+                  <SearchableSelect
                     value={s.billingMedium}
-                    onChange={(e) => u("billingMedium", e.target.value)}
-                  >
-                    <option value="">Select billing medium</option>
-                    {BILLING_MEDIUMS.map((o) => (
-                      <option key={o} value={o}>
-                        {o}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => u("billingMedium", value)}
+                    placeholder="Select billing medium"
+                    options={BILLING_MEDIUMS}
+                  />
                 )}
               </Field>
               <Field label="Created By">
@@ -2401,18 +2364,12 @@ export function NewClientModal({
                   onChange={(name) => updateContact(idx, "contactType", name)}
                 />
                 <Field label="Country / Region" required>
-                  <select
-                    className={inputCls}
+                  <SearchableSelect
                     value={ct.country}
-                    onChange={(e) => updateContact(idx, "country", e.target.value)}
-                  >
-                    <option value="">Select country</option>
-                    {countries.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => updateContact(idx, "country", value)}
+                    placeholder="Select country"
+                    options={countries.map((c) => ({ value: c.name, label: c.name }))}
+                  />
                 </Field>
                 <Field label="Phone" required error={contactPhoneErr}>
                   <div className="relative flex rounded-md">

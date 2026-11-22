@@ -15,6 +15,15 @@ public class NotificationHistoryItemDto
 
     [JsonPropertyName("by")]
     public string By { get; set; } = string.Empty;
+
+    [JsonPropertyName("at")]
+    public string? At { get; set; }
+
+    [JsonPropertyName("status")]
+    public string? Status { get; set; }
+
+    [JsonPropertyName("details")]
+    public string? Details { get; set; }
 }
 
 public class ActionNotificationDto
@@ -34,6 +43,8 @@ public class ActionNotificationDto
     public string RaisedBy { get; set; } = string.Empty;
 
     public string CreatedAt { get; set; } = string.Empty;
+
+    public DateTime CreatedAtUtc { get; set; }
 
     public string Status { get; set; } = "Pending";
 
@@ -104,6 +115,8 @@ public class ActionAlertDto
     public List<string> AudienceUserIds { get; set; } = [];
 
     public string CreatedAt { get; set; } = string.Empty;
+
+    public DateTime CreatedAtUtc { get; set; }
 
     public string? Owner { get; set; }
 

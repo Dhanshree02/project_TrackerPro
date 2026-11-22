@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ExitSummaryPage } from "@/modules/employees";
+import { ExitSummaryPage } from "@/modules/employees/pages/exit-summary-page";
 
 export const Route = createFileRoute("/exit-summary")({
   head: () => ({

@@ -10,7 +10,10 @@ namespace PMS.API.Modules.MyTeam.Controllers;
 
 [ApiController]
 [Route("api/v1/my-team")]
-public class MyTeamController(IMyTeamService myTeam, IRbacAuthorizationService rbacService) : ControllerBase
+public class MyTeamController(
+    IMyTeamService myTeam,
+    IRbacAuthorizationService rbacService,
+    ITeamAvailabilityNotificationService notificationService) : ControllerBase
 {
     [HttpGet("on-floor-roles")]
     [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.View, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees, RbacCatalogCodes.MyTeamTab, "6055ce3c-b466-4354-ba9a-b4c309111e9d")]
@@ -65,5 +68,46 @@ public class MyTeamController(IMyTeamService myTeam, IRbacAuthorizationService r
     {
         await myTeam.SaveScheduleAsync(employeeId, request, ct);
         return Ok(ApiResponse<bool>.Ok(true));
+    }
+
+    [HttpPost("notifications/trigger-2hour-reminders")]
+    [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees)]
+    public async Task<ActionResult<ApiResponse<int>>> TriggerTwoHourReminders(
+        [FromQuery] DateOnly? date = null,
+        CancellationToken ct = default)
+    {
+        var count = await notificationService.SendReportingManagerTwoHourRemindersAsync(date, ct);
+        return Ok(ApiResponse<int>.Ok(count));
+    }
+
+    [HttpPost("notifications/trigger-leadership-alerts")]
+    [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees)]
+    public async Task<ActionResult<ApiResponse<int>>> TriggerLeadershipAlerts(
+        [FromQuery] int hour = 11,
+        [FromQuery] DateOnly? date = null,
+        CancellationToken ct = default)
+    {
+        var count = await notificationService.SendProjectLeadershipDailyAlertAsync(hour, date, ct);
+        return Ok(ApiResponse<int>.Ok(count));
+    }
+
+    [HttpPost("notifications/trigger-spm-alerts")]
+    [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees)]
+    public async Task<ActionResult<ApiResponse<int>>> TriggerSpmAlerts(
+        [FromQuery] DateOnly? date = null,
+        CancellationToken ct = default)
+    {
+        var count = await notificationService.SendSpmDailyAlertAsync(date, ct);
+        return Ok(ApiResponse<int>.Ok(count));
+    }
+
+    [HttpPost("notifications/trigger-hod-escalations")]
+    [RequireRbac(RbacCatalogCodes.TeamDashboard, RbacAccessType.Manage, RbacCatalogCodes.MyReportees, RbacCatalogCodes.AllEmployees)]
+    public async Task<ActionResult<ApiResponse<int>>> TriggerHodEscalations(
+        [FromQuery] DateOnly? date = null,
+        CancellationToken ct = default)
+    {
+        var count = await notificationService.SendHodNextDayEodEscalationAsync(date, ct);
+        return Ok(ApiResponse<int>.Ok(count));
     }
 }

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState, useCallback } from "react";
+import { DisclosureTriangleIcon } from "@/components/disclosure-controls";
 import {
   ChevronRight,
   ChevronLeft,
@@ -38,6 +39,7 @@ import {
   type ApiUserRoleAccess,
 } from "@/lib/api/users";
 import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 type ModuleAccess = "view" | "view-manage";
 type AccessKind = "module" | "submodule" | "widget" | "tab";
@@ -431,34 +433,15 @@ export function RolesPermissionsPage() {
       <div className="space-y-6">
         {/* Internal Tabs Switcher: Rolewise Access vs Userwise Access */}
         <div className="flex items-center justify-between border-b border-border pb-3">
-          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
-            <button
-              type="button"
-              onClick={() => setActiveTab("rolewise")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
-                activeTab === "rolewise"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Rolewise Access
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("userwise")}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 font-semibold transition-all duration-150 cursor-pointer select-none",
-                activeTab === "userwise"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Users className="h-3.5 w-3.5" />
-              Userwise Access
-            </button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={activeTab}
+            onChange={setActiveTab}
+            options={[
+              { value: "rolewise", label: <><ShieldCheck className="h-3.5 w-3.5" /> Rolewise Access</> },
+              { value: "userwise", label: <><Users className="h-3.5 w-3.5" /> Userwise Access</> },
+            ]}
+          />
         </div>
 
         {activeTab === "rolewise" ? (
@@ -659,7 +642,7 @@ function AccessRows({
                   onClick={() => onToggle(row.id)}
                   className="inline-flex size-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
-                  <ChevronRight className={cn("size-4 transition-transform duration-200", open && "rotate-90")} />
+                  <DisclosureTriangleIcon expanded={open} className="size-4" />
                 </button>
               ) : (
                 <span className="size-6 shrink-0" aria-hidden />
@@ -1039,20 +1022,19 @@ function UserwiseAccessView() {
 
           {/* Department Filter */}
           <div className="w-full md:w-56 shrink-0">
-            <select
+            <SearchableSelect
               value={department}
-              onChange={(e) => {
-                setDepartment(e.target.value);
+              onChange={(value) => {
+                setDepartment(value || "All");
                 setPage(1);
               }}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-muted/50 focus:border-primary transition-colors"
-            >
-              {USERWISE_DEPARTMENT_OPTIONS.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept === "All" ? "All Departments" : dept}
-                </option>
-              ))}
-            </select>
+              placeholder="All Departments"
+              options={USERWISE_DEPARTMENT_OPTIONS.map((dept) => ({
+                value: dept,
+                label: dept === "All" ? "All Departments" : dept,
+              }))}
+              className="w-full"
+            />
           </div>
 
           {/* Reset Filters Button */}
@@ -1233,31 +1215,24 @@ function UserwiseAccessView() {
                       {/* Assigned RBAC Role (department-restricted dropdown) */}
                       <td className="overflow-hidden px-4 py-3.5">
                         <div className="flex min-w-0 flex-col gap-1">
-                          <select
+                          <SearchableSelect
                             value={row.currentRoleId ?? ""}
-                            onChange={(e) => {
-                              const newRoleId = e.target.value;
+                            onChange={(newRoleId) => {
                               if (!newRoleId || newRoleId === row.currentRoleId) return;
                               const targetRole = row.departmentRoles.find((r) => r.id === newRoleId);
                               if (!targetRole) return;
                               setPendingRoleChange({ employee: row, newRole: targetRole });
                             }}
                             disabled={row.isSuperAdmin || isUpdating}
-                            title={row.isSuperAdmin ? "Super Admin role is locked" : `Choose role from ${row.departmentName}`}
-                            className={cn(
-                              "h-8 w-full rounded-md border px-2.5 text-xs font-medium transition-colors outline-none cursor-pointer",
-                              row.isSwitched
-                                ? "border-primary bg-primary/5 text-primary font-semibold focus:ring-1 focus:ring-primary"
-                                : "border-input bg-background text-foreground hover:bg-muted/50 focus:border-primary",
-                              (row.isSuperAdmin || isUpdating) && "opacity-60 cursor-not-allowed bg-muted/30"
-                            )}
-                          >
-                            {row.departmentRoles.map((role) => (
-                              <option key={role.id} value={role.id}>
-                                {role.displayName || role.name}
-                              </option>
-                            ))}
-                          </select>
+                            disabledHint={row.isSuperAdmin ? "Super Admin role is locked" : undefined}
+                            placeholder={`Choose role from ${row.departmentName}`}
+                            options={row.departmentRoles.map((role) => ({
+                              value: role.id,
+                              label: role.displayName || role.name,
+                            }))}
+                            clearable={false}
+                            className="w-full"
+                          />
                           {row.isSwitched && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary">
                               <span className="size-1.5 rounded-full bg-primary animate-pulse" />
@@ -1316,7 +1291,6 @@ function UserwiseAccessView() {
                   setPageSize(size);
                   setPage(1);
                 }}
-                className="h-7 min-w-[3.25rem] rounded-md border border-border bg-background pl-2 pr-5 text-xs font-medium text-foreground outline-none cursor-pointer hover:bg-accent transition-colors focus-visible:ring-1 focus-visible:ring-ring"
               />
             </div>
           </div>
@@ -1615,7 +1589,6 @@ function SortableUserTh<T extends string>({
   sortDir,
   onSort,
   className,
-  isLast,
 }: {
   label: string;
   column: T;
@@ -1627,40 +1600,25 @@ function SortableUserTh<T extends string>({
 }) {
   const active = sortKey === column;
   return (
-    <th className={cn("relative whitespace-nowrap px-4 py-3 font-semibold", className)}>
+    <th className={cn("whitespace-nowrap px-4 py-3.5 align-middle", className)}>
       <button
         type="button"
         onClick={() => onSort(column)}
         className={cn(
-          "group inline-flex items-center gap-1.5 text-left text-xs font-semibold transition-colors select-none cursor-pointer",
-          active
-            ? "text-primary font-bold"
-            : "text-muted-foreground hover:text-foreground",
+          "inline-flex items-center gap-1.5 text-left text-[13px] font-semibold tracking-[-0.01em] select-none",
+          active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
         )}
         aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+        aria-label={`Sort by ${label}`}
       >
         <span>{label}</span>
-        <span
-          className={cn(
-            "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded transition-all duration-150",
-            active
-              ? "bg-primary/15 text-primary"
-              : "text-blue-400/40 opacity-0 group-hover:opacity-100 group-hover:text-blue-500",
-          )}
-        >
-          {active && sortDir === "desc" ? (
-            <ChevronDown className="h-3.5 w-3.5" />
+        {active &&
+          (sortDir === "desc" ? (
+            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           ) : (
-            <ChevronUp className="h-3.5 w-3.5" />
-          )}
-        </span>
+            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
+          ))}
       </button>
-      {!isLast && (
-        <span
-          className="absolute right-0 top-2.5 bottom-2.5 w-[1.5px] bg-border pointer-events-none"
-          aria-hidden="true"
-        />
-      )}
     </th>
   );
 }

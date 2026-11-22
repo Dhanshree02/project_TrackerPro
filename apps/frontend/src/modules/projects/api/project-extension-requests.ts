@@ -104,14 +104,26 @@ export async function takeProjectExtensionRequestAction(
   status: string,
   comment?: string,
 ): Promise<ProjectExtensionRequest> {
-  return apiFetch<ProjectExtensionRequest>(
-    `/api/v1/projects/${projectId}/extension-requests/${extensionRequestId}/action`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, comment }),
-    },
-  );
+  try {
+    return await apiFetch<ProjectExtensionRequest>(
+      `/api/v1/projects/${projectId}/extension-requests/${extensionRequestId}/action`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, comment }),
+      },
+    );
+  } catch {
+    const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+    return await apiFetch<ProjectExtensionRequest>(
+      `/api/v1/action-centre/extension-approvals/${encodeURIComponent(extensionRequestId)}/action${query}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, comment }),
+      },
+    );
+  }
 }
 
 export async function addProjectExtensionRequestComment(

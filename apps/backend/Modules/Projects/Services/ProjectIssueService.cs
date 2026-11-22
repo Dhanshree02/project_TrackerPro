@@ -29,9 +29,7 @@ public sealed class ProjectIssueService(
                            || role.Equals("Senior Project Manager", StringComparison.OrdinalIgnoreCase)
                            || role.Equals("Head of Delivery", StringComparison.OrdinalIgnoreCase);
 
-        var employee = await FindCurrentEmployeeAsync(ct);
-
-        if (isPmoOrAdmin || employee == null)
+        if (isPmoOrAdmin)
         {
             var all = await db.Projects
                 .AsNoTracking()
@@ -48,6 +46,12 @@ public sealed class ProjectIssueService(
             return all;
         }
 
+        var employee = await FindCurrentEmployeeAsync(ct);
+        if (employee == null)
+        {
+            return Array.Empty<AssignedProjectSummaryDto>();
+        }
+
         var empId = employee.Id;
 
         // Find projects where employee is team member
@@ -61,7 +65,7 @@ public sealed class ProjectIssueService(
         var taskProjectIds = await db.ProjectTaskAssignments
             .AsNoTracking()
             .Where(ta => ta.EmployeeId == empId && ta.DeletedAtUtc == null)
-            .Join(db.ProjectTasks, ta => ta.TaskId, t => t.Id, (ta, t) => t.ProjectId)
+            .Join(db.ProjectTasks.Where(t => t.DeletedAtUtc == null), ta => ta.TaskId, t => t.Id, (ta, t) => t.ProjectId)
             .ToListAsync(ct);
 
         // Find projects where employee has bucket tasks
@@ -89,17 +93,15 @@ public sealed class ProjectIssueService(
             .Distinct()
             .ToList();
 
-        var query = db.Projects
-            .AsNoTracking()
-            .Include(p => p.Client)
-            .Where(p => p.DeletedAtUtc == null);
-
-        if (allAssignedIds.Count > 0)
+        if (allAssignedIds.Count == 0)
         {
-            query = query.Where(p => allAssignedIds.Contains(p.Id));
+            return Array.Empty<AssignedProjectSummaryDto>();
         }
 
-        var results = await query
+        var results = await db.Projects
+            .AsNoTracking()
+            .Include(p => p.Client)
+            .Where(p => p.DeletedAtUtc == null && allAssignedIds.Contains(p.Id))
             .OrderBy(p => p.Name)
             .Select(p => new AssignedProjectSummaryDto(
                 p.Id,
@@ -108,23 +110,6 @@ public sealed class ProjectIssueService(
                 p.Client != null ? p.Client.Name : null,
                 p.Status))
             .ToListAsync(ct);
-
-        // Fallback: if no projects were explicitly assigned, return all active projects
-        if (results.Count == 0)
-        {
-            results = await db.Projects
-                .AsNoTracking()
-                .Include(p => p.Client)
-                .Where(p => p.DeletedAtUtc == null)
-                .OrderBy(p => p.Name)
-                .Select(p => new AssignedProjectSummaryDto(
-                    p.Id,
-                    p.Name,
-                    p.ProjectCode,
-                    p.Client != null ? p.Client.Name : null,
-                    p.Status))
-                .ToListAsync(ct);
-        }
 
         return results;
     }
@@ -298,7 +283,8 @@ public sealed class ProjectIssueService(
                 action = "Notification created",
                 date = dateStr,
                 time = timeStr,
-                by = raiserName
+                by = raiserName,
+                at = now.ToString("o")
             }
         });
 
@@ -311,7 +297,7 @@ public sealed class ProjectIssueService(
             EscalationType = escalation.EscalationType,
             Title = subject,
             Description = description,
-            AlertType = "Issue",
+            AlertType = !string.IsNullOrWhiteSpace(issueType) ? $"issue:{issueType.Trim()}" : "issue",
             Priority = priority,
             Status = "Open",
             RaisedByEmployeeId = employee?.Id,
@@ -456,7 +442,8 @@ public sealed class ProjectIssueService(
                 Action = $"Comment added: \"{commentText}\"",
                 Date = now.ToString("yyyy-MM-dd"),
                 Time = now.ToString("HH:mm:ss"),
-                By = userName
+                By = userName,
+                At = now.ToString("o")
             });
         }
 
@@ -476,7 +463,8 @@ public sealed class ProjectIssueService(
                 Action = $"Issue reopened (Status transitioned from '{previousIssueStatus}' to '{normalizedStatus}'). SLA history preserved (Audit Only).",
                 Date = now.ToString("yyyy-MM-dd"),
                 Time = now.ToString("HH:mm:ss"),
-                By = userName
+                By = userName,
+                At = now.ToString("o")
             });
         }
         else
@@ -486,7 +474,8 @@ public sealed class ProjectIssueService(
                 Action = $"Status transitioned to {normalizedStatus}",
                 Date = now.ToString("yyyy-MM-dd"),
                 Time = now.ToString("HH:mm:ss"),
-                By = userName
+                By = userName,
+                At = now.ToString("o")
             });
         }
         alert.HistoryJson = JsonSerializer.Serialize(history);
@@ -537,7 +526,10 @@ public sealed class ProjectIssueService(
         if (targetIssueId.HasValue)
         {
             var relatedNotifs = await db.ActionNotifications
-                .Where(n => n.IssueId == targetIssueId.Value && n.DeletedAtUtc == null)
+                .Where(n => n.IssueId == targetIssueId.Value
+                            && n.Type != "Issue Status Update"
+                            && n.Type != "Issue Escalation Reminder"
+                            && n.DeletedAtUtc == null)
                 .ToListAsync(ct);
 
             foreach (var notif in relatedNotifs)
@@ -553,6 +545,8 @@ public sealed class ProjectIssueService(
         {
             var relatedWbsNotifs = await db.ActionNotifications
                 .Where(n => (n.Type == "WBS Escalation" || n.Title.Contains("WBS Escalation"))
+                            && n.Type != "WBS Escalation Status Update"
+                            && n.Type != "WBS Escalation Reminder"
                             && n.ProjectId == alert.ProjectId
                             && n.DeletedAtUtc == null
                             && (alert.ServiceEscalationId == null || n.ServiceEscalationId == null || n.ServiceEscalationId == alert.ServiceEscalationId.Value))
@@ -616,14 +610,19 @@ public sealed class ProjectIssueService(
     {
         if (currentUser.UserId is Guid userId)
         {
-            var byId = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == userId, ct);
+            var byId = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == userId && e.DeletedAtUtc == null, ct);
             if (byId is not null) return byId;
         }
 
         var email = currentUser.Email?.Trim().ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(email)) return null;
 
-        return await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.WorkEmail.ToLower() == email, ct);
+        return await db.Employees.AsNoTracking().FirstOrDefaultAsync(e =>
+            e.DeletedAtUtc == null && (
+                (e.WorkEmail != null && e.WorkEmail.ToLower() == email) ||
+                (e.PersonalEmail != null && e.PersonalEmail.ToLower() == email) ||
+                (e.EmployeeCode != null && email.Contains(e.EmployeeCode.ToLower()))
+            ), ct);
     }
 
     private async Task EnsureProjectExistsAsync(Guid projectId, CancellationToken ct)
@@ -677,13 +676,33 @@ public sealed class ProjectIssueService(
             }
         }
 
+        string resolvedAlertType;
+        if (!string.IsNullOrWhiteSpace(row.AlertType) && (row.AlertType.StartsWith("issue:", StringComparison.OrdinalIgnoreCase) || row.AlertType.StartsWith("WBS:", StringComparison.OrdinalIgnoreCase)))
+        {
+            resolvedAlertType = row.AlertType;
+        }
+        else if (row.AlertType == "WBS Escalation" || row.ServiceEscalationId.HasValue || (!string.IsNullOrWhiteSpace(row.Title) && row.Title.Contains("WBS Escalation")))
+        {
+            var escType = !string.IsNullOrWhiteSpace(row.EscalationType)
+                ? row.EscalationType.Trim()
+                : (!string.IsNullOrWhiteSpace(row.Description) && row.Description.Contains(':') ? row.Description.Split(':')[0].Trim() : "Escalation");
+            resolvedAlertType = $"WBS:{escType}";
+        }
+        else
+        {
+            var issueType = !string.IsNullOrWhiteSpace(row.EscalationType)
+                ? row.EscalationType.Trim()
+                : (!string.IsNullOrWhiteSpace(row.ServiceName) ? row.ServiceName.Trim() : "Issue");
+            resolvedAlertType = $"issue:{issueType}";
+        }
+
         return new(
             row.Id,
             row.ProjectId,
             row.IssueId,
             row.Title,
             row.Description,
-            row.AlertType,
+            resolvedAlertType,
             row.Priority,
             row.Status,
             row.RaisedByEmployeeId,

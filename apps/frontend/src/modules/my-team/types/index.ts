@@ -56,6 +56,8 @@ export type TeamMember = {
   allocationStartDate?: string;
   allocationEndDate?: string;
   allocatedProjectName?: string;
+  /** Employee Billable / Non-Billable status. */
+  billableStatus?: string;
   allocations?: TeamMemberProjectAllocation[];
 };
 

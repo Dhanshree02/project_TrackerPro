@@ -63,8 +63,13 @@ public sealed class ProjectInterviewService(
         await db.SaveChangesAsync(ct);
 
         // When we schedule interview: selected Resource and their Reporting Manager get notification with Pending status & Low priority
-        await DispatchInterviewScheduledNotificationsAsync(projectId, row, ct);
+        var createdNotifs = await DispatchInterviewScheduledNotificationsAsync(projectId, row, ct);
         await db.SaveChangesAsync(ct);
+        if (createdNotifs.Count > 0)
+        {
+            var code = $"INTV-{row.Id.ToString("N")[..8].ToUpperInvariant()}";
+            TrySyncNotificationsToOtherDatabase(createdNotifs, code, "Pending");
+        }
 
         return Map(row);
     }
@@ -110,16 +115,22 @@ public sealed class ProjectInterviewService(
 
         row.UpdatedAtUtc = DateTime.UtcNow;
 
+        List<ActionNotification>? resNotifs = null;
         if (resultChanged || request.Result is not null)
         {
-            await DispatchInterviewResultNotificationsAsync(projectId, row, oldResult, ct);
+            resNotifs = await DispatchInterviewResultNotificationsAsync(projectId, row, oldResult, ct);
         }
 
         await db.SaveChangesAsync(ct);
+        if (resNotifs != null && resNotifs.Count > 0)
+        {
+            var code = $"INTV-{row.Id.ToString("N")[..8].ToUpperInvariant()}";
+            TrySyncNotificationsToOtherDatabase(resNotifs, code, row.Result);
+        }
         return Map(row);
     }
 
-    private async Task DispatchInterviewScheduledNotificationsAsync(
+    private async Task<List<ActionNotification>> DispatchInterviewScheduledNotificationsAsync(
         Guid projectId,
         ProjectInterview interview,
         CancellationToken ct)
@@ -207,10 +218,10 @@ public sealed class ProjectInterviewService(
             createdNotifs.Add(notification);
         }
 
-        TrySyncNotificationsToOtherDatabase(createdNotifs, interviewTaskCode, "Pending");
+        return createdNotifs;
     }
 
-    private async Task DispatchInterviewResultNotificationsAsync(
+    private async Task<List<ActionNotification>> DispatchInterviewResultNotificationsAsync(
         Guid projectId,
         ProjectInterview interview,
         string oldResult,
@@ -332,7 +343,7 @@ public sealed class ProjectInterviewService(
             createdNotifs.Add(notification);
         }
 
-        TrySyncNotificationsToOtherDatabase(createdNotifs, interviewTaskCode, interview.Result);
+        return createdNotifs;
     }
 
     private static void TrySyncNotificationsToOtherDatabase(
@@ -340,6 +351,7 @@ public sealed class ProjectInterviewService(
         string? relatedTask = null,
         string? newStatus = null)
     {
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
         {
             using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");

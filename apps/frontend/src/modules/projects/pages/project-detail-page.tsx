@@ -2,11 +2,12 @@ import { getRouteApi, Link, Navigate, notFound } from "@tanstack/react-router";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Loader2, ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, CheckCircle2, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2 } from "lucide-react";
+import { Loader2, ChevronRight, ChevronLeft, Calendar, Wallet, Lock, UserPlus, Eye, Pencil, Trash2, MoreHorizontal, X, Star, MessageSquare, Send, Check, CheckCircle2, Search, AlertTriangle, Award, Plus, ShieldCheck, Paperclip, Briefcase, Users, Clock, CalendarDays, ChevronDown, Building2, FolderOpen, Folder, FileText, Play, ChevronsDown, ChevronsUp, Archive, Download, Crown, Edit2, RotateCw } from "lucide-react";
 
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/app-shell";
+import { DisclosureButtonIcon, DisclosureTriangleIcon } from "@/components/disclosure-controls";
 
 import { Button } from "@/components/ui/button";
 
@@ -36,6 +37,7 @@ import { TablePaginationFooter } from "@/components/table-pagination-footer";
 import { paginateSlice } from "@/lib/pagination";
 
 import { cn } from "@/lib/utils";
+import { UnderlineTabs } from "@/components/ui/underline-tabs";
 
 import { deriveProjectDates } from "@/lib/project-dates";
 import { computeOverallProjectProgress, calculateServiceProgressFromTasks, isActiveService, type ServiceProgressItem } from "@/lib/project-progress";
@@ -54,6 +56,8 @@ import {
   fetchProjects,
 
   mapApiProjectToProject,
+
+  updateProject,
 
   updateProjectStatus,
 
@@ -160,6 +164,7 @@ import {
   formatAllocationDuration,
 
   fetchEmployeeAllocations,
+  fetchProjectAllocationRequests,
   fetchEmployeeWorkload,
   type EmployeeWorkloadDto,
 
@@ -168,6 +173,7 @@ import {
   type ApiProjectTeamCandidate,
 
   type EmployeeAllocationBooking,
+  type ProjectResourceAllocationRequestDto,
 
 } from "@/modules/projects/api/project-team-members";
 
@@ -255,7 +261,7 @@ import { fetchServiceHierarchy } from "@/lib/api/catalogs";
 
 
 
-// Helper function for consistent date formatting in DD/MM/YYYY (date/month/year)
+// Helper function for consistent date formatting in DD-MM-YYYY
 
 function formatDate(dateInput: Date | string | undefined | null): string {
 
@@ -273,7 +279,7 @@ function formatDate(dateInput: Date | string | undefined | null): string {
 
       const [, y, m, d] = match;
 
-      return `${d}/${m}/${y}`;
+      return `${d}-${m}-${y}`;
 
     }
 
@@ -289,7 +295,7 @@ function formatDate(dateInput: Date | string | undefined | null): string {
 
   const d = String(dObj.getDate()).padStart(2, "0");
 
-  return `${d}/${m}/${y}`;
+  return `${d}-${m}-${y}`;
 
 }
 
@@ -303,7 +309,7 @@ function formatDateString(dateStr: string | undefined | null): string {
 
   if (isNaN(d.getTime())) return "—";
 
-  return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  return formatDate(dateStr);
 
 }
 
@@ -341,23 +347,23 @@ function toDateInputValue(raw: string | undefined | null): string {
 
 
 
-/** Apple-like segmented control track / item (clarity + deference). */
+/** Same pill as the shared segmented control: white selected piece, dark label, in both themes. */
 
 const segmentTrackCls =
 
-  "inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-muted/55 p-1 ring-1 ring-border/50";
+  "inline-flex max-w-full flex-wrap items-center gap-1 overflow-x-auto rounded-full bg-[var(--segment-track)] p-1";
 
 function segmentItemCls(active: boolean, size: "sm" | "md" = "sm") {
 
   return cn(
 
-    "rounded-lg font-medium whitespace-nowrap transition-colors",
+    "rounded-full font-medium tracking-[-0.016em] whitespace-nowrap transition-colors duration-200",
 
-    size === "sm" ? "px-3 py-1.5 text-xs" : "px-3.5 py-2 text-sm",
+    size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-4 py-2 text-sm",
 
     active
 
-      ? "bg-card text-foreground shadow-sm ring-1 ring-border/70"
+      ? "bg-[var(--segment-thumb)] text-[var(--segment-thumb-foreground)] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.12)]"
 
       : "text-muted-foreground hover:text-foreground",
 
@@ -529,6 +535,8 @@ function DateRangePicker({
 
   bookings = [],
 
+  allowDedicatedSelection = false,
+
 }: {
 
   value: string;
@@ -547,9 +555,13 @@ function DateRangePicker({
 
   bookings?: EmployeeAllocationBooking[];
 
+  /** When true, allows selecting dates overlapping dedicated bookings for PMO approval */
+
+  allowDedicatedSelection?: boolean;
+
 }) {
 
-  // Parse "DD/MM/YYYY → DD/MM/YYYY" (formatDate output). Do NOT use
+  // Parse "DD-MM-YYYY → DD-MM-YYYY" (formatDate output). Older slash values still parse. Do NOT use
 
   // `new Date("24/09/2026")` — browsers treat slash dates as invalid/US-only.
 
@@ -559,7 +571,7 @@ function DateRangePicker({
 
     if (!s) return undefined;
 
-    const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    const dmy = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
 
     if (dmy) {
 
@@ -691,7 +703,7 @@ function DateRangePicker({
 
   const rejectDedicated = (clash: EmployeeAllocationBooking | undefined) => {
 
-    if (!clash) return false;
+    if (!clash || allowDedicatedSelection) return false;
 
     toast.error(dedicatedClashMessage(clash));
 
@@ -885,7 +897,7 @@ function DateRangePicker({
 
     if (projectEnd && isAfterDay(day, projectEnd)) return true;
 
-    return isDedicatedDay(day);
+    return !allowDedicatedSelection && isDedicatedDay(day);
 
   };
 
@@ -905,7 +917,7 @@ function DateRangePicker({
 
     if (projectEnd && isAfterDay(day, projectEnd)) return true;
 
-    return isDedicatedDay(day);
+    return !allowDedicatedSelection && isDedicatedDay(day);
 
   };
 
@@ -960,6 +972,16 @@ function DateRangePicker({
             ))}
 
           </ul>
+
+          {bookings.some(isDedicatedBooking) && (
+
+            <div className="mt-1.5 rounded bg-amber-500/10 border border-amber-500/20 px-2 py-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+
+              Note: This resource is dedicated on another project. You have to get approval from the PMO.
+
+            </div>
+
+          )}
 
         </div>
 
@@ -1457,12 +1479,14 @@ export function ProjectDetailPage() {
   const [savedPo, setSavedPo] = useState<{ id: string; fileName: string } | null>(null);
 
   const [poLoaded, setPoLoaded] = useState(false);
+  const [projectLookupDone, setProjectLookupDone] = useState(false);
 
   const [poPreviewUrl, setPoPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
 
     let cancelled = false;
+    setProjectLookupDone(false);
 
     setLiveServiceDates(null);
 
@@ -1478,7 +1502,7 @@ export function ProjectDetailPage() {
 
     const rawIsGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
 
-    if (rawId && (rawIsGuid || rawId.length > 20)) {
+    if (rawId) {
 
       if (rawIsGuid) {
 
@@ -1566,8 +1590,12 @@ export function ProjectDetailPage() {
 
         }
 
-      }).catch(console.error);
+      }).catch(console.error).finally(() => {
+        if (!cancelled) setProjectLookupDone(true);
+      });
 
+    } else if (!cancelled) {
+      setProjectLookupDone(true);
     }
 
     async function loadProjectBilling(p: ApiProject) {
@@ -1943,6 +1971,20 @@ export function ProjectDetailPage() {
     return overallProgress;
   }, [project, dhStore, dbServices, catalogAbbrMap, dbTasks, treeTaskStates]);
 
+  useEffect(() => {
+    if (!isApiGuid(rawId) || !project?.id || overallProjectProgress === undefined) return;
+    if (dbProject && dbProject.progress !== overallProjectProgress) {
+      updateProject(project.id, {
+        name: dbProject.name || project.name,
+        progress: overallProjectProgress,
+      })
+        .then((updated) => {
+          setDbProject((prev) => (prev ? { ...prev, progress: updated.progress } : prev));
+        })
+        .catch(() => {});
+    }
+  }, [rawId, project?.id, project?.name, overallProjectProgress, dbProject?.progress, dbProject?.name]);
+
   const client: Client = useMemo(() => {
 
     if (!project) return loaderData?.client ?? {
@@ -2004,6 +2046,17 @@ export function ProjectDetailPage() {
 
 
   if (!project) {
+
+    if (!projectLookupDone) {
+      return (
+        <AppShell title="Project" subtitle="Opening project">
+          <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Opening project…</p>
+          </div>
+        </AppShell>
+      );
+    }
 
     return (
 
@@ -3313,43 +3366,12 @@ export function ProjectDetailPage() {
 
         {/* Primary tabs */}
 
-        <div className="flex gap-1 overflow-x-auto border-b border-border/70 bg-muted/20 px-2">
-
-          {visibleTabs.map((t) => (
-
-            <button
-
-              key={t}
-
-              onClick={() => setTab(t)}
-
-              className={cn(
-
-                "relative px-3.5 py-3 text-[13px] font-medium transition-colors",
-
-                tab === t
-
-                  ? "text-foreground"
-
-                  : "text-muted-foreground hover:text-foreground",
-
-              )}
-
-            >
-
-              {t}
-
-              {tab === t && (
-
-                <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
-
-              )}
-
-            </button>
-
-          ))}
-
-        </div>
+        <UnderlineTabs
+          className="overflow-x-auto"
+          value={tab}
+          onChange={setTab}
+          options={visibleTabs.map((t) => ({ value: t, label: t }))}
+        />
 
 
 
@@ -3892,7 +3914,7 @@ function WbsTab({
         }
       }).catch((err) => console.error("Error fetching project requirements for WBS:", err));
     }
-  }, [project?.id]);
+  }, [project?.id, refreshCount]);
 
   const isEditServicesEnabled = useMemo(() => {
     const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
@@ -3902,8 +3924,14 @@ function WbsTab({
     // Check directly fetched requirements from API first
     const hasApprovedInDb = dbRequirements.some((r) => {
       if ((r.projectId || "").toLowerCase() !== projId) return false;
-      if (r.status?.toLowerCase() !== "approved") return false;
-      const approvedAt = r.approvedAtUtc ? new Date(r.approvedAtUtc).getTime() : 0;
+      if ((r.status || "").toLowerCase() !== "approved") return false;
+      const approvedAt = r.approvedAtUtc
+        ? new Date(r.approvedAtUtc).getTime()
+        : r.updatedAtUtc
+          ? new Date(r.updatedAtUtc).getTime()
+          : r.createdAtUtc
+            ? new Date(r.createdAtUtc).getTime()
+            : 0;
       return approvedAt > 0 && (now - approvedAt) <= twoDaysMs;
     });
     if (hasApprovedInDb) return true;
@@ -3911,12 +3939,14 @@ function WbsTab({
     // Check store requirements
     const reqs = (store.requirements || []).filter((r) => (r.projectId || "").toLowerCase() === projId);
     return reqs.some((r) => {
-      if (r.status?.toLowerCase() !== "approved") return false;
+      if ((r.status || "").toLowerCase() !== "approved") return false;
       const approvedAt = (r as any).approvedAtUtc
         ? new Date((r as any).approvedAtUtc).getTime()
-        : r.history?.find((h: any) => h.status?.toLowerCase() === "approved")
-          ? new Date(r.history.find((h: any) => h.status?.toLowerCase() === "approved")!.at).getTime()
-          : 0;
+        : r.history?.find((h: any) => (h.status || "").toLowerCase() === "approved")
+          ? new Date(r.history.find((h: any) => (h.status || "").toLowerCase() === "approved")!.at).getTime()
+          : (r as any).createdAt
+            ? new Date((r as any).createdAt).getTime()
+            : 0;
       return approvedAt > 0 && (now - approvedAt) <= twoDaysMs;
     });
   }, [dbRequirements, store.requirements, project?.id]);
@@ -4423,7 +4453,7 @@ function WbsTab({
 
                       <td className="px-4 py-2.5 whitespace-nowrap">{svc.tools ?? "—"}</td>
 
-                      <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">{svc.billingModel || wbsDetails.accounts.billingModel || "—"}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">-</td>
 
                       <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.startDate || "—"}</td>
 
@@ -4433,41 +4463,9 @@ function WbsTab({
 
                       <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{(svc as any).durationHours ?? (svc.duration ? svc.duration * 8 : "—")}</td>
 
-                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">-</td>
 
-                        {isModPending && svc.pendingQty ? (
-
-                          <span className="text-amber-700 font-bold">
-
-                            {Number(svc.pendingQty) * Number((svc as any).durationDays ?? svc.duration ?? 5)}
-
-                          </span>
-
-                        ) : (
-
-                          svc.totalDays ?? "—"
-
-                        )}
-
-                      </td>
-
-                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">
-
-                        {isModPending && svc.pendingQty ? (
-
-                          <span className="text-amber-700 font-bold">
-
-                            {Number(svc.pendingQty) * Number((svc as any).durationHours ?? ((svc as any).durationDays ?? svc.duration ?? 5) * 8)}
-
-                          </span>
-
-                        ) : (
-
-                          svc.totalHrs ?? (svc.totalDays ? svc.totalDays * 8 : "—")
-
-                        )}
-
-                      </td>
+                      <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">-</td>
 
                     </tr>
 
@@ -4687,7 +4685,7 @@ function WbsTab({
 
                   <td className="px-4 py-2.5 whitespace-nowrap">{svc.tools}</td>
 
-                  <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">{svc.billing}</td>
+                  <td className="px-4 py-2.5 whitespace-nowrap font-medium text-foreground">-</td>
 
                   <td className="px-4 py-2.5 text-center whitespace-nowrap font-mono">{svc.start}</td>
 
@@ -4697,9 +4695,9 @@ function WbsTab({
 
                   <td className="px-4 py-2.5 text-center tabular-nums whitespace-nowrap">{svc.durHrs}</td>
 
-                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalDays}</td>
+                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">-</td>
 
-                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">{svc.totalHrs}</td>
+                  <td className="px-4 py-2.5 text-center font-semibold tabular-nums whitespace-nowrap">-</td>
 
                 </tr>
 
@@ -4721,7 +4719,7 @@ function WbsTab({
 
         <div className="text-xs font-medium text-muted-foreground mb-1">Total Days</div>
 
-        <div className="text-lg font-semibold">35 days</div>
+        <div className="text-lg font-semibold">-</div>
 
       </div>
 
@@ -5614,11 +5612,11 @@ function OverviewTab({
 
                 { label: "Currency", value: currency },
 
-                { label: "Billing Model", value: wbs?.accounts?.billingModel },
+                { label: "Billing Model", value: wbs?.accounts?.billingModel ? "-" : "" },
 
-                { label: "Payment Terms", value: wbs?.accounts?.paymentTerms },
+                { label: "Payment Terms", value: wbs?.accounts?.paymentTerms ? "-" : "" },
 
-                { label: "PO Status", value: overviewPoStatus(wbs?.accounts?.poStatus, Boolean(poDocName)) },
+                { label: "PO Status", value: overviewPoStatus(wbs?.accounts?.poStatus, Boolean(poDocName)) ? "-" : "" },
 
               ]
 
@@ -5642,7 +5640,7 @@ function OverviewTab({
 
                     <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Days</div>
 
-                    <div className="text-sm font-semibold">{displayDays} days</div>
+                    <div className="text-sm font-semibold">-</div>
 
                   </div>
 
@@ -5654,7 +5652,7 @@ function OverviewTab({
 
                     <div className="text-[11px] text-muted-foreground font-medium mb-0.5">Total Hours</div>
 
-                    <div className="text-sm font-semibold">{displayHours} hrs</div>
+                    <div className="text-sm font-semibold">-</div>
 
                   </div>
 
@@ -6327,6 +6325,8 @@ const visibleApprovers = useMemo(() => {
               <button
 
                 type="button"
+                aria-expanded={showSearch}
+                aria-label={showSearch ? "Hide PMO approver search" : "Show PMO approver search"}
 
                 onClick={() => setShowSearch((openList) => !openList)}
 
@@ -6368,17 +6368,17 @@ const visibleApprovers = useMemo(() => {
 
                 )}
 
-                <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-200", showSearch && "rotate-180 text-primary")} />
+                <DisclosureButtonIcon expanded={showSearch} className={cn(showSearch && "text-primary")} />
 
               </button>
 
 
 
-              {/* Floating dropdown overlay - opens upward so modal window length NEVER increases */}
+              {/* In-flow dropdown panel so it never overlays or hides the footer Cancel & Submit buttons */}
 
               {showSearch && (
 
-                <div className="absolute top-full mt-1.5 left-0 right-0 z-50 rounded-lg border border-border bg-card shadow-2xl p-2.5 space-y-2 max-h-56 flex flex-col">
+                <div className="mt-1.5 rounded-lg border border-border bg-card shadow-xs p-2.5 space-y-2 max-h-52 flex flex-col">
 
                   <div className="flex items-center justify-between border-b border-border pb-1.5 px-0.5">
 
@@ -6606,9 +6606,9 @@ const visibleApprovers = useMemo(() => {
 
             {formError && <p className="text-[11px] text-destructive">{formError}</p>}
 
-            <div className="flex justify-end gap-2 border-t border-border pt-3">
+            <div className="flex justify-end gap-2 border-t border-border pt-3 mt-3">
 
-              <button type="button" onClick={() => setOpen(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent">Cancel</button>
+              <button type="button" onClick={() => setOpen(false)} className="rounded-md border border-input bg-card px-3 py-1.5 text-xs hover:bg-accent cursor-pointer transition-colors">Cancel</button>
 
               <button
 
@@ -6618,11 +6618,11 @@ const visibleApprovers = useMemo(() => {
 
                 disabled={saving || !reason.trim() || taggedIds.length === 0}
 
-                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 cursor-pointer transition-colors"
 
               >
 
-                Submit Request
+                {saving ? "Submitting..." : "Submit Request"}
 
               </button>
 
@@ -6653,15 +6653,15 @@ const visibleApprovers = useMemo(() => {
               <div className="bg-muted/30 border border-border rounded-lg p-3 grid grid-cols-2 gap-3">
                 <div>
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Project</span>
-                  <span className="font-semibold text-gray-800">{project.name}</span>
+                  <span className="font-semibold text-foreground">{project.name}</span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Customer</span>
-                  <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
+                  <span className="font-semibold text-foreground">{clientInfo?.name || "—"}</span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Current End Date</span>
-                  <span className="font-semibold text-gray-800">{formatToDayMonthYear(selectedExt.currentEndDate) || formatDate(selectedExt.currentEndDate)}</span>
+                  <span className="font-semibold text-foreground">{formatToDayMonthYear(selectedExt.currentEndDate) || formatDate(selectedExt.currentEndDate)}</span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Requested End Date</span>
@@ -6671,7 +6671,7 @@ const visibleApprovers = useMemo(() => {
 
               <div className="rounded-lg border border-border p-3 bg-card space-y-1.5">
                 <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Reason For Extension</span>
-                <p className="text-xs text-gray-700 leading-relaxed font-medium whitespace-pre-wrap">{selectedExt.reason || "No reason provided."}</p>
+                <p className="text-xs text-foreground leading-relaxed font-medium whitespace-pre-wrap">{selectedExt.reason || "No reason provided."}</p>
               </div>
 
               {/* Discussion Thread Chat */}
@@ -6767,10 +6767,7 @@ const visibleApprovers = useMemo(() => {
                   </span>
                   <div className="space-y-2 pl-1 max-h-36 overflow-y-auto pr-1">
                     {parsedHistory.map((h: any, idx: number) => {
-                      const dateStr = formatToDayMonthYear(h.at || h.date);
-                      const timeStr = h.at
-                        ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                        : (h.time || "");
+                      const { dateStr, timeStr } = formatTimelineDateTime(h, selectedExt.createdAtUtc);
                       const rawText = h.details || h.action || `Status transitioned to ${h.status || ""}${h.updatedBy ? ` by ${h.updatedBy}` : ""}${h.comment ? ` — "${h.comment}"` : ""}`;
 
                       let action = rawText;
@@ -6815,7 +6812,7 @@ const visibleApprovers = useMemo(() => {
                 <div className="bg-muted/10 rounded-lg border border-border p-3 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Requested By</span>
-                    <span className="font-semibold text-gray-800 truncate text-right">{selectedExt.requestedByName}</span>
+                    <span className="font-semibold text-foreground truncate text-right">{selectedExt.requestedByName}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Tagged Approvers</span>
@@ -6830,7 +6827,7 @@ const visibleApprovers = useMemo(() => {
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Created Date</span>
-                    <span className="font-semibold text-gray-800 truncate text-right">
+                    <span className="font-semibold text-foreground truncate text-right">
                       {formatToDayMonthYear(selectedExt.createdAtUtc)}
                     </span>
                   </div>
@@ -7788,7 +7785,7 @@ function ChangeLeaderPanel({
 
                       <div className="flex items-center justify-between gap-2">
 
-                        <span className="font-semibold text-gray-800 truncate">{p.name}</span>
+                        <span className="font-semibold text-foreground truncate">{p.name}</span>
 
                         {showWorkload && stats && (
 
@@ -8026,7 +8023,7 @@ function DefaultTasksTab({ project }: { project: Project }) {
 
                   <td className="px-3 py-2.5"><TaskStatusPill status={t.status} /></td>
 
-                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{new Date(t.dueDate).toLocaleDateString()}</td>
+                  <td className="px-3 py-2.5 text-xs text-muted-foreground">{formatDate(t.dueDate)}</td>
 
                   <td className="px-3 py-2.5">
 
@@ -8154,7 +8151,7 @@ function formatDisplayDate(dateStr?: string | null): string {
 
     if (!isNaN(dt.getTime())) {
 
-      return dt.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+      return `${String(d).padStart(2, "0")}-${String(m + 1).padStart(2, "0")}-${y}`;
 
     }
 
@@ -8322,7 +8319,7 @@ function AvatarStack({ assignees }: { assignees: AvatarStackAssignee[] }) {
 
         {extra >= 1 && (
 
-          <span className="relative -ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-card bg-white px-1 text-[10px] font-bold text-foreground shadow-sm z-20 select-none">
+          <span className="relative -ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-card bg-white px-1 text-[10px] font-bold text-[#1d1d1f] shadow-sm z-20 select-none">
 
             +{extra}
 
@@ -10609,7 +10606,7 @@ function DhTasksTab({
 
                           >
 
-                            <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                            <DisclosureTriangleIcon expanded={isExpanded} />
 
                           </button>
 
@@ -10703,7 +10700,7 @@ function DhTasksTab({
 
                           >
 
-                            <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                            <DisclosureTriangleIcon expanded={isExpanded} />
 
                           </button>
 
@@ -10819,7 +10816,7 @@ function DhTasksTab({
 
                             >
 
-                              <ChevronRight className={cn("h-3.5 w-3.5 transform transition-transform", isExpanded && "rotate-90")} />
+                              <DisclosureTriangleIcon expanded={isExpanded} />
 
                             </button>
 
@@ -10937,7 +10934,7 @@ function DhTasksTab({
 
                                           <div className="flex items-center justify-center gap-1.5 h-8" title={t.taskTitle || t.taskId}>
 
-                                            <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                            <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 
                                             <span className="font-semibold text-foreground/90 truncate max-w-[220px]">
 
@@ -11263,15 +11260,17 @@ function DhTasksTab({
 
                                             ) : (
 
-                                              <select
-
+                                              <SearchableSelect
                                                 value={t.stage}
-
                                                 disabled={readOnly}
-
-                                                onChange={(e) => {
-
-                                                  const v = e.target.value as TreeTaskStage;
+                                                clearable={false}
+                                                placeholder="Stage"
+                                                options={[
+                                                  ...TREE_TASK_STAGES.filter((s) => s !== "Not Started" && s !== "Completed" && s !== ("Assigned" as any)),
+                                                  "Completed",
+                                                ]}
+                                                onChange={(value) => {
+                                                  const v = value as TreeTaskStage;
 
                                                   if (v === t.stage) return;
 
@@ -11339,19 +11338,7 @@ function DhTasksTab({
 
                                                 }}
 
-                                                className={cn("h-7 rounded-full border px-2 text-[10px] font-medium outline-none focus-visible:ring-1 focus-visible:ring-ring text-center cursor-pointer", treeStageCls(t.stage))}
-
-                                              >
-
-                                                {TREE_TASK_STAGES.filter(s => s !== "Not Started" && s !== "Completed" && s !== ("Assigned" as any)).map((s) => (
-
-                                                  <option key={s} value={s}>{s}</option>
-
-                                                ))}
-
-                                                <option value="Completed">Completed</option>
-
-                                              </select>
+                                              />
 
                                             )}
 
@@ -12545,7 +12532,7 @@ function AssignTaskModal({ project, task, pool, selected, historyEntries, onClos
 
                 <span className="text-[10px] text-muted-foreground">
 
-                  {new Date(h.timestamp).toLocaleDateString()} {new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatDate(h.timestamp)} {new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 
                 </span>
 
@@ -12751,11 +12738,17 @@ type ProjectTeamRow = {
 
   memberRole?: string;
 
+  deletedAtUtc?: string | null;
+
+  isActive?: boolean;
+
 };
 
 
 
 function teamDisplayRank(row: ProjectTeamRow): number {
+
+  if (row.deletedAtUtc || row.isActive === false) return 4;
 
   if (row.memberRole === "SeniorProjectManager") return 0;
 
@@ -12816,6 +12809,10 @@ function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
     isShadowTeam: m.isShadowTeam,
 
     memberRole: m.memberRole || (m.isShadowTeam ? "ShadowTeam" : "ProjectTeam"),
+
+    deletedAtUtc: m.deletedAtUtc ?? null,
+
+    isActive: m.isActive ?? (m.deletedAtUtc ? false : true),
 
   };
 
@@ -12918,6 +12915,7 @@ function DhTeamTab({
   const [action, setAction] = useState<{ type: ActionType; person: Person | null }>({ type: null, person: null });
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showRequestsModal, setShowRequestsModal] = useState(false);
 
   const [apiTeamRows, setApiTeamRows] = useState<ProjectTeamRow[] | null>(null);
 
@@ -13177,7 +13175,7 @@ function DhTeamTab({
 
       const detail = shadowDetails[id] || {
 
-        duration: `${new Date(project.startDate).toLocaleDateString()} → ${new Date(project.endDate).toLocaleDateString()}`,
+        duration: `${formatDate(project.startDate)} → ${formatDate(project.endDate)}`,
 
         billability: "Non-Billable" as Billability,
 
@@ -13522,19 +13520,21 @@ function DhTeamTab({
         </div>
 
         {!readOnly && (
-
-        <button
-
-          onClick={() => setShowAddModal(true)}
-
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-
-        >
-
-          <Plus className="h-3.5 w-3.5" /> Add Team Member
-
-        </button>
-
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowRequestsModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-muted"
+          >
+            <Eye className="h-3.5 w-3.5" /> View Requests
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add Team Member
+          </button>
+        </div>
         )}
 
       </div>
@@ -13576,8 +13576,8 @@ function DhTeamTab({
             {!teamLoading && (teamTab === "project" ? rows : shadowRows).map((r) => {
 
               const managerLabel = teamTab === "project" ? managerRoleLabel(r.memberRole) : null;
-
-              const actionsLocked = Boolean(managerLabel);
+              const isTransferred = Boolean(r.deletedAtUtc) || r.isActive === false;
+              const actionsLocked = Boolean(managerLabel) || isTransferred;
 
               const allocationLabel = managerLabel && project.startDate && project.endDate
 
@@ -13587,7 +13587,7 @@ function DhTeamTab({
 
               return (
 
-              <tr key={r.person.id} className="hover:bg-accent/30">
+              <tr key={r.person.id} className={cn("hover:bg-accent/30", isTransferred && "opacity-60 bg-muted/20")}>
 
                 {/* Resource — left aligned with avatar */}
 
@@ -13602,6 +13602,12 @@ function DhTeamTab({
                       <div className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
 
                         {r.person.name}
+
+                        {isTransferred && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full border border-muted-foreground/30 bg-muted px-1.5 py-0 text-[10px] font-semibold text-muted-foreground">
+                            Transferred
+                          </span>
+                        )}
 
                         {managerLabel && (
 
@@ -14001,6 +14007,14 @@ function DhTeamTab({
 
 
 
+      {showRequestsModal && (
+        <ProjectAllocationRequestsModal
+          projectId={project.id}
+          projectName={project.name}
+          onClose={() => setShowRequestsModal(false)}
+        />
+      )}
+
       {showAddModal && (
 
         <AddTeamMemberModal
@@ -14009,7 +14023,7 @@ function DhTeamTab({
 
           teamType={teamTab}
 
-          existingPersonIds={(teamTab === "project" ? rows : shadowRows).map((r) => r.person.id)}
+          existingPersonIds={(teamTab === "project" ? rows : shadowRows).filter((r) => !r.deletedAtUtc && r.isActive !== false).map((r) => r.person.id)}
 
           onClose={() => setShowAddModal(false)}
 
@@ -14039,8 +14053,39 @@ function DhTeamTab({
                     isTeamLead: Boolean(extras?.asTeamLead),
                     isShadowTeam: false,
                   });
+                  if (req) {
+                    const desc = [
+                      `Resource: ${req.employeeName || newRow.person.name}${req.employeeCode ? ` (${req.employeeCode})` : ""}`,
+                      `Allocation Duration: ${formatToDayMonthYear(req.allocationStartDate)} → ${formatToDayMonthYear(req.allocationEndDate)}`,
+                      `Billability: ${req.billability}`,
+                      `Resource Type: ${req.resourceType}`,
+                      `Role: ${req.isTeamLead ? "Team Lead" : "Team Member"}`,
+                    ].join("\n");
+                    dhStore.mergeApprovals([{
+                      id: `APP-ALLOC-${req.id}`,
+                      projectId: req.projectId,
+                      projectName: req.projectName || project.name,
+                      requestType: "Resource Allocation Approval",
+                      requestedBy: req.requestedByName || "Project Manager",
+                      requestedById: req.requestedByEmployeeId || "",
+                      requestedDate: req.createdAtUtc ? req.createdAtUtc.slice(0, 10) : "",
+                      createdAtUtc: req.createdAtUtc,
+                      status: "Pending",
+                      description: desc,
+                      comments: [],
+                      history: [
+                        {
+                          status: "Pending",
+                          at: req.createdAtUtc || new Date().toISOString(),
+                          updatedBy: req.requestedByName || "Requester",
+                          details: `Requested allocation for ${req.employeeName || newRow.person.name}`,
+                        },
+                      ],
+                    }]);
+                  }
+                  const targetApprover = req.approverName || (newRow.resourceType === "Dedicated" ? "PMO" : "Reporting Manager");
                   toast.success(
-                    `Allocation approval request sent to ${req.approverName || "Reporting Manager"} for approval`
+                    `Allocation approval request sent to ${targetApprover} for approval`
                   );
                   setShowAddModal(false);
                 } catch (err) {
@@ -14486,11 +14531,12 @@ function TeamActionModal({
 
             ) : (
 
-              <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.billability} onChange={(e) => setEditState((s) => ({ ...s, billability: e.target.value as Billability }))}>
-
-                {(["Billable", "Non-Billable"] as Billability[]).map((o) => <option key={o}>{o}</option>)}
-
-              </select>
+              <SearchableSelect
+                value={editState.billability}
+                onChange={(value) => setEditState((s) => ({ ...s, billability: value as Billability }))}
+                options={["Billable", "Non-Billable"]}
+                clearable={false}
+              />
 
             )}
 
@@ -14512,11 +14558,12 @@ function TeamActionModal({
 
             ) : (
 
-              <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={editState.resourceType} onChange={(e) => setEditState((s) => ({ ...s, resourceType: e.target.value as ResourceType }))}>
-
-                {(["Dedicated", "Shared Resource"] as ResourceType[]).map((o) => <option key={o}>{o}</option>)}
-
-              </select>
+              <SearchableSelect
+                value={editState.resourceType}
+                onChange={(value) => setEditState((s) => ({ ...s, resourceType: value as ResourceType }))}
+                options={["Dedicated", "Shared Resource"]}
+                clearable={false}
+              />
 
             )}
 
@@ -14630,11 +14677,12 @@ function TeamActionModal({
 
           <Field label="Badge">
 
-            <select className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm" value={praise.tag} onChange={(e) => setPraise((s) => ({ ...s, tag: e.target.value }))}>
-
-              {["Team Player", "Innovator", "Customer Hero", "Above & Beyond", "Mentor"].map((o) => <option key={o}>{o}</option>)}
-
-            </select>
+            <SearchableSelect
+              value={praise.tag}
+              onChange={(value) => setPraise((s) => ({ ...s, tag: value }))}
+              options={["Team Player", "Innovator", "Customer Hero", "Above & Beyond", "Mentor"]}
+              clearable={false}
+            />
 
           </Field>
 
@@ -14815,7 +14863,7 @@ function TeamActionModal({
                     onClick={() => setFeedback((s) => ({ ...s, rating: star }))}
                   />
                 ))}
-                <span className="ml-1 text-xs font-bold text-gray-700">{feedback.rating}/5</span>
+                <span className="ml-1 text-xs font-bold text-foreground">{feedback.rating}/5</span>
               </div>
             </div>
           </Field>
@@ -15153,7 +15201,7 @@ function AddTeamMemberModal({
 
     const clash = dedicatedClash(bookingDay(dates.start), bookingDay(dates.end), allocationBookings);
 
-    if (clash) {
+    if (clash && resourceType !== "Dedicated") {
 
       toast.error(dedicatedClashMessage(clash));
 
@@ -15351,6 +15399,8 @@ function AddTeamMemberModal({
 
             bookings={allocationBookings}
 
+            allowDedicatedSelection={resourceType === "Dedicated"}
+
           />
 
         </Field>
@@ -15455,23 +15505,12 @@ function AddTeamMemberModal({
 
           ) : (
 
-            <select
-
+            <SearchableSelect
               value={resourceType}
-
-              onChange={(e) => setResourceType(e.target.value as ResourceType)}
-
-              className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
-            >
-
-              {(["Dedicated", "Shared Resource"] as ResourceType[]).map((t) => (
-
-                <option key={t} value={t}>{t}</option>
-
-              ))}
-
-            </select>
+              onChange={(value) => setResourceType(value as ResourceType)}
+              options={["Dedicated", "Shared Resource"]}
+              clearable={false}
+            />
 
           )}
 
@@ -15515,6 +15554,171 @@ function AddTeamMemberModal({
 
   );
 
+}
+
+
+
+function ProjectAllocationRequestsModal({
+  projectId,
+  projectName,
+  onClose,
+}: {
+  projectId: string;
+  projectName: string;
+  onClose: () => void;
+}) {
+  const [requests, setRequests] = useState<ProjectResourceAllocationRequestDto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadRequests = () => {
+    setLoading(true);
+    fetchProjectAllocationRequests(projectId)
+      .then((items) => setRequests(items))
+      .catch((err) => {
+        console.warn("Failed to load allocation requests", err);
+        toast.error("Could not load allocation requests");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, [projectId]);
+
+  return (
+    <Modal title={`Allocation Requests — ${projectName}`} onClose={onClose} wide draggable>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">
+            Status and decision updates from PMO and Reporting Managers for resource allocation requests.
+          </p>
+          <button
+            type="button"
+            onClick={loadRequests}
+            className="inline-flex items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1 text-xs hover:bg-muted"
+          >
+            <RotateCw className={cn("h-3 w-3", loading && "animate-spin")} /> Refresh
+          </button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto rounded-lg border border-border">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 text-left font-medium">Resource</th>
+                <th className="px-3 py-2 text-center font-medium">Type</th>
+                <th className="px-3 py-2 text-center font-medium">Duration</th>
+                <th className="px-3 py-2 text-center font-medium">Approver</th>
+                <th className="px-3 py-2 text-center font-medium">Status</th>
+                <th className="px-3 py-2 text-left font-medium">Notes & Feedback</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {loading && requests.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                    Loading requests…
+                  </td>
+                </tr>
+              ) : requests.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                    No allocation requests found for this project.
+                  </td>
+                </tr>
+              ) : (
+                requests.map((req) => {
+                  const statusNormalized = (req.status || "Pending").trim();
+                  const statusBadgeClass =
+                    statusNormalized === "Approved"
+                      ? "bg-success/10 border-success/30 text-success"
+                      : statusNormalized === "Rejected"
+                      ? "bg-destructive/10 border-destructive/30 text-destructive"
+                      : statusNormalized === "Hold" || statusNormalized === "Request Changes"
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                      : "bg-muted border-border text-muted-foreground";
+
+                  let latestComment = "";
+                  if (req.commentsJson) {
+                    try {
+                      const comments = JSON.parse(req.commentsJson);
+                      if (Array.isArray(comments) && comments.length > 0) {
+                        const last = comments[comments.length - 1];
+                        latestComment = last.text || last.comment || "";
+                      }
+                    } catch {}
+                  }
+                  if (!latestComment && (req as any).historyJson) {
+                    try {
+                      const hist = JSON.parse((req as any).historyJson);
+                      if (Array.isArray(hist) && hist.length > 0) {
+                        const last = hist[hist.length - 1];
+                        latestComment = last.comment || last.details || last.action || "";
+                      }
+                    } catch {}
+                  }
+
+                  return (
+                    <tr key={req.id} className="hover:bg-accent/20">
+                      <td className="px-3 py-2.5">
+                        <div className="font-medium text-foreground">{req.employeeName}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {[req.employeeCode, req.employeeRole, req.department].filter(Boolean).join(" · ")}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                            req.resourceType === "Dedicated"
+                              ? "bg-primary/10 border-primary/30 text-primary"
+                              : "bg-info/10 border-info/30 text-info"
+                          )}
+                        >
+                          {req.resourceType}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-xs text-muted-foreground whitespace-nowrap">
+                        {formatToDayMonthYear(req.allocationStartDate)} → {formatToDayMonthYear(req.allocationEndDate)}
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-xs">
+                        <span className="font-medium text-foreground">
+                          {req.approverName || (req.resourceType === "Dedicated" ? "PMO" : "Reporting Manager")}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-center">
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
+                            statusBadgeClass
+                          )}
+                        >
+                          {statusNormalized}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-muted-foreground max-w-xs truncate" title={latestComment}>
+                        {latestComment || "—"}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-input bg-card px-4 py-1.5 text-sm font-medium hover:bg-accent"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
 }
 
 
@@ -15911,21 +16115,23 @@ function HealthIssuesPanel({ issues: _initialLegacyIssues, project, canRaise }: 
 
             <Field label="Issue Type">
 
-              <select value={formData.category} onChange={(e) => setFormData((s) => ({ ...s, category: e.target.value as IssueCategory }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-
-                {(["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"] as IssueCategory[]).map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-
-              </select>
+              <SearchableSelect
+                value={formData.category}
+                onChange={(value) => setFormData((s) => ({ ...s, category: value as IssueCategory }))}
+                options={["Technical Related Issues", "Behavioral Related Issues", "Process Related Issues"]}
+                clearable={false}
+              />
 
             </Field>
 
             <Field label="Priority">
 
-              <select value={formData.priority} onChange={(e) => setFormData((s) => ({ ...s, priority: e.target.value as DhPriority }))} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-
-                {(["Low", "Medium", "High", "Critical"] as DhPriority[]).map((pri) => <option key={pri} value={pri}>{pri}</option>)}
-
-              </select>
+              <SearchableSelect
+                value={formData.priority}
+                onChange={(value) => setFormData((s) => ({ ...s, priority: value as DhPriority }))}
+                options={["Low", "Medium", "High", "Critical"]}
+                clearable={false}
+              />
 
             </Field>
 
@@ -15991,7 +16197,7 @@ function HealthIssuesPanel({ issues: _initialLegacyIssues, project, canRaise }: 
 
                       <span>·</span>
 
-                      <span>{new Date(issue.createdAtUtc).toLocaleDateString()}</span>
+                      <span>{formatDate(issue.createdAtUtc)}</span>
 
                     </div>
 
@@ -16055,7 +16261,7 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
 
     const s = (status || "").toLowerCase().trim();
 
-    let colorClasses = "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
+    let colorClasses = "bg-gray-100 text-foreground border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
 
     if (s === "resolved" || s === "solved" || s === "closed") {
 
@@ -16147,7 +16353,7 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
 
                 <p className="mt-1 text-xs text-muted-foreground">
 
-                  Raised by {alert.raisedByName} · {new Date(alert.createdAtUtc).toLocaleDateString()}
+                  Raised by {alert.raisedByName} · {formatDate(alert.createdAtUtc)}
 
                 </p>
 
@@ -16163,7 +16369,7 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
 
                         <span>·</span>
 
-                        <span>{new Date(alert.statusChangedAtUtc).toLocaleDateString()}</span>
+                        <span>{formatDate(alert.statusChangedAtUtc)}</span>
 
                       </>
 
@@ -16198,33 +16404,112 @@ function HealthAlertsPanel({ alerts: _initialAlerts, project }: { alerts?: DhAle
 
 
 function formatToDayMonthYear(val?: string | null): string {
-
   if (!val) return "";
-
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
-
-  if (match) {
-
-    return `${match[3]}-${match[2]}-${match[1]}`;
-
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+    const [y, m, d] = val.split("-");
+    return `${d}-${m}-${y}`;
   }
-
   const d = new Date(val);
-
   if (!isNaN(d.getTime())) {
-
     const day = String(d.getDate()).padStart(2, "0");
-
     const month = String(d.getMonth() + 1).padStart(2, "0");
-
     const year = d.getFullYear();
-
     return `${day}-${month}-${year}`;
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(val);
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
+  }
+  return String(val);
+}
 
+function formatTimelineDateTime(
+  h?: { at?: string; date?: string; time?: string } | any,
+  fallbackCreatedAt?: string
+): { dateStr: string; timeStr: string } {
+  if (!h) {
+    if (fallbackCreatedAt) {
+      const d = new Date(fallbackCreatedAt);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return {
+          dateStr: `${day}-${month}-${year}`,
+          timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+    return { dateStr: "—", timeStr: "" };
   }
 
-  return String(val);
+  if (h.at) {
+    const d = new Date(h.at);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
 
+  if (h.date && h.time) {
+    if (/am|pm/i.test(h.time)) {
+      return {
+        dateStr: formatToDayMonthYear(h.date),
+        timeStr: h.time.trim()
+      };
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(h.date) && /^\d{1,2}:\d{2}(:\d{2})?/.test(h.time)) {
+      const utcIso = `${h.date}T${h.time}${h.time.endsWith("Z") ? "" : "Z"}`;
+      const d = new Date(utcIso);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return {
+          dateStr: `${day}-${month}-${year}`,
+          timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+  }
+
+  if (h.date) {
+    const d = new Date(h.date);
+    if (!isNaN(d.getTime()) && (h.date.includes("T") || h.date.includes("Z"))) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+    return {
+      dateStr: formatToDayMonthYear(h.date),
+      timeStr: h.time || ""
+    };
+  }
+
+  if (fallbackCreatedAt) {
+    const d = new Date(fallbackCreatedAt);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, "0");
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const year = d.getFullYear();
+      return {
+        dateStr: `${day}-${month}-${year}`,
+        timeStr: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
+
+  return { dateStr: "—", timeStr: "" };
 }
 
 
@@ -16739,11 +17024,11 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
               return (
                 <tr key={esc.id} className="hover:bg-accent/30">
-                  <td className="px-3 py-2.5 font-mono font-bold text-gray-800">{escalationIdDisplay}</td>
-                  <td className="px-3 py-2.5 font-semibold text-gray-700">{esc.serviceName || "Core Project"}</td>
-                  <td className="px-3 py-2.5 text-gray-800 font-medium">{esc.subject}</td>
+                  <td className="px-3 py-2.5 font-mono font-bold text-foreground">{escalationIdDisplay}</td>
+                  <td className="px-3 py-2.5 font-semibold text-foreground">{esc.serviceName || "Core Project"}</td>
+                  <td className="px-3 py-2.5 text-foreground font-medium">{esc.subject}</td>
                   <td className="px-3 py-2.5">
-                    <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-gray-700">
+                    <span className="inline-flex rounded-full border border-border bg-muted px-2 py-0.5 text-[9px] font-bold text-foreground">
                       {esc.escalationType || "General"}
                     </span>
                   </td>
@@ -16821,7 +17106,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Project</span>
 
-                  <span className="font-semibold text-gray-800">{project.name}</span>
+                  <span className="font-semibold text-foreground">{project.name}</span>
 
                 </div>
 
@@ -16829,7 +17114,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Customer</span>
 
-                  <span className="font-semibold text-gray-800">{selectedEsc.customerName || clientInfo?.name || "—"}</span>
+                  <span className="font-semibold text-foreground">{selectedEsc.customerName || clientInfo?.name || "—"}</span>
 
                 </div>
 
@@ -16845,7 +17130,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="text-[9px] uppercase font-bold text-muted-foreground block">Escalation Type</span>
 
-                  <span className="font-semibold text-gray-800">{selectedEsc.escalationType || "—"}</span>
+                  <span className="font-semibold text-foreground">{selectedEsc.escalationType || "—"}</span>
 
                 </div>
 
@@ -16857,11 +17142,11 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                 <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Subject</span>
 
-                <p className="text-xs text-gray-800 font-semibold">{selectedEsc.subject}</p>
+                <p className="text-xs text-foreground font-semibold">{selectedEsc.subject}</p>
 
                 <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1 pt-2">Description</span>
 
-                <p className="text-xs text-gray-700 leading-relaxed font-medium whitespace-pre-wrap">{selectedEsc.description || "No full description provided."}</p>
+                <p className="text-xs text-foreground leading-relaxed font-medium whitespace-pre-wrap">{selectedEsc.description || "No full description provided."}</p>
 
               </div>
 
@@ -16995,11 +17280,8 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                     {parsedHistory.map((h: any, idx: number) => {
 
-                      const dateStr = formatToDayMonthYear(h.at || h.date);
-
-                      const timeStr = h.at ? new Date(h.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : (h.time || "");
-
-                      const rawText = h.action || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
+                      const { dateStr, timeStr } = formatTimelineDateTime(h, selectedEsc.createdAtUtc);
+                      const rawText = h.action || h.details || `Status transitioned to ${h.status || ""} by ${h.updatedBy || h.by || ""}${h.details ? ` — "${h.details}"` : ""}`;
 
                       let action = rawText;
                       let remark = "";
@@ -17061,7 +17343,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Raised By</span>
 
-                    <span className="font-semibold text-gray-800 truncate text-right">{selectedEsc.raisedByName}</span>
+                    <span className="font-semibold text-foreground truncate text-right">{selectedEsc.raisedByName}</span>
 
                   </div>
 
@@ -17103,7 +17385,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                     <span className="text-[9px] uppercase font-bold text-muted-foreground shrink-0 whitespace-nowrap">Expected Resolution</span>
 
-                    <span className="font-semibold text-gray-800 truncate text-right">
+                    <span className="font-semibold text-foreground truncate text-right">
 
                       {formatToDayMonthYear(selectedEsc.expectedResolutionDate) || "—"}
 
@@ -17223,7 +17505,7 @@ function HealthEscalationsPanel({ project }: { project: Project; escalations?: a
 
                   <span className="font-semibold text-[9px] text-muted-foreground uppercase block border-b border-border pb-1">Resolution & Outcome Notes</span>
 
-                  <p className="text-xs text-gray-700 leading-relaxed font-medium">
+                  <p className="text-xs text-foreground leading-relaxed font-medium">
 
                     {selectedEsc.resolutionDetails || (linkedAlert as any)?.resolutionDetails || (selectedEsc.expectedResolutionDate ? `Expected Resolution Date: ${formatToDayMonthYear(selectedEsc.expectedResolutionDate)}` : "No resolution details provided.")}
 
@@ -17551,29 +17833,15 @@ function HealthAppreciationPanel({
 
               ) : (
 
-                <select
-
+                <SearchableSelect
                   value={formData.recipientEmployeeId}
-
-                  onChange={(e) => setFormData((s) => ({ ...s, recipientEmployeeId: e.target.value }))}
-
-                  className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
-                >
-
-                  {teamMembers.map((m) => (
-
-                    <option key={m.employeeId} value={m.employeeId}>
-
-                      {m.employeeName}
-
-                      {m.employeeCode ? ` (${m.employeeCode})` : ""} — {m.employeeRole || m.memberRole || "Team Member"}
-
-                    </option>
-
-                  ))}
-
-                </select>
+                  onChange={(value) => setFormData((s) => ({ ...s, recipientEmployeeId: value }))}
+                  placeholder="Select a team member"
+                  options={teamMembers.map((m) => ({
+                    value: m.employeeId,
+                    label: `${m.employeeName}${m.employeeCode ? ` (${m.employeeCode})` : ""} — ${m.employeeRole || m.memberRole || "Team Member"}`,
+                  }))}
+                />
 
               )}
 
@@ -17583,27 +17851,12 @@ function HealthAppreciationPanel({
 
             <Field label="Badge">
 
-              <select
-
+              <SearchableSelect
                 value={formData.badge}
-
-                onChange={(e) => setFormData((s) => ({ ...s, badge: e.target.value }))}
-
-                className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-
-              >
-
-                {BADGE_OPTIONS.map((b) => (
-
-                  <option key={b} value={b}>
-
-                    {b}
-
-                  </option>
-
-                ))}
-
-              </select>
+                onChange={(value) => setFormData((s) => ({ ...s, badge: value }))}
+                options={BADGE_OPTIONS}
+                clearable={false}
+              />
 
             </Field>
 
@@ -18188,7 +18441,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
     <div className="space-y-3">
 
       <div className="flex items-center justify-between">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Additional Requirements ({requirements.length})</h4>
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additional Requirements ({requirements.length})</h4>
         {canManage && (
           <button
             onClick={() => setShowModal(true)}
@@ -18239,7 +18492,7 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
               <span>By: {req.requestedBy}</span>
 
-              <span>{new Date(req.requestedDate).toLocaleDateString()}</span>
+              <span>{formatDate(req.requestedDate)}</span>
 
             </div>
 
@@ -18325,17 +18578,15 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
                 <Field label="Requirement Title" required>
 
-                  <select value={title} onChange={(e) => { setTitle(e.target.value); if (e.target.value !== "Other") setCustomTitle(""); }} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-
-                    <option value="" disabled>Select requirement type...</option>
-
-                    <option value="Resource Requirement">Resource Requirement</option>
-
-                    <option value="Scope Requirement">Scope Requirement</option>
-
-                    <option value="Other">Other</option>
-
-                  </select>
+                  <SearchableSelect
+                    value={title}
+                    onChange={(value) => {
+                      setTitle(value);
+                      if (value !== "Other") setCustomTitle("");
+                    }}
+                    placeholder="Select requirement type..."
+                    options={["Resource Requirement", "Scope Requirement", "Other"]}
+                  />
 
                 </Field>
 
@@ -18355,17 +18606,12 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
               <Field label="Service to Cancel" required>
 
-                <select value={scopeCancellation} onChange={(e) => setScopeCancellation(e.target.value)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring">
-
-                  <option value="" disabled>Select service...</option>
-
-                  {projectServices.map((svc) => (
-
-                    <option key={svc.id} value={svc.name}>{svc.name}</option>
-
-                  ))}
-
-                </select>
+                <SearchableSelect
+                  value={scopeCancellation}
+                  onChange={setScopeCancellation}
+                  placeholder="Select service..."
+                  options={projectServices.map((svc) => ({ value: svc.name, label: svc.name }))}
+                />
 
               </Field>
 
@@ -18381,11 +18627,12 @@ function AdditionalRequirementsPanel({ requirements, project, clientName, canMan
 
               <Field label="Priority">
 
-                <select value={priority} onChange={(e) => setPriority(e.target.value as DhPriority)} className="h-9 w-full rounded-md border border-input bg-card px-3 text-sm">
-
-                  {["Low", "Medium", "High", "Critical"].map((p) => <option key={p} value={p}>{p}</option>)}
-
-                </select>
+                <SearchableSelect
+                  value={priority}
+                  onChange={(value) => setPriority(value as DhPriority)}
+                  options={["Low", "Medium", "High", "Critical"]}
+                  clearable={false}
+                />
 
               </Field>
 
@@ -18655,7 +18902,7 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
           <Info icon={Users} label="Requested By" value={req.requestedBy} />
 
-          <Info icon={Calendar} label="Date" value={new Date(req.requestedDate).toLocaleDateString()} />
+          <Info icon={Calendar} label="Date" value={formatDate(req.requestedDate)} />
 
           <Info icon={AlertTriangle} label="Priority" value={req.priority} />
 
@@ -18689,9 +18936,9 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
           <div className="border-b border-border pb-3 mb-3">
 
-            <h4 className="font-semibold text-base text-gray-800">{req.title}</h4>
+            <h4 className="font-semibold text-base text-foreground">{req.title}</h4>
 
-            <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{req.description}</p>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">{req.description}</p>
 
           </div>
 
@@ -18717,13 +18964,13 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
                   <div className="flex items-center justify-between mb-1">
 
-                    <span className="font-semibold text-gray-800">{c.authorName}</span>
+                    <span className="font-semibold text-foreground">{c.authorName}</span>
 
-                    <span className="text-[10px] text-muted-foreground">{new Date(c.at).toLocaleString()}</span>
+                    <span className="text-[10px] text-muted-foreground">{formatDate(c.at)} {new Date(c.at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</span>
 
                   </div>
 
-                  <p className="text-gray-700 leading-normal">{c.text}</p>
+                  <p className="text-foreground leading-normal">{c.text}</p>
 
                 </div>
 
@@ -18765,7 +19012,7 @@ function RequirementDetailsModal({ requirement, onClose, canManage = true }: { r
 
                     <span className="ml-2 text-[10px] text-muted-foreground">
 
-                      {new Date(h.at).toLocaleDateString()} {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {formatDate(h.at)} {new Date(h.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
 
                     </span>
 
@@ -19363,29 +19610,12 @@ function InterviewSchedulingPanel({ project, isEM: _isEM, canManage = true }: { 
 
             <Field label="Resource Name" required as="div">
 
-              <select
-
+              <SearchableSelect
                 value={resourceId}
-
-                onChange={(e) => setResourceId(e.target.value)}
-
-                className={inputCls}
-
-              >
-
-                <option value="">Select a team member</option>
-
-                {teamMembers.map((member) => (
-
-                  <option key={member.employeeId} value={member.employeeId}>
-
-                    {member.employeeName}
-
-                  </option>
-
-                ))}
-
-              </select>
+                onChange={setResourceId}
+                placeholder="Select a team member"
+                options={teamMembers.map((member) => ({ value: member.employeeId, label: member.employeeName }))}
+              />
 
               {teamMembers.length === 0 && (
 
@@ -19447,15 +19677,12 @@ function InterviewSchedulingPanel({ project, isEM: _isEM, canManage = true }: { 
 
             <Field label="Interview Result" required as="div">
 
-              <select value={resultValue} onChange={(e) => setResultValue(e.target.value as InterviewResult)} className={inputCls}>
-
-                {(["Pending", "Selected", "Rejected", "Postponed"] as InterviewResult[]).map((option) => (
-
-                  <option key={option} value={option}>{option}</option>
-
-                ))}
-
-              </select>
+              <SearchableSelect
+                value={resultValue}
+                onChange={(value) => setResultValue(value as InterviewResult)}
+                options={["Pending", "Selected", "Rejected", "Postponed"]}
+                clearable={false}
+              />
 
             </Field>
 
@@ -19593,29 +19820,13 @@ function PrerequisiteValidationPanel({ prereq, project, isEM }: { prereq: DhProj
 
             {isEM ? (
 
-              <select
-
+              <SearchableSelect
                 value={editingStatus}
-
-                onChange={(e) => handleStatusChange(e.target.value as PrereqStatus)}
-
-                className={cn(
-
-                  "h-8 rounded-md border px-2.5 text-[10px] font-bold shadow-xs transition-colors cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-ring",
-
-                  editingStatus === "Validated"
-
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-
-                    : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-
-                )}
-
-              >
-
-                {(["Validation Pending", "Validated"] as PrereqStatus[]).map((s) => <option key={s} value={s}>{s}</option>)}
-
-              </select>
+                onChange={(value) => handleStatusChange(value as PrereqStatus)}
+                options={["Validation Pending", "Validated"]}
+                clearable={false}
+                className="w-44"
+              />
 
             ) : (
 
@@ -20303,7 +20514,7 @@ function WbsPrerequisiteSection({
 
       <div className="border-t border-border pt-5">
 
-        <h3 className="text-sm font-semibold mb-4 text-gray-900">PMO Intake & Prerequisite Workflow</h3>
+        <h3 className="text-sm font-semibold mb-4 text-foreground">PMO Intake & Prerequisite Workflow</h3>
 
 
 
@@ -20325,7 +20536,7 @@ function WbsPrerequisiteSection({
 
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-xs font-semibold text-blue-600">1</span>
 
-              <h4 className="text-xs font-bold text-gray-800">Customer Profile Information</h4>
+              <h4 className="text-xs font-bold text-foreground">Customer Profile Information</h4>
 
             </div>
 
@@ -20337,7 +20548,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-muted-foreground text-[11px]">Customer ID</span>
 
-                <span className="font-semibold text-gray-800 font-mono text-[11px]">
+                <span className="font-semibold text-foreground font-mono text-[11px]">
 
                   {formatCustomerId(client?.id || project.clientId)}
 
@@ -20365,7 +20576,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-muted-foreground text-[11px]">Customer Name</span>
 
-                <span className="font-semibold text-gray-800 truncate text-[11px]">{client?.name || clientInfo?.name || "Customer"}</span>
+                <span className="font-semibold text-foreground truncate text-[11px]">{client?.name || clientInfo?.name || "Customer"}</span>
 
               </div>
 
@@ -20421,7 +20632,7 @@ function WbsPrerequisiteSection({
 
                     <div key={idx} className="rounded-md border border-border bg-muted/20 p-2 text-xs space-y-1">
 
-                      <div className="flex items-center justify-between font-semibold text-gray-800 gap-1">
+                      <div className="flex items-center justify-between font-semibold text-foreground gap-1">
 
                         <span className="truncate text-[11px]">{spoc.name}</span>
 
@@ -20475,7 +20686,7 @@ function WbsPrerequisiteSection({
 
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-purple-500/20 text-xs font-semibold text-purple-600">2</span>
 
-                <h4 className="text-xs font-bold text-gray-800">Project Allocation</h4>
+                <h4 className="text-xs font-bold text-foreground">Project Allocation</h4>
 
               </div>
 
@@ -20617,7 +20828,7 @@ function WbsPrerequisiteSection({
 
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-xs font-semibold text-orange-600">3</span>
 
-              <h4 className="text-sm font-bold text-gray-800">Service wise Prerequisite Tracking</h4>
+              <h4 className="text-sm font-bold text-foreground">Service wise Prerequisite Tracking</h4>
 
             </div>
 
@@ -20701,7 +20912,7 @@ function WbsPrerequisiteSection({
 
                         >
 
-                          <td className="px-3 py-2.5 text-center align-middle font-semibold text-gray-800">
+                          <td className="px-3 py-2.5 text-center align-middle font-semibold text-foreground">
 
                             <div className="flex items-center justify-center gap-1.5">
 
@@ -20733,139 +20944,40 @@ function WbsPrerequisiteSection({
 
                           <td className="px-3 py-2.5 text-center align-middle">
 
-                            <select
-
+                            <SearchableSelect
                               value={isResourceDept ? "NA" : svc.collectionStatus}
-
                               disabled={effectiveReadOnly || isResourceDept || isDeleted || isReady}
-
-                              onChange={(e) => handleServiceChange(svc.serviceId, "collectionStatus", e.target.value)}
-
-                              className={cn(
-
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                effectiveReadOnly || isResourceDept || isDeleted || isReady
-
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-
-                                  : svc.collectionStatus === "Collected"
-
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-
-                              )}
-
-                            >
-
-                              {isResourceDept ? (
-
-                                <option value="NA">NA</option>
-
-                              ) : (
-
-                                <>
-
-                                  <option value="Pending To Collect">Pending To Collect</option>
-
-                                  <option value="Collected">Collected</option>
-
-                                </>
-
-                              )}
-
-                            </select>
+                              onChange={(value) => handleServiceChange(svc.serviceId, "collectionStatus", value)}
+                              options={isResourceDept ? ["NA"] : ["Pending To Collect", "Collected"]}
+                              clearable={false}
+                              showSearch={false}
+                            />
 
                           </td>
 
                           <td className="px-3 py-2.5 text-center align-middle">
 
-                            <select
-
+                            <SearchableSelect
                               value={isResourceDept ? "NA" : svc.validationStatus}
-
                               disabled={effectiveReadOnly || isResourceDept || !isCollected || isDeleted || isReady}
-
-                              onChange={(e) => handleServiceChange(svc.serviceId, "validationStatus", e.target.value)}
-
-                              className={cn(
-
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                (effectiveReadOnly || isResourceDept || !isCollected || isDeleted || isReady)
-
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-
-                                  : svc.validationStatus === "Validated"
-
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-
-                              )}
-
-                            >
-
-                              {isResourceDept ? (
-
-                                <option value="NA">NA</option>
-
-                              ) : (
-
-                                <>
-
-                                  <option value="Pending To Validate">Pending To Validate</option>
-
-                                  <option value="Validated">Validated</option>
-
-                                </>
-
-                              )}
-
-                            </select>
+                              onChange={(value) => handleServiceChange(svc.serviceId, "validationStatus", value)}
+                              options={isResourceDept ? ["NA"] : ["Pending To Validate", "Validated"]}
+                              clearable={false}
+                              showSearch={false}
+                            />
 
                           </td>
 
                           <td className="px-3 py-2.5 text-center align-middle">
 
-                            <select
-
+                            <SearchableSelect
                               value={svc.billingStatus ?? "Advance Pending"}
-
-                              disabled={effectiveReadOnly || isDeleted || isReady}
-
-                              onChange={(e) => handleServiceChange(svc.serviceId, "billingStatus", e.target.value)}
-
-                              className={cn(
-
-                                "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                effectiveReadOnly || isDeleted || isReady
-
-                                  ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-
-                                  : svc.billingStatus === "Advance Received"
-
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                    : svc.billingStatus === "Advance Not Required"
-
-                                      ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-
-                                      : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer"
-
-                              )}
-
-                            >
-
-                              <option value="Advance Pending">Advance Pending</option>
-
-                              <option value="Advance Received">Advance Received</option>
-
-                              <option value="Advance Not Required">Advance Not Required</option>
-
-                            </select>
+                              disabled={effectiveReadOnly || isDeleted || isReady || (!isResourceDept && (!isCollected || !isValidated))}
+                              onChange={(value) => handleServiceChange(svc.serviceId, "billingStatus", value)}
+                              options={["Advance Pending", "Advance Received", "Advance Not Required"]}
+                              clearable={false}
+                              showSearch={false}
+                            />
 
                           </td>
 
@@ -21017,7 +21129,7 @@ function WbsPrerequisiteSection({
 
                                 <div className="flex items-center justify-center gap-1.5">
 
-                                  <span className="font-semibold text-gray-800">{svc.serviceName}</span>
+                                  <span className="font-semibold text-foreground">{svc.serviceName}</span>
 
                                   <Badge
 
@@ -21075,15 +21187,14 @@ function WbsPrerequisiteSection({
 
                             <td className="px-3 py-2.5 text-center align-middle">
 
-                              <select
-
+                              <SearchableSelect
                                 value={isResourceDept ? "NA" : (localServiceStatus[svc.serviceId]?.modCollectionStatus ?? wbsSvc.modCollectionStatus ?? "Pending To Collect")}
-
                                 disabled={effectiveReadOnly || isResourceDept || Boolean(isModified && wbsSvc.modIsReady)}
-
-                                onChange={(e) => {
-
-                                  const val = e.target.value;
+                                options={isResourceDept ? ["NA"] : ["Pending To Collect", "Collected"]}
+                                clearable={false}
+                                showSearch={false}
+                                onChange={(value) => {
+                                  const val = value;
 
                                   setLocalServiceStatus((prev) => ({
 
@@ -21102,52 +21213,20 @@ function WbsPrerequisiteSection({
                                   });
 
                                 }}
-
-                                className={cn(
-
-                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                  (effectiveReadOnly || isResourceDept || (isModified && wbsSvc.modIsReady))
-
-                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
-
-                                    : (wbsSvc.modCollectionStatus === "Collected"
-
-                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer")
-
-                                )}
-
-                              >
-
-                                {isResourceDept ? <option value="NA">NA</option> : (
-
-                                  <>
-
-                                    <option value="Pending To Collect">Pending To Collect</option>
-
-                                    <option value="Collected">Collected</option>
-
-                                  </>
-
-                                )}
-
-                              </select>
+                              />
 
                             </td>
 
                             <td className="px-3 py-2.5 text-center align-middle">
 
-                              <select
-
+                              <SearchableSelect
                                 value={isResourceDept ? "NA" : (localServiceStatus[svc.serviceId]?.modValidationStatus ?? wbsSvc.modValidationStatus ?? "Pending To Validate")}
-
                                 disabled={effectiveReadOnly || isResourceDept || Boolean(isModified && wbsSvc.modIsReady) || (!isResourceDept && (localServiceStatus[svc.serviceId]?.modCollectionStatus ?? wbsSvc.modCollectionStatus) !== "Collected")}
-
-                                onChange={(e) => {
-
-                                  const val = e.target.value;
+                                options={isResourceDept ? ["NA"] : ["Pending To Validate", "Validated"]}
+                                clearable={false}
+                                showSearch={false}
+                                onChange={(value) => {
+                                  const val = value;
 
                                   setLocalServiceStatus((prev) => ({
 
@@ -21166,52 +21245,20 @@ function WbsPrerequisiteSection({
                                   });
 
                                 }}
-
-                                className={cn(
-
-                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                  (effectiveReadOnly || isResourceDept || (isModified && wbsSvc.modIsReady) || (!isResourceDept && wbsSvc.modCollectionStatus !== "Collected"))
-
-                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
-
-                                    : (wbsSvc.modValidationStatus === "Validated"
-
-                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer")
-
-                                )}
-
-                              >
-
-                                {isResourceDept ? <option value="NA">NA</option> : (
-
-                                  <>
-
-                                    <option value="Pending To Validate">Pending To Validate</option>
-
-                                    <option value="Validated">Validated</option>
-
-                                  </>
-
-                                )}
-
-                              </select>
+                              />
 
                             </td>
 
                             <td className="px-3 py-2.5 text-center align-middle">
 
-                              <select
-
+                              <SearchableSelect
                                 value={localServiceStatus[svc.serviceId]?.modBillingStatus ?? wbsSvc.modBillingStatus ?? "Advance Pending"}
-
-                                disabled={effectiveReadOnly || Boolean(isModified && wbsSvc.modIsReady)}
-
-                                onChange={(e) => {
-
-                                  const val = e.target.value;
+                                disabled={effectiveReadOnly || Boolean(isModified && wbsSvc.modIsReady) || (!isResourceDept && ((localServiceStatus[svc.serviceId]?.modCollectionStatus ?? wbsSvc.modCollectionStatus) !== "Collected" || (localServiceStatus[svc.serviceId]?.modValidationStatus ?? wbsSvc.modValidationStatus) !== "Validated"))}
+                                options={["Advance Pending", "Advance Received", "Advance Not Required"]}
+                                clearable={false}
+                                showSearch={false}
+                                onChange={(value) => {
+                                  const val = value;
 
                                   setLocalServiceStatus((prev) => ({
 
@@ -21230,36 +21277,7 @@ function WbsPrerequisiteSection({
                                   });
 
                                 }}
-
-                                className={cn(
-
-                                  "h-7 rounded-md border px-2 text-[10px] font-bold outline-none shadow-xs transition-colors",
-
-                                  (effectiveReadOnly || (isModified && wbsSvc.modIsReady))
-
-                                    ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed"
-
-                                    : wbsSvc.modBillingStatus === "Advance Received"
-
-                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 cursor-pointer"
-
-                                      : wbsSvc.modBillingStatus === "Advance Not Required"
-
-                                        ? "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 cursor-pointer"
-
-                                        : "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100 cursor-pointer"
-
-                                )}
-
-                              >
-
-                                <option value="Advance Pending">Advance Pending</option>
-
-                                <option value="Advance Received">Advance Received</option>
-
-                                <option value="Advance Not Required">Advance Not Required</option>
-
-                              </select>
+                              />
 
                             </td>
 
@@ -21431,7 +21449,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Project ID</span>
 
-                <span className="font-semibold text-gray-800">{project.projectSeqId || project.id}</span>
+                <span className="font-semibold text-foreground">{project.projectSeqId || project.id}</span>
 
               </div>
 
@@ -21439,7 +21457,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Project Name</span>
 
-                <span className="font-semibold text-gray-800">{project.name}</span>
+                <span className="font-semibold text-foreground">{project.name}</span>
 
               </div>
 
@@ -21447,7 +21465,7 @@ function WbsPrerequisiteSection({
 
                 <span className="text-[10px] uppercase font-bold text-muted-foreground block">Customer Name</span>
 
-                <span className="font-semibold text-gray-800">{clientInfo?.name || "—"}</span>
+                <span className="font-semibold text-foreground">{clientInfo?.name || "—"}</span>
 
               </div>
 
@@ -21469,39 +21487,26 @@ function WbsPrerequisiteSection({
 
               <div className="flex flex-col gap-1">
 
-                <label className="font-bold text-gray-700">Escalation Type <span className="text-destructive">*</span></label>
+                <label className="font-bold text-foreground">Escalation Type <span className="text-destructive">*</span></label>
 
-                <select
-
+                <SearchableSelect
                   value={escType}
-
-                  onChange={(e) => setEscType(e.target.value)}
-
-                  className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
-
-                >
-
-                  <option value="Prerequisite Pending">Prerequisite Pending</option>
-
-                  <option value="Customer Dependency">Customer Dependency</option>
-
-                  <option value="Billing Issue">Billing Issue</option>
-
-                  <option value="Technical Blocker">Technical Blocker</option>
-
-                  <option value="Resource Blocker">Resource Blocker</option>
-
-                  <option value="Approval Pending">Approval Pending</option>
-
-                  <option value="Infrastructure Issue">Infrastructure Issue</option>
-
-                  <option value="Requirement Clarification">Requirement Clarification</option>
-
-                  <option value="Timeline Risk">Timeline Risk</option>
-
-                  <option value="Other">Other</option>
-
-                </select>
+                  onChange={setEscType}
+                  placeholder="Escalation type"
+                  options={[
+                    "Prerequisite Pending",
+                    "Customer Dependency",
+                    "Billing Issue",
+                    "Technical Blocker",
+                    "Resource Blocker",
+                    "Approval Pending",
+                    "Infrastructure Issue",
+                    "Requirement Clarification",
+                    "Timeline Risk",
+                    "Other",
+                  ]}
+                  clearable={false}
+                />
 
               </div>
 
@@ -21509,27 +21514,15 @@ function WbsPrerequisiteSection({
 
               <div className="flex flex-col gap-1">
 
-                <label className="font-bold text-gray-700">Priority <span className="text-destructive">*</span></label>
+                <label className="font-bold text-foreground">Priority <span className="text-destructive">*</span></label>
 
-                <select
-
+                <SearchableSelect
                   value={escPriority}
-
-                  onChange={(e) => setEscPriority(e.target.value as any)}
-
-                  className="form-input rounded-md border border-border p-2 bg-card text-xs outline-none"
-
-                >
-
-                  <option value="Low">Low</option>
-
-                  <option value="Medium">Medium</option>
-
-                  <option value="High">High</option>
-
-                  <option value="Critical">Critical</option>
-
-                </select>
+                  onChange={(value) => setEscPriority(value as any)}
+                  placeholder="Priority"
+                  options={["Low", "Medium", "High", "Critical"]}
+                  clearable={false}
+                />
 
               </div>
 
@@ -21541,7 +21534,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Subject <span className="text-destructive">*</span></label>
+              <label className="font-bold text-foreground">Subject <span className="text-destructive">*</span></label>
 
               <input
 
@@ -21565,7 +21558,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Description <span className="text-destructive">*</span></label>
+              <label className="font-bold text-foreground">Description <span className="text-destructive">*</span></label>
 
               <textarea
 
@@ -21589,7 +21582,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Attachment</label>
+              <label className="font-bold text-foreground">Attachment</label>
 
               <div className="flex items-center gap-2">
 
@@ -21639,7 +21632,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Escalate To (Select Stakeholders) <span className="text-destructive">*</span></label>
+              <label className="font-bold text-foreground">Escalate To (Select Stakeholders) <span className="text-destructive">*</span></label>
 
               <div className="border border-border rounded-md p-2 bg-card max-h-40 overflow-y-auto space-y-1">
 
@@ -21693,7 +21686,7 @@ function WbsPrerequisiteSection({
 
             <div className="flex flex-col gap-1">
 
-              <label className="font-bold text-gray-700">Expected Resolution Date</label>
+              <label className="font-bold text-foreground">Expected Resolution Date</label>
 
               <input
 
@@ -22299,7 +22292,7 @@ function WbsAssignmentModal({
 
                           <div className="flex items-center justify-between">
 
-                            <span className="font-semibold text-gray-800">{p.name}</span>
+                            <span className="font-semibold text-foreground">{p.name}</span>
 
                             <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
 
@@ -22433,7 +22426,7 @@ function WbsAssignmentModal({
 
                           <div className="flex items-center justify-between">
 
-                            <span className="font-semibold text-gray-800">{p.name}</span>
+                            <span className="font-semibold text-foreground">{p.name}</span>
 
                             <span className={cn("font-bold text-[10px] tabular-nums", freeColor)}>
 

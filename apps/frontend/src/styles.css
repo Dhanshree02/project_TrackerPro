@@ -19,6 +19,16 @@
  */
 
 @theme inline {
+  --font-sans: "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif;
+  --color-nav: var(--nav);
+  /* apple.com tiles: soft, wide shadows instead of hard edges. */
+  --shadow-2xs: 0 1px 1px var(--shadow-tint);
+  --shadow-xs: 0 1px 2px var(--shadow-tint);
+  --shadow-sm: 0 2px 8px var(--shadow-tint);
+  --shadow-md: 0 4px 14px var(--shadow-tint-strong);
+  --shadow-lg: 0 8px 24px var(--shadow-tint-strong);
+  --shadow-xl: 0 12px 36px var(--shadow-tint-strong);
+  --shadow-2xl: 0 20px 56px var(--shadow-tint-strong);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -68,72 +78,91 @@
 }
 
 :root {
-  --radius: 0.5rem;
-  /* Apple grouped canvas: page #F2F2F7, cards white, label #1D1D1F. */
-  --background: oklch(0.963 0.007 286.3);
+  --radius: 0.75rem;
+  /* apple.com: page #F5F5F7, tiles white, text #1D1D1F, secondary #6E6E73, blue #0071E3. */
+  --background: oklch(0.973 0.002 286);
   --foreground: oklch(0.232 0.004 286.1);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.232 0.004 286.1);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.232 0.004 286.1);
-  --primary: oklch(0.603 0.218 257.4);
+  --primary: oklch(0.567 0.197 257);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.963 0.007 286.3);
+  --secondary: oklch(0.973 0.002 286);
   --secondary-foreground: oklch(0.232 0.004 286.1);
-  --muted: oklch(0.963 0.007 286.3);
-  --muted-foreground: oklch(0.635 0.006 286.2);
-  --accent: oklch(0.923 0.007 286.3);
+  --muted: oklch(0.973 0.002 286);
+  --muted-foreground: oklch(0.537 0.007 286);
+  --accent: oklch(0.935 0.004 286);
   --accent-foreground: oklch(0.232 0.004 286.1);
   --destructive: oklch(0.654 0.232 28.7);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.923 0.007 286.3);
-  --input: oklch(0.923 0.007 286.3);
-  --ring: oklch(0.603 0.218 257.4);
+  --border: oklch(0.905 0.004 286);
+  --input: oklch(0.868 0.005 286);
+  --ring: oklch(0.567 0.197 257);
+  /* Frosted global nav: #FAFAFC at 80%. */
+  --nav: oklch(0.985 0.002 286 / 0.8);
+  --shadow-tint: oklch(0 0 0 / 0.05);
+  --shadow-tint-strong: oklch(0 0 0 / 0.1);
   --success: oklch(0.73 0.194 147.4);
+  /* Apple system green and the iOS switch track. */
+  --switch-on: #34c759;
+  --switch-off: #e9e9ea;
+  --segment-track: rgba(120, 120, 128, 0.12);
+  --segment-thumb: #ffffff;
+  --segment-thumb-foreground: #1d1d1f;
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.765 0.175 62.6);
   --warning-foreground: oklch(0.232 0.004 286.1);
-  --info: oklch(0.603 0.218 257.4);
+  --info: oklch(0.567 0.197 257);
   --info-foreground: oklch(1 0 0);
-  /* System Blue, Teal, Indigo, Orange, Pink. */
-  --chart-1: oklch(0.603 0.218 257.4);
+  /* apple.com Blue, then system Teal, Indigo, Orange, Pink. */
+  --chart-1: oklch(0.567 0.197 257);
   --chart-2: oklch(0.7 0.111 212.7);
   --chart-3: oklch(0.529 0.191 278.3);
   --chart-4: oklch(0.765 0.175 62.6);
   --chart-5: oklch(0.65 0.238 17.9);
   color-scheme: light;
-  --sidebar: oklch(0.963 0.007 286.3);
+  --sidebar: oklch(0.973 0.002 286);
   --sidebar-foreground: oklch(0.232 0.004 286.1);
-  --sidebar-primary: oklch(0.603 0.218 257.4);
+  --sidebar-primary: oklch(0.567 0.197 257);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(1 0 0);
   --sidebar-accent-foreground: oklch(0.232 0.004 286.1);
-  --sidebar-border: oklch(0.923 0.007 286.3);
-  --sidebar-ring: oklch(0.603 0.218 257.4);
+  --sidebar-border: oklch(0.905 0.004 286);
+  --sidebar-ring: oklch(0.567 0.197 257);
 }
 
 .dark {
-  /* Elevated dark surfaces: #1C1C1E page, #2C2C2E cards, #3A3A3C menus. */
-  --background: oklch(0.227 0.004 286.1);
-  --foreground: oklch(1 0 0);
-  --card: oklch(0.294 0.004 286.2);
-  --card-foreground: oklch(1 0 0);
-  --popover: oklch(0.349 0.003 286.2);
-  --popover-foreground: oklch(1 0 0);
+  /* apple.com dark: page #000, tiles #1D1D1F, menus #2C2C2E, text #F5F5F7, secondary #86868B. */
+  --background: oklch(0 0 0);
+  --foreground: oklch(0.973 0.002 286);
+  --card: oklch(0.232 0.004 286.1);
+  --card-foreground: oklch(0.973 0.002 286);
+  --popover: oklch(0.294 0.004 286.2);
+  --popover-foreground: oklch(0.973 0.002 286);
   --primary: oklch(0.624 0.206 255.5);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.294 0.004 286.2);
-  --secondary-foreground: oklch(1 0 0);
-  --muted: oklch(0.294 0.004 286.2);
-  --muted-foreground: oklch(0.682 0.01 286.1);
-  --accent: oklch(0.349 0.003 286.2);
-  --accent-foreground: oklch(1 0 0);
+  --secondary: oklch(0.232 0.004 286.1);
+  --secondary-foreground: oklch(0.973 0.002 286);
+  --muted: oklch(0.232 0.004 286.1);
+  --muted-foreground: oklch(0.624 0.008 286);
+  --accent: oklch(0.294 0.004 286.2);
+  --accent-foreground: oklch(0.973 0.002 286);
   --destructive: oklch(0.663 0.224 28.3);
   --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.373 0.007 286.1);
-  --input: oklch(0.349 0.003 286.2);
+  --border: oklch(0.34 0.005 286);
+  --input: oklch(0.405 0.006 286);
   --ring: oklch(0.624 0.206 255.5);
+  /* Frosted global nav: #161617 at 80%. */
+  --nav: oklch(0.2 0.003 286 / 0.8);
+  --shadow-tint: oklch(0 0 0 / 0.5);
+  --shadow-tint-strong: oklch(0 0 0 / 0.6);
   --success: oklch(0.756 0.208 147);
+  --switch-on: #30d158;
+  --switch-off: #39393d;
+  --segment-track: rgba(118, 118, 128, 0.24);
+  --segment-thumb: #ffffff;
+  --segment-thumb-foreground: #1d1d1f;
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.782 0.171 67.2);
   --warning-foreground: oklch(0.227 0.004 286.1);
@@ -146,13 +175,13 @@
   --chart-4: oklch(0.782 0.171 67.2);
   --chart-5: oklch(0.658 0.232 16);
   color-scheme: dark;
-  --sidebar: oklch(0.227 0.004 286.1);
-  --sidebar-foreground: oklch(1 0 0);
+  --sidebar: oklch(0 0 0);
+  --sidebar-foreground: oklch(0.973 0.002 286);
   --sidebar-primary: oklch(0.624 0.206 255.5);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.294 0.004 286.2);
-  --sidebar-accent-foreground: oklch(1 0 0);
-  --sidebar-border: oklch(0.373 0.007 286.1);
+  --sidebar-accent: oklch(0.232 0.004 286.1);
+  --sidebar-accent-foreground: oklch(0.973 0.002 286);
+  --sidebar-border: oklch(0.34 0.005 286);
   --sidebar-ring: oklch(0.624 0.206 255.5);
 }
 
@@ -164,6 +193,10 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   /* Ensure all interactive and clickable elements have pointer cursor (hand icon) */
@@ -214,7 +247,8 @@
   }
 
   .form-input:focus-visible {
-    box-shadow: 0 0 0 2px var(--color-ring);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-ring) 25%, transparent);
   }
 
   /* Custom uniform dropdown styling matching SearchableSelect (Marital Status) */
@@ -242,7 +276,7 @@
   select:not([multiple]):focus-visible,
   select:not([multiple]):focus {
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 2px color-mix(in oklch, var(--color-primary) 20%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--color-primary) 25%, transparent);
   }
 
   select:not([multiple]):disabled {
@@ -344,6 +378,72 @@
     font-weight: 400;
   }
 
+  /* WBS creation uses inline colors. These variables keep light mode as it is and follow dark mode.
+     They sit on the root so dropdowns portaled outside the form still pick them up. */
+  :root {
+    --wbs-page: #f9fafb;
+    --wbs-card: #ffffff;
+    --wbs-text: #1f2937;
+    --wbs-muted: #6b7280;
+    --wbs-line: #d1d5db;
+    --wbs-locked: #f3f4f6;
+    --wbs-placeholder: #9ca3af;
+    --wbs-soft: #fafafa;
+    --wbs-hover: #eff6ff;
+    --wbs-chip: #dbeafe;
+    --wbs-chip-text: #1e40af;
+    --wbs-chip-line: #bfdbfe;
+    --wbs-heading: #1a5490;
+    --wbs-veil: rgba(255, 255, 255, 0.7);
+    --wbs-row-1: #f0f7ff;
+    --wbs-row-1-hover: #e7f2ff;
+    --wbs-row-2: #f0fdf4;
+    --wbs-row-2-hover: #e6faf0;
+    --wbs-row-3: #fffbeb;
+    --wbs-row-3-hover: #fff9db;
+    --wbs-row-4: #fdf2f8;
+    --wbs-row-4-hover: #fdf0f7;
+    --wbs-row-5: #faf5ff;
+    --wbs-row-5-hover: #fbf3ff;
+    --wbs-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  }
+
+  .wbs-onboarding-form {
+    color-scheme: light;
+  }
+
+  .dark {
+    --wbs-page: var(--background);
+    --wbs-card: var(--card);
+    --wbs-text: var(--foreground);
+    --wbs-muted: var(--muted-foreground);
+    --wbs-line: var(--border);
+    --wbs-locked: var(--muted);
+    --wbs-placeholder: var(--muted-foreground);
+    --wbs-soft: var(--muted);
+    --wbs-hover: color-mix(in oklch, var(--primary) 22%, var(--card));
+    --wbs-chip: color-mix(in oklch, var(--primary) 28%, var(--card));
+    --wbs-chip-text: var(--foreground);
+    --wbs-chip-line: color-mix(in oklch, var(--primary) 45%, var(--border));
+    --wbs-heading: color-mix(in oklch, var(--primary) 55%, white);
+    --wbs-veil: color-mix(in oklch, var(--card) 72%, transparent);
+    --wbs-row-1: color-mix(in oklch, var(--primary) 18%, var(--card));
+    --wbs-row-1-hover: color-mix(in oklch, var(--primary) 28%, var(--card));
+    --wbs-row-2: color-mix(in oklch, var(--success) 16%, var(--card));
+    --wbs-row-2-hover: color-mix(in oklch, var(--success) 26%, var(--card));
+    --wbs-row-3: color-mix(in oklch, var(--warning) 16%, var(--card));
+    --wbs-row-3-hover: color-mix(in oklch, var(--warning) 26%, var(--card));
+    --wbs-row-4: color-mix(in oklch, var(--chart-5) 16%, var(--card));
+    --wbs-row-4-hover: color-mix(in oklch, var(--chart-5) 26%, var(--card));
+    --wbs-row-5: color-mix(in oklch, var(--chart-3) 16%, var(--card));
+    --wbs-row-5-hover: color-mix(in oklch, var(--chart-3) 26%, var(--card));
+    --wbs-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23e5e7eb' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  }
+
+  .dark .wbs-onboarding-form {
+    color-scheme: dark;
+  }
+
   /* Hide number input spinners for custom payment % fields */
   input.no-spinner::-webkit-inner-spin-button,
   input.no-spinner::-webkit-outer-spin-button {
@@ -356,9 +456,10 @@
 
 }
 
-/* Solid success / error toasts (top-right via Toaster position). */
+/* Banners keep the card layout. Success, error, and warning fill the card. */
 [data-sonner-toaster] {
   z-index: 10000;
+  --width: 380px;
 }
 
 [data-sonner-toast][data-type="success"] {
@@ -373,12 +474,21 @@
   border-color: var(--destructive) !important;
 }
 
+[data-sonner-toast][data-type="warning"] {
+  background: var(--warning) !important;
+  color: var(--warning-foreground) !important;
+  border-color: var(--warning) !important;
+}
+
 [data-sonner-toast][data-type="success"] [data-icon],
 [data-sonner-toast][data-type="success"] [data-title],
 [data-sonner-toast][data-type="success"] [data-description],
 [data-sonner-toast][data-type="error"] [data-icon],
 [data-sonner-toast][data-type="error"] [data-title],
-[data-sonner-toast][data-type="error"] [data-description] {
+[data-sonner-toast][data-type="error"] [data-description],
+[data-sonner-toast][data-type="warning"] [data-icon],
+[data-sonner-toast][data-type="warning"] [data-title],
+[data-sonner-toast][data-type="warning"] [data-description] {
   color: inherit !important;
 }
 
@@ -436,14 +546,79 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 .app-columns-head th:not(:last-child)::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 0.625rem;
-  bottom: 0.625rem;
-  width: 1.5px;
-  background: var(--border);
-  pointer-events: none;
+  content: none;
+}
+
+/* One table format, taken from the Employee Directory / SwiftUI table:
+   a gray header band, a sort mark only on the sorted column, and alternating rows. */
+table thead th {
+  background-color: #e8e8ed;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+  text-transform: none;
+  border-bottom: 1px solid rgb(0 0 0 / 0.1);
+}
+
+.dark table thead th {
+  background-color: #3a3a3c;
+  border-bottom-color: rgb(255 255 255 / 0.1);
+}
+
+table thead th > span[aria-hidden="true"] {
+  display: none;
+}
+
+table tbody tr {
+  border-bottom: 1px solid rgb(0 0 0 / 0.06);
+  transition: background-color 0.15s ease;
+}
+
+table tbody tr:nth-child(even) {
+  background-color: rgb(0 0 0 / 0.03);
+}
+
+table tbody tr:hover {
+  background-color: color-mix(in oklch, var(--primary) 10%, transparent);
+}
+
+table tbody tr:last-child {
+  border-bottom-width: 0;
+}
+
+.dark table tbody tr {
+  border-bottom-color: rgb(255 255 255 / 0.06);
+}
+
+.dark table tbody tr:nth-child(even) {
+  background-color: rgb(255 255 255 / 0.04);
+}
+
+/* The project onboarding sheet keeps its own field grid. */
+.wbs-onboarding-form table thead th {
+  background-color: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  padding-top: unset;
+  padding-bottom: unset;
+  text-transform: unset;
+  border-bottom: none;
+}
+
+.wbs-onboarding-form table thead th > span[aria-hidden="true"] {
+  display: block;
+}
+
+.wbs-onboarding-form table tbody tr,
+.wbs-onboarding-form table tbody tr:nth-child(even),
+.wbs-onboarding-form table tbody tr:hover {
+  background-color: transparent;
+  border-bottom-color: transparent;
 }
 
 /* Review hours table — always show a sideways scrollbar (macOS hides overlay bars). */

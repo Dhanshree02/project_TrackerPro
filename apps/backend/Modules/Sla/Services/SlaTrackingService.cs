@@ -110,6 +110,79 @@ public sealed class SlaTrackingService(
                     SecondEscalationRolesJson = "[\"Head of Department\"]"
                 };
             }
+            else if (string.Equals(request.ActivityType, "Extension Request", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(request.ActivityType, "Timeline Extension Approval", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(request.ActivityType, "Project Extension Request", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = new SlaPolicy
+                {
+                    Module = request.Module,
+                    ActivityType = request.ActivityType,
+                    Stage = request.Stage,
+                    Name = "Project Extension Request SLA Policy",
+                    TatDurationMinutes = 1080, // 2 working days (2 * 540) to EOD of 2nd day
+                    CalculationMode = SlaCalculationMode.EndOfDay,
+                    WorkingHoursStart = new TimeSpan(9, 0, 0),
+                    WorkingHoursEnd = new TimeSpan(18, 0, 0),
+                    ExcludeWeekends = true,
+                    ExcludeHolidays = true,
+                    ReminderIntervalsMinutesJson = "[]",
+                    FirstEscalationAfterMinutes = 0, // Triggers at TargetDeadlineUtc (EOD of 2nd day)
+                    SecondEscalationAfterMinutes = null, // Dynamically scheduled on L1 execution (EOD of next 1 working day)
+                    ResponsibleRolesJson = "[\"Select Stakeholders\"]",
+                    FirstEscalationRolesJson = "[\"Assigned Senior Project Manager\"]",
+                    SecondEscalationRolesJson = "[\"Head of Department\"]"
+                };
+            }
+            else if (string.Equals(request.ActivityType, "Additional Customer Requirement", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(request.ActivityType, "Customer Requirement Approval", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(request.ActivityType, "Customer Requirement", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = new SlaPolicy
+                {
+                    Module = request.Module,
+                    ActivityType = request.ActivityType,
+                    Stage = request.Stage,
+                    Name = "Additional Customer Requirement SLA Policy",
+                    TatDurationMinutes = 1080, // 2 working days (2 * 540) to EOD
+                    CalculationMode = SlaCalculationMode.EndOfDay,
+                    WorkingHoursStart = new TimeSpan(9, 0, 0),
+                    WorkingHoursEnd = new TimeSpan(18, 0, 0),
+                    ExcludeWeekends = true,
+                    ExcludeHolidays = true,
+                    ReminderIntervalsMinutesJson = "[]",
+                    FirstEscalationAfterMinutes = 0, // Triggers at TargetDeadlineUtc (EOD of 2nd working day)
+                    SecondEscalationAfterMinutes = null, // Dynamically scheduled on L1 execution (EOD of next 1 working day)
+                    ResponsibleRolesJson = "[\"Assigned Sales Manager\", \"Assigned Sales Person\"]",
+                    FirstEscalationRolesJson = "[\"Assigned Senior Project Manager\"]",
+                    SecondEscalationRolesJson = "[\"Head of Department\"]"
+                };
+            }
+            else if (string.Equals(request.ActivityType, "Resource Allocation Approval", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(request.ActivityType, "Resource Allocation Request", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(request.ActivityType, "Resource Allocation", StringComparison.OrdinalIgnoreCase)
+                     || string.Equals(request.ActivityType, "Team Member Allocation", StringComparison.OrdinalIgnoreCase))
+            {
+                policy = new SlaPolicy
+                {
+                    Module = request.Module,
+                    ActivityType = request.ActivityType,
+                    Stage = request.Stage,
+                    Name = "Resource Allocation Approval SLA Policy",
+                    TatDurationMinutes = 1080, // 2 working days (2 * 540) to EOD
+                    CalculationMode = SlaCalculationMode.EndOfDay,
+                    WorkingHoursStart = new TimeSpan(9, 0, 0),
+                    WorkingHoursEnd = new TimeSpan(18, 0, 0),
+                    ExcludeWeekends = true,
+                    ExcludeHolidays = true,
+                    ReminderIntervalsMinutesJson = "[]",
+                    FirstEscalationAfterMinutes = 0, // Triggers at TargetDeadlineUtc (EOD of 2nd working day)
+                    SecondEscalationAfterMinutes = null, // Dynamically scheduled on L1 execution (EOD of next 1 working day)
+                    ResponsibleRolesJson = "[\"Reporting Manager\"]",
+                    FirstEscalationRolesJson = "[\"Assigned Senior Project Manager\"]",
+                    SecondEscalationRolesJson = "[\"Head of Department\"]"
+                };
+            }
             else
             {
                 // Create a sensible fallback default policy if none configured yet
@@ -141,13 +214,19 @@ public sealed class SlaTrackingService(
         var startTimeUtc = request.CustomStartTimeUtc ?? DateTime.UtcNow;
         var deadlineUtc = request.CustomDeadlineUtc ?? deadlineCalculator.CalculateTargetDeadline(startTimeUtc, policy, holidays);
 
+        var entityRef = request.EntityReference;
+        if (entityRef != null && entityRef.Length > 100)
+        {
+            entityRef = entityRef[..100];
+        }
+
         var instance = new SlaInstance
         {
             PolicyId = policy.Id,
             Module = request.Module,
             ActivityType = request.ActivityType,
             EntityId = request.EntityId,
-            EntityReference = request.EntityReference,
+            EntityReference = entityRef,
             CurrentStage = request.Stage,
             Status = SlaInstanceStatus.Tracking,
             Priority = request.Priority,
@@ -483,19 +562,140 @@ public sealed class SlaTrackingService(
             .Select(h => h.HolidayDate)
             .ToHashSetAsync(ct);
 
-        // 1. Reminders
-        if (instance.ActivityType.Contains("Issue", StringComparison.OrdinalIgnoreCase))
+        // Pre-resolve project name and entity title for instant, human-readable Hangfire job naming
+        string projectName = "Project";
+        if (instance.ProjectId.HasValue)
         {
-            // Recurring daily reminders for issues at 6:00 PM IST on working days only
+            var pName = await db.Projects
+                .AsNoTracking()
+                .Where(p => p.Id == instance.ProjectId.Value && p.DeletedAtUtc == null)
+                .Select(p => p.Name)
+                .FirstOrDefaultAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(pName))
+            {
+                projectName = pName;
+            }
+        }
+
+        string entityTitle = instance.EntityReference ?? string.Empty;
+        if (instance.ActivityType.Contains("Task", StringComparison.OrdinalIgnoreCase))
+        {
+            var aTitle = await db.ProjectTaskAssignments
+                .AsNoTracking()
+                .Where(a => a.Id == instance.EntityId && a.Task != null && a.DeletedAtUtc == null)
+                .Select(a => a.Task!.Title)
+                .FirstOrDefaultAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(aTitle))
+            {
+                entityTitle = aTitle;
+            }
+            else
+            {
+                var tTitle = await db.ProjectTasks
+                    .AsNoTracking()
+                    .Where(t => t.Id == instance.EntityId && t.DeletedAtUtc == null)
+                    .Select(t => t.Title)
+                    .FirstOrDefaultAsync(ct);
+
+                if (!string.IsNullOrWhiteSpace(tTitle))
+                {
+                    entityTitle = tTitle;
+                }
+            }
+        }
+        else if (instance.ActivityType.Contains("Issue", StringComparison.OrdinalIgnoreCase) ||
+                 instance.ActivityType.Equals("Resolution of Issues", StringComparison.OrdinalIgnoreCase))
+        {
+            var iSubject = await db.ProjectIssues
+                .AsNoTracking()
+                .Where(i => i.Id == instance.EntityId && i.DeletedAtUtc == null)
+                .Select(i => i.Subject)
+                .FirstOrDefaultAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(iSubject))
+            {
+                entityTitle = iSubject;
+            }
+        }
+        else if (instance.ActivityType.Contains("WBS", StringComparison.OrdinalIgnoreCase) ||
+                 instance.ActivityType.Contains("Service Escalation", StringComparison.OrdinalIgnoreCase))
+        {
+            var eSub = await db.ProjectServiceEscalations
+                .AsNoTracking()
+                .Where(e => e.Id == instance.EntityId && e.DeletedAtUtc == null)
+                .Select(e => e.Subject)
+                .FirstOrDefaultAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(eSub))
+            {
+                entityTitle = eSub;
+            }
+        }
+        else if (instance.ActivityType.Contains("Extension", StringComparison.OrdinalIgnoreCase))
+        {
+            var eReason = await db.ProjectExtensionRequests
+                .AsNoTracking()
+                .Where(e => e.Id == instance.EntityId && e.DeletedAtUtc == null)
+                .Select(e => e.Reason)
+                .FirstOrDefaultAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(eReason))
+            {
+                entityTitle = eReason;
+            }
+        }
+        else if (instance.ActivityType.Contains("Requirement", StringComparison.OrdinalIgnoreCase))
+        {
+            var rTitle = await db.ProjectAdditionalRequirements
+                .AsNoTracking()
+                .Where(r => r.Id == instance.EntityId && r.DeletedAtUtc == null)
+                .Select(r => r.RequirementId)
+                .FirstOrDefaultAsync(ct);
+
+            entityTitle = !string.IsNullOrWhiteSpace(rTitle)
+                ? rTitle
+                : (!string.IsNullOrWhiteSpace(instance.EntityReference)
+                    ? instance.EntityReference
+                    : $"APP-{instance.EntityId.ToString("N")[..8].ToUpperInvariant()}");
+        }
+
+        if (string.IsNullOrWhiteSpace(entityTitle))
+        {
+            entityTitle = instance.EntityReference ?? "Item";
+        }
+
+        // 1. Reminders
+        if (instance.ActivityType.Contains("Issue", StringComparison.OrdinalIgnoreCase) ||
+            instance.ActivityType.Contains("WBS", StringComparison.OrdinalIgnoreCase) ||
+            instance.ActivityType.Contains("Service Escalation", StringComparison.OrdinalIgnoreCase))
+        {
+            // Recurring daily reminders for issues and WBS escalations at 6:00 PM IST on working days only
             var firstReminderTime = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(
                 instance.StartedAtUtc,
                 holidays,
                 policy.WorkingHoursEnd);
 
+            if (firstReminderTime <= nowUtc)
+            {
+                firstReminderTime = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(
+                    nowUtc,
+                    holidays,
+                    policy.WorkingHoursEnd);
+            }
+
             if (firstReminderTime > nowUtc)
             {
                 var delay = firstReminderTime - nowUtc;
                 var reminderKey = $"sla:{instance.Id}:rem:{firstReminderTime:yyyy-MM-dd}";
+
+                var isWbs = instance.ActivityType.Contains("WBS", StringComparison.OrdinalIgnoreCase) ||
+                            instance.ActivityType.Contains("Service Escalation", StringComparison.OrdinalIgnoreCase);
+
+                var reminderRoles = isWbs
+                    ? ["Select Stakeholders"]
+                    : (policy.ResponsibleRoles.Count > 0 ? policy.ResponsibleRoles : ["EngagementManager", "ProjectManager", "TeamLead"]);
 
                 var reminderEvent = new SlaEvent
                 {
@@ -503,9 +703,7 @@ public sealed class SlaTrackingService(
                     EventType = SlaEventType.Reminder,
                     ScheduledAtUtc = firstReminderTime,
                     StageAtExecution = instance.CurrentStage,
-                    TargetRoles = policy.ResponsibleRoles.Count > 0
-                        ? policy.ResponsibleRoles
-                        : ["EngagementManager", "ProjectManager", "TeamLead"],
+                    TargetRoles = reminderRoles,
                     Status = SlaEventStatus.Scheduled,
                     IdempotencyKey = reminderKey
                 };
@@ -517,6 +715,15 @@ public sealed class SlaTrackingService(
                     delay);
 
                 reminderEvent.HangfireJobId = jobId;
+
+                var remJobName = SlaJobDisplayNameFormatter.BuildJobName(
+                    instance.ActivityType,
+                    nameof(SlaEventType.Reminder),
+                    null,
+                    entityTitle,
+                    projectName,
+                    reminderEvent.TargetRoles);
+                SlaJobDisplayNameFormatter.Register(instance.Id, reminderEvent.Id, remJobName);
             }
         }
         else if (instance.ActivityType.Equals("Task Pause", StringComparison.OrdinalIgnoreCase))
@@ -557,6 +764,15 @@ public sealed class SlaTrackingService(
                     delay);
 
                 reminderEvent.HangfireJobId = jobId;
+
+                var remJobName = SlaJobDisplayNameFormatter.BuildJobName(
+                    instance.ActivityType,
+                    nameof(SlaEventType.Reminder),
+                    null,
+                    entityTitle,
+                    projectName,
+                    reminderEvent.TargetRoles);
+                SlaJobDisplayNameFormatter.Register(instance.Id, reminderEvent.Id, remJobName);
             }
         }
         else if (instance.ActivityType.Equals("Task Deadline", StringComparison.OrdinalIgnoreCase))
@@ -589,6 +805,15 @@ public sealed class SlaTrackingService(
                         delay);
 
                     reminderEvent.HangfireJobId = jobId;
+
+                    var remJobName = SlaJobDisplayNameFormatter.BuildJobName(
+                        instance.ActivityType,
+                        nameof(SlaEventType.Reminder),
+                        null,
+                        entityTitle,
+                        projectName,
+                        reminderEvent.TargetRoles);
+                    SlaJobDisplayNameFormatter.Register(instance.Id, reminderEvent.Id, remJobName);
                 }
             }
 
@@ -618,6 +843,97 @@ public sealed class SlaTrackingService(
                     delay);
 
                 reminderEvent.HangfireJobId = jobId;
+
+                var remJobName = SlaJobDisplayNameFormatter.BuildJobName(
+                    instance.ActivityType,
+                    nameof(SlaEventType.Reminder),
+                    null,
+                    entityTitle,
+                    projectName,
+                    reminderEvent.TargetRoles);
+                SlaJobDisplayNameFormatter.Register(instance.Id, reminderEvent.Id, remJobName);
+            }
+        }
+        else if (instance.ActivityType.Equals("Extension Request", StringComparison.OrdinalIgnoreCase)
+                 || instance.ActivityType.Equals("Timeline Extension Approval", StringComparison.OrdinalIgnoreCase)
+                 || instance.ActivityType.Equals("Project Extension Request", StringComparison.OrdinalIgnoreCase))
+        {
+            // Daily reminders before Level 1 escalation: schedule at next working day EOD
+            var firstReminderTime = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(
+                instance.StartedAtUtc,
+                holidays,
+                policy.WorkingHoursEnd);
+
+            if (firstReminderTime < instance.TargetDeadlineUtc && firstReminderTime > nowUtc)
+            {
+                var delay = firstReminderTime - nowUtc;
+                var reminderKey = $"sla:{instance.Id}:rem:{firstReminderTime:yyyy-MM-dd}";
+
+                var reminderEvent = new SlaEvent
+                {
+                    InstanceId = instance.Id,
+                    EventType = SlaEventType.Reminder,
+                    ScheduledAtUtc = firstReminderTime,
+                    StageAtExecution = instance.CurrentStage,
+                    TargetRoles = ["Select Stakeholders"],
+                    TargetRecipientIds = instance.RecipientEmployeeId.HasValue ? [instance.RecipientEmployeeId.Value] : [],
+                    Status = SlaEventStatus.Scheduled,
+                    IdempotencyKey = reminderKey
+                };
+                db.SlaEvents.Add(reminderEvent);
+                await db.SaveChangesAsync(ct);
+
+                var jobId = BackgroundJob.Schedule<SlaBackgroundJobWorker>(
+                    worker => worker.ExecuteReminderAsync(instance.Id, reminderEvent.Id),
+                    delay);
+
+                reminderEvent.HangfireJobId = jobId;
+
+                var remJobName = SlaJobDisplayNameFormatter.BuildJobName(
+                    instance.ActivityType,
+                    nameof(SlaEventType.Reminder),
+                    null,
+                    entityTitle,
+                    projectName,
+                    reminderEvent.TargetRoles);
+                SlaJobDisplayNameFormatter.Register(instance.Id, reminderEvent.Id, remJobName);
+            }
+        }
+        else if (instance.ActivityType.Contains("Requirement", StringComparison.OrdinalIgnoreCase))
+        {
+            // Initial daily reminder before Level 1 escalation: schedule at next working day EOD
+            var firstReminderTime = deadlineCalculator.GetNextWorkingDayEndOfDayUtc(
+                instance.StartedAtUtc,
+                holidays,
+                policy.WorkingHoursEnd);
+
+            if (firstReminderTime < instance.TargetDeadlineUtc && firstReminderTime > nowUtc)
+            {
+                var delay = firstReminderTime - nowUtc;
+                var reminderKey = $"sla:{instance.Id}:rem:{firstReminderTime:yyyy-MM-dd}";
+
+                var reminderEvent = new SlaEvent
+                {
+                    InstanceId = instance.Id,
+                    EventType = SlaEventType.Reminder,
+                    ScheduledAtUtc = firstReminderTime,
+                    StageAtExecution = instance.CurrentStage,
+                    TargetRoles = ["Assigned Sales Manager"],
+                    TargetRecipientIds = instance.RecipientEmployeeId.HasValue ? [instance.RecipientEmployeeId.Value] : [],
+                    Status = SlaEventStatus.Scheduled,
+                    IdempotencyKey = reminderKey
+                };
+                db.SlaEvents.Add(reminderEvent);
+                await db.SaveChangesAsync(ct);
+
+                var jobId = BackgroundJob.Schedule<SlaBackgroundJobWorker>(
+                    worker => worker.ExecuteReminderAsync(instance.Id, reminderEvent.Id),
+                    delay);
+
+                reminderEvent.HangfireJobId = jobId;
+
+                var remJobName = $"Additional Customer Requirement | Initial Approval Reminder | {projectName} | {entityTitle}";
+                SlaJobDisplayNameFormatter.Register(instance.Id, reminderEvent.Id, remJobName);
             }
         }
         else if (!instance.ActivityType.Equals("Task Start After Assigning", StringComparison.OrdinalIgnoreCase))
@@ -647,6 +963,15 @@ public sealed class SlaTrackingService(
                         delay);
 
                     reminderEvent.HangfireJobId = jobId;
+
+                    var remJobName = SlaJobDisplayNameFormatter.BuildJobName(
+                        instance.ActivityType,
+                        nameof(SlaEventType.Reminder),
+                        null,
+                        entityTitle,
+                        projectName,
+                        reminderEvent.TargetRoles);
+                    SlaJobDisplayNameFormatter.Register(instance.Id, reminderEvent.Id, remJobName);
                 }
             }
         }
@@ -673,6 +998,15 @@ public sealed class SlaTrackingService(
 
             breachEvent.HangfireJobId = jobId;
             instance.ActiveHangfireJobId = jobId;
+
+            var breachJobName = SlaJobDisplayNameFormatter.BuildJobName(
+                instance.ActivityType,
+                nameof(SlaEventType.BreachCheck),
+                null,
+                entityTitle,
+                projectName,
+                breachEvent.TargetRoles);
+            SlaJobDisplayNameFormatter.Register(instance.Id, breachEvent.Id, breachJobName);
         }
 
         // 3. Level 1 Escalation (Task Pause does not have escalations)
@@ -703,6 +1037,15 @@ public sealed class SlaTrackingService(
                     delay);
 
                 esc1Event.HangfireJobId = jobId;
+
+                var esc1JobName = SlaJobDisplayNameFormatter.BuildJobName(
+                    instance.ActivityType,
+                    nameof(SlaEventType.EscalationL1),
+                    1,
+                    entityTitle,
+                    projectName,
+                    esc1Event.TargetRoles);
+                SlaJobDisplayNameFormatter.Register(instance.Id, esc1Event.Id, esc1JobName);
             }
         }
 
@@ -712,7 +1055,15 @@ public sealed class SlaTrackingService(
                           || instance.ActivityType.Equals("Task Deadline", StringComparison.OrdinalIgnoreCase)
                           || instance.ActivityType.Equals("Task Pause", StringComparison.OrdinalIgnoreCase)
                           || instance.ActivityType.Equals("WBS Escalation", StringComparison.OrdinalIgnoreCase)
-                          || instance.ActivityType.Equals("Service Escalation", StringComparison.OrdinalIgnoreCase);
+                          || instance.ActivityType.Equals("Service Escalation", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Equals("Extension Request", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Equals("Timeline Extension Approval", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Equals("Project Extension Request", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Equals("Additional Customer Requirement", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Equals("Customer Requirement Approval", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Equals("Customer Requirement", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Contains("Resource Allocation", StringComparison.OrdinalIgnoreCase)
+                          || instance.ActivityType.Contains("Team Member Allocation", StringComparison.OrdinalIgnoreCase);
 
         if (!isDynamicL2
             && policy.SecondEscalationAfterMinutes.HasValue
@@ -740,6 +1091,15 @@ public sealed class SlaTrackingService(
                     delay);
 
                 esc2Event.HangfireJobId = jobId;
+
+                var esc2JobName = SlaJobDisplayNameFormatter.BuildJobName(
+                    instance.ActivityType,
+                    nameof(SlaEventType.EscalationL2),
+                    2,
+                    entityTitle,
+                    projectName,
+                    esc2Event.TargetRoles);
+                SlaJobDisplayNameFormatter.Register(instance.Id, esc2Event.Id, esc2JobName);
             }
         }
 

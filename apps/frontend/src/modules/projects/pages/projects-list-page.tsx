@@ -31,9 +31,11 @@ import { type Project, type Client, people, type Person, getPerson } from "@/lib
 import { HealthPill, StatusPill, ProgressBar, PriorityPill, Avatar, RenewedProjectTag } from "@/components/pills";
 import { isRenewedProject } from "@/lib/project-renewal";
 import { getProjectEMs, getProjectPMs, getProjectTLs, formatPeopleSummary } from "@/lib/project-helpers";
-import { cn } from "@/lib/utils";
+import { cn, formatDateDMY, formatDateTimeDMY } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useDraggable } from "@/hooks/use-draggable";
 import { paginateSlice } from "@/lib/pagination";
+import { SortableColumnHeader, compareSortValues, toggleColumnSort } from "@/components/sortable-column-header";
 import { TablePaginationFooter } from "@/components/table-pagination-footer";
 
 const tabs = ["Active Projects", "Archived Projects", "All Projects"] as const;
@@ -252,16 +254,53 @@ export function ProjectsListPage() {
 
   const [tablePage, setTablePage] = useState(1);
   const [tablePageSize, setTablePageSize] = useState(15);
+  const [projectSortKey, setProjectSortKey] = useState<
+    "id" | "name" | "customer" | "status" | "progress" | "start" | "end" | "em" | "pm" | "tl"
+  >("name");
+  const [projectSortDir, setProjectSortDir] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     setTablePage(1);
   }, [tab, q, years]);
 
   const totalProjects = visible.length;
-  const pagedProjects = useMemo(
-    () => paginateSlice(visible, tablePage, tablePageSize),
-    [visible, tablePage, tablePageSize]
-  );
+  const pagedProjects = useMemo(() => {
+    const text = (value?: string | null) => value ?? "";
+    const firstName = (list: Person[]) => list[0]?.name ?? "";
+    const sorted = [...visible].sort((a, b) => {
+      switch (projectSortKey) {
+        case "id":
+          return compareSortValues(text(a.projectSeqId || a.id), text(b.projectSeqId || b.id), projectSortDir);
+        case "name":
+          return compareSortValues(text(a.name), text(b.name), projectSortDir);
+        case "customer":
+          return compareSortValues(
+            text(clients.find((c) => c.id === a.clientId)?.name),
+            text(clients.find((c) => c.id === b.clientId)?.name),
+            projectSortDir,
+          );
+        case "status":
+          return compareSortValues(text(a.status), text(b.status), projectSortDir);
+        case "progress":
+          return compareSortValues(a.progress ?? 0, b.progress ?? 0, projectSortDir);
+        case "start":
+          return compareSortValues(text(a.startDate), text(b.startDate), projectSortDir);
+        case "end":
+          return compareSortValues(text(a.endDate), text(b.endDate), projectSortDir);
+        case "em":
+          return compareSortValues(firstName(getCardEMs(a)), firstName(getCardEMs(b)), projectSortDir);
+        case "pm":
+          return compareSortValues(
+            firstName(getCardPMs(a, leadershipAssignments, prereqs)),
+            firstName(getCardPMs(b, leadershipAssignments, prereqs)),
+            projectSortDir,
+          );
+        case "tl":
+          return compareSortValues(firstName(getCardTLs(a)), firstName(getCardTLs(b)), projectSortDir);
+      }
+    });
+    return paginateSlice(sorted, tablePage, tablePageSize);
+  }, [visible, tablePage, tablePageSize, projectSortKey, projectSortDir, clients, leadershipAssignments, prereqs]);
 
   if (!canViewProjects) return <Navigate to="/" />;
 
@@ -280,22 +319,11 @@ export function ProjectsListPage() {
   return (
     <AppShell title="Projects" subtitle="Active, archived and all projects across your portfolio">
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-lg border border-border bg-card p-1 text-sm shadow-sm">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={cn(
-                "rounded-md px-3 py-1.5 font-medium",
-                tab === t
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          value={tab}
+          onChange={setTab}
+          options={tabs.map((t) => ({ value: t, label: t }))}
+        />
         <div className="relative max-w-xs flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -324,32 +352,15 @@ export function ProjectsListPage() {
               )}
             </button>
           )}
-          <div className="flex gap-0.5 rounded-lg border border-border/80 bg-muted/60 p-1 text-xs shadow-inner">
-            <button
-              onClick={() => setView("card")}
-              aria-label="Grid view"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
-                view === "card"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <LayoutGrid className="h-3.5 w-3.5" /> Grid
-            </button>
-            <button
-              onClick={() => setView("list")}
-              aria-label="List view"
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-semibold transition-all duration-150",
-                view === "list"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <List className="h-3.5 w-3.5" /> List
-            </button>
-          </div>
+          <SegmentedControl
+            size="sm"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "card", label: <><LayoutGrid className="h-3.5 w-3.5" /> Grid</> },
+              { value: "list", label: <><List className="h-3.5 w-3.5" /> List</> },
+            ]}
+          />
           {canManageProjects && (
             <button
               onClick={() => navigate({ to: "/projects/new" })}
@@ -476,13 +487,13 @@ export function ProjectsListPage() {
                     <div>
                       <dt className="text-muted-foreground">Start</dt>
                       <dd className="font-medium tabular-nums">
-                        {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
+                        {p.startDate ? formatDateDMY(p.startDate) : "—"}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-muted-foreground">End</dt>
                       <dd className="font-medium tabular-nums">
-                        {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
+                        {p.endDate ? formatDateDMY(p.endDate) : "—"}
                       </dd>
                     </div>
                     <div className="min-w-0">
@@ -521,20 +532,33 @@ export function ProjectsListPage() {
           )}
         </div>
       ) : (
-        <div className="w-fit max-w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
-          <table className="app-columns text-sm">
+        <div className="w-full overflow-x-auto rounded-xl border border-border bg-card shadow-sm flex flex-col">
+          <table className="w-full min-w-[1100px] text-sm">
             <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
               <tr>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Project ID</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Project</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Customer</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Status</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Progress</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Start</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">End</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Engagement Mgr</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Project Mgr</th>
-                <th className="px-4 py-3 font-semibold text-muted-foreground">Team Lead</th>
+                {(
+                  [
+                    ["id", "Project ID"],
+                    ["name", "Project"],
+                    ["customer", "Customer"],
+                    ["status", "Status"],
+                    ["progress", "Progress"],
+                    ["start", "Start"],
+                    ["end", "End"],
+                    ["em", "Engagement Mgr"],
+                    ["pm", "Project Mgr"],
+                    ["tl", "Team Lead"],
+                  ] as const
+                ).map(([column, label]) => (
+                  <SortableColumnHeader
+                    key={column}
+                    label={label}
+                    column={column}
+                    sortKey={projectSortKey}
+                    sortDir={projectSortDir}
+                    onSort={(next) => toggleColumnSort(next, projectSortKey, setProjectSortKey, setProjectSortDir)}
+                  />
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -588,17 +612,17 @@ export function ProjectsListPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-                      {p.startDate ? new Date(p.startDate).toLocaleDateString() : "—"}
+                      {p.startDate ? formatDateDMY(p.startDate) : "—"}
                     </td>
                     <td className="px-3 py-2.5 text-xs tabular-nums text-muted-foreground">
-                      {p.endDate ? new Date(p.endDate).toLocaleDateString() : "—"}
+                      {p.endDate ? formatDateDMY(p.endDate) : "—"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3.5">
                       {ems.length === 0 ? (
                         <span className="text-xs text-muted-foreground">—</span>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-2.5 text-foreground transition-colors hover:text-primary"
+                          className="inline-flex items-center gap-2.5 text-foreground"
                           title={ems[0].name}
                         >
                           <Avatar name={ems[0].name} size={28} />
@@ -731,13 +755,7 @@ export function ProjectsListPage() {
                             {d.updatedByName
                               ? `Updated by ${d.updatedByName}`
                               : `Created by ${d.createdByName}`} ·{" "}
-                            {new Date(d.updatedAtUtc || d.createdAtUtc).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {formatDateTimeDMY(d.updatedAtUtc || d.createdAtUtc)}
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-col gap-1.5">

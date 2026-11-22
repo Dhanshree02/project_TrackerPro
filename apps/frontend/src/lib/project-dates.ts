@@ -46,7 +46,7 @@ export function deriveProjectDates(
 }
 
 /**
- * Formats a Date object or ISO / YYYY-MM-DD date string as DD/MM/YYYY (date/month/year).
+ * Formats a Date object or ISO / YYYY-MM-DD date string as DD-MM-YYYY.
  */
 export function formatDateDMY(dateInput: Date | string | undefined | null): string {
   if (!dateInput) return "—";
@@ -56,7 +56,7 @@ export function formatDateDMY(dateInput: Date | string | undefined | null): stri
     const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (match) {
       const [, y, m, d] = match;
-      return `${d}/${m}/${y}`;
+      return `${d}-${m}-${y}`;
     }
   }
   const dObj = dateInput instanceof Date ? dateInput : new Date(dateInput);
@@ -64,6 +64,6 @@ export function formatDateDMY(dateInput: Date | string | undefined | null): stri
   const y = dObj.getFullYear();
   const m = String(dObj.getMonth() + 1).padStart(2, "0");
   const d = String(dObj.getDate()).padStart(2, "0");
-  return `${d}/${m}/${y}`;
+  return `${d}-${m}-${y}`;
 }
 

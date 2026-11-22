@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Modules.ActionCentre.DTOs;
 using PMS.API.Modules.ActionCentre.Services;
+using PMS.API.Modules.Projects.DTOs;
+using PMS.API.Modules.Projects.Services;
 using PMS.API.Shared.Common.Wrappers;
 
 namespace PMS.API.Modules.ActionCentre.Controllers;
@@ -87,6 +89,18 @@ public class ActionCentreController : ControllerBase
     }
 
     /// <summary>
+    /// Evaluates running bucket list task timers, automatically pausing any task that has been
+    /// running continuously for 12 hours or more, capping credited time at 8 hours (standard shift duration).
+    /// </summary>
+    [HttpPost("bucket-list/auto-pause")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View)]
+    public async Task<ActionResult<ApiResponse<int>>> TriggerAutoPause(CancellationToken ct = default)
+    {
+        var count = await _bucketTaskService.AutoPauseAbandonedTasksAsync(ct);
+        return Ok(ApiResponse<int>.Ok(count, new ApiMeta { Total = count }));
+    }
+
+    /// <summary>
     /// Stops the task timer and accumulates elapsed working time.
     /// </summary>
     [HttpPost("bucket-list/{id:guid}/stop-timer")]
@@ -138,6 +152,61 @@ public class ActionCentreController : ControllerBase
     {
         await _bucketTaskService.SyncBucketTasksFromAssignmentsAsync(projectId, taskId, ct);
         return Ok(ApiResponse<bool>.Ok(true));
+    }
+
+    /// <summary>
+    /// Gets assigned projects for the current authenticated employee for Bucket List issue raising.
+    /// Accessible to any user with Action Centre Bucket List permissions.
+    /// </summary>
+    [HttpGet("bucket-list/assigned-projects")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "bucket-list", "action-centre")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<AssignedProjectSummaryDto>>>> GetBucketListAssignedProjects(
+        [FromServices] IProjectIssueService issueService,
+        CancellationToken ct = default)
+    {
+        var list = await issueService.GetEmployeeAssignedProjectsAsync(ct);
+        return Ok(ApiResponse<IReadOnlyList<AssignedProjectSummaryDto>>.Ok(list));
+    }
+
+    /// <summary>
+    /// Raises a project issue directly from the Action Centre bucket list for an assigned project.
+    /// Accessible to any user with Action Centre Bucket List permissions without requiring Project Health permissions.
+    /// </summary>
+    [HttpPost("bucket-list/issues")]
+    [HttpPost("bucket-list/raise-issue")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "bucket-list", "action-centre")]
+    public async Task<ActionResult<ApiResponse<ProjectIssueDto>>> RaiseBucketListIssue(
+        [FromBody] CreateProjectIssueRequest request,
+        [FromServices] IProjectIssueService issueService,
+        CancellationToken ct = default)
+    {
+        if (request.ProjectId == null || request.ProjectId == Guid.Empty)
+        {
+            return BadRequest(ApiResponse<ProjectIssueDto>.Fail("VALIDATION_ERROR", "Project is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Description))
+        {
+            return BadRequest(ApiResponse<ProjectIssueDto>.Fail("VALIDATION_ERROR", "All fields are required."));
+        }
+
+        var issue = await issueService.CreateIssueAsync(request.ProjectId.Value, request, ct);
+        return Ok(ApiResponse<ProjectIssueDto>.Ok(issue));
+    }
+
+    /// <summary>
+    /// Raises a project issue directly from the Action Centre bucket list for an assigned project route.
+    /// </summary>
+    [HttpPost("bucket-list/{projectId:guid}/issues")]
+    [RequireRbac(RbacCatalogCodes.ActionBucketList, RbacAccessType.View, "bucket-list", "action-centre")]
+    public async Task<ActionResult<ApiResponse<ProjectIssueDto>>> RaiseBucketListIssueWithRoute(
+        Guid projectId,
+        [FromBody] CreateProjectIssueRequest request,
+        [FromServices] IProjectIssueService issueService,
+        CancellationToken ct = default)
+    {
+        request.ProjectId = projectId;
+        return await RaiseBucketListIssue(request, issueService, ct);
     }
 
     // ── Notifications ────────────────────────────────────────────────────────
@@ -231,7 +300,7 @@ public class ActionCentreController : ControllerBase
     /// Gets pending central approvals (e.g. Customer Requirements, etc.) for current user.
     /// </summary>
     [HttpGet("approvals")]
-    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View)]
+    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View, "action-center", "action-centre")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectAdditionalRequirementDto>>>> GetApprovals(
         [FromServices] PMS.API.Modules.Projects.Services.IProjectAdditionalRequirementService requirementService,
         CancellationToken ct = default)
@@ -241,10 +310,88 @@ public class ActionCentreController : ControllerBase
     }
 
     /// <summary>
+    /// Takes action (Approve, Reject, Hold, Request Changes) on a central approval request.
+    /// Supports Requirement ID, Extension Request ID, Allocation Request ID, or Notification task code.
+    /// </summary>
+    [HttpPost("approvals/{identifier}/action")]
+    public async Task<ActionResult<ApiResponse<object>>> TakeCentralApprovalAction(
+        string identifier,
+        [FromQuery] Guid? projectId,
+        [FromBody] PMS.API.Modules.Projects.DTOs.AdditionalRequirementActionRequest request,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectAdditionalRequirementService requirementService,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectExtensionRequestService extensionRequestService,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectTeamMemberService teamMemberService,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectFeedbackService feedbackService,
+        CancellationToken ct = default)
+    {
+        var clean = (identifier ?? "").Trim();
+        if (clean.StartsWith("EXT-", StringComparison.OrdinalIgnoreCase) || clean.StartsWith("APP-EXT-", StringComparison.OrdinalIgnoreCase))
+        {
+            var extResult = await extensionRequestService.TakeActionByIdentifierAsync(projectId, clean, new PMS.API.Modules.Projects.DTOs.TakeExtensionActionRequest(request.Status, request.Comment), ct);
+            return Ok(ApiResponse<object>.Ok(extResult));
+        }
+
+        if (clean.StartsWith("ALLOC-", StringComparison.OrdinalIgnoreCase) || clean.StartsWith("APP-ALLOC-", StringComparison.OrdinalIgnoreCase))
+        {
+            var allocResult = await teamMemberService.TakeAllocationActionAsync(projectId, clean, new PMS.API.Modules.Projects.DTOs.ResourceAllocationActionRequest(request.Status, request.Comment), ct);
+            return Ok(ApiResponse<object>.Ok(allocResult));
+        }
+
+        if (clean.StartsWith("FDBK-", StringComparison.OrdinalIgnoreCase) || clean.StartsWith("APP-FDBK-", StringComparison.OrdinalIgnoreCase))
+        {
+            var rawId = clean.Replace("APP-FDBK-", "", StringComparison.OrdinalIgnoreCase).Replace("FDBK-", "", StringComparison.OrdinalIgnoreCase);
+            if (Guid.TryParse(rawId, out var fdbkGuid))
+            {
+                var fdbkResult = await feedbackService.TakeApprovalActionAsync(fdbkGuid, new PMS.API.Modules.Projects.DTOs.FeedbackApprovalActionRequest(request.Status, request.Comment), ct);
+                return Ok(ApiResponse<object>.Ok(fdbkResult));
+            }
+        }
+
+        try
+        {
+            var result = await requirementService.TakeActionByIdentifierAsync(projectId, identifier, request, ct);
+            return Ok(ApiResponse<object>.Ok(result));
+        }
+        catch
+        {
+            try
+            {
+                var extRes = await extensionRequestService.TakeActionByIdentifierAsync(projectId, identifier, new PMS.API.Modules.Projects.DTOs.TakeExtensionActionRequest(request.Status, request.Comment), ct);
+                return Ok(ApiResponse<object>.Ok(extRes));
+            }
+            catch {}
+
+            try
+            {
+                var allocRes = await teamMemberService.TakeAllocationActionAsync(projectId, identifier, new PMS.API.Modules.Projects.DTOs.ResourceAllocationActionRequest(request.Status, request.Comment), ct);
+                return Ok(ApiResponse<object>.Ok(allocRes));
+            }
+            catch {}
+
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Takes action (Approve, Reject, Hold, Request Changes) on a timeline extension request.
+    /// Supports GUID extensionRequestId, or task code (e.g. EXT-XXXXXXXX or APP-EXT-guid).
+    /// </summary>
+    [HttpPost("extension-approvals/{identifier}/action")]
+    public async Task<ActionResult<ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectExtensionRequestDto>>> TakeExtensionApprovalAction(
+        string identifier,
+        [FromQuery] Guid? projectId,
+        [FromBody] PMS.API.Modules.Projects.DTOs.TakeExtensionActionRequest request,
+        [FromServices] PMS.API.Modules.Projects.Services.IProjectExtensionRequestService extensionRequestService,
+        CancellationToken ct = default)
+    {
+        var result = await extensionRequestService.TakeActionByIdentifierAsync(projectId, identifier, request, ct);
+        return Ok(ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectExtensionRequestDto>.Ok(result));
+    }
+
+    /// <summary>
     /// Gets pending resource allocation approvals for the current reporting manager.
     /// </summary>
     [HttpGet("allocation-approvals")]
-    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<PMS.API.Modules.Projects.DTOs.ProjectResourceAllocationRequestDto>>>> GetPendingAllocationApprovals(
         [FromServices] PMS.API.Modules.Projects.Services.IProjectTeamMemberService teamMemberService,
         CancellationToken ct = default)
@@ -254,18 +401,18 @@ public class ActionCentreController : ControllerBase
     }
 
     /// <summary>
-    /// Takes action (Approve, Reject, Hold, Request Changes) on a resource allocation approval request.
+    /// Takes action (Approve, Reject, Hold, Request Changes, Cancelled) on a resource allocation approval request.
+    /// Supports GUID requestId, ActionNotification ID, or task code (e.g. ALLOC-XXXXXXXX).
     /// </summary>
-    [HttpPost("allocation-approvals/{id:guid}/action")]
-    [RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.Manage)]
+    [HttpPost("allocation-approvals/{identifier}/action")]
     public async Task<ActionResult<ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectResourceAllocationRequestDto>>> TakeAllocationApprovalAction(
-        Guid id,
-        [FromQuery] Guid projectId,
+        string identifier,
+        [FromQuery] Guid? projectId,
         [FromBody] PMS.API.Modules.Projects.DTOs.ResourceAllocationActionRequest request,
         [FromServices] PMS.API.Modules.Projects.Services.IProjectTeamMemberService teamMemberService,
         CancellationToken ct = default)
     {
-        var result = await teamMemberService.TakeAllocationActionAsync(projectId, id, request, ct);
+        var result = await teamMemberService.TakeAllocationActionAsync(projectId, identifier, request, ct);
         return Ok(ApiResponse<PMS.API.Modules.Projects.DTOs.ProjectResourceAllocationRequestDto>.Ok(result));
     }
     /// <summary>

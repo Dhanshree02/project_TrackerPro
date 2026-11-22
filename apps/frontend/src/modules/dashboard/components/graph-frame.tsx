@@ -32,15 +32,11 @@ export function yAxisLabel(value: string) {
 }
 
 const CHART_TIP_STYLE = `[data-chart-tip] .recharts-bar-rectangle,[data-month-chart] .recharts-bar-rectangle{cursor:default}
-[data-chart-tip] .mis-dashboard-bar,[data-month-chart] .mis-dashboard-bar{cursor:pointer}
-@keyframes graph-bar-grow-y{from{transform:scaleY(0)}to{transform:scaleY(1)}}
-@keyframes graph-bar-grow-x{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-[data-graph-zoom] .recharts-bar-rectangle{transform-box:fill-box;transform-origin:50% 100%;animation:graph-bar-grow-y .8s ease-out both}
-[data-graph-zoom] [data-bar-axis="x"] .recharts-bar-rectangle{transform-origin:0 50%;animation:graph-bar-grow-x .8s ease-out both}`;
+[data-chart-tip] .mis-dashboard-bar,[data-month-chart] .mis-dashboard-bar{cursor:pointer}`;
 
 const GraphZoomMotionContext = createContext(false);
 
-/** True while the chart is drawn inside the expanded window, so those bars play their entrance animation. */
+/** True while the chart is drawn inside the expanded window. */
 export function useGraphZoomMotion() {
   return useContext(GraphZoomMotionContext);
 }
@@ -221,30 +217,30 @@ export function GraphZoom({ title, render }: { title: string; render: () => Reac
         aria-label={`Expand ${title}`}
         title="Expand"
         onClick={() => setOpen(true)}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-border bg-card text-muted-foreground hover:bg-accent hover:text-foreground"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <Maximize2 className="h-4 w-4" />
       </button>
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 sm:p-8"
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px] sm:p-8"
             onMouseDown={() => setOpen(false)}
           >
             <div
               role="dialog"
               aria-modal="true"
               aria-label={title}
-              className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl"
+              className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-2xl"
               onMouseDown={(event) => event.stopPropagation()}
             >
               <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
-                <h3 className="text-sm font-semibold">{title}</h3>
+                <h3 className="text-[15px] font-semibold tracking-[-0.016em]">{title}</h3>
                 <button
                   type="button"
                   aria-label="Close"
                   onClick={() => setOpen(false)}
-                  className="grid h-8 w-8 place-items-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                  className="grid h-8 w-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>

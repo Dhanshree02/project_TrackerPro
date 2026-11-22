@@ -8,6 +8,9 @@ using PMS.API.Modules.Projects.Models;
 using PMS.API.Modules.Resources.Models;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Shared.Exceptions;
+using PMS.API.Modules.Sla.DTOs;
+using PMS.API.Modules.Sla.Models;
+using PMS.API.Modules.Sla.Services;
 
 namespace PMS.API.Modules.Projects.Services;
 
@@ -15,6 +18,8 @@ public sealed class ProjectAdditionalRequirementService(
     AppDbContext db,
     ICurrentUserService currentUser,
     IFileStorageService storage,
+    ISlaTrackingService slaTrackingService,
+    ISlaRecipientResolver recipientResolver,
     ILogger<ProjectAdditionalRequirementService> logger) : IProjectAdditionalRequirementService
 {
     public async Task<ProjectAdditionalRequirementDto> CreateAsync(
@@ -60,7 +65,8 @@ public sealed class ProjectAdditionalRequirementService(
             attachmentPath = stored.RelativePath;
         }
 
-        var reqId = $"REQ-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
+        var reqGuid = Guid.NewGuid();
+        var approvalId = $"APP-{reqGuid.ToString("N")[..8].ToUpperInvariant()}";
         var isCancellation = string.Equals(request.RequirementType, "Scope Cancellation", StringComparison.OrdinalIgnoreCase);
 
         var finalTitle = request.Title.Trim();
@@ -85,15 +91,15 @@ public sealed class ProjectAdditionalRequirementService(
 
         var requirement = new ProjectAdditionalRequirement
         {
-            Id = Guid.NewGuid(),
-            RequirementId = reqId,
+            Id = reqGuid,
+            RequirementId = approvalId,
             ProjectId = project.Id,
             ClientName = project.Client?.Name ?? string.Empty,
             ProjectName = project.Name,
             RequirementType = isCancellation ? "Scope Cancellation" : "Add Service",
             Title = finalTitle,
             Description = request.Description.Trim(),
-            Priority = string.IsNullOrWhiteSpace(request.Priority) ? "Medium" : request.Priority.Trim(),
+            Priority = string.IsNullOrWhiteSpace(request.Priority) ? "Low" : request.Priority.Trim(),
             RequestedByEmployeeId = requestedByEmployeeId,
             RequestedByName = requestedByName,
             RequestedDate = requestedDate,
@@ -107,20 +113,13 @@ public sealed class ProjectAdditionalRequirementService(
 
         db.ProjectAdditionalRequirements.Add(requirement);
 
-        // ── Identify Leadership Stakeholders ──
-        var salesPerson = await ResolveSalesPersonAsync(project, ct);
-        var projectManager = await ResolveProjectManagerAsync(project, ct);
-        var seniorProjectManager = await ResolveSeniorProjectManagerAsync(project, ct);
-        var engagementManager = await ResolveEngagementManagerAsync(project, ct);
+        // ── Resolve Assigned Sales Manager or Sales Person ONLY ──
+        // Per requirement: Only the assigned approver receives the initial approval notification.
+        // Do not notify PM, SPM, EM or other stakeholders on initial submission.
+        var salesStakeholders = await ResolveSalesStakeholdersAsync(project, ct);
+        var notifyRecipients = salesStakeholders.DistinctBy(s => s.Id).ToList();
 
-        // All 4 get "notification only"
-        var notifyRecipients = new List<Employee>();
-        if (salesPerson != null) notifyRecipients.Add(salesPerson);
-        if (projectManager != null && !notifyRecipients.Any(r => r.Id == projectManager.Id)) notifyRecipients.Add(projectManager);
-        if (seniorProjectManager != null && !notifyRecipients.Any(r => r.Id == seniorProjectManager.Id)) notifyRecipients.Add(seniorProjectManager);
-        if (engagementManager != null && !notifyRecipients.Any(r => r.Id == engagementManager.Id)) notifyRecipients.Add(engagementManager);
-
-        var notifTitle = $"Customer Requirement: {finalTitle} — {project.Name}";
+        var notifTitle = $"Additional Customer Requirement Approval Pending | {project.Name} | {approvalId}";
         var createdNotifs = new List<ActionNotification>();
         foreach (var recipient in notifyRecipients)
         {
@@ -133,12 +132,12 @@ public sealed class ProjectAdditionalRequirementService(
                 ProjectName = project.Name,
                 Title = notifTitle,
                 Type = "Additional Customer Requirement",
-                Priority = requirement.Priority,
+                Priority = "Low",
                 Status = "Pending",
                 Unread = true,
                 RaisedByEmployeeId = requestedByEmployeeId,
                 RaisedByName = requestedByName,
-                RelatedTask = requirement.RequirementId,
+                RelatedTask = approvalId,
                 HistoryJson = JsonSerializer.Serialize(new[]
                 {
                     new
@@ -154,11 +153,29 @@ public sealed class ProjectAdditionalRequirementService(
             createdNotifs.Add(notif);
         }
 
-        TrySyncNotificationsToOtherDatabase(createdNotifs);
+        // Start SLA tracking for Additional Customer Requirement
+        try
+        {
+            await slaTrackingService.StartTrackingAsync(new SlaStartTrackingRequest(
+                EntityId: requirement.Id,
+                ProjectId: project.Id,
+                Module: "Project",
+                ActivityType: "Additional Customer Requirement",
+                Stage: "Pending",
+                Priority: SlaPriority.Low,
+                RecipientEmployeeId: salesStakeholders.FirstOrDefault()?.Id,
+                EntityReference: approvalId
+            ), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[AdditionalRequirement] Failed to start SLA tracking for {ReqId}", requirement.RequirementId);
+        }
 
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Logged Additional Customer Requirement {ReqId} for project {ProjectId}. Notified {Count} stakeholders.",
-            reqId, projectId, notifyRecipients.Count);
+        TrySyncNotificationsToOtherDatabase(createdNotifs);
+        logger.LogInformation("Logged Additional Customer Requirement {ReqId} for project {ProjectId}. Notified {Count} sales approvers.",
+            approvalId, projectId, notifyRecipients.Count);
 
         return MapToDto(requirement);
     }
@@ -189,6 +206,11 @@ public sealed class ProjectAdditionalRequirementService(
 
         if (string.Equals(requirement.Status, "Approved", StringComparison.OrdinalIgnoreCase))
         {
+            if (requirement.ApprovedAtUtc == null)
+            {
+                requirement.ApprovedAtUtc = DateTime.UtcNow;
+                await db.SaveChangesAsync(ct);
+            }
             return MapToDto(requirement);
         }
 
@@ -217,6 +239,15 @@ public sealed class ProjectAdditionalRequirementService(
             await NotifyLeadershipOnStatusChangeAsync(requirement, project, "Approved", approverName, approverEmployeeId, request.Comment, ct);
         }
 
+        try
+        {
+            await slaTrackingService.CompleteTrackingAsync(requirement.Id, "Additional Customer Requirement", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[AdditionalRequirement] Failed to complete SLA tracking for {ReqId}", requirement.RequirementId);
+        }
+
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Approved requirement {ReqId} by {ApproverName}.", requirement.RequirementId, approverName);
 
@@ -233,6 +264,11 @@ public sealed class ProjectAdditionalRequirementService(
             .Include(r => r.Project)
             .FirstOrDefaultAsync(r => r.Id == requirementId && r.ProjectId == projectId && r.DeletedAtUtc == null, ct)
             ?? throw new NotFoundException($"Requirement with id {requirementId} not found.");
+
+        if (string.Equals(requirement.Status, "Rejected", StringComparison.OrdinalIgnoreCase))
+        {
+            return MapToDto(requirement);
+        }
 
         var rejecter = await FindCurrentUserEmployeeAsync(ct);
         var rejecterName = !string.IsNullOrWhiteSpace(rejecter?.FirstName)
@@ -253,6 +289,15 @@ public sealed class ProjectAdditionalRequirementService(
         if (project != null)
         {
             await NotifyLeadershipOnStatusChangeAsync(requirement, project, "Rejected", rejecterName, rejecter?.Id, request.Comment, ct);
+        }
+
+        try
+        {
+            await slaTrackingService.CompleteTrackingAsync(requirement.Id, "Additional Customer Requirement", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[AdditionalRequirement] Failed to complete SLA tracking for {ReqId}", requirement.RequirementId);
         }
 
         await db.SaveChangesAsync(ct);
@@ -280,15 +325,20 @@ public sealed class ProjectAdditionalRequirementService(
             .FirstOrDefaultAsync(r => r.Id == requirementId && r.ProjectId == projectId && r.DeletedAtUtc == null, ct)
             ?? throw new NotFoundException($"Requirement with id {requirementId} not found.");
 
+        var mappedStatus = normStatus.Equals("Hold", StringComparison.OrdinalIgnoreCase) ? "Hold"
+            : (normStatus.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Requested changes", StringComparison.OrdinalIgnoreCase)) ? "Request Changes"
+            : normStatus;
+
+        if (string.Equals(requirement.Status, mappedStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            return MapToDto(requirement);
+        }
+
         var performer = await FindCurrentUserEmployeeAsync(ct);
         var performerName = !string.IsNullOrWhiteSpace(performer?.FirstName)
             ? $"{performer.FirstName} {performer.LastName}".Trim()
             : (!string.IsNullOrWhiteSpace(currentUser.Name) ? currentUser.Name.Trim() : "Reviewer");
         var performerId = performer?.Id.ToString() ?? currentUser.UserId?.ToString() ?? "";
-
-        var mappedStatus = normStatus.Equals("Hold", StringComparison.OrdinalIgnoreCase) ? "Hold"
-            : (normStatus.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) || normStatus.Equals("Requested changes", StringComparison.OrdinalIgnoreCase)) ? "Request Changes"
-            : normStatus;
 
         requirement.Status = mappedStatus;
         if (!string.IsNullOrWhiteSpace(request.Comment))
@@ -299,13 +349,23 @@ public sealed class ProjectAdditionalRequirementService(
 
         requirement.HistoryJson = AppendHistory(requirement.HistoryJson, mappedStatus, performerName, request.Comment, $"{mappedStatus} by {performerName}");
 
+        List<ActionNotification>? statusNotifs = null;
         var project = requirement.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
         if (project != null)
         {
-            await NotifyLeadershipOnStatusChangeAsync(requirement, project, mappedStatus, performerName, performer?.Id, request.Comment, ct);
+            statusNotifs = await NotifyLeadershipOnStatusChangeAsync(requirement, project, mappedStatus, performerName, performer?.Id, request.Comment, ct);
         }
 
+        // NOTE: For "Hold", do NOT complete SLA tracking! The SLA workflow, daily reminders, and escalation schedule continue active.
+
         await db.SaveChangesAsync(ct);
+        if (statusNotifs != null && statusNotifs.Count > 0)
+        {
+            var approvalId = !string.IsNullOrWhiteSpace(requirement.RequirementId)
+                ? requirement.RequirementId
+                : $"APP-{requirement.Id.ToString("N")[..8].ToUpperInvariant()}";
+            TrySyncNotificationsToOtherDatabase(statusNotifs, approvalId, mappedStatus);
+        }
         logger.LogInformation("Action {Status} taken on requirement {ReqId} by {PerformerName}.", mappedStatus, requirement.RequirementId, performerName);
         return MapToDto(requirement);
     }
@@ -336,6 +396,7 @@ public sealed class ProjectAdditionalRequirementService(
 
         requirement.CommentsJson = AppendComment(requirement.CommentsJson, request.Text, authorId, authorName);
 
+        var createdNotifs = new List<ActionNotification>();
         var project = requirement.Project ?? await db.Projects.FindAsync(new object[] { projectId }, ct);
         if (project != null)
         {
@@ -374,7 +435,6 @@ public sealed class ProjectAdditionalRequirementService(
             {
                 var commentSnippet = request.Text.Length > 80 ? request.Text.Substring(0, 77) + "..." : request.Text;
                 var notifTitle = $"New Message on Requirement {requirement.RequirementId}: {requirement.Title} — {project.Name}";
-                var createdNotifs = new List<ActionNotification>();
 
                 foreach (var recipient in recipients)
                 {
@@ -409,14 +469,113 @@ public sealed class ProjectAdditionalRequirementService(
                     db.ActionNotifications.Add(notif);
                     createdNotifs.Add(notif);
                 }
-
-                TrySyncNotificationsToOtherDatabase(createdNotifs);
             }
         }
 
         await db.SaveChangesAsync(ct);
+        if (createdNotifs.Count > 0)
+        {
+            TrySyncNotificationsToOtherDatabase(createdNotifs);
+        }
         logger.LogInformation("Comment added to requirement {ReqId} by {AuthorName}.", requirement.RequirementId, authorName);
         return MapToDto(requirement);
+    }
+
+    public async Task<ProjectAdditionalRequirement> ResolveRequirementAsync(
+        Guid? projectId,
+        string identifier,
+        CancellationToken ct = default)
+    {
+        var cleanId = (identifier ?? "").Trim();
+        if (cleanId.StartsWith("APP-REQ-", StringComparison.OrdinalIgnoreCase))
+        {
+            cleanId = cleanId.Substring("APP-REQ-".Length).Trim();
+        }
+
+        ProjectAdditionalRequirement? requirement = null;
+
+        if (Guid.TryParse(cleanId, out var parsedGuid))
+        {
+            requirement = await db.ProjectAdditionalRequirements
+                .Include(r => r.Project)
+                .FirstOrDefaultAsync(r => r.Id == parsedGuid && (projectId == null || projectId == Guid.Empty || r.ProjectId == projectId.Value) && r.DeletedAtUtc == null, ct);
+        }
+
+        if (requirement == null)
+        {
+            var stripped = cleanId.StartsWith("APP-", StringComparison.OrdinalIgnoreCase)
+                ? cleanId.Substring(4).Trim()
+                : cleanId;
+
+            requirement = await db.ProjectAdditionalRequirements
+                .Include(r => r.Project)
+                .FirstOrDefaultAsync(r =>
+                    (EF.Functions.ILike(r.RequirementId, cleanId) ||
+                     EF.Functions.ILike(r.RequirementId, $"APP-{cleanId}") ||
+                     EF.Functions.ILike(r.RequirementId, stripped) ||
+                     EF.Functions.ILike(r.RequirementId, $"APP-{stripped}")) &&
+                    (projectId == null || projectId == Guid.Empty || r.ProjectId == projectId.Value) &&
+                    r.DeletedAtUtc == null, ct);
+        }
+
+        if (requirement == null)
+        {
+            var hex = cleanId.Replace("-", "").ToUpperInvariant();
+            if (hex.StartsWith("APP")) hex = hex.Substring(3);
+
+            var candidates = await db.ProjectAdditionalRequirements
+                .Include(r => r.Project)
+                .Where(r => (projectId == null || projectId == Guid.Empty || r.ProjectId == projectId.Value) && r.DeletedAtUtc == null)
+                .OrderByDescending(r => r.CreatedAtUtc)
+                .Take(20)
+                .ToListAsync(ct);
+
+            requirement = candidates.FirstOrDefault(r =>
+                r.Id.ToString().Replace("-", "").ToUpperInvariant().StartsWith(hex) ||
+                r.RequirementId.Replace("-", "").ToUpperInvariant().Contains(hex));
+        }
+
+        return requirement ?? throw new NotFoundException($"Requirement with identifier '{identifier}' not found.");
+    }
+
+    public async Task<ProjectAdditionalRequirementDto> TakeActionByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        AdditionalRequirementActionRequest request,
+        CancellationToken ct = default)
+    {
+        var req = await ResolveRequirementAsync(projectId, identifier, ct);
+        return await TakeActionAsync(req.ProjectId, req.Id, request, ct);
+    }
+
+    public async Task<ProjectAdditionalRequirementDto> ApproveByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        ApproveAdditionalRequirementRequest request,
+        CancellationToken ct = default)
+    {
+        var req = await ResolveRequirementAsync(projectId, identifier, ct);
+        return await ApproveAsync(req.ProjectId, req.Id, request, ct);
+    }
+
+    public async Task<ProjectAdditionalRequirementDto> RejectByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        RejectAdditionalRequirementRequest request,
+        CancellationToken ct = default)
+    {
+        var req = await ResolveRequirementAsync(projectId, identifier, ct);
+        return await RejectAsync(req.ProjectId, req.Id, request, ct);
+    }
+
+    public async Task<ProjectAdditionalRequirementDto> AddCommentByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        AddRequirementCommentRequest request,
+        CancellationToken ct = default)
+    {
+        var req = await ResolveRequirementAsync(projectId, identifier, ct);
+        return await AddCommentAsync(req.ProjectId, req.Id, request, ct);
     }
 
     public async Task<IReadOnlyList<ProjectAdditionalRequirementDto>> ListPendingApprovalsAsync(
@@ -428,10 +587,10 @@ public sealed class ProjectAdditionalRequirementService(
 
         var query = db.ProjectAdditionalRequirements
             .Include(r => r.Project)
+            .ThenInclude(p => p.Client)
             .AsNoTracking()
             .Where(r => r.DeletedAtUtc == null);
 
-        // If user is a sales person, filter to requirements where project's sales person is the user
         // If user is admin/PMO/Dhanshree, return all
         var userRole = currentUser.Role ?? currentEmp?.Role ?? "";
         var isPmoOrAdmin = userRole.Contains("PMO", StringComparison.OrdinalIgnoreCase) ||
@@ -442,11 +601,18 @@ public sealed class ProjectAdditionalRequirementService(
         {
             query = query.Where(r =>
                 (r.Project != null && r.Project.SalesPersonId != null && r.Project.SalesPersonId == currentEmpId) ||
-                (r.Project != null && r.Project.SalesPerson != null && currentEmpName != null && EF.Functions.ILike(r.Project.SalesPerson, $"%{currentEmpName}%"))
+                (r.Project != null && r.Project.SalesPerson != null && currentEmpName != null && EF.Functions.ILike(r.Project.SalesPerson, $"%{currentEmpName}%")) ||
+                (r.Project != null && r.Project.Client != null && r.Project.Client.SalesManagerId != null && r.Project.Client.SalesManagerId == currentEmpId) ||
+                (r.Project != null && r.Project.Client != null && r.Project.Client.SalesManager != null && currentEmpName != null && EF.Functions.ILike(r.Project.Client.SalesManager, $"%{currentEmpName}%")) ||
+                db.ProjectTeamMembers.Any(tm => tm.ProjectId == r.ProjectId && tm.EmployeeId == currentEmpId && tm.MemberRole != null && tm.MemberRole.ToLower().Contains("sales") && tm.DeletedAtUtc == null) ||
+                db.ActionNotifications.Any(n => n.RelatedTask == r.RequirementId && n.RecipientEmployeeId == currentEmpId && n.DeletedAtUtc == null)
             );
         }
 
-        var list = await query.OrderByDescending(r => r.CreatedAtUtc).ToListAsync(ct);
+        var list = await query
+            .OrderByDescending(r => r.CreatedAtUtc)
+            .ThenByDescending(r => r.Id)
+            .ToListAsync(ct);
         return list.Select(MapToDto).ToList();
     }
 
@@ -485,7 +651,7 @@ public sealed class ProjectAdditionalRequirementService(
         return null;
     }
 
-    private async Task NotifyLeadershipOnStatusChangeAsync(
+    private async Task<List<ActionNotification>> NotifyLeadershipOnStatusChangeAsync(
         ProjectAdditionalRequirement requirement,
         Project project,
         string status,
@@ -494,70 +660,142 @@ public sealed class ProjectAdditionalRequirementService(
         string? comment,
         CancellationToken ct)
     {
-        var tl = await ResolveTeamLeadAsync(project, ct);
-        var pm = await ResolveProjectManagerAsync(project, ct);
-        var spm = await ResolveSeniorProjectManagerAsync(project, ct);
-        var em = await ResolveEngagementManagerAsync(project, ct);
-        var pmoTeam = await GetPmoTeamEmployeesAsync(ct);
+        // 1. Authoritative SLA escalation stage detection from SlaEvents
+        var slaEvents = await db.SlaEvents
+            .AsNoTracking()
+            .Where(e => e.Instance.EntityId == requirement.Id &&
+                        e.Instance.ActivityType.Contains("Requirement") &&
+                        e.DeletedAtUtc == null)
+            .ToListAsync(ct);
 
-        var notifyRecipients = new List<Employee>();
-        if (tl != null) notifyRecipients.Add(tl);
-        if (pm != null && !notifyRecipients.Any(r => r.Id == pm.Id)) notifyRecipients.Add(pm);
-        if (spm != null && !notifyRecipients.Any(r => r.Id == spm.Id)) notifyRecipients.Add(spm);
-        if (em != null && !notifyRecipients.Any(r => r.Id == em.Id)) notifyRecipients.Add(em);
-        foreach (var pmo in pmoTeam)
+        bool isL2 = slaEvents.Any(e => e.EventType == SlaEventType.EscalationL2 && e.Status == SlaEventStatus.Executed);
+        bool isL1 = !isL2 && slaEvents.Any(e => e.EventType == SlaEventType.EscalationL1 && e.Status == SlaEventStatus.Executed);
+
+        var recipientIds = new HashSet<Guid>();
+
+        // ── Base Recipients across all stages: EM, PM, TL ──
+        // 1. Assigned Engagement Manager(s)
+        if (project.EngagementManagerId.HasValue && project.EngagementManagerId.Value != Guid.Empty)
         {
-            if (!notifyRecipients.Any(r => r.Id == pmo.Id)) notifyRecipients.Add(pmo);
+            recipientIds.Add(project.EngagementManagerId.Value);
+        }
+        if (project.Client != null && project.Client.EngagementManagerId.HasValue && project.Client.EngagementManagerId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.Client.EngagementManagerId.Value);
+        }
+        var emTeamMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.MemberRole == "EngagementManager" || tm.MemberRole == "EM" || tm.MemberRole == "Engagement Manager"))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in emTeamMembers) recipientIds.Add(id);
+        var emByName = await ResolveEngagementManagerAsync(project, ct);
+        if (emByName != null) recipientIds.Add(emByName.Id);
+
+        // 2. Assigned Project Manager(s)
+        if (project.ProjectManagerId.HasValue && project.ProjectManagerId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.ProjectManagerId.Value);
+        }
+        var pmTeamMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.MemberRole == "ProjectManager" || tm.MemberRole == "PM" || tm.MemberRole == "Project Manager"))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in pmTeamMembers) recipientIds.Add(id);
+        var pmByName = await ResolveProjectManagerAsync(project, ct);
+        if (pmByName != null) recipientIds.Add(pmByName.Id);
+
+        // 3. Project Team Lead(s)
+        if (project.TeamLeadId.HasValue && project.TeamLeadId.Value != Guid.Empty)
+        {
+            recipientIds.Add(project.TeamLeadId.Value);
+        }
+        var tlMembers = await db.ProjectTeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                         (tm.IsTeamLead || tm.MemberRole == "TeamLead" || tm.MemberRole == "Team Leader" || (tm.MemberRole != null && tm.MemberRole.Contains("TeamLead"))))
+            .Select(tm => tm.EmployeeId)
+            .ToListAsync(ct);
+        foreach (var id in tlMembers) recipientIds.Add(id);
+        var tlByName = await ResolveTeamLeadAsync(project, ct);
+        if (tlByName != null) recipientIds.Add(tlByName.Id);
+
+        // ── Stage 1 & Stage 2: Add Assigned Senior Project Manager(s) ──
+        if (isL1 || isL2)
+        {
+            var spmRecipients = await recipientResolver.ResolveLeadershipRecipientsAsync(project.Id, ["Assigned Senior Project Manager"], ct);
+            foreach (var id in spmRecipients) recipientIds.Add(id);
+            var spmByName = await ResolveSeniorProjectManagerAsync(project, ct);
+            if (spmByName != null) recipientIds.Add(spmByName.Id);
         }
 
-        // Update all prior notifications for this requirement so old records in DB don't stay "Pending"
+        // ── Stage 2: Add Relevant Head of Department (HOD) ──
+        if (isL2)
+        {
+            var hodRecipients = await recipientResolver.ResolveLeadershipRecipientsAsync(project.Id, ["Head of Department"], ct);
+            foreach (var id in hodRecipients) recipientIds.Add(id);
+        }
+
+        // ── Add Original Request Raiser (if present) ──
+        if (requirement.RequestedByEmployeeId.HasValue && requirement.RequestedByEmployeeId.Value != Guid.Empty)
+        {
+            recipientIds.Add(requirement.RequestedByEmployeeId.Value);
+        }
+
+        // ── Exclude Performer/Actor (they must not receive notification for their own action) ──
+        if (actorEmployeeId.HasValue && actorEmployeeId.Value != Guid.Empty)
+        {
+            recipientIds.Remove(actorEmployeeId.Value);
+        }
+
+        var approvalId = !string.IsNullOrWhiteSpace(requirement.RequirementId)
+            ? requirement.RequirementId
+            : $"APP-{requirement.Id.ToString("N")[..8].ToUpperInvariant()}";
+
+        // Update all prior pending notifications for this requirement so old records in DB don't stay "Pending"
         var existingNotifs = await db.ActionNotifications
-            .Where(n => n.RelatedTask == requirement.RequirementId && n.DeletedAtUtc == null)
+            .Where(n => n.RelatedTask == approvalId && n.DeletedAtUtc == null && n.Status == "Pending")
             .ToListAsync(ct);
         foreach (var existing in existingNotifs)
         {
             existing.Status = status;
         }
 
-        if (notifyRecipients.Count == 0) return;
+        if (recipientIds.Count == 0) return new List<ActionNotification>();
 
-        var actionVerb = status.Equals("Request Changes", StringComparison.OrdinalIgnoreCase) || status.Equals("Requested changes", StringComparison.OrdinalIgnoreCase)
-            ? "Changes Requested"
-            : status.Equals("Hold", StringComparison.OrdinalIgnoreCase)
-                ? "Put on Hold"
-                : status.Equals("Approved", StringComparison.OrdinalIgnoreCase)
-                    ? "Approved"
-                    : status.Equals("Rejected", StringComparison.OrdinalIgnoreCase)
-                        ? "Rejected"
-                        : status;
-
-        var notifTitle = $"Requirement {actionVerb}: {requirement.Title} — {project.Name}";
+        var notifTitle = $"Additional Customer Requirement Status Updated | {project.Name} | {approvalId}";
         var commentDetail = !string.IsNullOrWhiteSpace(comment) ? $". Comment: {comment.Trim()}" : string.Empty;
 
         var createdNotifs = new List<ActionNotification>();
-        foreach (var recipient in notifyRecipients)
+        var now = DateTime.UtcNow;
+
+        foreach (var recipientId in recipientIds)
         {
             var notif = new ActionNotification
             {
                 Id = Guid.NewGuid(),
-                RecipientEmployeeId = recipient.Id,
+                RecipientEmployeeId = recipientId,
                 ProjectId = project.Id,
                 ProjectCode = project.ProjectCode,
                 ProjectName = project.Name,
                 Title = notifTitle,
                 Type = "Additional Customer Requirement",
-                Priority = requirement.Priority,
+                Priority = "Low",
                 Status = status,
                 Unread = true,
                 RaisedByEmployeeId = actorEmployeeId,
                 RaisedByName = actorName,
-                RelatedTask = requirement.RequirementId,
+                RelatedTask = approvalId,
+                CreatedAtUtc = now,
                 HistoryJson = JsonSerializer.Serialize(new[]
                 {
                     new
                     {
                         status,
-                        at = DateTime.UtcNow.ToString("o"),
+                        at = now.ToString("o"),
                         updatedBy = actorName,
                         details = $"{status} by {actorName}{commentDetail}"
                     }
@@ -567,31 +805,80 @@ public sealed class ProjectAdditionalRequirementService(
             createdNotifs.Add(notif);
         }
 
-        TrySyncNotificationsToOtherDatabase(createdNotifs, requirement.RequirementId, status);
+        return createdNotifs;
+    }
+
+    private static int notifyRecipientsCount(HashSet<Guid> set) => set.Count;
+
+    private async Task<List<Employee>> ResolveSalesStakeholdersAsync(Project project, CancellationToken ct)
+    {
+        var salesList = new List<Employee>();
+        var seenIds = new HashSet<Guid>();
+
+        // 1. Direct SalesPerson on Project
+        if (project.SalesPersonId is Guid spId && spId != Guid.Empty)
+        {
+            var emp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == spId && e.DeletedAtUtc == null, ct);
+            if (emp != null && seenIds.Add(emp.Id)) salesList.Add(emp);
+        }
+
+        // 2. SalesManager on Project's Client
+        if (project.Client != null && project.Client.SalesManagerId is Guid smId && smId != Guid.Empty)
+        {
+            var emp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == smId && e.DeletedAtUtc == null, ct);
+            if (emp != null && seenIds.Add(emp.Id)) salesList.Add(emp);
+        }
+        else if (project.ClientId != Guid.Empty)
+        {
+            var client = await db.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == project.ClientId && c.DeletedAtUtc == null, ct);
+            if (client?.SalesManagerId is Guid cSmId && cSmId != Guid.Empty)
+            {
+                var emp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == cSmId && e.DeletedAtUtc == null, ct);
+                if (emp != null && seenIds.Add(emp.Id)) salesList.Add(emp);
+            }
+        }
+
+        // 3. Project Team Members with Sales role
+        var teamSales = await (from tm in db.ProjectTeamMembers.AsNoTracking()
+                               where tm.ProjectId == project.Id && tm.DeletedAtUtc == null &&
+                                     tm.MemberRole != null && tm.MemberRole.ToLower().Contains("sales")
+                               join e in db.Employees.AsNoTracking() on tm.EmployeeId equals e.Id
+                               where e.DeletedAtUtc == null
+                               select e).ToListAsync(ct);
+        foreach (var emp in teamSales)
+        {
+            if (seenIds.Add(emp.Id)) salesList.Add(emp);
+        }
+
+        // 4. By name match if SalesPerson string is present
+        if (!string.IsNullOrWhiteSpace(project.SalesPerson))
+        {
+            var name = project.SalesPerson.Trim();
+            var emp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e =>
+                e.DeletedAtUtc == null &&
+                (EF.Functions.ILike(e.FirstName + " " + e.LastName, name) ||
+                 EF.Functions.ILike(e.FirstName, name)), ct);
+            if (emp != null && seenIds.Add(emp.Id)) salesList.Add(emp);
+        }
+
+        // 5. Fallback if no sales stakeholder found yet: any active non-intern sales manager
+        if (salesList.Count == 0)
+        {
+            var fallback = await db.Employees.AsNoTracking()
+                .Include(e => e.Designation)
+                .FirstOrDefaultAsync(e => e.DeletedAtUtc == null &&
+                    e.Role != null && e.Role.ToLower().Contains("sales") &&
+                    (e.Designation == null || !e.Designation.Name.ToLower().Contains("intern")), ct);
+            if (fallback != null && seenIds.Add(fallback.Id)) salesList.Add(fallback);
+        }
+
+        return salesList;
     }
 
     private async Task<Employee?> ResolveSalesPersonAsync(Project project, CancellationToken ct)
     {
-        if (project.SalesPersonId is Guid spId)
-        {
-            var emp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == spId && e.DeletedAtUtc == null, ct);
-            if (emp != null) return emp;
-        }
-
-        if (!string.IsNullOrWhiteSpace(project.SalesPerson))
-        {
-            var name = project.SalesPerson.Trim();
-            var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var emp = await db.Employees.AsNoTracking().FirstOrDefaultAsync(e =>
-                e.DeletedAtUtc == null &&
-                ((e.FirstName + " " + e.LastName).ToLower() == name.ToLower() ||
-                 (parts.Length > 0 && e.FirstName.ToLower() == parts[0].ToLower())), ct);
-            if (emp != null) return emp;
-        }
-
-        // Fallback: any sales manager or sales member
-        return await db.Employees.AsNoTracking()
-            .FirstOrDefaultAsync(e => e.DeletedAtUtc == null && e.Role != null && e.Role.Contains("Sales"), ct);
+        var list = await ResolveSalesStakeholdersAsync(project, ct);
+        return list.FirstOrDefault();
     }
 
     private const string PmoSubDepartment = "PMO (Project Management Office)";
@@ -637,6 +924,7 @@ public sealed class ProjectAdditionalRequirementService(
 
     private static void TrySyncNotificationsToOtherDatabase(IReadOnlyList<ActionNotification> notifications, string? relatedTask = null, string? newStatus = null)
     {
+        if (DatabaseSyncHelper.IsPrimaryPmsUat) return;
         try
         {
             using var conn = new Npgsql.NpgsqlConnection("Host=127.0.0.1;Port=5432;Database=pms_uat;Username=postgres;Password=123;Timeout=2;Include Error Detail=true");

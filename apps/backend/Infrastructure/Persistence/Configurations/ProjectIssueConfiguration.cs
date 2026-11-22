@@ -50,7 +50,7 @@ public sealed class ProjectAlertConfiguration : IEntityTypeConfiguration<Project
 
         builder.Property(x => x.Title).HasMaxLength(300).IsRequired();
         builder.Property(x => x.Description).HasColumnType("text");
-        builder.Property(x => x.AlertType).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.AlertType).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Priority).HasMaxLength(20).IsRequired();
         builder.Property(x => x.Status).HasMaxLength(30).IsRequired();
         builder.Property(x => x.RaisedByName).HasMaxLength(200).IsRequired();

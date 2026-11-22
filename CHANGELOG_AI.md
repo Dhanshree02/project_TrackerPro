@@ -1,3 +1,1935 @@
+# Changelog - Database Synchronization: pms_uat.sql and pms_development.sql from Live Database
+
+## Summary of Changes
+- **Database Dump Synchronization**:
+  - Cleared and regenerated both `database/pms_uat.sql` and `database/pms_development.sql` directly from the active local PostgreSQL database (`pms_uat` on `127.0.0.1:5432`).
+  - Generated complete schema, tables, constraints, foreign keys, sequences, and data using `pg_dump --no-owner --no-acl`.
+  - Filtered out PostgreSQL 18-specific `\restrict` and `\unrestrict` session tokens for cross-version PostgreSQL compatibility.
+- **Verification & Data Audit**:
+  - Audited all 11 schemas, 94 base tables, and 5,330 total rows directly from the live database.
+  - Confirmed 0 mismatches: 100% of tables and records are identically represented in both SQL files.
+  - Both files have identical file size (1,688,353 bytes), identical line count (11,805 lines), and identical SHA-256 hash (`4931f5b7d4f8f2ce42bb98dc751865ff8efeb544f93fa8c1cb9374101251a285`).
+  - Verified 94 `CREATE TABLE` statements and 94 `COPY` statements matching the 94 base tables.
+- **Affected Files**:
+  - `database/pms_uat.sql`
+  - `database/pms_development.sql`
+- **Database Changes and Migrations**:
+  - None.
+- **Existing Functionality Preserved**:
+  - No application code, business logic, or UI modified.
+
+---
+
+# Changelog - Dedicated Resource PMO Approval Flow, Transferred Team Member Status, EOD Reminder & Requests View
+
+## Summary of Changes
+- **Dedicated Resource PMO Approval Workflow**:
+  - **PMO Note & Selection**: When adding a team member with `Dedicated` resource type where the person is already dedicated on another project, displayed an informational banner: `"Note: This resource is dedicated on another project. You have to get approval from the PMO."` directly below the dedicated project allocation bookings in `DateRangePicker`.
+  - **Non-blocking Date Selection**: Added `allowDedicatedSelection` to `DateRangePicker` and updated `AddTeamMemberModal` so that dedicated clashes do not prevent selecting allocation dates for PMO approval submission.
+  - **Approval Routing to PMO**: In `ProjectTeamMemberService.RequestAllocationAsync`, requests for dedicated resources route approval directly to PMO users/employees (`approverName = "PMO"`) and dispatch notifications to PMO, while shared resources continue routing to the employee's Reporting Manager.
+  - **Approval & Project Transfer**: In `TakeAllocationActionAsync`, when PMO approves a dedicated resource allocation request:
+    - The employee is added as an active team member to the new project.
+    - Any prior dedicated membership on another project has its `AllocationEndDate` updated to the day before the new project's start date (`AllocationStartDate.AddDays(-1)`), with `DeletedAtUtc` set to `DateTime.UtcNow`.
+  - **Lighted / Dimmed Transferred Row**: In the previous project's Team tab, transferred members are displayed with dimmed opacity (`opacity-60 bg-muted/20`), a `"Transferred"` badge, their historical allocation duration (`StartDate → EndDate`), and action buttons disabled.
+  - **Reporting Manager Notification**: In `NotifyLeadershipOnAllocationStatusChangeAsync`, when PMO approves or rejects a dedicated resource request, an approval or rejection notification is dispatched to the candidate's Reporting Manager.
+  - **Daily EOD Hangfire Reminder**: Implemented `ExecuteDedicatedAllocationPmoDailyEodCheckAsync` in `ActionNotificationService` and registered recurring job `dedicated-allocation-pmo-daily-eod-reminders` running daily at EOD (18:30 IST / 13:00 UTC). If PMO has not approved, held, or rejected a dedicated allocation request within 2 days, a daily high-priority reminder notification is sent to PMO until decision.
+  - **"View Requests" Button & Modal**: Added a `"View Requests"` button in the Team Tab beside `"Add Team Member"`. It opens `ProjectAllocationRequestsModal` displaying the project's allocation requests, resource details, duration, approver name (PMO or Reporting Manager), status badges (Pending, Approved, Hold, Rejected), and latest decision comments/feedback.
+- **Affected Files**:
+  - `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+  - `apps/backend/Modules/Projects/DTOs/ProjectTeamMemberDtos.cs`
+  - `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`
+  - `apps/backend/Program.cs`
+  - `apps/frontend/src/modules/projects/api/project-team-members.ts`
+  - `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
+- **Database Changes and Migrations**:
+  - None required. Utilizes existing columns (`DeletedAtUtc`, `AllocationEndDate`) on `project.tbl_project_team_members` and the existing partial index (`WHERE "DeletedAtUtc" IS NULL`).
+- **Existing Functionality Preserved**:
+  - Preserved standard Shared Resource allocation routing to the resource's Reporting Manager.
+  - Preserved WBS Project Allocation leadership rules and manager row locks.
+  - Maintained complete UI consistency and responsive styling.
+  - Strictly observed zero test/mock data creation in the database or UI.
+- **Verification**:
+  - Backend `PMS.API.csproj` built cleanly with **0 errors**.
+  - Frontend built cleanly with **0 errors** across client and SSR bundles.
+
+---
+
+# Changelog - Accurate Synchronization of pms_uat.sql and pms_development.sql from Live Local Database
+
+## Summary of Changes
+- **Database Dump Synchronization**:
+  - Cleared and regenerated both `database/pms_uat.sql` and `database/pms_development.sql` directly from the active local PostgreSQL database (`pms_uat` on `localhost:5432`).
+  - Exported complete schema, tables, constraints, foreign keys, sequences, and data using `pg_dump --no-owner --no-acl`.
+  - Filtered out PostgreSQL 18-specific `\restrict` and `\unrestrict` session tokens for cross-version PostgreSQL compatibility.
+- **Verification & Data Audit**:
+  - Audited all 11 schemas, 94 base tables, and 5,153 rows against the live local database.
+  - Confirmed 0 mismatches: 100% of tables and records are identically represented in both SQL files.
+  - Verified identical file sizes (1,531,407 bytes) and line counts (11,628 lines).
+  - Reflects the active, clean organizational structure (10 departments, 88 designations, 88 on-floor roles) and latest action notifications.
+- **Affected Files**:
+  - `database/pms_uat.sql`
+  - `database/pms_development.sql`
+- **Database Changes and Migrations**:
+  - None.
+- **Existing Functionality Preserved**:
+  - No business logic, APIs, or UI modified.
+
+---
+
+# Changelog - Accurate Date and Time for Notification Audit History & Alert Status Transitions Timeline
+
+## Summary of Changes
+- **Date & Time Synchronization and Accuracy**:
+  - **Notification Audit History (View Button)**:
+    - Fixed UTC discrepancy where timeline history logs displayed raw 24-hr UTC timestamps (`HH:mm:ss`), creating a 5.5-hour mismatch with the localized `Created Time` header (`11:32 AM` vs `06:02:44`).
+    - Handled flexible history record structures (including records with `at`, `details`, `status`, `updatedBy` as well as `action`, `date`, `time`, `by`) so that timeline entries are never blank or missing details.
+    - Added fallback to the notification's `createdAt` when history items have no individual timestamp or when `history` is empty, ensuring an accurate initial creation log is always rendered.
+    - Synchronized `formatNotifDate` and `formatNotifTime` to accurately parse `YYYY-MM-DD` dates without timezone shift and convert ISO timestamps to user local timezone.
+  - **Alert Status Transitions Timeline (Review Details Button)**:
+    - Fixed raw UTC time display in `Status Transitions Timeline` in `action-centre-page.tsx` and `project-detail-page.tsx`.
+    - Introduced `formatTimelineDateTime` which accurately handles ISO timestamps (`at`), UTC `date` + `time` strings from backend, and pre-formatted 12-hour timestamps.
+    - Fixed `formatToDayMonthYear` regex bug where strings starting with `YYYY-MM-DD` bypassed timezone conversion, ensuring dates that cross UTC midnight reflect the correct local day.
+- **Backend Enhancements**:
+  - `apps/backend/Modules/ActionCentre/DTOs/ActionNotificationDtos.cs`:
+    - Extended `NotificationHistoryItemDto` with `At`, `Status`, and `Details` properties.
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+    - Rewrote `ParseHistory` using `JsonDocument` to flexibly parse diverse history JSON payloads (`status`, `details`, `at`, `updatedBy`, `action`, `date`, `time`, `by`), automatically reconstructing `At` (ISO-8601 UTC) when only `date` and `time` are stored.
+    - Ensured `MapDto` and `MapAlertDto` provide a default "Notification created" history entry if history is empty.
+    - Included `At = now.ToString("o")` across all new history records created during mark as read, archive, comment addition, and governance updates.
+  - `apps/backend/Modules/Projects/Services/ProjectIssueService.cs`:
+    - Added `At = now.ToString("o")` to default alert history and status transition logs.
+- **Affected Files**:
+  - `apps/backend/Modules/ActionCentre/DTOs/ActionNotificationDtos.cs`
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+  - `apps/backend/Modules/Projects/Services/ProjectIssueService.cs`
+  - `apps/backend/Modules/ActionCentre/Services/BucketTaskService.cs`
+  - `apps/frontend/src/components/notification-detail-modal.tsx`
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+  - `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
+- **Existing Functionality & UI Preserved**:
+  - No changes made to business logic, status transitions, approval/alert workflows, or UI layouts.
+- **Database & Data Integrity**:
+  - Zero database schema migrations required.
+  - Strict user constraint observed: 0 customers, departments, notifications, alert requests, approval requests, bucket tasks, or resources were added to the database or UI.
+- **Verification**:
+  - Backend compiled with **0 errors**.
+  - Frontend compiled with **0 errors**.
+  - Backend verified running and Healthy at `http://localhost:5194/health`.
+  - Database row counts verified against baseline.
+
+---
+
+# Changelog - Project Task Lifecycle Notifications from Bucket List & Project Tasks Tab
+
+## Summary of Changes
+- **Business Logic & Notification Dispatch**:
+  - **Bucket List Task Lifecycle Notifications**:
+    - When a project task is paused, resumed, stopped, or completed from the bucket list:
+      - Notifications are dispatched to the **Assigned Project Manager**, **Assigned Engagement Manager**, and **Project Team Leader**.
+      - Notification Title formats match exact specification:
+        - **Paused**: `"{Project_name} : {Task name} of {Service name} is paused by {Resource name}"` (Type: `"Task Paused"`, Priority: `"Low"`)
+        - **Resume**: `"{Project_name} : {Task name} of {Service name} is resume by {Resource name}"` (Type: `"Task Resumed"`, Priority: `"Low"`)
+        - **Stop**: `"{Project_name} : {Task name} of {Service name} is stop by {Resource name}"` (Type: `"Task Stopped"`, Priority: `"Medium"`)
+        - **Completed**: `"{Project_name} : {Task name} of {Service name} is completed"` (Type: `"Task Completed"`, Priority: `"Low"`)
+      - Recipient resolution logic covers `ISlaRecipientResolver.ResolveLeadershipRecipientsAsync`, direct project entity fields (`ProjectManagerId`, `EngagementManagerId`, `TeamLeadId`), and project team member allocations (`tbl_project_team_members`) with leadership roles or `IsTeamLead` flag.
+      - Service name resolution queries the task's linked `ProjectService` or the project's primary service.
+      - Resource performer name is resolved from the employee record or current session context.
+  - **Project Task Tab Completion Reflection**:
+    - In `ProjectAppService.UpdateTaskStageAsync`, when a task stage is updated to `"Completed"`, it reflects as completed across bucket tasks and automatically invokes `NotifyProjectTaskLifecycleAsync` with action `"completed"`.
+    - Notification Title: `"{Project_name} : {Task name} of {Service name} is completed"`.
+- **API & Service Changes**:
+  - `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`:
+    - Added `NotifyProjectTaskLifecycleAsync(Guid projectId, Guid taskId, string taskTitle, string? serviceName, string action, string? performerName = null, Guid? performerEmployeeId = null, CancellationToken ct = default)`.
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+    - Implemented `NotifyProjectTaskLifecycleAsync` resolving service name, leadership recipients (PM, EM, TL), performer details, formatting user-specified titles, and inserting audit history and comments.
+  - `apps/backend/Modules/ActionCentre/Services/BucketTaskService.cs`:
+    - Injected `IActionNotificationService` and wired up notification dispatches for `StartBucketTaskTimerAsync` (resume), `PauseBucketTaskTimerAsync` (paused), `StopBucketTaskTimerAsync` (stop), `CompleteBucketTaskAsync` (completed), and `UpdateBucketTaskStatusAsync`.
+  - `apps/backend/Modules/Projects/Services/ProjectAppService.cs`:
+    - Hooked `UpdateTaskStageAsync` to invoke `NotifyProjectTaskLifecycleAsync` upon completion.
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+    - Added `"Task Resumed"` and `"Task Completed"` to `NOTIFICATION_TYPES` filter.
+  - `apps/frontend/src/components/notification-detail-modal.tsx`:
+    - Added UI badges, styling, and status icon rendering for `"paused"`, `"resumed"`, and `"stopped"`.
+- **Existing Functionality Preserved**:
+  - No modifications to existing bucket task timer mechanics, status update logic, or task tab workflows.
+  - Preserved all existing UI layouts, forms, buttons, and behavior without alteration.
+- **Database & Migrations**:
+  - Zero database schema migrations required; existing `ActionNotification` schema utilized.
+  - Data integrity strictly maintained: 0 customers, projects, notifications, alerts, approvals, or resources were added to the database during implementation and testing.
+- **Verification**:
+  - Backend compiled with **0 errors**.
+  - Frontend compiled with **0 errors** (`dist/client` and `dist/server` built).
+  - Backend healthy at `http://localhost:5194/health`.
+  - Database baseline counts verified.
+
+---
+
+# Changelog - WBS Edit Service Notifications for Assigned Engagement Manager & PMO
+
+## Summary of Changes
+- **Business Logic & Notification Dispatch**:
+  - **Service Edited Workflow (Add, Modify, Delete)**:
+    - From the WBS tab of a project, editing services via the "Edit Services" modal triggers backend service operations (`AddProjectServiceAsync`, `UpdateProjectServiceAsync`, `DeleteProjectServiceAsync` in `ProjectAppService.cs`).
+    - Extended `NotifyServiceEditedAsync` in `ActionNotificationService.cs` to resolve and dispatch notifications to **both**:
+      1. **Assigned Engagement Manager(s)** of the project (resolved via `project.EngagementManagerRef`, `project.EngagementManagerId`, `project.Client.EngagementManagerId`, team member role assignments, or name/email matching).
+      2. **PMO (Project Management Office)** (resolved from active employees whose sub-department, department, or role matches `PMO`).
+  - **Notification Titles & Meaningful Context**:
+    - **Modify**: Title: `$"The {project.Name} service is modify"`, Type: `"Service Modified"`.
+      - History/Action: Descriptive details including service name, requested modifications (`Target Qty`, `Resource Level`), performer, and timestamp.
+    - **Delete**: Title: `$"The {project.Name} service is deleted"`, Type: `"Service Deleted"`.
+      - History/Action: `$"Service '{serviceName}' was deleted from project '{project.Name}'."`.
+    - **Add**: Title: `$"The {project.Name} service is added"`, Type: `"Service Added"`.
+      - History/Action: `$"Service '{service.ServiceName}' was added to project with Qty: {service.Qty}, Department: '{service.Department}'."`.
+- **Affected Files**:
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+    - Updated `NotifyServiceEditedAsync` to deliver notifications to both the Assigned Engagement Manager(s) and PMO employees.
+    - Formatted `HistoryJson` with `action: meaningfulDetails`, `status: actionWord`, `date`, `time`, and `by` for full audit traceability.
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+    - Added `"Service Modified"`, `"Service Deleted"`, and `"Service Added"` to `NOTIFICATION_TYPES`.
+  - `apps/frontend/src/components/notification-detail-modal.tsx`:
+    - Added styling, status pills, and icons for `Service Modified`, `Service Deleted`, and `Service Added`.
+- **Existing Functionality Preserved**:
+  - Zero changes to the Edit Service business logic, calculations, stage tracking, or modal functionality.
+  - Preserved all existing unit/integration test contracts.
+- **Database & Data Integrity**:
+  - No database migrations or schema alterations required.
+  - User constraint honored: **Zero customers, projects, notifications, alerts, approvals, or resources were added to the database or UI**.
+- **Verification**:
+  - Backend compiled with **0 errors**.
+  - Frontend compiled with **0 errors**.
+  - Verified backend service status at `http://localhost:5194/health` (Healthy).
+
+---
+
+# Changelog - WBS Service Wise Prerequisite Tracking: Service Started Notifications & 2-Day Daily EOD Reminders
+
+## Summary of Changes
+- **Business Logic & Workflow Implementation**:
+  - **Service Started Notifications**:
+    - From the project WBS tab (Service wise Prerequisite Tracking), when a service status is transitioned to "Started" (`IsReady` = true or `ModIsReady` = true):
+      - Dispatches immediate notifications to the **Assigned Project Manager (PM)**, **Assigned Senior Project Manager (SPM)**, **Assigned Engagement Manager (EM)**, and **Assigned Team Lead (TL)**.
+      - Notification Title: `$"Service Started: {service.ServiceName} | {project.Name}"`
+      - Related Task: `{service.ServiceName}`, Related Project: `{project.Name}`.
+      - Automatically cancels pending SLA breach escalation jobs for that service.
+      - Checks whether all services for the project are now started; if so, automatically cancels all active 2-day reminder workflows for the project.
+  - **2-Day Daily EOD Reminder Workflow (PMO & EM)**:
+    - If all services for a project are not started from the Service wise Prerequisite Tracking section within 2 days:
+      - Dispatches a daily End-of-Day (EOD) reminder notification to the **PMO (Project Management Office)** and the **Assigned Engagement Manager (EM)** in their Action Centre notification tab at 18:00 IST (12:30 UTC).
+      - Reminder Title: `$"{project.Name} Service wise Prerequisite Tracking is still pending"`.
+      - Related Task / Project: `{project.Name}`.
+      - Type: `"Service Prerequisite Reminder"`.
+      - Prevents duplicate reminders on the same day for the same project.
+      - Evaluated daily Mon–Fri at 18:00 IST via Hangfire recurring job `service-prerequisite-daily-eod-reminders` (`ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync`), as well as project-specific scheduled delays.
+- **Affected Files**:
+  - `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`: Declared `StartProjectServicePrerequisiteReminderWorkflowAsync`, `CancelProjectServicePrerequisiteReminderWorkflowAsync`, `ExecuteServicePrerequisitePendingReminderJobAsync`, and `ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync`.
+  - `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+    - Implemented `NotifyServiceStartedAsync` targeting PM, SPM, EM, and TL.
+    - Implemented `ResolveAssignedSeniorProjectManagersAsync`, `ResolveAssignedTeamLeadsAsync`, and `ResolvePmoEmployeesAsync`.
+    - Implemented `StartProjectServicePrerequisiteReminderWorkflowAsync`, `CancelProjectServicePrerequisiteReminderWorkflowAsync`, `ExecuteServicePrerequisitePendingReminderJobAsync`, `DispatchServicePrerequisitePendingReminderAsync`, and `ExecuteAllProjectsServicePrerequisiteDailyEodCheckAsync`.
+  - `apps/backend/Modules/Projects/Services/ProjectAppService.cs`: Wired prerequisite reminder initiation on project creation, service addition, project renewal, and prerequisite updates (`!IsReady`). Triggered `NotifyServiceStartedAsync` upon service ready state change (`becameReady` or `modBecameReady`).
+  - `apps/backend/Program.cs`: Registered Hangfire recurring job `"service-prerequisite-daily-eod-reminders"` running at `30 12 * * 1-5` (18:00 IST Mon–Fri).
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`: Added `"Service Started"` and `"Service Prerequisite Reminder"` to the Action Centre notification type filters.
+  - `apps/frontend/src/components/notification-detail-modal.tsx`: Configured visual styling, status badges, and icons for `"Service Started"` and `"Service Prerequisite Reminder"`.
+- **Database & Data Integrity**:
+  - No database migrations or schema alterations required.
+  - Strictly respected user constraints: **Zero test customers, projects, notifications, alerts, approvals, or resources were added to the database or UI**.
+- **Verification**:
+  - Backend project compiled with **0 errors and 0 warnings**.
+  - Frontend built cleanly for both client and SSR bundles with **0 errors**.
+  - Backend daemon verified and responsive at `http://localhost:5194/health` returning `Healthy`.
+
+---
+
+# Changelog - Fix Approvals Tab Request Status Database Persistence
+
+## Summary of Changes
+- **Root Cause Analysis (Approvals Tab Status Not Updating in Database)**:
+  - **Fragile Frontend Type Matching**: `handleAction` in `action-centre-page.tsx` relied on exact string matches (`currentApp.requestType === "Customer Requirement Approval"` etc.). Approvals originating from store state or notification items had different labels (e.g., `"Additional Customer Requirement"` or `"Extension Request"`), causing all conditions to evaluate to `false`. Execution fell through to `!handledByApi`, which merely called in-memory `dhStore.updateCentralApprovalStatus(...)` and displayed `toast.success`, misleading users while zero API calls were dispatched to the backend.
+  - **Identifier Prefix Mismatch**: Central approval items use `APP-` followed by an 8-character hash or GUID (e.g., `APP-4B988935`, `APP-D472CC0E`, `APP-6C99804A`). In `ProjectTeamMemberService.cs`, `TakeAllocationActionAsync` stripped only `ALLOC-` but not `APP-` or `APP-ALLOC-`, preventing partial GUID matching against `project.tbl_resource_allocation_requests`.
+  - **Missing Dedicated Extension Approval Route**: `ActionCentreController` had endpoints for requirements and allocations, but lacked a dedicated action endpoint for timeline extension requests.
+- **Backend Enhancements**:
+  - **Polymorphic Action Endpoint**: Upgraded `[HttpPost("approvals/{identifier}/action")]` in `ActionCentreController.cs` into an intelligent multi-domain handler that resolves customer requirements, extension requests, resource allocations, and feedbacks by identifier, GUID, or prefix.
+  - **Dedicated Extension Approval Endpoint**: Added `[HttpPost("extension-approvals/{identifier}/action")]` in `ActionCentreController.cs` and `TakeActionByIdentifierAsync` in `IProjectExtensionRequestService.cs` / `ProjectExtensionRequestService.cs`.
+  - **Robust Prefix Stripping**: Updated `ProjectTeamMemberService.cs` and `ProjectExtensionRequestService.cs` to cleanly normalize identifiers prefixed with `APP-`, `APP-ALLOC-`, `ALLOC-`, `APP-EXT-`, or `EXT-`.
+- **Frontend Refinements**:
+  - In `action-centre-page.tsx`, rewritten `handleAction` to use case-insensitive fuzzy keyword matching (`requirement`, `customer`, `allocation`, `resource`, `extension`, `timeline`, `feedback`) and universal fallback to `takeCentralApprovalAction`.
+  - Updated API helpers in `project-extension-requests.ts`, `project-team-members.ts`, and `project-additional-requirements.ts` to seamlessly route through the Central Action Centre endpoints with proper error propagation.
+- **Verification**:
+  - Backend compiles with **0 warnings and 0 errors**.
+  - Verified live status updates via direct PostgreSQL queries in `pms_uat`:
+    - `project.tbl_project_additional_requirements`: Verified `Approved` persistence.
+    - `project.tbl_project_extension_requests`: Verified transitions between `Hold` and `Approved`.
+    - `project.tbl_resource_allocation_requests`: Verified transitions between `Hold` and `Approved`.
+  - Zero new employees, resources, or departments added to the database.
+
+---
+
+# Changelog - Fix Duplicate Key Constraint (pk_tbl_notifications) & Extension/Requirement Approval Status Updates
+
+## Summary of Changes
+- **Root Cause Analysis (PostgreSQL 23505 Duplicate Key Error)**:
+  - Discovered that secondary database sync routines (`TrySyncNotificationsToOtherDatabase`, `TrySyncEndDateToOtherDatabase`, `TrySyncAllocationRequestToOtherDatabase`, `TrySyncTeamMemberToOtherDatabase`) across backend services connected directly to `Database=pms_uat` via hardcoded ADO.NET connections.
+  - When the primary `DefaultConnection` database is already `pms_uat`, these routines connected to the exact same database outside the EF Core transaction before `await db.SaveChangesAsync(ct)` completed.
+  - As a result, notification entities were inserted into `action.tbl_notifications` ahead of EF Core. When EF Core subsequently attempted to insert the same entity ID, PostgreSQL threw `23505: duplicate key value violates unique constraint "pk_tbl_notifications"`.
+  - This error caused EF Core to abort and roll back the entire transaction, leaving the database records (extension request status, requirement status, interview status) in `Pending` state while the out-of-transaction notifications remained stranded.
+- **Architectural Fix**:
+  - Created `DatabaseSyncHelper.cs` (`apps/backend/Infrastructure/Persistence/DatabaseSyncHelper.cs`) and initialized it with `Configuration.GetConnectionString("DefaultConnection")` in `Program.cs`.
+  - When `DatabaseSyncHelper.IsPrimaryPmsUat` is true (i.e. running against `pms_uat`), all `TrySync` routines immediately return to prevent self-syncing, duplicate insertions, and constraint violations.
+  - In `ProjectAdditionalRequirementService` and `ProjectInterviewService`, reordered notification syncing to execute strictly **after** `await db.SaveChangesAsync(ct)` completes.
+  - Applied the `DatabaseSyncHelper.IsPrimaryPmsUat` guard across:
+    - `ProjectAdditionalRequirementService.cs`
+    - `ProjectInterviewService.cs`
+    - `ProjectExtensionRequestService.cs`
+    - `ProjectTeamMemberService.cs`
+    - `ActionNotificationService.cs`
+    - `TimesheetNotificationService.cs`
+- **Frontend Action Centre Reliability**:
+  - In `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`, updated error handling for Extension Requests, Resource Allocations, and Customer Requirements to display `toast.error(err?.message)` and return early on backend failure, preventing optimistic local state from falsely displaying approval success when the backend rolled back.
+- **Verification & Test Results**:
+  - Rebuilt backend cleanly with **0 errors**.
+  - Verified Extension Request approval (`d472cc0e-9477-4619-b504-aac3809a64df`): Status cleanly updated to `Approved` in `project.tbl_project_extension_requests`, approver marked `Approved` in `project.tbl_project_extension_approvers`, and project `EndDate` updated to `2028-06-17` in `project.tbl_projects`.
+  - Verified Additional Customer Requirement: Created requirement (`APP-6C99804A`), added comment, and approved status with **0 duplicate key errors**; database persisted status `Approved`.
+  - Verified Schedule Interview: Scheduled interview for team member and updated status to `Selected` with **0 duplicate key errors**; database persisted status `Selected` and notifications synchronized.
+
+---
+
+# Changelog - Synchronize pms_uat.sql from Local Database and Push Development Updates
+
+## Summary of Changes
+- **Database Dump & Verification (`database/pms_uat.sql`)**:
+  - Exported accurate dump from the active local database `trackerpro` via `pg_dump` with `-O` (`--no-owner`) and `-x` (`--no-privileges`).
+  - Cleaned `\restrict` and `\unrestrict` directives for broad PostgreSQL compatibility.
+  - Verified restore into temporary database `verify_pms_uat_dump` with **0 errors**.
+  - Synchronized `database/pms_uat.sql` to both `pms_uat` and `trackerpro` local databases to ensure 100% data and schema parity across all environments.
+- **Frontend & UI Polish**:
+  - Customer list, project list, and repository tables updated to use full viewport width.
+  - Consistent date formatting across UI and bulk upload templates (`DD-MM-YYYY`).
+  - Searchable catalog dropdowns with check indicators and rounded controls.
+  - Bucket list action styling, hover boundaries, and plain text task formatting.
+  - Stage tracker, TK ID and work email field components aligned.
+- **Backend Service Refinements**:
+  - Enhanced `LeaveCalendarService` with multi-format date parsing (`dd-MM-yyyy`, `yyyy-MM-dd`, etc.) for holiday bulk uploads.
+
+---
+
+# Changelog - Database Cleanup & Reset to Baseline (P001-P007, C001-C003, Clear Notifications & Approvals, Refresh pms_uat.sql)
+
+## Summary of Changes
+Cleaned and sanitized the local databases (`trackerpro` and `pms_uat`) and synchronized `database/pms_uat.sql` to baseline reference specifications:
+
+1. **Projects (Retained Strictly P001 to P007)**:
+   - Purged all test-created projects (P008 and all temporary test projects) along with all associated child records (tasks, task assignments, task assignment logs, service escalations, stakeholders, issues, documents, interviews, invoices, team members, timesheet entries, and drafts).
+   - Only projects **P001, P002, P003, P004, P005, P006, and P007** remain in the database.
+
+2. **Customers (Retained Strictly C001 to C003)**:
+   - Purged all test clients (C004 and all temporary test clients) along with their sub-ventures, client contacts, client assignments, and related drafts.
+   - Only clients **C001, C002, and C003** remain in the database.
+
+3. **Repository Document Data**:
+   - Completely cleared all document records from `repository.tbl_repository_items`, `repository.tbl_repository_departments`, and `repository.log_repository_activity`.
+
+4. **Resources / Employees**:
+   - Removed all testing/dummy employee records lacking required organizational assignments (Department, Designation, Onfloor Role, Sub-department, or Reporting Manager).
+   - Preserved legitimate top-level executive / administrative accounts (TK-0001, TK-0002, TK-0003, TK-0004).
+   - Unlinked prior reporting manager and project leadership foreign key references for cleanly removed employee rows.
+
+5. **Action Centre & Approvals / SLAs**:
+   - Completely cleared all action centre records:
+     - `action.tbl_notifications` (0 remaining)
+     - `project.tbl_project_alerts` (0 remaining)
+     - `project.tbl_resource_allocation_requests` (0 remaining)
+     - `project.tbl_project_additional_requirements` (0 remaining)
+     - `project.tbl_project_extension_requests` & `project.tbl_project_extension_approvers` (0 remaining)
+     - `project.tbl_project_feedbacks` (0 remaining)
+     - `sla.tbl_sla_events` & `sla.tbl_sla_instances` (0 remaining)
+   - Truncated Hangfire queues, parameters, states, and background jobs to prevent zombie triggers.
+
+6. **Updated `database/pms_uat.sql`**:
+   - Exported clean database dump using `pg_dump` with `-O` (`--no-owner`) and `-x` (`--no-privileges`).
+   - Cleaned `\restrict` and `\unrestrict` directives.
+   - Verified restore into a temporary database with **0 errors**.
+   - Updated `database/pms_uat.sql` and synchronized both local databases (`pms_uat` and `trackerpro`).
+
+---
+
+# Changelog - My Team Availability & Shift Coverage Multi-Tier Notification & Escalation Workflow
+
+## Summary of Changes
+Implemented the comprehensive 4-tier **My Team Availability and Shift Coverage Notification & Escalation** workflow to ensure compliance with daily team attendance and shift scheduling (`My Team -> Team Dashboard -> My Reportees`):
+
+1. **Tier 1: 2-Hour Recurring Reminders to Reporting Managers**:
+   - Recurring reminders sent every 2 hours during the workday (09:00, 11:00, 13:00, 15:00, 17:00 IST) to Reporting Managers whose direct reportees have missing or incomplete availability and shift coverage for the current date.
+   - Pending check verifies entries in `timesheet.tbl_team_day_entries` (`Attendance` set, or if attendance != "leave", `Shift` must also be set).
+   - Grouped by `(ReportingManagerId, ProjectId)` so each notification maps directly to the project the resource is under.
+   - **Notification Details**:
+     - **Title**: Meaningful title format: `Pending Team Availability & Shift Coverage: {resourceNames} - {projectName}` (or `Pending Team Availability & Shift Coverage: {resourceNames}` for unallocated resources).
+     - **Related Project**: Mapped to the specific project (`ProjectId`, `ProjectCode`, `ProjectName`) or `"-"` if unallocated.
+     - **Type**: `Team Availability Reminder`.
+     - **Priority**: `Medium`.
+     - **Status**: `Pending`.
+
+2. **Tier 2: 11:00 AM & 12:00 PM Daily Leadership Alerts**:
+   - Scheduled daily alerts at 11:00 AM and 12:00 PM IST dispatched to Project Leadership (Project Managers, Engagement Managers, and Team Leaders) for all active project-allocated resources.
+   - **Pending Status**: If one or more allocated team members are pending:
+     - **Title**: `Alert: Pending Resource Availability & Shift Coverage - {projectName} (11:00 AM)` / `(12:00 PM)`.
+     - **Type**: `Project Shift & Availability Alert`.
+     - **Priority**: `Medium`, **Status**: `Pending`.
+     - Details include the pending count, resource names, and the names of their respective reporting managers.
+   - **Completed Status**: If 100% of allocated team members are updated:
+     - **Title**: `Project Team Availability Updated: {projectName} (11:00 AM)` / `(12:00 PM)`.
+     - **Type**: `Project Shift & Availability Status`.
+     - **Priority**: `Low`, **Status**: `Completed`.
+   - **Related Project**: `ProjectId`, `ProjectCode`, `ProjectName`.
+
+3. **Tier 3: 1:00 PM Daily Senior Project Manager (SPM) Escalation**:
+   - Scheduled daily escalation alert at 1:00 PM IST dispatched to Senior Project Managers (SPMs) for active projects with pending resources.
+   - **Title**: `Escalation: Pending Resource Availability & Shift Coverage - {projectName} (1:00 PM)`.
+   - **Type**: `SPM Shift & Availability Escalation`.
+   - **Priority**: `High`, **Status**: `Pending`.
+   - **Related Project**: `ProjectId`, `ProjectCode`, `ProjectName`.
+
+4. **Tier 4: Next-Day EOD (18:00 IST) Escalation to Head of Department (HOD)**:
+   - Compliance escalation evaluated at 18:00 IST on the next business day (skipping weekends) for prior-day records that were left unfulfilled by reporting managers.
+   - Resolved via `_slaRecipientResolver.ResolveLeadershipRecipientsAsync(project.Id, ["Head of Department"])` with fallback to HOD on-floor roles.
+   - **Title**: `HOD Escalation: Reporting Manager Failed to Update Shift & Availability - {managerName} - {projectName}`.
+   - **Type**: `HOD Shift & Availability Escalation`.
+   - **Priority**: `High`, **Status**: `Escalated`.
+   - **Related Project**: `ProjectId`, `ProjectCode`, `ProjectName`.
+
+5. **Hangfire Recurring Background Jobs & Configuration**:
+   - Created job classes in `apps/backend/Modules/MyTeam/Jobs/`:
+     - `TeamAvailabilityTwoHourReminderJob`
+     - `TeamAvailabilityLeadershipAlertJob`
+     - `TeamAvailabilitySpmAlertJob`
+     - `TeamAvailabilityHodEscalationJob`
+   - Registered in `DependencyInjectionExtensions.cs` and scheduled in `Program.cs` according to IST business hours:
+     - `team-availability-2hour-reminders`: `"30 3,5,7,9,11 * * 1-5"` (09:00, 11:00, 13:00, 15:00, 17:00 IST)
+     - `team-availability-leadership-11am`: `"30 5 * * 1-5"` (11:00 AM IST)
+     - `team-availability-leadership-12pm`: `"30 6 * * 1-5"` (12:00 PM IST)
+     - `team-availability-spm-1pm`: `"30 7 * * 1-5"` (1:00 PM IST)
+     - `team-availability-hod-eod`: `"30 12 * * 1-5"` (18:00 IST)
+
+6. **Trigger Endpoints in `MyTeamController.cs`**:
+   - `POST /api/v1/my-team/notifications/trigger-2hour-reminders?date=YYYY-MM-DD`
+   - `POST /api/v1/my-team/notifications/trigger-leadership-alerts?hour=11&date=YYYY-MM-DD`
+   - `POST /api/v1/my-team/notifications/trigger-spm-alerts?date=YYYY-MM-DD`
+   - `POST /api/v1/my-team/notifications/trigger-hod-escalations?date=YYYY-MM-DD`
+
+7. **Automated Integration Tests & Verification**:
+   - Created `TeamAvailabilityNotificationTests.cs` covering:
+     - Tier 1: Reminders to reporting managers with meaningful titles, project mapping, and resolution verification.
+     - Tier 2: 11:00 AM & 12:00 PM leadership alerts to PM, EM, and TL with pending vs completed status transitions.
+     - Tier 3: 1:00 PM SPM escalation alert.
+     - Tier 4: Next-day EOD HOD compliance escalation.
+     - Controller trigger endpoints validation.
+   - All 5/5 integration tests passed (`TeamAvailabilityNotificationTests.cs`).
+   - All 118 unit tests passed (`PMS.UnitTests.csproj`).
+   - All 141 frontend tests passed (`vitest`).
+
+---
+
+# Changelog - Shift-Aware Bucket Task Auto-Pause (12h Threshold & 8h Cap)
+
+## Summary of Changes
+Implemented an automatic **Auto-Pause** workflow for assigned tasks in the Action Centre Bucket List to handle cases where resources leave at the end of the day (EOD) and forget to pause their active timer:
+
+1. **Shift-Aware 12-Hour Threshold & 8-Hour Cap**:
+   - **No Auto-Stop**: The task is never stopped (which would permanently lock it), but **Auto-Paused** so the resource can seamlessly resume it the next working day.
+   - **Allowed Overtime Window**: Resources can work 9, 10, or 11 hours legitimately without interference. If they manually pause/stop within 12 hours, their actual time is recorded.
+   - **12-Hour Continuous Run Threshold**: If a timer remains active for ≥ 12 continuous hours without a manual pause, the system flags it as an abandoned timer from the previous shift/day.
+   - **8-Hour Cap**: The credited time for the abandoned session is capped at exactly 8 hours (`8 * 3600 = 28,800` seconds, corresponding to standard shift duration for Morning, General, Afternoon, and Night shifts), preventing ghost hours from inflating timesheets.
+
+2. **Backend Service & Synchronization (`BucketTaskService.cs`)**:
+   - Added `AutoPauseAbandonedTasksAsync(CancellationToken ct)` in `IBucketTaskService` and implemented in `BucketTaskService`:
+     - Queries running bucket tasks where `TimerStartedAtUtc <= DateTime.UtcNow.AddHours(-12)`.
+     - Caps session elapsed time to 28,800 seconds and updates `TimerAccumulatedSeconds` and `UtilizedHours`.
+     - Sets `TimerRunning = false`, `TimerStartedAtUtc = null`, and `Status = "Paused"`.
+     - Synchronizes timer state to `tbl_project_task_assignments` (`TimerStartedAtUtc = null`, updated accumulated seconds and utilized hours).
+     - Synchronizes task stage to `tbl_project_tasks` (`Stage = "Paused"` if no other member is running, updated total utilized hours).
+     - In `StartBucketTaskTimerAsync`, added `"Paused"` to stage transition check so tasks cleanly resume to `"Ongoing"`.
+     - Initiates "Task Pause" SLA tracking for subsequent pause reminders.
+
+3. **Notifications & Leadership Visibility**:
+   - Dispatches a clear notification to the **Resource**:
+     - Title: `Task Auto-Paused: {taskTitle}`
+     - Message: `The timer for '{taskTitle}' was automatically paused after 8 hours of work because it remained active for over 12 hours. You can resume this task at any time.`
+   - Dispatches a notification to **Project Leadership** (PM, TL, EM):
+     - Title: `{empName} Task Auto-Paused: {taskTitle} - {serviceName}`
+
+4. **Hangfire Recurring Job & Automation (`BucketTaskAutoPauseJob.cs`)**:
+   - Created `BucketTaskAutoPauseJob` decorated with `[JobDisplayName("Bucket Task | Shift Auto-Pause Over-12-Hour Timers (8h Cap)")]`.
+   - Registered in `DependencyInjectionExtensions.cs` as transient.
+   - Registered as a recurring Hangfire job running every 15 minutes (`"*/15 * * * *"`) in `Program.cs`.
+   - Exposed trigger endpoint `POST /api/v1/action-centre/bucket-list/auto-pause` in `ActionCentreController.cs`.
+
+5. **Verification & Tests**:
+   - Added integration test `BucketTask_AutoPause_TriggersAt12HourThreshold_CapsAt8Hours_AndAllowsResume` in `BucketListSlaIntegrationTests.cs`:
+     - Verified timer running > 12h triggers auto-pause.
+     - Verified exact 8-hour cap (28,800 seconds / 8.00 hours).
+     - Verified `BucketTask`, `ProjectTaskAssignment`, and `ProjectTask` sync.
+     - Verified Action Centre notifications dispatched.
+     - Verified clean next-day resume back to `"Ongoing"` preserving the credited 8 hours.
+   - All 7/7 tests in `BucketListSlaIntegrationTests.cs` passed.
+   - All 118 unit tests passed.
+   - All 141 frontend tests passed.
+
+---
+
+# Changelog - Customer and Sub-Venture Edit Notification Title Format
+
+## Summary of Changes
+Updated the notification title formatting for Customer and Sub-Venture profile updates to explicitly include only the modified field name(s):
+
+1. **Title Pattern Implementation**:
+   - Customer profile edited: `{customer_name} {field_name that changed} is edited` (e.g. `Aditya Birla Industry is edited` or `Aditya Birla Industry, City is edited`).
+   - Sub-Venture profile edited: `{subventure_name} {field_name that changed} is edited` (e.g. `Aditya Birla_Finance Notes is edited` or `Aditya Birla_Finance Name, Notes is edited`).
+   - If multiple fields are modified simultaneously, only the specific changed field names are displayed, separated by commas (e.g. `{clientName} Industry, Notes is edited`).
+
+2. **Backend Service Changes**:
+   - **`IActionNotificationService.cs` & `ActionNotificationService.cs`**:
+     - Updated `NotifyCustomerEditedAsync` and `NotifySubVentureEditedAsync` to accept `IReadOnlyList<string>? modifiedFields = null`.
+     - Dynamically formats `Title` as `$"{clientName} {fieldsText} is edited"` (or `$"{subVentureName} {fieldsText} is edited"`) when `modifiedFields` contains changed fields.
+     - Includes safety fallback to `$"{name} is edited"` when no fields are specified, and enforces max 255-character length guard.
+     - Formats history details accordingly (`$"{name} {fieldsText} is edited by {performer}."`).
+   - **`ClientService.cs`**:
+     - In `UpdateClientAsync`, collects changed field names (`Name`, `Industry`, `Logo`, `Contact Email`, `Client Type`, `Status`, `Contact Name`, `Contact Phone`, `Contact Designation`, `Contact Type`, `Country`, `City`, `BusinessType`, `Billing Medium`, `Group SPOC Name`, `Group SPOC Contact`, `Group SPOC Phone Code`, `Created By Name`, `Notes`, `KYC Document`, `Contacts`).
+     - Added `ContactsHaveChanged` helper to accurately detect contact list additions, deletions, or edits without false positives.
+     - Tracks sub-venture modifications per sub-venture (`Name`, `Notes`, `KYC Document`, `Contacts`) and passes `svChangedFields` to `NotifySubVentureEditedAsync`.
+     - In `SetClientKycAsync` and `SetSubVentureKycAsync`, dispatches edit notifications with `["KYC Document"]` when a KYC file is updated.
+
+3. **Verification & Tests**:
+   - Updated integration tests in `CustomerNotificationIntegrationTests.cs` to verify multi-field and single-field notifications:
+     - `CustomerProfileEdit_DispatchesNotification_WithEditedStatusAndTitle`: verifies `{clientName} Industry, Notes is edited`.
+     - `SubVentureEdit_DispatchesNotification_WithSubVentureEditedTitle`: verifies `{svNewName} Name, Notes is edited`.
+     - Added `CustomerSingleFieldEdit_DispatchesNotification_WithSingleFieldInTitle`: verifies `{clientName} Industry is edited`.
+   - All backend unit tests (118/118) and integration tests (6/6 in `CustomerNotificationIntegrationTests`) pass cleanly.
+   - All frontend unit tests (141/141) pass cleanly.
+
+---
+
+# Changelog - Project Card Progress Bar Synchronization with Main Total Progress
+
+## Summary of Changes
+Resolved the issue where project cards on the Projects list page (`/projects`) displayed 0% progress instead of matching the main overall progress bar in the project detail header ("Healthy Ongoing" status row):
+
+1. **Backend Dynamic Progress Calculation & Persistence (`ProjectAppService.cs`)**:
+   - Implemented `CalculateSingleProjectProgress(List<ProjectServiceEntity> services, List<ProjectTask> tasks)` using the standard weighted completion formula:
+     - Completed tasks (`Stage == "Completed"`): 1.0 weight (100%).
+     - Ongoing / In Progress tasks (`Stage == "Ongoing"` or `"In Progress"`): 0.5 weight (50%).
+     - Cancelled tasks (`Stage == "Cancelled"`): excluded from denominator and numerator.
+     - Not started / stopped / paused tasks: 0.0 weight.
+     - Service progress: `Math.Round((sumWeights / totalTasks) * 100)`.
+     - Overall project progress: arithmetic average across all active services (`sumOfServiceProgresses / activeServicesCount`).
+   - Implemented `RecalculateProjectProgressAsync(Guid projectId, CancellationToken ct)` to persist the computed progress directly to `project.tbl_projects."Progress"`.
+   - In `GetProjectsAsync`: dynamically evaluates each listed project against its active services and tasks, updating `tbl_projects."Progress"` and returning the accurate value in `ProjectDto.Progress`.
+   - In `GetProjectByIdAsync`: ensures the project's progress is updated and returned accurately.
+   - Wired `RecalculateProjectProgressAsync` into all task and service mutation workflows:
+     - `UpdateTaskStageAsync` (task stage changes)
+     - `UpdateProjectTaskAsync` (task detail edits)
+     - `CreateProjectTaskAsync` (new task creation)
+     - `DeleteProjectTaskAsync` (task deletion)
+     - `AutoGenerateTasksFromServicesAsync` & `ProjectsController.AutoGenerateTasks` (auto-generating tasks from WBS services)
+     - `UpdateProjectServiceAsync` & `DeleteProjectServiceAsync` (WBS service modifications and deletions).
+
+2. **Frontend Project Detail Progress Synchronization (`project-detail-page.tsx`)**:
+   - Added an automatic synchronization effect in `ProjectDetailPage` that compares `overallProjectProgress` (computed from `calculateOverallProjectProgress`) with `dbProject.progress`.
+   - When a discrepancy is detected (e.g. following client-side WBS edits or stage changes), automatically calls `updateProject(project.id, { progress: overallProjectProgress })` to keep the backend and database in perfect sync.
+
+3. **Frontend Project Cards & List Consistency (`projects-list-page.tsx`)**:
+   - Both Grid/Card view (`<ProgressBar value={p.progress} />` + `<span>{p.progress}%</span>`) and Table/List view now display the real, calculated progress value matching the main total progress bar in `ProjectDetailPage`.
+   - Updated existing database records (e.g. P001 = 25%, P002 = 21%, P003 = 8%, P004 = 5%, P007 = 68%, P008 = 0%).
+
+---
+
+# Changelog - Active SLA Tracking & Hangfire Level 1 Escalation for "Hold" Approvals Across Action Centre
+
+## Summary of Changes
+Ensured that setting an approval request to **"Hold"** (or "Request Changes") across all Action Centre approval workflows preserves active SLA tracking and Hangfire background jobs so that Level 1 escalations (to Senior Project Manager) and Level 2 escalations (to Head of Department) execute upon deadline breach if the request remains unresolved:
+
+1. **Resource Allocation Approval (`ProjectTeamMemberService.cs`)**:
+   - Updated `TakeAllocationActionAsync` so that `CompleteTrackingAsync` is only invoked when `mappedStatus` is `"Approved"` or `"Rejected"`.
+   - When status is `"Hold"` or `"Request Changes"`, SLA tracking remains active, ensuring Hangfire's 2-day breach check and Level 1 escalation jobs remain scheduled and armed.
+
+2. **SLA Background Worker Escalation Checks (`SlaBackgroundJobWorker.cs`)**:
+   - In `ExecuteResourceAllocationBreachCheckAsync` and `ExecuteResourceAllocationEscalationAsync`, removed `req.Status.Equals("Hold")` from `isResolved`.
+   - Aligning with `ExecuteAdditionalRequirementBreachCheckAsync` and `ExecuteExtensionRequestBreachCheckAsync`, requests with status `"Hold"` are treated as unresolved: if the 2-day SLA deadline passes without approval or rejection, Hangfire marks the SLA as breached and fires the Level 1 escalation to the Senior Project Manager (SPM), followed by Level 2 escalation to the Head of Department (HOD).
+
+3. **Consistency Across Central Approval Types**:
+   - **Customer Requirement Approval**: Status `"Hold"` keeps SLA active and triggers L1 escalation upon 2-day breach.
+   - **Timeline Extension Approval**: Status `"Hold"` keeps SLA active and triggers L1 escalation upon 2-day breach.
+   - **Resource Allocation Approval**: Status `"Hold"` keeps SLA active and triggers L1 escalation upon 2-day breach.
+
+---
+
+# Changelog - Sync database/pms_uat.sql with Local Database & Push to origin/development
+
+## Summary of Changes
+- Synchronized `database/pms_uat.sql` directly from the local PostgreSQL database (`trackerpro`).
+- Exported complete schema, tables, constraints, sequences, and seed data using `pg_dump --no-owner --no-privileges`.
+- Stripped version-specific `\restrict` and `\unrestrict` session tokens to ensure cross-version compatibility for PostgreSQL environments.
+- Verified test restore into temporary database with 0 errors, and synchronized local `pms_uat` database.
+- Included all latest approved customer requirements, updated RBAC permissions for Sales roles, and SLA workflow updates.
+
+---
+
+# Changelog - Customer Requirement Approval Persistence & WBS Edit Services 2-Day Enablement
+
+## Summary of Changes
+Fixed the issue where approving an Additional Customer Requirement was failing to persist to the database and not enabling the "Edit Services" button in the WBS tab:
+
+1. **RBAC Permissions for Sales Roles (`auth.tbl_role_permissions`)**:
+   - Granted `CanView = 1` and `CanManage = 1` for `Sales Manager` and `Sales team member` roles across:
+     - `approvals` (`a7bd6c40-4e96-4abb-be93-4ed4e4211978`)
+     - `health-customer-engagement` (`c1a11111-0002-4000-8000-000000000005`)
+     - `health-extension-request` (`c1a11111-0002-4000-8000-000000000006`)
+   - Applied updates to both `trackerpro` and `pms_uat` databases.
+
+2. **Backend API Endpoints & Identifier Resolution**:
+   - In `ProjectsController.cs`:
+     - Changed `TakeActionAdditionalRequirement`, `ApproveAdditionalRequirement`, `RejectAdditionalRequirement`, and `AddCommentAdditionalRequirement` from `{requirementId:guid}` to string `{requirementId}`, supporting GUIDs, `APP-REQ-{guid}`, and short requirement codes (`APP-XXXXXXXX`).
+     - Updated `[RequireRbac]` to allow View on `ActionApprovals`, `action-centre`, `action-center`, `HealthCustomerEngagement`, and `Projects` so designated approvers (Sales Manager, Sales Person, SPM, HOD, PMO, Admin) can act on requests without 403 Forbidden.
+   - In `ActionCentreController.cs`:
+     - Added `POST /api/v1/action-centre/approvals/{identifier}/action` to handle central customer requirement approval actions directly.
+   - In `ProjectAdditionalRequirementService.cs`:
+     - Implemented `TakeActionByIdentifierAsync`, `ApproveByIdentifierAsync`, `RejectByIdentifierAsync`, `AddCommentByIdentifierAsync`, and `ResolveRequirementAsync` to reliably match requirement entities by GUID, `APP-REQ-` prefix, or short code.
+     - Ensured `ApprovedAtUtc` is populated with `DateTime.UtcNow` upon approval.
+
+3. **Frontend Action Centre Approval Handler**:
+   - In `action-centre-page.tsx`:
+     - Replaced swallowed errors with proper `toast.error` reporting.
+     - Added automatic synchronization of `dhStore.requirements` with the updated status and `approvedAtUtc`.
+     - Preserved and updated `dhStore.updateCentralApprovalStatus`.
+   - In `project-additional-requirements.ts`:
+     - Added `takeCentralApprovalAction` with fallback support in `takeProjectAdditionalRequirementAction`.
+
+4. **WBS "Edit Services" Button 2-Day Enablement**:
+   - In `project-detail-page.tsx`:
+     - Enhanced `isEditServicesEnabled` calculation: checks both database-fetched requirements and client store requirements for `status === "Approved"` and `(now - approvedAt) <= 2 * 24 * 60 * 60 * 1000` (2 days).
+     - Added fallbacks to `r.updatedAtUtc`, `r.createdAtUtc`, and history `approved` timestamp if `r.approvedAtUtc` was missing.
+     - Wired up `refreshCount` and `projectRefreshKey` dependencies so requirement statuses refetch whenever the WBS tab is mounted or refreshed.
+
+---
+
+# Changelog - Extension Request: Approval Notifications, Daily Reminders & SLA Escalations
+
+## Summary of Changes
+Implemented complete end-to-end notification workflows, daily reminder schedules, and multi-level SLA escalations for the **Extension Request** module (`Project Compass PMS` & `Action Centre -> Approvals` tab) with zero modifications to existing timeline calculations, project end date update logic, form fields, or approval decision rules.
+
+1. **Initial Submission Notification (Stakeholder Approvers)**:
+   - Request ID / Approval ID standardized to uppercase `EXT-XXXXXXXX` format (derived from first 8 chars of GUID).
+   - Immediate individual `ActionNotification` dispatched to each selected Stakeholder Approver upon submission.
+   - Title: `Extension Request Approval Pending | {Project Name} | {Request ID}`.
+   - Properties: Priority `Low`, Status `Pending`, Type `Extension Request`, Unread `true`, RaisedBy: Requester full name, RelatedTask: `{Request ID}`.
+   - Starts active SLA tracking instance with `ActivityType = "Extension Request"`, `EntityReference = {Request ID}`, and `Priority = SlaPriority.Low`.
+
+2. **Initial SLA Stage & Daily Reminders (Initial 2 Days)**:
+   - Initial 2 working day SLA window configured to End of Day (1080 minutes working calendar duration).
+   - Daily pending approval reminders scheduled for next working day 6:00 PM IST (EOD) sent strictly to all selected Stakeholder Approvers.
+   - Title: `Extension Request Reminder | {Project Name} | {Request ID}`.
+   - Hangfire Job Name: `Extension Request | Initial Approval Reminder | {Project Name} | {Request ID}`.
+   - Reminders continue daily until L1 breach or resolution (Approved / Rejected).
+
+3. **Status-Change Notifications (Initial Stage - Before L1)**:
+   - When status changes to `Approved`, `Rejected`, or `Hold` prior to L1 escalation:
+     - Dispatches individual notifications to: Assigned Engagement Manager (`EM`), Assigned Project Manager (`PM`), and Project Team Lead (`TL`).
+     - Excludes the actor performing the action to prevent self-notification.
+     - Title: `Extension Request Status Updated | {Project Name} | {Request ID}`.
+     - Properties: Priority `Low`, Status reflects decision, Type `Extension Request`, Unread `true`.
+   - **Hold Lifecycle**:
+     - `Hold` status preserves active SLA tracking (`SlaInstanceStatus.Tracking`). Does NOT complete or terminate the SLA instance.
+     - Notifications are suppressed if status remains unchanged.
+
+4. **Level 1 Escalation (After 2 Working Days Breach)**:
+   - Evaluated on SLA breach check at target deadline.
+   - Cancels all pending initial reminders to stop reminder noise to original approvers.
+   - Escalates strictly to Assigned Senior Project Manager (`SPM`).
+   - Title: `Extension Request Escalation | L1 | {Project Name} | {Request ID}`.
+   - Hangfire Job Name: `Extension Request | L1 Escalation | Senior Project Manager | {Project Name} | {Request ID}`.
+   - Daily Reminder After L1:
+     - Dispatched strictly to Assigned Senior Project Manager (`SPM`).
+     - Title: `Extension Request Reminder | L1 | {Project Name} | {Request ID}`.
+     - Hangfire Job Name: `Extension Request | L1 Daily Reminder | Senior Project Manager | {Project Name} | {Request ID}`.
+   - Status Change After L1:
+     - Dispatches `Extension Request Status Updated | {Project Name} | {Request ID}` to: Assigned EM, Assigned PM, Project TL, and Assigned SPM (excluding actor).
+
+5. **Level 2 Escalation (Next 1 Working Day After L1)**:
+   - Triggered at End of Day on the next working day following L1 escalation.
+   - Cancels all pending Level 1 reminders to stop reminder noise to SPM.
+   - Escalates strictly to Relevant Head of Department (`HOD`).
+   - Title: `Extension Request Escalation | L2 | {Project Name} | {Request ID}`.
+   - Hangfire Job Name: `Extension Request | L2 Escalation | Head of Department | {Project Name} | {Request ID}`.
+   - Daily Reminder After L2:
+     - Dispatched strictly to Relevant Head of Department (`HOD`).
+     - Title: `Extension Request Reminder | L2 | {Project Name} | {Request ID}`.
+     - Hangfire Job Name: `Extension Request | L2 Daily Reminder | Head of Department | {Project Name} | {Request ID}`.
+   - Status Change After L2:
+     - Dispatches `Extension Request Status Updated | {Project Name} | {Request ID}` to: Assigned EM, Assigned PM, Project TL, Assigned SPM, and Relevant HOD (excluding actor).
+
+6. **Action Centre -> Approvals Tab Integration & Visibility**:
+   - `ProjectExtensionRequestService.ListPendingApprovalsAsync`: Extended to ensure escalated approvers (SPM and HOD) who received escalation notifications can view, review, and act on pending extension requests directly within Action Centre -> Approvals tab.
+   - Search filter supports `EXT-XXXXXXXX`, `APP-XXXXXXXX`, or raw hexadecimal ID prefixes.
+   - Badge pill styles in `action-centre-page.tsx` updated with custom styling for `Extension Request`.
+
+7. **Idempotency & SLA Completion**:
+   - Stage-partitioned idempotency keys prevent duplicate reminders (`rem:init:...`, `rem:l1:...`, `rem:l2:...`).
+   - Upon `Approved` or `Rejected` decisions, SLA tracking instance is immediately marked `Completed`, and all pending reminder / escalation Hangfire background jobs are cancelled.
+
+---
+
+### Affected Files
+- `apps/backend/Modules/Projects/Services/ProjectExtensionRequestService.cs`:
+  - Formatted request ID as `EXT-XXXXXXXX`.
+  - Dispatched immediate individual initial pending notifications to all selected Stakeholder Approvers with properties matching specification.
+  - Initialized SLA tracking with `ActivityType = "Extension Request"` and `Priority = SlaPriority.Low`.
+  - Extended `ListPendingApprovalsAsync` with escalated approver lookup.
+  - Implemented multi-tier `NotifyLeadershipAndPmoAsync` resolving current SLA stage (Initial, L1, L2), strictly notifying required recipients and excluding actors.
+  - Updated `ApproveAsync`, `RejectAsync`, and `TakeActionAsync` ("Hold") with SLA completion and notification triggering.
+- `apps/backend/Modules/Sla/Jobs/SlaBackgroundJobWorker.cs`:
+  - Added dedicated Extension Request handlers: `ExecuteExtensionRequestReminderAsync`, `ExecuteExtensionRequestBreachCheckAsync`, and `ExecuteExtensionRequestEscalationAsync`.
+  - Implemented stage-partitioned reminder keys and cancellation cascades across Initial, L1, and L2 tiers.
+- `apps/backend/Modules/Sla/Jobs/SlaJobDisplayNameFormatter.cs`:
+  - Configured Hangfire display name formatters matching required naming conventions.
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - Added `Extension Request` badge styling and extended search filtering to match `EXT-XXXXXXXX` identifiers.
+- `apps/backend/tests/PMS.IntegrationTests/ExtensionRequestSlaIntegrationTests.cs`:
+  - Added 5 comprehensive integration tests covering end-to-end submission, multi-approver initial reminders, L1 escalation & SPM reminders, L2 escalation & HOD reminders, and stage-specific status change broadcasts.
+
+---
+
+### Verification
+- Backend compile (`dotnet build apps/backend/PMS.API.csproj`): Succeeded with zero errors.
+- Frontend build (`npm run build --prefix apps/frontend`): Succeeded with zero errors.
+- Integration tests (`ExtensionRequestSlaIntegrationTests`): 5/5 tests passed (100% pass rate).
+- Full SLA regression suite (`PMS.IntegrationTests --filter Sla`): 33/33 tests passed (100% pass rate).
+- Backend server active and healthy at `http://localhost:5194`.
+- Frontend server active at `http://localhost:3000`.
+
+---
+
+# Changelog - Action Centre Approvals: Removal of Project Link from Modal Window
+
+## Summary of Changes
+Removed the redundant "Project Link" from the Review Request / View modal window in the Action Centre -> Approvals tab:
+
+1. **Review Request Modal Header Adjustment**:
+   - In `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`, removed the "Project Link" field (`<div><span className="text-muted-foreground">Project Link</span>...</div>`) from the modal header that displays upon clicking "View" or "Review & Action" on any approval item.
+   - Updated the metadata container grid from `grid-cols-2 md:grid-cols-5 gap-3` to `grid-cols-2 md:grid-cols-4 gap-3`, cleanly and evenly distributing the remaining metadata items:
+     - `Approval ID`
+     - `Requested By`
+     - `Submitted On`
+     - `Request Type`
+   - Preserved full project context in the main Approvals table (Project Name column) and maintained all approval review capabilities, audit histories, and status action workflows (Approve, Hold, Request Changes, Reject).
+
+---
+
+### Affected Files
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - Removed "Project Link" element from the `selectedApproval` review modal.
+  - Rebalanced the metadata grid layout to 4 columns.
+
+---
+
+### Verification
+- Frontend production build (`npm run build --prefix apps/frontend`): Succeeded with zero errors.
+- Backend build (`dotnet build apps/backend/PMS.API.csproj`): Succeeded with zero errors.
+- Existing SLA and Action Centre integration test suites: 100% passing.
+
+---
+
+# Changelog - Additional Customer Requirement: Approval Notifications, SLA Escalations & Daily Reminders
+
+## Summary of Changes
+Implemented an end-to-end notification workflow, SLA escalation hierarchy, and recurring daily reminders for the **Additional Customer Requirement** module (`Project Health -> Additional Customer Requirement` & `Action Centre -> Approvals` tab) with zero modifications to existing business rules, project records, or service modification logic.
+
+1. **Initial Submission Notification (Sales Manager / Sales Person ONLY)**:
+   - Request ID / Approval ID unified to standard `APP-XXXXXXXX` uppercase 8-character format matching the Action Centre Approvals tab.
+   - Immediate notification dispatched strictly to the assigned Sales approver (`Assigned Sales Manager` or `Sales Person`) upon submission.
+   - Title: `Additional Customer Requirement Approval Pending | {Project Name} | {Request ID}`.
+   - Prohibited sending initial notifications to unrelated leadership (PM, SPM, EM).
+   - Priority: `Low`, Status: `Pending`, Type: `Additional Customer Requirement`, Unread: `true`, RelatedTask: `{Request ID}`.
+
+2. **Initial SLA Stage & Daily Reminders (Initial 2 Days)**:
+   - Initial 2 working day SLA configured to End of Day (1080 minutes working calendar duration).
+   - Daily pending approval reminders scheduled at next working day 6:00 PM IST (EOD) strictly to the assigned Sales approver.
+   - Title: `Additional Customer Requirement Reminder | {Project Name} | {Request ID}`.
+   - Hangfire Job Name: `Additional Customer Requirement | Initial Approval Reminder | {Project Name} | {Request ID}`.
+   - Reminders continue daily until L1 breach or Approved/Rejected status.
+
+3. **Status-Change Notifications (Initial SLA Stage)**:
+   - When status changes to `Hold`, `Reject`, or `Approve` during initial SLA stage (before L1):
+     - Recipients: Assigned Engagement Manager (`EM`), Assigned Project Manager (`PM`), Project Team Lead (`TL`), and original request raiser (if present).
+     - Excluded the actor who performed the action to prevent self-notification.
+     - Title: `Additional Customer Requirement Status Updated | {Project Name} | {Request ID}`.
+     - Title and audit history reflect the exact action taken (`Hold`, `Rejected`, or `Approved`).
+     - Priority: `Low`, Status: `status`, Type: `Additional Customer Requirement`, Unread: `true`.
+   - **Hold Lifecycle Preservation**:
+     - `Hold` preserves active SLA tracking (`SlaInstanceStatus.Tracking`). Does NOT complete or terminate the SLA instance.
+     - Notifications if status remains unchanged are suppressed.
+
+4. **Level 1 Escalation & Daily Reminders (Senior Project Manager)**:
+   - Breached at 2 working days (`instance.TargetDeadlineUtc`):
+     - Dispatched escalation notification strictly to **Assigned Senior Project Manager (SPM) ONLY**.
+     - Title: `Additional Customer Requirement Escalation | L1 | {Project Name} | {Request ID}`.
+     - Hangfire Job Name: `Additional Customer Requirement | L1 Escalation | Senior Project Manager | {Project Name} | {Request ID}`.
+   - Scheduled Level 1 daily reminders to Assigned SPM only at next working day EOD:
+     - Title: `Additional Customer Requirement Reminder | L1 | {Project Name} | {Request ID}`.
+     - Hangfire Job Name: `Additional Customer Requirement | L1 Daily Reminder | Senior Project Manager | {Project Name} | {Request ID}`.
+     - Automatically stopped reminders to previous Sales approver.
+   - Status changes during L1 stage (`Hold`, `Reject`, `Approve`):
+     - Recipients dynamically expanded to: `EM, PM, TL, SPM`, and original request raiser (excluding actor).
+     - Title: `Additional Customer Requirement Status Updated | {Project Name} | {Request ID}`.
+
+5. **Level 2 Escalation & Daily Reminders (Head of Department)**:
+   - Dynamically scheduled upon L1 execution for next 1 working day EOD:
+     - Dispatched escalation notification strictly to **Relevant Head of Department (HOD) ONLY** (`On Floor Role = Head Of Department`).
+     - Title: `Additional Customer Requirement Escalation | L2 | {Project Name} | {Request ID}`.
+     - Hangfire Job Name: `Additional Customer Requirement | L2 Escalation | Head of Department | {Project Name} | {Request ID}`.
+   - Scheduled Level 2 daily reminders to Relevant HOD only:
+     - Title: `Additional Customer Requirement Reminder | L2 | {Project Name} | {Request ID}`.
+     - Hangfire Job Name: `Additional Customer Requirement | L2 Daily Reminder | Head of Department | {Project Name} | {Request ID}`.
+     - Reminders continue until Approved or Rejected.
+   - Status changes during L2 stage (`Hold`, `Reject`, `Approve`):
+     - Recipients include full leadership hierarchy: `EM, PM, TL, SPM, HOD`, and original request raiser (excluding actor).
+     - Title: `Additional Customer Requirement Status Updated | {Project Name} | {Request ID}`.
+
+6. **Approval & Rejection Lifecycle**:
+   - `Approved` and `Rejected` statuses complete the SLA tracking instance (`SlaInstanceStatus.Completed`).
+   - Automatically stops all pending daily reminders and cancels future escalation jobs.
+
+7. **Idempotency, Deduplication & Reliability**:
+   - All Hangfire jobs utilize unique idempotency keys (`sla:{instance.Id}:rem:{date}` and `sla:{instance.Id}:esc-l2`).
+   - SlaBackgroundJobWorker checks current database state before dispatching notifications to guarantee zero duplicate notifications on Hangfire job retries or concurrent worker execution.
+   - Recipients deduplicated via `HashSet<Guid>` across multi-role assignments.
+
+---
+
+### Affected Files
+- `apps/backend/Modules/Projects/Services/ProjectAdditionalRequirementService.cs`:
+  - Standardized `RequirementId` to `APP-{Guid[..8].ToUpper()}` format.
+  - Restricted initial creation notification to assigned Sales approvers only (`ResolveSalesStakeholdersAsync`).
+  - Added unchanged-status suppression in `TakeActionAsync` and `RejectAsync`.
+  - Removed erroneous SLA completion on `Hold` status in `TakeActionAsync`.
+  - Implemented dynamic escalation-aware status-change notification recipient matrix in `NotifyLeadershipOnStatusChangeAsync` (Stage 0: EM/PM/TL; Stage 1: EM/PM/TL/SPM; Stage 2: EM/PM/TL/SPM/HOD).
+  - Enforced actor exclusion and multi-role deduplication.
+  - Updated notification properties: Priority: `Low`, Type: `Additional Customer Requirement`, Title: `Additional Customer Requirement Status Updated | {Project Name} | {Request ID}`.
+- `apps/backend/Modules/Sla/Jobs/SlaBackgroundJobWorker.cs`:
+  - Routed `Additional Customer Requirement` in `ExecuteReminderAsync` to `ExecuteAdditionalRequirementReminderAsync`.
+  - Implemented `ExecuteAdditionalRequirementReminderAsync` supporting Stage 0 (Sales), Stage 1 (SPM), and Stage 2 (HOD) daily reminders and recursive EOD scheduling.
+  - Updated `ExecuteAdditionalRequirementBreachCheckAsync` to keep `Hold` status active.
+  - Updated `ExecuteAdditionalRequirementEscalationAsync` with standard titles, `Low` priority, and automated scheduling of L2 Escalation and recurring daily reminders.
+  - Added `ResolveSalesStakeholderIdsForReminderAsync` helper for resilient sales approver resolution.
+- `apps/backend/Modules/Sla/Services/SlaTrackingService.cs`:
+  - Updated `ScheduleMilestonesAsync` with dedicated branch for `Additional Customer Requirement` to schedule initial daily reminders at next working day EOD.
+  - Pre-registered descriptive Hangfire job display names for initial reminder and L1 escalation.
+- `apps/backend/Modules/Sla/Jobs/SlaJobDisplayNameFormatter.cs`:
+  - Added dedicated formatting rules in `BuildJobName` and `ResolveFromDbAsync` for `Additional Customer Requirement` matching Section 11 specifications verbatim.
+- `apps/backend/tests/PMS.IntegrationTests/AdditionalRequirementSlaIntegrationTests.cs`:
+  - Comprehensive integration test suite covering 10 distinct scenarios (10/10 passing).
+
+---
+
+### Tests Executed & Actual Results
+- **Command**: `dotnet test apps/backend/tests/PMS.IntegrationTests/PMS.IntegrationTests.csproj --filter "FullyQualifiedName~AdditionalRequirement"`
+- **Result**: `Passed! - Failed: 0, Passed: 10, Skipped: 0, Total: 10, Duration: 8 s - PMS.IntegrationTests.dll (net10.0)`
+  - `Scenario1_And_3_SubmitAddService_NotifiesAssignedSalesApproverOnly_AndStartsSla`: PASSED
+  - `Scenario2_SubmitScopeCancellation_NotifiesAssignedSalesApproverOnly`: PASSED
+  - `Scenario4_DailyReminder_BeforeL1_NotifiesAssignedSalesApproverOnly`: PASSED
+  - `Scenario5_And_18_StatusChange_Hold_NotifiesLeadership_AndDoesNotTerminateSla`: PASSED
+  - `Scenario6_And_17_StatusChange_Reject_NotifiesLeadership_AndCompletesSla`: PASSED
+  - `Scenario7_And_16_StatusChange_Approve_NotifiesLeadership_AndCompletesSla`: PASSED
+  - `Scenario8_9_10_L1Escalation_AndReminder_AndStatusChange`: PASSED
+  - `Scenario11_12_13_L2Escalation_AndReminder_AndStatusChange`: PASSED
+  - `Scenario14_15_SelfActorExclusion_AndDeduplication`: PASSED
+  - `Scenario20_HangfireRetry_DoesNotDuplicateNotifications`: PASSED
+- **Backend Build**: `dotnet build apps/backend/PMS.API.csproj` -> `Build succeeded. 0 Warning(s), 0 Error(s)`
+- **Frontend Build**: `npm run build --prefix apps/frontend` -> `✓ built client in 25.71s, ✓ built ssr in 18.13s`
+
+---
+
+# Changelog - Centralized Resource Allocation Approvals & Notification Modal Action Section Removal
+
+## Summary of Changes
+Streamlined the Resource Allocation Request workflow by removing the redundant interactive "Take Action on Allocation Request" section from the Action Centre **Notifications** tab modal, enforcing strict centralized approval governance exclusively through the **Approvals** tab (`/action-centre?tab=approvals`).
+
+1. **Notification Detail Modal Action Section Removal**:
+   - Removed the interactive action card (`Take Action on Allocation Request`) containing Remarks/Comment textarea and Approve / Hold / Reject action buttons from `NotificationDetailModal`.
+   - The Notification modal now serves purely as a clean, read-only informational audit record.
+   - Removed obsolete component state (`actionComment`, `isSubmittingAction`, `actingStatus`) and approval action handler (`handleApprovalAction`).
+   - Cleaned up unused Lucide icon imports (`Check`, `Loader2`).
+
+2. **Backend Status Mapping Normalization**:
+   - In `ProjectTeamMemberService.TakeAllocationActionAsync`, updated status normalization logic so that `"Cancelled"` / `"Cancel"` preserves the exact `"Cancelled"` status rather than erroneously collapsing into `"Rejected"`.
+
+3. **Integration Test Suite Enhancements**:
+   - In `ResourceAllocationSlaIntegrationTests.cs`, updated candidate employee query filters to include `!e.EmployeeCode.StartsWith("TKI-")` across all 5 test scenarios to strictly respect the business rule prohibiting interns from regular Project Teams.
+   - All 5 integration tests pass with 100% success rate (5/5 passing).
+
+---
+
+### Affected Files
+- `apps/frontend/src/components/notification-detail-modal.tsx`:
+  - Removed "Take Action on Allocation Request" UI card, comment textarea, and Approve/Hold/Reject action buttons.
+  - Retained notification audit details, metadata, and dismiss/archive capabilities.
+- `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`:
+  - Corrected `TakeAllocationActionAsync` mapping for "Cancelled" status.
+- `apps/backend/tests/PMS.IntegrationTests/ResourceAllocationSlaIntegrationTests.cs`:
+  - Added `!e.EmployeeCode.StartsWith("TKI-")` to candidate selection to avoid picking intern codes for regular project teams.
+
+---
+
+# Changelog - Action Centre Visual Enhancements, ID Formatting & Table Hover Cleanup
+
+## Summary of Changes
+Implemented UI text styling, request type badge differentiation, ID formatting parity, text wrap fixes, and pointer hover cleanup across the **Bucket List**, **Approvals**, **Alerts**, and **Notifications** tabs in the Action Centre:
+
+1. **Approvals Request Type Badge Styling**:
+   - Introduced `getApprovalRequestTypeStyles(type)` providing distinct badge background, text, and border styling for each request type instead of a uniform amber/warning style:
+     - **Customer Requirement Approval**: Purple (`bg-purple-100 text-purple-800 border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/50`)
+     - **Timeline Extension Approval**: Amber (`bg-amber-100 text-amber-800 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50`)
+     - **Resource Allocation Approval**: Sky Blue (`bg-sky-100 text-sky-800 border-sky-200/80 dark:bg-sky-950/40 dark:text-sky-300 dark:border-sky-800/50`)
+     - **Feedback Request Approval**: Emerald Green (`bg-emerald-100 text-emerald-800 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50`)
+     - **WBS Approval**: Indigo (`bg-indigo-100 text-indigo-800 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/50`)
+     - **Budget Approval**: Teal (`bg-teal-100 text-teal-800 border-teal-200/80 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/50`)
+     - **Leadership / PM Assignment Approval**: Blue (`bg-blue-100 text-blue-800 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/50`)
+     - Default / Other: Slate (`bg-slate-100 text-slate-800 border-slate-200/80 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700`)
+   - Applied across both the Approvals table rows and the Review Request modal.
+
+2. **Text Color Changes (Blue to Black)**:
+   - **Approval ID**: Changed from blue (`text-primary`) to black (`text-foreground`) in the Approvals table and Review Request modal.
+   - **Alert ID**: Changed from blue (`text-primary`) to black (`text-foreground`) in the Alerts table.
+   - **Service Name**: Changed from blue (`text-primary`) to black (`text-foreground`) in the Alert Details modal.
+   - **Escalated To**: Changed from blue (`text-primary`) to black (`text-foreground`) in the Alert Details modal.
+
+3. **Notification ID Formatting (`NOT-XXXXXXXX`)**:
+   - Added `formatNotificationId` helper standardizing notification IDs into `NOT-XXXXXXXX` format (8 uppercase hex digits), establishing parity with `ALT-XXXXXXXX` (Alerts) and `APP-XXXXXXXX` (Approvals).
+   - Backend `ActionNotificationService.MapDto`: Generated `NotificationCode` as `NOT-{n.Id[..8].ToUpper()}`.
+   - Notifications Table: Surfaced `NOT-XXXXXXXX` in monospaced black font directly above `n.title`.
+   - Notification Detail Modal: Formatted title with `NOT-XXXXXXXX`.
+   - Search Filtering: Updated Notifications search to match both compact `NOT-XXXXXXXX` and raw IDs.
+
+4. **Alert Title Overlap Resolution**:
+   - Resolved layout defect where excessively long unbroken single text strings in Alert Titles overlapped the adjacent Project Name column.
+   - Added `break-words whitespace-normal [overflow-wrap:anywhere]` on the Alert Title table cell and title span, ensuring text wraps cleanly within its designated column boundary regardless of string length.
+
+5. **Table Hover Tooltip Removal**:
+   - Removed native pointer hover tooltips (`title` attributes) from table cells, badges, and avatars across **Bucket List**, **Approvals**, **Alerts**, and **Notifications** tabs to prevent text popups at the mouse cursor.
+
+---
+
+### Affected Files
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - Added `getApprovalRequestTypeStyles` for distinct approval request type badges.
+  - Updated Approval ID, Alert ID, Service Name, and Escalated To text color to `text-foreground`.
+  - Added `formatNotificationId` tag above notification titles and wired into search.
+  - Added `break-words whitespace-normal [overflow-wrap:anywhere]` to Alert Title cell.
+  - Removed table cell/row `title` tooltips across Bucket List, Approvals, Alerts, and Notifications.
+- `apps/frontend/src/components/notification-detail-modal.tsx`:
+  - Added and exported `formatNotificationId`.
+  - Formatted modal header with `NOT-XXXXXXXX`.
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+  - Updated `MapDto` to generate `NotificationCode` prefixed with `NOT-`.
+
+---
+
+# Changelog - Automated PM/SPM Assignment Reminder Notifications
+
+## Summary of Changes
+Implemented the automated background notification and reminder workflow triggered upon Project or WBS creation in Project Compass PMS. The workflow prompts the assigned Engagement Manager (EM) to assign both a Project Manager (PM) and Senior Project Manager (SPM), sending recurring reminders every 2 hours until **both** roles are assigned, with a same-day end-of-day check escalating to the relevant Head of Department (HOD) if both roles remain unassigned.
+
+1. **Project & WBS Creation Trigger**:
+   - Integrated `StartProjectAllocationReminderWorkflowAsync(Guid projectId, CancellationToken ct)` into `ProjectAppService.CreateProjectAsync` and `ProjectAppService.RenewProjectAsync` (as well as `ActionNotificationService.NotifyWbsCreatedAsync`).
+   - Resolves the project/WBS details (Project Name, WBS ID) and resolves the assigned Engagement Manager (EM) via `ProjectAllocation` / Project Services / EM records.
+   - Idempotency guard prevents duplicate workflows or reminder cascades when project/WBS creation operations are retried.
+
+2. **Immediate & Recurring EM Reminders (Every 2 Hours)**:
+   - On creation, if either PM or SPM is unassigned, dispatches an initial reminder notification to the assigned EM.
+   - Schedules a 2-hour Hangfire background job:
+     - Method: `IActionNotificationService.ExecuteProjectAllocationReminderJobAsync(projectId, projectName, wbsDisplay, emId, executionCount)`
+     - Display Name: `Project Allocation | PM-SPM Assignment Reminder | {Project Name} | {WBS ID}`
+   - **Continuation Condition**: User-mandated rule: reminders continue until and unless **both** Project Manager and Senior Project Manager are assigned. If only PM or only SPM is assigned, reminders continue. As soon as both roles are assigned (`isPmAssigned && isSpmAssigned`), reminders stop immediately.
+   - At each 2-hour interval, dual-layer DB check re-verifies leadership. If pending, creates an unread low-priority `Project Allocation Reminder` notification for the EM and schedules the next 2-hour job.
+
+3. **Same-Day End-of-Day Escalation Alert to HOD**:
+   - Schedules a same-day check at 18:00 IST (Indian Standard Time, `Asia/Kolkata` / `India Standard Time`):
+     - Method: `IActionNotificationService.ExecuteSameDayHodCheckJobAsync(projectId, projectName, wbsDisplay, emId, createdDateIst)`
+     - Display Name: `Project Allocation | Same-Day Pending Assignment Alert | HOD | {Project Name} | {WBS ID}`
+   - If the project is created after 18:00 IST, schedules the check immediately (+5 minutes).
+   - **HOD Notification Condition**: Dispatches escalation only if **both** PM and SPM remain unassigned at the EOD check (`!isPmAssigned && !isSpmAssigned`). If PM or SPM was assigned before EOD, the alert is skipped.
+   - Resolves HOD dynamically via `ResolveProjectHodAsync` (using `On Floor Role = Head Of Department` with department/sub-department matching via Project Service sub-departments and EM department).
+   - Notification Type: `Project Allocation Escalation`, Priority: `Low`, Status: `Pending`, Unread: `true`, Raised By: `System / Automation Engine`.
+
+4. **Lifecycle Cancellation on Assignment**:
+   - `CancelProjectAllocationRemindersAsync(Guid projectId, CancellationToken ct)` tracks jobs in memory and cancels scheduled Hangfire jobs via `BackgroundJob.Delete(jobId)`.
+   - Wired into `ProjectAppService.UpdateProjectAsync` and `ProjectTeamMemberService.SetLeadershipAsync` so that as soon as both PM and SPM are assigned, any scheduled reminder jobs are deleted.
+
+5. **Notification Formatting**:
+   - EM Reminder Title:
+     - With WBS: `Project Manager and Senior Project Manager Assignment Pending | {Project Name} | {WBS ID}`
+     - Without WBS: `Project Manager and Senior Project Manager Assignment Pending | {Project Name}`
+   - HOD Alert Title:
+     - With WBS: `Project Manager and Senior Project Manager Assignment Still Pending | {Project Name} | {WBS ID}`
+     - Without WBS: `Project Manager and Senior Project Manager Assignment Still Pending | {Project Name}`
+   - Navigation Link: `/projects/{projectId}`.
+
+---
+
+### Affected Files
+- `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`:
+  - Added interface contracts: `StartProjectAllocationReminderWorkflowAsync`, `ExecuteProjectAllocationReminderJobAsync`, `ExecuteSameDayHodCheckJobAsync`, `CancelProjectAllocationRemindersAsync`.
+  - Added `[JobDisplayName]` attributes matching required Hangfire names.
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+  - Implemented initial dispatch, 2-hour recurring reminder loop, same-day EOD HOD check, cancellation, and dynamic EM/HOD resolution.
+- `apps/backend/Modules/Projects/Services/ProjectAppService.cs`:
+  - Triggered workflow in `CreateProjectAsync` and `RenewProjectAsync`.
+  - Added assignment check and cancellation in `UpdateProjectAsync`.
+- `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`:
+  - Added assignment check and cancellation in `SetLeadershipAsync`.
+- `apps/backend/Modules/Sla/Services/SlaRecipientResolver.cs`:
+  - Enhanced `ResolveHeadOfDepartmentsAsync` to prioritize exact subdepartment matching before substring matching.
+- `apps/backend/tests/PMS.IntegrationTests/ProjectAllocationReminderTests.cs`:
+  - Added 10 automated integration tests covering the complete specification and edge cases (10/10 passed).
+
+### Database Changes & Migrations
+- None. Fully reused existing PostgreSQL schemas (`ActionNotification`, `ProjectLeadership`, `Employee`, `OnFloorRole`, `Hangfire` storage).
+
+### API Changes
+- None. Background jobs and notification generation operate internally via Hangfire and existing notification hub/endpoints.
+
+### Existing Functionality Preserved
+- Preserved existing Project and WBS creation, renewal, updating, leadership assignment, and SLA tracking workflows without modification.
+
+---
+
+# Changelog - Action Centre Bucket List Issue Raising & RBAC Decoupling
+
+## Summary of Changes
+Resolved RBAC permission defect where authorized resources attempting to raise issues from their Action Centre Bucket List (`/action-centre?tab=bucket-list`) encountered a `403 Forbidden` ("You do not have permission to manage this section") error. Decoupled Bucket List issue raising from Project Health management permissions, enforced project assignment filtering and mandatory field validation, and preserved full parity with Project Health issue workflows (notification routing to PM, EM, and TL, mirroring to alerts with `issue:<type>`, and multi-level SLA breach tracking):
+1. **RBAC Decoupling for Bucket List**:
+   - Introduced dedicated Action Centre endpoints (`POST /api/v1/action-centre/bucket-list/issues` and `GET /api/v1/action-centre/bucket-list/assigned-projects`) governed by `RbacCatalogCodes.ActionBucketList` (`"bucket-list"`), enabling any authorized resource with Bucket List access to report issues for their assigned projects without requiring `HealthIssues` (`"health-issues"`) management privileges.
+   - Preserved `POST /api/v1/projects/{projectId}/issues` under `[RequireRbac(RbacCatalogCodes.HealthIssues, RbacAccessType.Manage)]` to maintain strict access control over the Project Health management tab.
+2. **Resource-Specific Project Assignment Scope**:
+   - Fixed `GetEmployeeAssignedProjectsAsync` in `ProjectIssueService` so that non-administrative employees are strictly constrained to projects where they are assigned (via `tbl_project_team_members`, `tbl_project_task_assignments`, `tbl_bucket_tasks`, or managerial roles). Removed inaccurate system-wide project fallback.
+   - If an employee has no project assignments, the API returns an empty list, and the UI displays `"No project assigned"` in the Project dropdown.
+3. **Mandatory Form Field Validation**:
+   - Form fields in the Raise Issue modal (`Project *`, `Issue Title *`, `Description *`, `Issue Type *`, `Priority *`) are explicitly marked as mandatory with asterisk indicators.
+   - Enforced client-side and server-side validation ensuring that all fields must be populated, and a valid assigned project must be chosen before submission. The submit button is disabled when no project is assigned.
+4. **Mirroring, Notifications, and Centralized SLA Tracking**:
+   - Creating an issue via the Bucket List provisions the record in `project.tbl_project_issues`, creates a corresponding alert in `project.tbl_project_alerts` formatted as `issue:<issue_type_name>`, and dispatches `action.tbl_notifications` to the assigned Project Manager, Engagement Manager, and Team Lead.
+   - Automatically initializes centralized SLA tracking under `"Resolution of Issues"`, scheduling Hangfire background checks and multi-level breach escalations (1st Level SLA Breach Escalation to Senior Project Manager, 2nd Level SLA Breach Escalation to Head of Department) upon SLA breach.
+
+---
+
+### Affected Files
+- `apps/backend/Modules/ActionCentre/Controllers/ActionCentreController.cs`
+- `apps/backend/Modules/Projects/Services/ProjectIssueService.cs`
+- `apps/frontend/src/modules/projects/api/project-issues.ts`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+
+---
+
+### Database Changes and Migrations
+- None. (Utilizes existing tables `project.tbl_project_issues`, `project.tbl_project_alerts`, `action.tbl_notifications`, and `sla.tbl_sla_instances`.)
+
+---
+
+### API Changes
+- **Added Endpoints**:
+  - `POST /api/v1/action-centre/bucket-list/issues`: Raises a project issue from the Bucket List using `ActionBucketList` permissions.
+  - `POST /api/v1/action-centre/bucket-list/raise-issue`: Alias route for raising issues from the Bucket List.
+  - `POST /api/v1/action-centre/bucket-list/{projectId:guid}/issues`: Route parameter variant for raising issues for a specific project.
+  - `GET /api/v1/action-centre/bucket-list/assigned-projects`: Retrieves projects assigned to the calling employee.
+- **Client API (`project-issues.ts`)**:
+  - Added `raiseBucketListIssue(projectId, payload)`.
+  - Updated `fetchMyAssignedProjects()` to attempt `/api/v1/action-centre/bucket-list/assigned-projects` with fallback to `/api/v1/projects/my-assigned-projects`.
+
+---
+
+### Business Logic & UI Adjustments
+- **ProjectIssueService**:
+  - `GetEmployeeAssignedProjectsAsync`: For PMO/Admin, returns all active projects; for regular employees, queries assignments across team membership, task assignments, bucket tasks, and project leadership. Returns `[]` if no assignments exist (no fallback to all active projects).
+  - `FindCurrentEmployeeAsync`: Enhanced multi-attribute employee matching across `WorkEmail`, `PersonalEmail`, and `EmployeeCode`.
+- **Action Centre Bucket List UI**:
+  - Re-fetches assigned projects dynamically whenever the "Raise Issue" modal is opened.
+  - Displays `"No project assigned"` and an explanatory warning banner when the employee is not assigned to any projects.
+  - Added strict validation on `projectId`, `title`, `description`, `category`, and `priority` with explicit toast error messages.
+  - Disabled the "Raise Issue" submit button when `userProjects.length === 0`.
+
+---
+
+### Existing Functionality Preserved
+- Project Health -> Issues tab remains protected by `RbacCatalogCodes.HealthIssues`.
+- Dual Action Centre alert creation with standardized `issue:<type>` nomenclature.
+- Notification dispatching to assigned PM, EM, and TL.
+- Centralized SLA/TAT tracking, 1st level breach escalation, and 2nd level breach escalation.
+
+---
+
+# Changelog - Health Issues & WBS Escalations Alert Type Formatting in Action Centre
+
+## Summary of Changes
+Standardized the `AlertType` designation across Health Issues and WBS Escalations so that alerts surfaced in Action Centre (`/action-centre?tab=alerts`) explicitly reflect the selected type with standard domain prefixes:
+- When raised from **Health -> Issue** (`project-detail-page.tsx`), the alert displays as `issue:<issue_type_name>` (e.g., `issue:Technical Related Issues`, `issue:Behavioral Related Issues`, `issue:Process Related Issues`).
+- When raised from **WBS Escalation** (`project-detail-page.tsx` -> Service-wise Prerequisite Tracking), the alert displays as `WBS:<escalation_type_name>` (e.g., `WBS:Prerequisite Pending`, `WBS:Technical Blocker`, `WBS:Billing Issue`, `WBS:Customer Dependency`).
+
+---
+
+### Affected Files
+- `apps/backend/Infrastructure/Persistence/Configurations/ProjectIssueConfiguration.cs`
+- `apps/backend/Modules/Projects/Services/ProjectIssueService.cs`
+- `apps/backend/Modules/Projects/Services/ProjectServiceEscalationService.cs`
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `database/pms_uat.sql`
+
+---
+
+### Database Changes and Migrations
+- **Table `project.tbl_project_alerts`**:
+  - Expanded `AlertType` column definition from `character varying(50)` to `character varying(100)` to support prefixed strings (e.g., `issue:Technical Related Issues`, `WBS:Prerequisite Pending`).
+  - Executed database migration in live PostgreSQL database `pms_uat` (`ALTER TABLE project.tbl_project_alerts ALTER COLUMN "AlertType" TYPE character varying(100)`).
+  - Updated all 41 existing records in `project.tbl_project_alerts` to conform with the standardized `issue:<type>` and `WBS:<type>` prefix format.
+  - Synchronized `database/pms_uat.sql` with column definition `character varying(100)` and updated all dump records in `COPY project.tbl_project_alerts`.
+
+---
+
+### API Changes
+- `GET /api/v1/action-centre/alerts`:
+  - `ActionAlertDto.AlertType` now returns formatted string with `issue:<issue_type_name>` for project health issues and `WBS:<escalation_type_name>` for WBS escalations.
+- `POST /api/v1/projects/{projectId}/issues`:
+  - Automatically provisions `tbl_project_alerts` record with `AlertType = $"issue:{issueType.Trim()}"`.
+- `POST /api/v1/projects/{projectId}/service-escalations`:
+  - Automatically provisions `tbl_project_alerts` record with `AlertType = $"WBS:{escalationType.Trim()}"`.
+
+---
+
+### Business Logic & UI Adjustments
+- **ProjectIssueService**:
+  - `CreateProjectIssueAsync`: Populates `alert.AlertType` with `$"issue:{issueType.Trim()}"`.
+  - `MapAlert`: Dynamically resolves and assigns `issue:{issueType}` prefix to mapped alert response if not already formatted.
+- **ProjectServiceEscalationService**:
+  - `CreateEscalationAsync`: Populates `alert.AlertType` with `$"WBS:{escalationType.Trim()}"`.
+- **ActionNotificationService**:
+  - Implemented `ResolveAlertDisplayType` and `IsWbsEscalationAlert` helper logic to ensure all alert DTOs map to either `issue:...` or `WBS:...` even if legacy records lack the prefix.
+  - Updated query filters across alert listing, attachment download, and governance updates to match `r.AlertType.StartsWith("WBS", StringComparison.OrdinalIgnoreCase) || r.ServiceEscalationId.HasValue`.
+- **Action Centre Frontend (`AlertsTab`)**:
+  - Added support for `issue` types to `getTypeStyles` badge palette so issue alerts render distinct, styled badges.
+  - Expanded the Alert Type column width to `14%` in the alerts table colgroup and ensured badge text wraps properly without overflow.
+  - Updated the Alert Details Modal to display `Alert Type: {selectedAlert.alertType}` consistently across issues and escalations.
+
+---
+
+### Existing Functionality Preserved
+- Notification and alert routing to assigned Project Manager, Engagement Manager, and Team Lead.
+- WBS prerequisite tracking, task timelines, and SLA tracking for service escalations.
+- Project Health Issues logging, tracking, and comments.
+- Dynamic Action Centre filtering by status, priority, client, and project.
+
+---
+
+# Changelog - Action Centre UI, Styling, Layout & Dynamic Filtering Updates
+
+## Summary of Changes
+Implemented UI improvements, styling consistency, column layout rebalancing, and dynamic data-driven dropdown filters across the Action Centre module (`/action-centre`):
+1. **Notifications Tab (`NotificationsTab`)**:
+   - Converted the Notification Title from an interactive/clickable `<button>` element into non-clickable formatted text (`<span>`), preserving detail inspection exclusively via the "View" action button in the Actions column.
+   - Removed text truncation (`truncate`) from both **Notification Title** and **Related Project** table cells, applying `break-words whitespace-normal` so that longer titles and project names wrap seamlessly onto subsequent lines within the same row.
+2. **Approvals Tab (`ApprovalsTab`)**:
+   - Transformed the Request Type table column and the Review Request modal view from plain blue text (`text-primary`) into standardized styled pill badges with subtle colored backgrounds, borders, and uppercase typography matching the Notifications tab format via shared `getTypeStyles`.
+   - Rebalanced table column widths in `<colgroup>`: increased the `Project` column width (from 22% to 34% / 44%) and tightened `Status` (10%) and `Actions` (10%), eliminating excessive blank space between the Status badge and Actions button.
+   - Removed the redundant "Refresh" button located beside the "Central Approval Center" header title.
+   - Replaced the hardcoded static `approvalTypes` list with a dynamic list derived strictly from active approvals in `store.approvals`.
+   - Replaced `approvalProjects` with a dynamic project list containing only projects that have actual approval requests present in `store.approvals`.
+   - Added automatic filter reset effects to switch back to `"all"` if the currently selected type or project is no longer present.
+3. **Alerts Tab (`AlertsTab`)**:
+   - Replaced the hardcoded static `alertTypes` array with dynamic extraction from `allAlerts` (`alert.alertType || alert.kind`), displaying only alert types currently existing in the system.
+   - Updated the `Project` filter dropdown to display only projects that currently have active alerts in `allAlerts`.
+   - Added automatic filter reset effects for both type and project filters when the selected option does not exist in the filtered options.
+
+---
+
+### Affected Files
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+
+---
+
+### Database Changes and Migrations
+- None.
+
+---
+
+### API Changes
+- None.
+
+---
+
+### Business Logic & UI Adjustments
+- **Notification Title Non-Clickable & Text Wrapping**: Notification title cell now renders a non-interactive `<span>` with `break-words whitespace-normal` along with the unread indicator (`shrink-0`). Related project cell renders `break-words whitespace-normal text-xs text-muted-foreground` without clipping.
+- **Request Type Badge Consistency**: Created a module-scoped `getTypeStyles` helper used across both `ApprovalsTab` (table + review modal) and `NotificationsTab` for unified color-coded status pills.
+- **Column Width Rebalancing**: Approvals table column distribution adjusted to `canManageApprovals ? 34% : 44%` (Project), `18%` (Request Type), `17%` (Requested By), `11%` (Date), `10%` (Status), and `10%` (Actions), eliminating empty space between Status and Actions while allocating more room for project names.
+- **Header Simplification**: Removed `<button ... title="Refresh Approvals">` beside "Central Approval Center".
+- **Dynamic Contextual Dropdown Filtering**: Approvals and Alerts filters derive options dynamically from active state objects (`store.approvals` and `store.alerts`), preventing user confusion from selecting non-existent categories or projects.
+
+---
+
+### Existing Functionality Preserved
+- Notification detail modal inspection via "View" button in Notifications tab.
+- Central Approval review and actioning (Approve, Reject, Hold, Request Changes) with mandatory comments.
+- Alerts management, metrics counters, filtering by priority, status, and client, and inline chat/commenting.
+- Pagination across all tabs.
+
+---
+
+# Changelog - Resource Allocation Approval & Dual Action Centre Synchronization (Approvals & Notifications)
+
+## Summary of Changes
+Resolved workflow defect where a candidate resource's Reporting Manager did not receive the approval request in the Central Approvals tab upon adding a team member from Project Details → Team tab. Ensured the Reporting Manager receives both an approval request in the Approvals tab (`/action-centre?tab=approvals`) and an action notification in the Notifications tab (`/action-centre?tab=notifications`) simultaneously, allowing the Reporting Manager to Approve, Reject, or Hold the allocation from either location with two-way state synchronization. Enforced that post-status changes (Approved, Rejected, On Hold) dispatch purely informational notifications to the candidate resource, assigned Project Manager(s), Engagement Manager(s), and Project Team Lead(s) without generating approval requests in their Approvals tabs. Corrected status mapping so Rejections are stored as `"Rejected"` rather than `"Cancelled"`.
+
+---
+
+### 1. Backend Business Logic & Service Enhancements
+- **Reporting Manager Resolution & Identity Mapping**:
+  - `apps/backend/Middleware/DevelopmentAuthBypassMiddleware.cs`: Updated identity claims resolution to link `X-User-Email`, `X-User-Role`, and `X-User-Id` directly with corresponding `resource.tbl_employees` records (by GUID, work email, personal email, or employee code). Guarantees `currentUser.UserId` always maps directly to the active employee's `Id`.
+  - `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`:
+    - `FindCurrentEmployeeAsync`: Enhanced email and code pattern matching (e.g. matching `e.EmployeeCode` within formatted work emails) to resolve the active employee identity reliably.
+    - `ListPendingAllocationsAsync`:
+      - Restricted allocation approval visibility so only the candidate's actual Approver/Reporting Manager (`r.ApproverEmployeeId == currentEmpId`, `r.ApproverEmployeeId == currentUser.UserId`, `r.Employee.ReportingManagerId == currentEmpId`, or `r.Employee.ReportingManagerId == currentUser.UserId`), plus global Admin/SuperAdmin/PMO, see the approval request in the Approvals tab.
+      - Removed generic task-prefix (`ALLOC-`) notification matching that previously caused candidate resources, PMs, EMs, and TLs to also receive approval requests in their Approvals tabs upon receiving status updates.
+    - `TakeAllocationActionAsync`:
+      - Fixed status mapping: Explicitly mapped `"Rejected"`, `"Reject"`, `"Cancelled"`, and `"Cancel"` to `"Rejected"` (previously misassigned to `"Cancelled"` which broke frontend status chips and dropdown filters).
+      - Mapped `"Hold"` and `"Request Changes"` to `"Hold"`, and `"Approved"` and `"Accept"` to `"Approved"`.
+      - On `"Approved"`: Assigns candidate to `ProjectTeamMember` and updates `project.TeamLeadId` if marked as Team Lead.
+      - On status change: Updates audit trail in `HistoryJson`, records mandatory comments in `CommentsJson`, completes SLA tracking, and updates all prior pending notifications (`RelatedTask == ALLOC-...`) in-line to the new status.
+    - `NotifyLeadershipOnAllocationStatusChangeAsync`:
+      - Generates informational notifications (`Type = "Resource Allocation"`) for the Candidate, assigned PM(s), assigned EM(s), and Project Team Lead(s).
+      - Action verbs correctly aligned: `"approved"`, `"rejected"`, `"on hold"` (replacing `"accepted"` and `"cancelled"`).
+      - Candidate title format: `"Resource Allocation {Approved|Rejected|On Hold}: ..."`
+      - Stakeholders (PM, EM, TL) title format: `"{candidateName} is {approved|rejected|on hold} for the {projectName}"`.
+
+---
+
+### 2. Frontend Action Centre & Modal Enhancements
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - `visibleTabs`: Ensured the "Approvals" tab is unconditionally accessible to managers and users who have approvals present in `store.approvals`.
+  - `ApprovalsTab`:
+    - Removed `!isBO` restriction from approval actions modal so all designated reporting managers (including COO, CEO, or business owners acting as reporting manager) can execute Hold, Request Changes, Reject, and Approve actions.
+    - Replaced generic "View" button with an active `"Review & Action"` badge button for items with `"Pending"` status.
+    - Updated `handleAction` to automatically dismiss the modal upon completing an action and refresh approvals from the backend.
+  - `NotificationsTab`:
+    - Updated `onActionComplete` callback on `NotificationDetailModal` to synchronously reflect the updated approval status in `dhStore.approvals` when an action is executed from the notification modal.
+- `apps/frontend/src/components/notification-detail-modal.tsx`:
+  - Aligned status action choices with central approvals: Changed action type from `"Approved" | "Hold" | "Cancelled"` to `"Approved" | "Hold" | "Rejected"`.
+  - Updated Reject button to dispatch `"Rejected"` status with mandatory remarks, ensuring both Approvals tab and Notification modal execute identical business logic and state updates.
+- `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`:
+  - `AddTeamMemberModal` submit handler: Added immediate optimistic merge into `dhStore.mergeApprovals` upon successful allocation request creation so that central approval state is immediately in sync before background API refetches occur.
+
+---
+
+### 3. Affected Files
+- `apps/backend/Middleware/DevelopmentAuthBypassMiddleware.cs`
+- `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`
+- `apps/frontend/src/components/notification-detail-modal.tsx`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `apps/frontend/src/modules/projects/pages/project-detail-page.tsx`
+
+---
+
+### 4. Database Changes & Migrations
+- **None**: No schema changes required; operations utilize existing tables `project.tbl_resource_allocation_requests`, `project.tbl_project_team_members`, and `action.tbl_notifications`.
+
+---
+
+### 5. API Changes
+- **Status Value Alignment**:
+  - `POST /api/v1/projects/{projectId}/allocation-requests/{requestId}/action` and `POST /api/v1/action-centre/allocation-approvals/{identifier}/action` now strictly return and record `"Rejected"` (rather than `"Cancelled"`).
+  - Informational notifications dispatched after approval actions use `Type = "Resource Allocation"` to distinguish them from actionable `Type = "Resource Allocation Approval"` requests.
+
+---
+
+### 6. Business Logic & Preserved Functionality
+- **Preserved Functionality**:
+  - Employee allocation validations (intern shadow team checks, overlap checks, existing assignment checks).
+  - Central Approval center filtering by Project, Request Type, and Status.
+  - Mandatory action comment validation across both Notification Modal and Approvals Tab Modal.
+  - In-line updating of prior pending notifications on approval action.
+  - SLA tracking start and completion lifecycle.
+
+---
+
+# Changelog - Action Centre Notification Table Formatting, Dynamic Type Filter & Alert Column Clean-up
+
+## Summary of Changes
+Updated Action Centre's Notifications and Alerts views to resolve table layout defects, streamline notification metadata, dynamically restrict filter options to active notification types, and remove redundant customer details from alert listings.
+
+### 1. Notifications Tab Layout & Data Enhancements
+- **Column Overlap Resolution**: Fixed visual overlap where long uppercase Notification Type badges (e.g. `CUSTOMER INTERVIEW SELECTED`) encroached onto the Related Project column. Reallocated table `<colgroup>` column widths (`Type`: 16%, `Related Project`: 14%), removed forced cell `whitespace-nowrap`, added badge text wrapping (`break-words`, `leading-tight`, `max-w-full`), and enabled text truncation on the Related Project cell with a hover `title`.
+- **Combined Timestamp Column**: Replaced separate `Date` and `Time` columns with a single `Timestamp` column displaying formatted values in `YYYY-MM-DD HH:MM:SS` format (e.g., `2026-11-16 02:27:00`).
+- **Dynamic Notification Type Filter**: Updated the Notification Type dropdown under Notification Inbox to dynamically derive available options from active notifications in the system (`availableNotificationTypes`) rather than rendering a static 34-item list containing unused types. If a previously selected type is no longer present, the filter automatically resets to `"all"`.
+
+### 2. Alerts Tab Clean-up
+- **Removed Customer Name Column**: Removed the redundant `Customer Name` column header and table cells from the Alerts tab.
+- **Rebalanced Column Allocation**: Adjusted the 8-column table layout (`Alert Title: 20%`, `Project Name: 18%`, `Alert Type: 12%`, `Priority: 9%`, `Raised By: 14%`, `Raised Date: 11%`, `Status: 8%`, `Actions: 8%`) to ensure optimal cell readability.
+
+---
+
+### 3. Affected Files
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - AlertsTab: Removed Customer Name column header, data cells, unused client lookup, and rebalanced column widths.
+  - NotificationsTab: Added dynamic notification type derivation (`useMemo`), combined `formatNotifTimestamp` formatter (`YYYY-MM-DD HH:MM:SS`), replaced Date & Time columns with single Timestamp column, rebalanced colgroup widths, and prevented badge text overflow.
+
+### 4. Database Changes & Migrations
+- **None**: Frontend UI and formatting changes only; no database schema or data modifications required.
+
+### 5. API Changes
+- **None**: Utilizes existing backend Action Notification and Alert endpoints without modification.
+
+### 6. Business Logic & Preserved Functionality
+- **Preserved Functionality**:
+  - Notification and Alert search, priority filtering, and status filtering.
+  - Pagination, sorting, read/unread state updates, and archive/unarchive workflows.
+  - Detail inspection modal and action triggers.
+  - Existing offboarding, pause/stop, SLA, and general notification event processing.
+
+---
+
+# Changelog - Employee Offboarding Notifications and LWD Reminder Workflow
+
+## Summary of Changes
+Implemented the end-to-end automated notification workflow for Employee Offboarding in Project Compass PMS. When an authorized user offboards an employee from Employee Profile → Offboard Employee ("Yes, Offboard"), notifications are dispatched immediately to Engagement Managers across all assigned projects, recurring 2-day LWD reminders are sent to Engagement Managers up to the employee's Last Working Day, and post-offboarding notifications are dispatched on the next calendar day after LWD to the Head of Department (HOD, resolved strictly by `On Floor Role = Head Of Department`) and assigned Senior Project Managers (SPMs). Existing offboarding, resignation, and clearance business logic remains completely unchanged.
+
+### 1. Notification Workflows Implemented
+
+#### 1. Immediate Notification After Applying Resignation
+- **Trigger**: Executed immediately after clicking "Yes, Offboard" and the resignation/offboarding request is committed to the database.
+- **Recipients**: Engagement Manager (EM) of each active project assigned to the offboarded resource (via `ProjectTeamMembers`, `ProjectTaskAssignments`, `BucketTasks`).
+- **Title Format**: `{Resource Name} Resignation Applied`
+- **Notification Properties**:
+  - `Type`: `"Resignation Applied"`
+  - `Priority`: `"Low"`
+  - `Status`: `"Pending"`
+  - `Unread`: `true`
+  - `RaisedBy`: Full Name of the user who initiated the offboarding
+  - `Related Project`: Actual assigned project name
+- **Multi-Project & Idempotency**: Dispatches to respective EMs per project without duplicate notifications for the same project/recipient.
+
+#### 2. Recurring LWD Reminder Notifications
+- **Trigger**: Hangfire recurring background job running daily at 09:00 IST (03:30 UTC).
+- **Recipients**: Engagement Manager (EM) of each active project assigned to the resource.
+- **Frequency & Cadence**:
+  - First reminder is sent immediately on Day 0 (resignation application).
+  - Subsequent reminders sent every 2 days (`(todayIst.DayNumber - resDate.DayNumber) % 2 == 0`).
+  - Continues until the employee's Last Working Day (LWD).
+  - Never sent after the Last Working Day (`todayIst > LWD`).
+- **Title Format**: `{Resource Name} Last Working date is {Last Working Date}` (e.g. `Rahul Sharma Last Working date is 30 November 2026`, formatted as `d MMMM yyyy`).
+- **Message Format**: `Reminder: {Resource Name}'s Last Working Day under project '{Project Name}' is {Last Working Date}.`
+- **Notification Properties**:
+  - `Type`: `"LWD Reminder"`
+  - `Priority`: `"Low"`
+  - `Status`: `"Pending"`
+  - `Unread`: `true`
+  - `RaisedBy`: `"System / Automation Engine"`
+  - `Related Project`: Actual assigned project name
+- **Dynamic Updates & Cancellation**: Automatically reflects updated LWD if modified; skips execution if offboarding is cancelled.
+- **Idempotency**: Enforces at most once per recipient, project, resource, and scheduled reminder date.
+
+#### 3. Post-Offboarding Notification – HOD and Senior Project Manager
+- **Trigger**: Executed on the **next calendar date** after the employee's Last Working Day (`todayIst == LWD.AddDays(1)` in IST).
+- **Recipients**:
+  1. **Head of Department (HOD)**:
+     - Mandatory condition: `On Floor Role = Head Of Department`.
+     - Generic RBAC roles are strictly ignored.
+     - Resolved dynamically using the offboarded employee's department/sub-department hierarchy.
+  2. **Senior Project Manager (SPM)**:
+     - Resolved from the relevant project's allocation records (`ProjectTeamMembers` where `MemberRole == "SeniorProjectManager"`).
+- **Title Format**: `{Resource Name} is offboarded` (e.g. `Rahul Sharma is offboarded`).
+- **Message Format**: `{Resource Name} has been successfully offboarded following the completion of their Last Working Day on {Last Working Date}.` (for HOD) and `{Resource Name} is offboarded from project '{Project Name}' following completion of their Last Working Day on {Last Working Date}.` (for SPM).
+- **Notification Properties**:
+  - `Type`: `"Employee Offboarded"`
+  - `Priority`: `"Low"`
+  - `Status`: `"Pending"`
+  - `Unread`: `true`
+  - `RaisedBy`: `"System / Automation Engine"`
+  - `Related Project`: Actual assigned project name
+
+---
+
+### 2. Files Created & Modified
+
+- **Created**:
+  - `apps/backend/Modules/Resources/Services/IOffboardingNotificationService.cs`: Interface defining resignation notification dispatch, LWD reminder processing, and post-offboarding notification processing.
+  - `apps/backend/Modules/Resources/Services/OffboardingNotificationService.cs`: Core service implementation handling active project resolution, EM resolution, canonical HOD resolution (`On Floor Role = Head Of Department`), SPM resolution, IST date calculations, and idempotency guarantees.
+  - `apps/backend/Modules/Resources/Jobs/EmployeeOffboardingReminderJob.cs`: Hangfire recurring background job executing daily to process LWD reminders and post-offboarding notifications.
+  - `apps/backend/tests/PMS.IntegrationTests/EmployeeOffboardingNotificationIntegrationTests.cs`: 10 comprehensive integration test scenarios covering immediate notifications, multi-project dispatch, 2-day reminder cadence, LWD change reflection, cancellation handling, post-LWD suppression, HOD/SPM post-offboard dispatch, same-date idempotency, and full HTTP endpoint integration.
+
+- **Modified**:
+  - `apps/backend/Modules/Resources/Services/EmployeeService.cs`: Injected `IOffboardingNotificationService` and wired non-blocking immediate resignation notification dispatch after transaction commit.
+  - `apps/backend/Configuration/DependencyInjectionExtensions.cs`: Registered `IOffboardingNotificationService` (Scoped) and `EmployeeOffboardingReminderJob` (Transient).
+  - `apps/backend/Program.cs`: Registered Hangfire recurring job `"employee-offboarding-reminders"` at `"30 3 * * *"` (09:00 IST / 03:30 UTC).
+  - `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`: Added `"Resignation Applied"`, `"LWD Reminder"`, and `"Employee Offboarded"` to `NOTIFICATION_TYPES` filter array and styled tags.
+
+---
+
+### 3. Verification & Test Results
+- **Backend Build**: `dotnet build apps/backend/PMS.API.csproj` -> Succeeded with 0 Warnings and 0 Errors.
+- **Integration Tests**: `dotnet test apps/backend/tests/PMS.IntegrationTests/PMS.IntegrationTests.csproj --filter FullyQualifiedName~EmployeeOffboardingNotificationIntegrationTests` -> **Passed! Failed: 0, Passed: 10, Skipped: 0, Total: 10**.
+- **Frontend Build**: `npm run build --prefix apps/frontend` -> Succeeded with 0 Errors.
+
+---
+
+# Changelog - Enhanced Task Pause and Stop Notifications (Resource, Task and Service Details)
+
+## Summary of Changes
+Enhanced notification titles and messages generated when a resource pauses or stops a task timer from **Action Centre → Bucket List**, as well as the daily recurring pause reminder dispatched by the SLA automation engine. Recipients can now immediately identify the resource who performed the action, the task title, the associated service name, and the project name.
+
+### 1. Enhanced Notification Formats
+
+#### 1. Task Pause – Immediate Leadership Notification
+- **Recipients**: Assigned Project Manager (PM), Assigned Engagement Manager (EM), Project Team Leader (TL).
+- **Title Format**: `{Resource Name} Task Paused: {Task Title} - {Service Name}`
+- **Message Format**: `{Resource Name} has paused the task '{Task Title}' under the service '{Service Name}' in project '{Project Name}'.`
+- **Notification Properties**:
+  - `Type`: `"Task Paused"`
+  - `Priority`: `"Low"`
+  - `Status`: `"Pending"`
+  - `Unread`: `true`
+  - `RaisedByName`: Resource's Full Name (e.g. `FirstName LastName`)
+  - `RaisedByEmployeeId`: Resource's Employee GUID
+  - `RelatedProject`: Actual Project Name
+  - `RelatedTask`: Task Title
+
+#### 2. Task Pause – Daily Reminder to Assigned Resource
+- **Recipient**: Restricted strictly to the assigned resource who paused the task (never PM, EM, TL, SPM, or HOD).
+- **Title Format**: `Task Paused Reminder: {Task Title} - {Service Name}`
+- **Message Format**: `Your task '{Task Title}' under the service '{Service Name}' in project '{Project Name}' is still paused. Please resume the task or complete it.`
+- **Notification Properties**:
+  - `Type`: `"Task Pause Reminder"`
+  - `Priority`: `"Low"`
+  - `Status`: `"Pending"`
+  - `Unread`: `true`
+  - `RaisedByName`: `"SLA Automation Engine"`
+  - `RelatedProject`: Actual Project Name
+  - `RelatedTask`: Task Title
+
+#### 3. Task Stop – Immediate Leadership Notification
+- **Recipients**: Assigned Project Manager (PM), Assigned Engagement Manager (EM), Project Team Leader (TL).
+- **Title Format**: `{Resource Name} Task Stopped: {Task Title} - {Service Name}`
+- **Message Format**: `{Resource Name} has stopped the task '{Task Title}' under the service '{Service Name}' in project '{Project Name}'.`
+- **Notification Properties**:
+  - `Type`: `"Task Stopped"`
+  - `Priority`: `"Low"`
+  - `Status`: `"Pending"`
+  - `Unread`: `true`
+  - `RaisedByName`: Resource's Full Name (e.g. `FirstName LastName`)
+  - `RaisedByEmployeeId`: Resource's Employee GUID
+  - `RelatedProject`: Actual Project Name
+  - `RelatedTask`: Task Title
+
+---
+
+### 2. Service Name Resolution Details
+- Utilized `ProjectTaskService.ResolveServiceNameAsync(db, projectId, task)` to dynamically resolve the human-readable Service Name via database relationships:
+  1. Checks task's eagerly loaded `task.ProjectService?.ServiceName`.
+  2. If missing, queries `db.ProjectServices` using `task.ProjectServiceId`.
+  3. If still missing, queries the first active `ProjectService` for the project ordered by `SortOrder`.
+  4. Gracefully falls back to `task.Project?.Name` or `"General"` without throwing or interrupting the Pause/Stop operation.
+- Enhanced `ResolveServiceNameAsync` in `ProjectTaskService.cs` to safely query `db.Projects` when `task.Project` is unhydrated, guaranteeing non-null, clean service names across all execution contexts.
+- Configured JSON serialization to use `JavaScriptEncoder.UnsafeRelaxedJsonEscaping` so single quotes in task and project names are preserved literally in notification comment text without escaping into `\u0027`.
+- When stopping a task timer, any active Task Pause SLA tracking instance is immediately marked `Completed` via `_slaTrackingService.CompleteTrackingAsync`.
+
+---
+
+### 3. Modified Files
+
+#### Backend:
+- `apps/backend/Modules/Projects/Services/ProjectTaskService.cs`:
+  - Enhanced `ResolveServiceNameAsync` to ensure resilient fallback handling when resolving service and project names.
+- `apps/backend/Modules/ActionCentre/Services/BucketTaskService.cs`:
+  - Updated `PauseBucketTaskTimerAsync` to eager load `task.ProjectService` & `task.Project`, resolve `serviceName`, set enhanced title/message, set `Priority = "Low"`, set `RaisedByEmployeeId`, and record action history.
+  - Updated `StopBucketTaskTimerAsync` to eager load `task.ProjectService` & `task.Project`, resolve `serviceName`, set enhanced title/message, set `Priority = "Low"`, set `RaisedByEmployeeId`, record action history, and complete active Task Pause tracking.
+- `apps/backend/Modules/Sla/Jobs/SlaBackgroundJobWorker.cs`:
+  - Updated `ExecuteTaskPauseReminderAsync` to include `ProjectService` on task relations, dynamically resolve `serviceName` via `ProjectTaskService.ResolveServiceNameAsync`, set enhanced title/message with `Priority = "Low"`, unescaped JSON, and record action history.
+- `apps/backend/tests/PMS.IntegrationTests/BucketListSlaIntegrationTests.cs`:
+  - Updated `TaskPause_DailyReminderExecution_DeliversOnlyToResource_AndNeverLeadership_AndResumeCancels` to assert enhanced reminder title and content.
+  - Added new integration test `BucketList_PauseAndStop_Notifications_IncludeResourceTaskServiceAndProjectDetails` verifying end-to-end Pause leadership notification, daily reminder targeting, Stop leadership notification, and SLA completion.
+
+#### Frontend:
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - Added `"Task Paused"`, `"Task Stopped"`, and `"Task Pause Reminder"` to the `NOTIFICATION_TYPES` filter dropdown constant.
+
+---
+
+### 4. Tests Executed & Verification
+- **Backend Tests**:
+  - `dotnet test --filter "FullyQualifiedName~BucketListSlaIntegrationTests|FullyQualifiedName~ActionCentreSortingIntegrationTests|FullyQualifiedName~MyTimesheetAssignedProjectsAndTasksTests|FullyQualifiedName~TimesheetNotificationIntegrationTests"`: **18 Passed / 18 Total (0 Failed)**.
+  - Specific scenarios verified:
+    - Resource pauses a task: PM, EM, and TL receive correctly formatted notifications with resource name, task title, service name, and project name.
+    - Resource stops a task: PM, EM, and TL receive correctly formatted notifications with resource name, task title, service name, and project name.
+    - Task remains paused: Daily reminder goes strictly to the assigned resource and never to leadership.
+    - Stop after Pause: Active pause reminders are completed/cancelled.
+    - Missing service name: Handled gracefully with fallback without failing the pause/stop operation.
+- **Backend Build**: `0 Errors`.
+- **Frontend Build**: `0 Errors` (`vite v7.3.6`, 4367 modules transformed, built in 15.41s).
+
+---
+
+# Changelog - My Timesheet Assigned Projects and Tasks Filtering
+
+## Summary of Changes
+Updated the **My Timesheet** tab under **My Team -> Timesheets** to strictly restrict Project and Task dropdown selections to the caller's / employee's assigned work:
+1. **Assigned Projects Only**: The Project dropdown displays only projects to which the employee is actively assigned (as a Project Team Member, Task Assignee, Project Manager, Team Lead, Engagement Manager, or Bucket Task holder). Fallbacks to all active projects across the company have been removed.
+2. **Assigned Tasks Only**: When an assigned project is selected, the Task dropdown displays only the tasks in that project that are assigned to the current employee. If no tasks are assigned to the employee in the selected project, the dropdown displays `"No assigned tasks in this project"` and is safely disabled.
+
+### 1. Backend Implementation
+- **Dedicated Caller Timesheet Endpoints (`TimesheetsController.cs`, `ITimesheetService.cs`, `TimesheetService.cs`)**:
+  - Added `GET /api/v1/timesheets/mine/projects`: Resolves current caller via `RequireCallerAsync` and returns their assigned active projects.
+  - Added `GET /api/v1/timesheets/mine/tasks?projectId={projectId}`: Resolves current caller via `RequireCallerAsync` and returns only tasks in the given project where the employee is actively assigned.
+- **Project & Task Filtering Services (`ProjectAppService.cs`, `IProjectAppService.cs`, `ProjectsController.cs`)**:
+  - Updated `GetProjectsAsync`: Filter by `EmployeeId` checks non-deleted projects, team members (`tm.DeletedAtUtc == null`), active task assignments (`ta.IsActive && ta.DeletedAtUtc == null`), and bucket tasks (`bt.DeletedAtUtc == null`).
+  - Updated `GetProjectTasksAsync`: Added optional `Guid? employeeId = null` parameter. When supplied, filters tasks to those where the employee is assigned via `ProjectTaskAssignments` or `BucketTasks`.
+  - Updated `ProjectsController.GetProjectTasks`: Accepts `[FromQuery] Guid? employeeId = null` and forwards to `GetProjectTasksAsync`.
+
+### 2. Frontend Implementation
+- **API Callers (`timesheets.ts`, `projects.ts`)**:
+  - Added `getMyAssignedProjects` and `getMyAssignedTasks(projectId)` callers in `timesheets.ts`.
+  - Added optional `employeeId` parameter to `fetchProjectTasks` in `projects.ts`.
+- **Timesheets Page UI (`timesheets-page.tsx`)**:
+  - `loadProjects`: Uses `getMyAssignedProjects()` and `fetchProjects({ employeeId })` to load only assigned projects. Removed previous fallbacks that fetched all active or all system projects.
+  - `loadTasksForProject`: Uses `getMyAssignedTasks(projectId)` and `fetchProjectTasks(projectId, ..., employeeId)` with client-side assignment validation to guarantee only assigned tasks are populated for the selected project.
+  - SearchableSelect placeholders: Updated Project placeholder to `"No assigned projects"` when empty, and Task placeholder to `"No assigned tasks in this project"` when no tasks are assigned.
+  - Historical rows: Preserved existing task labels on saved or draft lines so historical timesheet viewing is intact.
+
+### 3. Verification & Tests
+- Added `MyTimesheetAssignedProjectsAndTasksTests.cs` verifying:
+  - `projects?employeeId={id}` returns only assigned projects.
+  - `projects/{id}/tasks?employeeId={id}` returns only assigned tasks.
+  - `/api/v1/timesheets/mine/projects` returns only caller's assigned projects.
+  - `/api/v1/timesheets/mine/tasks` returns only caller's assigned tasks.
+- All 8 existing `TimesheetNotificationIntegrationTests` passed.
+- Backend build: `0 Errors`.
+- Frontend build: `0 Errors`.
+
+---
+
+# Changelog - Action Centre Sorting (Recent Requests First Across All Tabs)
+
+## Summary of Changes
+Updated the record sorting order in the **Action Centre** across all four tabs:
+1. **Bucket List**
+2. **Approval**
+3. **Alert**
+4. **Notification**
+
+All records are now consistently ordered chronologically in descending order:
+`Latest Created Date/Time → Oldest Created Date/Time (Descending Order)` (Newest record in the first row).
+
+### 1. Database & Query-Level Sorting (Backend)
+- **Bucket List (`BucketTaskService.cs`)**:
+  - Replaced legacy ordering `.OrderByDescending(b => b.TimerRunning).ThenByDescending(b => b.UpdatedAtUtc ?? b.CreatedAtUtc)` with `.OrderByDescending(b => b.CreatedAtUtc).ThenByDescending(b => b.Id)`.
+  - Applied prior to `.Skip().Take()` pagination to ensure deterministic ordering of new tasks across pages.
+- **Approvals (`ProjectAdditionalRequirementService.cs`, `ProjectExtensionRequestService.cs`, `ProjectFeedbackService.cs`, `ProjectTeamMemberService.cs`)**:
+  - Enhanced all queries across the four approval sources (`ProjectAdditionalRequirement`, `ProjectExtensionRequest`, `ProjectFeedback`, and `ProjectResourceAllocationRequest`) to include deterministic secondary sorting `.ThenByDescending(x => x.Id)`.
+- **Alerts & Notifications (`ActionNotificationService.cs`, `ActionNotificationDtos.cs`)**:
+  - Added `.ThenByDescending(n => n.Id)` to both `GetNotificationsAsync` and `GetAlertsAsync`.
+  - Exposed `CreatedAtUtc` in `ActionNotificationDto` and `ActionAlertDto` mapping functions (`MapDto` and `MapAlertDto`) so the client receives the creation timestamp.
+- **Audit Interceptor Safe-Handling (`AppDbContext.cs`)**:
+  - Updated `CreatedAtUtc` assignment logic during `EntityState.Added` to preserve pre-assigned explicit creation timestamps:
+    `if (entry.Entity.CreatedAtUtc == default) { entry.Entity.CreatedAtUtc = now; }`.
+
+### 2. Frontend Sorting Alignment (`action-centre-page.tsx`, `workspace-store.ts`)
+- **Bucket List (`action-centre-page.tsx:sortBucketTasks`)**:
+  - Removed logic prioritizing running timers (`timerRunning`) and modification timestamps (`updatedAtUtc`).
+  - Implemented strict descending comparison by `createdAtUtc` and secondary comparison by `id`.
+- **Approvals (`action-centre-page.tsx:ApprovalsTab`)**:
+  - Added `createdAtUtc` property to `DhCentralApproval` interface in `workspace-store.ts`.
+  - Populated `createdAtUtc` when mapping merged approval items (`APP-REQ`, `APP-EXT`, `APP-ALLOC`, `APP-FDBK`).
+  - Added cross-entity chronological sorting to `allSortedApprovals` and `filteredApprovals` by `createdAtUtc` / `requestedDate` descending and `id` descending.
+- **Alerts (`action-centre-page.tsx:AlertsTab`)**:
+  - Applied descending chronological sorting to `filtered` list using `createdAtUtc` / `createdAt` and `id`.
+- **Notifications (`action-centre-page.tsx:NotificationsTab`)**:
+  - Applied descending chronological sorting to `filteredNotifications` using `createdAtUtc` / `createdAt` and `id`.
+- **Filter & Pagination Preservation**:
+  - Preserved all existing search, category/status filtering, bulk selections, approval actions, and running timers without altering business logic.
+
+---
+
+## Affected Files
+- `apps/backend/Infrastructure/Persistence/AppDbContext.cs`
+- `apps/backend/Modules/ActionCentre/Services/BucketTaskService.cs`
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+- `apps/backend/Modules/ActionCentre/DTOs/ActionNotificationDtos.cs`
+- `apps/backend/Modules/Projects/Services/ProjectAdditionalRequirementService.cs`
+- `apps/backend/Modules/Projects/Services/ProjectExtensionRequestService.cs`
+- `apps/backend/Modules/Projects/Services/ProjectFeedbackService.cs`
+- `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`
+- `apps/frontend/src/lib/workspace-store.ts`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `apps/backend/tests/PMS.IntegrationTests/ActionCentreSortingIntegrationTests.cs`
+
+---
+
+## Test Verification
+- **Unit & Integration Tests**:
+  - Added `ActionCentreSortingIntegrationTests.cs` verifying descending chronological order and deterministic ID tie-breaking across Bucket List, Approvals, Alerts, and Notifications.
+  - Result: 4/4 Passed (0 failed, duration: 7s).
+- **Build Verification**:
+  - Backend: `dotnet build apps/backend/PMS.API.csproj` -> 0 Errors.
+  - Frontend: `npm run build --prefix apps/frontend` -> 0 Errors.
+
+---
+
+# Changelog - Task Assignment Notification Title Format
+
+## Summary of Changes
+Updated Action Centre notification titles generated when assigning resources to a task in the **Tasks tab** (`SyncTaskAssignments` / `AssignTaskResource`) to follow the exact format:
+`The {Resource name} is assigned to the {Task name} of the {Service name}`
+
+1. **Dynamic Service Name Resolution (`ProjectTaskService.cs` & `ProjectAppService.cs`)**:
+   - Added `ResolveServiceNameAsync`:
+     - Checks task's direct `ProjectService.ServiceName`.
+     - Falls back to querying `ProjectServices` by `ProjectServiceId`.
+     - Falls back to querying the first active service for the project (`db.ProjectServices.Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null).OrderBy(s => s.SortOrder)`).
+     - Falls back to `Project.Name` if no service records exist.
+
+2. **Dynamic Resource Name & Notification Title**:
+   - Resolved assigned employee's full name (`FirstName LastName`) from `db.Employees`.
+   - Set notification `Title`:
+     `$"The {resourceName} is assigned to the {taskInfo.Title} of the {serviceName}"`
+   - Set `HistoryJson` comment to match the informative assignment summary.
+   - Preserved notification properties: `Type = "Task Assignment"`, `Status = "Assigned"`, `Priority = task.Priority ?? "Medium"`, `Unread = true`, `RelatedTask = taskInfo.Title`, `ProjectName = taskInfo.Project?.Name`.
+
+3. **Leadership Notification Consistency**:
+   - Updated `TriggerTaskAssignmentSlaAsync` leadership notifications (sent to Assigned Engagement Manager, Assigned Project Manager, and Project Team Leader) to use the aligned format:
+     `$"The {empNamesStr} is assigned to the {taskTitle} of the {serviceName}"`.
+
+4. **Integration Tests**:
+   - Added `TaskAssignmentNotificationIntegrationTests.cs` covering:
+     - `AssignResourceToTask_SyncTaskAssignments_GeneratesNotificationWithFormattedTitle`: Verifies API assignment generates expected notification title with resource name, task title, and service name.
+     - `AssignResourceToTask_FallbackService_ResolvesFirstService`: Verifies that if a task lacks an explicit service ID, the system resolves the project's service correctly.
+
+---
+
+## Affected Files
+- `apps/backend/Modules/Projects/Services/ProjectTaskService.cs`:
+  - Added `ResolveServiceNameAsync`.
+  - Updated `SynchronizeAssignmentsAsync` and `TriggerTaskAssignmentSlaAsync`.
+- `apps/backend/Modules/Projects/Services/ProjectAppService.cs`:
+  - Updated `AssignTaskResourceAsync` to use `ResolveServiceNameAsync` and formatted title.
+- `apps/backend/tests/PMS.IntegrationTests/TaskAssignmentNotificationIntegrationTests.cs`:
+  - Added new integration test suite.
+
+---
+
+# Changelog - Employee Profile Change Detection & Reporting Manager Notification Fix
+
+## Summary of Changes
+Resolved false-positive profile change detection in Employee Profile updates where editing only an employee's Reporting Manager (e.g. for Rohan Deshpande `TK-0073`) resulted in Action Centre notifications falsely listing 7-8 untouched fields (`Experience, Bond Status, Billable Status, Project Type, Prior Total Experience, Prior Relevant Experience, Bond Expiry Date`):
+
+1. **Frontend Form State & Mapping (`onboard-validation.ts`)**:
+   - In `employeeToOnboardValues(emp)`, removed hardcoded fallback defaults for `billableStatus` and `projectType` that previously forced `"Billable"` and `"Long Term"` whenever an employee had null/empty values (common for imported or older employee records).
+   - Ensured empty or undefined values remain `""`, which maps cleanly to `null` on submission via `blankToNull` rather than injecting synthetic values.
+
+2. **Frontend Edit Modal State Preservation (`employee-form-modal.tsx`)**:
+   - In `handleSubmit` when `mode === "edit"` and `initialEmployee` exists:
+     - Detects whether the user modified experience inputs (`expType`, `priorTotalExpYears`, `priorTotalExpMonths`, `priorRelevantExpYears`, `priorRelevantExpMonths`). If unchanged, preserves the original `initialEmployee.experience`, `initialEmployee.priorTotalExp`, and `initialEmployee.priorRelevantExp` strings instead of regenerating new formatted strings that differ from database import formats (e.g. `"2 yrs 0 mos"` vs `"2 Years"`).
+     - Detects whether bond inputs (`bondDelivered`, `joiningDate`, `bondDurationMonths`) were changed. If unchanged, preserves the original `initialEmployee.bondStatus` and `initialEmployee.bondExpiryDate` rather than computing differing values.
+     - Preserves `initialEmployee.category` when employment type and bond fields remain untouched.
+
+3. **Backend Semantic Change Detection (`EmployeeService.cs`)**:
+   - Replaced naive string inequality (`entity.X != request.X`) with robust semantic helpers:
+     - `HasStringChanged`: Normalizes null and whitespace; performs case-insensitive comparisons across all profile string properties (`BusinessUnit`, `WorkLocation`, `OfficeBranch`, `Category`, `Team`, `PreviousCompany`, `EmploymentType`, `ContractType`, `NoticePeriod`, `ProjectSite`, `AssetId`, `ExitType`, `ExitReason`, `Education`, `ProbationStatus`, `PromotionReadiness`, `ManagerFeedback`, `SalaryBand`, `ProbationPeriod`, `TaxRegime`, `ComplianceStatus`, `PmoDepartment`, `SubDepartment`, `BillableStatus`, `ClientLocation`, `ProjectType`, `ProjectAllocated`, `ClientEngManagerMapping`, `GradDegree`, `GradYear`, `PostGradDegree`, `PostGradYear`, `ExpType`, `BondDelivered`).
+     - `AreExperienceStringsEquivalent` & `AreSingleExperienceEquivalent`: Parses and compares years and months across single and compound experience formats (`"{total} (Relevant: {relevant})"`), treating formats like `"2 yrs 0 mos"` and `"2 Years"` or `"Fresher"` and `"0"` as equivalent.
+     - `AreBondStatusesEquivalent`: Resolves canonical bond status (`"completed"`, `"active"`, `"none"`) accounting for synonymous statuses across Excel import, manual entry, and runtime computation (`"Expired"` vs `"Completed"`, `"Active"` vs `"In bond"`, `"No Bond"` vs `"None"`), including dynamic resolution when status was not explicitly stored.
+     - `BondExpiryDate` comparison: Identifies when an incoming date is auto-computed from unchanged `JoiningDate` and `BondDurationMonths` on an employee whose `BondExpiryDate` was previously null, preventing spurious change alerts.
+
+4. **Integration Testing & Verification (`ResourceModuleTests.cs`)**:
+   - Added `UpdateEmployee_OnlyReportingManagerChanged_GeneratesNotificationWithOnlyReportingManager` integration test verifying that changing only `ReportingManagerId` produces an Action Notification titled `{Name} change their profile Reporting Manager by {Performer}` and that none of the 7 false positive fields appear.
+   - Added `UpdateEmployee_WithNullLegacyFields_EditingOnlyReportingManager_DoesNotTriggerFalsePositives` integration test verifying employees with null legacy fields do not trigger false positive changes on edit.
+   - Fixed assert string in `EmployeeBulk_SampleDownload_And_DuplicateUploadRejected`.
+
+---
+
+## Affected Files
+- `apps/frontend/src/lib/onboard-validation.ts`:
+  - Updated `employeeToOnboardValues` to preserve empty string for `billableStatus`, `projectType`, and `probationStatus`.
+- `apps/frontend/src/modules/employees/components/employee-form-modal.tsx`:
+  - Added change detection check against `initVals` in `handleSubmit` to preserve existing `experience`, `priorTotalExp`, `priorRelevantExp`, `bondStatus`, `bondExpiryDate`, and `category` when untouched.
+- `apps/backend/Modules/Resources/Services/EmployeeService.cs`:
+  - Added `HasStringChanged`, `ParseYearsAndMonths`, `AreSingleExperienceEquivalent`, `AreExperienceStringsEquivalent`, `AreBondStatusesEquivalent`, and `ResolveNormalizedBondStatus`.
+  - Updated change detection in `UpdateEmployeeAsync` to use semantic comparison helpers.
+- `apps/backend/tests/PMS.IntegrationTests/ResourceModuleTests.cs`:
+  - Added integration test `UpdateEmployee_OnlyReportingManagerChanged_GeneratesNotificationWithOnlyReportingManager`.
+  - Added integration test `UpdateEmployee_WithNullLegacyFields_EditingOnlyReportingManager_DoesNotTriggerFalsePositives`.
+  - Updated duplicate upload error assertion.
+
+---
+
+# Changelog - Project Manager & Senior Project Manager Assignment Notifications
+
+## Summary of Changes
+Implemented notification functionality for the Project Allocation workflow (**Project → WBS tab → Project Allocation**), notifying newly assigned **Project Managers (PM)** and **Senior Project Managers (SPM)** whenever they are assigned or updated:
+1. **Project Manager Assignment Notifications**:
+   - When a Project Manager is assigned or replaced, dispatches an Action Centre notification to the newly assigned PM.
+   - **Title**: `You are assigned as Project Manager`
+   - **Message (History Action & Details)**: `You have been assigned as the Project Manager for the project {Project Name}.`
+   - **Recipient**: Newly assigned Project Manager (`RecipientEmployeeId = pmId`)
+   - **Related Project**: Project Name (`RelatedProject = project.Name`)
+   - **Raised By**: Full name of user who performed the assignment (fallback to `currentUser.Name` or `System`)
+   - **Status**: `Assigned`
+   - **Priority**: `Low`
+   - **Unread**: `True`
+2. **Senior Project Manager Assignment Notifications**:
+   - When a Senior Project Manager is assigned or replaced, dispatches an Action Centre notification to the newly assigned SPM.
+   - **Title**: `You are assigned as Senior Project Manager`
+   - **Message (History Action & Details)**: `You have been assigned as the Senior Project Manager for the project {Project Name}.`
+   - **Recipient**: Newly assigned Senior Project Manager (`RecipientEmployeeId = spmId`)
+   - **Related Project**: Project Name (`RelatedProject = project.Name`)
+   - **Raised By**: Full name of user who performed the assignment (fallback to `currentUser.Name` or `System`)
+   - **Status**: `Assigned`
+   - **Priority**: `Low`
+   - **Unread**: `True`
+3. **Change Detection & Idempotency Rules**:
+   - **Initial Assignment**: When PM or SPM is assigned for the first time, notifies the newly assigned employee.
+   - **Reassignment**: When replacing an existing PM or SPM, notifies only the newly assigned employee; the previous manager receives no new notification.
+   - **Unchanged Assignment**: When the allocation is re-saved with the same manager(s), zero new notifications are generated.
+   - **Removal**: When an assignment is cleared/removed (`[]`), no assignment notification is generated.
+   - **Independent Assignments**: Changing PM does not generate an SPM notification, and changing SPM does not generate a PM notification.
+   - **Post-Commit Execution**: Triggered only after project allocation is successfully committed in the database (`await db.SaveChangesAsync(ct)`).
+   - **Non-blocking Error Handling**: Enclosed in a try-catch block with error logging to ensure notification failures never roll back successfully saved project allocations.
+   - **Duplicate Prevention**: In addition to diff-based detection, `NotifyProjectLeadershipAssignedAsync` checks for identical unread assignment notifications within the last 5 minutes to prevent race conditions or rapid double-submits.
+4. **Action Centre UI Enhancements**:
+   - Updated Action Centre Notifications table and Notification Detail modal to recognize status `"Assigned"` with an indigo pill badge (`bg-indigo-50 text-indigo-700 border-indigo-200`) and status icon.
+   - Display assignment action/message text cleanly in the notification detail modal header and chronological timeline history log.
+
+---
+
+## Affected Files
+- `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`:
+  - Added method signature `NotifyProjectLeadershipAssignedAsync`.
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+  - Implemented `NotifyProjectLeadershipAssignedAsync` with role-aware title/message formatting, duplicate prevention check, history generation, database insertion, and secondary DB sync (`TrySyncNotificationsToOtherDatabase`).
+- `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`:
+  - Injected `IActionNotificationService notificationService`.
+  - Updated `SetLeadershipAsync` to capture `previousPmIds` and `previousSpmIds` prior to updating the database.
+  - After successful database commit, diffed assigned IDs and triggered `NotifyProjectLeadershipAssignedAsync` for each newly assigned PM and SPM with actor resolution and error logging.
+- `apps/frontend/src/components/notification-detail-modal.tsx`:
+  - Added `"assigned"` status styles and icon mapping.
+  - Supported `"assigned"` in `getTypeStyles`.
+  - Displayed `notification.history[0]?.action` under the title for immediate message visibility.
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - Added `"assigned"` status styles and check icon mapping in `getNotifStatusStyles` and `renderNotifStatusIcon`.
+  - Added `"Assigned"` to `availableStatuses` filter list.
+- `apps/backend/tests/PMS.IntegrationTests/ProjectLeadershipNotificationIntegrationTests.cs`:
+  - Created 7 integration tests covering initial PM assignment, initial SPM assignment, simultaneous dual assignment, replacement of existing PM, unchanged assignment idempotency, assignment removal, and independent PM/SPM updates.
+
+---
+
+## Database Changes and Migrations
+- **No schema migrations required**:
+  - Reused existing table `action.tbl_notifications` and existing `ActionNotification` entity.
+
+---
+
+## API Changes
+- Reused existing endpoint:
+  - `PUT /api/v1/projects/{projectId}/leadership`:
+    - Request payload: `{ projectManagerIds?: Guid[], seniorProjectManagerIds?: Guid[] }`.
+    - Automatically dispatches Action Centre notifications to newly assigned PMs and SPMs upon successful persistence.
+
+---
+
+## Tests Executed and Actual Results
+- **PMS.IntegrationTests** (`dotnet test apps/backend/tests/PMS.IntegrationTests/PMS.IntegrationTests.csproj`):
+  - `ProjectLeadershipNotificationIntegrationTests`:
+    - `AssignPM_FirstTime_DispatchesNotificationToNewPM_WithAllRequiredFields`: **Passed** (550 ms)
+    - `AssignSPM_FirstTime_DispatchesNotificationToNewSPM_WithAllRequiredFields`: **Passed** (130 ms)
+    - `AssignBothPMAndSPM_Simultaneously_DispatchesRespectiveNotificationToEach`: **Passed** (120 ms)
+    - `ReplaceExistingPM_DispatchesNotificationOnlyToNewPM_NotPreviousPM`: **Passed** (140 ms)
+    - `UnchangedAssignment_DoesNotGenerateDuplicateNotification`: **Passed** (90 ms)
+    - `Removal_DoesNotGenerateAssignmentNotification`: **Passed** (90 ms)
+    - `IndependentAssignments_ChangingPMDoesNotNotifySPM_AndViceVersa`: **Passed** (140 ms)
+  - **All 7 Project Leadership integration tests passed (7/7)**.
+  - **All 24 Notification integration tests across the system passed (24/24)**.
+- **Backend Build** (`dotnet build apps/backend/PMS.API.csproj`):
+  - Built successfully with **0 Warnings, 0 Errors**.
+- **Frontend Build** (`npm run build --prefix apps/frontend`):
+  - Vite client & SSR build succeeded with **0 Errors**.
+
+---
+
+# Changelog - Timesheet Approval Notifications, Manager Decisions & Alternate-Day Reminders
+
+## Summary of Changes
+Implemented comprehensive notification functionality for the Timesheet Submission and Approval workflow (**My Team → Timesheets → Timesheet Approval**), integrating with the existing centralized notification system (`ActionNotification`, `action.tbl_notifications`). This includes:
+1. **Timesheet Submission Notifications**: When a resource submits a weekly timesheet, their Reporting Manager is dynamically resolved (`employee.ReportingManagerId`) and receives a `"Timesheet Submitted"` notification in Action Centre with status `Pending` and priority `Low`. Safe fallback is implemented if no reporting manager is configured. All pending submission reminders for that week are automatically marked as resolved (`Submitted`).
+2. **Reporting Manager Decisions**: When a manager approves, rejects, or requests changes on a timesheet:
+   - **Approved**: Dispatches `"Timesheet Approved"` notification to the resource with status `Approved`.
+   - **Rejected**: Dispatches `"Timesheet Rejected"` notification to the resource with status `Rejected`, including the manager's remarks in comments and history.
+   - **Changes Requested**: Dispatches `"Timesheet Changes Requested"` notification to the resource with status `Request Change`, including remarks in comments and history.
+   - Synchronizes the manager's prior submission notification to the new status and marks it read (`Unread = false`).
+3. **Alternate-Day Reminders**:
+   - Reminders are sent only during the active submission window (Friday when the work week ends through Monday deadline). No reminders are sent Tuesday through Thursday.
+   - Enforces an alternate-day cadence (minimum 2 days between reminders) so active unsubmitted employees receive reminders without being spammed (e.g., Friday sent, Saturday skipped, Sunday sent).
+   - Scheduled via Hangfire recurring job `TimesheetReminderJob` daily at 09:00 IST (03:30 UTC), and executable on demand via `POST /api/v1/timesheets/reminders/process`.
+4. **Action Centre UI**:
+   - Updated Action Centre and Notification Detail modal to recognize and style `Timesheet` notifications and `Request Change` status pills with appropriate purple badges and icons.
+
+---
+
+## Affected Files
+- `apps/backend/Modules/Timesheets/Services/ITimesheetNotificationService.cs`:
+  - Defined service contract for `NotifyTimesheetSubmittedAsync`, `NotifyTimesheetDecidedAsync`, and `ProcessTimesheetRemindersAsync`.
+- `apps/backend/Modules/Timesheets/Services/TimesheetNotificationService.cs`:
+  - Implemented dynamic reporting manager resolution, project detail extraction, idempotent notification generation, manager submission synchronization, reminder cancellation upon submission, and alternate-day reminder processing with submission window checks.
+- `apps/backend/Modules/Timesheets/Jobs/TimesheetReminderJob.cs`:
+  - Implemented Hangfire background recurring job for processing alternate-day timesheet reminders.
+- `apps/backend/Modules/Timesheets/Services/TimesheetService.cs`:
+  - Injected `ITimesheetNotificationService`.
+  - Triggered `NotifyTimesheetSubmittedAsync` in `UpsertAsync` when `submit == true`.
+  - Triggered `NotifyTimesheetDecidedAsync` in `DecideAsync` upon manager approval, rejection, or changes requested.
+  - Replaced legacy private notification method with centralized timesheet notification service.
+- `apps/backend/Modules/Timesheets/Controllers/TimesheetsController.cs`:
+  - Added `POST /api/v1/timesheets/reminders/process` endpoint to trigger reminders on demand with optional `overrideToday` parameter.
+- `apps/backend/Configuration/DependencyInjectionExtensions.cs`:
+  - Registered `ITimesheetNotificationService`, `TimesheetNotificationService`, and `TimesheetReminderJob`.
+- `apps/backend/Program.cs`:
+  - Registered Hangfire recurring job `timesheet-submission-reminders` at cron schedule `30 3 * * *` (09:00 IST daily).
+- `apps/frontend/src/components/notification-detail-modal.tsx`:
+  - Added `"timesheet"` style mapping in `getTypeStyles`.
+  - Added `"request change"` status styles (`bg-purple-50 text-purple-700 border-purple-200`) in `getNotifStatusStyles` and `AlertCircle` icon in `renderNotifStatusIcon`.
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - Added timesheet notification types to `NOTIFICATION_TYPES`: `"Timesheet Submitted"`, `"Timesheet Approved"`, `"Timesheet Rejected"`, `"Timesheet Changes Requested"`, `"Timesheet Submission Reminder"`.
+  - Added `"Request Change"` to `availableStatuses`.
+  - Added `"request change"` status styling and `RotateCcw` icon in `getNotifStatusStyles` and `renderNotifStatusIcon`.
+- `apps/backend/tests/PMS.IntegrationTests/TimesheetNotificationIntegrationTests.cs`:
+  - Created integration test suite covering submission notifications, multiple projects formatting, missing manager handling, manager decisions (Approved, Rejected, Changes Requested), manager notification synchronization, submission window enforcement (Fri-Mon vs Tue-Thu), alternate-day cadence, reminder cancellation on submission, and API on-demand processing.
+
+---
+
+## Database Changes and Migrations
+- **No schema migrations required**:
+  - Reused existing table `action.tbl_notifications` and existing `ActionNotification` entity.
+
+---
+
+## API Changes
+- `POST /api/v1/timesheets/reminders/process?overrideToday={date}`:
+  - New endpoint to process timesheet submission reminders on demand.
+  - Returns `{ data: <count_of_reminders_generated>, meta: null, errors: null }`.
+
+---
+
+## Business Logic
+1. **Timesheet Submission**:
+   - Resolves Reporting Manager from `employee.ReportingManagerId`.
+   - Creates `ActionNotification` with `Title: "Timesheet Submitted"`, `Status: "Pending"`, `Priority: "Low"`, `RaisedByName: <resource_name>`, `RelatedProject: <project_name(s)>`.
+   - Halts any pending reminders for the employee for that timesheet week by setting `Status = "Submitted"` and `Unread = false`.
+2. **Manager Review**:
+   - **Approved**: Resource receives notification `Title: "Timesheet Approved"`, `Status: "Approved"`, `Message: "Your timesheet has been approved by {manager}."`.
+   - **Rejected**: Resource receives notification `Title: "Timesheet Rejected"`, `Status: "Rejected"`, `Message: "Your timesheet has been rejected by {manager}. Please review and resubmit it before the submission deadline."`.
+   - **Changes Requested**: Resource receives notification `Title: "Timesheet Changes Requested"`, `Status: "Request Change"`, `Message: "Your timesheet has been sent back for changes by {manager}. Please review and update it before the submission deadline."`.
+   - Manager's original submission notification is updated to the corresponding status and marked read.
+3. **Alternate-Day Reminders**:
+   - Submission window: Friday, Saturday, Sunday, Monday.
+   - Tue-Thu: 0 reminders sent.
+   - Unsubmitted active employees receive `"Timesheet Submission Reminder"` at least 2 days apart (e.g. Friday -> Sunday).
+
+---
+
+## Verification
+- Ran full integration test suite in `PMS.IntegrationTests`: 8 tests executed and 100% passed in `TimesheetNotificationIntegrationTests`.
+- Verified frontend builds cleanly with zero errors via `npm run build`.
+- Backend server verified healthy at `http://localhost:5194/health`.
+- Frontend verified 200 OK at `http://localhost:3000`.
+
+---
+
+# Changelog - Resource Allocation Approval via Action Centre Notification Tab, Leadership Status Notifications & Multi-Level SLA Breach Escalation
+
+## Summary of Changes
+Implemented the end-to-end Resource Allocation approval flow allowing the selected resource's Reporting Manager to receive the approval request in their Action Centre -> **Notification Tab** and approve, hold, or cancel/reject the request directly from the notification modal. When the status is changed to Approved, Hold, or Cancelled, targeted notifications are automatically dispatched to the **Assigned Project Manager**, **Assigned Engagement Manager** of the project (from WBS / project / client mapping), and the **Team Lead**. Configured multi-level SLA breach escalations such that if the Reporting Manager does not respond after 2 working days EOD (18:00 IST), a 1st Level SLA breach escalation notification is sent to the **Assigned Senior Project Manager**; if still unresolved after the next 1 working day EOD, a 2nd Level SLA breach escalation notification is sent to the **Head of Department (HOD)**.
+
+---
+
+## Affected Files
+- `apps/backend/Modules/Projects/Services/IProjectTeamMemberService.cs`:
+  - Added overload `TakeAllocationActionAsync(Guid? projectId, string identifier, ResourceAllocationActionRequest request, CancellationToken ct)` supporting resolution by GUID, Notification ID, or Task Code (`ALLOC-XXXXXXXX`).
+- `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`:
+  - Implemented multi-format identifier lookup for allocation requests (GUID, ActionNotification ID, Task Code `ALLOC-XXXXXXXX`, or project fallback).
+  - Updated status handling to support `"Approved"`, `"Hold"`, and `"Cancelled"` (or `"Rejected"`).
+  - Updated `NotifyLeadershipOnAllocationStatusChangeAsync` so notifications upon decision are dispatched strictly to **Assigned Project Manager**, **Assigned Engagement Manager** (from project, client, or WBS resolution), and **Team Lead**, plus candidate resource. Removed non-applicable roles from normal decision notifications.
+  - Set notification title format: `"{candidateName} is accepted for the {projectName}"`, `"{candidateName} is on hold for the {projectName}"`, or `"{candidateName} is cancelled for the {projectName}"`.
+  - In-line updated prior pending notifications for the allocation request to the new status and marked `Unread = false`.
+- `apps/backend/Modules/ActionCentre/Controllers/ActionCentreController.cs`:
+  - Changed route parameter on `[HttpPost("allocation-approvals/{identifier}/action")]` from `:guid` to general string identifier, supporting full GUIDs, notification IDs, and task codes like `ALLOC-7F8C43E1`.
+- `apps/backend/Modules/Projects/Controllers/ProjectsController.cs`:
+  - Updated `TakeAllocationAction` route parameter `{requestId}` to accept string identifiers.
+- `apps/backend/Modules/Sla/Jobs/SlaBackgroundJobWorker.cs`:
+  - Updated Level 1 SLA Escalation title to `"1st Level SLA Breach Escalation: Resource Allocation Approval Pending - {candidateName} ({projName})"` targeting **Assigned Senior Project Manager** at 2 working days EOD.
+  - Updated Level 2 SLA Escalation title to `"2nd Level SLA Breach Escalation: Resource Allocation Approval Pending - {candidateName} ({projName})"` targeting **Head of Department (HOD)** at next 1 working day EOD.
+  - Aligned notification `Type` to `"Resource Allocation Approval"`.
+- `apps/backend/tests/PMS.IntegrationTests/ResourceAllocationSlaIntegrationTests.cs`:
+  - Added new integration test `ReportingManager_CanTakeActionViaTaskCodeOrNotificationId_FromNotificationTab_AndNotifiesPmEmTl` verifying the complete Notification tab action path, Task Code identifier resolution, status update to Cancelled, and leadership notification dispatch to PM, EM, and TL.
+  - Updated existing integration test assertions to verify leadership recipients (PM, EM, TL) and SLA escalation titles.
+- `apps/frontend/src/lib/workspace-store.ts`:
+  - Added `projectId?: string` and `issueId?: string` to `DhNotification` interface.
+- `apps/frontend/src/components/notification-detail-modal.tsx`:
+  - Added interactive Action Controls for `Resource Allocation Approval` notifications when status is `Pending`.
+  - Included mandatory remarks/comment textarea, and action buttons for "Approve", "Hold", and "Cancelled".
+  - Connected direct execution via `POST /api/v1/action-centre/allocation-approvals/{identifier}/action`.
+  - Added `onActionComplete` prop to trigger notification list reload on action submission.
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`:
+  - Passed `onActionComplete={fetchNotifications}` to `<NotificationDetailModal />` in `NotificationsTab`.
+
+---
+
+## Database Changes and Migrations
+- **No schema migrations required**:
+  - Leveraged existing relational schema in `tbl_resource_allocation_requests`, `action.tbl_notifications`, `tbl_project_team_members`, `sla.tbl_sla_instances`, and `sla.tbl_sla_events`.
+
+---
+
+## API Changes
+- `POST /api/v1/action-centre/allocation-approvals/{identifier}/action?projectId={projectId}`:
+  - Route updated to accept string `identifier` (GUID, notification ID, or task code `ALLOC-XXXXXXXX`).
+  - Request body: `{ "status": "Approved" | "Hold" | "Cancelled" | "Rejected", "comment": string }`.
+- `POST /api/v1/projects/{projectId}/allocation-requests/{requestId}/action`:
+  - Route updated to accept string `requestId` (GUID or task code).
+
+---
+
+## Business Logic
+1. **Adding Team Member (Team Tab)**:
+   - When project manager adds a team member, system locates the candidate's Reporting Manager (`employee.ReportingManagerId`).
+   - A `ProjectResourceAllocationRequest` is created in status `Pending`.
+   - An `ActionNotification` is created for the Reporting Manager (`Type: "Resource Allocation Approval"`, `Status: "Pending"`, `RelatedTask: "ALLOC-XXXXXXXX"`).
+   - SLA tracking starts with a 2-working-day EOD (18:00 IST) deadline.
+2. **Action from Notification Tab**:
+   - The Reporting Manager opens Action Centre -> Notification Tab and clicks the allocation notification.
+   - The modal presents details along with the Action Panel (Mandatory Remarks + "Approve", "Hold", "Cancelled" buttons).
+   - Upon submitting an action:
+     - Request status updates to `Approved`, `Hold`, or `Cancelled`.
+     - If `Approved`: the employee is added to `tbl_project_team_members`. If `isTeamLead == true`, project's `TeamLeadId` is updated.
+     - The SLA tracking instance is marked `Completed`.
+     - Prior pending notifications are updated to the decision status.
+     - Leadership notifications are dispatched to **Assigned Project Manager**, **Assigned Engagement Manager**, and **Team Lead** with title `"{candidateName} is {accepted/on hold/cancelled} for the {projectName}"`, status matching the decision, and priority `-`.
+3. **Multi-Level SLA Escalation**:
+   - If the Reporting Manager does not respond by 2 working days EOD:
+     - 1st Level SLA breach escalation notification is dispatched to the **Assigned Senior Project Manager**.
+     - A Level 2 escalation event is dynamically scheduled for the next working day EOD (18:00 IST).
+   - If still unresolved after next 1 working day EOD:
+     - 2nd Level SLA breach escalation notification is dispatched to the **Head of Department (HOD)**.
+
+---
+
+## Preserved Functionality
+- Existing central approvals tab action flow (`/api/v1/action-centre/allocation-approvals`).
+- Issue Resolution SLA and Alert requests.
+- Task Start, Pause, and Deadline SLA workflows.
+- Timeline Extension and Additional Customer Requirement approval workflows.
+- Existing RBAC permissions and security roles.
+
+---
+
 # Changelog - Issue Resolution SLA Escalation Alert Request & Multi-Party Communication
 
 ## Summary of Changes
@@ -482,4 +2414,685 @@ Implemented end-to-end SLA tracking and multi-tier Hangfire escalation for WBS E
 - Task Start After Assigning, Task Pause, and Task Deadline SLAs.
 - Global topbar notification bell counter badge.
 - Action Centre table layouts, pagination, and theme alignments.
+
+
+
+---
+
+## [uat_clean12] - 2026-11-14
+
+### Resource Onboarding & Resource Profile Edit Governance Notifications
+
+#### Summary
+Implemented dedicated Action Centre notifications for Resource Onboarding and Resource Profile Updates:
+1. **Resource Onboarding Notification**: When a new resource is onboarded successfully, Low-priority notifications with Status `"Done"`, Priority `"Low"`, and Related Project as `"-"` are dispatched exclusively to:
+   - The resource's assigned Reporting Manager (`ReportingManagerId`).
+   - Active resources whose Sub-Department is `EM (Engagement Manager)` or `PMO (Project Management Office)` AND whose On Floor Role is `Sr. Manager` or `Manager`.
+2. **Resource Profile Edit Notification**: When an existing resource profile is modified, a Low-priority notification with Status `"Done"`, Priority `"Low"`, and Related Project as `"-"` is dispatched exclusively to:
+   - The resource's assigned Reporting Manager (`ReportingManagerId`) into their Action Centre notification tab.
+   - Title dynamically formats the exact modified fields and editor: `{Resource name} change their profile {field(s)} by {Who edit the profile}` (e.g. `John Doe change their profile Phone, First Name by Admin User`).
+   - Raised By: the user who edited the profile (`performerName` / current user).
+   - Related Project: `"-"`.
+   - If no fields were modified, no notification is dispatched.
+
+---
+
+### 1. Affected Files
+- `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+- `apps/backend/Modules/Resources/Services/EmployeeService.cs`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `apps/backend/tests/PMS.IntegrationTests/ResourceNotificationIntegrationTests.cs`
+- `apps/backend/tests/PMS.IntegrationTests/ResourceAllocationSlaIntegrationTests.cs`
+- `CHANGELOG_AI.md`
+
+---
+
+### 2. Database Changes & Migrations
+- No database alterations required. Utilizes existing tables `action.tbl_notifications`, `resource.tbl_employees`, and `resource.tbl_onfloorrole` with dual database synchronization to secondary UAT database.
+
+---
+
+### 3. API & Business Logic Changes
+1. **Contract Update** (`IActionNotificationService.cs`):
+   - Added method `NotifyResourceProfileUpdatedAsync(Guid employeeId, string employeeName, string employeeCode, Guid? reportingManagerId, IReadOnlyList<string> modifiedFields, string? performerName, Guid? performerEmployeeId, CancellationToken ct = default);`.
+
+2. **Onboarding & Profile Update Dispatch** (`ActionNotificationService.cs`):
+   - **`NotifyResourceOnboardedAsync`**:
+     - Sets `Status = "Done"`, `ProjectName = "-"`, `Priority = "Low"`.
+     - Recipient resolution targets the assigned `ReportingManagerId`, plus active employees whose Sub-Department is `EM (Engagement Manager)` or `PMO (Project Management Office)` AND whose On Floor Role is `Sr. Manager` or `Manager`.
+   - **`NotifyResourceProfileUpdatedAsync`**:
+     - Resolves the resource's assigned `ReportingManagerId`; exits early if no reporting manager is assigned.
+     - Formats title string: `"{employeeName} change their profile {fieldsText} by {editorName}"`.
+     - Creates `ActionNotification` with `Type = "Resource Profile Updated"`, `Priority = "Low"`, `Status = "Done"`, `ProjectName = "-"`, `RaisedByName = editorName`, `RaisedByEmployeeId = performerEmployeeId`, `RelatedTask = employeeCode`.
+     - Dual database syncs via `TrySyncNotificationsToOtherDatabase`.
+   - **DTO Mapping (`MapDto`)**:
+     - Enhanced `relatedProj` expression so that if `ProjectCode` is absent and `ProjectName` is null or empty/whitespace, it returns `"-"`.
+
+3. **Trigger on Employee Update** (`EmployeeService.cs`):
+   - In `UpdateEmployeeAsync`, after persisting entity changes and updating linked user account, checks `distinctChanges.Count > 0` and `entity.ReportingManagerId.HasValue`.
+   - Resolves current performer employee identity and dispatches `NotifyResourceProfileUpdatedAsync`.
+
+4. **Frontend Table & Search Hardening** (`action-centre-page.tsx`):
+   - Guarded search filter against null/undefined `relatedProject`, `raisedBy`, `type`, and `title` properties.
+
+---
+
+### 4. Existing Functionality Preserved
+- Employee onboarding CRUD, identity validation, document moving on code changes, and activity logging remain intact.
+- Resource allocation, extension request, additional customer requirement, and WBS service escalation SLA escalation pipelines remain intact.
+- Bucket list task stop, pause, resume, and deadline notifications remain functional.
+
+---
+
+### 5. Verification & Testing
+- `PMS.IntegrationTests` (`ResourceNotificationIntegrationTests.cs`): 3 passed, 0 failed.
+  - Test 1 (`ResourceOnboarding_DispatchesNotification_ToReportingManager_And_EmPmoLeadership`): Verified notification with `Priority = "Low"`, `Status = "Done"`, `RelatedProject = "-"` delivered to assigned Reporting Manager and EM/PMO managers.
+  - Test 2 (`ResourceProfileEdit_DispatchesNotification_OnlyToResourceReportingManager`): Verified editing Phone and First Name dispatches notification exclusively to assigned Reporting Manager with title matching `{Name} change their profile Phone, First Name by {Performer}`, `Status = "Done"`, `Priority = "Low"`, `RelatedProject = "-"`, and verifies zero notifications delivered to other employees.
+  - Test 3 (`ResourceProfileEdit_WhenNoFieldsChange_DoesNotDispatchNotification`): Verified updating an employee with unchanged fields does not trigger any notification.
+- `ResourceAllocationSlaIntegrationTests`: 3 passed, 0 failed.
+- All 104 Unit Tests in `PMS.UnitTests`: Passed (104 passed, 0 failed).
+- Backend API (`http://localhost:5194/health`): Verified `Healthy`.
+- Frontend Dev Server (`http://localhost:3000`): Verified `200 OK`.
+
+
+---
+
+## [uat_clean12] - 2026-11-14
+
+### Customer Onboarding, Customer Profile Edit & Manager Change Governance Notifications
+
+#### Summary
+Implemented dedicated Action Centre notifications for Customer Onboarding, Customer Profile Edits, Sub-Venture Edits, and Manager (Engagement Manager / Sales Manager) Changes:
+1. **Customer & Sub-Venture Onboarding Notifications**:
+   - When a Customer or Sub-Venture is onboarded, notifications are dispatched **exclusively** to:
+     - Resources whose On Floor Role is `Head Of Department` or `Leader` AND whose Sub-Department is `EM (Engagement Manager)` (strictly excluding Team Leader).
+     - The customer's assigned **Engagement Manager**.
+     - The customer's assigned **Sales Manager**.
+   - Notifications are populated with `Priority = "Low"`, `Status = "Pending"`, and `ProjectName = "-"`.
+2. **Customer / Sub-Venture Profile Edit Notifications**:
+   - When any customer profile field or existing sub-venture (Name, Notes) is edited:
+     - Dispatched **exclusively** to EM HODs/Leaders, the assigned Engagement Manager, and the assigned Sales Manager.
+     - Title formats:
+       - Customer edited: `"{Customer Name} is edited"`
+       - Sub-venture edited: `"{Subventure Name} is edited"`
+     - Attributes: `Status = "edited"`, `Priority = "Low"`, `ProjectName = "-"`, `RaisedByName = <performerName / currentUser>`.
+3. **Engagement Manager / Sales Manager Changed Notifications**:
+   - When the Engagement Manager or Sales Manager of a customer is modified:
+     - Dispatched **exclusively** to EM HODs/Leaders, the customer's assigned Engagement Manager, Sales Manager, and the previous manager.
+     - Title format:
+       `"{Previous Manager or manager role} of the Customer ({Customer Name}) change to the {Changed Manager Name}"`
+       (e.g., `"Atharv Reddy of the Customer (Acme Corp) change to the John Doe"` or `"Engagement Manager of the Customer (Acme Corp) change to the John Doe"`).
+     - Attributes: `Status = "edited"`, `Priority = "Low"`, `ProjectName = "-"`, `RaisedByName = <performerName / currentUser>`.
+4. **Action Centre UI Enhancements**:
+   - Added badge styling, icon representation (`Pencil`), and filter dropdown support for `"edited"` status in Action Centre Notifications.
+
+---
+
+### 1. Affected Files
+- `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+- `apps/backend/Modules/Customers/Services/ClientService.cs`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `apps/backend/tests/PMS.IntegrationTests/CustomerNotificationIntegrationTests.cs`
+- `CHANGELOG_AI.md`
+
+---
+
+### 2. Database Changes & Migrations
+- No database alterations required. Utilizes existing tables `action.tbl_notifications`, `resource.tbl_employees`, `resource.tbl_onfloorrole`, `customer.tbl_clients`, and `customer.tbl_subventures` with secondary database synchronization.
+
+---
+
+### 3. API & Business Logic Changes
+1. **Contract Update** (`IActionNotificationService.cs`):
+   - Added `NotifyCustomerEditedAsync` and `NotifySubVentureEditedAsync`.
+   - Updated `NotifyCustomerOnboardedAsync` and `NotifySubVentureOnboardedAsync` signatures to accept optional `engagementManagerId`, `engagementManager`, `salesManagerId`, `salesManager`.
+   - Updated `NotifyCustomerManagerChangedAsync` to accept `previousManagerName` and `previousManagerEmployeeId`.
+
+2. **Recipient Resolution & Dispatch** (`ActionNotificationService.cs`):
+   - Implemented `ResolveCustomerNotificationRecipientsAsync`:
+     - Queries active resources where Sub-Department is `EM (Engagement Manager)` AND On Floor Role is `Head Of Department` or `Leader` (excluding Team Leader).
+     - Resolves and adds customer's assigned Engagement Manager and Sales Manager (by ID or full name).
+     - Resolves and adds additional manager (e.g., previous manager during manager change).
+     - Deduplicates all recipient employees.
+   - **`NotifyCustomerOnboardedAsync` & `NotifySubVentureOnboardedAsync`**:
+     - Uses `ResolveCustomerNotificationRecipientsAsync`.
+     - Sets `ProjectName = "-"`, `Priority = "Low"`, `Status = "Pending"`.
+   - **`NotifyCustomerEditedAsync`**:
+     - Title: `"{clientName} is edited"`.
+     - Sets `Status = "edited"`, `Priority = "Low"`, `ProjectName = "-"`, `RaisedByName = performerName`.
+   - **`NotifySubVentureEditedAsync`**:
+     - Title: `"{subVentureName} is edited"`.
+     - Sets `Status = "edited"`, `Priority = "Low"`, `ProjectName = "-"`, `RaisedByName = performerName`.
+   - **`NotifyCustomerManagerChangedAsync`**:
+     - Formats title: `"{managerLabel} of the Customer ({clientName}) change to the {managerName}"`.
+     - Sets `Status = "edited"`, `Priority = "Low"`, `ProjectName = "-"`, `Type = "{managerRole} Changed"`, `RaisedByName = performerName`.
+
+3. **Customer Service Integrations** (`ClientService.cs`):
+   - In `CreateClientAsync`:
+     - Passes assigned `EngagementManagerId`, `EngagementManager`, `SalesManagerId`, `SalesManager` to `NotifyCustomerOnboardedAsync` and `NotifySubVentureOnboardedAsync`.
+   - In `UpdateClientAsync`:
+     - Tracks `clientProfileChanged` across all customer-level fields (Name, Industry, ContactEmail, ClientType, Status, Country, City, Notes, etc.).
+     - Tracks `editedSubVentures` for any modified sub-venture names or notes.
+     - Preserves `previousEm`, `previousEmId`, `previousSm`, `previousSmId`.
+     - On manager change (`emChanged` / `smChanged`): invokes `NotifyCustomerManagerChangedAsync` with previous and new manager details.
+     - On profile change (`clientProfileChanged`): invokes `NotifyCustomerEditedAsync`.
+     - On sub-venture edit: invokes `NotifySubVentureEditedAsync` for each modified sub-venture.
+     - On new sub-venture addition: invokes `NotifySubVentureOnboardedAsync`.
+
+4. **Action Centre UI** (`action-centre-page.tsx`):
+   - Added `"edited"` style: `bg-blue-50 text-blue-700 border-blue-200`.
+   - Added `"edited"` icon: `Pencil` icon.
+   - Added `"edited"` and `"Done"` to `availableStatuses` filter dropdown.
+
+---
+
+### 4. Existing Functionality Preserved
+- Customer creation, update, soft-delete, client code allocation, and sub-venture code generation remain fully intact.
+- Resource onboarding and profile edit notifications remain fully intact.
+- Multi-level SLA escalation tracking across WBS services, extension requests, additional requirements, and resource allocations remain fully functional.
+- Bucket list task workflows and topbar counters remain unaffected.
+
+---
+
+### 5. Verification & Testing
+- Automated Integration Tests in `CustomerNotificationIntegrationTests.cs`: 4 passed, 0 failed.
+  - Test 1 (`CustomerOnboarding_DispatchesNotification_ToEmLeadership_And_AssignedManagers`): Customer onboarding dispatches notification to EM HOD/Leader and assigned managers with `Priority = "Low"`, `RelatedProject = "-"`.
+  - Test 2 (`CustomerProfileEdit_DispatchesNotification_WithEditedStatusAndTitle`): Customer profile update dispatches notification with title `"{Customer Name} is edited"`, `Status = "edited"`, `Priority = "Low"`, `ProjectName = "-"`.
+  - Test 3 (`SubVentureEdit_DispatchesNotification_WithSubVentureEditedTitle`): Sub-venture modification dispatches notification with title `"{Subventure Name} is edited"`, `Status = "edited"`, `Priority = "Low"`, `ProjectName = "-"`.
+  - Test 4 (`CustomerManagerChanged_DispatchesNotification_WithExactTitleFormat`): Engagement Manager update dispatches notification with title `"{prevEm} of the Customer ({clientName}) change to the {newEm}"`, `Status = "edited"`, `Priority = "Low"`, `ProjectName = "-"`.
+- Unit & Integration Test Suite regression: `ResourceNotificationIntegrationTests` (3 passed, 0 failed), Customer CRUD tests passing.
+
+
+---
+
+## [uat_clean12] - 2026-11-14
+
+### WBS Creation & Standardized Initial/Edit Lifecycle Governance Notifications
+
+#### Summary
+Standardized the status lifecycle and recipient routing for WBS creation, Resource onboarding/editing, and Customer onboarding/editing:
+1. **WBS Created Governance Notification**:
+   - Dispatched **exclusively** to resources whose Sub-Department is `EM (Engagement Manager)` or `PMO (Project Management Office)` **AND** whose On Floor Role is `Head Of Department` (strictly excluding Team Leaders and non-HODs).
+   - **Title**: `"WBS or the Project is Created with the {Project name}"`.
+   - **Status**: `"Created"`.
+   - **Priority**: `"Low"`.
+   - **Related Project**: `"-"` (enforced with `ProjectName = "-"`, `ProjectCode = null`, and `MapDto` mapping).
+   - **Raised By**: The user who created the WBS / project (`createdByName ?? currentUser.Name ?? "System"`).
+2. **Standardized Initial Creation Notifications (Resource & Customer)**:
+   - **Resource Onboarded**: Updated status from `"Done"` to `"Created"`. Priority remains `"Low"`, Related Project as `"-"`, Raised By as the user who added the resource (`performerName`).
+   - **Customer Onboarded & Sub-Venture Onboarded**: Updated status from `"Pending"` to `"Created"`. Priority remains `"Low"`, Related Project as `"-"`, Raised By as the user who created the customer (`createdByName`).
+3. **Standardized Edit Notifications (Resource & Customer)**:
+   - **Resource Profile Updated**: Updated status from `"Done"` to `"Edited"`. Priority remains `"Low"`, Related Project as `"-"`, Raised By as the user who edited the profile.
+   - **Customer Profile Edited, Sub-Venture Edited, and Manager Changed**: Standardized status to `"Edited"`. Priority remains `"Low"`, Related Project as `"-"`, Raised By as the editor.
+4. **Action Centre UI Enhancements**:
+   - Added badge styling for `"Created"` (`bg-sky-50 text-sky-700 border-sky-200`) and `"Edited"` (`bg-blue-50 text-blue-700 border-blue-200`).
+   - Added `Plus` icon for `"Created"` and `Pencil` icon for `"Edited"` notifications.
+   - Added `"Created"` and `"Edited"` to the available status dropdown filters.
+
+---
+
+### 1. Affected Files
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `apps/backend/tests/PMS.IntegrationTests/CustomerNotificationIntegrationTests.cs`
+- `apps/backend/tests/PMS.IntegrationTests/ResourceNotificationIntegrationTests.cs`
+- `CHANGELOG_AI.md`
+
+---
+
+### 2. Database Changes & Migrations
+- No schema changes required. Dual synchronization to secondary UAT database (`action.tbl_notifications`) applies automatically on creation and updates.
+
+---
+
+### 3. API & Business Logic Changes
+1. **`ActionNotificationService.cs`**:
+   - **`NotifyWbsCreatedAsync`**:
+     - Routes strictly to active resources whose Sub-Department is EM or PMO and whose On Floor Role is Head Of Department.
+     - Title set to `$"WBS or the Project is Created with the {projectName}"`.
+     - Sets `Status = "Created"`, `Priority = "Low"`, `ProjectName = "-"`, `ProjectCode = null`, `RaisedByName = createdByName ?? currentUser.Name ?? "System"`.
+   - **`NotifyCustomerOnboardedAsync` & `NotifySubVentureOnboardedAsync`**:
+     - Sets `Status = "Created"`, `Priority = "Low"`, `ProjectName = "-"`.
+   - **`NotifyResourceOnboardedAsync`**:
+     - Sets `Status = "Created"`, `Priority = "Low"`, `ProjectName = "-"`.
+   - **`NotifyResourceProfileUpdatedAsync`**:
+     - Sets `Status = "Edited"`, `Priority = "Low"`, `ProjectName = "-"`.
+   - **`NotifyCustomerEditedAsync`, `NotifySubVentureEditedAsync`, `NotifyCustomerManagerChangedAsync`**:
+     - Sets `Status = "Edited"`, `Priority = "Low"`, `ProjectName = "-"`.
+   - **`MapDto`**:
+     - Added explicit guard: when `n.ProjectName == "-"`, `RelatedProject` is mapped directly as `"-"` regardless of project code.
+
+2. **`action-centre-page.tsx`**:
+   - Mapped `"created"` status to sky blue badge (`bg-sky-50 text-sky-700 border-sky-200`) with `<Plus />` icon.
+   - Mapped `"edited"` status to blue badge (`bg-blue-50 text-blue-700 border-blue-200`) with `<Pencil />` icon.
+   - Added `"Created"` and `"Edited"` to `availableStatuses` filter dropdown.
+
+---
+
+### 4. Existing Functionality Preserved
+- All SLA escalations (WBS SLA breach, Extension Request SLA breach, Additional Customer Requirement SLA breach, Resource Allocation SLA breach) remain untouched.
+- Bucket list task tracking and lifecycle notifications remain fully functional.
+- Project creation and WBS creation transactional flows remain intact.
+
+---
+
+### 5. Verification & Testing
+- Automated Integration Tests in `CustomerNotificationIntegrationTests.cs`: 5 passed, 0 failed.
+  - Test 1: `CustomerOnboarding_DispatchesNotification_ToEmLeadership_And_AssignedManagers` (Status: `"Created"`, Priority: `"Low"`, RelatedProject: `"-"`) -> Passed.
+  - Test 2: `CustomerProfileEdit_DispatchesNotification_WithEditedStatusAndTitle` (Status: `"Edited"`, Priority: `"Low"`, RelatedProject: `"-"`) -> Passed.
+  - Test 3: `SubVentureEdit_DispatchesNotification_WithSubVentureEditedTitle` (Status: `"Edited"`, Priority: `"Low"`, RelatedProject: `"-"`) -> Passed.
+  - Test 4: `CustomerManagerChanged_DispatchesNotification_WithExactTitleFormat` (Status: `"Edited"`, Priority: `"Low"`, RelatedProject: `"-"`) -> Passed.
+  - Test 5: `WbsCreated_DispatchesNotification_ToEmPmoHod_WithCreatedStatusAndDashProjectName` (Title: `"WBS or the Project is Created with the {Name}"`, Status: `"Created"`, Priority: `"Low"`, RelatedProject: `"-"`, Recipients: EM/PMO HOD) -> Passed.
+- Automated Integration Tests in `ResourceNotificationIntegrationTests.cs`: 3 passed, 0 failed.
+  - Resource onboarding verified with Status: `"Created"`.
+  - Resource profile edit verified with Status: `"Edited"`.
+- All 104 Unit Tests in `PMS.UnitTests`: 104 passed, 0 failed.
+- Backend API (`http://localhost:5194/health`): 200 Healthy.
+- Frontend Server (`http://localhost:3000`): 200 OK.
+
+
+---
+
+## [uat_clean12] - 2026-11-14
+
+### Repository Document Upload Governance Notifications
+
+#### Summary
+Implemented Action Centre notifications dispatched upon successful repository document uploads:
+1. **Target Recipients**:
+   - Dispatched **exclusively** to all active resources belonging to the departments selected under "Visible to departments" (`uniqueDeptIds` / `validDeptIds`).
+   - Resolves employee membership via direct `DepartmentId` or parent department through `SubDepartmentRef.DepartmentId`.
+   - Deduplicates recipient employees.
+2. **Notification Attributes**:
+   - **Title**: `"Document is Uploaded"`.
+   - **Raised By**: The user who uploaded the document (`uploader` / `currentUser.Name`).
+   - **Related Project**: `"-"` (`ProjectName = "-"`, `ProjectCode = null`).
+   - **Status**: `"Upload"`.
+   - **Priority**: `"-"`.
+   - **Related Task**: The uploaded file name (`fileName`).
+3. **Action Centre UI Enhancements**:
+   - Mapped `"upload"` / `"uploaded"` status to teal badge (`bg-teal-50 text-teal-700 border-teal-200`) with `<Upload />` icon.
+   - Added `"Upload"` to the `availableStatuses` filter dropdown.
+   - Verified that `Priority = "-"` renders cleanly as a muted hyphen.
+
+---
+
+### 1. Affected Files
+- `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`
+- `apps/backend/Modules/Repository/Services/RepositoryService.cs`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `apps/backend/tests/PMS.IntegrationTests/RepositoryNotificationIntegrationTests.cs`
+- `CHANGELOG_AI.md`
+
+---
+
+### 2. Database Changes & Migrations
+- No database alterations required. Dual synchronization to secondary UAT database (`action.tbl_notifications`) applies automatically upon notification creation.
+
+---
+
+### 3. API & Business Logic Changes
+1. **Contract Update** (`IActionNotificationService.cs`):
+   - Added `NotifyRepositoryDocumentUploadedAsync(Guid documentId, string fileName, string category, IReadOnlyList<Guid> departmentIds, string? uploaderName, Guid? uploaderEmployeeId = null, CancellationToken ct = default);`.
+2. **Notification Dispatch** (`ActionNotificationService.cs`):
+   - Implemented `NotifyRepositoryDocumentUploadedAsync`:
+     - Queries active resources where `DepartmentId` or `SubDepartmentRef.DepartmentId` matches any of `validDeptIds`.
+     - Creates `ActionNotification` with `Title = "Document is Uploaded"`, `Type = "Document Uploaded"`, `Status = "Upload"`, `Priority = "-"`, `ProjectName = "-"`, `ProjectCode = null`, `RaisedByName = uploaderName`, `RelatedTask = fileName`.
+     - Persists to primary database and executes dual-write sync via `TrySyncNotificationsToOtherDatabase`.
+3. **Trigger on Document Upload** (`RepositoryService.cs`):
+   - Injected `IActionNotificationService notificationService`.
+   - In `UploadDocumentAsync`, immediately after persisting document and activity log, dispatches `NotifyRepositoryDocumentUploadedAsync`.
+4. **Action Centre UI** (`action-centre-page.tsx`):
+   - Imported `Upload` icon from `lucide-react`.
+   - Added `"upload"` status badge styling and icon helper.
+   - Added `"Upload"` to `defaultStatuses` in `availableStatuses` hook.
+
+---
+
+### 4. Existing Functionality Preserved
+- File storage, physical categorization, MIME validation, and department visibility checks remain intact.
+- Repository activity logging for upload, download, and deletion remain intact.
+- All existing governance notifications (Customer, Resource, WBS, SLA breach) remain intact.
+
+---
+
+### 5. Verification & Testing
+- Automated Integration Tests in `RepositoryNotificationIntegrationTests.cs`: 1 passed, 0 failed.
+  - Verified document upload dispatches notification with `Title = "Document is Uploaded"`, `Status = "Upload"`, `Priority = "-"`, `RelatedProject = "-"`, `RaisedBy = uploader` delivered to all active resources in the selected department.
+- Automated Integration Tests in `CustomerNotificationIntegrationTests.cs`: 5 passed, 0 failed.
+- Automated Integration Tests in `ResourceNotificationIntegrationTests.cs`: 3 passed, 0 failed.
+- Backend API (`http://localhost:5194/health`): 200 Healthy.
+- Frontend Dev Server (`http://localhost:3000`): 200 OK.
+
+---
+
+## [uat_clean12] - 2026-11-14
+
+### Resource Allocation Approval Request Delivery to Reporting Manager Action Centre Approvals Tab
+
+#### Summary
+Fixed the issue where adding a team member from the Team tab generated the notification to the Resource's Reporting Manager, but the Resource Allocation Approval request did not appear in the Reporting Manager's Action Centre Approvals tab:
+1. **Backend RBAC Restriction Removal**:
+   - Removed `[RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.View)]` from `GET /api/v1/action-centre/allocation-approvals` and `[RequireRbac(RbacCatalogCodes.ActionApprovals, RbacAccessType.Manage)]` from `POST /api/v1/action-centre/allocation-approvals/{id:guid}/action`.
+   - Removed `[RequireRbac("project-team", RbacAccessType.Manage)]` from `POST /api/v1/projects/{projectId}/allocation-requests/{requestId}/action`.
+   - Previously, these endpoints returned `403 Forbidden` for reporting managers (such as CEO, CTO, COO, HR, IT Admin, Sales Managers, and Team Leaders) whose RBAC role lacked the global admin `approvals` catalog permission. The frontend `fetchPendingAllocationApprovals()` caught this error and silently returned an empty array, hiding all allocation approvals from the reporting manager.
+2. **Current Employee Resolution Enhancement**:
+   - Updated `FindCurrentEmployeeAsync` in `ProjectTeamMemberService.cs` to check `e.Id == userId` (matching `ActionNotificationService.cs` behavior) in addition to `e.UserId == userId`.
+   - Added resolution fallbacks for `e.EmployeeCode` and `tbl_users` email mappings, ensuring employees switched via persona or authenticating with development bypass headers are reliably matched to their employee profile.
+3. **In-Memory Query Safe Matching in `ListPendingAllocationsAsync`**:
+   - Replaced the brittle EF Core LINQ-to-SQL expression `myNotifTaskCodes.Contains("ALLOC-" + r.Id.ToString().Substring(0, 8).ToUpper())` with in-memory ID and task code matching (`r.ApproverEmployeeId == currentEmpId` || `r.ApproverEmployeeId == currentUser.UserId` || `matchingPrefixes.Any(p => r.Id.ToString().ToUpper().StartsWith(p))`).
+   - Ensures non-admin reporting managers consistently retrieve all allocation approval requests assigned to them or for which they received notifications.
+4. **Action Centre Approvals Tab UI Enhancements**:
+   - Updated `visibleTabs` in `action-centre-page.tsx` so the "Approvals" tab is accessible to users with `canView("approvals")`, `canView("action-centre")`, `canView("action-center")`, or `hasPermission("action-center.view")`.
+   - Updated `canManageApprovals = true` in `ApprovalsTab` so that the Actions column and the "View" button are displayed to all reporting managers and approvers reviewing their approvals.
+   - Enhanced the Approvals project filter dropdown to include projects from loaded approvals even if the reporting manager is not a member of that project's team.
+
+---
+
+### 1. Affected Files
+- `apps/backend/Modules/ActionCentre/Controllers/ActionCentreController.cs`
+- `apps/backend/Modules/Projects/Controllers/ProjectsController.cs`
+- `apps/backend/Modules/Projects/Services/ProjectTeamMemberService.cs`
+- `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`
+- `apps/backend/tests/PMS.IntegrationTests/ResourceAllocationSlaIntegrationTests.cs`
+- `CHANGELOG_AI.md`
+
+---
+
+### 2. Database Changes & Migrations
+- None required.
+
+---
+
+### 3. API & Business Logic Changes
+1. **Action Centre Controller** (`ActionCentreController.cs`):
+   - Removed `[RequireRbac(RbacCatalogCodes.ActionApprovals, ...)]` on `allocation-approvals` endpoints.
+   - Added fallback catalog codes `"action-center"`, `"action-centre"` to `[HttpGet("approvals")]`.
+2. **Projects Controller** (`ProjectsController.cs`):
+   - Removed `[RequireRbac("project-team", ...)]` on `allocation-requests/{requestId}/action` to allow the candidate resource's assigned reporting manager to action approvals without requiring project-team membership.
+3. **Team Member Service** (`ProjectTeamMemberService.cs`):
+   - Enhanced `FindCurrentEmployeeAsync` to resolve employees by `e.Id == userId`, `e.UserId == userId`, work/personal email, employee code, and `tbl_users` email.
+   - Overhauled `ListPendingAllocationsAsync` to match requests in-memory via `r.ApproverEmployeeId` and notification task code prefix matching (`ALLOC-XXXXXXXX`).
+4. **Action Centre Frontend** (`action-centre-page.tsx`):
+   - Rendered "Approvals" tab when user has Action Centre view permissions.
+   - Set `canManageApprovals = true` to allow approvers to view and action pending approval requests.
+   - Populated project filter dropdown with all projects present in loaded approvals.
+
+---
+
+### 4. Existing Functionality Preserved
+- Resource Allocation approval workflow, SLA tracking, and SLA completion remain intact.
+- Multi-role leadership notifications on allocation status change (`Approved`, `Rejected`, `Hold`) remain intact.
+- Adding approved members to project team and shadow team remains intact.
+- Timeline extension, customer requirement, and feedback approval flows remain intact.
+
+---
+
+### 5. Verification & Testing
+- Automated Integration Tests in `ResourceAllocationSlaIntegrationTests.cs`: 4 passed, 0 failed.
+  - `ResourceAllocation_Creation_StartsSlaTracking_AndApproval_AddsMemberToProject_AndNotifiesExpectedRoles` (PASSED)
+  - `ResourceAllocation_Rejection_DoesNotAddMember_NotifiesExpectedRoles` (PASSED)
+  - `ResourceAllocation_Hold_DoesNotAddMember_NotifiesCandidate` (PASSED)
+  - `ReportingManager_CanFetchPendingAllocationApprovals_ViaActionCentre_AndTakeApprovalAction` (PASSED)
+- Verified `GET /api/v1/action-centre/allocation-approvals` returns 200 OK across roles (CEO, HOD, Manager).
+- Backend API (`http://localhost:5194/health`): 200 Healthy.
+- Frontend Dev Server (`http://localhost:3000`): 200 OK.
+
+---
+
+# Changelog - Customer and Sub-Venture Edit Notifications & Title Formatting
+
+## Summary of Changes
+Updated Action Centre notification dispatching and formatting for Customer and Customer Sub-Venture profile edits:
+1. **Target Recipients**:
+   - Notifications are dispatched directly to the customer's assigned **Engagement Manager** (`EngagementManagerId` / `EngagementManager`).
+   - Notifications are dispatched to all active employees whose On Floor Role is **`Head Of Department`** (`resource.tbl_onfloorrole` mapped via `DesignationId` or role definition `Head Of Department` / `-HOD`, strictly excluding Team Leaders).
+2. **Notification Title Formatting**:
+   - Single field edited: `{Customer name or Subventure name} {Field name of the edited field} is edited` (e.g., `Acme Corp Industry is edited`, `Acme Subventure Name is edited`).
+   - Multiple fields edited (>1): `{Customer name or Subventure name} {Fields name of the edited field} are edited` (e.g., `Acme Corp Industry, Notes are edited`, `Acme Subventure Name, Notes are edited`).
+   - No fields specified: `{Customer name or Subventure name} is edited`.
+   - History details text aligned to match singular/plural verb (`is edited by {editorName}.` / `are edited by {editorName}.`).
+
+---
+
+## Affected Files
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+  - Added `ResolveCustomerEditNotificationRecipientsAsync` to strictly resolve the customer's assigned Engagement Manager and all active HODs with On Floor Role `Head Of Department`.
+  - Updated `NotifyCustomerEditedAsync` and `NotifySubVentureEditedAsync` to dynamically format titles using singular (`is edited`) vs plural (`are edited`) based on distinct changed field counts.
+- `apps/backend/tests/PMS.IntegrationTests/CustomerNotificationIntegrationTests.cs`:
+  - Updated `CustomerProfileEdit_DispatchesNotification_WithEditedStatusAndTitle` to expect plural `are edited` on multi-field updates and verified notification receipt by both Engagement Manager and HODs.
+  - Updated `SubVentureEdit_DispatchesNotification_WithSubVentureEditedTitle` to expect plural `are edited` on multi-field updates and verified notification receipt by both Engagement Manager and HODs.
+  - Updated `CustomerSingleFieldEdit_DispatchesNotification_WithSingleFieldInTitle` to verify singular `is edited` on single-field updates and verified notification receipt by both Engagement Manager and HODs.
+  - Added `SubVentureSingleFieldEdit_DispatchesNotification_WithSingleFieldInTitle` integration test verifying singular `is edited` on single-field updates for sub-ventures and recipient delivery.
+
+---
+
+## Database Changes and Migrations
+- **None**: Reuses existing schema in `action.tbl_notifications`, `customer.tbl_clients`, `resource.tbl_employees`, and `resource.tbl_onfloorrole`.
+
+---
+
+## API Changes
+- **None**: Internal notification resolution and dispatching logic updated; REST API endpoints for customer and sub-venture updates (`PUT /api/v1/clients/{id}`) remain backward compatible.
+
+---
+
+## Existing Functionality Preserved
+- Customer and sub-venture onboarding notifications (`NotifyCustomerOnboardedAsync`, `NotifySubVentureOnboardedAsync`) remain intact.
+- Customer manager reassignment notifications (`NotifyCustomerManagerChangedAsync`) remain intact.
+- Strict exclusion of Team Leaders from HOD role resolution remains enforced.
+- Cross-database notification synchronization (`TrySyncNotificationsToOtherDatabase`) remains intact.
+
+---
+
+# Changelog - WBS Service Wise Prerequisite Tracking Notifications & Multi-Level SLA Breach Escalations
+
+## Summary of Changes
+Implemented automated Action Centre notifications and multi-level Hangfire SLA breach escalations for WBS Service wise Prerequisite Tracking:
+1. **Service Started Notification**:
+   - Triggered when a service is started from "Service wise Prerequisite Tracking" (in UI: "Ready to Start" -> "✓ Started"; API: `PATCH /api/v1/projects/{projectId}/services/{serviceId}/prerequisite` with `{ isReady: true }`).
+   - Dispatches Action Centre notification to:
+     - Assigned **Project Manager** (`ProjectManagerId` / `ProjectManager` / `ProjectTeamMembers`).
+     - Assigned **Engagement Manager** (`EngagementManagerId` / `EngagementManager` / `ProjectTeamMembers`).
+     - Assigned **Team Lead** (`TeamLeadId` / `TeamLead` / `ProjectTeamMembers` with `IsTeamLead` or Team Lead role).
+   - Cancels and terminates any pending SLA 1st level and 2nd level escalation jobs for this service.
+2. **1st Level Breach Escalation (Service Not Started Within 2 Working Days at EOD)**:
+   - When a service is added or pending and is not started within 2 working days (1080 minutes working time in business hours, ending at 18:00 IST), a 1st level breach escalation job executes in Hangfire at EOD.
+   - Verifies directly from the database that `!service.IsReady`.
+   - Dispatches 1st level breach escalation Action Centre notification directly to the **Assigned Project Manager** at EOD (`Title: 1st Level Breach Escalation: Service Not Started | {ServiceName} | {ProjectName}`, Priority: `High`).
+3. **2nd Level Breach Escalation (Service Still Not Started After 1st Escalation at EOD)**:
+   - When a service remains unstarted after the 1st level escalation, a 2nd level breach escalation job executes in Hangfire at the next EOD (18:00 IST).
+   - Verifies directly from the database that `!service.IsReady`.
+   - Dispatches 2nd level breach escalation Action Centre notification directly to the **Head of Department (HOD)** at EOD (`Title: 2nd Level Breach Escalation: Service Not Started | {ServiceName} | {ProjectName}`, Priority: `Urgent`).
+
+---
+
+## Affected Files
+- `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`:
+  - Added method declarations: `NotifyServiceStartedAsync`, `StartServicePrerequisiteSlaWorkflowAsync`, `CancelServicePrerequisiteSlaWorkflowAsync`, `ExecuteServicePrerequisiteL1EscalationJobAsync`, and `ExecuteServicePrerequisiteL2EscalationJobAsync`.
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+  - Implemented `NotifyServiceStartedAsync` resolving Project Manager, Engagement Manager, and Team Lead.
+  - Implemented `StartServicePrerequisiteSlaWorkflowAsync` scheduling 2 working days L1 escalation at EOD (18:00 IST) and subsequent L2 escalation for HODs.
+  - Implemented `CancelServicePrerequisiteSlaWorkflowAsync` to terminate Hangfire jobs when service is marked ready/started.
+  - Implemented `ExecuteServicePrerequisiteL1EscalationJobAsync` and `ExecuteServicePrerequisiteL2EscalationJobAsync` with database validation against `IsReady` and cross-database sync.
+- `apps/backend/Modules/Projects/Services/ProjectAppService.cs`:
+  - In `UpdateServicePrerequisiteReadyAsync`: triggers `NotifyServiceStartedAsync` and `CancelServicePrerequisiteSlaWorkflowAsync` when `isReady` becomes `true`.
+  - In `AddProjectServiceAsync`: triggers `StartServicePrerequisiteSlaWorkflowAsync` when adding a service that is not yet ready.
+  - In `CreateProjectAsync`: schedules SLA workflow for unstarted services in new projects.
+- `apps/backend/tests/PMS.IntegrationTests/ServicePrerequisiteNotificationTests.cs`:
+  - Added integration test suite covering 6 scenarios:
+    1. Service started dispatches notification to Project Manager, Engagement Manager, and Team Lead.
+    2. Starting service cancels pending Hangfire escalation jobs.
+    3. L1 breach escalation job executes and dispatches notification to Project Manager when service is unstarted.
+    4. L1 breach escalation job skips notification if service was started prior to job run.
+    5. L2 breach escalation job executes and dispatches notification to HOD when service remains unstarted.
+    6. L2 breach escalation job skips notification if service was started prior to job run.
+
+---
+
+## Database Changes and Migrations
+- **None**: Uses existing schemas in `action.tbl_action_notifications`, `project.tbl_projects`, `project.tbl_project_services`, `resource.tbl_employees`, and `resource.tbl_onfloorrole`.
+
+---
+
+## API Changes
+- **None**: Existing prerequisite update endpoint `PATCH /api/v1/projects/{projectId}/services/{serviceId}/prerequisite` remains backward compatible with automatic notification dispatching and workflow cancellation.
+
+---
+
+## Existing Functionality Preserved
+- Service prerequisite checklist validation and status updates remain intact.
+- Action Centre notification schema and cross-database synchronization remain intact.
+
+---
+
+# Changelog - WBS Edit Service Notifications to Assigned Engagement Manager
+
+## Summary of Changes
+Implemented automated Action Centre notification dispatching to the assigned **Engagement Manager** when services are edited from the WBS tab (using the "Edit Services" modal / API service management):
+1. **Target Recipient**:
+   - Dispatches directly to the assigned **Engagement Manager** of the project (`EngagementManagerRef`, `EngagementManagerId`, `Client.EngagementManagerId`, or `ProjectTeamMembers` holding the Engagement Manager/EM role).
+2. **Notification Title & Action Classification**:
+   - **Service Modified**: `The {Project_name} service is modify` (Type: `Service Modified`).
+   - **Service Deleted**: `The {Project_name} service is deleted` (Type: `Service Deleted`).
+   - **Service Added**: `The {Project_name} service is added` (Type: `Service Added`).
+3. **Meaningful Content & History Logging**:
+   - `HistoryJson` and notification details capture the exact service name, modification details (target quantity, resource distribution, unit price, or department), timestamp, and performer name.
+   - Cross-database synchronization ensures immediate visibility in both local databases and the Action Centre notifications tab.
+
+---
+
+## Affected Files
+- `apps/backend/Modules/ActionCentre/Services/IActionNotificationService.cs`:
+  - Added method declarations: `NotifyServiceEditedAsync`, `NotifyServiceModifiedAsync`, `NotifyServiceDeletedAsync`, and `NotifyServiceAddedAsync`.
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+  - Implemented `NotifyServiceEditedAsync` (and convenience wrappers) to resolve the assigned Engagement Manager, construct the requested title format (`The {Project_name} service is modify or deleted or added`), format meaningful history details, and sync to the Action Centre.
+  - Implemented `ResolveProjectEngagementManagersAsync` to reliably identify assigned Engagement Managers across project properties, client references, team members, and employee email/name fallbacks.
+- `apps/backend/Modules/Projects/Services/ProjectAppService.cs`:
+  - In `UpdateProjectServiceAsync`: triggers `NotifyServiceModifiedAsync` when an existing service is modified (quantity, resource distribution, pending modification, etc.).
+  - In `ApplyServiceModificationAsync`: triggers `NotifyServiceModifiedAsync` when a pending service modification is approved and applied.
+  - In `DeleteProjectServiceAsync`: triggers `NotifyServiceDeletedAsync` with the deleted service name and project context.
+  - In `AddProjectServiceAsync`: triggers `NotifyServiceAddedAsync` with service name, department, and quantity details.
+- `apps/backend/tests/PMS.IntegrationTests/ServicePrerequisiteNotificationTests.cs`:
+  - Added 3 new integration tests:
+    1. `Scenario7_ServiceModified_DispatchesNotificationTo_EngagementManager_WithTitle`: Verifies notification sent to assigned EM with title `The {project.Name} service is modify`.
+    2. `Scenario8_ServiceDeleted_DispatchesNotificationTo_EngagementManager_WithTitle`: Verifies notification sent to assigned EM with title `The {project.Name} service is deleted`.
+    3. `Scenario9_ServiceAdded_DispatchesNotificationTo_EngagementManager_WithTitle`: Verifies notification sent to assigned EM with title `The {project.Name} service is added`.
+
+---
+
+## Database Changes and Migrations
+- **None**: Uses existing schemas in `action.tbl_action_notifications`, `project.tbl_projects`, `project.tbl_project_services`, and `resource.tbl_employees`.
+
+---
+
+## API Changes
+- **None**: Endpoints `PUT /api/v1/projects/{projectId}/services/{serviceId}`, `DELETE /api/v1/projects/{projectId}/services/{serviceId}`, and `POST /api/v1/projects/{projectId}/services` remain backward compatible with automatic notification dispatching.
+
+---
+
+## Existing Functionality Preserved
+- Service wise Prerequisite Tracking ready status and multi-level SLA escalation notifications remain intact.
+- Project leadership and allocation reminder notifications remain intact.
+- Soft-deletion and task rollup behaviors in `ProjectAppService` remain intact.
+- Cross-database notification synchronization (`TrySyncNotificationsToOtherDatabase`) remains intact.
+
+---
+
+# Changelog - Customer Sub-Venture Edit `CK_client_contacts_exactly_one_owner` Check Constraint Fix
+
+## Summary of Changes
+Fixed PostgreSQL check constraint violation `23514: new row for relation "tbl_client_contacts" violates check constraint "CK_client_contacts_exactly_one_owner"` occurring when editing a customer sub-venture with existing contacts:
+1. **Root Cause Analysis**:
+   - In `ClientService.PersistContactsAsync`, when updating contacts for a customer or its sub-ventures, existing contact rows were soft-deleted (`DeletedAtUtc = now`).
+   - EF Core ChangeTracker kept the soft-deleted contact rows tracked in memory. When `sv.Contacts` or `client.Contacts` navigation collections were subsequently repopulated with the updated contact set (`sv.Contacts = toAdd...`), EF Core relationship fixup determined that the old contacts had been unlinked from their parent sub-venture / client collection.
+   - Because `SubVentureId` and `ClientId` on `ClientContactEntity` are nullable foreign keys, EF Core automatically set the foreign key property to `null` and flagged the row as `EntityState.Modified`.
+   - When downstream services (such as `notificationService.NotifySubVentureEditedAsync` or `NotifyCustomerEditedAsync`) subsequently invoked `await db.SaveChangesAsync(ct)` within the same scoped request, EF Core attempted to update the soft-deleted contact with both `ClientId = NULL` and `SubVentureId = NULL`, violating PostgreSQL database constraint `CK_client_contacts_exactly_one_owner`.
+2. **Resolution**:
+   - In `ClientService.PersistContactsAsync`:
+     - Updated soft deletion of existing contacts to direct property setting (`c.DeletedAtUtc = now; c.UpdatedAtUtc = now; c.UpdatedBy = userId;`) and immediately detached them (`db.Entry(c).State = EntityState.Detached;`) following `SaveChangesAsync`.
+     - This prevents EF Core relationship fixup from tracking them as unlinked orphans or nullifying their foreign keys during subsequent collection reassignments.
+     - Enhanced sub-venture lookup during contact mapping to match by both `input.Id` and case-insensitive name.
+   - In `AppDbContext.cs`:
+     - Guarded `case EntityState.Deleted:` soft-delete conversion to restore any foreign keys nullified by EF Core's relationship fixup (`prop.CurrentValue = prop.OriginalValue; prop.IsModified = false;`), ensuring any soft-deleted entity preserves its original relational integrity and check constraint compliance.
+3. **Verification**:
+   - Added integration test `Update_EditingSubVentureWithExistingContacts_DoesNotThrowCheckConstraintError` in `CustomerModuleTests.cs` verifying full lifecycle: customer created with sub-venture and contacts, sub-venture edited with updated details and contacts, verifying HTTP 200 OK without check constraint violations.
+   - Verified that all existing customer tests and notification integration tests continue to pass.
+
+---
+
+## Affected Files
+- `apps/backend/Infrastructure/Persistence/AppDbContext.cs`:
+  - Added foreign key restoration for soft-deleted entities in `SaveChangesAsync`.
+- `apps/backend/Modules/Customers/Services/ClientService.cs`:
+  - In `PersistContactsAsync`: direct soft deletion and detaching of existing contacts prior to new collection assignment.
+- `apps/backend/tests/PMS.IntegrationTests/CustomerModuleTests.cs`:
+  - Added integration test `Update_EditingSubVentureWithExistingContacts_DoesNotThrowCheckConstraintError`.
+
+---
+
+## Database Changes and Migrations
+- **None**: Database schema, check constraint `CK_client_contacts_exactly_one_owner`, and soft-delete definitions remain unchanged.
+
+---
+
+## API Changes
+- **None**: Customer and sub-venture endpoints (`PUT /api/v1/clients/{id}`) remain identical in contract and behavior.
+
+---
+
+## Existing Functionality Preserved
+- Customer and sub-venture CRUD operations.
+- Customer and sub-venture edit notifications to assigned Engagement Manager and HOD.
+- Contact persistence and primary SPOC resolution.
+
+---
+
+# Changelog - WBS and Project Creation Notification Dispatch to Engagement Manager, EM HOD, Sales Person/Manager, and PMO
+
+## Summary of Changes
+Implemented comprehensive Action Centre notification dispatching when a WBS or project is created/onboarded:
+1. **Target Stakeholders**:
+   - **Assigned Engagement Manager**: Project's assigned Engagement Manager (`EngagementManagerRef`, `EngagementManagerId`, `Client.EngagementManagerRef`, `Client.EngagementManagerId`, or `ProjectTeamMembers` with EM/Engagement role, with string fallback).
+   - **HOD whose Sub-Department is `EM (Engagement Manager)`**: Active employees whose Sub-Department is `EM (Engagement Manager)` (`63bc0f54-4d35-4279-bb62-4daeff6ceeaa` or matching `EM` / `Engagement Manager`) AND whose On Floor Role is `Head Of Department` (`resource.tbl_onfloorrole` mapped via `DesignationId` or role definition `Head Of Department` / `-HOD`), strictly excluding Team Leaders.
+   - **Sales Manager or Sales Person**: Project's assigned Sales Person (`SalesPersonRef`, `SalesPersonId`, `SalesPerson`), customer's assigned Sales Manager (`SalesManagerRef`, `SalesManagerId`, `SalesManager`), project team members with sales roles, or active employees with Sales Manager/Sales Person role / Sales sub-department.
+   - **PMO**: Active employees whose Sub-Department is `PMO (Project Management Office)` (`fd84aa38-11ef-46af-ade7-241f2a2c08fd` or matching `PMO`), `PmoDepartment` contains PMO, Role / Designation is PMO, On Floor Role is PMO, or mapped to active Users with the `PMO` role.
+2. **Notification Title & Formatting**:
+   - Title: `{Project_name} is onboarded` (e.g. `Alpha App is onboarded`).
+   - Category / Type: `WBS Created`.
+   - Priority: `Low`, Status: `Created`.
+   - Recipient deduplication: Ensures each stakeholder receives exactly one notification even if they match multiple criteria.
+   - History details: Logged with `{Project_name} is onboarded` and creator name.
+   - Cross-database synchronization: Synchronized to both local database instances for immediate visibility in the Action Centre notification tab.
+
+---
+
+## Affected Files
+- `apps/backend/Modules/ActionCentre/Services/ActionNotificationService.cs`:
+  - Updated `NotifyWbsCreatedAsync` to resolve all 4 required stakeholder groups (Assigned Engagement Manager, HOD with EM Sub-Department, Sales Manager/Person, and PMO) with recipient deduplication.
+  - Implemented `ResolveProjectSalesPersonsAsync` to resolve sales personnel across project attributes, client attributes, team members, string name matching, and organization roles.
+  - Updated notification title to `"{projectName} is onboarded"`.
+- `apps/backend/tests/PMS.IntegrationTests/CustomerNotificationIntegrationTests.cs`:
+  - Updated `WbsCreated_DispatchesNotification_ToEm_EmHod_SalesPerson_AndPmo_WithOnboardedTitle` to verify delivery to all 4 recipient roles (Assigned EM, EM HOD, Sales Person, PMO) and assert the title format `{proj.Name} is onboarded`.
+
+---
+
+## Database Changes and Migrations
+- **None**: Uses existing schemas in `action.tbl_notifications`, `project.tbl_projects`, `customer.tbl_clients`, `resource.tbl_employees`, `resource.tbl_onfloorrole`, and `master.mst_sub_departments`.
+
+---
+
+## API Changes
+- **None**: REST API endpoints for project creation (`POST /api/v1/projects`) and project renewal (`POST /api/v1/projects/{id}/renew`) remain unchanged.
+
+---
+
+## Existing Functionality Preserved
+- Automated PM/SPM assignment reminder workflow (`StartProjectAllocationReminderWorkflowAsync`) remains intact.
+- Strict exclusion of Team Leaders from HOD role resolution remains enforced.
+- Cross-database notification synchronization (`TrySyncNotificationsToOtherDatabase`) remains intact.
+- Project creation and renewal workflows in `ProjectAppService` remain intact.
 

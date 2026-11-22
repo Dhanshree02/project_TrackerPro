@@ -5,6 +5,7 @@ using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Storage;
 
 using PMS.API.Modules.ActionCentre.Models;
+using PMS.API.Modules.ActionCentre.Services;
 
 using PMS.API.Modules.Customers.Models;
 
@@ -68,23 +69,16 @@ public sealed partial class ProjectAppService(
 
 
         if (queryParams.EmployeeId.HasValue)
-
         {
-
             var empId = queryParams.EmployeeId.Value;
-
             query = query.Where(p =>
-
-                p.ProjectManagerId == empId ||
-
-                p.TeamLeadId == empId ||
-
-                p.EngagementManagerId == empId ||
-
-                db.ProjectTeamMembers.Any(tm => tm.ProjectId == p.Id && tm.EmployeeId == empId) ||
-
-                db.ProjectTasks.Any(t => t.ProjectId == p.Id && db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId)));
-
+                p.DeletedAtUtc == null &&
+                (p.ProjectManagerId == empId ||
+                 p.TeamLeadId == empId ||
+                 p.EngagementManagerId == empId ||
+                 db.ProjectTeamMembers.Any(tm => tm.ProjectId == p.Id && tm.EmployeeId == empId && tm.DeletedAtUtc == null) ||
+                 db.ProjectTasks.Any(t => t.ProjectId == p.Id && t.DeletedAtUtc == null && db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId && ta.IsActive && ta.DeletedAtUtc == null)) ||
+                 db.BucketTasks.Any(bt => bt.ProjectId == p.Id && bt.EmployeeId == empId && bt.DeletedAtUtc == null)));
         }
 
 
@@ -179,6 +173,35 @@ public sealed partial class ProjectAppService(
 
         var projectIds = projects.Select(p => p.Id).ToList();
 
+        if (projectIds.Count > 0)
+        {
+            var allActiveServices = await db.ProjectServices
+                .Where(s => projectIds.Contains(s.ProjectId) && s.DeletedAtUtc == null && (s.ChangeStatus == null || s.ChangeStatus.ToLower() != "deleted"))
+                .OrderBy(s => s.SortOrder)
+                .ToListAsync(ct);
+
+            var allTasks = await db.ProjectTasks
+                .Where(t => projectIds.Contains(t.ProjectId) && t.DeletedAtUtc == null)
+                .ToListAsync(ct);
+
+            var servicesByProject = allActiveServices.GroupBy(s => s.ProjectId).ToDictionary(g => g.Key, g => g.ToList());
+            var tasksByProject = allTasks.GroupBy(t => t.ProjectId).ToDictionary(g => g.Key, g => g.ToList());
+
+            foreach (var p in projects)
+            {
+                var pServices = servicesByProject.GetValueOrDefault(p.Id, []);
+                var pTasks = tasksByProject.GetValueOrDefault(p.Id, []);
+                var computedProgress = CalculateSingleProjectProgress(pServices, pTasks);
+                if (p.Progress != computedProgress)
+                {
+                    p.Progress = computedProgress;
+                    await db.Projects
+                        .Where(x => x.Id == p.Id)
+                        .ExecuteUpdateAsync(setter => setter.SetProperty(proj => proj.Progress, computedProgress), ct);
+                }
+            }
+        }
+
         var managersByProject = await LoadProjectManagersAsync(projectIds, ct);
 
         var teamLeadsByProject = await LoadTeamLeadsAsync(projectIds, ct);
@@ -222,6 +245,22 @@ public sealed partial class ProjectAppService(
 
 
         if (project == null) return null;
+
+        var activeServices = await db.ProjectServices
+            .Where(s => s.ProjectId == project.Id && s.DeletedAtUtc == null && (s.ChangeStatus == null || s.ChangeStatus.ToLower() != "deleted"))
+            .OrderBy(s => s.SortOrder)
+            .ToListAsync(ct);
+        var projectTasks = await db.ProjectTasks
+            .Where(t => t.ProjectId == project.Id && t.DeletedAtUtc == null)
+            .ToListAsync(ct);
+        var computedProgress = CalculateSingleProjectProgress(activeServices, projectTasks);
+        if (project.Progress != computedProgress)
+        {
+            project.Progress = computedProgress;
+            await db.Projects
+                .Where(x => x.Id == project.Id)
+                .ExecuteUpdateAsync(setter => setter.SetProperty(proj => proj.Progress, computedProgress), ct);
+        }
 
         var managers = await LoadProjectManagersAsync([project.Id], ct);
 
@@ -449,6 +488,9 @@ public sealed partial class ProjectAppService(
 
             ct);
 
+        await notificationService.StartProjectAllocationReminderWorkflowAsync(project.Id, ct);
+        await notificationService.StartProjectServicePrerequisiteReminderWorkflowAsync(project.Id, ct);
+
 
 
         return (await GetProjectByIdAsync(project.Id, ct))!;
@@ -542,6 +584,31 @@ public sealed partial class ProjectAppService(
 
 
         await db.SaveChangesAsync(ct);
+
+        if (request.ProjectManagerId.HasValue)
+        {
+            try
+            {
+                var isPmAssigned = project.ProjectManagerId.HasValue || await db.ProjectTeamMembers.AnyAsync(m =>
+                    m.ProjectId == project.Id &&
+                    (m.MemberRole == ProjectMemberRoles.ProjectManager || m.MemberRole == "Project Manager") &&
+                    m.DeletedAtUtc == null, ct);
+
+                var isSpmAssigned = await db.ProjectTeamMembers.AnyAsync(m =>
+                    m.ProjectId == project.Id &&
+                    (m.MemberRole == ProjectMemberRoles.SeniorProjectManager || m.MemberRole == "Senior Project Manager") &&
+                    m.DeletedAtUtc == null, ct);
+
+                if (isPmAssigned && isSpmAssigned)
+                {
+                    await notificationService.CancelProjectAllocationRemindersAsync(project.Id, ct);
+                }
+            }
+            catch
+            {
+                // Non-blocking cancellation check
+            }
+        }
 
         return (await GetProjectByIdAsync(id, ct))!;
 
@@ -1116,10 +1183,21 @@ public sealed partial class ProjectAppService(
 
 
         // Recalculate project totals
-
         await RecalculateProjectRollupsAsync(projectId, ct);
+        await RecalculateProjectProgressAsync(projectId, ct);
 
+        if (!service.IsReady)
+        {
+            await notificationService.StartServicePrerequisiteSlaWorkflowAsync(projectId, service.Id, ct);
+            await notificationService.StartProjectServicePrerequisiteReminderWorkflowAsync(projectId, ct);
+        }
 
+        await notificationService.NotifyServiceAddedAsync(
+            projectId,
+            service.ServiceName,
+            $"Service '{service.ServiceName}' was added to project with Qty: {service.Qty}, Department: '{service.Department}'.",
+            currentUser.Name,
+            ct);
 
         return (await GetProjectServiceByIdAsync(projectId, service.Id, ct))!;
 
@@ -1318,16 +1396,30 @@ public sealed partial class ProjectAppService(
 
 
         // Recalculate project totals
-
         await RecalculateProjectRollupsAsync(projectId, ct);
+        await RecalculateProjectProgressAsync(projectId, ct);
 
+        var modDetails = request.AsPendingModification
+            ? $"Service '{service.ServiceName}' modification requested with Target Qty: {service.PendingQty}, Resource Level: '{service.PendingResourceLevel}'."
+            : $"Service '{service.ServiceName}' modified with Qty: {service.Qty}, Unit Price: {service.UnitPrice}.";
 
+        await notificationService.NotifyServiceModifiedAsync(
+            projectId,
+            service.ServiceName,
+            modDetails,
+            currentUser.Name,
+            ct);
 
         return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
 
     }
 
 
+
+    private static bool IsResourceService(string? serviceModel, string? collectionStatus) =>
+        string.Equals(serviceModel, "Resource", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(serviceModel, "NA", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(collectionStatus, "NA", StringComparison.OrdinalIgnoreCase);
 
     public async Task<ProjectServiceDto> UpdateServicePrerequisiteAsync(
 
@@ -1353,7 +1445,15 @@ public sealed partial class ProjectAppService(
 
         if (request.ValidationStatus != null) service.ValidationStatus = request.ValidationStatus;
 
-        if (request.BillingStatus != null) service.BillingStatus = request.BillingStatus;
+        if (request.BillingStatus != null)
+        {
+            var collection = request.CollectionStatus ?? service.CollectionStatus;
+            var validation = request.ValidationStatus ?? service.ValidationStatus;
+            var scopeService = !IsResourceService(service.ServiceModel, collection);
+            if (scopeService && (collection != "Collected" || validation != "Validated"))
+                throw new BadRequestException("Billing status can be changed only after collection is Collected and validation is Validated.");
+            service.BillingStatus = request.BillingStatus;
+        }
 
 
 
@@ -1397,7 +1497,15 @@ public sealed partial class ProjectAppService(
 
         if (request.ModValidationStatus != null) service.ModValidationStatus = request.ModValidationStatus;
 
-        if (request.ModBillingStatus != null) service.ModBillingStatus = request.ModBillingStatus;
+        if (request.ModBillingStatus != null)
+        {
+            var collection = request.ModCollectionStatus ?? service.ModCollectionStatus;
+            var validation = request.ModValidationStatus ?? service.ModValidationStatus;
+            var scopeService = !IsResourceService(service.ServiceModel, collection);
+            if (scopeService && (collection != "Collected" || validation != "Validated"))
+                throw new BadRequestException("Billing status can be changed only after collection is Collected and validation is Validated.");
+            service.ModBillingStatus = request.ModBillingStatus;
+        }
 
 
 
@@ -1418,11 +1526,14 @@ public sealed partial class ProjectAppService(
 
 
         if (becameReady)
-
         {
-
             await taskService.GenerateMissingTasksAsync(projectId, ct);
-
+            await notificationService.NotifyServiceStartedAsync(projectId, serviceId, currentUser.Name, ct);
+        }
+        else if (request.IsReady.HasValue && !request.IsReady.Value)
+        {
+            await notificationService.StartServicePrerequisiteSlaWorkflowAsync(projectId, serviceId, ct);
+            await notificationService.StartProjectServicePrerequisiteReminderWorkflowAsync(projectId, ct);
         }
 
 
@@ -1431,7 +1542,9 @@ public sealed partial class ProjectAppService(
 
         {
 
-            return await ApplyServiceModificationAsync(projectId, serviceId, ct);
+            var res = await ApplyServiceModificationAsync(projectId, serviceId, ct);
+            await notificationService.NotifyServiceStartedAsync(projectId, serviceId, currentUser.Name, ct);
+            return res;
 
         }
 
@@ -1609,7 +1722,12 @@ public sealed partial class ProjectAppService(
 
         await RecalculateProjectRollupsAsync(projectId, ct);
 
-
+        await notificationService.NotifyServiceModifiedAsync(
+            projectId,
+            service.ServiceName,
+            $"Service '{service.ServiceName}' modification applied with Approved Qty: {service.Qty}, Resource Level: '{service.ResourceLevel}'.",
+            currentUser.Name,
+            ct);
 
         return (await GetProjectServiceByIdAsync(projectId, serviceId, ct))!;
 
@@ -1681,15 +1799,24 @@ public sealed partial class ProjectAppService(
 
 
 
+        var serviceName = service.ServiceName;
         db.ProjectServices.Remove(service);
-
         await db.SaveChangesAsync(ct);
+        await notificationService.CancelServicePrerequisiteSlaWorkflowAsync(serviceId, ct);
+
+        await notificationService.NotifyServiceDeletedAsync(
+            projectId,
+            serviceName,
+            currentUser.Name,
+            ct);
 
 
 
         // Recalculate project totals
 
         await RecalculateProjectRollupsAsync(projectId, ct);
+
+        await RecalculateProjectProgressAsync(projectId, ct);
 
         await RecalculateProjectInvoiceRollupAsync(projectId, ct);
 
@@ -2009,42 +2136,34 @@ public sealed partial class ProjectAppService(
 
 
 
-    public async Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, bool includeDeleted = false, CancellationToken ct = default)
-
+    public async Task<IReadOnlyList<ProjectTaskDto>> GetProjectTasksAsync(Guid projectId, Guid? employeeId = null, bool includeDeleted = false, CancellationToken ct = default)
     {
-
         var exists = await db.Projects.AnyAsync(p => p.Id == projectId, ct);
-
         if (!exists)
-
             throw new NotFoundException($"Project with ID '{projectId}' was not found.");
 
-
-
         var query = db.ProjectTasks.AsQueryable();
-
         if (includeDeleted)
-
         {
-
             query = query.IgnoreQueryFilters();
-
         }
 
+        query = query
+            .Include(t => t.ProjectService)
+            .Include(t => t.Project)
+            .Where(t => t.ProjectId == projectId);
 
+        if (employeeId.HasValue)
+        {
+            var empId = employeeId.Value;
+            query = query.Where(t =>
+                db.ProjectTaskAssignments.Any(ta => ta.TaskId == t.Id && ta.EmployeeId == empId && ta.IsActive && ta.DeletedAtUtc == null) ||
+                db.BucketTasks.Any(bt => bt.TaskId == t.Id && bt.EmployeeId == empId && bt.DeletedAtUtc == null));
+        }
 
         var tasks = await query
-
-            .Include(t => t.ProjectService)
-
-            .Include(t => t.Project)
-
-            .Where(t => t.ProjectId == projectId)
-
             .OrderBy(t => t.SortOrder)
-
             .ThenBy(t => t.CreatedAtUtc)
-
             .ToListAsync(ct);
 
 
@@ -2423,6 +2542,8 @@ public sealed partial class ProjectAppService(
 
         await db.SaveChangesAsync(ct);
 
+        await RecalculateProjectProgressAsync(projectId, ct);
+
 
 
         return (await GetProjectTaskByIdAsync(projectId, task.Id, ct))!;
@@ -2520,6 +2641,8 @@ public sealed partial class ProjectAppService(
 
         await db.SaveChangesAsync(ct);
 
+        await RecalculateProjectProgressAsync(projectId, ct);
+
         if (request.PlannedEndDate.HasValue && request.PlannedEndDate.Value != oldPlannedEndDate && slaTrackingService != null)
         {
             try
@@ -2554,6 +2677,8 @@ public sealed partial class ProjectAppService(
         db.ProjectTasks.Remove(task);
 
         await db.SaveChangesAsync(ct);
+
+        await RecalculateProjectProgressAsync(projectId, ct);
 
         return true;
 
@@ -2799,6 +2924,8 @@ public sealed partial class ProjectAppService(
 
         await db.SaveChangesAsync(ct);
 
+        await RecalculateProjectProgressAsync(projectId, ct);
+
         if (slaTrackingService != null && stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
         {
             try
@@ -2812,12 +2939,109 @@ public sealed partial class ProjectAppService(
             catch { }
         }
 
+        if (stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await notificationService.NotifyProjectTaskLifecycleAsync(
+                    projectId,
+                    taskId,
+                    task.Title,
+                    null,
+                    "completed",
+                    currentUser.Name,
+                    null,
+                    ct);
+            }
+            catch { }
+        }
+
         return (await GetProjectTaskByIdAsync(projectId, taskId, ct))!;
     }
 
-    public Task<AutoGeneratedTasksSummaryDto> AutoGenerateTasksFromServicesAsync(Guid projectId, CancellationToken ct = default)
+    public async Task<AutoGeneratedTasksSummaryDto> AutoGenerateTasksFromServicesAsync(Guid projectId, CancellationToken ct = default)
+    {
+        var result = await taskService.GenerateMissingTasksAsync(projectId, ct);
+        await RecalculateProjectProgressAsync(projectId, ct);
+        return result;
+    }
 
-        => taskService.GenerateMissingTasksAsync(projectId, ct);
+    public async Task<int> RecalculateProjectProgressAsync(Guid projectId, CancellationToken ct = default)
+    {
+        var services = await db.ProjectServices
+            .Where(s => s.ProjectId == projectId && s.DeletedAtUtc == null && (s.ChangeStatus == null || s.ChangeStatus.ToLower() != "deleted"))
+            .OrderBy(s => s.SortOrder)
+            .ToListAsync(ct);
+
+        var tasks = await db.ProjectTasks
+            .Where(t => t.ProjectId == projectId && t.DeletedAtUtc == null)
+            .ToListAsync(ct);
+
+        var computedProgress = CalculateSingleProjectProgress(services, tasks);
+
+        await db.Projects
+            .Where(x => x.Id == projectId)
+            .ExecuteUpdateAsync(setter => setter.SetProperty(proj => proj.Progress, computedProgress), ct);
+
+        return computedProgress;
+    }
+
+    internal static int CalculateSingleProjectProgress(
+        List<ProjectServiceEntity> services,
+        List<ProjectTask> tasks)
+    {
+        if (services.Count == 0) return 0;
+
+        var serviceProgressList = new List<int>();
+
+        foreach (var service in services)
+        {
+            var specs = ProjectTaskService.TasksFromServiceModel(service.ServiceModel);
+            var quarters = ProjectTaskService.QuarterCount(service.Frequency);
+            var qty = Math.Max(service.Qty, 1);
+            var folderCount = quarters == 0 ? 1 : quarters;
+            var expectedLeafCount = folderCount * qty * specs.Count;
+
+            var serviceTasks = tasks.Where(t =>
+                t.ProjectServiceId.HasValue && t.ProjectServiceId.Value == service.Id
+            ).ToList();
+
+            var nonCancelledTasks = serviceTasks.Where(t =>
+                !string.Equals(t.Stage, "Cancelled", StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+
+            var totalTasks = Math.Max(nonCancelledTasks.Count, expectedLeafCount);
+            if (totalTasks == 0)
+            {
+                serviceProgressList.Add(0);
+                continue;
+            }
+
+            decimal sumWeights = 0m;
+            foreach (var task in nonCancelledTasks)
+            {
+                var stage = (task.Stage ?? "").Trim();
+                if (stage.Equals("Completed", StringComparison.OrdinalIgnoreCase))
+                {
+                    sumWeights += 1.0m;
+                }
+                else if (stage.Equals("Ongoing", StringComparison.OrdinalIgnoreCase) ||
+                         stage.Equals("In Progress", StringComparison.OrdinalIgnoreCase))
+                {
+                    sumWeights += 0.5m;
+                }
+            }
+
+            var serviceProgress = (int)Math.Round((sumWeights / totalTasks) * 100m, MidpointRounding.AwayFromZero);
+            serviceProgress = Math.Clamp(serviceProgress, 0, 100);
+            serviceProgressList.Add(serviceProgress);
+        }
+
+        if (serviceProgressList.Count == 0) return 0;
+
+        var overallProgress = (int)Math.Round((decimal)serviceProgressList.Sum() / serviceProgressList.Count, MidpointRounding.AwayFromZero);
+        return Math.Clamp(overallProgress, 0, 100);
+    }
 
 
 
@@ -2939,81 +3163,64 @@ public sealed partial class ProjectAppService(
 
         await pts.SyncBucketTasksForTaskAsync(projectId, taskId, [request.EmployeeId], [], ct);
 
-        var taskInfo = await db.ProjectTasks.Include(t => t.Project).FirstOrDefaultAsync(t => t.Id == taskId, ct);
+        var taskInfo = await db.ProjectTasks
+            .Include(t => t.Project)
+            .Include(t => t.ProjectService)
+            .FirstOrDefaultAsync(t => t.Id == taskId, ct);
 
+        var newNotifs = new List<ActionNotification>();
         if (taskInfo != null)
-
         {
-
             var nowUtc = DateTime.UtcNow;
-
             string assigner = taskInfo.Project?.EngagementManager ?? "Project Manager";
-
             if (taskInfo.Project?.ProjectManagerId.HasValue == true)
-
             {
-
                 var pm = await db.Employees.FirstOrDefaultAsync(e => e.Id == taskInfo.Project.ProjectManagerId.Value, ct);
-
                 if (pm != null) assigner = $"{pm.FirstName} {pm.LastName}".Trim();
-
             }
 
-            db.ActionNotifications.Add(new ActionNotification
+            var serviceName = await ProjectTaskService.ResolveServiceNameAsync(db, projectId, taskInfo, ct);
+            var emp = await db.Employees.FirstOrDefaultAsync(e => e.Id == request.EmployeeId, ct);
+            var resourceName = emp != null ? $"{emp.FirstName} {emp.LastName}".Trim() : "Resource";
+            if (string.IsNullOrWhiteSpace(resourceName)) resourceName = "Resource";
 
+            var notifTitle = $"The {resourceName} is assigned to the {taskInfo.Title} of the {serviceName}";
+
+            var notif = new ActionNotification
             {
-
                 Id = Guid.NewGuid(),
-
                 RecipientEmployeeId = request.EmployeeId,
-
                 ProjectId = projectId,
-
                 ProjectCode = taskInfo.Project?.ProjectCode,
-
                 ProjectName = taskInfo.Project?.Name ?? "Project",
-
-                Title = $"Task Assigned: {taskInfo.Title}",
-
+                Title = notifTitle,
                 Type = "Task Assignment",
-
                 Priority = string.IsNullOrWhiteSpace(taskInfo.Priority) ? "Medium" : taskInfo.Priority,
-
                 Status = "Assigned",
-
                 Unread = true,
-
                 RaisedByName = assigner,
-
                 RelatedTask = taskInfo.Title,
-
                 CreatedAtUtc = nowUtc,
-
                 HistoryJson = System.Text.Json.JsonSerializer.Serialize(new[]
-
                 {
-
                     new
-
                     {
-
                         status = "Assigned",
-
                         at = nowUtc.ToString("O"),
-
                         by = assigner,
-
-                        comment = $"Assigned to task '{taskInfo.Title}'"
-
+                        comment = notifTitle
                     }
-
                 })
-
-            });
-
+            };
+            db.ActionNotifications.Add(notif);
+            newNotifs.Add(notif);
         }
 
         await db.SaveChangesAsync(ct);
+        if (newNotifs.Count > 0)
+        {
+            ActionNotificationService.TrySyncNotificationsToOtherDatabase(newNotifs);
+        }
 
         await pts.DistributeProjectTeamHoursAsync(projectId, taskId, ct);
 
@@ -4482,10 +4689,14 @@ public sealed partial class ProjectAppService(
 
 
                 db.ProjectServices.Add(newService);
-
                 await db.SaveChangesAsync(ct);
-
                 serviceIdMapping[os.Id] = newService.Id;
+
+                if (!newService.IsReady)
+                {
+                    await notificationService.StartServicePrerequisiteSlaWorkflowAsync(renewedProject.Id, newService.Id, ct);
+                    await notificationService.StartProjectServicePrerequisiteReminderWorkflowAsync(renewedProject.Id, ct);
+                }
 
             }
 
@@ -4573,7 +4784,15 @@ public sealed partial class ProjectAppService(
 
         await tx.CommitAsync(ct);
 
+        await notificationService.NotifyWbsCreatedAsync(
+            renewedProject.Id,
+            renewedProject.Name,
+            renewedProject.WbsId,
+            renewedProject.ProjectCode,
+            currentUser.Name,
+            ct);
 
+        await notificationService.StartProjectAllocationReminderWorkflowAsync(renewedProject.Id, ct);
 
         return (await GetProjectByIdAsync(renewedProject.Id, ct))!;
 

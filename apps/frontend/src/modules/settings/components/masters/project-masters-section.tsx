@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { paginateSlice } from "@/lib/pagination";
+import { SortableColumnHeader, compareSortValues, toggleColumnSort } from "@/components/sortable-column-header";
 import { TablePaginationFooter } from "@/components/table-pagination-footer";
 import {
   FolderKanban,
@@ -278,16 +279,35 @@ export function ProjectMastersSection({
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+  const [masterSortKey, setMasterSortKey] = useState<"contract" | "service" | "tools" | "duration" | "price">("service");
+  const [masterSortDir, setMasterSortDir] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     setPage(1);
   }, [searchQuery, filterContractType]);
 
   const totalMasters = filteredItems.length;
-  const pagedItems = useMemo(
-    () => paginateSlice(filteredItems, page, pageSize),
-    [filteredItems, page, pageSize]
-  );
+  const pagedItems = useMemo(() => {
+    const sorted = [...filteredItems].sort((a, b) => {
+      switch (masterSortKey) {
+        case "contract":
+          return compareSortValues(a.contractType || a.group || "", b.contractType || b.group || "", masterSortDir);
+        case "service":
+          return compareSortValues(
+            `${a.department} ${a.service}`,
+            `${b.department} ${b.service}`,
+            masterSortDir,
+          );
+        case "tools":
+          return compareSortValues(a.tools, b.tools, masterSortDir);
+        case "duration":
+          return compareSortValues(a.duration, b.duration, masterSortDir);
+        case "price":
+          return compareSortValues(Number(a.unitPrice) || 0, Number(b.unitPrice) || 0, masterSortDir);
+      }
+    });
+    return paginateSlice(sorted, page, pageSize);
+  }, [filteredItems, page, pageSize, masterSortKey, masterSortDir]);
 
   // ── Cascading Change Handlers for Add Form ────────────────────────────────
   const handleContractTypeChange = (ct: string) => {
@@ -1110,16 +1130,32 @@ export function ProjectMastersSection({
             </p>
           </div>
         ) : (
-          <div className="w-fit max-w-full overflow-x-auto rounded-lg border border-border flex flex-col">
-            <table className="app-columns text-left text-xs">
+          <div className="w-full overflow-x-auto rounded-lg border border-border flex flex-col">
+            <table className="w-full min-w-[760px] text-left text-xs">
               <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                 <tr>
-                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Contract Type</th>
-                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Department & Service</th>
-                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Tools & Tech</th>
-                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Duration</th>
-                  <th className="py-2.5 px-3 font-semibold text-muted-foreground">Unit Price (₹)</th>
-                  <th className="py-2.5 px-3 text-right font-semibold text-muted-foreground">Actions</th>
+                  {(
+                    [
+                      ["contract", "Contract Type"],
+                      ["service", "Department & Service"],
+                      ["tools", "Tools & Tech"],
+                      ["duration", "Duration"],
+                      ["price", "Unit Price (₹)"],
+                    ] as const
+                  ).map(([column, label]) => (
+                    <SortableColumnHeader
+                      key={column}
+                      label={label}
+                      column={column}
+                      sortKey={masterSortKey}
+                      sortDir={masterSortDir}
+                      onSort={(next) => toggleColumnSort(next, masterSortKey, setMasterSortKey, setMasterSortDir)}
+                      className="px-3"
+                    />
+                  ))}
+                  <th className="px-3 py-3.5 text-right text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">

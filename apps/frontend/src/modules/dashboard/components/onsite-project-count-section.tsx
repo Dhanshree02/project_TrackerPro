@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
@@ -15,7 +16,6 @@ import { useFinancialYear } from "@/lib/financial-year";
 import { ColumnBarHoverScope, rowBarProps, useColumnBarHover } from "@/modules/dashboard/components/bar-emphasis";
 import {
   ConfigToggleLegend,
-  LEGEND_BAR_GROW_MS,
   useLegendSeriesToggle,
 } from "@/modules/dashboard/components/toggle-chart-legend";
 import {
@@ -100,10 +100,10 @@ export function OnsiteProjectCountSection({
   const showTable = view !== "graph";
 
   return (
-    <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
+    <article className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="text-sm font-semibold">Team Utilization – Onsite: Project-wise Resource Count</h3>
+          <h3 className="text-[15px] font-semibold tracking-[-0.016em]">Team Utilization – Onsite: Project-wise Resource Count</h3>
           <p className="text-xs text-muted-foreground">People assigned to the project's onsite services</p>
         </div>
         <div className="flex items-end gap-2">
@@ -163,16 +163,19 @@ export function OnsiteProjectCountSection({
                 </span>
                 <label className="flex items-center gap-2">
                   Chart projects
-                  <select
-                    value={chartLimit}
-                    onChange={(event) => setChartLimit(Number(event.target.value))}
-                    className="h-8 min-w-[7rem] rounded-md border border-input bg-card py-0 pl-2 pr-8 text-xs text-foreground"
-                  >
-                    <option value={10}>Top 10</option>
-                    <option value={20}>Top 20</option>
-                    <option value={50}>Top 50</option>
-                    <option value={0}>All</option>
-                  </select>
+                  <SearchableSelect
+                    value={String(chartLimit)}
+                    onChange={(value) => setChartLimit(Number(value))}
+                    placeholder="Top 10"
+                    options={[
+                      { value: "10", label: "Top 10" },
+                      { value: "20", label: "Top 20" },
+                      { value: "50", label: "Top 50" },
+                      { value: "0", label: "All" },
+                    ]}
+                    clearable={false}
+                    className="min-w-[7rem]"
+                  />
                 </label>
               </div>
               <ProjectCountChart
@@ -257,7 +260,7 @@ function ProjectCountChart({
   truncateProjectNames?: boolean;
 }) {
   const { hover, setHover, clear } = useColumnBarHover();
-  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden } = useLegendSeriesToggle();
   const chartConfig = {
     m0: { label: months[0]?.month ?? "Month 1", color: "var(--chart-1)" },
     m1: { label: months[1]?.month ?? "Month 2", color: "var(--chart-2)" },
@@ -293,8 +296,7 @@ function ProjectCountChart({
             label={yAxisLabel("Project")}
           />
           <Bar
-            isAnimationActive={isGrowingIn("m0")}
-            animationDuration={LEGEND_BAR_GROW_MS}
+            isAnimationActive={false}
             minPointSize={6}
             maxBarSize={16}
             dataKey="m0"
@@ -304,8 +306,7 @@ function ProjectCountChart({
             {...rowBarProps("m0", setHover, "var(--color-m0)", 4, tipAnchor, chartSeriesLabel(chartConfig, "m0"))}
           />
           <Bar
-            isAnimationActive={isGrowingIn("m1")}
-            animationDuration={LEGEND_BAR_GROW_MS}
+            isAnimationActive={false}
             minPointSize={6}
             maxBarSize={16}
             dataKey="m1"
@@ -315,8 +316,7 @@ function ProjectCountChart({
             {...rowBarProps("m1", setHover, "var(--color-m1)", 4, tipAnchor, chartSeriesLabel(chartConfig, "m1"))}
           />
           <Bar
-            isAnimationActive={isGrowingIn("m2")}
-            animationDuration={LEGEND_BAR_GROW_MS}
+            isAnimationActive={false}
             minPointSize={6}
             maxBarSize={16}
             dataKey="m2"

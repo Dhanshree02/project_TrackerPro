@@ -1,9 +1,15 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Authorization;
 using PMS.API.Infrastructure.Persistence;
 using PMS.API.Infrastructure.Persistence.Seeding;
 using PMS.API.Modules.Resources.DTOs;
 using PMS.API.Modules.Resources.Models;
+using PMS.API.Modules.Users.Models;
+using PMS.API.Modules.Users.Services;
 using PMS.API.Modules.Resources.Validators;
 using PMS.API.Infrastructure.Storage;
 using PMS.API.Shared.Common.Wrappers;
@@ -13,8 +19,17 @@ using PMS.API.Shared.Validation;
 
 namespace PMS.API.Modules.Resources.Services;
 
-public sealed class EmployeeService(AppDbContext db, IFileStorageService storage, ICurrentUserService currentUser, PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService) : IEmployeeService
+public sealed class EmployeeService(
+    AppDbContext db,
+    IFileStorageService storage,
+    ICurrentUserService currentUser,
+    IPasswordHasher passwordHasher,
+    PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService,
+    IOffboardingNotificationService? offboardingNotificationService = null,
+    ILogger<EmployeeService>? logger = null) : IEmployeeService
 {
+    private Dictionary<Guid, MstOrgRoleMap>? orgRoleMapCache;
+
     private (string Email, string Name) GetCurrentPerformer()
     {
         var email = !string.IsNullOrWhiteSpace(currentUser.Email) ? currentUser.Email.Trim() : "admin@talakunchi.com";
@@ -81,18 +96,19 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
 
         var total = await query.CountAsync(ct);
-        var items = await query
+        var rows = await query
             .OrderBy(e => e.FirstName).ThenBy(e => e.LastName)
             .Skip((page - 1) * perPage)
             .Take(perPage)
-            .Select(e => new EmployeeListItemDto(
+            .Select(e => new
+            {
                 e.Id,
                 e.EmployeeCode,
-                e.FirstName + " " + e.LastName,
+                FullName = e.FirstName + " " + e.LastName,
                 e.WorkEmail,
-                e.Department != null ? e.Department.Name : null,
-                e.Designation != null ? e.Designation.Name : null,
-                e.ReportingManager != null
+                Department = e.Department != null ? e.Department.Name : null,
+                Designation = e.Designation != null ? e.Designation.Name : null,
+                ReportingManagerName = e.ReportingManager != null
                     ? e.ReportingManager.FirstName + " " + e.ReportingManager.LastName
                     : null,
                 e.JoiningDate,
@@ -116,7 +132,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.Skills,
                 e.Certifications,
                 e.Languages,
-                !string.IsNullOrWhiteSpace(e.Role)
+                Role = !string.IsNullOrWhiteSpace(e.Role)
                     ? e.Role
                     : (e.User != null && e.User.Role != null ? (e.User.Role.DisplayName ?? e.User.Role.Name) : null),
                 e.BusinessUnit,
@@ -130,19 +146,56 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 e.ProjectType,
                 e.ProjectAllocated,
                 e.ClientEngManagerMapping,
-                db.OnFloorRoles
+                Floor = db.OnFloorRoles
                     .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
-                    .Select(r => r.Name)
+                    .Select(r => new { r.Id, r.Name })
                     .FirstOrDefault(),
-                db.OnFloorRoles
-                    .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
-                    .Select(r => r.Name)
-                    .FirstOrDefault(),
-                db.OnFloorRoles
-                    .Where(r => e.DesignationId != null && r.DesignationId == e.DesignationId)
-                    .Select(r => (Guid?)r.Id)
-                    .FirstOrDefault()))
+            })
             .ToListAsync(ct);
+        var items = rows.Select(e => new EmployeeListItemDto(
+            e.Id,
+            e.EmployeeCode,
+            e.FullName,
+            e.WorkEmail,
+            e.Department,
+            e.Designation,
+            e.ReportingManagerName,
+            e.JoiningDate,
+            e.WorkLocation,
+            e.OfficeBranch,
+            e.Category,
+            e.ProjectSite,
+            e.KpiScore,
+            e.Status,
+            e.CreatedAtUtc,
+            e.PersonalEmail,
+            e.Phone,
+            e.AltPhone,
+            e.EmergencyContact,
+            e.EmergencyContactName,
+            e.EmergencyContactRelation,
+            e.Pan,
+            e.BankAccount,
+            e.PfUan,
+            e.Education,
+            e.Skills,
+            e.Certifications,
+            e.Languages,
+            e.Role,
+            e.BusinessUnit,
+            e.Team,
+            e.Experience,
+            e.PreviousCompany,
+            e.PmoDepartment,
+            e.SubDepartment,
+            e.BillableStatus,
+            e.ClientLocation,
+            e.ProjectType,
+            e.ProjectAllocated,
+            e.ClientEngManagerMapping,
+            e.Floor != null ? e.Floor.Name : null,
+            e.Floor != null ? e.Floor.Name : null,
+            e.Floor != null ? e.Floor.Id : null)).ToList();
 
         if (items.Count > 0)
         {
@@ -224,13 +277,14 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             .Include(e => e.NationalityRef)
             .Include(e => e.SalaryBandRef)
             .Include(e => e.ReportingManager)
+            .Include(e => e.User)
             .FirstOrDefaultAsync(ct);
 
         if (entity is null) return null;
         var floor = entity.DesignationId is Guid designationId
             ? await db.OnFloorRoles.AsNoTracking().FirstOrDefaultAsync(r => r.DesignationId == designationId, ct)
             : null;
-        return MapDetail(entity, floor);
+        return MapDetail(entity, floor, await HasActiveLoginAsync(entity, ct));
     }
 
     public Task<byte[]> GetBulkSampleExcelAsync(CancellationToken ct = default) =>
@@ -245,9 +299,22 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
     public Task<EmployeeDetailDto> CreateEmployeeAsync(CreateEmployeeRequest request, CancellationToken ct = default) =>
         CreateEmployeeAsync(request, checkIdentity: true, ct);
 
+    public Task<EmployeeDetailDto> CreateEmployeeForBulkAsync(
+        CreateEmployeeRequest request,
+        CancellationToken ct) =>
+        CreateEmployeeCoreAsync(request, checkIdentity: false, notify: false, createLogin: request.CreateLogin == true, ct);
+
     public async Task<EmployeeDetailDto> CreateEmployeeAsync(
         CreateEmployeeRequest request,
         bool checkIdentity,
+        CancellationToken ct) =>
+        await CreateEmployeeCoreAsync(request, checkIdentity, notify: true, createLogin: request.CreateLogin ?? true, ct);
+
+    private async Task<EmployeeDetailDto> CreateEmployeeCoreAsync(
+        CreateEmployeeRequest request,
+        bool checkIdentity,
+        bool notify,
+        bool createLogin,
         CancellationToken ct)
     {
         var empCode = EmployeeCodeRules.Normalize(request.EmployeeCode);
@@ -380,31 +447,33 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         await OrgRoleMatrixSync.AssignEmployeeSubDepartmentAsync(db, entity, ct);
 
         db.Employees.Add(entity);
+        var (performerEmail, performerName) = GetCurrentPerformer();
+        db.EmployeeActivityLogs.Add(new EmployeeActivityLog
+        {
+            Id = Guid.NewGuid(),
+            EmployeeId = entity.Id,
+            Action = "Created",
+            PerformedByEmail = performerEmail,
+            PerformedByName = performerName,
+            Details = $"Profile created for {entity.FirstName} {entity.LastName} ({entity.EmployeeCode})",
+            CreatedAtUtc = DateTime.UtcNow
+        });
         try
         {
-            await db.SaveChangesAsync(ct);
-
-            var (performerEmail, performerName) = GetCurrentPerformer();
-            db.EmployeeActivityLogs.Add(new EmployeeActivityLog
+            if (notify)
             {
-                Id = Guid.NewGuid(),
-                EmployeeId = entity.Id,
-                Action = "Created",
-                PerformedByEmail = performerEmail,
-                PerformedByName = performerName,
-                Details = $"Profile created for {entity.FirstName} {entity.LastName} ({entity.EmployeeCode})",
-                CreatedAtUtc = DateTime.UtcNow
-            });
-            await db.SaveChangesAsync(ct);
-            await SyncLinkedUserAsync(entity, ct);
-
-            await notificationService.NotifyResourceOnboardedAsync(
-                entity.Id,
-                $"{entity.FirstName} {entity.LastName}".Trim(),
-                entity.EmployeeCode,
-                entity.ReportingManagerId,
-                performerName,
-                ct);
+                await db.SaveChangesAsync(ct);
+                await SyncLinkedUserAsync(entity, ct);
+                if (createLogin)
+                    await SetLoginAccessAsync(entity, enabled: true, ct);
+                await notificationService.NotifyResourceOnboardedAsync(
+                    entity.Id,
+                    $"{entity.FirstName} {entity.LastName}".Trim(),
+                    entity.EmployeeCode,
+                    entity.ReportingManagerId,
+                    performerName,
+                    ct);
+            }
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
@@ -412,7 +481,121 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
                 "Duplicate employee data. Work email, personal email, phone number, PAN, Aadhaar, and UAN must be unique.");
         }
 
+        if (!notify)
+        {
+            if (createLogin)
+                await SetLoginAccessAsync(entity, enabled: true, ct);
+            return new EmployeeDetailDto(
+                entity.Id,
+                entity.EmployeeCode,
+                entity.FirstName,
+                entity.LastName,
+                entity.WorkEmail,
+                entity.PersonalEmail,
+                entity.Phone,
+                entity.AltPhone,
+                entity.Gender,
+                entity.DateOfBirth,
+                entity.Address,
+                entity.EmergencyContact,
+                entity.EmergencyContactName,
+                entity.EmergencyContactRelation,
+                entity.MaritalStatus,
+                entity.Nationality,
+                null,
+                null,
+                entity.Role,
+                entity.ReportingManagerId,
+                null,
+                entity.BusinessUnit,
+                entity.WorkLocation,
+                entity.OfficeBranch,
+                entity.Category,
+                entity.Team,
+                entity.JoiningDate,
+                entity.Status,
+                entity.ConfirmationStatus,
+                entity.ProbationStatus,
+                entity.Experience,
+                entity.PreviousCompany,
+                entity.EmploymentType,
+                entity.ContractType,
+                entity.BondStatus,
+                entity.NoticePeriod,
+                entity.ProjectSite,
+                entity.AssetId,
+                entity.ExitType,
+                entity.ExitReason,
+                entity.Education,
+                entity.Skills,
+                entity.Certifications,
+                entity.Languages,
+                entity.KpiScore,
+                entity.QuarterlyKpi,
+                entity.AnnualRating,
+                entity.GoalCompletion,
+                entity.Attendance,
+                entity.ReportingEfficiency,
+                entity.PromotionReadiness,
+                entity.ManagerFeedback,
+                entity.Pan,
+                entity.Aadhaar,
+                entity.BankAccount,
+                entity.SalaryBand,
+                entity.PfUan,
+                entity.TaxRegime,
+                entity.ComplianceStatus,
+                entity.PmoDepartment,
+                entity.SubDepartment,
+                entity.BillableStatus,
+                entity.ClientLocation,
+                entity.ProjectType,
+                entity.ProjectAllocated,
+                entity.ClientEngManagerMapping,
+                entity.GradDegree,
+                entity.GradYear,
+                entity.PostGradDegree,
+                entity.PostGradYear,
+                entity.ExpType,
+                entity.PriorTotalExp,
+                entity.PriorRelevantExp,
+                entity.BondDelivered,
+                entity.BondDurationMonths,
+                entity.BondExpiryDate,
+                entity.EmployeeStatusId,
+                entity.DepartmentId,
+                entity.DesignationId);
+        }
+
         return (await GetEmployeeAsync(entity.Id.ToString(), ct))!;
+    }
+
+    public async Task<SetEmployeeLoginAccessResult> SetLoginAccessManyAsync(
+        SetEmployeeLoginAccessRequest request,
+        CancellationToken ct = default)
+    {
+        var updated = 0;
+        var notFound = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var raw in request.EmployeeIds)
+        {
+            var id = raw?.Trim();
+            if (string.IsNullOrWhiteSpace(id) || !seen.Add(id)) continue;
+            var entity = await BuildEmployeeLookupQuery(id)
+                .Include(e => e.Department)
+                .Include(e => e.Designation)
+                .FirstOrDefaultAsync(ct);
+            if (entity is null)
+            {
+                notFound.Add(id);
+                continue;
+            }
+
+            await SetLoginAccessAsync(entity, request.CreateLogin, ct);
+            updated++;
+        }
+
+        return new SetEmployeeLoginAccessResult(updated, notFound);
     }
 
     public async Task<EmployeeDetailDto?> UpdateEmployeeAsync(string idOrCode, UpdateEmployeeRequest request, CancellationToken ct = default)
@@ -539,7 +722,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.BusinessUnit is not null)
         {
-            if (entity.BusinessUnit != request.BusinessUnit) changes.Add("Business Unit");
+            if (HasStringChanged(entity.BusinessUnit, request.BusinessUnit)) changes.Add("Business Unit");
             entity.BusinessUnit = request.BusinessUnit;
         }
         string? previousWorkLocation = null;
@@ -547,7 +730,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         var workLocationChanged = false;
         if (request.WorkLocation is not null)
         {
-            if (entity.WorkLocation != request.WorkLocation)
+            if (HasStringChanged(entity.WorkLocation, request.WorkLocation))
             {
                 changes.Add("Work Location");
                 previousWorkLocation = entity.WorkLocation;
@@ -558,17 +741,17 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.OfficeBranch is not null)
         {
-            if (entity.OfficeBranch != request.OfficeBranch) changes.Add("Office Branch");
+            if (HasStringChanged(entity.OfficeBranch, request.OfficeBranch)) changes.Add("Office Branch");
             entity.OfficeBranch = request.OfficeBranch;
         }
         if (request.Category is not null)
         {
-            if (entity.Category != request.Category) changes.Add("Category");
+            if (HasStringChanged(entity.Category, request.Category)) changes.Add("Category");
             entity.Category = request.Category;
         }
         if (request.Team is not null)
         {
-            if (entity.Team != request.Team) changes.Add("Team");
+            if (HasStringChanged(entity.Team, request.Team)) changes.Add("Team");
             entity.Team = request.Team;
         }
         if (!string.IsNullOrWhiteSpace(request.Department))
@@ -622,73 +805,73 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         {
             if (request.Status is not null)
             {
-                if (entity.Status != request.Status) changes.Add("Status");
+                if (HasStringChanged(entity.Status, request.Status)) changes.Add("Status");
                 entity.Status = request.Status;
             }
             if (request.ConfirmationStatus is not null)
             {
-                if (entity.ConfirmationStatus != request.ConfirmationStatus) changes.Add("Confirmation Status");
+                if (HasStringChanged(entity.ConfirmationStatus, request.ConfirmationStatus)) changes.Add("Confirmation Status");
                 entity.ConfirmationStatus = request.ConfirmationStatus;
             }
         }
         if (request.ProbationStatus is not null)
         {
-            if (entity.ProbationStatus != request.ProbationStatus) changes.Add("Probation Status");
+            if (HasStringChanged(entity.ProbationStatus, request.ProbationStatus)) changes.Add("Probation Status");
             entity.ProbationStatus = request.ProbationStatus;
         }
         if (request.Experience is not null)
         {
-            if (entity.Experience != request.Experience) changes.Add("Experience");
+            if (!AreExperienceStringsEquivalent(entity.Experience, request.Experience)) changes.Add("Experience");
             entity.Experience = request.Experience;
         }
         if (request.PreviousCompany is not null)
         {
-            if (entity.PreviousCompany != request.PreviousCompany) changes.Add("Previous Company");
+            if (HasStringChanged(entity.PreviousCompany, request.PreviousCompany)) changes.Add("Previous Company");
             entity.PreviousCompany = request.PreviousCompany;
         }
         if (request.EmploymentType is not null)
         {
-            if (entity.EmploymentType != request.EmploymentType) changes.Add("Employment Type");
+            if (HasStringChanged(entity.EmploymentType, request.EmploymentType)) changes.Add("Employment Type");
             entity.EmploymentType = request.EmploymentType;
         }
         if (request.ContractType is not null)
         {
-            if (entity.ContractType != request.ContractType) changes.Add("Contract Type");
+            if (HasStringChanged(entity.ContractType, request.ContractType)) changes.Add("Contract Type");
             entity.ContractType = request.ContractType;
         }
         if (request.BondStatus is not null)
         {
-            if (entity.BondStatus != request.BondStatus) changes.Add("Bond Status");
+            if (!AreBondStatusesEquivalent(entity, request.BondStatus, request.BondExpiryDate)) changes.Add("Bond Status");
             entity.BondStatus = request.BondStatus;
         }
         if (request.NoticePeriod is not null)
         {
-            if (entity.NoticePeriod != request.NoticePeriod) changes.Add("Notice Period");
+            if (HasStringChanged(entity.NoticePeriod, request.NoticePeriod)) changes.Add("Notice Period");
             entity.NoticePeriod = request.NoticePeriod;
         }
         if (request.ProjectSite is not null)
         {
-            if (entity.ProjectSite != request.ProjectSite) changes.Add("Location (Onsite)");
+            if (HasStringChanged(entity.ProjectSite, request.ProjectSite)) changes.Add("Location (Onsite)");
             entity.ProjectSite = request.ProjectSite;
         }
         if (request.AssetId is not null)
         {
-            if (entity.AssetId != request.AssetId) changes.Add("Asset ID");
+            if (HasStringChanged(entity.AssetId, request.AssetId)) changes.Add("Asset ID");
             entity.AssetId = request.AssetId;
         }
         if (request.ExitType is not null)
         {
-            if (entity.ExitType != request.ExitType) changes.Add("Exit Type");
+            if (HasStringChanged(entity.ExitType, request.ExitType)) changes.Add("Exit Type");
             entity.ExitType = request.ExitType;
         }
         if (request.ExitReason is not null)
         {
-            if (entity.ExitReason != request.ExitReason) changes.Add("Exit Reason");
+            if (HasStringChanged(entity.ExitReason, request.ExitReason)) changes.Add("Exit Reason");
             entity.ExitReason = request.ExitReason;
         }
         if (request.Education is not null)
         {
-            if (entity.Education != request.Education) changes.Add("Education");
+            if (HasStringChanged(entity.Education, request.Education)) changes.Add("Education");
             entity.Education = request.Education;
         }
         if (request.Skills is not null) entity.Skills = request.Skills;
@@ -726,12 +909,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.PromotionReadiness is not null)
         {
-            if (entity.PromotionReadiness != request.PromotionReadiness) changes.Add("Promotion Readiness");
+            if (HasStringChanged(entity.PromotionReadiness, request.PromotionReadiness)) changes.Add("Promotion Readiness");
             entity.PromotionReadiness = request.PromotionReadiness;
         }
         if (request.ManagerFeedback is not null)
         {
-            if (entity.ManagerFeedback != request.ManagerFeedback) changes.Add("Manager Feedback");
+            if (HasStringChanged(entity.ManagerFeedback, request.ManagerFeedback)) changes.Add("Manager Feedback");
             entity.ManagerFeedback = request.ManagerFeedback;
         }
         if (request.Pan is not null)
@@ -748,12 +931,12 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.BankAccount is not null)
         {
-            if (entity.BankAccount != request.BankAccount) changes.Add("Bank Account");
+            if (HasStringChanged(entity.BankAccount, request.BankAccount)) changes.Add("Bank Account");
             entity.BankAccount = request.BankAccount;
         }
         if (request.SalaryBand is not null)
         {
-            if (entity.SalaryBand != request.SalaryBand) changes.Add("Salary Band");
+            if (HasStringChanged(entity.SalaryBand, request.SalaryBand)) changes.Add("Salary Band");
             entity.SalaryBand = request.SalaryBand;
         }
         if (request.SalaryBandId.HasValue)
@@ -763,7 +946,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.ProbationPeriod is not null)
         {
-            if (entity.ProbationPeriod != request.ProbationPeriod) changes.Add("Probation Period");
+            if (HasStringChanged(entity.ProbationPeriod, request.ProbationPeriod)) changes.Add("Probation Period");
             entity.ProbationPeriod = request.ProbationPeriod;
         }
         if (request.PfUan is not null)
@@ -774,22 +957,22 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.TaxRegime is not null)
         {
-            if (entity.TaxRegime != request.TaxRegime) changes.Add("Tax Regime");
+            if (HasStringChanged(entity.TaxRegime, request.TaxRegime)) changes.Add("Tax Regime");
             entity.TaxRegime = request.TaxRegime;
         }
         if (request.ComplianceStatus is not null)
         {
-            if (entity.ComplianceStatus != request.ComplianceStatus) changes.Add("Compliance Status");
+            if (HasStringChanged(entity.ComplianceStatus, request.ComplianceStatus)) changes.Add("Compliance Status");
             entity.ComplianceStatus = request.ComplianceStatus;
         }
         if (request.PmoDepartment is not null)
         {
-            if (entity.PmoDepartment != request.PmoDepartment) changes.Add("PMO Department");
+            if (HasStringChanged(entity.PmoDepartment, request.PmoDepartment)) changes.Add("PMO Department");
             entity.PmoDepartment = request.PmoDepartment;
         }
         if (request.SubDepartment is not null)
         {
-            if (entity.SubDepartment != request.SubDepartment) changes.Add("Sub Department");
+            if (HasStringChanged(entity.SubDepartment, request.SubDepartment)) changes.Add("Sub Department");
             entity.SubDepartment = request.SubDepartment;
         }
         else if (request.DesignationId.HasValue || (string.IsNullOrWhiteSpace(entity.SubDepartment) && entity.DesignationId.HasValue))
@@ -809,7 +992,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         var billableStatusChanged = false;
         if (request.BillableStatus is not null)
         {
-            if (entity.BillableStatus != request.BillableStatus)
+            if (HasStringChanged(entity.BillableStatus, request.BillableStatus))
             {
                 changes.Add("Billable Status");
                 previousBillableStatus = entity.BillableStatus;
@@ -820,62 +1003,62 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.ClientLocation is not null)
         {
-            if (entity.ClientLocation != request.ClientLocation) changes.Add("Client Location");
+            if (HasStringChanged(entity.ClientLocation, request.ClientLocation)) changes.Add("Client Location");
             entity.ClientLocation = request.ClientLocation;
         }
         if (request.ProjectType is not null)
         {
-            if (entity.ProjectType != request.ProjectType) changes.Add("Project Type");
+            if (HasStringChanged(entity.ProjectType, request.ProjectType)) changes.Add("Project Type");
             entity.ProjectType = request.ProjectType;
         }
         if (request.ProjectAllocated is not null)
         {
-            if (entity.ProjectAllocated != request.ProjectAllocated) changes.Add("Project Allocated");
+            if (HasStringChanged(entity.ProjectAllocated, request.ProjectAllocated)) changes.Add("Project Allocated");
             entity.ProjectAllocated = request.ProjectAllocated;
         }
         if (request.ClientEngManagerMapping is not null)
         {
-            if (entity.ClientEngManagerMapping != request.ClientEngManagerMapping) changes.Add("Client EM Mapping");
+            if (HasStringChanged(entity.ClientEngManagerMapping, request.ClientEngManagerMapping)) changes.Add("Client EM Mapping");
             entity.ClientEngManagerMapping = request.ClientEngManagerMapping;
         }
         if (request.GradDegree is not null)
         {
-            if (entity.GradDegree != request.GradDegree) changes.Add("Graduation Degree");
+            if (HasStringChanged(entity.GradDegree, request.GradDegree)) changes.Add("Graduation Degree");
             entity.GradDegree = request.GradDegree;
         }
         if (request.GradYear is not null)
         {
-            if (entity.GradYear != request.GradYear) changes.Add("Graduation Year");
+            if (HasStringChanged(entity.GradYear, request.GradYear)) changes.Add("Graduation Year");
             entity.GradYear = request.GradYear;
         }
         if (request.PostGradDegree is not null)
         {
-            if (entity.PostGradDegree != request.PostGradDegree) changes.Add("Post Graduation Degree");
+            if (HasStringChanged(entity.PostGradDegree, request.PostGradDegree)) changes.Add("Post Graduation Degree");
             entity.PostGradDegree = request.PostGradDegree;
         }
         if (request.PostGradYear is not null)
         {
-            if (entity.PostGradYear != request.PostGradYear) changes.Add("Post Graduation Year");
+            if (HasStringChanged(entity.PostGradYear, request.PostGradYear)) changes.Add("Post Graduation Year");
             entity.PostGradYear = request.PostGradYear;
         }
         if (request.ExpType is not null)
         {
-            if (entity.ExpType != request.ExpType) changes.Add("Experience Type");
+            if (HasStringChanged(entity.ExpType, request.ExpType)) changes.Add("Experience Type");
             entity.ExpType = request.ExpType;
         }
         if (request.PriorTotalExp is not null)
         {
-            if (entity.PriorTotalExp != request.PriorTotalExp) changes.Add("Prior Total Experience");
+            if (!AreSingleExperienceEquivalent(entity.PriorTotalExp, request.PriorTotalExp)) changes.Add("Prior Total Experience");
             entity.PriorTotalExp = request.PriorTotalExp;
         }
         if (request.PriorRelevantExp is not null)
         {
-            if (entity.PriorRelevantExp != request.PriorRelevantExp) changes.Add("Prior Relevant Experience");
+            if (!AreSingleExperienceEquivalent(entity.PriorRelevantExp, request.PriorRelevantExp)) changes.Add("Prior Relevant Experience");
             entity.PriorRelevantExp = request.PriorRelevantExp;
         }
         if (request.BondDelivered is not null)
         {
-            if (entity.BondDelivered != request.BondDelivered) changes.Add("Bond Delivered");
+            if (HasStringChanged(entity.BondDelivered, request.BondDelivered)) changes.Add("Bond Delivered");
             entity.BondDelivered = request.BondDelivered;
         }
         if (request.BondDurationMonths.HasValue)
@@ -885,7 +1068,20 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
         if (request.BondExpiryDate.HasValue)
         {
-            if (entity.BondExpiryDate != request.BondExpiryDate) changes.Add("Bond Expiry Date");
+            var dateChanged = entity.BondExpiryDate != request.BondExpiryDate;
+            if (dateChanged)
+            {
+                var isAutoComputedBackfill = entity.BondExpiryDate == null &&
+                    entity.JoiningDate.HasValue &&
+                    entity.BondDurationMonths.HasValue &&
+                    entity.BondDurationMonths.Value > 0 &&
+                    request.BondExpiryDate.Value == entity.JoiningDate.Value.AddMonths(entity.BondDurationMonths.Value);
+
+                if (!isAutoComputedBackfill)
+                {
+                    changes.Add("Bond Expiry Date");
+                }
+            }
             entity.BondExpiryDate = request.BondExpiryDate;
         }
         await EmployeeIdentityGuard.EnsureUniqueAsync(db, EmployeeIdentityGuard.FromEntity(entity), entity.Id, ct);
@@ -940,6 +1136,38 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
             }
             await db.SaveChangesAsync(ct);
             await SyncLinkedUserAsync(entity, ct);
+            if (request.CreateLogin is bool createLogin)
+                await SetLoginAccessAsync(entity, createLogin, ct);
+
+            if (distinctChanges.Count > 0 && entity.ReportingManagerId.HasValue && entity.ReportingManagerId.Value != Guid.Empty)
+            {
+                Guid? performerEmpId = null;
+                if (currentUser.UserId is Guid uid)
+                {
+                    var emp = await db.Employees.FirstOrDefaultAsync(e => e.UserId == uid && e.DeletedAtUtc == null, ct);
+                    performerEmpId = emp?.Id;
+                }
+                if (!performerEmpId.HasValue && !string.IsNullOrWhiteSpace(currentUser.Email))
+                {
+                    var normEmail = currentUser.Email.Trim().ToLowerInvariant();
+                    var emp = await db.Employees.FirstOrDefaultAsync(
+                        e => e.DeletedAtUtc == null &&
+                             ((e.WorkEmail != null && e.WorkEmail.ToLower() == normEmail) ||
+                              (e.PersonalEmail != null && e.PersonalEmail.ToLower() == normEmail)),
+                        ct);
+                    performerEmpId = emp?.Id;
+                }
+
+                await notificationService.NotifyResourceProfileUpdatedAsync(
+                    entity.Id,
+                    $"{entity.FirstName} {entity.LastName}".Trim(),
+                    entity.EmployeeCode,
+                    entity.ReportingManagerId,
+                    distinctChanges,
+                    performerName,
+                    performerEmpId,
+                    ct);
+            }
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
@@ -1058,10 +1286,7 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         // Stay in the directory through last working day; hide from the next calendar day.
         if (request.LastWorkingDay is null || request.LastWorkingDay < TodayInIst())
-        {
-            await DeactivateLoginAsync(employee, ct);
             db.Employees.Remove(employee);
-        }
 
         var (offboardPerformerEmail, offboardPerformerName) = GetCurrentPerformer();
         db.EmployeeActivityLogs.Add(new EmployeeActivityLog
@@ -1077,6 +1302,22 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
 
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
+
+        if (offboardingNotificationService != null)
+        {
+            try
+            {
+                await offboardingNotificationService.SendImmediateResignationNotificationAsync(
+                    employee.Id,
+                    offboardPerformerName,
+                    currentUser.UserId,
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "[EmployeeService] Failed to dispatch immediate resignation notifications for employee {EmployeeId}", employee.Id);
+            }
+        }
 
         return MapExited(exited);
     }
@@ -1558,7 +1799,112 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.ClearanceCompleted,
         e.ExitRating);
 
-    private static EmployeeDetailDto MapDetail(Employee e, OnFloorRole? floor = null) => new(
+    private async Task<bool> HasActiveLoginAsync(Employee entity, CancellationToken ct)
+    {
+        if (entity.User is { IsActive: true, DeletedAtUtc: null }) return true;
+        var email = entity.WorkEmail.Trim().ToLowerInvariant();
+        var code = entity.EmployeeCode.Trim().ToLowerInvariant();
+        return await db.Users.AsNoTracking().AnyAsync(u =>
+            u.DeletedAtUtc == null &&
+            u.IsActive &&
+            (u.Email.ToLower() == email || u.EmployeeId.ToLower() == code), ct);
+    }
+
+    private async Task SetLoginAccessAsync(Employee entity, bool enabled, CancellationToken ct)
+    {
+        var email = entity.WorkEmail.Trim().ToLowerInvariant();
+        var code = entity.EmployeeCode.Trim();
+        var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u =>
+            (entity.UserId != null && u.Id == entity.UserId) ||
+            u.Email.ToLower() == email ||
+            u.EmployeeId.ToLower() == code.ToLower(), ct);
+
+        if (!enabled)
+        {
+            if (user is null)
+            {
+                if (entity.UserId is not null)
+                {
+                    entity.UserId = null;
+                    await db.SaveChangesAsync(ct);
+                }
+                return;
+            }
+
+            user.DeletedAtUtc = DateTime.UtcNow;
+            user.UpdatedAtUtc = DateTime.UtcNow;
+            entity.UserId = null;
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        var roleId = await ResolveLoginRoleIdAsync(entity, ct);
+        string? deptName = entity.Department?.Name;
+        if (deptName is null && entity.DepartmentId is Guid deptId)
+            deptName = await db.Departments.Where(d => d.Id == deptId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+        string? desigName = entity.Designation?.Name;
+        if (desigName is null && entity.DesignationId is Guid desigId)
+            desigName = await db.Designations.Where(d => d.Id == desigId).Select(d => d.Name).FirstOrDefaultAsync(ct);
+
+        if (user is null)
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                Name = $"{entity.FirstName} {entity.LastName}".Trim(),
+                EmployeeId = code,
+                Department = deptName,
+                SubDepartment = entity.SubDepartment,
+                Designation = desigName,
+                RoleId = roleId,
+                IsActive = true,
+                MustChangePassword = true,
+                PasswordHash = passwordHasher.Hash(UserService.TempPassword),
+                CreatedAtUtc = DateTime.UtcNow,
+            };
+            db.Users.Add(user);
+        }
+        else
+        {
+            user.Email = email;
+            user.Name = $"{entity.FirstName} {entity.LastName}".Trim();
+            user.EmployeeId = code;
+            user.Department = deptName;
+            user.SubDepartment = entity.SubDepartment;
+            user.Designation = desigName;
+            user.IsActive = true;
+            user.DeletedAtUtc = null;
+            user.UpdatedAtUtc = DateTime.UtcNow;
+            if (user.RoleId is null && roleId is Guid resolvedRole) user.RoleId = resolvedRole;
+            if (string.IsNullOrWhiteSpace(user.PasswordHash))
+            {
+                user.PasswordHash = passwordHasher.Hash(UserService.TempPassword);
+                user.MustChangePassword = true;
+            }
+        }
+
+        entity.UserId = user.Id;
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        {
+            throw new ConflictException("A login already exists for this email or TK ID.");
+        }
+    }
+
+    private async Task<Guid?> ResolveLoginRoleIdAsync(Employee entity, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(entity.Role)) return null;
+        var roleName = entity.Role.Trim();
+        var role = await db.Roles.FirstOrDefaultAsync(r =>
+            r.Name == roleName || r.DisplayName == roleName, ct);
+        return role?.Id;
+    }
+
+    private static EmployeeDetailDto MapDetail(Employee e, OnFloorRole? floor = null, bool hasLogin = false) => new(
         e.Id,
         e.EmployeeCode,
         e.FirstName,
@@ -1639,7 +1985,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         e.DepartmentId,
         e.DesignationId,
         floor?.Id,
-        floor?.Name);
+        floor?.Name,
+        hasLogin);
 
     private static string MapDirectoryStatusFromEmployeeStatusName(string name)
     {
@@ -1678,7 +2025,8 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         // Department → Designation → RBAC Role is one row in master.mst_org_role_map.
         if (entity.DesignationId is Guid desigId)
         {
-            var maps = await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
+            orgRoleMapCache ??= await OrgRoleMatrixSync.LoadByDesignationAsync(db, ct);
+            var maps = orgRoleMapCache;
             if (maps.TryGetValue(desigId, out var map))
             {
                 if (map.DepartmentId is Guid mapDeptId)
@@ -1731,24 +2079,11 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
     }
 
-    private async Task DeactivateLoginAsync(Employee employee, CancellationToken ct)
-    {
-        var email = employee.WorkEmail.Trim().ToLowerInvariant();
-        var user = await db.Users.FirstOrDefaultAsync(
-            u => u.DeletedAtUtc == null &&
-                 (u.Id == employee.UserId || u.EmployeeId == employee.EmployeeCode || u.Email.ToLower() == email), ct);
-        if (user is null) return;
-        user.IsActive = false;
-        user.UpdatedAtUtc = DateTime.UtcNow;
-        var sessions = await db.RefreshTokens.Where(t => t.UserId == user.Id && t.RevokedAtUtc == null).ToListAsync(ct);
-        foreach (var session in sessions)
-            session.RevokedAtUtc = DateTime.UtcNow;
-    }
-
     private async Task SyncLinkedUserAsync(Employee entity, CancellationToken ct)
     {
         var user = await db.Users.FirstOrDefaultAsync(
-            u => u.Email.ToLower() == entity.WorkEmail.ToLower() || u.EmployeeId == entity.EmployeeCode, ct);
+            u => u.Email == entity.WorkEmail || u.EmployeeId == entity.EmployeeCode, ct);
+        if (user is null) return;
 
         bool updated = false;
 
@@ -1764,38 +2099,6 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         {
             var desig = await db.Designations.FirstOrDefaultAsync(d => d.Id == desigId, ct);
             desigName = desig?.Name;
-        }
-
-        if (user is null)
-        {
-            if (string.IsNullOrWhiteSpace(entity.Role)) return;
-            var createdRole = await db.Roles.FirstOrDefaultAsync(
-                r => r.DeletedAtUtc == null && r.Name == entity.Role, ct);
-            if (createdRole is null) return;
-
-            user = new PMS.API.Modules.Users.Models.User
-            {
-                Id = Guid.NewGuid(),
-                Email = entity.WorkEmail.Trim().ToLowerInvariant(),
-                Name = $"{entity.FirstName} {entity.LastName}".Trim(),
-                EmployeeId = entity.EmployeeCode.Trim(),
-                Department = deptName,
-                Designation = desigName,
-                RoleId = createdRole.Id,
-                IsActive = true,
-                MustChangePassword = false,
-                CreatedAtUtc = DateTime.UtcNow,
-            };
-            db.Users.Add(user);
-            entity.UserId = user.Id;
-            await db.SaveChangesAsync(ct);
-            return;
-        }
-
-        if (entity.UserId != user.Id)
-        {
-            entity.UserId = user.Id;
-            updated = true;
         }
 
         if (!string.IsNullOrWhiteSpace(deptName) && user.Department != deptName)
@@ -2123,5 +2426,120 @@ public sealed class EmployeeService(AppDbContext db, IFileStorageService storage
         }
 
         return logs;
+    }
+
+    private static bool HasStringChanged(string? current, string? incoming)
+    {
+        var c = string.IsNullOrWhiteSpace(current) ? null : current.Trim();
+        var i = string.IsNullOrWhiteSpace(incoming) ? null : incoming.Trim();
+        return !string.Equals(c, i, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static (int years, int months) ParseYearsAndMonths(string? exp)
+    {
+        if (string.IsNullOrWhiteSpace(exp)) return (0, 0);
+        var s = exp.Trim();
+        if (string.Equals(s, "Fresher", StringComparison.OrdinalIgnoreCase) || s == "0" || s == "—" || s == "-")
+            return (0, 0);
+
+        var yMatch = Regex.Match(s, @"(\d+(?:\.\d+)?)\s*(?:yrs?|years?)", RegexOptions.IgnoreCase);
+        var mMatch = Regex.Match(s, @"(\d+)\s*(?:mos?|months?)", RegexOptions.IgnoreCase);
+
+        if (yMatch.Success || mMatch.Success)
+        {
+            var y = 0;
+            var m = 0;
+            if (yMatch.Success && double.TryParse(yMatch.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var yd))
+            {
+                y = (int)Math.Floor(yd);
+                var remM = (int)Math.Round((yd - y) * 12);
+                m += remM;
+            }
+            if (mMatch.Success && int.TryParse(mMatch.Groups[1].Value, out var parsedM))
+            {
+                m += parsedM;
+            }
+            y += m / 12;
+            m = m % 12;
+            return (y, m);
+        }
+
+        if (double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var num))
+        {
+            var y = (int)Math.Floor(num);
+            var m = (int)Math.Round((num - y) * 12);
+            y += m / 12;
+            m = m % 12;
+            return (y, m);
+        }
+
+        return (0, 0);
+    }
+
+    private static bool AreSingleExperienceEquivalent(string? a, string? b)
+    {
+        if (!HasStringChanged(a, b)) return true;
+        var (ya, ma) = ParseYearsAndMonths(a);
+        var (yb, mb) = ParseYearsAndMonths(b);
+        return ya == yb && ma == mb;
+    }
+
+    private static bool AreExperienceStringsEquivalent(string? a, string? b)
+    {
+        if (!HasStringChanged(a, b)) return true;
+
+        var aEmpty = string.IsNullOrWhiteSpace(a) || string.Equals(a.Trim(), "Fresher", StringComparison.OrdinalIgnoreCase) || a.Trim() is "0" or "—" or "-";
+        var bEmpty = string.IsNullOrWhiteSpace(b) || string.Equals(b.Trim(), "Fresher", StringComparison.OrdinalIgnoreCase) || b.Trim() is "0" or "—" or "-";
+        if (aEmpty && bEmpty) return true;
+
+        var matchA = Regex.Match(a ?? string.Empty, @"^(.*?)\s*\(Relevant:\s*(.*?)\)$", RegexOptions.IgnoreCase);
+        var matchB = Regex.Match(b ?? string.Empty, @"^(.*?)\s*\(Relevant:\s*(.*?)\)$", RegexOptions.IgnoreCase);
+
+        if (matchA.Success && matchB.Success)
+        {
+            return AreSingleExperienceEquivalent(matchA.Groups[1].Value, matchB.Groups[1].Value) &&
+                   AreSingleExperienceEquivalent(matchA.Groups[2].Value, matchB.Groups[2].Value);
+        }
+
+        if (matchA.Success && !matchB.Success)
+        {
+            return AreSingleExperienceEquivalent(matchA.Groups[1].Value, b);
+        }
+
+        if (!matchA.Success && matchB.Success)
+        {
+            return AreSingleExperienceEquivalent(a, matchB.Groups[1].Value);
+        }
+
+        return AreSingleExperienceEquivalent(a, b);
+    }
+
+    private static bool AreBondStatusesEquivalent(Employee entity, string? incomingStatus, DateOnly? incomingExpiry)
+    {
+        var currentNorm = ResolveNormalizedBondStatus(entity.BondStatus, entity.BondDelivered, entity.BondExpiryDate, entity.JoiningDate, entity.BondDurationMonths);
+        var incomingNorm = ResolveNormalizedBondStatus(incomingStatus, entity.BondDelivered, incomingExpiry ?? entity.BondExpiryDate, entity.JoiningDate, entity.BondDurationMonths);
+        return string.Equals(currentNorm, incomingNorm, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveNormalizedBondStatus(string? status, string? bondDelivered, DateOnly? bondExpiryDate, DateOnly? joiningDate, int? bondDurationMonths)
+    {
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var s = status.Trim().ToLowerInvariant();
+            if (s is "active" or "in bond" or "inbond") return "active";
+            if (s is "completed" or "expired") return "completed";
+            if (s is "no bond" or "nobond" or "without bond" or "none" or "na" or "n/a") return "none";
+            return s;
+        }
+
+        if (!string.Equals(bondDelivered?.Trim(), "Yes", StringComparison.OrdinalIgnoreCase))
+            return "none";
+
+        var expiry = bondExpiryDate ?? (joiningDate.HasValue && bondDurationMonths.HasValue && bondDurationMonths.Value > 0
+            ? joiningDate.Value.AddMonths(bondDurationMonths.Value)
+            : (DateOnly?)null);
+
+        if (!expiry.HasValue) return "none";
+        return expiry.Value < DateOnly.FromDateTime(DateTime.UtcNow) ? "completed" : "active";
     }
 }

@@ -1,33 +1,143 @@
 import React, { useState } from "react";
-import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CheckCircle2, Clock, XCircle, MessageSquare, ExternalLink, Archive, AlertCircle, X } from "lucide-react";
+import { cn, formatDateDMY } from "@/lib/utils";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { Avatar, PriorityPill } from "@/components/pills";
 import type { DhNotification } from "@/lib/workspace-store";
+import { apiFetch } from "@/lib/api-client";
+import { toast } from "sonner";
 
-export const formatNotifDate = (dateStr: string): string => {
+export function formatNotificationId(id?: string | null): string {
+  if (!id) return "";
+  const match = id.match(/^NOT-([0-9a-fA-F-]+)$/i);
+  if (match) {
+    const raw = match[1].replace(/-/g, "");
+    return `NOT-${raw.slice(0, 8).toUpperCase()}`;
+  }
+  if (id.startsWith("NOT-")) {
+    const raw = id.slice(4).replace(/-/g, "");
+    return `NOT-${raw.slice(0, 8).toUpperCase()}`;
+  }
+  const clean = id.replace(/-/g, "");
+  return `NOT-${clean.slice(0, 8).toUpperCase()}`;
+}
+
+export const formatNotifDate = (dateStr?: string | null): string => {
   if (!dateStr) return "—";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split("-");
+    return `${d}-${m}-${y}`;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = d.toLocaleString("en-US", { month: "short" });
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
+  return formatDateDMY(d);
 };
 
-export const formatNotifTime = (dateStr: string): string => {
+export const formatNotifTime = (dateStr?: string | null): string => {
   if (!dateStr) return "—";
+  if (/am|pm/i.test(dateStr)) return dateStr.trim();
+  if (/^\d{1,2}:\d{2}(:\d{2})?/.test(dateStr)) {
+    const today = new Date().toISOString().slice(0, 10);
+    const d = new Date(`${today}T${dateStr}${dateStr.endsWith("Z") ? "" : "Z"}`);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+    }
+    return dateStr;
+  }
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 };
 
+export function formatHistoryDateTime(
+  h?: { at?: string; date?: string; time?: string } | any,
+  fallbackCreatedAt?: string
+): { dateStr: string; timeStr: string } {
+  if (!h) {
+    if (fallbackCreatedAt) {
+      const d = new Date(fallbackCreatedAt);
+      if (!isNaN(d.getTime())) {
+        return {
+          dateStr: formatDateDMY(d),
+          timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+    return { dateStr: "—", timeStr: "" };
+  }
+
+  // 1. If full ISO timestamp `at` is present
+  if (h.at) {
+    const d = new Date(h.at);
+    if (!isNaN(d.getTime())) {
+      return {
+        dateStr: formatDateDMY(d),
+        timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
+
+  // 2. If both date and time are provided
+  if (h.date && h.time) {
+    if (/am|pm/i.test(h.time)) {
+      return {
+        dateStr: formatNotifDate(h.date),
+        timeStr: h.time.trim()
+      };
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(h.date) && /^\d{1,2}:\d{2}(:\d{2})?/.test(h.time)) {
+      const utcIso = `${h.date}T${h.time}${h.time.endsWith("Z") ? "" : "Z"}`;
+      const d = new Date(utcIso);
+      if (!isNaN(d.getTime())) {
+        return {
+          dateStr: formatDateDMY(d),
+          timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+        };
+      }
+    }
+  }
+
+  // 3. If date is provided (could be ISO string)
+  if (h.date) {
+    const d = new Date(h.date);
+    if (!isNaN(d.getTime()) && (h.date.includes("T") || h.date.includes("Z"))) {
+      return {
+        dateStr: formatDateDMY(d),
+        timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+    return {
+      dateStr: formatNotifDate(h.date),
+      timeStr: h.time ? formatNotifTime(h.time) : ""
+    };
+  }
+
+  // 4. Fallback to notification's createdAt
+  if (fallbackCreatedAt) {
+    const d = new Date(fallbackCreatedAt);
+    if (!isNaN(d.getTime())) {
+      return {
+        dateStr: formatDateDMY(d),
+        timeStr: d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true })
+      };
+    }
+  }
+
+  return { dateStr: "—", timeStr: "" };
+}
+
 export const getTypeStyles = (type: string) => {
   const t = (type || "").toLowerCase();
-  if (t.includes("wbs")) {
+  if (t.includes("timesheet")) {
+    return "bg-indigo-50 text-indigo-700 border border-indigo-200";
+  } else if (t.includes("wbs")) {
     return "bg-orange-50 text-orange-700 border border-orange-200";
+  } else if (t.includes("deleted") || t.includes("stopped")) {
+    return "bg-red-50 text-red-700 border border-red-200";
   } else if (
     t.includes("ready") ||
+    t.includes("started") ||
     t.includes("completed") ||
     t.includes("resolved") ||
     t.includes("approved") ||
@@ -36,7 +146,7 @@ export const getTypeStyles = (type: string) => {
     return "bg-emerald-50 text-emerald-700 border border-emerald-200";
   } else if (t.includes("rejected") || t.includes("cancelled") || t.includes("removal")) {
     return "bg-red-50 text-red-700 border border-red-200";
-  } else if (t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed")) {
+  } else if (t.includes("modify") || t.includes("paused") || t.includes("changes") || t.includes("requirement") || t.includes("approval") || t.includes("postponed") || t.includes("prerequisite") || t.includes("reminder")) {
     return "bg-amber-50 text-amber-700 border border-amber-200";
   } else if (t.includes("appreciation") || t.includes("feedback")) {
     return "bg-purple-50 text-purple-700 border border-purple-200";
@@ -44,25 +154,40 @@ export const getTypeStyles = (type: string) => {
     t.includes("interview") ||
     t.includes("shuffle") ||
     t.includes("allocation") ||
-    t.includes("assignment")
+    t.includes("assignment") ||
+    t.includes("assigned") ||
+    t.includes("added") ||
+    t.includes("resumed")
   ) {
     return "bg-sky-50 text-sky-700 border border-sky-200";
   }
-  return "bg-gray-50 text-gray-700 border border-gray-200";
+  return "bg-muted text-foreground border border-border";
 };
 
 export const getNotifStatusStyles = (status: string) => {
   const s = (status || "").toLowerCase().trim();
-  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
+  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done" || s === "started") {
     return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  }
+  if (s === "assigned") {
+    return "bg-indigo-50 text-indigo-700 border-indigo-200";
+  }
+  if (s === "created" || s === "added") {
+    return "bg-sky-50 text-sky-700 border-sky-200";
+  }
+  if (s === "edited" || s === "modify" || s === "modified") {
+    return "bg-amber-50 text-amber-700 border-amber-200";
+  }
+  if (s === "upload" || s === "uploaded") {
+    return "bg-teal-50 text-teal-700 border-teal-200";
   }
   if (s === "hold" || s === "on hold" || s === "postponed") {
     return "bg-amber-50 text-amber-700 border-amber-200";
   }
-  if (s === "rejected" || s === "cancelled") {
+  if (s === "rejected" || s === "cancelled" || s === "deleted") {
     return "bg-red-50 text-red-700 border-red-200";
   }
-  if (s === "request changes" || s === "requested changes") {
+  if (s === "request change" || s === "request changes" || s === "requested changes" || s === "change_requested") {
     return "bg-purple-50 text-purple-700 border-purple-200";
   }
   return "bg-orange-50 text-orange-700 border-orange-200";
@@ -70,14 +195,23 @@ export const getNotifStatusStyles = (status: string) => {
 
 export const renderNotifStatusIcon = (status: string) => {
   const s = (status || "").toLowerCase().trim();
-  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected") {
+  if (s === "acknowledged" || s === "approved" || s === "accepted" || s === "resolved" || s === "selected" || s === "done" || s === "started") {
     return <CheckCircle2 className="h-3 w-3 text-emerald-600" />;
   }
-  if (s === "hold" || s === "on hold" || s === "postponed") {
+  if (s === "assigned") {
+    return <CheckCircle2 className="h-3 w-3 text-indigo-600" />;
+  }
+  if (s === "created" || s === "added") {
+    return <CheckCircle2 className="h-3 w-3 text-sky-600" />;
+  }
+  if (s === "hold" || s === "on hold" || s === "postponed" || s === "modify" || s === "modified") {
     return <Clock className="h-3 w-3 text-amber-600" />;
   }
-  if (s === "rejected" || s === "cancelled") {
+  if (s === "rejected" || s === "cancelled" || s === "deleted") {
     return <XCircle className="h-3 w-3 text-red-600" />;
+  }
+  if (s === "request change" || s === "request changes" || s === "requested changes" || s === "change_requested") {
+    return <AlertCircle className="h-3 w-3 text-purple-600" />;
   }
   return <Clock className="h-3 w-3 text-orange-600" />;
 };
@@ -87,6 +221,7 @@ interface NotificationDetailModalProps {
   onClose: () => void;
   onArchive?: (id: string) => Promise<void> | void;
   onNavigateToActionCentre?: () => void;
+  onActionComplete?: () => Promise<void> | void;
 }
 
 export function NotificationDetailModal({
@@ -94,6 +229,7 @@ export function NotificationDetailModal({
   onClose,
   onArchive,
   onNavigateToActionCentre,
+  onActionComplete,
 }: NotificationDetailModalProps) {
   const [isArchiving, setIsArchiving] = useState(false);
 
@@ -113,7 +249,7 @@ export function NotificationDetailModal({
     }
   };
 
-  const displayCode = notification.notificationCode || (notification.id ? String(notification.id).slice(0, 8).toUpperCase() : "");
+  const displayCode = formatNotificationId(notification.notificationCode || notification.id);
 
   return (
     <Modal
@@ -153,9 +289,14 @@ export function NotificationDetailModal({
             </span>
           </div>
 
-          <h3 className="text-base font-bold text-gray-800 leading-snug">
+          <h3 className="text-base font-bold text-foreground leading-snug">
             {notification.title}
           </h3>
+          {notification.history?.[0]?.action && !notification.history[0].action.includes("Remarks:") && (
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              {notification.history[0].action}
+            </p>
+          )}
         </div>
 
         {/* Metadata Grid */}
@@ -164,7 +305,7 @@ export function NotificationDetailModal({
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
               Related Project
             </span>
-            <span className="font-semibold text-gray-800">
+            <span className="font-semibold text-foreground">
               {notification.relatedProject}
             </span>
           </div>
@@ -173,7 +314,7 @@ export function NotificationDetailModal({
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
               Related Task
             </span>
-            <span className="font-semibold text-gray-800">
+            <span className="font-semibold text-foreground">
               {notification.relatedTask || "—"}
             </span>
           </div>
@@ -184,7 +325,7 @@ export function NotificationDetailModal({
             </span>
             <div className="flex items-center gap-1.5 mt-0.5">
               <Avatar name={notification.raisedBy} size={18} />
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold text-foreground">
                 {notification.raisedBy}
               </span>
             </div>
@@ -194,7 +335,7 @@ export function NotificationDetailModal({
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
               Date
             </span>
-            <span className="font-medium text-gray-800">
+            <span className="font-medium text-foreground">
               {formatNotifDate(notification.createdAt)}
             </span>
           </div>
@@ -203,7 +344,7 @@ export function NotificationDetailModal({
             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
               Time
             </span>
-            <span className="font-medium text-gray-800 font-mono">
+            <span className="font-medium text-foreground font-mono">
               {formatNotifTime(notification.createdAt)}
             </span>
           </div>
@@ -229,7 +370,7 @@ export function NotificationDetailModal({
                       ? "Subject"
                       : "Issue Title"}
                   </span>
-                  <span className="font-medium text-gray-800 text-xs">
+                  <span className="font-medium text-foreground text-xs">
                     {notification.issueTitle}
                   </span>
                 </div>
@@ -242,7 +383,7 @@ export function NotificationDetailModal({
                       ? "Escalation Type"
                       : "Issue Type"}
                   </span>
-                  <span className="font-medium text-gray-800">
+                  <span className="font-medium text-foreground">
                     {notification.issueType}
                   </span>
                 </div>
@@ -253,7 +394,7 @@ export function NotificationDetailModal({
                   <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-0.5">
                     Description
                   </span>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap bg-muted/20 p-2.5 rounded-md border border-border/60">
+                  <p className="text-foreground leading-relaxed whitespace-pre-wrap bg-muted/20 p-2.5 rounded-md border border-border/60">
                     {notification.issueDescription}
                   </p>
                 </div>
@@ -320,7 +461,7 @@ export function NotificationDetailModal({
               <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
                 Created By
               </span>
-              <span className="font-semibold text-gray-700">
+              <span className="font-semibold text-foreground">
                 {notification.createdBy}
               </span>
             </div>
@@ -328,7 +469,7 @@ export function NotificationDetailModal({
               <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
                 Created Date
               </span>
-              <span className="font-medium text-gray-755">
+              <span className="font-medium text-foreground">
                 {formatNotifDate(notification.createdAt)}
               </span>
             </div>
@@ -336,7 +477,7 @@ export function NotificationDetailModal({
               <span className="text-muted-foreground block text-[9px] uppercase font-bold tracking-wider">
                 Created Time
               </span>
-              <span className="font-medium text-gray-755 font-mono">
+              <span className="font-medium text-foreground font-mono">
                 {formatNotifTime(notification.createdAt)}
               </span>
             </div>
@@ -344,30 +485,51 @@ export function NotificationDetailModal({
 
           {/* Chronological Timeline History Log */}
           <div className="relative pl-4 border-l border-border/60 space-y-3 mt-4">
-            {(notification.history || []).map((h, idx) => (
-              <div key={idx} className="relative flex items-start gap-2">
-                <span className="absolute -left-[20.5px] top-1.5 h-2 w-2 rounded-full border border-primary bg-card" />
-                <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground font-mono text-[10px]">
-                      {formatNotifDate(h.date)} {h.time}
-                    </span>
-                    <span className="font-semibold text-gray-700">
-                      {h.action.includes("Remarks:") ? (
-                        <>
-                          Notification acknowledged by <strong>{h.by}</strong>
-                          <span className="block text-muted-foreground font-normal mt-0.5 italic">
-                            Remarks: {h.action.split("Remarks:")[1]?.replace(/"/g, "")}
-                          </span>
-                        </>
-                      ) : (
-                        `${h.action} by ${h.by}`
-                      )}
-                    </span>
+            {(() => {
+              const historyItems = (notification.history && notification.history.length > 0)
+                ? notification.history
+                : [
+                    {
+                      action: "Notification created",
+                      at: notification.createdAt,
+                      date: notification.createdDate,
+                      by: notification.createdBy || notification.raisedBy || "System"
+                    }
+                  ];
+
+              return historyItems.map((h, idx) => {
+                const { dateStr, timeStr } = formatHistoryDateTime(h, notification.createdAt);
+                const actionText = h.action || (h as any).details || ((h as any).status ? `Status: ${(h as any).status}` : "Notification updated");
+                const performer = h.by || (h as any).updatedBy || notification.createdBy || "System";
+
+                return (
+                  <div key={idx} className="relative flex items-start gap-2">
+                    <span className="absolute -left-[20.5px] top-1.5 h-2 w-2 rounded-full border border-primary bg-card" />
+                    <div className="flex flex-col gap-0.5 text-xs leading-relaxed">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground font-mono text-[10px] whitespace-nowrap">
+                          {dateStr} {timeStr}
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {actionText.includes("Remarks:") ? (
+                            <>
+                              Notification acknowledged by <strong>{performer}</strong>
+                              <span className="block text-muted-foreground font-normal mt-0.5 italic">
+                                Remarks: {actionText.split("Remarks:")[1]?.replace(/"/g, "")}
+                              </span>
+                            </>
+                          ) : actionText.toLowerCase().includes(`by ${performer.toLowerCase()}`) ? (
+                            actionText
+                          ) : (
+                            `${actionText} by ${performer}`
+                          )}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              });
+            })()}
           </div>
         </div>
 

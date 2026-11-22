@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api-client";
+import type { ApiProject, ApiProjectTask } from "@/modules/projects/api/projects";
 
 export type TimesheetStatus = "draft" | "submitted" | "approved" | "rejected" | "change_requested";
 
@@ -80,4 +81,12 @@ export function decideTimesheet(
     method: "POST",
     body: JSON.stringify({ entryIds, action, comment }),
   });
+}
+
+export function getMyAssignedProjects() {
+  return apiFetch<ApiProject[]>("/api/v1/timesheets/mine/projects");
+}
+
+export function getMyAssignedTasks(projectId: string) {
+  return apiFetch<ApiProjectTask[]>(`/api/v1/timesheets/mine/tasks?projectId=${projectId}`);
 }

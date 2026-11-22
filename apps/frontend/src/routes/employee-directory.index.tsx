@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { EmployeeDirectoryPage } from "@/modules/employees";
+import { EmployeeDirectoryPage } from "@/modules/employees/pages/employee-directory-page";
 
 export const Route = createFileRoute("/employee-directory/")({
+  ssr: false,
   validateSearch: (search: Record<string, unknown>): { tab?: "directory" | "pool" } => ({
     tab:
       search.tab === "directory" || search.tab === "pool"

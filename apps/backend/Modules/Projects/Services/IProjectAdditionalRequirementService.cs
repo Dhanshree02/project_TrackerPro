@@ -38,6 +38,30 @@ public interface IProjectAdditionalRequirementService
         AddRequirementCommentRequest request,
         CancellationToken ct = default);
 
+    Task<ProjectAdditionalRequirementDto> TakeActionByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        AdditionalRequirementActionRequest request,
+        CancellationToken ct = default);
+
+    Task<ProjectAdditionalRequirementDto> ApproveByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        ApproveAdditionalRequirementRequest request,
+        CancellationToken ct = default);
+
+    Task<ProjectAdditionalRequirementDto> RejectByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        RejectAdditionalRequirementRequest request,
+        CancellationToken ct = default);
+
+    Task<ProjectAdditionalRequirementDto> AddCommentByIdentifierAsync(
+        Guid? projectId,
+        string identifier,
+        AddRequirementCommentRequest request,
+        CancellationToken ct = default);
+
     Task<IReadOnlyList<ProjectAdditionalRequirementDto>> ListPendingApprovalsAsync(
         CancellationToken ct = default);
 }

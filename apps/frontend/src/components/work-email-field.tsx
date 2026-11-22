@@ -75,29 +75,29 @@ export function WorkEmailField({
             aria-invalid={Boolean(error)}
             {...prefixInputProps}
           />
-          <div className="relative border-l border-input">
+          <div className="relative min-w-0 border-l border-input bg-muted/40">
             <select
               value={domain}
+              disabled={domainOptions.length === 0}
               onChange={(e) => onDomainChange(e.target.value)}
-              className="h-full w-full appearance-none border-0 bg-muted/70 pl-2.5 pr-8 text-sm font-semibold text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-0 cursor-pointer"
+              className="h-full w-full cursor-pointer appearance-none border-0 bg-transparent bg-none pl-2.5 pr-7 text-sm font-semibold text-foreground outline-none disabled:cursor-not-allowed"
               aria-label="Email domain"
             >
               {domainOptions.length === 0 ? (
-                <option value="" disabled>
-                  Loading…
-                </option>
+                <option value="">Loading…</option>
               ) : (
                 domainOptions.map((opt) => {
                   const domainVal = opt.code.replace(/^@/, "");
+                  const label = opt.name.startsWith("@") ? opt.name : `@${opt.name}`;
                   return (
                     <option key={opt.id || opt.code} value={domainVal}>
-                      {opt.name.startsWith("@") ? opt.name : `@${opt.name}`}
+                      {label}
                     </option>
                   );
                 })
               )}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
         {error ? <p className={FORM_ERROR_CLS}>{error}</p> : null}

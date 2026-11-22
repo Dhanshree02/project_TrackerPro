@@ -207,7 +207,10 @@ public class AppDbContext(
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedAtUtc = now;
+                    if (entry.Entity.CreatedAtUtc == default)
+                    {
+                        entry.Entity.CreatedAtUtc = now;
+                    }
                     entry.Entity.CreatedBy ??= userId;
                     break;
 
@@ -222,6 +225,23 @@ public class AppDbContext(
                     entry.Entity.DeletedAtUtc = now;
                     entry.Entity.UpdatedAtUtc = now;
                     entry.Entity.UpdatedBy = userId;
+
+                    // When converting a hard DELETE to a soft delete (Modified), restore any
+                    // properties (especially foreign keys like ClientId / SubVentureId) that
+                    // EF Core's relationship fixup nullified upon removal.
+                    foreach (var prop in entry.Properties)
+                    {
+                        if (prop.Metadata.Name != nameof(BaseEntity.DeletedAtUtc) &&
+                            prop.Metadata.Name != nameof(BaseEntity.UpdatedAtUtc) &&
+                            prop.Metadata.Name != nameof(BaseEntity.UpdatedBy))
+                        {
+                            if (prop.IsModified)
+                            {
+                                prop.CurrentValue = prop.OriginalValue;
+                                prop.IsModified = false;
+                            }
+                        }
+                    }
                     break;
             }
         }

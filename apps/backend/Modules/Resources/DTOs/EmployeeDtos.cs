@@ -133,7 +133,8 @@ public sealed record EmployeeDetailDto(
     Guid? DepartmentId = null,
     Guid? DesignationId = null,
     Guid? JobRoleId = null,
-    string? JobRoleName = null);
+    string? JobRoleName = null,
+    bool HasLogin = false);
 
 public sealed record EmployeeLookupDto(
     Guid Id,
@@ -252,7 +253,9 @@ public sealed record CreateEmployeeRequest(
     string? PostGradYear = null,
     string? ExpType = null,
     string? PriorTotalExp = null,
-    string? PriorRelevantExp = null);
+    string? PriorRelevantExp = null,
+    /// <summary>True creates a login in auth.tbl_users. False keeps the person in the directory only. Omitted means create a login.</summary>
+    bool? CreateLogin = null);
 
 public sealed record UpdateEmployeeRequest(
     string? FirstName = null,
@@ -335,7 +338,17 @@ public sealed record UpdateEmployeeRequest(
     string? BondDelivered = null,
     int? BondDurationMonths = null,
     DateOnly? BondExpiryDate = null,
-    Guid? EmployeeStatusId = null);
+    Guid? EmployeeStatusId = null,
+    /// <summary>True gives this person a login. False removes login access and keeps the directory record. Omitted leaves the current choice.</summary>
+    bool? CreateLogin = null);
+
+public sealed record SetEmployeeLoginAccessRequest(
+    IReadOnlyList<string> EmployeeIds,
+    bool CreateLogin);
+
+public sealed record SetEmployeeLoginAccessResult(
+    int Updated,
+    IReadOnlyList<string> NotFound);
 
 public sealed record EmployeeBulkRowError(int Row, string? EmployeeCode, string Message);
 

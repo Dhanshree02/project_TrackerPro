@@ -799,6 +799,9 @@ export interface DhAlert {
 
 
   projectId?: string;
+  projectName?: string;
+  customerId?: string;
+  customerName?: string;
 
 
 
@@ -1352,6 +1355,8 @@ export interface DhCentralApproval {
 
   requestedDate: string;
 
+  createdAtUtc?: string;
+
 
 
 
@@ -1639,6 +1644,8 @@ export interface LeadershipChangeRequest {
 
 
   requestedDate: string;
+
+  createdAtUtc?: string;
 
 
 
@@ -2231,6 +2238,8 @@ export interface DhAdditionalRequirement {
 
 
   requestedDate: string;
+
+  createdAtUtc?: string;
 
 
 
@@ -4642,6 +4651,11 @@ export interface DhNotification {
   status: "Pending" | "Acknowledged" | "Open" | "In Progress" | "Resolved" | "Closed" | string;
   priority: "Low" | "Medium" | "High" | "Critical" | "-" | string;
   unread: boolean;
+  projectId?: string;
+  projectName?: string;
+  customerId?: string;
+  customerName?: string;
+  issueId?: string;
   issueTitle?: string;
   issueDescription?: string;
   issueType?: string;
@@ -5512,7 +5526,7 @@ const state: DhState = {
 
 
 
-const PERSIST_KEY = "trackerpro_store_state_clean_v1";
+const PERSIST_KEY = "trackerpro_store_state_clean_v2";
 
 
 
@@ -5537,6 +5551,12 @@ function loadPersistedState() {
 
 
   if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem("trackerpro_store_state_clean_v1");
+    window.localStorage.removeItem("trackerpro_store_state_v1");
+    window.localStorage.removeItem("trackerpro_store_state");
+  } catch {}
 
 
 
@@ -5789,6 +5809,12 @@ function persistState() {
 
 
   if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.removeItem("trackerpro_store_state_clean_v1");
+    window.localStorage.removeItem("trackerpro_store_state_v1");
+    window.localStorage.removeItem("trackerpro_store_state");
+  } catch {}
 
 
 
@@ -18778,7 +18804,7 @@ export const dhStore = {
 
 
 
-        iv.resourceResponse.text += `\n[${actionTaken} - ${new Date(now).toLocaleDateString()}]: ${remarks.trim()}`;
+        iv.resourceResponse.text += `\n[${actionTaken} - ${`${String(new Date(now).getDate()).padStart(2, "0")}-${String(new Date(now).getMonth() + 1).padStart(2, "0")}-${new Date(now).getFullYear()}`}]: ${remarks.trim()}`;
 
 
 

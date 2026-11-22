@@ -280,7 +280,10 @@ public sealed class ProjectFeedbackService(
             q = q.Where(f => f.EmployeeId == employeeId.Value);
         }
 
-        var items = await q.OrderByDescending(f => f.CreatedAtUtc).ToListAsync(ct);
+        var items = await q
+            .OrderByDescending(f => f.CreatedAtUtc)
+            .ThenByDescending(f => f.Id)
+            .ToListAsync(ct);
         return items.Select(f => MapToDto(f, f.Project?.Name)).ToList();
     }
 
@@ -299,7 +302,10 @@ public sealed class ProjectFeedbackService(
             q = q.Where(f => f.ReportingManagerId == currentEmpId.Value);
         }
 
-        var items = await q.OrderByDescending(f => f.CreatedAtUtc).ToListAsync(ct);
+        var items = await q
+            .OrderByDescending(f => f.CreatedAtUtc)
+            .ThenByDescending(f => f.Id)
+            .ToListAsync(ct);
         return items.Select(f => MapToDto(f, f.Project?.Name)).ToList();
     }
 

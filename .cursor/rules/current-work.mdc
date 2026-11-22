@@ -5,13 +5,75 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-18
+**Last updated:** 2026-11-19
 
-- **Short lists no longer keep a tall empty band.** Repository, Employee Directory, the resource pool, and Exit Summary drop the minimum height on the list. A long list still scrolls inside the page.
+- **My Reportees allocation filters.** On Leave is not in All Allocation Statuses on My Reportees. A Billable / Non-Billable filter sits after All Allocation Types and uses each employee’s billable status. `apps/frontend/src/modules/my-team/index.tsx`, `teamDataService.ts`.
 
-- **My Reportees shows for a person who has someone reporting to them.** The tab no longer waits for the role’s My Reportees choice. Sahil Lad’s role is R&D - Team member, and that choice is off, which hid the tab. Pradnya Avtare (TK-0546) reports to Sahil. Krsna Chandarana (TK-0621) reports to Omkar Gaikwad (TK-0001).
+- **Numbered generated departments and designations were removed from `pms_uat`.** 17 `Dept_` rows and 17 `Head of Department_` rows, created on 18 Nov 2026, are gone from `master.mst_departments` and `master.mst_designations`. Their on-floor role rows went with the designations. No employees used them. The 10 real departments stayed.
 
-- **Each environment has its own Postgres container.** Development is `pms_development_db` on host port 41761, UAT is `pms_uat_postgres` on 41764, and production is `pms_production_db` on 41765. Each has its own volume. The apps connect to those containers. The old `pms_uat_db` on 41763 is still running with the same volume, including `pms_uat_clean` and `pms_deployment`, and the apps no longer use it. Fresh dumps from before the switch are in `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/db-split-backups/2026-11-16/`. Every table row count on the new databases matches the source. UAT’s app is running on `:39117` and `:52819`.
+- **New Project hides Section B and the Section A money totals.** Section B: Accounts Team Details is not shown. Section A hides Unit Price, Total, Subtotal, Tax (%), Invoice Target, Total Hours, and Total Days. Those fields still save on the project. Create WBS no longer asks for the hidden accounts fields. On the project, Billing Model, Payment Terms, PO Status, Total Days, and Total Hours show as `-`. `project-onboarding-page.tsx`, `project-detail-page.tsx`.
+
+- **Approvals Tab request actions (Approve / Reject / Hold / Request Changes) reliably persist in PostgreSQL `pms_uat`.**
+  - Resolved root cause where brittle exact string comparisons in `handleAction` skipped API calls and only modified optimistic local state.
+  - Normalized approval item identifiers (`APP-`, `APP-ALLOC-`, `ALLOC-`, `APP-EXT-`, `EXT-`) across `ProjectTeamMemberService.cs`, `ProjectExtensionRequestService.cs`, and `ProjectAdditionalRequirementService.cs`.
+  - Added polymorphic action dispatch in `ActionCentreController.cs` (`/api/v1/action-centre/approvals/{identifier}/action` and `/extension-approvals/{identifier}/action`) with universal fallback ensuring every action sent from the Central Action Centre updates PostgreSQL records directly.
+  - No new employees, resources, or departments were added to the database.
+
+- **Duplicate key constraint violation on `pk_tbl_notifications` fixed.** `DatabaseSyncHelper.IsPrimaryPmsUat` prevents secondary database self-syncing when connected directly to `pms_uat`, and sync calls execute strictly post-`SaveChangesAsync`. Extension requests, additional requirements, and interviews complete without 23505 errors.
+
+- **Employee Directory filters stay inside the bar.** Search and the department, designation, sub-department, on-floor role, and status lists share one row and shrink to the card. All Statuses no longer sits past the card edge. `employee-directory-page.tsx`.
+
+- **Resource Masters no longer has a Department Hierarchy tab.** All Masters Overview and the category tabs list Work Email Domain, Business Unit, Work Location, Graduation Degree, Post Graduation, Certifications, and Address City. Department, designation, sub-department, and RBAC mapping stay in the database for onboarding. The Resource Masters count leaves those hierarchy rows out. `resource-masters-section.tsx`, `resource-masters.ts`.
+
+- **On a scope service, Billing status opens only after Collection is Collected and Validation is Validated.** The same rule is checked when the status is saved. Resource services are unchanged. `project-detail-page.tsx`, `ProjectAppService.UpdateServicePrerequisiteAsync`.
+
+- **Manage Project Services dropdowns can be used inside the window.** Department, Sub-Department, Service Name, Service Model, Delivery Model, and Final Delivery Format open above the dialog and save on `project.tbl_project_services`. `dialog.tsx`, `creatable-catalog-select.tsx`.
+
+- **Exit Summary test rows are gone from `pms_uat`.** 44 generated exits were removed. Aarav Roy (`TK-0007`), Nikhil Saxena (`TK-0008`), and Vihaan Saxena (`TK-0009`) stayed. The Exit Summary table and the empty Employee Directory table fill the card. `exit-summary-page.tsx`, `employee-directory-page.tsx`.
+
+- **Numbered generated designations were removed from Resource Masters.** 77 rows named `Head of Department_` plus a code are gone from `master.mst_designations` on `pms_uat` and `trackerpro`. Real designations stayed. No employees used those rows.
+
+- **Numbered generated departments were removed from `master.mst_departments` on `pms_uat`.** That is the database the running API is using. The same rows were already removed from `trackerpro`. The 10 real departments stayed.
+
+- **Numbered generated departments were removed from `master.mst_departments` on local `trackerpro`.** The 10 real departments stayed: Core, the Functional departments, R&D, and the Services departments.
+
+- **Employee bulk upload saves the file in one write.** It no longer sends an onboarding notice and reloads the whole employee list for every row. Restart the API so the running process picks this up. `EmployeeService.CreateEmployeeForBulkAsync`.
+
+- **The holiday calendar list fills the card.** Date, holiday name, and actions stretch across the table. `apps/frontend/src/modules/settings/components/masters/leave-calendar-section.tsx`.
+
+- **Employee onboarding TK ID and work-email domain sit inside the same field again.** The Existing Project Masters table uses the full width. `apps/frontend/src/components/tk-id-field.tsx`, `apps/frontend/src/components/work-email-field.tsx`, `apps/frontend/src/modules/settings/components/masters/project-masters-section.tsx`.
+
+- **Engagement Mgr in the project list stays the normal text color on hover.** `apps/frontend/src/modules/projects/pages/projects-list-page.tsx`.
+
+- **Export WBS is hidden on WBS Management System.** Save Draft and Create WBS stay on the workflow bar. `apps/frontend/src/modules/projects/pages/project-onboarding-page.tsx`.
+
+- **The customer list table uses the full width, the same as the project list and repository tables.**
+
+- **Per page is one fixed-size control, and the project list and repository tables use the full width.** The page-size field no longer shrinks inside a second box. Those two tables fill the page instead of hugging their text.
+
+- **The TK Customer and Sub-venture arrows show a hand on hover.** Each chevron opens and closes its list on project onboarding. `apps/frontend/src/modules/projects/pages/project-onboarding-page.tsx`.
+
+- **Dropdowns use the All Departments list.** The field is the compact rounded control with a chevron. A chosen value gets the blue tint, and the list shows a check on the selected row. Search appears when the list is long. `SearchableSelect` in `apps/frontend/src/components/creatable-catalog-select.tsx`.
+
+- **Creating a WBS saves the invoice rows.** Each invoice was sent with the service code as `projectServiceId`. The API only accepts the saved project-service id, so every row was rejected. The create flow now sends that id, and a service code is left off the invoice.
+
+- **Dates on screen and in the bulk-upload samples use DD-MM-YYYY.** Due Date, project dates, holidays, repository dates, and timestamps follow that pattern. The holiday sample and the employee sample use the same day-month-year order. Calendar month names stay as month names. Date fields that the browser fills still store `yyyy-mm-dd`.
+
+- **Bucket List task names are plain text.** The Task column no longer opens the project. The running API uses local PostgreSQL 18 database `trackerpro` on `localhost:5432`.
+
+- **Bucket List row hover and divider follow the row.** The timer card was wider than the Actions column, so the hover and the row line stopped short and sat across the cards. The Actions column is wider, the card stays inside that cell, and the row line comes from the table divider. `apps/frontend/src/modules/action-centre/pages/action-centre-page.tsx`.
+
+- **Database updates for development go through `database/pms_development.sql`.** Sahil's `database/pms_uat.sql` was loaded into `pms_development` on `pms_development_db`. `AlertType` is `character varying(100)`. The loaded data is 4 clients, 8 projects, 110 employees, and 30 leave-calendar rows. `pms_development.sql` was dumped from that database on PostgreSQL 16. `pms_uat.sql` stays as the file he pushed.
+
+- **Each environment has its own Postgres container.** Development is `pms_development_db` on host port 41761, UAT is `pms_uat_postgres` on 41764, and production is `pms_production_db` on 41765. Each has its own volume. The apps connect to those containers. The old `pms_uat_db` on 41763 is still running with the same volume, including `pms_uat_clean` and `pms_deployment`, and the apps no longer use it. Fresh dumps from before the switch are in `/Users/omkargaikwad/Downloads/Talakunchi_AI_PMS/db-split-backups/2026-11-16/`. Every table row count on the new databases matches the source.
+
+- **`database/pms_uat.sql` matches the live `pms_development` database.** Dumped from PostgreSQL 16 on `pms_uat_db` with `pg_dump --no-owner --no-acl`. The `\restrict` lines were left out. Counts: 15 clients, 7 projects, 120 employees, 30 leave-calendar rows.
+
+- **WBS creation follows dark mode.** `/projects/new` uses the page and card colors from the theme. Fields, locked values, tables, and the invoice row tints do the same. Light mode stays the gray page with white cards. The navy bar and the blue Save Draft / Create WBS buttons stay as they are.
+
+- **`/hangfire` opens on the app port.** The development frontend proxies `/hangfire` to the API, the same way it proxies `/api`. `http://localhost:39107/hangfire` returns the Job Monitor. The API path `http://localhost:52815/hangfire` still serves it directly.
+
+- **This development checkout is based on `origin/production` (`38ba15c`) with the `CHANGELOG_AI.md` features layered on top, and it is not committed yet.** Microsoft sign-in is not used here. The header keeps Switch User. The changelog layer covers offboarding and last-working-day reminders, task pause and stop text, My Timesheet assigned projects and tasks, Action Centre sorting and governance notifications, timesheet approval reminders, resource allocation approvals, and the WBS escalation notification details. Production screens, compose files, and `database/pms-production.sql` stay as they are. Local `development` and `origin/development` have diverged; this has not been pushed.
 
 - **Team Dashboard search can match allocation status.** The status is read before the search text is checked, so typing in search no longer crashes the page.
 

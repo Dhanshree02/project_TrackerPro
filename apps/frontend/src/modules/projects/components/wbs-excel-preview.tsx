@@ -49,8 +49,6 @@ const ACCOUNT_HEADERS = [
   "Date of Payment Received",
 ] as const;
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 function text(v: unknown): string {
   const s = v === null || v === undefined ? "" : String(v).trim();
   return s === "" ? DASH : s;
@@ -59,7 +57,7 @@ function text(v: unknown): string {
 function formatDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec((iso ?? "").trim());
   if (!m) return DASH;
-  return `${m[3]}-${MONTHS[Number(m[2]) - 1]}-${m[1]}`;
+  return `${m[3]}-${m[2]}-${m[1]}`;
 }
 
 function formatMoney(amount: number, symbol: string): string {

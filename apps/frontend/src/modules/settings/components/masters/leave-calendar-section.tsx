@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { SortableColumnHeader, compareSortValues, toggleColumnSort } from "@/components/sortable-column-header";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -43,6 +44,7 @@ import {
   type LeaveCalendarHoliday,
   type UpsertLeaveCalendarHolidayPayload,
 } from "@/modules/settings/api/leave-calendar";
+import { formatDateDMY } from "@/lib/utils";
 import { HolidayBulkUploadDialog } from "./holiday-bulk-upload-dialog";
 
 // Standard company holiday green matching Team Dashboard
@@ -111,11 +113,18 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
   }, []);
 
   // Filtered holidays
+  const [holidaySortKey, setHolidaySortKey] = useState<"date" | "name">("date");
+  const [holidaySortDir, setHolidaySortDir] = useState<"asc" | "desc">("asc");
   const filteredHolidays = useMemo(() => {
-    if (!searchQuery.trim()) return holidays;
-    const q = searchQuery.toLowerCase();
-    return holidays.filter((h) => h.name.toLowerCase().includes(q));
-  }, [holidays, searchQuery]);
+    const base = !searchQuery.trim()
+      ? holidays
+      : holidays.filter((h) => h.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    return [...base].sort((a, b) =>
+      holidaySortKey === "date"
+        ? compareSortValues(a.date, b.date, holidaySortDir)
+        : compareSortValues(a.name, b.name, holidaySortDir),
+    );
+  }, [holidays, searchQuery, holidaySortKey, holidaySortDir]);
 
   const handleOpenAddDialog = (initialDate?: string) => {
     const defaultDate = initialDate ?? `${selectedYear}-01-01`;
@@ -195,20 +204,7 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
     }
   };
 
-  const formatDateLabel = (isoDate: string) => {
-    try {
-      const parts = isoDate.split("-");
-      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      return d.toLocaleDateString("en-US", {
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-    } catch {
-      return isoDate;
-    }
-  };
+  const formatDateLabel = (isoDate: string) => formatDateDMY(isoDate) || isoDate;
 
   return (
     <div className="space-y-6">
@@ -383,12 +379,27 @@ export function LeaveCalendarSection({ onCountChange }: LeaveCalendarSectionProp
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="app-columns text-left text-xs">
+              <table className="w-full text-left text-xs">
                 <thead className="app-columns-head">
                   <tr className="border-b border-border bg-card/95 font-semibold text-muted-foreground">
-                    <th className="py-2.5 px-4 w-56">Date</th>
-                    <th className="py-2.5 px-4">Holiday Name</th>
-                    <th className="py-2.5 px-4 text-right w-24">Actions</th>
+                    <SortableColumnHeader
+                      label="Date"
+                      column="date"
+                      sortKey={holidaySortKey}
+                      sortDir={holidaySortDir}
+                      onSort={(next) => toggleColumnSort(next, holidaySortKey, setHolidaySortKey, setHolidaySortDir)}
+                      className="w-56"
+                    />
+                    <SortableColumnHeader
+                      label="Holiday Name"
+                      column="name"
+                      sortKey={holidaySortKey}
+                      sortDir={holidaySortDir}
+                      onSort={(next) => toggleColumnSort(next, holidaySortKey, setHolidaySortKey, setHolidaySortDir)}
+                    />
+                    <th className="w-24 px-4 py-3.5 text-right text-[13px] font-semibold tracking-[-0.01em] text-muted-foreground">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">

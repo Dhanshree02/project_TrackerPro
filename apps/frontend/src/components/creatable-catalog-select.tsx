@@ -39,6 +39,7 @@ export function SearchableSelect({
   showSearch: showSearchProp,
   onSearchChange,
   menuZIndex,
+  menuMinWidth = 220,
 }: {
   id?: string;
   label?: string;
@@ -60,6 +61,7 @@ export function SearchableSelect({
   /** Fires when the dropdown search text changes (for live API filtering). */
   onSearchChange?: (query: string) => void;
   menuZIndex?: number;
+  menuMinWidth?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -73,7 +75,7 @@ export function SearchableSelect({
   const computeMenuStyle = (el: HTMLElement): CSSProperties => {
     const rect = el.getBoundingClientRect();
     const upward = window.innerHeight - rect.bottom < 260 && rect.top > 260;
-    const menuWidth = Math.max(rect.width, 220);
+    const menuWidth = Math.max(rect.width, menuMinWidth);
     let left = rect.left;
     if (typeof window !== "undefined" && left + menuWidth > window.innerWidth - 8) {
       left = Math.max(8, window.innerWidth - menuWidth - 8);
@@ -135,6 +137,7 @@ export function SearchableSelect({
     if (!isOpen) return;
     const placeMenu = () => {
       const el = buttonRef.current;
+      if (!el) return;
       setMenuStyle(computeMenuStyle(el));
     };
     placeMenu();
@@ -151,7 +154,7 @@ export function SearchableSelect({
       window.removeEventListener("scroll", placeMenu, true);
       if (focusTimer) clearTimeout(focusTimer);
     };
-  }, [isOpen, showSearch, menuZIndex]);
+  }, [isOpen, showSearch, menuZIndex, menuMinWidth]);
 
   const handleSelect = (val: string) => {
     onChange?.(val);
@@ -203,8 +206,10 @@ export function SearchableSelect({
           }}
           className={cn(
             FORM_CONTROL_CLS,
-            "flex w-full items-center justify-between gap-2 text-left font-normal transition-colors select-none",
-            !value && "text-muted-foreground",
+            "flex w-full items-center justify-between gap-2 text-left text-xs font-normal transition-all select-none",
+            value
+              ? "border-blue-500/50 bg-blue-500/5 font-medium text-foreground"
+              : "border-input text-muted-foreground",
             disabled && "cursor-not-allowed opacity-60 bg-muted/40",
             isOpen && !error && "border-primary ring-2 ring-primary/20",
             error && "!border-destructive ring-2 ring-destructive/20",
@@ -214,7 +219,7 @@ export function SearchableSelect({
           aria-expanded={isOpen}
           aria-invalid={Boolean(error)}
         >
-          <span className="truncate">
+          <span className="min-w-0 truncate">
             {selectedOption
               ? selectedOption.label
               : disabled
@@ -249,8 +254,9 @@ export function SearchableSelect({
           createPortal(
           <div
             ref={menuRef}
+            data-searchable-select-menu=""
             style={menuStyle}
-            className="max-h-60 min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden"
+            className="pointer-events-auto z-[100000] max-h-60 min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden"
             role="listbox"
           >
             {/* Search Input */}

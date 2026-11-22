@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 export const FORM_LABEL_CLS = "mb-1 block text-xs font-medium text-muted-foreground";
 export const FORM_ERROR_CLS = "mt-1 text-[11px] text-destructive";
 export const FORM_CONTROL_CLS =
-  "h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60";
+  "h-9 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-60";
 
 export interface FieldProps {
   label: string;

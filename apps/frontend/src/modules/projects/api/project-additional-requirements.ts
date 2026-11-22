@@ -78,20 +78,41 @@ export async function rejectProjectAdditionalRequirement(
   );
 }
 
-export async function takeProjectAdditionalRequirementAction(
-  projectId: string,
-  requirementId: string,
+export async function takeCentralApprovalAction(
+  identifier: string,
   status: string,
-  comment: string
+  comment: string,
+  projectId?: string
 ): Promise<ProjectAdditionalRequirement> {
+  const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
   return apiFetch<ProjectAdditionalRequirement>(
-    `/api/v1/projects/${projectId}/additional-requirements/${requirementId}/action`,
+    `/api/v1/action-centre/approvals/${encodeURIComponent(identifier)}/action${query}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, comment }),
     }
   );
+}
+
+export async function takeProjectAdditionalRequirementAction(
+  projectId: string,
+  requirementId: string,
+  status: string,
+  comment: string
+): Promise<ProjectAdditionalRequirement> {
+  try {
+    return await apiFetch<ProjectAdditionalRequirement>(
+      `/api/v1/projects/${projectId}/additional-requirements/${requirementId}/action`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, comment }),
+      }
+    );
+  } catch {
+    return await takeCentralApprovalAction(requirementId, status, comment, projectId);
+  }
 }
 
 export async function addProjectAdditionalRequirementComment(
