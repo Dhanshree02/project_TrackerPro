@@ -7,6 +7,10 @@ git pull origin production
 if errorlevel 1 exit /b 1
 
 echo Starting the production database without removing its volume
+docker network inspect pms_shared >nul 2>&1
+if errorlevel 1 docker network create pms_shared
+docker volume inspect pms-production-storage >nul 2>&1
+if errorlevel 1 docker volume create pms-production-storage
 docker compose -f compose/production.yml -p pms-production up -d db
 if errorlevel 1 exit /b 1
 

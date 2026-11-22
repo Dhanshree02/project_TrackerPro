@@ -39,6 +39,10 @@ services:
 
   backend:
     image: pms-backend:production
+    pull_policy: build
+    build:
+      context: ../apps/backend
+      dockerfile: Dockerfile
     container_name: pms-production-backend
     restart: unless-stopped
     depends_on:
@@ -67,7 +71,11 @@ services:
       - pms_shared
 
   frontend:
-    image: pms-frontend:uat-clean
+    image: pms-frontend:production
+    pull_policy: build
+    build:
+      context: ../apps/frontend
+      dockerfile: Dockerfile
     container_name: pms-production-frontend
     restart: unless-stopped
     depends_on:
