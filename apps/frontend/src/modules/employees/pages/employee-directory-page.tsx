@@ -1262,7 +1262,7 @@ export function EmployeeDirectoryPage() {
       {/* Directory Table / Pool Table */}
       {tab === "directory" ? (
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
+          <div className="overflow-auto max-h-[calc(100vh-210px)]">
             <table className="w-full min-w-max text-sm">
               <thead className="sticky top-0 z-10 border-b border-black/10 bg-[#E8E8ED] text-left dark:border-white/10 dark:bg-[#3A3A3C] [&_th]:bg-[#E8E8ED] dark:[&_th]:bg-[#3A3A3C]">
                 <tr>
@@ -1440,7 +1440,7 @@ export function EmployeeDirectoryPage() {
         </div>
       ) : (
         <div className="w-fit max-w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-          <div className="overflow-auto max-h-[calc(100vh-210px)] min-h-[500px]">
+          <div className="overflow-auto max-h-[calc(100vh-210px)]">
             <table className="w-max table-fixed text-sm">
               <thead className="sticky top-0 z-10 border-b border-black/10 bg-[#E8E8ED] text-left dark:border-white/10 dark:bg-[#3A3A3C] [&_th]:bg-[#E8E8ED] dark:[&_th]:bg-[#3A3A3C]">
                 <tr>

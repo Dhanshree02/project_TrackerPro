@@ -295,6 +295,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
   // Extract active role name robustly across employee codes and RBAC roles
   const activeRoleName = useMemo(() => {
     if (user?.role) return user.role.trim().toLowerCase();
+    if (!demoRole) return "";
     const persona = getDemoPersona(demoRole);
     return (persona?.roleKey || persona?.accessRole || demoRole || "").trim().toLowerCase();
   }, [user?.role, demoRole]);

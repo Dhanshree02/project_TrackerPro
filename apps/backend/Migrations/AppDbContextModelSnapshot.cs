@@ -52,6 +52,12 @@ namespace PMS.API.Migrations
                     b.Property<Guid?>("IssueId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("NotificationNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("NotificationNumber"));
+
                     b.Property<string>("Priority")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -87,6 +93,9 @@ namespace PMS.API.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<Guid?>("ServiceEscalationId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -120,6 +129,8 @@ namespace PMS.API.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IssueId");
+
+                    b.HasIndex("ServiceEscalationId");
 
                     b.HasIndex("Status");
 
@@ -1501,8 +1512,8 @@ namespace PMS.API.Migrations
 
                     b.Property<string>("AlertType")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("AttachmentFileName")
                         .HasMaxLength(255)
@@ -3325,6 +3336,10 @@ namespace PMS.API.Migrations
                     b.Property<string>("OfficeBranch")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
+
+                    b.Property<string>("OriginalRole")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
 
                     b.Property<string>("Pan")
                         .HasMaxLength(40)
@@ -5434,6 +5449,16 @@ namespace PMS.API.Migrations
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<short>("DefaultCanManage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0);
+
+                    b.Property<short>("DefaultCanView")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0);
+
                     b.Property<DateTime?>("DeletedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -5658,11 +5683,18 @@ namespace PMS.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("PMS.API.Modules.Projects.Models.ProjectServiceEscalation", "ServiceEscalation")
+                        .WithMany()
+                        .HasForeignKey("ServiceEscalationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Issue");
 
                     b.Navigation("Project");
 
                     b.Navigation("RecipientEmployee");
+
+                    b.Navigation("ServiceEscalation");
                 });
 
             modelBuilder.Entity("PMS.API.Modules.ActionCentre.Models.BucketTask", b =>

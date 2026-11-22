@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Search, ChevronDown, Check } from "lucide-react";
+import { Search, ChevronDown, Check, LogOut, UserRound } from "lucide-react";
 import { GlobalSearch } from "@/components/global-search";
 import { FinancialYearFilter } from "@/lib/financial-year";
 import { GlobalNotificationBell } from "./global-notification-bell";
@@ -41,8 +41,10 @@ function AppEnvironmentMark() {
 }
 
 export function AppTopbar({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
+  const stage = (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase();
+  const allowUserSwitch = stage !== "production";
   const { role, user, assignedIssues, pendingTimesheets } = useRoleContext();
-  const { user: authUser, demoRole, switchDemoRole } = useAuth();
+  const { user: authUser, demoRole, switchDemoRole, logout, status } = useAuth();
   const navigate = useNavigate();
   const [roleQuery, setRoleQuery] = useState("");
   const [selectedDept, setSelectedDept] = useState("All");
@@ -52,12 +54,13 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
   const deptFilterScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!allowUserSwitch) return;
     void loadEmployeePersonas()
       .then((list) => {
         setSwitchPersonas(list);
       })
       .catch(() => {});
-  }, []);
+  }, [allowUserSwitch]);
 
   const roleLabel = authUser?.role
     ? (backendRoleLabels[authUser.role] ?? roleLabels[role as keyof typeof roleLabels] ?? authUser.role)
@@ -67,7 +70,7 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
     assignedIssues.filter((i) => i.status === "open").length + pendingTimesheets.length;
 
   const onSwitchRole = async (next: DemoRoleKey) => {
-    if (next === demoRole) return;
+    if (!allowUserSwitch || next === demoRole) return;
     await navigate({ to: "/" });
     await switchDemoRole(next);
   };
@@ -166,7 +169,8 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
           <DropdownMenuTrigger asChild>
             <button
               className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 py-1 pl-1.5 pr-2.5 hover:border-border hover:bg-accent/60 transition-all shadow-2xs"
-              aria-label="Switch access role"
+              aria-label={allowUserSwitch ? "Switch access role" : "Account menu"}
+              disabled={!allowUserSwitch && status === "loading"}
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary ring-1 ring-primary/25">
                 {user.avatar}
@@ -185,8 +189,10 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
 
           <DropdownMenuContent
             align="end"
-            className="w-96 max-w-[95vw] overflow-x-visible p-2.5 shadow-2xl border border-border/80"
+            className={allowUserSwitch ? "w-96 max-w-[95vw] overflow-x-visible p-2.5 shadow-2xl border border-border/80" : "w-56 p-1.5"}
           >
+            {allowUserSwitch ? (
+            <>
             <div className="min-w-0 px-1 pt-0.5 pb-2">
               <div className="flex items-center justify-between">
                 <div>
@@ -348,6 +354,24 @@ export function AppTopbar({ title, subtitle }: { title: string; subtitle?: React
                 </div>
               )}
             </div>
+            </>
+            ) : (
+              <>
+                <div className="px-2 py-1.5">
+                  <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{authUser?.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => void navigate({ to: "/profile" })} className="gap-2">
+                  <UserRound className="h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => void logout()} className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

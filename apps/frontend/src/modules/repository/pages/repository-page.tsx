@@ -1467,7 +1467,7 @@ function MyOrgPage() {
 
         <div className="flex-1 min-w-0 flex flex-col gap-3">
           <div className="w-full rounded-xl border border-border bg-card shadow-sm overflow-hidden flex flex-col">
-            <div className="overflow-auto max-h-[calc(100vh-270px)] min-h-[380px]">
+            <div className="overflow-auto max-h-[calc(100vh-270px)]">
               <table className="w-full min-w-[900px] text-sm">
                 <thead className="app-columns-head sticky top-0 z-10 bg-card/95 backdrop-blur-md text-left text-xs text-muted-foreground border-b border-border shadow-2xs">
                   <tr>

@@ -1,0 +1,124 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace PMS.API.Migrations
+{
+    /// <inheritdoc />
+    public partial class WidenProjectAlertType : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql(
+                """
+                ALTER TABLE auth.tbl_role_permissions
+                    ADD COLUMN IF NOT EXISTS "DefaultCanManage" smallint NOT NULL DEFAULT 0;
+                ALTER TABLE auth.tbl_role_permissions
+                    ADD COLUMN IF NOT EXISTS "DefaultCanView" smallint NOT NULL DEFAULT 0;
+
+                ALTER TABLE project.tbl_project_alerts
+                    ALTER COLUMN "AlertType" TYPE character varying(100);
+
+                ALTER TABLE resource.tbl_employees
+                    ADD COLUMN IF NOT EXISTS "OriginalRole" character varying(80);
+
+                ALTER TABLE action.tbl_notifications
+                    ADD COLUMN IF NOT EXISTS "NotificationNumber" integer;
+                ALTER TABLE action.tbl_notifications
+                    ADD COLUMN IF NOT EXISTS "ServiceEscalationId" uuid;
+
+                CREATE SEQUENCE IF NOT EXISTS action.tbl_notifications_number_seq;
+
+                WITH ranked AS (
+                    SELECT "Id",
+                           COALESCE((SELECT MAX("NotificationNumber") FROM action.tbl_notifications), 0)
+                           + ROW_NUMBER() OVER (ORDER BY "CreatedAtUtc" ASC, "Id" ASC) AS rn
+                    FROM action.tbl_notifications
+                    WHERE "NotificationNumber" IS NULL
+                )
+                UPDATE action.tbl_notifications n
+                SET "NotificationNumber" = r.rn
+                FROM ranked r
+                WHERE n."Id" = r."Id";
+
+                SELECT setval(
+                    'action.tbl_notifications_number_seq',
+                    COALESCE((SELECT MAX("NotificationNumber") FROM action.tbl_notifications), 0) + 1,
+                    false);
+
+                ALTER TABLE action.tbl_notifications
+                    ALTER COLUMN "NotificationNumber" SET DEFAULT nextval('action.tbl_notifications_number_seq');
+                ALTER TABLE action.tbl_notifications
+                    ALTER COLUMN "NotificationNumber" SET NOT NULL;
+
+                CREATE INDEX IF NOT EXISTS "IX_tbl_notifications_ServiceEscalationId"
+                    ON action.tbl_notifications ("ServiceEscalationId");
+
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conname = 'FK_tbl_notifications_tbl_project_service_escalations'
+                    ) THEN
+                        ALTER TABLE action.tbl_notifications
+                            ADD CONSTRAINT "FK_tbl_notifications_tbl_project_service_escalations"
+                            FOREIGN KEY ("ServiceEscalationId")
+                            REFERENCES project.tbl_project_service_escalations ("Id")
+                            ON DELETE SET NULL;
+                    END IF;
+                END $$;
+                """);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropForeignKey(
+                name: "FK_tbl_notifications_tbl_project_service_escalations",
+                schema: "action",
+                table: "tbl_notifications");
+
+            migrationBuilder.DropIndex(
+                name: "IX_tbl_notifications_ServiceEscalationId",
+                schema: "action",
+                table: "tbl_notifications");
+
+            migrationBuilder.DropColumn(
+                name: "DefaultCanManage",
+                schema: "auth",
+                table: "tbl_role_permissions");
+
+            migrationBuilder.DropColumn(
+                name: "DefaultCanView",
+                schema: "auth",
+                table: "tbl_role_permissions");
+
+            migrationBuilder.DropColumn(
+                name: "NotificationNumber",
+                schema: "action",
+                table: "tbl_notifications");
+
+            migrationBuilder.DropColumn(
+                name: "ServiceEscalationId",
+                schema: "action",
+                table: "tbl_notifications");
+
+            migrationBuilder.DropColumn(
+                name: "OriginalRole",
+                schema: "resource",
+                table: "tbl_employees");
+
+            migrationBuilder.AlterColumn<string>(
+                name: "AlertType",
+                schema: "project",
+                table: "tbl_project_alerts",
+                type: "character varying(50)",
+                maxLength: 50,
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "character varying(100)",
+                oldMaxLength: 100);
+        }
+    }
+}
