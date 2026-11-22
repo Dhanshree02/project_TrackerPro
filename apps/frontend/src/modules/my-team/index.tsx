@@ -604,6 +604,7 @@ export function MyTeamPage() {
     roster === "reportees" &&
     (isAdmin ||
       isDhanshree ||
+      hasDirectReports === true ||
       (hasChildRosterConfig
         ? canManage("my-reportees")
         : canManage("my-reportees") || canManage("team-dashboard")));
