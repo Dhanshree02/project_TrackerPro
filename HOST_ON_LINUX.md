@@ -146,4 +146,6 @@ cd ~/pms-production
 bash scripts/update-production.sh
 ```
 
-The `.env` file stays where it is. Do not run `git push` on the server. Do not run `docker compose down -v`. That command deletes the database.
+The `.env` file stays where it is. Do not run `git push` on the server.
+
+The scripts never stop or delete the database. They only pull code, add any missing columns, and start the app again. The database stays in its Docker volume. You do not type any Docker stop command.
