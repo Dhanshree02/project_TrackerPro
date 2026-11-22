@@ -1,5 +1,5 @@
 # pms-development: frontend, backend, Postgres, and pgAdmin.
-# The database pms_development is created on first volume init from database/pms_uat.sql.
+# The database pms_development is created on first volume init from database/pms_development.sql.
 #
 #   docker compose -p pms-development up -d --build
 #   docker compose -p pms-development down
@@ -24,7 +24,7 @@ services:
       - "54440:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./database/pms_uat.sql:/docker-entrypoint-initdb.d/01_pms_uat.sql:ro
+      - ./database/pms_development.sql:/docker-entrypoint-initdb.d/01_pms_development.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d pms_development"]
       interval: 5s
