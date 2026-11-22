@@ -256,7 +256,10 @@ export function SearchableSelect({
             ref={menuRef}
             data-searchable-select-menu=""
             style={menuStyle}
-            className="pointer-events-auto z-[100000] max-h-60 min-w-[220px] rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden"
+            className={cn(
+              "pointer-events-auto z-[100000] max-h-60 rounded-lg border border-border bg-popover text-popover-foreground shadow-lg animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden",
+              menuMinWidth > 0 ? "min-w-[220px]" : "min-w-0",
+            )}
             role="listbox"
           >
             {/* Search Input */}
