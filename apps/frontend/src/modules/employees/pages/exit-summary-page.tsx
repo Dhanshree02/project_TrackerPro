@@ -21,7 +21,6 @@ import {
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/lib/auth-context";
-import { useRoleContext } from "@/lib/role-context";
 import { usePermissions } from "@/lib/permissions";
 import { inFinancialYears, useFinancialYear } from "@/lib/financial-year";
 import { Avatar } from "@/components/pills";
@@ -258,8 +257,6 @@ function FilterSelect({
 export function ExitSummaryPage() {
   const { years } = useFinancialYear();
   const { status: authStatus } = useAuth();
-  const { isDhanshree, isHr, isEmployee, isPmFamily, isPmoFamily, isAccounts, isSales } =
-    useRoleContext();
   const { canView, loading: permissionsLoading } = usePermissions();
 
   const canViewExitSummary = canView("exit-summary");
@@ -269,7 +266,6 @@ export function ExitSummaryPage() {
   const [typeFilter, setTypeFilter] = useState("");
   const [datePeriodFilter, setDatePeriodFilter] = useState<"all" | "this-month" | "last-3-months" | "this-year">("all");
   const [exits, setExits] = useState<ApiExitedEmployee[]>([]);
-  const [deptCatalog, setDeptCatalog] = useState<ApiMetaOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<ExitSortKey>("exitedAtUtc");
@@ -298,9 +294,6 @@ export function ExitSummaryPage() {
   useEffect(() => {
     if (authStatus !== "authed") return;
     void loadExitedData();
-    void fetchDepartmentOptions()
-      .then(setDeptCatalog)
-      .catch(() => undefined);
   }, [authStatus]);
 
   const now = new Date();
@@ -321,20 +314,27 @@ export function ExitSummaryPage() {
     const matchDept = skip === "dept" || !deptFilter || (exit.departmentName ?? "") === deptFilter;
     const matchType = skip === "type" || !typeFilter || (exit.exitType ?? "") === typeFilter;
     const matchPeriod = skip === "period" || exitFallsInPeriod(exit, datePeriodFilter, now);
-    return matchQ && matchDept && matchType && matchPeriod && inFinancialYears(exit.lastWorkingDay || exit.exitedAtUtc, exit.lastWorkingDay || exit.exitedAtUtc, years);
+    return (
+      matchQ &&
+      matchDept &&
+      matchType &&
+      matchPeriod &&
+      inFinancialYears(exit.lastWorkingDay || exit.exitedAtUtc, exit.lastWorkingDay || exit.exitedAtUtc, years)
+    );
   };
 
   const departments = useMemo(
     () =>
       Array.from(
-        new Set(exits.filter((exit) => exitMatches(exit, "dept")).map((exit) => exit.departmentName).filter((name): name is string => Boolean(name))),
+        new Set(
+          exits
+            .filter((exit) => exitMatches(exit, "dept"))
+            .map((exit) => exit.departmentName)
+            .filter((name): name is string => Boolean(name)),
+        ),
       ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
     [exits, q, deptFilter, typeFilter, datePeriodFilter, now, years],
   );
-    const fromCatalog = deptCatalog.map((d) => d.name).filter(Boolean);
-    const fromExits = exits.map((e) => e.departmentName).filter((d): d is string => Boolean(d));
-    return Array.from(new Set([...fromCatalog, ...fromExits])).sort();
-  }, [deptCatalog, exits]);
 
   const quarter = useMemo(() => currentQuarter(), []);
   const quarterExits = useMemo(
@@ -351,7 +351,16 @@ export function ExitSummaryPage() {
   const avgExitRating = rated.length
     ? Math.round((rated.reduce((sum, n) => sum + n, 0) / rated.length) * 10) / 10
     : null;
-        new Set(exits.filter((exit) => exitMatches(exit, "type")).map((exit) => exit.exitType).filter((type): type is string => Boolean(type))),
+
+  const exitTypes = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          exits
+            .filter((exit) => exitMatches(exit, "type"))
+            .map((exit) => exit.exitType)
+            .filter((type): type is string => Boolean(type)),
+        ),
       ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
     [exits, q, deptFilter, typeFilter, datePeriodFilter, now, years],
   );
@@ -364,21 +373,21 @@ export function ExitSummaryPage() {
           { label: "Last 3 Months", value: "last-3-months" },
           { label: "This Year", value: "this-year" },
         ] as const
-      ).filter((option) => exits.some((exit) => exitMatches(exit, "period") && exitFallsInPeriod(exit, option.value, now))),
+      ).filter((option) =>
+        exits.some((exit) => exitMatches(exit, "period") && exitFallsInPeriod(exit, option.value, now)),
+      ),
     [exits, q, deptFilter, typeFilter, datePeriodFilter, now, years],
-      Array.from(
-        new Set(exits.map((e) => e.exitType).filter((t): t is string => Boolean(t))),
   );
+
+  const filtered = useMemo(() => {
     const rows = exits.filter((exit) => exitMatches(exit));
-      }
-
-      return matchQ && matchDept && matchType && matchPeriod && inFinancialYears(e.lastWorkingDay || e.exitedAtUtc, e.lastWorkingDay || e.exitedAtUtc, years);
-    });
-
     return [...rows].sort((a, b) => {
       const cmp = compareExits(a, b, sortKey);
       return sortDir === "asc" ? cmp : -cmp;
     });
+  }, [exits, q, deptFilter, typeFilter, datePeriodFilter, sortKey, sortDir, now, years]);
+
+  useEffect(() => {
     if (isLoading || exits.length === 0) return;
     if (deptFilter && !departments.includes(deptFilter)) setDeptFilter("");
     if (typeFilter && !exitTypes.includes(typeFilter)) setTypeFilter("");
@@ -386,9 +395,6 @@ export function ExitSummaryPage() {
       setDatePeriodFilter("all");
     }
   }, [isLoading, exits.length, deptFilter, departments, typeFilter, exitTypes, datePeriodFilter, datePeriodOptions]);
-
-  useEffect(() => {
-  }, [exits, q, deptFilter, typeFilter, datePeriodFilter, sortKey, sortDir, now, years]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -411,6 +417,10 @@ export function ExitSummaryPage() {
     setTypeFilter("");
     setDatePeriodFilter("all");
   };
+
+  if (!permissionsLoading && !canViewExitSummary) {
+    return <Navigate to="/access-denied" />;
+  }
 
   return (
     <AppShell
