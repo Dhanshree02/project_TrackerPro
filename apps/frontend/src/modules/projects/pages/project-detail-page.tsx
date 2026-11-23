@@ -13589,18 +13589,16 @@ function DhTeamTab({
 
               const managerLabel = teamTab === "project" ? managerRoleLabel(r.memberRole) : null;
               const isTransferred = Boolean(r.deletedAtUtc) || r.isActive === false;
-              const actionsLocked = Boolean(managerLabel) || isTransferred;
-
               const isNotWorking = !isTransferred && r.isCurrentlyWorking === false;
               const actionsLocked = Boolean(managerLabel) || isTransferred;
+
+              const allocationLabel = managerLabel && project.startDate && project.endDate
 
                 ? formatAllocationDuration(String(project.startDate).slice(0, 10), String(project.endDate).slice(0, 10))
 
                 : (r.duration || "—");
 
               return (
-
-              <tr key={r.person.id} className={cn("hover:bg-accent/30", isTransferred && "opacity-60 bg-muted/20")}>
 
               <tr key={r.person.id} className={cn("hover:bg-accent/30", (isTransferred || isNotWorking) && "opacity-60 bg-muted/20")}>
 
@@ -13622,13 +13620,13 @@ function DhTeamTab({
                           </span>
                         )}
 
-                        {managerLabel && (
-
                         {isNotWorking && (
                           <span className="inline-flex items-center rounded-full border border-muted-foreground/30 bg-muted px-1.5 py-0 text-[10px] font-semibold text-muted-foreground">
                             Not currently working
                           </span>
                         )}
+
+                        {managerLabel && (
 
                           <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
 
@@ -15422,6 +15420,8 @@ function AddTeamMemberModal({
             bookings={allocationBookings}
 
             allowDedicatedSelection={teamType === "project"}
+
+          />
 
         </Field>
 
