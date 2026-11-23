@@ -66,6 +66,8 @@ public class AppDbContext(
 
     public DbSet<MstCity> Cities => Set<MstCity>();
 
+    public DbSet<MstScreenOption> ScreenOptions => Set<MstScreenOption>();
+
     public DbSet<MstNationality> Nationalities => Set<MstNationality>();
 
     public DbSet<MstOrgRoleMap> OrgRoleMaps => Set<MstOrgRoleMap>();

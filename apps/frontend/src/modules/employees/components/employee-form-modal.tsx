@@ -43,7 +43,7 @@ import {
   type ApiMetaOption,
 } from "@/modules/employees/api/employees";
 import { fetchRoles, type ApiRole } from "@/lib/api/users";
-import { fetchAddressCities } from "@/lib/api/catalogs";
+import { fetchAddressCities, fetchScreenOptions, screenOptionNames } from "@/lib/api/catalogs";
 import {
   EMPTY_ONBOARD,
   buildEmployeeUniquenessIndex,
@@ -367,6 +367,11 @@ export function EmployeeFormModal({
   const [certOptions, setCertOptions] = useState<ApiMetaOption[]>([]);
   const [rbacRoleOptions, setRbacRoleOptions] = useState<ApiRole[]>([]);
   const [addressCityOptions, setAddressCityOptions] = useState<RailwayStationOption[]>([]);
+  const [workerTypeOptions, setWorkerTypeOptions] = useState<string[]>([...WORKER_TYPES]);
+  const [bondDeliveredOptions, setBondDeliveredOptions] = useState<string[]>([...BOND_DELIVERED_OPTIONS]);
+  const [experienceOptions, setExperienceOptions] = useState<string[]>(["Fresher", "Experienced"]);
+  const [billableOptions, setBillableOptions] = useState<string[]>([...BILLABLE_STATUS_OPTIONS]);
+  const [employeeProjectTypeOptions, setEmployeeProjectTypeOptions] = useState<string[]>([...PROJECT_TYPE_OPTIONS]);
 
   // Split parts
   const [workEmailPrefix, setWorkEmailPrefix] = useState("");
@@ -626,6 +631,21 @@ export function EmployeeFormModal({
         }
       })
       .catch(() => toast.error("Could not load reporting managers"));
+
+    void fetchScreenOptions()
+      .then((rows) => {
+        const worker = screenOptionNames(rows, "WorkerType");
+        const bond = screenOptionNames(rows, "BondDelivered");
+        const experience = screenOptionNames(rows, "ExperienceType");
+        const billable = screenOptionNames(rows, "BillableStatus");
+        const projectTypes = screenOptionNames(rows, "EmployeeProjectType");
+        if (worker.length) setWorkerTypeOptions(worker);
+        if (bond.length) setBondDeliveredOptions(bond);
+        if (experience.length) setExperienceOptions(experience);
+        if (billable.length) setBillableOptions(billable);
+        if (projectTypes.length) setEmployeeProjectTypeOptions(projectTypes);
+      })
+      .catch(() => toast.error("Could not load employee choice lists"));
 
     void fetchAddressCities()
       .then((rows) => {
@@ -1625,7 +1645,7 @@ export function EmployeeFormModal({
                 required
                 placeholder="Select worker type"
                 error={errors.workerType}
-                options={[...WORKER_TYPES]}
+                options={workerTypeOptions}
                 value={form.workerType}
                 onChange={(v) => setField("workerType", v)}
               />
@@ -1635,7 +1655,7 @@ export function EmployeeFormModal({
                 required
                 placeholder="Select bond delivered"
                 error={errors.bondDelivered}
-                options={[...BOND_DELIVERED_OPTIONS]}
+                options={bondDeliveredOptions}
                 value={form.bondDelivered}
                 onChange={(v) => setField("bondDelivered", v)}
               />
@@ -1745,10 +1765,7 @@ export function EmployeeFormModal({
                 id="form-expType"
                 label="Experience / Fresher"
                 placeholder="Select experience"
-                options={[
-                  { value: "Fresher", label: "Fresher" },
-                  { value: "Experienced", label: "Experienced" },
-                ]}
+                options={experienceOptions.map((option) => ({ value: option, label: option }))}
                 value={form.expType}
                 onChange={(v) => {
                   setForm((prev) => ({
@@ -1862,7 +1879,7 @@ export function EmployeeFormModal({
                 <FormSelect
                   id="form-billableStatus"
                   label="Billable / Non Billable Status"
-                  options={[...BILLABLE_STATUS_OPTIONS]}
+                  options={billableOptions}
                   value={form.billableStatus}
                   onChange={(v) => setField("billableStatus", v)}
                   placeholder="Select status…"
@@ -1879,7 +1896,7 @@ export function EmployeeFormModal({
                 <FormSelect
                   id="form-projectType"
                   label="Project Type"
-                  options={[...PROJECT_TYPE_OPTIONS]}
+                  options={employeeProjectTypeOptions}
                   value={form.projectType}
                   onChange={(v) => setField("projectType", v)}
                   placeholder="Select project type…"

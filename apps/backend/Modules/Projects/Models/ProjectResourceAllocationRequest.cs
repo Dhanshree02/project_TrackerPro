@@ -22,6 +22,12 @@ public class ProjectResourceAllocationRequest : BaseEntity
     public string ResourceType { get; set; } = "Dedicated";
     public bool IsShadowTeam { get; set; }
 
+    /// <summary>
+    /// True when every PMO and Admin must approve this request.
+    /// A Shared request is included when the dates overlap a Dedicated allocation elsewhere.
+    /// </summary>
+    public bool RequiresPmoApproval { get; set; }
+
     public string Status { get; set; } = "Pending";
 
     public Guid? RequestedByEmployeeId { get; set; }

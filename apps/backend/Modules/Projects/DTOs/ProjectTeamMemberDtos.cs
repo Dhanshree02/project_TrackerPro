@@ -21,7 +21,8 @@ public sealed record ProjectTeamMemberDto(
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
     DateTime? DeletedAtUtc = null,
-    bool IsActive = true);
+    bool IsActive = true,
+    bool IsCurrentlyWorking = true);
 
 /// <summary>Employee eligible for Project Team / Shadow Team Add Resource.</summary>
 public sealed record ProjectTeamCandidateDto(

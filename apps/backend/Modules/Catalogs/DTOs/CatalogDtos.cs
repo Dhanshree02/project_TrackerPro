@@ -1,6 +1,20 @@
 namespace PMS.API.Modules.Catalogs.DTOs;
 
-public sealed record CatalogOptionDto(Guid Id, string Code, string Name, string? PhoneCode = null, int? PhoneDigits = null);
+public sealed record CatalogOptionDto(
+    Guid Id,
+    string Code,
+    string Name,
+    string? PhoneCode = null,
+    int? PhoneDigits = null,
+    string? Description = null);
+
+public sealed record UpsertCatalogItemRequest(string Name, string? Code, string? Description);
+
+public sealed record UpsertCityRequest(string Name, Guid CountryId, string? Code);
+
+public sealed record ScreenOptionDto(Guid Id, string Category, string Name, string ParentName, int SortOrder);
+
+public sealed record UpsertScreenOptionRequest(string Category, string Name, string? ParentName);
 
 public sealed record SidebarSubModuleDto(
     Guid Id,

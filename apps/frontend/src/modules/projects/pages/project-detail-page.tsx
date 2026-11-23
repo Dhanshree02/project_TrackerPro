@@ -937,7 +937,7 @@ function DateRangePicker({
 
               <span className="inline-flex items-center gap-1">
 
-                <span className="h-2 w-2 rounded-sm bg-rose-400" /> Dedicated — blocked
+                <span className="h-2 w-2 rounded-sm bg-rose-400" /> Dedicated{allowDedicatedSelection ? "" : " — blocked"}
 
               </span>
 
@@ -12816,6 +12816,8 @@ function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
 
   };
 
+    isCurrentlyWorking: m.isCurrentlyWorking !== false,
+
 }
 
 
@@ -13579,7 +13581,8 @@ function DhTeamTab({
               const isTransferred = Boolean(r.deletedAtUtc) || r.isActive === false;
               const actionsLocked = Boolean(managerLabel) || isTransferred;
 
-              const allocationLabel = managerLabel && project.startDate && project.endDate
+              const isNotWorking = !isTransferred && r.isCurrentlyWorking === false;
+              const actionsLocked = Boolean(managerLabel) || isTransferred;
 
                 ? formatAllocationDuration(String(project.startDate).slice(0, 10), String(project.endDate).slice(0, 10))
 
@@ -13589,7 +13592,7 @@ function DhTeamTab({
 
               <tr key={r.person.id} className={cn("hover:bg-accent/30", isTransferred && "opacity-60 bg-muted/20")}>
 
-                {/* Resource — left aligned with avatar */}
+              <tr key={r.person.id} className={cn("hover:bg-accent/30", (isTransferred || isNotWorking) && "opacity-60 bg-muted/20")}>
 
                 <td className="px-4 py-3">
 
@@ -13610,6 +13613,12 @@ function DhTeamTab({
                         )}
 
                         {managerLabel && (
+
+                        {isNotWorking && (
+                          <span className="inline-flex items-center rounded-full border border-muted-foreground/30 bg-muted px-1.5 py-0 text-[10px] font-semibold text-muted-foreground">
+                            Not currently working
+                          </span>
+                        )}
 
                           <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-semibold text-primary">
 
@@ -15201,7 +15210,7 @@ function AddTeamMemberModal({
 
     const clash = dedicatedClash(bookingDay(dates.start), bookingDay(dates.end), allocationBookings);
 
-    if (clash && resourceType !== "Dedicated") {
+    if (teamType === "shadow" && clash) {
 
       toast.error(dedicatedClashMessage(clash));
 
@@ -15258,6 +15267,9 @@ function AddTeamMemberModal({
     }
 
   };
+
+  const dedicatedElsewhere = allocationBookings.find(isDedicatedBooking);
+  const approvalGoesToPmo = resourceType === "Dedicated" || Boolean(dedicatedElsewhere);
 
 
 
@@ -15399,9 +15411,7 @@ function AddTeamMemberModal({
 
             bookings={allocationBookings}
 
-            allowDedicatedSelection={resourceType === "Dedicated"}
-
-          />
+            allowDedicatedSelection={teamType === "project"}
 
         </Field>
 
@@ -15515,6 +15525,16 @@ function AddTeamMemberModal({
           )}
 
         </Field>
+
+          {teamType === "project" && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {approvalGoesToPmo
+                ? dedicatedElsewhere
+                  ? `This person is Dedicated on ${dedicatedElsewhere.projectName}. This request goes to every PMO and Admin. The person joins this team after one of them approves.`
+                  : "This request goes to every PMO and Admin. The person joins this team after one of them approves."
+                : "This request goes to this person's reporting manager. The person joins this team after that manager approves."}
+            </p>
+          )}
 
 
 

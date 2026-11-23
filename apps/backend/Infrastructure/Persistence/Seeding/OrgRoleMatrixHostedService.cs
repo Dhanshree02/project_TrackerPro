@@ -23,6 +23,9 @@ public sealed class OrgRoleMatrixHostedService(
                 using var scope = scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+                await ScreenOptionSeed.EnsureSchemaAsync(db, cancellationToken);
+                await ScreenOptionSeed.EnsureAsync(db, cancellationToken);
+
                 await db.Database.ExecuteSqlRawAsync(
                     """
                     CREATE SEQUENCE IF NOT EXISTS action.tbl_notifications_number_seq;

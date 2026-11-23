@@ -397,6 +397,159 @@ public class CatalogsController(
         return Ok(ApiResponse<ServiceSubDepartmentDto>.Ok(created));
     }
 
+    [HttpPost("industries")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateIndustry(
+        UpsertCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.CreateIndustryAsync(request, ct)));
+    }
+
+    [HttpPut("industries/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateIndustry(
+        Guid id,
+        UpsertCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.UpdateIndustryAsync(id, request, ct)));
+    }
+
+    [HttpDelete("industries/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteIndustry(Guid id, CancellationToken ct)
+    {
+        await catalogs.DeleteIndustryAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("countries")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateCountry(
+        UpsertCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.CreateCountryAsync(request, ct)));
+    }
+
+    [HttpPut("countries/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateCountry(
+        Guid id,
+        UpsertCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.UpdateCountryAsync(id, request, ct)));
+    }
+
+    [HttpDelete("countries/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteCountry(Guid id, CancellationToken ct)
+    {
+        await catalogs.DeleteCountryAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("cities")]
+    public async Task<ActionResult<ApiResponse<CityCatalogOptionDto>>> CreateCity(
+        UpsertCityRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CityCatalogOptionDto>.Ok(await catalogs.CreateCityAsync(request, ct)));
+    }
+
+    [HttpPut("cities/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CityCatalogOptionDto>>> UpdateCity(
+        Guid id,
+        UpsertCityRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CityCatalogOptionDto>.Ok(await catalogs.UpdateCityAsync(id, request, ct)));
+    }
+
+    [HttpDelete("cities/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteCity(Guid id, CancellationToken ct)
+    {
+        await catalogs.DeleteCityAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("contact-designations")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateContactDesignation(
+        UpsertCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.CreateContactDesignationAsync(request, ct)));
+    }
+
+    [HttpPut("contact-designations/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateContactDesignation(
+        Guid id,
+        UpsertCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.UpdateContactDesignationAsync(id, request, ct)));
+    }
+
+    [HttpDelete("contact-designations/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteContactDesignation(Guid id, CancellationToken ct)
+    {
+        await catalogs.DeleteContactDesignationAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpPost("contact-types")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> CreateContactType(
+        UpsertCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.CreateContactTypeAsync(request, ct)));
+    }
+
+    [HttpPut("contact-types/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<CatalogOptionDto>>> UpdateContactType(
+        Guid id,
+        UpsertCatalogItemRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<CatalogOptionDto>.Ok(await catalogs.UpdateContactTypeAsync(id, request, ct)));
+    }
+
+    [HttpDelete("contact-types/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteContactType(Guid id, CancellationToken ct)
+    {
+        await catalogs.DeleteContactTypeAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
+    [HttpGet("screen-options")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ScreenOptionDto>>>> ScreenOptions(
+        [FromQuery] string? category,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<IReadOnlyList<ScreenOptionDto>>.Ok(
+            await catalogs.GetScreenOptionsAsync(category, ct)));
+    }
+
+    [HttpPost("screen-options")]
+    public async Task<ActionResult<ApiResponse<ScreenOptionDto>>> CreateScreenOption(
+        UpsertScreenOptionRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<ScreenOptionDto>.Ok(await catalogs.CreateScreenOptionAsync(request, ct)));
+    }
+
+    [HttpPut("screen-options/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<ScreenOptionDto>>> UpdateScreenOption(
+        Guid id,
+        UpsertScreenOptionRequest request,
+        CancellationToken ct)
+    {
+        return Ok(ApiResponse<ScreenOptionDto>.Ok(await catalogs.UpdateScreenOptionAsync(id, request, ct)));
+    }
+
+    [HttpDelete("screen-options/{id:guid}")]
+    public async Task<ActionResult<ApiResponse<Guid>>> DeleteScreenOption(Guid id, CancellationToken ct)
+    {
+        await catalogs.DeleteScreenOptionAsync(id, ct);
+        return Ok(ApiResponse<Guid>.Ok(id));
+    }
+
     [HttpPost("project-masters/service-only")]
     public async Task<ActionResult<ApiResponse<ProjectMasterRowDto>>> CreateServiceOnly(
         CreateServiceOnlyRequest request,

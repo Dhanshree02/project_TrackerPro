@@ -22,6 +22,7 @@ export interface ApiProjectTeamMember {
   updatedAtUtc?: string | null;
   deletedAtUtc?: string | null;
   isActive?: boolean;
+  isCurrentlyWorking?: boolean;
 }
 
 export interface EmployeeAllocationBooking {

@@ -51,6 +51,12 @@ public class ProjectTeamMember : BaseEntity
     /// Managers are allocated for the project start and end dates and are not task resources.
     /// </summary>
     public string MemberRole { get; set; } = ProjectMemberRoles.ProjectTeam;
+
+    /// <summary>
+    /// False when this person was later approved as Dedicated on another project.
+    /// The row, dates, and resource type stay. The team list shows them as not currently working.
+    /// </summary>
+    public bool IsCurrentlyWorking { get; set; } = true;
 }
 
 public static class ProjectMemberRoles
