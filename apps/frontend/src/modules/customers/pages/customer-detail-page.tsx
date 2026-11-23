@@ -369,6 +369,38 @@ export function CustomerDetailPage() {
     [clientProjects, years],
   );
 
+  const isNewCustomer = useMemo(() => {
+    if (!client || client.clientType === "OLD") return false;
+    const dateStr = client.customerSince || client.createdAtUtc;
+    if (!dateStr) return false;
+    const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+    if (isNaN(d.getTime())) return false;
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    return d >= sixMonthsAgo;
+  }, [client]);
+
+  const isClientActive = useMemo(() => {
+    if (!client) return false;
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const hasRecentProject = allProj.some((p) => {
+      const dateStr = (p as { createdAtUtc?: string; startDate?: string }).createdAtUtc || p.startDate;
+      if (!dateStr) return false;
+      const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+      return !isNaN(d.getTime()) && d >= sixMonthsAgo;
+    });
+
+    if (hasRecentProject) return true;
+    if (allProj.length > 0) return false;
+
+    const dateStr = client.customerSince || client.createdAtUtc;
+    if (!dateStr) return false;
+    const cd = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+    return !isNaN(cd.getTime()) && cd >= sixMonthsAgo;
+  }, [allProj, client]);
+
   if (!permissionsLoading && !canViewCustomerDetail) {
     return <Navigate to="/access-denied" replace />;
   }
@@ -415,42 +447,6 @@ export function CustomerDetailPage() {
   // Customer Since comes from clients.CustomerSince (set to today on create).
   const clientSinceDate = client.customerSince ? formatDateDMY(client.customerSince) : "—";
 
-  // "New Customer" tag: shows when customer was onboarded within the last 6 months.
-  // After 6 months from onboarding, the tag disappears from the customer profile.
-  const isNewCustomer = useMemo(() => {
-    if (client.clientType === "OLD") return false;
-    const dateStr = client.customerSince || client.createdAtUtc;
-    if (!dateStr) return false;
-    const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
-    if (isNaN(d.getTime())) return false;
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    return d >= sixMonthsAgo;
-  }, [client.clientType, client.customerSince, client.createdAtUtc]);
-
-  // "Active" vs "Inactive" tag:
-  // If the client does not have any project onboarded in the last 6 months, the Active tag
-  // changes to Inactive. Once a new project is onboarded for the client, it changes back to Active.
-  const isClientActive = useMemo(() => {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const hasRecentProject = allProj.some((p) => {
-      const dateStr = (p as any).createdAtUtc || p.startDate;
-      if (!dateStr) return false;
-      const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
-      return !isNaN(d.getTime()) && d >= sixMonthsAgo;
-    });
-
-    if (hasRecentProject) return true;
-    if (allProj.length > 0) return false;
-
-    // If client has 0 projects, check if client itself was onboarded within 6 months
-    const dateStr = client.customerSince || client.createdAtUtc;
-    if (!dateStr) return false;
-    const cd = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
-    return !isNaN(cd.getTime()) && cd >= sixMonthsAgo;
-  }, [allProj, client.customerSince, client.createdAtUtc]);
   const allDates = allProj
     .map((p) => p.startDate)
     .filter(Boolean)
@@ -520,14 +516,21 @@ export function CustomerDetailPage() {
     archived: archivedProjs,
     on_hold: onHoldProjs,
   };
-  const pool = poolByTab[filter]
-    .filter((p) => svFilter === "all" || p.subVenture === svFilter)
-    .filter((p) => {
-      if (healthFilter === "all") return true;
-      if (healthFilter === "healthy") return p.health === "green";
-      if (healthFilter === "at_risk") return p.health === "amber";
-      return p.health === "red"; // critical
-    });
+  const projectsBeforeHealth = poolByTab[filter].filter((p) => svFilter === "all" || p.subVenture === svFilter);
+  const healthOptions = (
+    [
+      { value: "healthy", label: "Healthy", match: "green" },
+      { value: "at_risk", label: "At Risk", match: "amber" },
+      { value: "critical", label: "Critical", match: "red" },
+    ] as const
+  ).filter((option) => projectsBeforeHealth.some((project) => project.health === option.match));
+  const activeHealthFilter = healthOptions.some((option) => option.value === healthFilter) ? healthFilter : "all";
+  const pool = projectsBeforeHealth.filter((p) => {
+    if (activeHealthFilter === "all") return true;
+    if (activeHealthFilter === "healthy") return p.health === "green";
+    if (activeHealthFilter === "at_risk") return p.health === "amber";
+    return p.health === "red";
+  });
 
   return (
     <AppShell
@@ -910,11 +913,11 @@ export function CustomerDetailPage() {
                 </h3>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
                   {pool.length} project{pool.length !== 1 ? "s" : ""}
-                  {healthFilter !== "all" &&
+                  {activeHealthFilter !== "all" &&
                     ` · ${
-                      healthFilter === "healthy"
+                      activeHealthFilter === "healthy"
                         ? "Healthy"
-                        : healthFilter === "at_risk"
+                        : activeHealthFilter === "at_risk"
                           ? "At Risk"
                           : "Critical"
                     }`}
@@ -924,13 +927,8 @@ export function CustomerDetailPage() {
                 <span className="hidden sm:inline">Health</span>
                 <SearchableSelect
                   placeholder="All"
-                  options={[
-                    { value: "all", label: "All" },
-                    { value: "healthy", label: "Healthy" },
-                    { value: "at_risk", label: "At Risk" },
-                    { value: "critical", label: "Critical" },
-                  ]}
-                  value={healthFilter}
+                  options={healthOptions}
+                  value={activeHealthFilter === "all" ? "" : activeHealthFilter}
                   onChange={(val) => setHealthFilter(((val || "all") as HealthFilter))}
                   clearable={false}
                   className="min-w-[115px]"
@@ -945,15 +943,23 @@ export function CustomerDetailPage() {
               </div>
             ) : (
               <div className="min-h-0 flex-1 overflow-auto">
-                <table className="app-columns text-sm">
-                  <thead className="app-columns-head sticky top-0 z-[1]">
-                    <tr className="border-b border-border bg-card/95 text-left text-xs font-semibold text-muted-foreground backdrop-blur-sm">
-                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Project</th>
-                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Health</th>
-                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Stage</th>
-                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Sub-venture</th>
-                      <th className="whitespace-nowrap px-4 py-3 font-semibold">Progress</th>
-                      <th className="whitespace-nowrap px-4 py-3 font-semibold">PM</th>
+                <table className="w-full table-fixed text-sm">
+                  <colgroup>
+                    <col className="w-[32%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[10%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[14%]" />
+                    <col className="w-[20%]" />
+                  </colgroup>
+                  <thead className="sticky top-0 z-[1]">
+                    <tr className="border-b border-border text-left text-xs font-semibold text-muted-foreground">
+                      <th className="px-4 py-3 font-semibold">Project</th>
+                      <th className="px-3 py-3 font-semibold">Health</th>
+                      <th className="px-3 py-3 font-semibold">Stage</th>
+                      <th className="px-3 py-3 font-semibold">Sub-venture</th>
+                      <th className="px-3 py-3 font-semibold">Progress</th>
+                      <th className="px-3 py-3 font-semibold">PM</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/70">
@@ -984,7 +990,7 @@ export function CustomerDetailPage() {
                             navigate({ to: "/projects/$projectId", params: { projectId: p.id } })
                           }
                         >
-                          <td className="px-5 py-3.5 align-middle">
+                          <td className="overflow-hidden px-4 py-3.5 align-middle">
                             <div className="min-w-0">
                               <div className="truncate text-[13px] font-semibold tracking-tight text-foreground">
                                 {p.name}
@@ -1002,10 +1008,10 @@ export function CustomerDetailPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-3.5 align-middle">
+                          <td className="overflow-hidden px-3 py-3.5 align-middle">
                             <HealthPill status={p.health} />
                           </td>
-                          <td className="px-3 py-3.5 align-middle">
+                          <td className="overflow-hidden px-3 py-3.5 align-middle">
                             <span
                               className={cn(
                                 "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
@@ -1023,7 +1029,7 @@ export function CustomerDetailPage() {
                               {category}
                             </span>
                           </td>
-                          <td className="px-3 py-3.5 align-middle">
+                          <td className="overflow-hidden px-3 py-3.5 align-middle">
                             {p.subVenture ? (
                               <span
                                 className="block truncate text-[12px] text-foreground"
@@ -1035,15 +1041,15 @@ export function CustomerDetailPage() {
                               <span className="text-[12px] text-muted-foreground">—</span>
                             )}
                           </td>
-                          <td className="px-3 py-3.5 align-middle">
-                            <div className="flex items-center gap-2">
+                          <td className="overflow-hidden px-3 py-3.5 align-middle">
+                            <div className="flex w-full items-center gap-2">
                               <ProgressBar value={p.progress} className="h-1.5 min-w-0 flex-1" />
                               <span className="w-8 shrink-0 text-right text-[11px] font-medium tabular-nums text-muted-foreground">
                                 {p.progress}%
                               </span>
                             </div>
                           </td>
-                          <td className="px-3 py-3.5 align-middle">
+                          <td className="overflow-hidden px-3 py-3.5 align-middle">
                             {pmName ? (
                               <div className="flex min-w-0 items-center gap-2">
                                 <AvatarBubble name={pmName} size={22} />

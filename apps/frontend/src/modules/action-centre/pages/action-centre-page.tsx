@@ -1,4 +1,4 @@
-import { Link, Navigate } from "@tanstack/react-router";
+import { Link, Navigate, useNavigate, useRouterState } from "@tanstack/react-router";
 
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 
@@ -314,6 +314,8 @@ export function ActionCentrePage() {
   const { canView, hasPermission } = usePermissions();
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const store = useDhStore((s) => s);
+  const navigate = useNavigate();
+  const locationHref = useRouterState({ select: (state) => state.location.href });
   const [tabCode, setTabCode] = useState(() => {
     if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search).get("tab");
@@ -323,16 +325,24 @@ export function ActionCentrePage() {
   });
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const syncFromUrl = () => {
-        const p = new URLSearchParams(window.location.search).get("tab");
-        if (p && p !== tabCode) setTabCode(p);
-      };
-      syncFromUrl();
-      window.addEventListener("popstate", syncFromUrl);
-      return () => window.removeEventListener("popstate", syncFromUrl);
-    }
-  }, [tabCode]);
+    const query = locationHref.includes("?") ? locationHref.slice(locationHref.indexOf("?") + 1) : "";
+    const tab = new URLSearchParams(query).get("tab");
+    if (tab) setTabCode(tab);
+  }, [locationHref]);
+
+  useEffect(() => {
+    const onTab = (event: Event) => {
+      const tab = (event as CustomEvent<string>).detail;
+      if (tab) setTabCode(tab);
+    };
+    window.addEventListener("pms-action-centre-tab", onTab);
+    return () => window.removeEventListener("pms-action-centre-tab", onTab);
+  }, []);
+
+  const selectTab = (code: string) => {
+    setTabCode(code);
+    void navigate({ to: "/action-centre", search: { tab: code }, replace: true });
+  };
 
   const visibleTabs = useMemo(() => {
     return actionTabs.filter((tab) => {
@@ -365,7 +375,7 @@ export function ActionCentrePage() {
           <SegmentedControl
             className="mb-4"
             value={activeTab?.code ?? visibleTabs[0].code}
-            onChange={setTabCode}
+            onChange={selectTab}
             options={visibleTabs.map((tab) => ({ value: tab.code, label: tab.name }))}
           />
 
@@ -2089,64 +2099,72 @@ function ApprovalsTab() {
 
 
 
+  const approvalRowMatches = (
+    approval: (typeof store.approvals)[number],
+    skip?: "project" | "type" | "status",
+  ) => {
+    if (skip !== "project" && projectFilter !== "all" && approval.projectId !== projectFilter) return false;
+    if (skip !== "type" && typeFilter !== "all" && approval.requestType !== typeFilter) return false;
+    if (skip !== "status" && statusFilter !== "all" && approval.status !== statusFilter) return false;
+    if (approvalSearchQuery.trim()) {
+      const q = approvalSearchQuery.trim().toLowerCase();
+      const compactId = formatApprovalId(approval.id).toLowerCase();
+      const fullId = (approval.id || "").toLowerCase();
+      const extId = approval.id ? `ext-${approval.id.replace(/-/g, "").slice(0, 8).toLowerCase()}` : "";
+      const matchesId = compactId.includes(q) || fullId.includes(q) || extId.includes(q);
+      const matchesType = (approval.requestType || "").toLowerCase().includes(q);
+      const matchedProject = assignedProjects.find((p) => p.id === approval.projectId) as { name?: string; projectCode?: string } | undefined;
+      const projName = (approval.projectName || matchedProject?.name || "").toLowerCase();
+      const projCode = (matchedProject?.projectCode || "").toLowerCase();
+      const matchesProject = projName.includes(q) || projCode.includes(q);
+      if (!matchesId && !matchesType && !matchesProject) return false;
+    }
+    return true;
+  };
+
   const approvalTypes = useMemo(() => {
     const types = new Set<string>();
-    (store.approvals || []).forEach((a) => {
-      if (a.requestType && a.requestType.trim()) {
-        types.add(a.requestType.trim());
-      }
+    (store.approvals || []).forEach((approval) => {
+      if (!approvalRowMatches(approval, "type")) return;
+      if (approval.requestType && approval.requestType.trim()) types.add(approval.requestType.trim());
     });
-    return Array.from(types).sort();
-  }, [store.approvals]);
-
-  useEffect(() => {
-    if (typeFilter !== "all" && !approvalTypes.includes(typeFilter)) {
-      setTypeFilter("all");
-    }
-  }, [approvalTypes, typeFilter]);
+    return Array.from(types).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }, [store.approvals, projectFilter, typeFilter, statusFilter, approvalSearchQuery, assignedProjects]);
 
   const approvalProjects = useMemo(() => {
     const map = new Map<string, string>();
-    (store.approvals || []).forEach((a) => {
-      if (a.projectId) {
-        const name = a.projectName || assignedProjects.find((p) => p.id === a.projectId)?.name || a.projectId;
-        map.set(a.projectId, name);
-      }
+    (store.approvals || []).forEach((approval) => {
+      if (!approvalRowMatches(approval, "project") || !approval.projectId) return;
+      const name = approval.projectName || assignedProjects.find((p) => p.id === approval.projectId)?.name || approval.projectId;
+      map.set(approval.projectId, name);
     });
     return Array.from(map.entries())
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [assignedProjects, store.approvals]);
+  }, [assignedProjects, store.approvals, projectFilter, typeFilter, statusFilter, approvalSearchQuery]);
+
+  const approvalStatusOptions = useMemo(() => {
+    const present = new Set<string>();
+    (store.approvals || []).forEach((approval) => {
+      if (!approvalRowMatches(approval, "status")) return;
+      if (approval.status?.trim()) present.add(approval.status.trim());
+    });
+    const order = ["Pending", "Approved", "Rejected", "Hold", "Request Changes"];
+    return [
+      ...order.filter((status) => present.has(status)),
+      ...Array.from(present).filter((status) => !order.includes(status)).sort((a, b) => a.localeCompare(b)),
+    ];
+  }, [store.approvals, projectFilter, typeFilter, statusFilter, approvalSearchQuery, assignedProjects]);
 
   useEffect(() => {
-    if (projectFilter !== "all" && !approvalProjects.some((p) => p.id === projectFilter)) {
-      setProjectFilter("all");
-    }
-  }, [approvalProjects, projectFilter]);
+    if (typeFilter !== "all" && !approvalTypes.includes(typeFilter)) setTypeFilter("all");
+    if (projectFilter !== "all" && !approvalProjects.some((project) => project.id === projectFilter)) setProjectFilter("all");
+    if (statusFilter !== "all" && !approvalStatusOptions.includes(statusFilter)) setStatusFilter("all");
+  }, [approvalTypes, typeFilter, approvalProjects, projectFilter, approvalStatusOptions, statusFilter]);
 
   const filteredApprovals = useMemo(() => {
     return store.approvals
-      .filter((a) => {
-        if (projectFilter !== "all" && a.projectId !== projectFilter) return false;
-        if (typeFilter !== "all" && a.requestType !== typeFilter) return false;
-        if (statusFilter !== "all" && a.status !== statusFilter) return false;
-
-        if (approvalSearchQuery.trim()) {
-          const q = approvalSearchQuery.trim().toLowerCase();
-          const compactId = formatApprovalId(a.id).toLowerCase();
-          const fullId = (a.id || "").toLowerCase();
-          const extId = a.id ? `ext-${a.id.replace(/-/g, "").slice(0, 8).toLowerCase()}` : "";
-          const matchesId = compactId.includes(q) || fullId.includes(q) || extId.includes(q);
-          const matchesType = (a.requestType || "").toLowerCase().includes(q);
-          const projName = (a.projectName || assignedProjects.find((p) => p.id === a.projectId)?.name || "").toLowerCase();
-          const projCode = (assignedProjects.find((p) => p.id === a.projectId)?.projectCode || "").toLowerCase();
-          const matchesProject = projName.includes(q) || projCode.includes(q);
-
-          if (!matchesId && !matchesType && !matchesProject) return false;
-        }
-
-        return true;
-      })
+      .filter((approval) => approvalRowMatches(approval))
       .sort((a, b) => {
         const timeA = a.createdAtUtc ? new Date(a.createdAtUtc).getTime() : (a.requestedDate ? new Date(a.requestedDate).getTime() : 0);
         const timeB = b.createdAtUtc ? new Date(b.createdAtUtc).getTime() : (b.requestedDate ? new Date(b.requestedDate).getTime() : 0);
@@ -2367,7 +2385,7 @@ function ApprovalsTab() {
               value={statusFilter === "all" ? "" : statusFilter}
               onChange={(value) => setStatusFilter(value || "all")}
               placeholder="All Statuses"
-              options={["Pending", "Approved", "Rejected", "Hold", "Request Changes"]}
+              options={approvalStatusOptions}
             />
 
           </div>
@@ -3202,42 +3220,108 @@ function AlertsTab() {
 
 
 
+  const alertRowMatches = (
+    alert: (typeof allAlerts)[number],
+    skip?: "project" | "client" | "priority" | "type" | "status",
+  ) => {
+    const proj = projectsList.find((project) => project.id === alert.projectId);
+    if (skip !== "project" && projFilter !== "all" && alert.projectId !== projFilter) return false;
+    if (skip !== "client" && clientFilter !== "all" && proj?.clientId !== clientFilter && (alert as { customerId?: string }).customerId !== clientFilter) return false;
+    if (skip !== "priority" && prioFilter !== "all" && alert.priority !== prioFilter) return false;
+    if (skip !== "type" && typeFilter !== "all" && alert.alertType !== typeFilter) return false;
+    if (skip !== "status" && statusFilter !== "all" && alert.status !== statusFilter) return false;
+    if (alertSearchQuery.trim()) {
+      const q = alertSearchQuery.trim().toLowerCase();
+      const matchesId = (alert.alertId || "").toLowerCase().includes(q) || (alert.id || "").toLowerCase().includes(q);
+      const projName = (alert.projectName || proj?.name || "").toLowerCase();
+      const projCode = ((proj as { code?: string } | undefined)?.code || (alert as { projectCode?: string }).projectCode || "").toLowerCase();
+      const matchesProject = projName.includes(q) || projCode.includes(q);
+      const alertTypeStr = (alert.alertType || (alert as { kind?: string }).kind || "").toLowerCase();
+      if (!matchesId && !matchesProject && !alertTypeStr.includes(q)) return false;
+    }
+    return true;
+  };
+
   const alertTypes = useMemo(() => {
     const types = new Set<string>();
-    (allAlerts || []).forEach((a) => {
-      const t = a.alertType || (a as any).kind;
-      if (t && t.trim()) {
-        types.add(t.trim());
-      }
+    (allAlerts || []).forEach((alert) => {
+      if (!alertRowMatches(alert, "type")) return;
+      const type = alert.alertType || (alert as { kind?: string }).kind;
+      if (type && type.trim()) types.add(type.trim());
     });
-    return Array.from(types).sort();
-  }, [allAlerts]);
-
-  useEffect(() => {
-    if (typeFilter !== "all" && !alertTypes.includes(typeFilter)) {
-      setTypeFilter("all");
-    }
-  }, [alertTypes, typeFilter]);
+    return Array.from(types).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }, [allAlerts, projectsList, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, alertSearchQuery]);
 
   const alertProjects = useMemo(() => {
     const map = new Map<string, string>();
-    (allAlerts || []).forEach((a) => {
-      if (a.projectId) {
-        const proj = projectsList.find((p) => p.id === a.projectId);
-        const name = a.projectName || proj?.name || a.projectId;
-        map.set(a.projectId, name);
-      }
+    (allAlerts || []).forEach((alert) => {
+      if (!alertRowMatches(alert, "project") || !alert.projectId) return;
+      const proj = projectsList.find((project) => project.id === alert.projectId);
+      map.set(alert.projectId, alert.projectName || proj?.name || alert.projectId);
     });
     return Array.from(map.entries())
       .map(([id, name]) => ({ id, name }))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [allAlerts, projectsList]);
+  }, [allAlerts, projectsList, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, alertSearchQuery]);
+
+  const alertCustomers = useMemo(() => {
+    const ids = new Set<string>();
+    (allAlerts || []).forEach((alert) => {
+      if (!alertRowMatches(alert, "client")) return;
+      const proj = projectsList.find((project) => project.id === alert.projectId);
+      const id = proj?.clientId || (alert as { customerId?: string }).customerId;
+      if (id) ids.add(id);
+    });
+    return (clientsList || [])
+      .filter((client) => ids.has(client.id))
+      .map((client) => ({ value: client.id, label: client.name }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+  }, [allAlerts, projectsList, clientsList, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, alertSearchQuery]);
+
+  const alertPriorityOptions = useMemo(() => {
+    const present = new Set<string>();
+    (allAlerts || []).forEach((alert) => {
+      if (!alertRowMatches(alert, "priority")) return;
+      if (alert.priority?.trim()) present.add(alert.priority.trim());
+    });
+    const order = ["Low", "Medium", "High", "Critical"];
+    return [
+      ...order.filter((priority) => present.has(priority)),
+      ...Array.from(present).filter((priority) => !order.includes(priority)).sort((a, b) => a.localeCompare(b)),
+    ];
+  }, [allAlerts, projectsList, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, alertSearchQuery]);
+
+  const alertStatusOptions = useMemo(() => {
+    const present = new Set<string>();
+    (allAlerts || []).forEach((alert) => {
+      if (!alertRowMatches(alert, "status")) return;
+      if (alert.status?.trim()) present.add(alert.status.trim());
+    });
+    const order = ["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"];
+    return [
+      ...order.filter((status) => present.has(status)),
+      ...Array.from(present).filter((status) => !order.includes(status)).sort((a, b) => a.localeCompare(b)),
+    ];
+  }, [allAlerts, projectsList, projFilter, clientFilter, prioFilter, typeFilter, statusFilter, alertSearchQuery]);
 
   useEffect(() => {
-    if (projFilter !== "all" && !alertProjects.some((p) => p.id === projFilter)) {
-      setProjFilter("all");
-    }
-  }, [alertProjects, projFilter]);
+    if (typeFilter !== "all" && !alertTypes.includes(typeFilter)) setTypeFilter("all");
+    if (projFilter !== "all" && !alertProjects.some((project) => project.id === projFilter)) setProjFilter("all");
+    if (clientFilter !== "all" && !alertCustomers.some((client) => client.value === clientFilter)) setClientFilter("all");
+    if (prioFilter !== "all" && !alertPriorityOptions.includes(prioFilter)) setPrioFilter("all");
+    if (statusFilter !== "all" && !alertStatusOptions.includes(statusFilter)) setStatusFilter("all");
+  }, [
+    alertTypes,
+    typeFilter,
+    alertProjects,
+    projFilter,
+    alertCustomers,
+    clientFilter,
+    alertPriorityOptions,
+    prioFilter,
+    alertStatusOptions,
+    statusFilter,
+  ]);
 
 
 
@@ -3355,7 +3439,7 @@ function AlertsTab() {
                 value={clientFilter === "all" ? "" : clientFilter}
                 onChange={(value) => setClientFilter(value || "all")}
                 placeholder="All Customers"
-                options={(clientsList || []).map((c) => ({ value: c.id, label: c.name }))}
+                options={alertCustomers}
               />
 
             </div>
@@ -3372,7 +3456,7 @@ function AlertsTab() {
                 value={prioFilter === "all" ? "" : prioFilter}
                 onChange={(value) => setPrioFilter(value || "all")}
                 placeholder="All Priorities"
-                options={["Low", "Medium", "High", "Critical"]}
+                options={alertPriorityOptions}
               />
 
             </div>
@@ -3402,7 +3486,7 @@ function AlertsTab() {
                 value={statusFilter === "all" ? "" : statusFilter}
                 onChange={(value) => setStatusFilter(value || "all")}
                 placeholder="All Statuses"
-                options={["Open", "Acknowledged", "In Progress", "Waiting for Customer", "Resolved", "Closed"]}
+                options={alertStatusOptions}
               />
 
             </div>
@@ -4466,20 +4550,58 @@ function NotificationsTab() {
   const archivedCount = notifications.filter((n) => (n.status || "").toLowerCase() === "acknowledged").length;
 
   // Available notification types dynamically derived from actual notifications in the system
+  const notificationRowMatches = (
+    notification: (typeof notifications)[number],
+    skip?: "type" | "priority" | "status" | "date",
+  ) => {
+    if (subTab === "Current") {
+      if ((notification.status || "").toLowerCase() === "acknowledged") return false;
+    } else if ((notification.status || "").toLowerCase() !== "acknowledged") {
+      return false;
+    }
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const formattedCode = formatNotificationId(notification.notificationCode || notification.id).toLowerCase();
+      const matchesCode = formattedCode.includes(query) || (notification.notificationCode ? notification.notificationCode.toLowerCase().includes(query) : false);
+      const matchesId = notification.id ? notification.id.toLowerCase().includes(query) : false;
+      const matchesProject = (notification.relatedProject || "").toLowerCase().includes(query);
+      const matchesTask = notification.relatedTask ? notification.relatedTask.toLowerCase().includes(query) : false;
+      const matchesType = (notification.type || "").toLowerCase().includes(query);
+      const matchesEmployee = (notification.raisedBy || "").toLowerCase().includes(query);
+      const matchesTitle = (notification.title || "").toLowerCase().includes(query);
+      if (!matchesCode && !matchesId && !matchesProject && !matchesTask && !matchesType && !matchesEmployee && !matchesTitle) return false;
+    }
+    if (skip !== "type" && typeFilter !== "all" && notification.type !== typeFilter) return false;
+    if (skip !== "priority" && priorityFilter !== "all" && notification.priority.toLowerCase() !== priorityFilter.toLowerCase()) return false;
+    if (skip !== "status" && statusFilter !== "all" && notification.status.toLowerCase() !== statusFilter.toLowerCase()) return false;
+    if (skip !== "date" && dateFilter && notification.createdAt.slice(0, 10) !== dateFilter) return false;
+    return true;
+  };
+
   const availableNotificationTypes = useMemo(() => {
     const set = new Set<string>();
-    notifications.forEach((n) => {
-      const t = (n.type || "").trim();
-      if (t) set.add(t);
+    notifications.forEach((notification) => {
+      if (!notificationRowMatches(notification, "type")) return;
+      const type = (notification.type || "").trim();
+      if (type) set.add(type);
     });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [notifications]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }, [notifications, subTab, searchQuery, typeFilter, priorityFilter, statusFilter, dateFilter]);
 
-  useEffect(() => {
-    if (typeFilter !== "all" && availableNotificationTypes.length > 0 && !availableNotificationTypes.includes(typeFilter)) {
-      setTypeFilter("all");
-    }
-  }, [availableNotificationTypes, typeFilter]);
+  const notificationPriorityOptions = useMemo(() => {
+    const present = new Set<string>();
+    notifications.forEach((notification) => {
+      if (!notificationRowMatches(notification, "priority")) return;
+      if (notification.priority?.trim()) present.add(notification.priority.trim().toLowerCase());
+    });
+    const order = [
+      { value: "low", label: "Low" },
+      { value: "medium", label: "Medium" },
+      { value: "high", label: "High" },
+      { value: "critical", label: "Critical" },
+    ];
+    return order.filter((option) => present.has(option.value));
+  }, [notifications, subTab, searchQuery, typeFilter, priorityFilter, statusFilter, dateFilter]);
 
   // Timestamp formatting helper: DD-MM-YYYY HH:MM:SS (e.g. 16-11-2026 02:27:00)
   const formatNotifTimestamp = (dateStr?: string | null): string => {
@@ -4561,13 +4683,23 @@ function NotificationsTab() {
   };
 
   const availableStatuses = useMemo(() => {
-    const defaultStatuses = ["Pending", "Created", "Assigned", "Upload", "Selected", "Approved", "Hold", "Postponed", "Request Change", "Request Changes", "Rejected", "Acknowledged", "Done", "Edited"];
-    const found = new Set(defaultStatuses);
-    notifications.forEach((n) => {
-      if (n.status && n.status.trim()) found.add(n.status.trim());
+    const found = new Set<string>();
+    notifications.forEach((notification) => {
+      if (!notificationRowMatches(notification, "status")) return;
+      if (notification.status?.trim()) found.add(notification.status.trim());
     });
-    return Array.from(found);
-  }, [notifications]);
+    return Array.from(found).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }, [notifications, subTab, searchQuery, typeFilter, priorityFilter, statusFilter, dateFilter]);
+
+  useEffect(() => {
+    if (typeFilter !== "all" && !availableNotificationTypes.includes(typeFilter)) setTypeFilter("all");
+    if (priorityFilter !== "all" && !notificationPriorityOptions.some((option) => option.value === priorityFilter.toLowerCase())) {
+      setPriorityFilter("all");
+    }
+    if (statusFilter !== "all" && !availableStatuses.some((status) => status.toLowerCase() === statusFilter.toLowerCase())) {
+      setStatusFilter("all");
+    }
+  }, [availableNotificationTypes, typeFilter, notificationPriorityOptions, priorityFilter, availableStatuses, statusFilter]);
 
 
 
@@ -4864,12 +4996,7 @@ function NotificationsTab() {
               value={priorityFilter === "all" ? "" : priorityFilter}
               onChange={(value) => setPriorityFilter(value || "all")}
               placeholder="All Priorities"
-              options={[
-                { value: "low", label: "Low" },
-                { value: "medium", label: "Medium" },
-                { value: "high", label: "High" },
-                { value: "critical", label: "Critical" },
-              ]}
+              options={notificationPriorityOptions}
             />
 
           </div>

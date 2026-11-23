@@ -1,6 +1,6 @@
 import { getRouteApi, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { createPortal } from "react-dom";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
   Search,
   Plus,
@@ -60,11 +60,7 @@ import {
   fetchAllEmployees,
   setEmployeeLoginAccess,
   fetchBusinessUnitOptions,
-  fetchDepartmentOptions,
-  fetchDesignationOptions,
   fetchEmailDomainOptions,
-  fetchJobRoleOptions,
-  fetchEmployeeStatusOptions,
   fetchNationalityOptions,
   fetchOfficeOptions,
   fetchReportingManagerOptions,
@@ -74,7 +70,6 @@ import {
   fetchPostGraduationDegreeOptions,
   toUiEmployeeFromList,
   uploadEmployeeDocuments,
-  type ApiMetaOption,
 } from "@/modules/employees/api/employees";
 import {
   ONBOARD_DOC_SLOTS,
@@ -110,7 +105,7 @@ import {
   computeBondStatus,
   formatBondExpiryDisplay,
 } from "@/lib/employment-bond";
-import { type Employee, type EmployeeStatus } from "@/lib/employee-data";
+import { type Employee } from "@/lib/employee-data";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { EmployeeFormModal } from "@/modules/employees/components/employee-form-modal";
 
@@ -309,12 +304,16 @@ function dash(value?: string | null): string {
   return value && value.trim() && value !== "—" && value !== "–" && value !== "-" ? value : "—";
 }
 
-const DIRECTORY_STATUSES: EmployeeStatus[] = [
-  "Active",
-  "Probation",
-  "Resignation Under Review",
-  "Notice Period",
-];
+type DirectoryFilterSkip = "dept" | "desig" | "subDept" | "role" | "status";
+
+function listedLabels(values: Iterable<string | null | undefined>): string[] {
+  const names = new Set<string>();
+  for (const value of values) {
+    const label = (value ?? "").replace(/\s+/g, " ").trim();
+    if (label) names.add(label);
+  }
+  return [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+}
 
 // ── Allocation Status pill ──────────────────────────
 function AllocationStatusBadge({ status }: { status: AllocationStatus }) {
@@ -810,9 +809,6 @@ export function EmployeeDirectoryPage() {
   const [subDept, setSubDept] = useState("");
   const [onFloorRole, setOnFloorRole] = useState("");
   const [status, setStatus] = useState("");
-  const [deptCatalog, setDeptCatalog] = useState<ApiMetaOption[]>([]);
-  const [desigCatalog, setDesigCatalog] = useState<ApiMetaOption[]>([]);
-  const [onFloorRoleOptions, setOnFloorRoleOptions] = useState<string[]>([]);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -859,59 +855,75 @@ export function EmployeeDirectoryPage() {
   useEffect(() => {
     if (authStatus !== "authed") return;
     void loadEmployees();
-    void fetchDepartmentOptions()
-      .then(setDeptCatalog)
-      .catch(() => toast.error("Could not load departments"));
-    void fetchDesignationOptions()
-      .then(setDesigCatalog)
-      .catch(() => toast.error("Could not load designations"));
-    void fetchJobRoleOptions()
-      .then((rows) => setOnFloorRoleOptions(uniqueOnFloorRoleLabels(rows.map((row) => row.name))))
-      .catch(() => setOnFloorRoleOptions([]));
   }, [authStatus]);
 
-  const departmentFilterOptions = useMemo(
-    () => [...new Set(deptCatalog.map((d) => d.name).filter(Boolean))],
-    [deptCatalog],
+  const listedEmployees = useMemo(
+    () => dbEmployees.filter((employee) => inFinancialYears(employee.joiningDate, employee.joiningDate, years)),
+    [dbEmployees, years],
   );
 
-  const designationFilterOptions = useMemo(() => {
-    const selectedDept = deptCatalog.find((d) => d.name === dept);
-    const scoped = selectedDept
-      ? desigCatalog.filter((d) => d.parentId === selectedDept.id)
-      : desigCatalog;
-    return [...new Set(scoped.map((d) => d.name).filter(Boolean))];
-  }, [desigCatalog, deptCatalog, dept]);
-
-  const subDepartmentFilterOptions = useMemo(() => {
-    const selectedDept = deptCatalog.find((d) => d.name === dept);
-    let scopedDesigs = selectedDept
-      ? desigCatalog.filter((d) => d.parentId === selectedDept.id)
-      : desigCatalog;
-    if (desig) {
-      scopedDesigs = scopedDesigs.filter((d) => d.name === desig);
-    }
-    const names = new Set<string>();
-    for (const row of scopedDesigs) {
-      if (!row.subDepartment) continue;
-      for (const part of row.subDepartment.split(",").map((s) => s.trim()).filter(Boolean)) {
-        const label = formatSubDepartmentDisplay(part) || part;
-        names.add(label);
+  const matchesDirectoryFilters = useCallback(
+    (employee: Employee, skip?: DirectoryFilterSkip) => {
+      if (!matchesEmployeeSearch(employee, q)) return false;
+      if (skip !== "dept" && dept && employee.department !== dept) return false;
+      if (skip !== "desig" && desig && employee.designation !== desig) return false;
+      if (
+        skip !== "subDept" &&
+        subDept &&
+        normalizeSubDepartmentKey(employee.subDepartment) !== normalizeSubDepartmentKey(subDept)
+      ) {
+        return false;
       }
-    }
-    for (const e of dbEmployees) {
-      if (dept && e.department !== dept) continue;
-      if (desig && e.designation !== desig) continue;
-      const value = formatSubDepartmentDisplay(e.subDepartment) || e.subDepartment?.trim();
-      if (value) names.add(value);
-    }
-    return [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
-  }, [desigCatalog, deptCatalog, dbEmployees, dept, desig]);
+      if (skip !== "role" && onFloorRole && normalizeOnFloorRole(employee.jobRoleName) !== normalizeOnFloorRole(onFloorRole)) {
+        return false;
+      }
+      if (
+        skip !== "status" &&
+        status &&
+        !(employee.status === status || (status === "Active" && employee.status === "Resignation Under Review"))
+      ) {
+        return false;
+      }
+      return true;
+    },
+    [q, dept, desig, subDept, onFloorRole, status],
+  );
 
-  const onFloorRoleFilterOptions = onFloorRoleOptions;
+  const departmentFilterOptions = useMemo(
+    () => listedLabels(listedEmployees.filter((employee) => matchesDirectoryFilters(employee, "dept")).map((employee) => employee.department)),
+    [listedEmployees, matchesDirectoryFilters],
+  );
+
+  const designationFilterOptions = useMemo(
+    () => listedLabels(listedEmployees.filter((employee) => matchesDirectoryFilters(employee, "desig")).map((employee) => employee.designation)),
+    [listedEmployees, matchesDirectoryFilters],
+  );
+
+  const subDepartmentFilterOptions = useMemo(
+    () =>
+      listedLabels(
+        listedEmployees
+          .filter((employee) => matchesDirectoryFilters(employee, "subDept"))
+          .map((employee) => formatSubDepartmentDisplay(employee.subDepartment) || employee.subDepartment),
+      ),
+    [listedEmployees, matchesDirectoryFilters],
+  );
+
+  const onFloorRoleFilterOptions = useMemo(
+    () =>
+      uniqueOnFloorRoleLabels(
+        listedEmployees.filter((employee) => matchesDirectoryFilters(employee, "role")).map((employee) => employee.jobRoleName),
+      ),
+    [listedEmployees, matchesDirectoryFilters],
+  );
+
+  const statusFilterOptions = useMemo(
+    () => listedLabels(listedEmployees.filter((employee) => matchesDirectoryFilters(employee, "status")).map((employee) => employee.status)),
+    [listedEmployees, matchesDirectoryFilters],
+  );
 
   // -- Deep Comprehensive Employee Search --------------
-  const matchesEmployeeSearch = (e: Employee, query: string): boolean => {
+  function matchesEmployeeSearch(e: Employee, query: string): boolean {
     if (!query) return true;
     const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
     if (terms.length === 0) return true;
@@ -977,51 +989,25 @@ export function EmployeeDirectoryPage() {
       .toLowerCase();
 
     return terms.every((term) => searchableText.includes(term));
-  };
+  }
 
   // -- Directory Filtering -----------------------------
   const directoryRows = useMemo(() => {
-    const filtered = dbEmployees.filter((e) => {
-      const matchQ = matchesEmployeeSearch(e, q);
-      return (
-        matchQ &&
-        (!dept || e.department === dept) &&
-        (!desig || e.designation === desig) &&
-        (!subDept || normalizeSubDepartmentKey(e.subDepartment) === normalizeSubDepartmentKey(subDept)) &&
-        (!onFloorRole || normalizeOnFloorRole(e.jobRoleName) === normalizeOnFloorRole(onFloorRole)) &&
-        (!status ||
-          e.status === status ||
-          (status === "Active" && e.status === "Resignation Under Review")) &&
-        inFinancialYears(e.joiningDate, e.joiningDate, years)
-      );
-    });
+    const filtered = listedEmployees.filter((employee) => matchesDirectoryFilters(employee));
     return [...filtered].sort((a, b) => {
       const cmp = compareEmployees(a, b, sortKey);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [dbEmployees, q, dept, desig, subDept, onFloorRole, status, sortKey, sortDir, years]);
+  }, [listedEmployees, matchesDirectoryFilters, sortKey, sortDir]);
 
   // -- Pool Filtering ----------------------------------
   const poolRows = useMemo(() => {
-    const filtered = dbEmployees.filter((e) => {
-      const matchQ = matchesEmployeeSearch(e, q);
-      return (
-        matchQ &&
-        (!dept || e.department === dept) &&
-        (!desig || e.designation === desig) &&
-        (!subDept || normalizeSubDepartmentKey(e.subDepartment) === normalizeSubDepartmentKey(subDept)) &&
-        (!onFloorRole || normalizeOnFloorRole(e.jobRoleName) === normalizeOnFloorRole(onFloorRole)) &&
-        (!status ||
-          e.status === status ||
-          (status === "Active" && e.status === "Resignation Under Review")) &&
-        inFinancialYears(e.joiningDate, e.joiningDate, years)
-      );
-    });
+    const filtered = listedEmployees.filter((employee) => matchesDirectoryFilters(employee));
     return [...filtered].sort((a, b) => {
       const cmp = comparePoolEmployees(a, b, poolSortKey);
       return poolSortDir === "asc" ? cmp : -cmp;
     });
-  }, [dbEmployees, q, dept, desig, subDept, onFloorRole, status, poolSortKey, poolSortDir, years]);
+  }, [listedEmployees, matchesDirectoryFilters, poolSortKey, poolSortDir]);
 
   // Determine active rows based on tab
   const activeRows = tab === "directory" ? directoryRows : poolRows;
@@ -1070,6 +1056,35 @@ export function EmployeeDirectoryPage() {
       setLoginBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (isLoading || listedEmployees.length === 0) return;
+    if (dept && !departmentFilterOptions.includes(dept)) setDept("");
+    if (desig && !designationFilterOptions.includes(desig)) setDesig("");
+    if (subDept && !subDepartmentFilterOptions.some((option) => normalizeSubDepartmentKey(option) === normalizeSubDepartmentKey(subDept))) {
+      setSubDept("");
+    }
+    if (
+      onFloorRole &&
+      !onFloorRoleFilterOptions.some((option) => normalizeOnFloorRole(option) === normalizeOnFloorRole(onFloorRole))
+    ) {
+      setOnFloorRole("");
+    }
+    if (status && !statusFilterOptions.includes(status)) setStatus("");
+  }, [
+    isLoading,
+    listedEmployees.length,
+    dept,
+    departmentFilterOptions,
+    desig,
+    designationFilterOptions,
+    subDept,
+    subDepartmentFilterOptions,
+    onFloorRole,
+    onFloorRoleFilterOptions,
+    status,
+    statusFilterOptions,
+  ]);
 
   // Reset page when filters, tab, or pageSize change
   useEffect(() => {
@@ -1120,8 +1135,6 @@ export function EmployeeDirectoryPage() {
             <EmployeeBulkUploadMenu
               onImported={() => {
                 void loadEmployees();
-                void fetchDepartmentOptions().then(setDeptCatalog).catch(() => undefined);
-                void fetchDesignationOptions().then(setDesigCatalog).catch(() => undefined);
               }}
             />
             <button
@@ -1212,7 +1225,7 @@ export function EmployeeDirectoryPage() {
               value={status}
               onChange={setStatus}
               placeholder="All Statuses"
-              options={DIRECTORY_STATUSES}
+              options={statusFilterOptions}
             />
           </div>
 
@@ -1623,8 +1636,6 @@ export function EmployeeDirectoryPage() {
         managers={managers}
         onSuccess={() => {
           void loadEmployees();
-          void fetchDepartmentOptions().then(setDeptCatalog).catch(() => undefined);
-          void fetchDesignationOptions().then(setDesigCatalog).catch(() => undefined);
         }}
       />
 

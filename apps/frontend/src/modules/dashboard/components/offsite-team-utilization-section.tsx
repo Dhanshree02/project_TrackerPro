@@ -194,7 +194,6 @@ function OffsiteCharts({
           months={months}
           metric="Team utilization"
           formatValue={(value) => `${value}%`}
-
           xLabel="Utilization %"
           resetSignal={utilReset}
           onPeerClear={() => setStrengthReset((n) => n + 1)}

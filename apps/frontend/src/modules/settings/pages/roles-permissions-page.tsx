@@ -808,20 +808,6 @@ function AccessRadio({
 // Userwise Access Subview
 // ─────────────────────────────────────────────────────────────────────────────
 
-const USERWISE_DEPARTMENT_OPTIONS = [
-  "All",
-  "Core",
-  "Functional - Accounts",
-  "Functional - HR",
-  "Functional - IT Administration",
-  "Functional - Project Management",
-  "Functional - Sales",
-  "R&D (Research & Development)",
-  "Services - Consulting",
-  "Services - Operations",
-  "Services - Testing",
-];
-
 type UserwiseSortKey = "name" | "department" | "originalRole" | "currentRole";
 type UserwiseSortDir = "asc" | "desc";
 
@@ -865,6 +851,30 @@ function UserwiseAccessView() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  const departmentOptions = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const names = new Set<string>();
+    for (const employee of data) {
+      const matchesSearch =
+        !q ||
+        employee.fullName.toLowerCase().includes(q) ||
+        employee.employeeCode.toLowerCase().includes(q) ||
+        employee.workEmail.toLowerCase().includes(q) ||
+        employee.departmentName.toLowerCase().includes(q) ||
+        (employee.originalRoleDisplayName || employee.originalRoleName).toLowerCase().includes(q) ||
+        (employee.currentRoleDisplayName || employee.currentRoleName).toLowerCase().includes(q);
+      if (!matchesSearch) continue;
+      const name = employee.departmentName?.trim();
+      if (name) names.add(name);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }, [data, search]);
+
+  useEffect(() => {
+    if (loading || data.length === 0 || department === "All") return;
+    if (!departmentOptions.some((name) => name.toLowerCase() === department.toLowerCase())) setDepartment("All");
+  }, [loading, data.length, department, departmentOptions]);
 
   // Total count of employees with switched roles
   const switchedCount = useMemo(() => data.filter((e) => e.isSwitched).length, [data]);
@@ -1023,16 +1033,13 @@ function UserwiseAccessView() {
           {/* Department Filter */}
           <div className="w-full md:w-56 shrink-0">
             <SearchableSelect
-              value={department}
+              value={department === "All" ? "" : department}
               onChange={(value) => {
                 setDepartment(value || "All");
                 setPage(1);
               }}
               placeholder="All Departments"
-              options={USERWISE_DEPARTMENT_OPTIONS.map((dept) => ({
-                value: dept,
-                label: dept === "All" ? "All Departments" : dept,
-              }))}
+              options={departmentOptions}
               className="w-full"
             />
           </div>

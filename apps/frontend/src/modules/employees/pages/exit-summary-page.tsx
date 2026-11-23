@@ -28,9 +28,7 @@ import { Avatar } from "@/components/pills";
 import { cn, formatDateDMY } from "@/lib/utils";
 import {
   fetchAllExitedEmployees,
-  fetchDepartmentOptions,
   type ApiExitedEmployee,
-  type ApiMetaOption,
 } from "@/modules/employees/api/employees";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
@@ -52,6 +50,25 @@ function exitEventDate(e: ApiExitedEmployee): Date | null {
   if (!raw) return null;
   const d = new Date(raw);
   return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function exitFallsInPeriod(
+  exit: ApiExitedEmployee,
+  period: "all" | "this-month" | "last-3-months" | "this-year",
+  now: Date,
+): boolean {
+  if (period === "all") return true;
+  const exitDate = new Date(exit.exitedAtUtc || exit.lastWorkingDay || "");
+  if (Number.isNaN(exitDate.getTime())) return false;
+  if (period === "this-month") {
+    return exitDate.getMonth() === now.getMonth() && exitDate.getFullYear() === now.getFullYear();
+  }
+  if (period === "last-3-months") {
+    const threeMonthsAgo = new Date(now);
+    threeMonthsAgo.setMonth(now.getMonth() - 3);
+    return exitDate >= threeMonthsAgo;
+  }
+  return exitDate.getFullYear() === now.getFullYear();
 }
 
 function exitReasonOf(e: ApiExitedEmployee): string {
@@ -286,11 +303,34 @@ export function ExitSummaryPage() {
       .catch(() => undefined);
   }, [authStatus]);
 
-  if (!permissionsLoading && !canViewExitSummary) {
-    return <Navigate to="/access-denied" />;
-  }
+  const now = new Date();
 
-  const departments = useMemo(() => {
+  const exitMatches = (
+    exit: ApiExitedEmployee,
+    skip?: "dept" | "type" | "period",
+  ) => {
+    const qTrim = q.trim().toLowerCase();
+    const reason = exitReasonOf(exit).toLowerCase();
+    const matchQ =
+      !qTrim ||
+      exit.fullName.toLowerCase().includes(qTrim) ||
+      exit.employeeCode.toLowerCase().includes(qTrim) ||
+      (exit.departmentName && exit.departmentName.toLowerCase().includes(qTrim)) ||
+      (exit.designationName && exit.designationName.toLowerCase().includes(qTrim)) ||
+      reason.includes(qTrim);
+    const matchDept = skip === "dept" || !deptFilter || (exit.departmentName ?? "") === deptFilter;
+    const matchType = skip === "type" || !typeFilter || (exit.exitType ?? "") === typeFilter;
+    const matchPeriod = skip === "period" || exitFallsInPeriod(exit, datePeriodFilter, now);
+    return matchQ && matchDept && matchType && matchPeriod && inFinancialYears(exit.lastWorkingDay || exit.exitedAtUtc, exit.lastWorkingDay || exit.exitedAtUtc, years);
+  };
+
+  const departments = useMemo(
+    () =>
+      Array.from(
+        new Set(exits.filter((exit) => exitMatches(exit, "dept")).map((exit) => exit.departmentName).filter((name): name is string => Boolean(name))),
+      ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
+    [exits, q, deptFilter, typeFilter, datePeriodFilter, now, years],
+  );
     const fromCatalog = deptCatalog.map((d) => d.name).filter(Boolean);
     const fromExits = exits.map((e) => e.departmentName).filter((d): d is string => Boolean(d));
     return Array.from(new Set([...fromCatalog, ...fromExits])).sort();
@@ -311,46 +351,25 @@ export function ExitSummaryPage() {
   const avgExitRating = rated.length
     ? Math.round((rated.reduce((sum, n) => sum + n, 0) / rated.length) * 10) / 10
     : null;
-
-  const exitTypes = useMemo(
-    () =>
-      Array.from(
-        new Set(exits.map((e) => e.exitType).filter((t): t is string => Boolean(t))),
-      ).sort(),
-    [exits],
+        new Set(exits.filter((exit) => exitMatches(exit, "type")).map((exit) => exit.exitType).filter((type): type is string => Boolean(type))),
+      ).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
+    [exits, q, deptFilter, typeFilter, datePeriodFilter, now, years],
   );
 
-  const now = new Date();
-
-  const filtered = useMemo(() => {
-    const qTrim = q.trim().toLowerCase();
-    const rows = exits.filter((e) => {
-      const reason = exitReasonOf(e).toLowerCase();
-      const matchQ =
-        !qTrim ||
-        e.fullName.toLowerCase().includes(qTrim) ||
-        e.employeeCode.toLowerCase().includes(qTrim) ||
-        (e.departmentName && e.departmentName.toLowerCase().includes(qTrim)) ||
-        (e.designationName && e.designationName.toLowerCase().includes(qTrim)) ||
-        reason.includes(qTrim);
-
-      const matchDept = !deptFilter || (e.departmentName ?? "") === deptFilter;
-      const matchType = !typeFilter || (e.exitType ?? "") === typeFilter;
-
-      let matchPeriod = true;
-      if (datePeriodFilter !== "all") {
-        const exitDate = new Date(e.exitedAtUtc || e.lastWorkingDay || "");
-        if (!Number.isNaN(exitDate.getTime())) {
-          if (datePeriodFilter === "this-month") {
-            matchPeriod = exitDate.getMonth() === now.getMonth() && exitDate.getFullYear() === now.getFullYear();
-          } else if (datePeriodFilter === "last-3-months") {
-            const threeMonthsAgo = new Date();
-            threeMonthsAgo.setMonth(now.getMonth() - 3);
-            matchPeriod = exitDate >= threeMonthsAgo;
-          } else if (datePeriodFilter === "this-year") {
-            matchPeriod = exitDate.getFullYear() === now.getFullYear();
-          }
-        }
+  const datePeriodOptions = useMemo(
+    () =>
+      (
+        [
+          { label: "This Month", value: "this-month" },
+          { label: "Last 3 Months", value: "last-3-months" },
+          { label: "This Year", value: "this-year" },
+        ] as const
+      ).filter((option) => exits.some((exit) => exitMatches(exit, "period") && exitFallsInPeriod(exit, option.value, now))),
+    [exits, q, deptFilter, typeFilter, datePeriodFilter, now, years],
+      Array.from(
+        new Set(exits.map((e) => e.exitType).filter((t): t is string => Boolean(t))),
+  );
+    const rows = exits.filter((exit) => exitMatches(exit));
       }
 
       return matchQ && matchDept && matchType && matchPeriod && inFinancialYears(e.lastWorkingDay || e.exitedAtUtc, e.lastWorkingDay || e.exitedAtUtc, years);
@@ -360,6 +379,15 @@ export function ExitSummaryPage() {
       const cmp = compareExits(a, b, sortKey);
       return sortDir === "asc" ? cmp : -cmp;
     });
+    if (isLoading || exits.length === 0) return;
+    if (deptFilter && !departments.includes(deptFilter)) setDeptFilter("");
+    if (typeFilter && !exitTypes.includes(typeFilter)) setTypeFilter("");
+    if (datePeriodFilter !== "all" && !datePeriodOptions.some((option) => option.value === datePeriodFilter)) {
+      setDatePeriodFilter("all");
+    }
+  }, [isLoading, exits.length, deptFilter, departments, typeFilter, exitTypes, datePeriodFilter, datePeriodOptions]);
+
+  useEffect(() => {
   }, [exits, q, deptFilter, typeFilter, datePeriodFilter, sortKey, sortDir, now, years]);
 
   // Reset page to 1 when filters change
@@ -518,11 +546,7 @@ export function ExitSummaryPage() {
 
             {/* Date Range Filter */}
             <div className="w-full md:w-36 shrink-0">
-              <FilterSelect
-                value={datePeriodFilter === "all" ? "" : datePeriodFilter}
-                onChange={(val) => setDatePeriodFilter((val || "all") as any)}
-                placeholder="All Dates"
-                options={[
+                options={datePeriodOptions.map((option) => ({ label: option.label, value: option.value }))}
                   { label: "This Month", value: "this-month" },
                   { label: "Last 3 Months", value: "last-3-months" },
                   { label: "This Year", value: "this-year" },

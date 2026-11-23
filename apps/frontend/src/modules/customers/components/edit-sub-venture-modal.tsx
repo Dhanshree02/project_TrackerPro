@@ -17,7 +17,7 @@ import {
   getSubVentureKycUrl,
   formatCustomerId,
 } from "@/modules/customers/api/clients";
-import type { Client, ClientSubVenture } from "@/types";
+import type { Client, ClientSubVenture } from "@/lib/domain-models";
 import { cn } from "@/lib/utils";
 
 const MAX_CONTACTS = 5;

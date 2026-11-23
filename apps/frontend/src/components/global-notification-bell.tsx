@@ -72,7 +72,8 @@ export function GlobalNotificationBell() {
 
   const handleViewAll = () => {
     setIsOpen(false);
-    navigate({ to: "/action-centre", search: { tab: "notifications" } as any });
+    window.dispatchEvent(new CustomEvent("pms-action-centre-tab", { detail: "notifications" }));
+    void navigate({ to: "/action-centre", search: { tab: "notifications" } as any });
   };
 
   const handleMarkAllAsRead = async () => {
