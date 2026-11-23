@@ -7,7 +7,7 @@ alwaysApply: true
 
 **Last updated:** 2026-11-23
 
-- **Exit Summary page syntax was broken** (`Unexpected ","` around the departments `useMemo`) and blocked the Linux frontend Docker build. Restored row-scoped department / exit-type / period filters, `filtered` rows, and the access-denied gate. `exit-summary-page.tsx`. The date filter markup was restored in a follow-up so the production build can finish. `project-detail-page.tsx` keeps `isCurrentlyWorking` inside `mapApiTeamMemberToRow`.
+- **Exit Summary and the project team table were merged twice**, which stopped the Linux frontend build (`Unexpected ","`, duplicate `actionsLocked`, unclosed `DateRangePicker`). Both files parse again. Every frontend `.ts` and `.tsx` file was syntax-checked before this push. `exit-summary-page.tsx`, `project-detail-page.tsx`.
 
 - **Linux UAT frontend is nginx + `vite build` (not Vite dev).** Slow reload / `Failed to fetch .../src/routes/*.tsx` meant the container was still serving source modules. Dockerfile builds static client assets; compose maps `39117:80` and nginx proxies `/api` to `backend`. Rebuild: `docker compose -f compose/uat.yml -p pms-uat up -d --build --force-recreate frontend`.
 
