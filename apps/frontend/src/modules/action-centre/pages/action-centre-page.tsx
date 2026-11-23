@@ -431,9 +431,8 @@ function BucketListRow({
 
   const byName = r.assignedByName || (r.assignedById ? getPerson(r.assignedById).name : "") || "Project Manager";
 
-  const [now, setNow] = useState(Date.now());
-
-
+  const [tick, setTick] = useState(0);
+  const timerAnchor = useRef({ base: r.elapsedTimeSeconds ?? r.timerAccumulatedSeconds ?? 0, at: Date.now() });
 
   // Optimistic local state for immediate smooth button and timer transitions
 
@@ -451,59 +450,40 @@ function BucketListRow({
 
 
 
-  useEffect(() => {
+  const anchorTimer = (baseSeconds: number) => {
+    timerAnchor.current = { base: Math.max(0, Math.floor(baseSeconds)), at: Date.now() };
+    setTick((n) => n + 1);
+  };
 
+  useEffect(() => {
+    const serverSeconds = r.timerRunning
+      ? (r.elapsedTimeSeconds ?? r.timerAccumulatedSeconds ?? 0)
+      : (r.timerAccumulatedSeconds ?? r.elapsedTimeSeconds ?? 0);
+    anchorTimer(serverSeconds);
     setLocalStatus(r.status);
-
     setLocalTimerRunning(r.timerRunning);
-
     setLocalAccumulatedSeconds(r.timerAccumulatedSeconds ?? 0);
-
     setLocalTimerStartedAt(r.timerStartedAtUtc ?? null);
-
-  }, [r.status, r.timerRunning, r.timerAccumulatedSeconds, r.timerStartedAtUtc]);
-
-
+  }, [r.status, r.timerRunning, r.timerAccumulatedSeconds, r.timerStartedAtUtc, r.elapsedTimeSeconds]);
 
   useEffect(() => {
-
     if (!localTimerRunning) return;
-
-    const interval = setInterval(() => {
-
-      setNow(Date.now());
-
-    }, 1000);
-
-    return () => clearInterval(interval);
-
+    const interval = window.setInterval(() => setTick((n) => n + 1), 250);
+    return () => window.clearInterval(interval);
   }, [localTimerRunning]);
 
-
-
-  let workingTimeSeconds = localAccumulatedSeconds;
-
-  if (localTimerRunning && localTimerStartedAt) {
-
-    const elapsedSinceStart = Math.floor((now - new Date(localTimerStartedAt).getTime()) / 1000);
-
-    workingTimeSeconds += Math.max(0, elapsedSinceStart);
-
-  } else if (!localTimerRunning && (r.elapsedTimeSeconds ?? 0) > workingTimeSeconds) {
-
-    workingTimeSeconds = r.elapsedTimeSeconds;
-
-  }
+  const workingTimeSeconds = (localTimerRunning
+    ? timerAnchor.current.base + Math.max(0, Math.floor((Date.now() - timerAnchor.current.at) / 1000))
+    : Math.max(localAccumulatedSeconds, r.elapsedTimeSeconds ?? 0)) + tick * 0;
 
 
 
   const formatTimer = (totalSecs: number) => {
 
-    const h = Math.floor(totalSecs / 3600);
-
-    const m = Math.floor((totalSecs % 3600) / 60);
-
-    const s = totalSecs % 60;
+    const whole = Math.max(0, Math.floor(totalSecs));
+    const h = Math.floor(whole / 3600);
+    const m = Math.floor((whole % 3600) / 60);
+    const s = whole % 60;
 
     return [h, m, s].map((v) => String(v).padStart(2, "0")).join(":");
 
@@ -520,6 +500,8 @@ function BucketListRow({
       setLocalTimerRunning(true);
 
       setLocalTimerStartedAt(new Date().toISOString());
+
+      anchorTimer(localAccumulatedSeconds);
 
       const updated = await startBucketTaskTimer(r.id);
 
@@ -561,6 +543,8 @@ function BucketListRow({
 
       setLocalTimerStartedAt(null);
 
+      anchorTimer(currentSeconds);
+
       const updated = await pauseBucketTaskTimer(r.id);
 
       toast.info("Timer paused", { description: r.taskTitle });
@@ -596,6 +580,8 @@ function BucketListRow({
       setLocalTimerRunning(true);
 
       setLocalTimerStartedAt(new Date().toISOString());
+
+      anchorTimer(workingTimeSeconds);
 
       const updated = await startBucketTaskTimer(r.id);
 
@@ -638,6 +624,8 @@ function BucketListRow({
       setLocalAccumulatedSeconds(currentSeconds);
 
       setLocalTimerStartedAt(null);
+
+      anchorTimer(currentSeconds);
 
       const updated = await stopBucketTaskTimer(r.id);
 
@@ -828,7 +816,7 @@ function BucketListRow({
 
                     "text-xs font-bold",
 
-                    localTimerRunning ? "text-blue-600 animate-pulse" : "text-muted-foreground",
+                    localTimerRunning ? "text-blue-600" : "text-muted-foreground",
 
                   )}
 

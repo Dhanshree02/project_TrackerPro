@@ -1,14 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import type { CustomerMasterCategory, CustomerMastersState, ProjectMasterItem, SimpleMasterItem } from "./types";
+import type { CustomerMasterCategory, CustomerMastersState, ProjectMasterItem } from "./types";
 import { INITIAL_CUSTOMER_MASTERS } from "./defaults";
 import { useProjectCatalogStore } from "./project-catalog-store";
 import {
+  createCity,
+  createContactDesignation,
+  createContactType,
+  createCountry,
+  createIndustry,
+  deleteCity,
+  deleteContactDesignation,
+  deleteContactType,
+  deleteCountry,
+  deleteIndustry,
   fetchCities,
   fetchContactDesignations,
   fetchContactTypes,
   fetchCountries,
   fetchIndustries,
+  updateCity,
+  updateContactDesignation,
+  updateContactType,
+  updateCountry,
+  updateIndustry,
 } from "@/lib/api/catalogs";
 import {
   createProjectMaster,
@@ -73,12 +88,26 @@ export function useMastersStore() {
       ]);
 
       const nowIso = new Date().toISOString();
+      const countryName = new Map(countries.map((country) => [country.id, country.name]));
       setCustomerMasters({
         designations: designations.map((d) => ({ id: d.id, name: d.name, code: d.code, createdAt: nowIso })),
         industries: industries.map((i) => ({ id: i.id, name: i.name, code: i.code, createdAt: nowIso })),
         countries: countries.map((c) => ({ id: c.id, name: c.name, code: c.code, createdAt: nowIso })),
-        cities: cities.map((c) => ({ id: c.id, name: c.name, code: c.code, createdAt: nowIso })),
-        contactTypes: contactTypes.map((ct) => ({ id: ct.id, name: ct.name, code: ct.code, createdAt: nowIso })),
+        cities: cities.map((c) => ({
+          id: c.id,
+          name: c.name,
+          code: c.code,
+          countryId: c.countryId,
+          description: countryName.get(c.countryId),
+          createdAt: nowIso,
+        })),
+        contactTypes: contactTypes.map((ct) => ({
+          id: ct.id,
+          name: ct.name,
+          code: ct.code,
+          description: ct.description ?? undefined,
+          createdAt: nowIso,
+        })),
       });
     } catch {
       toast.error("Could not load customer master catalogs from database");
@@ -198,82 +227,73 @@ export function useMastersStore() {
   );
 
   const addCustomerMasterItem = useCallback(
-    (category: CustomerMasterCategory, name: string, extra?: { code?: string; description?: string }): { success: boolean; error?: string } => {
+    async (
+      category: CustomerMasterCategory,
+      name: string,
+      extra?: { code?: string; description?: string; countryId?: string },
+    ): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
-      if (!trimmed) {
-        return { success: false, error: "Name is required." };
+      if (!trimmed) return { success: false, error: "Name is required." };
+      try {
+        if (category === "industries") await createIndustry(trimmed, extra);
+        else if (category === "countries") await createCountry(trimmed, extra);
+        else if (category === "designations") await createContactDesignation(trimmed, extra);
+        else if (category === "contactTypes") await createContactType(trimmed, extra);
+        else {
+          if (!extra?.countryId) return { success: false, error: "Select a country for this city." };
+          await createCity(trimmed, extra.countryId, extra.code);
+        }
+        await loadMastersFromDb();
+        toast.success(`Added "${trimmed}"`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Could not save this master" };
       }
-
-      const list = customerMasters[category] || [];
-      const duplicate = list.some((item) => item.name.toLowerCase() === trimmed.toLowerCase());
-      if (duplicate) {
-        return { success: false, error: `"${trimmed}" already exists in this master category.` };
-      }
-
-      const newItem: SimpleMasterItem = {
-        id: `${category.slice(0, 3)}-${Date.now()}`,
-        name: trimmed,
-        code: extra?.code?.trim(),
-        description: extra?.description?.trim(),
-        createdAt: new Date().toISOString(),
-      };
-
-      setCustomerMasters((prev) => ({
-        ...prev,
-        [category]: [newItem, ...prev[category]],
-      }));
-
-      toast.success(`Added "${trimmed}" to ${category}`);
-      return { success: true };
     },
-    [customerMasters],
+    [loadMastersFromDb],
   );
 
   const updateCustomerMasterItem = useCallback(
-    (
+    async (
       category: CustomerMasterCategory,
       id: string,
       name: string,
-      extra?: { code?: string; description?: string },
-    ): { success: boolean; error?: string } => {
+      extra?: { code?: string; description?: string; countryId?: string },
+    ): Promise<{ success: boolean; error?: string }> => {
       const trimmed = name.trim();
-      if (!trimmed) {
-        return { success: false, error: "Name is required." };
+      if (!trimmed) return { success: false, error: "Name is required." };
+      try {
+        if (category === "industries") await updateIndustry(id, trimmed, extra);
+        else if (category === "countries") await updateCountry(id, trimmed, extra);
+        else if (category === "designations") await updateContactDesignation(id, trimmed, extra);
+        else if (category === "contactTypes") await updateContactType(id, trimmed, extra);
+        else {
+          if (!extra?.countryId) return { success: false, error: "Select a country for this city." };
+          await updateCity(id, trimmed, extra.countryId, extra.code);
+        }
+        await loadMastersFromDb();
+        toast.success(`Updated "${trimmed}"`);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : "Could not update this master" };
       }
-
-      const list = customerMasters[category] || [];
-      const duplicate = list.some((item) => item.id !== id && item.name.toLowerCase() === trimmed.toLowerCase());
-      if (duplicate) {
-        return { success: false, error: `"${trimmed}" already exists in this master category.` };
-      }
-
-      setCustomerMasters((prev) => ({
-        ...prev,
-        [category]: prev[category].map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                name: trimmed,
-                code: extra?.code !== undefined ? extra.code.trim() : item.code,
-                description: extra?.description !== undefined ? extra.description.trim() : item.description,
-              }
-            : item,
-        ),
-      }));
-
-      toast.success(`Updated "${trimmed}"`);
-      return { success: true };
     },
-    [customerMasters],
+    [loadMastersFromDb],
   );
 
-  const deleteCustomerMasterItem = useCallback((category: CustomerMasterCategory, id: string) => {
-    setCustomerMasters((prev) => ({
-      ...prev,
-      [category]: prev[category].filter((item) => item.id !== id),
-    }));
-    toast.success("Master item deleted");
-  }, []);
+  const deleteCustomerMasterItem = useCallback(async (category: CustomerMasterCategory, id: string) => {
+    try {
+      if (category === "industries") await deleteIndustry(id);
+      else if (category === "countries") await deleteCountry(id);
+      else if (category === "designations") await deleteContactDesignation(id);
+      else if (category === "contactTypes") await deleteContactType(id);
+      else await deleteCity(id);
+      await loadMastersFromDb();
+      toast.success("Master item deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete this master");
+    }
+  }, [loadMastersFromDb]);
 
   const resetAllToDefaults = useCallback(() => {
     resetCatalog();

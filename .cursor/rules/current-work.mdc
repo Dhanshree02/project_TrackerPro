@@ -7,6 +7,24 @@ alwaysApply: true
 
 **Last updated:** 2026-11-23
 
+- **Worker type, bond delivered, Fresher or Experienced, billable status, billing medium, project type, billing model, and payment terms are stored in `master.mst_screen_options` and the screens read that table.** Settings can add, edit, and remove those rows. Industry, country, city, contact designation, and contact type saves now write to the database. A city needs a country. `CatalogService.Writes.cs`, `ScreenOptionSeed.cs`, `use-masters.ts`, `screen-options-section.tsx`.
+
+- **The per-page list opens at the width of the small control.** Other dropdowns still open at least 220 pixels wide. `creatable-catalog-select.tsx`, `rows-per-page-select.tsx`.
+
+- **A raised issue that reaches the Head of Department breach notifies every active HOD and puts the alert on each of their Alerts tabs.** The same people stay on the later reminder. `SlaBackgroundJobWorker.cs`.
+
+- **Every active PMO person receives the customer onboarded notice, the customer edited notice, and the project onboarded notice.** PMO is the sub-department `PMO (Project Management Office)` or a PMO role. `ActionNotificationService.cs`.
+
+- **A first KYC upload during customer onboarding does not send a KYC edited notice.** That notice is sent when a KYC document already on the customer or sub-venture is replaced. `ClientService.cs`.
+
+- **The Bucket List timer counts from the saved working time and keeps moving while the task is running.** A start or resume no longer sits on the old clock. `action-centre-page.tsx`.
+
+- **The employee bulk-upload sample shows Login Access again.** It is required, and the choices are Employee and login or Employee only. The lookup that was hiding that column, and the extra `Sub_Core_...` column, stay off the sheet. `EmployeeBulkImport.cs`.
+
+- **A person who is Dedicated on another project is sent to PMO and Admin, including when the form says Shared Resource.** The note names that other project. Saving again updates the request that is already waiting instead of stopping with "already pending approval." `ProjectTeamMemberService.cs`, `project-detail-page.tsx`.
+
+- **Add Team Member waits for the right approver, and a later Dedicated approval leaves the old project row in place.** Dedicated, or Shared dates that overlap a Dedicated allocation, go to every PMO and Admin. Shared with no Dedicated overlap goes to that person's reporting manager, or one PMO or Admin when they have no manager. Approving Dedicated keeps the old Dedicated or Shared row and marks it not currently working. Approving Shared leaves the other rows working. Shadow Team is still added immediately. `ProjectTeamMemberService.cs`, `project-detail-page.tsx`.
+
 - **Dashboard and customer pages load again.** The onsite project chart file had been saved twice, which stopped the dashboard. The customer page returned before two later hooks, and its edit windows pointed at a missing types file. `onsite-project-count-section.tsx`, `customer-detail-page.tsx`, `edit-customer-info-modal.tsx`, `edit-sub-venture-modal.tsx`.
 
 - **List filters only offer values that are in the rows on that screen.** Employee Directory, Exit Summary, Action Centre approvals, alerts, and notifications, Userwise Access departments, customer project health, and repository folders follow the same rule as Team Dashboard. Choosing one filter narrows the others. `employee-directory-page.tsx`, `exit-summary-page.tsx`, `action-centre-page.tsx`, `roles-permissions-page.tsx`, `customer-detail-page.tsx`, `repository-page.tsx`.

@@ -142,7 +142,7 @@ public sealed class ProjectTeamMemberService(
             .Include(m => m.Project)
             .Where(m => m.EmployeeId == employeeId && m.ProjectId != projectId && m.DeletedAtUtc == null)
             .Where(m => m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam)
-            .Where(m => m.AllocationEndDate >= today)
+            .Where(m => m.AllocationEndDate >= today || (m.ResourceType == "Dedicated" && m.IsCurrentlyWorking))
             .OrderBy(m => m.AllocationStartDate)
             .ToListAsync(ct);
 
@@ -639,6 +639,58 @@ public sealed class ProjectTeamMemberService(
             $"This person is Dedicated on {projectName} until {clash.AllocationEndDate:dd-MM-yyyy}. Choose dates that do not overlap that allocation.");
     }
 
+    private async Task<bool> HasDedicatedElsewhereAsync(Guid projectId, Guid employeeId, CancellationToken ct)
+    {
+        return await db.ProjectTeamMembers
+            .AsNoTracking()
+            .AnyAsync(m => m.EmployeeId == employeeId
+                && m.ProjectId != projectId
+                && m.DeletedAtUtc == null
+                && m.IsCurrentlyWorking
+                && m.ResourceType == "Dedicated"
+                && (m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam), ct);
+    }
+
+    private static string AppendHistory(string? existingJson, object entry)
+    {
+        var list = new List<object>();
+        if (!string.IsNullOrWhiteSpace(existingJson))
+        {
+            try
+            {
+                var existing = JsonSerializer.Deserialize<List<JsonElement>>(existingJson);
+                if (existing != null)
+                {
+                    foreach (var item in existing) list.Add(item);
+                }
+            }
+            catch
+            {
+                // Keep the new entry when the stored history cannot be read.
+            }
+        }
+        list.Add(entry);
+        return JsonSerializer.Serialize(list);
+    }
+
+    private async Task<bool> HasOverlappingDedicatedAsync(
+        Guid projectId,
+        Guid employeeId,
+        DateOnly start,
+        DateOnly end,
+        CancellationToken ct)
+    {
+        return await db.ProjectTeamMembers
+            .AsNoTracking()
+            .AnyAsync(m => m.EmployeeId == employeeId
+                && m.ProjectId != projectId
+                && m.DeletedAtUtc == null
+                && (m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam)
+                && m.ResourceType == "Dedicated"
+                && m.AllocationStartDate <= end
+                && m.AllocationEndDate >= start, ct);
+    }
+
     private static DateOnly TodayIst()
     {
         TimeZoneInfo tz;
@@ -689,7 +741,8 @@ public sealed class ProjectTeamMemberService(
             m.CreatedAtUtc,
             m.UpdatedAtUtc,
             m.DeletedAtUtc,
-            m.DeletedAtUtc == null);
+            m.DeletedAtUtc == null,
+            m.IsCurrentlyWorking);
     }
 
     public async Task<ProjectResourceAllocationRequestDto> RequestAllocationAsync(
@@ -733,16 +786,16 @@ public sealed class ProjectTeamMemberService(
             throw new ConflictException("Employee is already assigned to this project.");
         }
 
-        var alreadyPending = await db.ProjectResourceAllocationRequests
-            .AnyAsync(r => r.ProjectId == projectId && r.EmployeeId == request.EmployeeId && r.Status == "Pending" && r.DeletedAtUtc == null, ct);
-        if (alreadyPending)
-        {
-            throw new ConflictException("An allocation request for this employee is already pending approval.");
-        }
+        var pending = await db.ProjectResourceAllocationRequests
+            .FirstOrDefaultAsync(r => r.ProjectId == projectId && r.EmployeeId == request.EmployeeId && r.Status == "Pending" && r.DeletedAtUtc == null, ct);
 
         var isDedicated = string.Equals(request.ResourceType, "Dedicated", StringComparison.OrdinalIgnoreCase);
+        var overlapsDedicated = await HasOverlappingDedicatedAsync(
+            projectId, request.EmployeeId, request.AllocationStartDate, request.AllocationEndDate, ct);
+        var dedicatedElsewhere = await HasDedicatedElsewhereAsync(projectId, request.EmployeeId, ct);
+        var requiresPmo = isDedicated || overlapsDedicated || dedicatedElsewhere;
 
-        // Resolve candidate's Reporting Manager
+        // Resolve candidate's Reporting Manager. A person with no manager falls back to one PMO or Admin.
         Employee? reportingManager = null;
         if (employee.ReportingManagerId is Guid mgrId && mgrId != Guid.Empty)
         {
@@ -761,26 +814,13 @@ public sealed class ProjectTeamMemberService(
         Guid? approverId;
         string approverName;
 
-        if (isDedicated)
+        if (requiresPmo)
         {
-            // For Dedicated Resource: Approval goes to PMO (can reallocate even if dedicated on another project)
-            var pmoEmp = await db.Employees
-                .AsNoTracking()
-                .Where(e => e.DeletedAtUtc == null &&
-                    ((e.Role != null && e.Role.Contains("PMO")) ||
-                     (e.SubDepartment != null && e.SubDepartment.ToLower().Contains("pmo")) ||
-                     e.Role == "Admin"))
-                .OrderBy(e => e.Role != null && e.Role.Contains("PMO") ? 0 : 1)
-                .FirstOrDefaultAsync(ct);
-
-            approverId = pmoEmp?.Id ?? reportingManager?.Id;
-            approverName = pmoEmp != null ? $"{pmoEmp.FirstName} {pmoEmp.LastName}".Trim() : (reportingManager != null ? $"{reportingManager.FirstName} {reportingManager.LastName}".Trim() : "PMO");
-            if (string.IsNullOrWhiteSpace(approverName)) approverName = "PMO";
+            approverId = null;
+            approverName = "PMO and Admin";
         }
         else
         {
-            // For Shared Resource: Validate against dedicated overlap and route to candidate's Reporting Manager
-            await EnsureNoDedicatedOverlapAsync(projectId, request.EmployeeId, request.AllocationStartDate, request.AllocationEndDate, ct);
             approverId = reportingManager?.Id;
             approverName = reportingManager != null ? $"{reportingManager.FirstName} {reportingManager.LastName}".Trim() : "Reporting Manager";
         }
@@ -802,33 +842,60 @@ public sealed class ProjectTeamMemberService(
                 status = "Pending",
                 at = DateTime.UtcNow.ToString("o"),
                 updatedBy = requesterName,
-                comment = request.Notes ?? (isDedicated ? "Dedicated resource allocation approval request submitted to PMO" : "Resource allocation approval request submitted")
+                comment = request.Notes ?? (requiresPmo
+                    ? !isDedicated && (overlapsDedicated || dedicatedElsewhere)
+                        ? "This person is Dedicated on another project, so this request was submitted to PMO and Admin"
+                        : "Dedicated resource allocation approval request submitted to PMO and Admin"
+                    : "Resource allocation approval request submitted to the reporting manager")
             }
         };
 
-        var entity = new ProjectResourceAllocationRequest
+        ProjectResourceAllocationRequest entity;
+        if (pending != null)
         {
-            Id = allocReqId,
-            ProjectId = projectId,
-            EmployeeId = employee.Id,
-            DepartmentId = employee.DepartmentId,
-            SubDepartment = string.IsNullOrWhiteSpace(employee.SubDepartment) ? null : employee.SubDepartment.Trim(),
-            AllocationStartDate = request.AllocationStartDate,
-            AllocationEndDate = request.AllocationEndDate,
-            Billability = billability,
-            IsTeamLead = isTeamLead,
-            ResourceType = resourceType,
-            IsShadowTeam = isShadow,
-            Status = "Pending",
-            RequestedByEmployeeId = requesterId,
-            RequestedByName = requesterName,
-            ApproverEmployeeId = approverId,
-            ApproverName = approverName,
-            CommentsJson = "[]",
-            HistoryJson = JsonSerializer.Serialize(history)
-        };
-
-        db.ProjectResourceAllocationRequests.Add(entity);
+            entity = pending;
+            allocReqId = pending.Id;
+            allocTaskCode = $"ALLOC-{allocReqId.ToString()[..8].ToUpper()}";
+            entity.DepartmentId = employee.DepartmentId;
+            entity.SubDepartment = string.IsNullOrWhiteSpace(employee.SubDepartment) ? null : employee.SubDepartment.Trim();
+            entity.AllocationStartDate = request.AllocationStartDate;
+            entity.AllocationEndDate = request.AllocationEndDate;
+            entity.Billability = billability;
+            entity.IsTeamLead = isTeamLead;
+            entity.ResourceType = resourceType;
+            entity.IsShadowTeam = isShadow;
+            entity.RequiresPmoApproval = requiresPmo;
+            entity.ApproverEmployeeId = approverId;
+            entity.ApproverName = approverName;
+            entity.UpdatedAtUtc = DateTime.UtcNow;
+            entity.HistoryJson = AppendHistory(entity.HistoryJson, history[0]);
+        }
+        else
+        {
+            entity = new ProjectResourceAllocationRequest
+            {
+                Id = allocReqId,
+                ProjectId = projectId,
+                EmployeeId = employee.Id,
+                DepartmentId = employee.DepartmentId,
+                SubDepartment = string.IsNullOrWhiteSpace(employee.SubDepartment) ? null : employee.SubDepartment.Trim(),
+                AllocationStartDate = request.AllocationStartDate,
+                AllocationEndDate = request.AllocationEndDate,
+                Billability = billability,
+                IsTeamLead = isTeamLead,
+                ResourceType = resourceType,
+                IsShadowTeam = isShadow,
+                RequiresPmoApproval = requiresPmo,
+                Status = "Pending",
+                RequestedByEmployeeId = requesterId,
+                RequestedByName = requesterName,
+                ApproverEmployeeId = approverId,
+                ApproverName = approverName,
+                CommentsJson = "[]",
+                HistoryJson = JsonSerializer.Serialize(history)
+            };
+            db.ProjectResourceAllocationRequests.Add(entity);
+        }
 
         // Dispatch Notification: PMO for dedicated resources, Reporting Manager for shared resources
         var candidateName = $"{employee.FirstName} {employee.LastName}".Trim();
@@ -837,11 +904,9 @@ public sealed class ProjectTeamMemberService(
 
         var createdNotifs = new List<ActionNotification>();
 
-        if (isDedicated)
+        if (requiresPmo)
         {
             var pmoRecipients = new HashSet<Guid>();
-            if (approverId.HasValue && approverId != Guid.Empty) pmoRecipients.Add(approverId.Value);
-
             var pmoEmps = await db.Employees
                 .AsNoTracking()
                 .Where(e => e.DeletedAtUtc == null &&
@@ -851,6 +916,10 @@ public sealed class ProjectTeamMemberService(
                 .Select(e => e.Id)
                 .ToListAsync(ct);
             foreach (var pe in pmoEmps) pmoRecipients.Add(pe);
+
+            var pmoReason = !isDedicated && (overlapsDedicated || dedicatedElsewhere)
+                ? $"Requested shared resource {candidateName} while they are Dedicated on another project ({billability}, Duration: {durationStr}) for {project.Name}. Pending PMO and Admin approval"
+                : $"Requested dedicated resource {candidateName} ({billability}, Duration: {durationStr}) for {project.Name}. Pending PMO and Admin approval";
 
             foreach (var pmoRecip in pmoRecipients)
             {
@@ -873,7 +942,7 @@ public sealed class ProjectTeamMemberService(
                     {
                         new
                         {
-                            action = $"Requested dedicated resource {candidateName} ({billability}, Duration: {durationStr}) for {project.Name} pending PMO approval",
+                            action = pmoReason,
                             date = DateTime.UtcNow.ToString("yyyy-MM-dd"),
                             time = DateTime.UtcNow.ToString("HH:mm:ss"),
                             by = requesterName,
@@ -960,43 +1029,38 @@ public sealed class ProjectTeamMemberService(
     {
         var currentEmp = await FindCurrentEmployeeAsync(ct);
         var currentEmpId = currentEmp?.Id;
-        var isPmo = currentEmp != null && (
-            (currentEmp.Role != null && currentEmp.Role.Contains("PMO")) ||
-            (currentEmp.SubDepartment != null && currentEmp.SubDepartment.ToLower().Contains("pmo"))
-        );
-        var isSuper = currentUser.Role is "Admin" or "SuperAdmin" || (currentUser.Role != null && currentUser.Role.Contains("PMO")) || currentUser.Email == "admin@talakunchi.com" || isPmo;
+        var isPmoAudience = currentUser.Role is "Admin" or "SuperAdmin"
+            || (currentUser.Role != null && currentUser.Role.Contains("PMO"))
+            || string.Equals(currentUser.Email, "admin@talakunchi.com", StringComparison.OrdinalIgnoreCase)
+            || (currentEmp != null && (
+                (currentEmp.Role != null && currentEmp.Role.Contains("PMO")) ||
+                (currentEmp.SubDepartment != null && currentEmp.SubDepartment.Contains("pmo", StringComparison.OrdinalIgnoreCase)) ||
+                string.Equals(currentEmp.Role, "Admin", StringComparison.OrdinalIgnoreCase)));
 
-        var query = db.ProjectResourceAllocationRequests
+        var allRequests = await db.ProjectResourceAllocationRequests
             .Include(r => r.Project)
             .Include(r => r.Employee)
             .Include(r => r.Department)
             .AsNoTracking()
-            .Where(r => r.DeletedAtUtc == null);
-
-        if (!isSuper)
-        {
-            var allRequests = await query
-                .OrderByDescending(r => r.CreatedAtUtc)
-                .ThenByDescending(r => r.Id)
-                .ToListAsync(ct);
-
-            var filtered = allRequests.Where(r =>
-                (currentEmpId.HasValue && r.ApproverEmployeeId == currentEmpId.Value) ||
-                (currentUser.UserId.HasValue && r.ApproverEmployeeId == currentUser.UserId.Value) ||
-                (currentEmpId.HasValue && r.Employee != null && r.Employee.ReportingManagerId == currentEmpId.Value) ||
-                (currentUser.UserId.HasValue && r.Employee != null && r.Employee.ReportingManagerId == currentUser.UserId.Value) ||
-                (r.ResourceType == "Dedicated" && isPmo)
-            ).ToList();
-
-            return filtered.Select(MapAllocationDto).ToList();
-        }
-
-        var list = await query
+            .Where(r => r.DeletedAtUtc == null)
             .OrderByDescending(r => r.CreatedAtUtc)
             .ThenByDescending(r => r.Id)
             .ToListAsync(ct);
 
-        return list.Select(MapAllocationDto).ToList();
+        var filtered = allRequests.Where(r =>
+        {
+            var namedApprover = (currentEmpId.HasValue && r.ApproverEmployeeId == currentEmpId.Value)
+                || (currentUser.UserId.HasValue && r.ApproverEmployeeId == currentUser.UserId.Value);
+            var routedToPmo = r.RequiresPmoApproval
+                || string.Equals(r.ResourceType, "Dedicated", StringComparison.OrdinalIgnoreCase);
+            if (routedToPmo) return isPmoAudience || namedApprover;
+
+            var isReportingManager = (currentEmpId.HasValue && r.Employee != null && r.Employee.ReportingManagerId == currentEmpId.Value)
+                || (currentUser.UserId.HasValue && r.Employee != null && r.Employee.ReportingManagerId == currentUser.UserId.Value);
+            return namedApprover || isReportingManager;
+        }).ToList();
+
+        return filtered.Select(MapAllocationDto).ToList();
     }
 
     public async Task<IReadOnlyList<ProjectResourceAllocationRequestDto>> ListProjectAllocationRequestsAsync(
@@ -1205,7 +1269,8 @@ public sealed class ProjectTeamMemberService(
                     IsTeamLead = entity.IsTeamLead,
                     ResourceType = entity.ResourceType,
                     IsShadowTeam = entity.IsShadowTeam,
-                    MemberRole = entity.IsShadowTeam ? ProjectMemberRoles.ShadowTeam : ProjectMemberRoles.ProjectTeam
+                    MemberRole = entity.IsShadowTeam ? ProjectMemberRoles.ShadowTeam : ProjectMemberRoles.ProjectTeam,
+                    IsCurrentlyWorking = true
                 };
                 db.ProjectTeamMembers.Add(teamMember);
 
@@ -1221,27 +1286,21 @@ public sealed class ProjectTeamMemberService(
                 TrySyncTeamMemberToOtherDatabase(teamMember);
             }
 
-            // If dedicated resource is approved, update and transfer previous dedicated membership on any other project
+            // Dedicated on this project leaves every other team row in place.
+            // Those rows stay Dedicated or Shared, and show as not currently working.
             if (string.Equals(entity.ResourceType, "Dedicated", StringComparison.OrdinalIgnoreCase))
             {
-                var priorDedicatedMemberships = await db.ProjectTeamMembers
+                var otherMemberships = await db.ProjectTeamMembers
                     .Where(m => m.EmployeeId == entity.EmployeeId &&
                                 m.ProjectId != effectiveProjectId &&
                                 m.DeletedAtUtc == null &&
-                                m.ResourceType == "Dedicated")
+                                (m.MemberRole == ProjectMemberRoles.ProjectTeam || m.MemberRole == ProjectMemberRoles.ShadowTeam))
                     .ToListAsync(ct);
 
-                foreach (var prior in priorDedicatedMemberships)
+                foreach (var prior in otherMemberships)
                 {
-                    var newEnd = entity.AllocationStartDate.AddDays(-1);
-                    if (newEnd < prior.AllocationStartDate)
-                    {
-                        newEnd = prior.AllocationStartDate;
-                    }
-                    prior.AllocationEndDate = newEnd;
-                    prior.DeletedAtUtc = DateTime.UtcNow;
+                    prior.IsCurrentlyWorking = false;
                     prior.UpdatedAtUtc = DateTime.UtcNow;
-
                     TrySyncTeamMemberToOtherDatabase(prior);
                 }
             }

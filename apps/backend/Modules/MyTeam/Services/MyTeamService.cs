@@ -434,7 +434,8 @@ public sealed class MyTeamService(
             ? null
             : $"{employee.ReportingManager.FirstName} {employee.ReportingManager.LastName}".Trim();
 
-        var activeAlloc = allocations?.FirstOrDefault(a => a.AllocationEndDate >= today);
+        var workingAllocations = allocations?.Where(a => a.IsCurrentlyWorking).ToList();
+        var activeAlloc = workingAllocations?.FirstOrDefault(a => a.AllocationEndDate >= today);
         var isOnLeave = string.Equals(todayAttendance, "leave", StringComparison.OrdinalIgnoreCase)
             || string.Equals(employee.Status, "On Leave", StringComparison.OrdinalIgnoreCase);
 
@@ -452,7 +453,7 @@ public sealed class MyTeamService(
                 : "Dedicated";
         }
 
-        var allocDtos = (allocations ?? [])
+        var allocDtos = (workingAllocations ?? [])
             .Select(a => new TeamMemberAllocationDto(
                 a.ProjectId,
                 a.Project?.Name ?? "Project",

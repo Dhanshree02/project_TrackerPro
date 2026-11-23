@@ -86,6 +86,7 @@ internal static class EmployeeBulkWorkbook
         "Worker Type",
         "Bond Delivered",
         "Exp / Fresher",
+        "Login Access",
     };
 
     internal static readonly string[] MumbaiStations =
@@ -608,7 +609,7 @@ internal static class EmployeeBulkWorkbook
         SetListValidation(11, departmentListCol, countDepartments, "Department");
         if (rangeByDepartment.Count > 0)
         {
-            const int designationHelperCol = 36;
+            var designationHelperCol = Headers.Length + 2;
             var mapNameLetter = lookups.Column(mapNameCol).ColumnLetter();
             var mapRangeLetter = lookups.Column(mapRangeCol).ColumnLetter();
             var mapLastRow = rangeByDepartment.Count + 1;
@@ -618,7 +619,6 @@ internal static class EmployeeBulkWorkbook
                     $"IF(K{row}=\"\",\"\",IFERROR(VLOOKUP(K{row},Lookups!${mapNameLetter}$2:${mapRangeLetter}${mapLastRow},2,FALSE),\"\"))";
             }
 
-            sheet.Column(designationHelperCol).Hide();
             var helperLetter = sheet.Column(designationHelperCol).ColumnLetter();
             var designationCells = sheet.Range(2, 12, MaxRows, 12);
             var designationValidation = designationCells.CreateDataValidation();
@@ -633,7 +633,7 @@ internal static class EmployeeBulkWorkbook
         }
         if (subRangeByKey.Count > 0)
         {
-            const int subDepartmentHelperCol = 37;
+            var subDepartmentHelperCol = Headers.Length + 3;
             var subMapKeyLetter = lookups.Column(subMapKeyCol).ColumnLetter();
             var subMapRangeLetter = lookups.Column(subMapRangeCol).ColumnLetter();
             var subMapLastRow = subRangeByKey.Count + 1;
@@ -643,7 +643,6 @@ internal static class EmployeeBulkWorkbook
                     $"IF(OR(K{row}=\"\",L{row}=\"\"),\"\",IFERROR(VLOOKUP(K{row}&\"||\"&L{row},Lookups!${subMapKeyLetter}$2:${subMapRangeLetter}${subMapLastRow},2,FALSE),\"\"))";
             }
 
-            sheet.Column(subDepartmentHelperCol).Hide();
             var subHelperLetter = sheet.Column(subDepartmentHelperCol).ColumnLetter();
             var subDepartmentCells = sheet.Range(2, 13, MaxRows, 13);
             var subDepartmentValidation = subDepartmentCells.CreateDataValidation();
@@ -679,7 +678,10 @@ internal static class EmployeeBulkWorkbook
 
         sheet.SheetView.FreezeRows(1);
         sheet.Range(1, 1, 1, Headers.Length).SetAutoFilter();
-        sheet.Columns().AdjustToContents(1, 40);
+        sheet.Columns(1, Headers.Length).AdjustToContents(1, 40);
+        sheet.Column(Headers.Length + 1).Hide();
+        sheet.Column(Headers.Length + 2).Hide();
+        sheet.Column(Headers.Length + 3).Hide();
 
         // ── Sheet 3: Instructions ──
         var notes = workbook.Worksheets.Add("Instructions");
@@ -704,7 +706,7 @@ internal static class EmployeeBulkWorkbook
             "1. Header Row: Keep the header row exactly as provided on the Employees sheet. Columns highlighted in RED with an asterisk (*) are mandatory.",
             "2. File Format: Upload .xlsx files only. Other file formats are rejected.",
             "3. Form Sections: The template strictly reflects the 4 canonical sections of the Onboarding Form (Personal Info, Organization Assignment, Employment Info, Education & Experience).",
-            "4. Required Fields (18): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher.",
+            "4. Required Fields (19): TK ID, First Name, Last Name, Work Email, Phone (Personal), Current Address - City, Emergency Contact Name, Emergency Contact Number, Relation with Emergency Contact, Department, Designation, Reporting Manager Code, Work Location, Date of Joining, Employee Status, Worker Type, Bond Delivered, Exp / Fresher, Login Access.",
             "5. Reporting Manager: Select from the dropdown ('TK-XXXX - Manager Name'). You can also provide just the Employee Code (e.g. TK-0001). Employee code is used as the primary identifier to prevent confusion between employees with identical or similar names.",
             "6. Dropdown Validation: Every dropdown column is strictly restricted to allowed options. Select values directly from the dropdown menu in Excel. Designation only lists titles under the Department selected on that same row. Sub-Department only lists values mapped to that row's Department and Designation.",
             "7. Dynamic Masters & Automatic Role Mapping: The Lookups sheet reflects live masters from the system. Department, Designation, and Sub-Department are written on the same row so each sub-department belongs to one designation. Roles (On Floor Role and RBAC Role) are automatically mapped based on Department & Designation according to company master hierarchy. Sub-Department is optional and auto-assigned if omitted.",
@@ -712,7 +714,7 @@ internal static class EmployeeBulkWorkbook
             "9. Phone Numbers: Must be valid 10-digit mobile numbers without country code prefix.",
             "10. Experience: If Prior Total and Relevant Exp Years and Months are provided, they are formatted automatically (e.g. '2 yrs 6 mos').",
             "11. Maximum Rows: Up to 500 rows can be imported in a single upload file.",
-            "12. Login Access: Choose \"Employee and login\" to create a sign-in account, or \"Employee only\" to keep the person in the directory. A blank cell means Employee only.",
+            "12. Login Access: Required. Choose \"Employee and login\" to create a sign-in account, or \"Employee only\" to keep the person in the directory.",
         ];
 
         for (var i = 0; i < instructions.Length; i++)
@@ -1003,8 +1005,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
 
                 var loginAccess = GetValue(values, "loginaccess");
                 bool createLogin;
-                if (string.IsNullOrWhiteSpace(loginAccess)
-                    || loginAccess.Equals("Employee only", StringComparison.OrdinalIgnoreCase))
+                if (loginAccess.Equals("Employee only", StringComparison.OrdinalIgnoreCase))
                 {
                     createLogin = false;
                 }
@@ -1014,7 +1015,7 @@ internal sealed class EmployeeBulkImporter(AppDbContext db, EmployeeService empl
                 }
                 else
                 {
-                    rowErrors.Add("Login Access must be \"Employee and login\" or \"Employee only\".");
+                    rowErrors.Add("Login Access is required. Choose \"Employee and login\" or \"Employee only\".");
                     createLogin = false;
                 }
 

@@ -18,6 +18,7 @@ public sealed class ProjectTeamMemberConfiguration : IEntityTypeConfiguration<Pr
             .HasMaxLength(40)
             .IsRequired()
             .HasDefaultValue(ProjectMemberRoles.ProjectTeam);
+        builder.Property(x => x.IsCurrentlyWorking).HasDefaultValue(true);
 
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.EmployeeId);

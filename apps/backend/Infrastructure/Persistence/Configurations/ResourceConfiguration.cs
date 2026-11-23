@@ -220,6 +220,7 @@ public sealed class MstContactTypeConfiguration : IEntityTypeConfiguration<MstCo
         builder.HasIndex(x => x.Name).IsUnique();
         builder.Property(x => x.Code).HasMaxLength(80).IsRequired();
         builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(300);
     }
 }
 
