@@ -84,7 +84,7 @@ When it ends, open:
 
 `http://SERVER-ADDRESS:39117`
 
-If the page is white and the browser network tab shows `ERR_CONTENT_LENGTH_MISMATCH` on a `.js` file, the frontend was still using a source bind-mount. Pull the latest `uat` branch (compose no longer mounts `apps/frontend` into the container), then run:
+The UAT app is a **built** frontend (nginx + hashed JS), not the Vite dev server. A slow white page or `Failed to fetch dynamically imported module: .../src/routes/...tsx` means the old Vite image is still running. Rebuild:
 
 ```bash
 cd ~/pms-uat
@@ -92,7 +92,7 @@ git pull origin uat
 docker compose -f compose/uat.yml -p pms-uat up -d --build --force-recreate frontend
 ```
 
-Hard-refresh the browser (Ctrl+Shift+R). Testers pick a user from the switch in the top bar.
+The first rebuild can take several minutes. Then hard-refresh the browser (Ctrl+Shift+R). Testers pick a user from the switch in the top bar.
 
 On a new empty UAT volume the script waits for Postgres, then loads `database/pms_uat.sql` once, then applies `schema-update.sql`. Do not load the production database into UAT.
 
