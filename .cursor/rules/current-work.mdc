@@ -7,6 +7,8 @@ alwaysApply: true
 
 **Last updated:** 2026-11-23
 
+- **Exit Summary page syntax was broken** (`Unexpected ","` around the departments `useMemo`) and blocked the Linux frontend Docker build. Restored row-scoped department / exit-type / period filters, `filtered` rows, and the access-denied gate. `exit-summary-page.tsx`.
+
 - **Linux UAT frontend is nginx + `vite build` (not Vite dev).** Slow reload / `Failed to fetch .../src/routes/*.tsx` meant the container was still serving source modules. Dockerfile builds static client assets; compose maps `39117:80` and nginx proxies `/api` to `backend`. Rebuild: `docker compose -f compose/uat.yml -p pms-uat up -d --build --force-recreate frontend`.
 
 - **`scripts/update-uat.sh` waits for Postgres before `psql`, and on an empty UAT volume loads `database/pms_uat.sql` (or `trackerpro-uat.sql`) once, stripping `transaction_timeout` for Postgres 16.** Production script waits the same way and stops if the DB is empty. First-time Linux error was the schema step running before the socket existed.
