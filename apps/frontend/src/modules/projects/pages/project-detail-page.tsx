@@ -12750,6 +12750,8 @@ type ProjectTeamRow = {
 
   isActive?: boolean;
 
+  isCurrentlyWorking?: boolean;
+
 };
 
 
@@ -12822,9 +12824,9 @@ function mapApiTeamMemberToRow(m: ApiProjectTeamMember): ProjectTeamRow {
 
     isActive: m.isActive ?? (m.deletedAtUtc ? false : true),
 
-  };
-
     isCurrentlyWorking: m.isCurrentlyWorking !== false,
+
+  };
 
 }
 
