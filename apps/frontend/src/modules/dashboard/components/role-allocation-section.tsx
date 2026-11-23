@@ -249,20 +249,20 @@ export function RoleAllocationSection({
 
 function OnsiteAllocationChart({ months }: { months: RoleAllocation["months"] }) {
   const { hover, setHover, clear } = useColumnBarHover();
-  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden, growing } = useLegendSeriesToggle();
   return (
     <ChartDismiss onMouseLeave={clear}>
       <DashboardChartBody>
         {(tipAnchor) => (
       <div className="w-full">
-      <ColumnBarHoverScope hover={hover}>
+      <ColumnBarHoverScope hover={hover} growing={growing}>
       <ChartContainer config={onsiteChartConfig} className="aspect-auto h-[260px] w-full">
         <BarChart data={months} margin={{ left: 8, right: 8, top: 16, bottom: 24 }} {...columnBarChart}>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} label={yAxisLabel("Count")} />
           <Bar
-            isAnimationActive={isGrowingIn("onsiteTm")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="onsiteTm"
@@ -279,7 +279,7 @@ function OnsiteAllocationChart({ months }: { months: RoleAllocation["months"] })
             )}
           />
           <Bar
-            isAnimationActive={isGrowingIn("onsiteLeads")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="onsiteLeads"
@@ -296,7 +296,7 @@ function OnsiteAllocationChart({ months }: { months: RoleAllocation["months"] })
             )}
           />
           <Bar
-            isAnimationActive={isGrowingIn("onsitePm")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="onsitePm"
@@ -331,20 +331,20 @@ function OffsiteAllocationChart({
   config: ChartConfig;
 }) {
   const { hover, setHover, clear } = useColumnBarHover();
-  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden, growing } = useLegendSeriesToggle();
   return (
     <ChartDismiss onMouseLeave={clear}>
       <DashboardChartBody>
         {(tipAnchor) => (
       <div className="w-full">
-      <ColumnBarHoverScope hover={hover}>
+      <ColumnBarHoverScope hover={hover} growing={growing}>
       <ChartContainer config={config} className="aspect-auto h-[280px] w-full">
         <BarChart data={data} margin={{ left: 8, right: 8, top: 16, bottom: 24 }} {...columnBarChart}>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="role" tickLine={false} axisLine={false} interval={0} tick={{ fontSize: 11 }} label={xAxisLabel("Role")} />
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} label={yAxisLabel("Count")} />
           <Bar
-            isAnimationActive={isGrowingIn("m0")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="m0"
@@ -354,7 +354,7 @@ function OffsiteAllocationChart({
             {...columnBarProps("m0", setHover, "var(--color-m0)", 4, tipAnchor, chartSeriesLabel(config, "m0"))}
           />
           <Bar
-            isAnimationActive={isGrowingIn("m1")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="m1"
@@ -364,7 +364,7 @@ function OffsiteAllocationChart({
             {...columnBarProps("m1", setHover, "var(--color-m1)", 4, tipAnchor, chartSeriesLabel(config, "m1"))}
           />
           <Bar
-            isAnimationActive={isGrowingIn("m2")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="m2"

@@ -260,7 +260,7 @@ function ProjectCountChart({
   truncateProjectNames?: boolean;
 }) {
   const { hover, setHover, clear } = useColumnBarHover();
-  const { hidden, toggle, isHidden } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden, growing } = useLegendSeriesToggle();
   const chartConfig = {
     m0: { label: months[0]?.month ?? "Month 1", color: "var(--chart-1)" },
     m1: { label: months[1]?.month ?? "Month 2", color: "var(--chart-2)" },
@@ -272,7 +272,7 @@ function ProjectCountChart({
       <DashboardChartBody>
         {(tipAnchor) => (
       <div className="w-full">
-      <ColumnBarHoverScope hover={hover}>
+      <ColumnBarHoverScope hover={hover} growing={growing}>
       <ChartContainer
         config={chartConfig}
         className="aspect-auto w-full"
