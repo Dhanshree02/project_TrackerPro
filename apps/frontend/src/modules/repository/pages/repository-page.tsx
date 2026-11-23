@@ -1147,6 +1147,7 @@ function MyOrgPage() {
   const canManageRepository = canManage("repository");
 
   const [categories, setCategories] = useState<CategoryMeta[]>(DEFAULT_CATEGORIES);
+  const [categoryCountsReady, setCategoryCountsReady] = useState(false);
   const [documents, setDocuments] = useState<RepositoryItem[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -1205,6 +1206,7 @@ function MyOrgPage() {
           };
         }),
       );
+      setCategoryCountsReady(true);
     } catch {
       // Best-effort
     }
@@ -1410,6 +1412,7 @@ function MyOrgPage() {
   }, [documents, docSortKey, docSortDir]);
 
   const totalRepoDocuments = categories.reduce((sum, c) => sum + c.count, 0);
+  const visibleCategories = categoryCountsReady ? categories.filter((category) => category.count > 0) : categories;
 
   return (
     <AppShell title="Repository" subtitle="Organization documents, SOPs & policies">
@@ -1443,7 +1446,7 @@ function MyOrgPage() {
 
       {/* Category cards */}
       <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {categories.map((cat) => (
+        {visibleCategories.map((cat) => (
           <CategoryCard
             key={cat.id}
             category={cat}
@@ -1457,7 +1460,7 @@ function MyOrgPage() {
       {/* Main content: sidebar + table */}
       <div className="flex gap-4">
         <CategorySidebar
-          categories={categories}
+          categories={visibleCategories}
           totalCount={totalRepoDocuments}
           activeCategoryId={activeCategoryId}
           searchQuery={searchQuery}

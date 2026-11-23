@@ -45,7 +45,7 @@ export function StackedMonthChart({
   months,
   metric,
   formatValue,
-  note,
+  note = "",
   onPeerClear,
   resetSignal = 0,
   xLabel,

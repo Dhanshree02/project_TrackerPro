@@ -239,6 +239,7 @@ export interface ClientContact {
 export interface ClientSubVenture {
   id?: string;
   name: string;
+  subVentureCode?: string;
   contacts?: ClientContact[];
   notes?: string;
   kycDocumentName?: string;

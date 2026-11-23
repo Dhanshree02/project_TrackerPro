@@ -20,7 +20,7 @@ import { usePermissions } from "@/lib/permissions";
 import { useRoleContext } from "@/lib/role-context";
 import { RowsPerPageSelect } from "@/components/rows-per-page-select";
 import { paginateSlice, paginationRange, totalPageCount } from "@/lib/pagination";
-import { normalizeOnFloorRole } from "@/lib/on-floor-role";
+import { normalizeOnFloorRole, uniqueOnFloorRoleLabels } from "@/lib/on-floor-role";
 import { cn, formatDateDMY } from "@/lib/utils";
 import { toast } from "sonner";
 import { teamDataService, type TeamCalendarPayload } from "./services/teamDataService";
@@ -95,6 +95,67 @@ function getMemberLiveAllocationStatus(
     return "Occupied";
   }
   return "Free";
+}
+
+function billableBucket(status?: string | null): "Billable" | "Non-Billable" {
+  const billable = (status ?? "").trim().toLowerCase();
+  if (billable === "billable") return "Billable";
+  return "Non-Billable";
+}
+
+type ToolbarSkip = "department" | "role" | "status" | "type" | "billable";
+
+/** Keep a dropdown's own choice out of the check so the other values in the list stay selectable. */
+function memberMatchesToolbar(
+  member: TeamMember,
+  args: {
+    roster: Roster;
+    searchQuery: string;
+    deptFilter: string;
+    onFloorRoleFilter: string;
+    allocStatusFilter: "" | PoolAllocationStatus;
+    allocTypeFilter: "" | PoolAllocationType;
+    billableFilter: "" | "Billable" | "Non-Billable";
+    liveStatus: PoolAllocationStatus;
+    skip?: ToolbarSkip;
+  },
+): boolean {
+  if (args.roster !== "team") {
+    if (args.skip !== "department" && args.deptFilter && member.department !== args.deptFilter) return false;
+    if (
+      args.skip !== "role" &&
+      args.onFloorRoleFilter &&
+      normalizeOnFloorRole(member.jobRoleName) !== normalizeOnFloorRole(args.onFloorRoleFilter)
+    ) {
+      return false;
+    }
+    const statusFilter = args.roster === "reportees" && args.allocStatusFilter === "On Leave" ? "" : args.allocStatusFilter;
+    if (args.skip !== "status" && statusFilter && args.liveStatus !== statusFilter) return false;
+    if (args.skip !== "type" && args.allocTypeFilter && member.allocationType !== args.allocTypeFilter) return false;
+    if (args.skip !== "billable" && args.billableFilter) {
+      if (billableBucket(member.billableStatus) !== args.billableFilter) return false;
+    }
+  }
+
+  const q = args.searchQuery.trim().toLowerCase();
+  if (q) {
+    const hay = [
+      member.name,
+      member.employeeCode,
+      member.department,
+      member.designation,
+      member.jobRoleName,
+      member.reportingManagerName,
+      member.allocatedProjectName,
+      args.liveStatus,
+      member.allocationType,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
 }
 
 function resolveDayAllocation(
@@ -660,10 +721,9 @@ export function MyTeamPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [onFloorRoleFilter, setOnFloorRoleFilter] = useState("");
-  const [onFloorRoleMasterOptions, setOnFloorRoleMasterOptions] = useState<string[]>([]);
   const [allocStatusFilter, setAllocStatusFilter] = useState<"" | PoolAllocationStatus>("");
   const [allocTypeFilter, setAllocTypeFilter] = useState<"" | PoolAllocationType>("");
-  const [billableFilter, setBillableFilter] = useState<"" | "Billable" | "Non-Billable">("");
+  const [billableFilter, setBillableFilter] = useState<"" | "Billable" | "Non-Billable">("Billable");
 
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>({ kind: "all" });
   const [openCell, setOpenCell] = useState<OpenCell>(null);
@@ -764,105 +824,134 @@ export function MyTeamPage() {
     return map;
   }, [teamMembers, teamSchedule, todayKey]);
 
-  const departmentOptions = useMemo(
-    () =>
-      [...new Set(teamMembers.map((m) => m.department).filter(Boolean))].sort((a, b) =>
-        a.localeCompare(b),
-      ),
-    [teamMembers],
+  const listedBase = useMemo(() => {
+    if (activeFilter.kind === "presence") {
+      if (activeFilter.status === "onsite") return onsiteMembers;
+      if (activeFilter.status === "offsite") return offsiteMembers;
+      if (activeFilter.status === "wfh") return wfhMembers;
+      if (activeFilter.status === "leave") return onLeaveMembers;
+    }
+    if (activeFilter.kind === "shift") return shiftMembers[activeFilter.shift as ShiftType] ?? teamMembers;
+    return teamMembers;
+  }, [activeFilter, teamMembers, onsiteMembers, offsiteMembers, wfhMembers, onLeaveMembers, shiftMembers]);
+
+  const matchesListed = useCallback(
+    (member: TeamMember, skip?: ToolbarSkip) =>
+      memberMatchesToolbar(member, {
+        roster,
+        searchQuery,
+        deptFilter,
+        onFloorRoleFilter,
+        allocStatusFilter,
+        allocTypeFilter,
+        billableFilter,
+        liveStatus: getMemberLiveAllocationStatus(member, teamSchedule, todayKey),
+        skip,
+      }),
+    [
+      roster,
+      searchQuery,
+      deptFilter,
+      onFloorRoleFilter,
+      allocStatusFilter,
+      allocTypeFilter,
+      billableFilter,
+      teamSchedule,
+      todayKey,
+    ],
   );
 
-  const onFloorRoleOptions = onFloorRoleMasterOptions;
+  const departmentOptions = useMemo(
+    () =>
+      [
+        ...new Set(
+          listedBase
+            .filter((member) => matchesListed(member, "department"))
+            .map((member) => member.department)
+            .filter(Boolean),
+        ),
+      ].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })),
+    [listedBase, matchesListed],
+  );
+
+  const onFloorRoleOptions = useMemo(
+    () =>
+      uniqueOnFloorRoleLabels(
+        listedBase.filter((member) => matchesListed(member, "role")).map((member) => member.jobRoleName),
+      ),
+    [listedBase, matchesListed],
+  );
+
+  const allocStatusOptions = useMemo(() => {
+    const present = new Set(
+      listedBase
+        .filter((member) => matchesListed(member, "status"))
+        .map((member) => getMemberLiveAllocationStatus(member, teamSchedule, todayKey)),
+    );
+    const order: PoolAllocationStatus[] = roster === "reportees" ? ["Free", "Occupied"] : ["Free", "Occupied", "On Leave"];
+    return order.filter((status) => present.has(status)).map((status) => ({ value: status, label: status }));
+  }, [listedBase, matchesListed, teamSchedule, todayKey, roster]);
+
+  const allocTypeOptions = useMemo(() => {
+    const present = new Set(
+      listedBase
+        .filter((member) => matchesListed(member, "type"))
+        .map((member) => member.allocationType)
+        .filter((type): type is PoolAllocationType => type === "Dedicated" || type === "Shared"),
+    );
+    const order: PoolAllocationType[] = ["Dedicated", "Shared"];
+    return order.filter((type) => present.has(type)).map((type) => ({ value: type, label: type }));
+  }, [listedBase, matchesListed]);
+
+  const billableOptions = useMemo(() => {
+    const present = new Set(
+      listedBase
+        .filter((member) => matchesListed(member, "billable"))
+        .map((member) => billableBucket(member.billableStatus))
+        .filter((bucket): bucket is "Billable" | "Non-Billable" => bucket === "Billable" || bucket === "Non-Billable"),
+    );
+    return (["Billable", "Non-Billable"] as const)
+      .filter((bucket) => present.has(bucket))
+      .map((bucket) => ({ value: bucket, label: bucket }));
+  }, [listedBase, matchesListed]);
 
   useEffect(() => {
-    let cancelled = false;
-    void teamDataService
-      .getOnFloorRoleNames()
-      .then((names) => {
-        if (!cancelled) setOnFloorRoleMasterOptions(names);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          toast.error("Could not load On Floor Role list from master catalog.");
-          setOnFloorRoleMasterOptions([]);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const filteredMembers = useMemo(() => {
-    let base = teamMembers;
-    if (activeFilter.kind === "presence") {
-      if (activeFilter.status === "onsite") base = onsiteMembers;
-      else if (activeFilter.status === "offsite") base = offsiteMembers;
-      else if (activeFilter.status === "wfh") base = wfhMembers;
-      else if (activeFilter.status === "leave") base = onLeaveMembers;
-    } else if (activeFilter.kind === "shift") {
-      base = shiftMembers[activeFilter.shift as ShiftType] ?? teamMembers;
+    if (loading || listedBase.length === 0) return;
+    if (deptFilter && !departmentOptions.includes(deptFilter)) setDeptFilter("");
+    if (
+      onFloorRoleFilter &&
+      !onFloorRoleOptions.some((role) => normalizeOnFloorRole(role) === normalizeOnFloorRole(onFloorRoleFilter))
+    ) {
+      setOnFloorRoleFilter("");
     }
-
-    const q = searchQuery.trim().toLowerCase();
-    return base.filter((m) => {
-      const liveStatus = getMemberLiveAllocationStatus(m, teamSchedule, todayKey);
-      if (roster !== "team") {
-        if (deptFilter && m.department !== deptFilter) return false;
-        if (
-          onFloorRoleFilter &&
-          normalizeOnFloorRole(m.jobRoleName) !== normalizeOnFloorRole(onFloorRoleFilter)
-        ) {
-          return false;
-        }
-        const statusFilter =
-          roster === "reportees" && allocStatusFilter === "On Leave" ? "" : allocStatusFilter;
-        if (statusFilter && liveStatus !== statusFilter) return false;
-        if (allocTypeFilter && m.allocationType !== allocTypeFilter) return false;
-        if (roster === "reportees" && billableFilter) {
-          const billable = (m.billableStatus ?? "").trim().toLowerCase();
-          const wantsNonBillable = billableFilter === "Non-Billable";
-          const isNonBillable = billable.replace(/\s+/g, "-") === "non-billable" || billable === "nonbillable";
-          const isBillable = billable === "billable";
-          if (wantsNonBillable ? !isNonBillable : !isBillable) return false;
-        }
-      }
-      if (q) {
-        const hay = [
-          m.name,
-          m.employeeCode,
-          m.department,
-          m.designation,
-          m.jobRoleName,
-          m.reportingManagerName,
-          m.allocatedProjectName,
-          liveStatus,
-          m.allocationType,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
+    if (allocStatusFilter && !allocStatusOptions.some((option) => option.value === allocStatusFilter)) {
+      setAllocStatusFilter("");
+    }
+    if (allocTypeFilter && !allocTypeOptions.some((option) => option.value === allocTypeFilter)) {
+      setAllocTypeFilter("");
+    }
+    if (!billableOptions.some((option) => option.value === billableFilter)) {
+      setBillableFilter("Billable");
+    }
   }, [
-    activeFilter,
-    teamMembers,
-    onsiteMembers,
-    offsiteMembers,
-    wfhMembers,
-    onLeaveMembers,
-    shiftMembers,
-    searchQuery,
+    loading,
+    listedBase.length,
     deptFilter,
+    departmentOptions,
     onFloorRoleFilter,
+    onFloorRoleOptions,
     allocStatusFilter,
+    allocStatusOptions,
     allocTypeFilter,
+    allocTypeOptions,
     billableFilter,
-    roster,
-    teamSchedule,
-    todayKey,
+    billableOptions,
   ]);
+
+  const filteredMembers = useMemo(
+    () => listedBase.filter((member) => matchesListed(member)),
+    [listedBase, matchesListed],
+  );
 
   const paginateRoster = roster === "all";
   const totalPages = totalPageCount(filteredMembers.length, pageSize);
@@ -1306,7 +1395,7 @@ export function MyTeamPage() {
           onFloorRoleFilter ||
           allocStatusFilter ||
           allocTypeFilter ||
-          (roster === "reportees" && billableFilter))) ||
+          billableFilter !== "Billable")) ||
       activeFilter.kind !== "all",
   );
 
@@ -1316,7 +1405,7 @@ export function MyTeamPage() {
     setOnFloorRoleFilter("");
     setAllocStatusFilter("");
     setAllocTypeFilter("");
-    setBillableFilter("");
+    setBillableFilter("Billable");
     setActiveFilter({ kind: "all" });
   };
 
@@ -1470,18 +1559,7 @@ export function MyTeamPage() {
                       value={allocStatusFilter}
                       onChange={(value) => setAllocStatusFilter(value as "" | PoolAllocationStatus)}
                       placeholder="All Allocation Statuses"
-                      options={
-                        roster === "reportees"
-                          ? [
-                              { value: "Free", label: "Free" },
-                              { value: "Occupied", label: "Occupied" },
-                            ]
-                          : [
-                              { value: "Free", label: "Free" },
-                              { value: "Occupied", label: "Occupied" },
-                              { value: "On Leave", label: "On Leave" },
-                            ]
-                      }
+                      options={allocStatusOptions}
                       className="w-full"
                     />
                   </div>
@@ -1491,28 +1569,20 @@ export function MyTeamPage() {
                       value={allocTypeFilter}
                       onChange={(value) => setAllocTypeFilter(value as "" | PoolAllocationType)}
                       placeholder="All Allocation Types"
-                      options={[
-                        { value: "Dedicated", label: "Dedicated" },
-                        { value: "Shared", label: "Shared" },
-                      ]}
+                      options={allocTypeOptions}
                       className="w-full"
                     />
                   </div>
 
-                  {roster === "reportees" && (
-                    <div className="w-full md:w-44 shrink-0">
-                      <SearchableSelect
-                        value={billableFilter}
-                        onChange={(value) => setBillableFilter(value as "" | "Billable" | "Non-Billable")}
-                        placeholder="Billable / Non-Billable"
-                        options={[
-                          { value: "Billable", label: "Billable" },
-                          { value: "Non-Billable", label: "Non-Billable" },
-                        ]}
-                        className="w-full"
-                      />
-                    </div>
-                  )}
+                  <div className="w-full md:w-44 shrink-0">
+                    <SearchableSelect
+                      value={billableFilter}
+                      onChange={(value) => setBillableFilter(value as "" | "Billable" | "Non-Billable")}
+                      placeholder="Billable / Non-Billable"
+                      options={billableOptions}
+                      className="w-full"
+                    />
+                  </div>
 
                   <div className="w-20 shrink-0 flex items-center">
                     {hasActiveToolbarFilters && (
