@@ -85,11 +85,9 @@ services:
       VITE_API_URL: ""
       VITE_APP_ENV: production
       VITE_HMR_CLIENT_PORT: "39127"
+      CHOKIDAR_USEPOLLING: "false"
     ports:
       - "0.0.0.0:39127:3000"
-    volumes:
-      - ../apps/frontend:/app
-      - /app/node_modules
     networks:
       - pms_shared
 
