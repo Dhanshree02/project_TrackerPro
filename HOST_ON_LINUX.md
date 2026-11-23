@@ -84,9 +84,17 @@ When it ends, open:
 
 `http://SERVER-ADDRESS:39117`
 
-Testers pick a user from the switch in the top bar.
+If the page is white and the browser network tab shows `ERR_CONTENT_LENGTH_MISMATCH` on a `.js` file, the frontend was still using a source bind-mount. Pull the latest `uat` branch (compose no longer mounts `apps/frontend` into the container), then run:
 
-If the schema step says a table does not exist, UAT is empty. That is expected on a new server. The script only adds columns to a database that already has tables. Ask for a UAT database load, or apply the full schema, before testers start. Do not load the production database into UAT.
+```bash
+cd ~/pms-uat
+git pull origin uat
+docker compose -f compose/uat.yml -p pms-uat up -d --build --force-recreate frontend
+```
+
+Hard-refresh the browser (Ctrl+Shift+R). Testers pick a user from the switch in the top bar.
+
+On a new empty UAT volume the script waits for Postgres, then loads `database/pms_uat.sql` once, then applies `schema-update.sql`. Do not load the production database into UAT.
 
 ## Part E. Turn a port into a link
 
