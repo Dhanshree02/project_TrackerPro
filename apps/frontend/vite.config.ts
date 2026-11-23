@@ -30,7 +30,8 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       tailwindcss(),
       tsConfigPaths({ projects: ["./tsconfig.json"] }),
-      ...(command === "build"
+      // Cloudflare worker build is for Workers deploy. Docker/nginx uses a static client build.
+      ...(command === "build" && process.env.DOCKER_STATIC_BUILD !== "1"
         ? [cloudflare({ viteEnvironment: { name: "ssr" } })]
         : []),
       tanstackStart({

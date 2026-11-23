@@ -58,7 +58,9 @@ services:
       - ../Documents:/app/Documents
       - ../apps/backend/Log:/app/Log
     networks:
-      - pms_shared
+      pms_shared:
+        aliases:
+          - backend
 
   frontend:
     image: pms-frontend:uat
@@ -66,20 +68,15 @@ services:
     build:
       context: ../apps/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_APP_ENV: uat
+        VITE_API_URL: ""
     container_name: pms-uat-frontend
     restart: unless-stopped
     depends_on:
       - backend
-    environment:
-      VITE_BACKEND_URL: http://pms-uat-backend:8080
-      VITE_API_URL: ""
-      VITE_APP_ENV: uat
-      VITE_HMR_CLIENT_PORT: "39117"
-      # Server hosting: no source bind-mount. Code is baked in at image build.
-      # Bind-mounting apps/frontend caused white pages (ERR_CONTENT_LENGTH_MISMATCH).
-      CHOKIDAR_USEPOLLING: "false"
     ports:
-      - "0.0.0.0:39117:3000"
+      - "0.0.0.0:39117:80"
     networks:
       - pms_shared
 
