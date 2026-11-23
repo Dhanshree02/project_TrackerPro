@@ -5,7 +5,17 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-19
+**Last updated:** 2026-11-23
+
+- **Dashboard and customer pages load again.** The onsite project chart file had been saved twice, which stopped the dashboard. The customer page returned before two later hooks, and its edit windows pointed at a missing types file. `onsite-project-count-section.tsx`, `customer-detail-page.tsx`, `edit-customer-info-modal.tsx`, `edit-sub-venture-modal.tsx`.
+
+- **List filters only offer values that are in the rows on that screen.** Employee Directory, Exit Summary, Action Centre approvals, alerts, and notifications, Userwise Access departments, customer project health, and repository folders follow the same rule as Team Dashboard. Choosing one filter narrows the others. `employee-directory-page.tsx`, `exit-summary-page.tsx`, `action-centre-page.tsx`, `roles-permissions-page.tsx`, `customer-detail-page.tsx`, `repository-page.tsx`.
+
+- **Team Dashboard filters follow the people listed below.** Department, On Floor Role, allocation status, allocation type, and billable choices are taken from that list. Choosing a department leaves only the on-floor roles those people have. Billable / Non-Billable is on My Reportees and All Employees, and a fresh load starts on Billable. A blank billable status counts as Non-Billable. `apps/frontend/src/modules/my-team/index.tsx`.
+
+- **November 2026 sample timesheets are on `pms_development` only.** Approved weekday hours for every active department, on project P001, so Team Utilization – Offsite can show a November percentage. September and October stay at 0%. The onsite utilization chart does not read timesheets.
+
+- **Dashboard bars grow only when a crossed-out legend series is shown again.** Column charts grow up and horizontal charts grow out from the axis. Opening the dashboard leaves the bars in place. Commit `16b59c4` is on `origin/development`, `443f1f6` on `origin/production`, and `1813602` on `origin/uat`. `bar-emphasis.tsx`, `toggle-chart-legend.tsx`, `styles.css`.
 
 - **My Reportees allocation filters.** On Leave is not in All Allocation Statuses on My Reportees. A Billable / Non-Billable filter sits after All Allocation Types and uses each employee’s billable status. `apps/frontend/src/modules/my-team/index.tsx`, `teamDataService.ts`.
 

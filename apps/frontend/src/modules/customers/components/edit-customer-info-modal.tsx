@@ -6,7 +6,7 @@ import { SearchableSelect } from "@/components/creatable-catalog-select";
 import { fetchCountries, fetchCities, fetchIndustries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
 import { countryPhoneError } from "@/lib/form-validation";
 import { updateClient, formatCustomerId } from "@/modules/customers/api/clients";
-import type { Client } from "@/types";
+import type { Client } from "@/lib/domain-models";
 import { cn } from "@/lib/utils";
 
 const BILLING_MEDIUMS = ["Portal Based", "Manual Based"];
