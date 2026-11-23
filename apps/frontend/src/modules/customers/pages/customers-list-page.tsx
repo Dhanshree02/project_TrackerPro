@@ -45,7 +45,7 @@ import {
   getSubVentureKycUrl,
   type CreateClientInput,
 } from "@/modules/customers/api/clients";
-import { fetchCities, fetchContactDesignations, fetchContactTypes, fetchCountries, fetchIndustries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
+import { fetchCities, fetchContactDesignations, fetchContactTypes, fetchCountries, fetchIndustries, fetchScreenOptions, screenOptionNames, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
 import { useAuth } from "@/lib/auth-context";
 import { HealthPill, StatusPill, ProgressBar } from "@/components/pills";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
@@ -1162,6 +1162,7 @@ export function NewClientModal({
   const [designationsReady, setDesignationsReady] = useState(false);
   const [contactTypes, setContactTypes] = useState<CatalogOption[]>([]);
   const [contactTypesReady, setContactTypesReady] = useState(false);
+  const [billingMediums, setBillingMediums] = useState<string[]>([...BILLING_MEDIUMS]);
 
   const filteredTk = existingClients.filter(
     (c) => tkSearch.trim() === "" || c.name.toLowerCase().includes(tkSearch.toLowerCase()),
@@ -1283,6 +1284,14 @@ export function NewClientModal({
 
   useEffect(() => {
     let cancelled = false;
+    void fetchScreenOptions("BillingMedium")
+      .then((rows) => {
+        const names = screenOptionNames(rows, "BillingMedium");
+        if (!cancelled && names.length) setBillingMediums(names);
+      })
+      .catch(() => {
+        if (!cancelled) setBillingMediums([...BILLING_MEDIUMS]);
+      });
     void fetchCountries()
       .then((rows) => {
         if (!cancelled) setCountries(rows);
@@ -2174,7 +2183,7 @@ export function NewClientModal({
                   value={s.billingMedium}
                   onChange={(value) => u("billingMedium", value)}
                   placeholder="Select billing medium"
-                  options={BILLING_MEDIUMS}
+                  options={billingMediums}
                 />
               </Field>
               <SearchableSelect
@@ -2285,7 +2294,7 @@ export function NewClientModal({
                     value={s.billingMedium}
                     onChange={(value) => u("billingMedium", value)}
                     placeholder="Select billing medium"
-                    options={BILLING_MEDIUMS}
+                    options={billingMediums}
                   />
                 )}
               </Field>

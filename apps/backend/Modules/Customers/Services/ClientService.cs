@@ -366,8 +366,6 @@ public sealed class ClientService(
         if (request.KycDocumentName is not null && !string.Equals(client.KycDocumentName, request.KycDocumentName, StringComparison.Ordinal))
         {
             client.KycDocumentName = request.KycDocumentName;
-            clientProfileChanged = true;
-            changedFields.Add("KYC Document");
         }
         if (request.Contacts is not null)
         {
@@ -1099,16 +1097,17 @@ public sealed class ClientService(
         var client = await ApplyClientGraphIncludes(await BuildScopedQueryAsync(ct))
             .FirstOrDefaultAsync(c => c.Id == id, ct);
         if (client is null) return null;
-
-        var kycChanged = !string.Equals(client.KycDocumentName, fileName?.Trim(), StringComparison.Ordinal);
-        client.KycDocumentName = string.IsNullOrWhiteSpace(fileName) ? client.KycDocumentName : fileName.Trim();
-        client.KycDocumentPath = string.IsNullOrWhiteSpace(relativePath) ? client.KycDocumentPath : relativePath.Trim();
+        var nextName = string.IsNullOrWhiteSpace(fileName) ? client.KycDocumentName : fileName.Trim();
+        var nextPath = string.IsNullOrWhiteSpace(relativePath) ? client.KycDocumentPath : relativePath.Trim();
+        var kycReplaced = IsKycReplacement(client.KycDocumentName, client.KycDocumentPath, nextName, nextPath);
+        client.KycDocumentName = nextName;
+        client.KycDocumentPath = nextPath;
         await db.SaveChangesAsync(ct);
 
         var reloaded = await LoadClientGraphAsync(client.Id, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
 
-        if (kycChanged)
+        if (kycReplaced)
         {
             await notificationService.NotifyCustomerEditedAsync(
                 reloaded.Id,
@@ -1144,16 +1143,17 @@ public sealed class ClientService(
 
         var sv = await db.SubVentures.FirstOrDefaultAsync(s => s.Id == subVentureId && s.ClientId == clientId, ct);
         if (sv is null) return null;
-
-        var kycChanged = !string.Equals(sv.KycDocumentName, fileName?.Trim(), StringComparison.Ordinal);
-        sv.KycDocumentName = string.IsNullOrWhiteSpace(fileName) ? sv.KycDocumentName : fileName.Trim();
-        sv.KycDocumentPath = string.IsNullOrWhiteSpace(relativePath) ? sv.KycDocumentPath : relativePath.Trim();
+        var nextName = string.IsNullOrWhiteSpace(fileName) ? sv.KycDocumentName : fileName.Trim();
+        var nextPath = string.IsNullOrWhiteSpace(relativePath) ? sv.KycDocumentPath : relativePath.Trim();
+        var kycReplaced = IsKycReplacement(sv.KycDocumentName, sv.KycDocumentPath, nextName, nextPath);
+        sv.KycDocumentName = nextName;
+        sv.KycDocumentPath = nextPath;
         await db.SaveChangesAsync(ct);
 
         var reloaded = await LoadClientGraphAsync(clientId, ct);
         var clientCodes = await GetAllClientCodesAsync(ct);
 
-        if (kycChanged)
+        if (kycReplaced)
         {
             await notificationService.NotifySubVentureEditedAsync(
                 reloaded.Id,
@@ -1189,6 +1189,14 @@ public sealed class ClientService(
 
         return (client.Name, sv.Name, sv.KycDocumentName, sv.KycDocumentPath);
     }
+    private static bool IsKycReplacement(string? previousName, string? previousPath, string? nextName, string? nextPath)
+    {
+        var hadDocument = !string.IsNullOrWhiteSpace(previousName) || !string.IsNullOrWhiteSpace(previousPath);
+        if (!hadDocument) return false;
+        return !string.Equals(previousName?.Trim(), nextName?.Trim(), StringComparison.Ordinal)
+            || !string.Equals(previousPath?.Trim(), nextPath?.Trim(), StringComparison.Ordinal);
+    }
+
 
     private static string? NormalizeManagerName(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();

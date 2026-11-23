@@ -3,13 +3,13 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/modules/projects/pages/projects-list-page";
 import { SearchableSelect } from "@/components/creatable-catalog-select";
-import { fetchCountries, fetchCities, fetchIndustries, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
+import { fetchCountries, fetchCities, fetchIndustries, fetchScreenOptions, screenOptionNames, type CatalogOption, type CityCatalogOption } from "@/lib/api/catalogs";
 import { countryPhoneError } from "@/lib/form-validation";
 import { updateClient, formatCustomerId } from "@/modules/customers/api/clients";
 import type { Client } from "@/lib/domain-models";
 import { cn } from "@/lib/utils";
 
-const BILLING_MEDIUMS = ["Portal Based", "Manual Based"];
+const FALLBACK_BILLING_MEDIUMS = ["Portal Based", "Manual Based"];
 
 const inputCls =
   "h-9 w-full rounded-md border border-input bg-card px-3 text-xs shadow-2xs outline-none transition-all placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 text-foreground";
@@ -70,16 +70,19 @@ export function EditCustomerInfoModal({
   const [cities, setCities] = useState<CityCatalogOption[]>([]);
   const [industries, setIndustries] = useState<CatalogOption[]>([]);
   const [catalogsLoading, setCatalogsLoading] = useState(true);
+  const [billingMediums, setBillingMediums] = useState<string[]>(FALLBACK_BILLING_MEDIUMS);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetchCountries(), fetchIndustries()])
-      .then(([coList, indList]) => {
+    Promise.all([fetchCountries(), fetchIndustries(), fetchScreenOptions("BillingMedium")])
+      .then(([coList, indList, mediums]) => {
         if (!active) return;
         setCountries(coList);
         setIndustries(indList);
+        const names = screenOptionNames(mediums, "BillingMedium");
+        if (names.length) setBillingMediums(names);
       })
       .catch(() => {
         // Catalogs fallback gracefully
@@ -228,7 +231,7 @@ export function EditCustomerInfoModal({
               value={billingMedium}
               onChange={setBillingMedium}
               placeholder="Select billing medium"
-              options={BILLING_MEDIUMS}
+              options={billingMediums}
             />
           </Field>
 

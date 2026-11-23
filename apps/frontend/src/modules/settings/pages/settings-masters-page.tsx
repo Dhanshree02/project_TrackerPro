@@ -20,6 +20,12 @@ import { ProjectMastersSection } from "@/modules/settings/components/masters/pro
 import { CustomerMastersSection } from "@/modules/settings/components/masters/customer-masters-section";
 import { ResourceMastersSection } from "@/modules/settings/components/masters/resource-masters-section";
 import { LeaveCalendarSection } from "@/modules/settings/components/masters/leave-calendar-section";
+import {
+  CUSTOMER_SCREEN_OPTIONS,
+  PROJECT_SCREEN_OPTIONS,
+  RESOURCE_SCREEN_OPTIONS,
+  ScreenOptionsSection,
+} from "@/modules/settings/components/masters/screen-options-section";
 
 type MasterTab = "projects" | "customers" | "resources" | "leave-calendar";
 
@@ -165,17 +171,26 @@ export function SettingsMastersPage() {
           onAddService={addService}
         />
       )}
+      {activeTab === "projects" && <ScreenOptionsSection groups={PROJECT_SCREEN_OPTIONS} />}
 
       {activeTab === "customers" && (
-        <CustomerMastersSection
-          customerMasters={customerMasters}
-          onAdd={addCustomerMasterItem}
-          onUpdate={updateCustomerMasterItem}
-          onDelete={deleteCustomerMasterItem}
-        />
+        <>
+          <CustomerMastersSection
+            customerMasters={customerMasters}
+            onAdd={addCustomerMasterItem}
+            onUpdate={updateCustomerMasterItem}
+            onDelete={deleteCustomerMasterItem}
+          />
+          <ScreenOptionsSection groups={CUSTOMER_SCREEN_OPTIONS} />
+        </>
       )}
 
-      {activeTab === "resources" && <ResourceMastersSection onCountChange={setResourceCount} />}
+      {activeTab === "resources" && (
+        <>
+          <ResourceMastersSection onCountChange={setResourceCount} />
+          <ScreenOptionsSection groups={RESOURCE_SCREEN_OPTIONS} />
+        </>
+      )}
 
       {activeTab === "leave-calendar" && (
         <LeaveCalendarSection onCountChange={setLeaveCalendarCount} />

@@ -19,8 +19,11 @@ import { fetchClients, mapApiClient, formatCustomerId, type ApiClient } from "@/
 import {
   fetchServiceHierarchy,
   fetchServiceGroups,
+  fetchScreenOptions,
+  screenOptionNames,
   type ServiceHierarchyGroup,
   type ServiceGroupOption,
+  type ScreenOption,
 } from "@/lib/api/catalogs";
 import {
   fetchProjects,
@@ -413,6 +416,7 @@ export function ProjectOnboardingPage() {
   const [dbClients, setDbClients] = useState<ApiClient[]>([]);
   const [dbServiceHierarchy, setDbServiceHierarchy] = useState<ServiceHierarchyGroup[]>([]);
   const [dbServiceGroups, setDbServiceGroups] = useState<ServiceGroupOption[]>([]);
+  const [screenOptions, setScreenOptions] = useState<ScreenOption[]>([]);
   const [nextCodeData, setNextCodeData] = useState<{
     projectSeqId: string;
     wbsId: string;
@@ -454,6 +458,12 @@ export function ProjectOnboardingPage() {
       }
     }).catch(() => {
       if (active) toast.error("Could not load contract types from database");
+    });
+
+    fetchScreenOptions().then((res) => {
+      if (active) setScreenOptions(res ?? []);
+    }).catch(() => {
+      if (active) toast.error("Could not load project choice lists from database");
     });
 
     return () => { active = false; };
@@ -1403,13 +1413,19 @@ export function ProjectOnboardingPage() {
 
   // ─── Billing model change ────────────────────────────────────────────────
 
+  function paymentTermsFor(model: string): string[] {
+    const fromDb = screenOptionNames(screenOptions, "PaymentTerm", model);
+    if (fromDb.length) return fromDb;
+    return PAYMENT_TERMS_MAP[model] ?? [];
+  }
+
   function onBillingModelChange(model: string) {
     setBillingModel(model);
     if (model === "Custom") {
       setPaymentTerms("");
       setCustomPayments([{ label: "First Payment", pct: 100 }]);
     } else {
-      setPaymentTerms(PAYMENT_TERMS_MAP[model] ? PAYMENT_TERMS_MAP[model].join(", ") : "");
+      setPaymentTerms(paymentTermsFor(model).join(", "));
       setCustomPayments([{ label: "First Payment", pct: 100 }]);
     }
   }
@@ -1556,10 +1572,23 @@ export function ProjectOnboardingPage() {
           );
         }
       });
+    } else {
+      const terms = screenOptionNames(screenOptions, "PaymentTerm", billingModel);
+      const labels = terms.length ? terms : [billingModel];
+      serviceRows.forEach((s) => {
+        labels.forEach((label, index) => {
+          const share = Math.floor(100 / labels.length);
+          const pct = index === labels.length - 1 ? 100 - share * (labels.length - 1) : share;
+          const amount = Math.round((s.unitPrice * s.qty * pct) / 100);
+          nextRows.push(
+            getOrCreateRow(s.rowId, s.name, label, s.unitPrice, s.qty, currency, amount),
+          );
+        });
+      });
     }
 
     setInvoiceRows(nextRows);
-  }, [onboardingReady, billingModel, currency, servicesDependency, JSON.stringify(customPayments)]);
+  }, [onboardingReady, billingModel, currency, servicesDependency, JSON.stringify(customPayments), screenOptions]);
 
   // Filter departments based on Contract Type
   const allowedDepts = useMemo(() => {
@@ -3196,11 +3225,14 @@ export function ProjectOnboardingPage() {
                   }
                 }}
                 placeholder={!contractType ? "Select Contract Type first" : "Select Project Type"}
-                options={
-                  isResourceContract(contractType)
+                options={(() => {
+                  const parent = isResourceContract(contractType) ? "Resource" : "Scope";
+                  const fromDb = screenOptionNames(screenOptions, "WbsProjectType", parent);
+                  if (fromDb.length) return fromDb;
+                  return isResourceContract(contractType)
                     ? ["Long Term"]
-                    : ["Short term (Ad-hoc)", "Long Term"]
-                }
+                    : ["Short term (Ad-hoc)", "Long Term"];
+                })()}
                 clearable={false}
               />
             </FormGroup>
@@ -3719,7 +3751,11 @@ export function ProjectOnboardingPage() {
                 disabledHint="Select a Project Type in WBS Information first"
                 onChange={onBillingModelChange}
                 placeholder={!projectType ? "Select Project Type first" : "Select Billing Model"}
-                options={BILLING_MODELS[projectType] || []}
+                options={(() => {
+                  const fromDb = screenOptionNames(screenOptions, "BillingModel", projectType);
+                  if (fromDb.length) return fromDb;
+                  return BILLING_MODELS[projectType] || [];
+                })()}
               />
             </FormGroup>
             <FormGroup label={`Payment Terms${billingModel === "Custom" ? " *" : ""}`}>
@@ -3858,7 +3894,7 @@ export function ProjectOnboardingPage() {
                   type="text"
                   value={paymentTerms}
                   onChange={(e) => setPaymentTerms(e.target.value)}
-                  placeholder={billingModel ? (PAYMENT_TERMS_MAP[billingModel]?.join(", ") || "Optional payment terms") : "—"}
+                  placeholder={billingModel ? (paymentTermsFor(billingModel).join(", ") || "Optional payment terms") : "—"}
                   style={inputStyle(false, !!paymentTerms)}
                 />
               )}

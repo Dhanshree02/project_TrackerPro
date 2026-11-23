@@ -5,7 +5,7 @@ using PMS.API.Modules.Catalogs.Models;
 
 namespace PMS.API.Modules.Catalogs.Services;
 
-public sealed class CatalogService(AppDbContext db) : ICatalogService
+public sealed partial class CatalogService(AppDbContext db) : ICatalogService
 {
     public async Task<IReadOnlyList<SidebarModuleDto>> GetModulesAsync(CancellationToken ct = default)
     {
@@ -167,7 +167,7 @@ public sealed class CatalogService(AppDbContext db) : ICatalogService
             .Where(t => t.IsActive)
             .OrderBy(t => t.SortOrder)
             .ThenBy(t => t.Name)
-            .Select(t => new CatalogOptionDto(t.Id, t.Code, t.Name, null, null))
+            .Select(t => new CatalogOptionDto(t.Id, t.Code, t.Name, null, null, t.Description))
             .ToListAsync(ct);
     }
 

@@ -317,47 +317,9 @@ public sealed class SlaBackgroundJobWorker(
                 .ToListAsync();
             foreach (var id in l2NotifRecipients) hodIds.Add(id);
 
-            if (hodIds.Count == 0)
+            foreach (var id in await GetIssueEscalationHeadOfDepartmentIdsAsync())
             {
-                var resolvedHods = await recipientResolver.ResolveRecipientsAsync(instance, ["Head of Department"]);
-                foreach (var id in resolvedHods) hodIds.Add(id);
-            }
-
-            if (hodIds.Count == 0)
-            {
-                var hodOnFloorRoles = await db.OnFloorRoles
-                    .AsNoTracking()
-                    .Where(o => o.DeletedAtUtc == null && (
-                        o.Name.ToLower() == "head of department"
-                        || o.Name.ToLower() == "hod"
-                        || o.Name.ToLower().Contains("head of department")
-                        || o.Name.Contains("Head Of Department")
-                    ))
-                    .Select(o => o.DesignationId)
-                    .Distinct()
-                    .ToListAsync();
-
-                if (hodOnFloorRoles.Count > 0)
-                {
-                    var hodEmps = await db.Employees
-                        .AsNoTracking()
-                        .Where(e => e.DeletedAtUtc == null
-                                    && (e.Status == null || !e.Status.ToLower().StartsWith("inactive"))
-                                    && e.DesignationId.HasValue
-                                    && hodOnFloorRoles.Contains(e.DesignationId.Value))
-                        .Select(e => e.Id)
-                        .ToListAsync();
-                    foreach (var id in hodEmps) hodIds.Add(id);
-                }
-
-                var roleHods = await db.Employees
-                    .AsNoTracking()
-                    .Where(e => e.DeletedAtUtc == null
-                                && (e.Status == null || !e.Status.ToLower().StartsWith("inactive"))
-                                && e.Role != null && (e.Role.ToLower() == "head of department" || e.Role.ToLower() == "hod"))
-                    .Select(e => e.Id)
-                    .ToListAsync();
-                foreach (var id in roleHods) hodIds.Add(id);
+                hodIds.Add(id);
             }
 
             foreach (var id in hodIds) recipientSet.Add(id);
@@ -517,6 +479,33 @@ public sealed class SlaBackgroundJobWorker(
         await db.SaveChangesAsync();
     }
 
+    private async Task<List<Guid>> GetIssueEscalationHeadOfDepartmentIdsAsync()
+    {
+        var hodDesignationIds = await db.OnFloorRoles
+            .AsNoTracking()
+            .Where(o => o.DeletedAtUtc == null && o.Name != null && (
+                o.Name.ToLower() == "head of department"
+                || o.Name.ToLower() == "hod"
+                || o.Name.ToLower().Contains("head of department")))
+            .Select(o => o.DesignationId)
+            .Distinct()
+            .ToListAsync();
+
+        return await db.Employees
+            .AsNoTracking()
+            .Where(e => e.DeletedAtUtc == null
+                && (e.Status == null || e.Status.ToLower().StartsWith("active"))
+                && (
+                    (e.DesignationId.HasValue && hodDesignationIds.Contains(e.DesignationId.Value))
+                    || (e.Role != null && (
+                        e.Role.ToLower().Contains("head of department")
+                        || e.Role.ToLower().Contains("-hod")
+                        || e.Role.ToLower().EndsWith("hod")))))
+            .Select(e => e.Id)
+            .Distinct()
+            .ToListAsync();
+    }
+
     private async Task ExecuteIssueEscalationAsync(SlaInstance instance, SlaEvent eventRecord, int level)
     {
         var issue = await db.ProjectIssues
@@ -542,9 +531,6 @@ public sealed class SlaBackgroundJobWorker(
             ? (eventRecord.TargetRoles.Count > 0 ? eventRecord.TargetRoles : ["Assigned Senior Project Manager"])
             : (eventRecord.TargetRoles.Count > 0 ? eventRecord.TargetRoles : ["Head of Department"]);
 
-        var recipientIds = await recipientResolver.ResolveRecipientsAsync(instance, targetRoles);
-        eventRecord.TargetRecipientIds = recipientIds;
-
         var now = DateTime.UtcNow;
         var nowIst = TimeZoneInfo.ConvertTimeFromUtc(now, SlaDeadlineCalculator.IndianTimeZone);
         var dateStr = nowIst.ToString("yyyy-MM-dd");
@@ -552,6 +538,16 @@ public sealed class SlaBackgroundJobWorker(
 
         var levelLabel = level == 1 ? "Level 1 SLA Escalation (Assigned Senior Project Manager)" : "Level 2 SLA Escalation (Head of Department)";
         var notificationTitle = $"{levelLabel}: Issue Pending Resolution - {issue.Subject}";
+
+        var recipientIds = (await recipientResolver.ResolveRecipientsAsync(instance, targetRoles)).ToHashSet();
+        if (level == 2)
+        {
+            foreach (var hodId in await GetIssueEscalationHeadOfDepartmentIdsAsync())
+            {
+                recipientIds.Add(hodId);
+            }
+        }
+        eventRecord.TargetRecipientIds = recipientIds.ToList();
 
         var recipientEmployees = await db.Employees
             .AsNoTracking()
@@ -607,7 +603,7 @@ public sealed class SlaBackgroundJobWorker(
             catch { }
         }
 
-        var targetRoleName = level == 1 ? "Assigned Senior Project Manager" : "Head of Department";
+        var targetRoleName = level == 1 ? "Assigned Senior Project Manager" : "Head of Department and PMO";
         var recipientNamesList = recipientEmployees
             .Select(e => $"{e.FirstName} {e.LastName}".Trim())
             .Where(n => !string.IsNullOrWhiteSpace(n))

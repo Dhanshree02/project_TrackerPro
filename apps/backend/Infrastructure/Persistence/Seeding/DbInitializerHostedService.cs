@@ -53,6 +53,8 @@ public sealed class DbInitializerHostedService(
             await db.Database.ExecuteSqlRawAsync(
                 $"""ALTER TABLE {countries} ADD COLUMN IF NOT EXISTS "PhoneDigits" integer NOT NULL DEFAULT 10;""",
                 cancellationToken);
+            await ScreenOptionSeed.EnsureSchemaAsync(db, cancellationToken);
+            await ScreenOptionSeed.EnsureAsync(db, cancellationToken);
 
             await db.Database.ExecuteSqlRawAsync(
                 $"""
@@ -298,6 +300,12 @@ public sealed class DbInitializerHostedService(
 
                 ALTER TABLE action.tbl_notifications 
                 ADD COLUMN IF NOT EXISTS "ServiceEscalationId" uuid;
+
+                ALTER TABLE project.tbl_project_team_members
+                    ADD COLUMN IF NOT EXISTS "IsCurrentlyWorking" boolean NOT NULL DEFAULT true;
+
+                ALTER TABLE project.tbl_resource_allocation_requests
+                    ADD COLUMN IF NOT EXISTS "RequiresPmoApproval" boolean NOT NULL DEFAULT false;
 
                 -- Backfill ServiceEscalationId for WBS notifications matching project alerts
                 UPDATE action.tbl_notifications n

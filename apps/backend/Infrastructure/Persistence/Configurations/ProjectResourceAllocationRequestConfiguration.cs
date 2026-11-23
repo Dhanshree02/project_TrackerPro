@@ -14,6 +14,7 @@ public sealed class ProjectResourceAllocationRequestConfiguration : IEntityTypeC
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.EmployeeId);
         builder.HasIndex(x => x.ApproverEmployeeId);
+        builder.Property(x => x.RequiresPmoApproval).HasDefaultValue(false);
 
         builder.HasOne(x => x.Project)
             .WithMany()

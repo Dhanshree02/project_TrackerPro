@@ -7,6 +7,7 @@ export interface CatalogOption {
   name: string;
   phoneCode?: string;
   phoneDigits?: number;
+  description?: string | null;
 }
 
 export interface CityCatalogOption extends CatalogOption {
@@ -89,6 +90,116 @@ export async function fetchContactDesignations(): Promise<CatalogOption[]> {
 /** GET /api/v1/catalogs/contact-types — rows from mst_contact_types. */
 export async function fetchContactTypes(): Promise<CatalogOption[]> {
   return (await apiFetch<CatalogOption[]>("/api/v1/catalogs/contact-types")) ?? [];
+}
+
+export interface ScreenOption {
+  id: string;
+  category: string;
+  name: string;
+  parentName: string;
+  sortOrder: number;
+}
+
+/** GET /api/v1/catalogs/screen-options — worker type, billing medium, project type, and the other choice lists. */
+export async function fetchScreenOptions(category?: string): Promise<ScreenOption[]> {
+  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+  return (await apiFetch<ScreenOption[]>(`/api/v1/catalogs/screen-options${query}`)) ?? [];
+}
+
+export function screenOptionNames(rows: ScreenOption[], category: string, parentName?: string): string[] {
+  return rows
+    .filter((row) => row.category === category && (parentName === undefined || (row.parentName || "") === parentName))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+    .map((row) => row.name);
+}
+
+export async function createScreenOption(category: string, name: string, parentName?: string): Promise<ScreenOption> {
+  return apiFetch<ScreenOption>("/api/v1/catalogs/screen-options", {
+    method: "POST",
+    body: JSON.stringify({ category, name, parentName: parentName ?? "" }),
+  });
+}
+
+export async function updateScreenOption(
+  id: string,
+  category: string,
+  name: string,
+  parentName?: string,
+): Promise<ScreenOption> {
+  return apiFetch<ScreenOption>(`/api/v1/catalogs/screen-options/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ category, name, parentName: parentName ?? "" }),
+  });
+}
+
+export async function deleteScreenOption(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/screen-options/${id}`, { method: "DELETE" });
+}
+
+async function saveCatalogItem(
+  path: string,
+  method: "POST" | "PUT",
+  name: string,
+  extra?: { code?: string; description?: string },
+): Promise<CatalogOption> {
+  return apiFetch<CatalogOption>(path, {
+    method,
+    body: JSON.stringify({
+      name,
+      code: extra?.code?.trim() || null,
+      description: extra?.description?.trim() || null,
+    }),
+  });
+}
+
+export const createIndustry = (name: string, extra?: { code?: string }) =>
+  saveCatalogItem("/api/v1/catalogs/industries", "POST", name, extra);
+export const updateIndustry = (id: string, name: string, extra?: { code?: string }) =>
+  saveCatalogItem(`/api/v1/catalogs/industries/${id}`, "PUT", name, extra);
+export async function deleteIndustry(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/industries/${id}`, { method: "DELETE" });
+}
+
+export const createCountry = (name: string, extra?: { code?: string }) =>
+  saveCatalogItem("/api/v1/catalogs/countries", "POST", name, extra);
+export const updateCountry = (id: string, name: string, extra?: { code?: string }) =>
+  saveCatalogItem(`/api/v1/catalogs/countries/${id}`, "PUT", name, extra);
+export async function deleteCountry(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/countries/${id}`, { method: "DELETE" });
+}
+
+export async function createCity(name: string, countryId: string, code?: string): Promise<CityCatalogOption> {
+  return apiFetch<CityCatalogOption>("/api/v1/catalogs/cities", {
+    method: "POST",
+    body: JSON.stringify({ name, countryId, code: code?.trim() || null }),
+  });
+}
+
+export async function updateCity(id: string, name: string, countryId: string, code?: string): Promise<CityCatalogOption> {
+  return apiFetch<CityCatalogOption>(`/api/v1/catalogs/cities/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ name, countryId, code: code?.trim() || null }),
+  });
+}
+
+export async function deleteCity(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/cities/${id}`, { method: "DELETE" });
+}
+
+export const createContactDesignation = (name: string, extra?: { code?: string }) =>
+  saveCatalogItem("/api/v1/catalogs/contact-designations", "POST", name, extra);
+export const updateContactDesignation = (id: string, name: string, extra?: { code?: string }) =>
+  saveCatalogItem(`/api/v1/catalogs/contact-designations/${id}`, "PUT", name, extra);
+export async function deleteContactDesignation(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/contact-designations/${id}`, { method: "DELETE" });
+}
+
+export const createContactType = (name: string, extra?: { code?: string; description?: string }) =>
+  saveCatalogItem("/api/v1/catalogs/contact-types", "POST", name, extra);
+export const updateContactType = (id: string, name: string, extra?: { code?: string; description?: string }) =>
+  saveCatalogItem(`/api/v1/catalogs/contact-types/${id}`, "PUT", name, extra);
+export async function deleteContactType(id: string): Promise<void> {
+  await apiFetch<string>(`/api/v1/catalogs/contact-types/${id}`, { method: "DELETE" });
 }
 
 /** Current Address - City row from master.mst_address_cities. */

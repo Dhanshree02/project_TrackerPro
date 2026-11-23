@@ -24,6 +24,7 @@ export interface SimpleMasterItem {
   name: string;
   code?: string;
   description?: string;
+  countryId?: string;
   createdAt: string;
 }
 

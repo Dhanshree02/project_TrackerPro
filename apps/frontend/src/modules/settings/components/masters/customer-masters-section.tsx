@@ -39,11 +39,17 @@ import {
 import { cn } from "@/lib/utils";
 import type { CustomerMasterCategory, CustomerMastersState, SimpleMasterItem } from "@/modules/settings/masters/types";
 
+interface CustomerMasterExtra {
+  code?: string;
+  description?: string;
+  countryId?: string;
+}
+
 interface CustomerMastersSectionProps {
   customerMasters: CustomerMastersState;
-  onAdd: (category: CustomerMasterCategory, name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
-  onUpdate: (category: CustomerMasterCategory, id: string, name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
-  onDelete: (category: CustomerMasterCategory, id: string) => void;
+  onAdd: (category: CustomerMasterCategory, name: string, extra?: CustomerMasterExtra) => Promise<{ success: boolean; error?: string }>;
+  onUpdate: (category: CustomerMasterCategory, id: string, name: string, extra?: CustomerMasterExtra) => Promise<{ success: boolean; error?: string }>;
+  onDelete: (category: CustomerMasterCategory, id: string) => Promise<void>;
 }
 
 interface MasterCategoryConfig {
@@ -55,6 +61,7 @@ interface MasterCategoryConfig {
   icon: typeof UserCheck;
   hasCode?: boolean;
   hasDescription?: boolean;
+  hasCountry?: boolean;
 }
 
 const CATEGORIES: MasterCategoryConfig[] = [
@@ -91,6 +98,7 @@ const CATEGORIES: MasterCategoryConfig[] = [
     description: "Operational delivery and office locations for clients",
     icon: MapPin,
     hasCode: true,
+    hasCountry: true,
   },
   {
     id: "contactTypes",
@@ -157,6 +165,7 @@ export function CustomerMastersSection({
               key={cat.id}
               config={cat}
               items={customerMasters[cat.id] || []}
+              countries={customerMasters.countries}
               onAdd={(name, extra) => onAdd(cat.id, name, extra)}
               onUpdate={(id, name, extra) => onUpdate(cat.id, id, name, extra)}
               onDelete={(id) => onDelete(cat.id, id)}
@@ -171,6 +180,7 @@ export function CustomerMastersSection({
               <ReusableMasterCard
                 config={cat}
                 items={customerMasters[cat.id] || []}
+                countries={customerMasters.countries}
                 onAdd={(name, extra) => onAdd(cat.id, name, extra)}
                 onUpdate={(id, name, extra) => onUpdate(cat.id, id, name, extra)}
                 onDelete={(id) => onDelete(cat.id, id)}
@@ -188,15 +198,17 @@ export function CustomerMastersSection({
 interface ReusableMasterCardProps {
   config: MasterCategoryConfig;
   items: SimpleMasterItem[];
+  countries: SimpleMasterItem[];
   isExpandedView?: boolean;
-  onAdd: (name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
-  onUpdate: (id: string, name: string, extra?: { code?: string; description?: string }) => { success: boolean; error?: string };
-  onDelete: (id: string) => void;
+  onAdd: (name: string, extra?: CustomerMasterExtra) => Promise<{ success: boolean; error?: string }>;
+  onUpdate: (id: string, name: string, extra?: CustomerMasterExtra) => Promise<{ success: boolean; error?: string }>;
+  onDelete: (id: string) => Promise<void>;
 }
 
 function ReusableMasterCard({
   config,
   items,
+  countries,
   isExpandedView,
   onAdd,
   onUpdate,
@@ -206,6 +218,8 @@ function ReusableMasterCard({
   const [inputName, setInputName] = useState("");
   const [inputCode, setInputCode] = useState("");
   const [inputDescription, setInputDescription] = useState("");
+  const [inputCountryId, setInputCountryId] = useState("");
+  const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -214,6 +228,7 @@ function ReusableMasterCard({
   const [editName, setEditName] = useState("");
   const [editCode, setEditCode] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editCountryId, setEditCountryId] = useState("");
   const [editError, setEditError] = useState<string | null>(null);
 
   // Delete dialog state
@@ -231,7 +246,7 @@ function ReusableMasterCard({
     );
   }, [items, searchQuery]);
 
-  const handleAdd = (e: React.FormEvent) => {
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -239,16 +254,24 @@ function ReusableMasterCard({
       setErrorMsg(`Please enter a ${config.singular.toLowerCase()} name.`);
       return;
     }
+    if (config.hasCountry && !inputCountryId) {
+      setErrorMsg("Select a country for this city.");
+      return;
+    }
 
-    const res = onAdd(inputName.trim(), {
+    setSaving(true);
+    const res = await onAdd(inputName.trim(), {
       code: inputCode.trim() || undefined,
       description: inputDescription.trim() || undefined,
+      countryId: inputCountryId || undefined,
     });
+    setSaving(false);
 
     if (res.success) {
       setInputName("");
       setInputCode("");
       setInputDescription("");
+      setInputCountryId("");
       setErrorMsg(null);
     } else {
       setErrorMsg(res.error || "Failed to add item.");
@@ -260,20 +283,28 @@ function ReusableMasterCard({
     setEditName(item.name);
     setEditCode(item.code || "");
     setEditDescription(item.description || "");
+    setEditCountryId(item.countryId || "");
     setEditError(null);
   };
 
-  const handleEditSubmit = () => {
+  const handleEditSubmit = async () => {
     if (!editingItem) return;
     if (!editName.trim()) {
       setEditError("Name is required.");
       return;
     }
+    if (config.hasCountry && !editCountryId) {
+      setEditError("Select a country for this city.");
+      return;
+    }
 
-    const res = onUpdate(editingItem.id, editName.trim(), {
+    setSaving(true);
+    const res = await onUpdate(editingItem.id, editName.trim(), {
       code: editCode.trim() || undefined,
       description: editDescription.trim() || undefined,
+      countryId: editCountryId || undefined,
     });
+    setSaving(false);
 
     if (res.success) {
       setEditingItem(null);
@@ -319,6 +350,23 @@ function ReusableMasterCard({
             />
           </div>
 
+          {config.hasCountry && (
+            <div className="w-full sm:w-40">
+              <select
+                value={inputCountryId}
+                onChange={(e) => setInputCountryId(e.target.value)}
+                className="h-8 w-full rounded-md border border-input bg-card px-2 text-xs text-foreground"
+              >
+                <option value="">Country</option>
+                {countries.map((country) => (
+                  <option key={country.id} value={country.id}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {config.hasCode && (
             <div className="w-full sm:w-28">
               <Input
@@ -331,7 +379,7 @@ function ReusableMasterCard({
             </div>
           )}
 
-          <Button type="submit" size="sm" className="h-8 text-xs gap-1 shrink-0">
+          <Button type="submit" size="sm" className="h-8 text-xs gap-1 shrink-0" disabled={saving}>
             <Plus className="h-3.5 w-3.5" />
             Add {config.singular}
           </Button>
@@ -451,6 +499,24 @@ function ReusableMasterCard({
               />
             </div>
 
+            {config.hasCountry && (
+              <div className="space-y-1">
+                <span className="text-xs font-medium text-foreground">Country</span>
+                <select
+                  value={editCountryId}
+                  onChange={(e) => setEditCountryId(e.target.value)}
+                  className="h-8 w-full rounded-md border border-input bg-card px-2 text-xs text-foreground"
+                >
+                  <option value="">Select country</option>
+                  {countries.map((country) => (
+                    <option key={country.id} value={country.id}>
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {config.hasCode && (
               <div className="space-y-1">
                 <span className="text-xs font-medium text-foreground">Code (Optional)</span>
@@ -485,7 +551,7 @@ function ReusableMasterCard({
             >
               Cancel
             </Button>
-            <Button type="button" size="sm" className="text-xs h-8" onClick={handleEditSubmit}>
+            <Button type="button" size="sm" className="text-xs h-8" onClick={() => void handleEditSubmit()} disabled={saving}>
               Save Changes
             </Button>
           </DialogFooter>
@@ -507,7 +573,7 @@ function ReusableMasterCard({
               className="text-xs h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
                 if (deletingId) {
-                  onDelete(deletingId);
+                  void onDelete(deletingId);
                   setDeletingId(null);
                 }
               }}

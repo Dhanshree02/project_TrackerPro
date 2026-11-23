@@ -1604,6 +1604,8 @@ public sealed class ActionNotificationService(
             }
         }
 
+        AddAllPmo(recipients, candidates);
+
         // 3. Resolve and add customer's assigned Engagement Manager
         AddCandidateIfFound(recipients, candidates, engagementManagerId, engagementManager);
 
@@ -1614,6 +1616,30 @@ public sealed class ActionNotificationService(
         AddCandidateIfFound(recipients, candidates, additionalEmployeeId, additionalEmployeeName);
 
         return recipients;
+    }
+
+    private static void AddAllPmo(
+        List<PMS.API.Modules.Resources.Models.Employee> recipients,
+        List<PMS.API.Modules.Resources.Models.Employee> candidates)
+    {
+        foreach (var employee in candidates)
+        {
+            if (!IsPmoEmployee(employee)) continue;
+            if (!recipients.Any(r => r.Id == employee.Id))
+            {
+                recipients.Add(employee);
+            }
+        }
+    }
+
+    private static bool IsPmoEmployee(PMS.API.Modules.Resources.Models.Employee employee)
+    {
+        var subDepartment = (employee.SubDepartment ?? employee.SubDepartmentRef?.Name ?? "").Trim();
+        var role = (employee.Role ?? "").Trim();
+        var pmoDepartment = (employee.PmoDepartment ?? "").Trim();
+        return subDepartment.Contains("pmo", StringComparison.OrdinalIgnoreCase)
+            || role.Contains("pmo", StringComparison.OrdinalIgnoreCase)
+            || pmoDepartment.Contains("pmo", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddCandidateIfFound(
@@ -1832,6 +1858,8 @@ public sealed class ActionNotificationService(
                 }
             }
         }
+
+        AddAllPmo(recipients, candidates);
 
         // 4. Resolve and add customer's assigned Engagement Manager
         AddCandidateIfFound(recipients, candidates, engagementManagerId, engagementManager);
@@ -2092,7 +2120,7 @@ public sealed class ActionNotificationService(
                             roleFieldLower == "pmo" || roleFieldLower.Contains("pmo") ||
                             rLower == "pmo" || rLower.Contains("pmo");
 
-                if (isPmo)
+                if (isPmo || IsPmoEmployee(e))
                 {
                     if (!recipients.ContainsKey(e.Id))
                     {
@@ -5022,7 +5050,7 @@ public sealed class ActionNotificationService(
             .Include(r => r.Employee)
             .Where(r => r.DeletedAtUtc == null &&
                         r.Status == "Pending" &&
-                        r.ResourceType == "Dedicated" &&
+                        (r.ResourceType == "Dedicated" || r.RequiresPmoApproval) &&
                         r.CreatedAtUtc <= twoDaysAgo)
             .ToListAsync();
 

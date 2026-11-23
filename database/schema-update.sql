@@ -68,4 +68,39 @@ WHERE NOT EXISTS (
     WHERE "MigrationId" = '20261122074055_WidenProjectAlertType'
 );
 
+ALTER TABLE project.tbl_project_team_members
+    ADD COLUMN IF NOT EXISTS "IsCurrentlyWorking" boolean NOT NULL DEFAULT true;
+
+ALTER TABLE project.tbl_resource_allocation_requests
+    ADD COLUMN IF NOT EXISTS "RequiresPmoApproval" boolean NOT NULL DEFAULT false;
+
+ALTER TABLE master.mst_contact_types
+    ADD COLUMN IF NOT EXISTS "Description" character varying(300);
+
+CREATE TABLE IF NOT EXISTS master.mst_screen_options (
+    "Id" uuid NOT NULL,
+    "Category" character varying(80) NOT NULL,
+    "Name" character varying(200) NOT NULL,
+    "ParentName" character varying(200) NOT NULL DEFAULT '',
+    "SortOrder" integer NOT NULL DEFAULT 0,
+    "IsActive" boolean NOT NULL DEFAULT true,
+    "CreatedAtUtc" timestamp with time zone NOT NULL DEFAULT now(),
+    "UpdatedAtUtc" timestamp with time zone,
+    "CreatedBy" uuid,
+    "UpdatedBy" uuid,
+    "DeletedAtUtc" timestamp with time zone,
+    CONSTRAINT "PK_mst_screen_options" PRIMARY KEY ("Id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_mst_screen_options_Category_Name_Parent"
+    ON master.mst_screen_options ("Category", "Name", "ParentName")
+    WHERE "DeletedAtUtc" IS NULL;
+
+INSERT INTO public."__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+SELECT '20261123140000_AddAllocationWorkingAndPmoRoute', '10.0.4'
+WHERE NOT EXISTS (
+    SELECT 1 FROM public."__EFMigrationsHistory"
+    WHERE "MigrationId" = '20261123140000_AddAllocationWorkingAndPmoRoute'
+);
+
 COMMIT;
