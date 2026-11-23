@@ -84,7 +84,7 @@ When it ends, open:
 
 `http://SERVER-ADDRESS:39117`
 
-The UAT app is a **built** frontend (nginx + hashed JS), not the Vite dev server. A slow white page or `Failed to fetch dynamically imported module: .../src/routes/...tsx` means the old Vite image is still running. Rebuild:
+The UAT app is a **built** frontend. The container runs the Node render server and serves the hashed files. A “Welcome to nginx” page means an older image is still running. Rebuild:
 
 ```bash
 cd ~/pms-uat
