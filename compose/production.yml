@@ -68,7 +68,9 @@ services:
       - ../Documents:/app/Documents
       - ../apps/backend/Log:/app/Log
     networks:
-      - pms_shared
+      pms_shared:
+        aliases:
+          - backend
 
   frontend:
     image: pms-frontend:production
@@ -76,18 +78,15 @@ services:
     build:
       context: ../apps/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_APP_ENV: production
+        VITE_API_URL: ""
     container_name: pms-production-frontend
     restart: unless-stopped
     depends_on:
       - backend
-    environment:
-      VITE_BACKEND_URL: http://pms-production-backend:8080
-      VITE_API_URL: ""
-      VITE_APP_ENV: production
-      VITE_HMR_CLIENT_PORT: "39127"
-      CHOKIDAR_USEPOLLING: "false"
     ports:
-      - "0.0.0.0:39127:3000"
+      - "0.0.0.0:39127:80"
     networks:
       - pms_shared
 
