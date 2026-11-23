@@ -556,11 +556,11 @@ export function ExitSummaryPage() {
 
             {/* Date Range Filter */}
             <div className="w-full md:w-36 shrink-0">
+              <FilterSelect
+                value={datePeriodFilter === "all" ? "" : datePeriodFilter}
+                onChange={(val) => setDatePeriodFilter((val || "all") as "all" | "this-month" | "last-3-months" | "this-year")}
+                placeholder="All Dates"
                 options={datePeriodOptions.map((option) => ({ label: option.label, value: option.value }))}
-                  { label: "This Month", value: "this-month" },
-                  { label: "Last 3 Months", value: "last-3-months" },
-                  { label: "This Year", value: "this-year" },
-                ]}
               />
             </div>
 
