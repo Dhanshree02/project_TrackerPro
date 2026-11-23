@@ -55,15 +55,18 @@ export default defineConfig(({ command, mode }) => {
         // not the container port, or the page looks unreachable over IP.
         clientPort: Number(process.env.VITE_HMR_CLIENT_PORT || process.env.UAT_CLEAN_FRONTEND_PORT || 39107),
       },
-      watch: {
-        // Docker on Windows cannot use filesystem events through the bind mount,
-        // so chokidar stats the tree on a timer. 1s plus a follow-up poll kept
-        // a core busy, especially with this folder on OneDrive. 3s is enough
-        // for HMR and cuts that stat traffic. node_modules stays ignored by Vite.
-        usePolling: true,
-        interval: 3000,
-        binaryInterval: 3000,
-      },
+      watch:
+        process.env.CHOKIDAR_USEPOLLING === "false"
+          ? null
+          : {
+              // Docker on Windows cannot use filesystem events through the bind mount,
+              // so chokidar stats the tree on a timer. 1s plus a follow-up poll kept
+              // a core busy, especially with this folder on OneDrive. 3s is enough
+              // for HMR and cuts that stat traffic. node_modules stays ignored by Vite.
+              usePolling: true,
+              interval: 3000,
+              binaryInterval: 3000,
+            },
       proxy: {
         "/api": {
           target: process.env.VITE_BACKEND_URL || "http://localhost:5194",
