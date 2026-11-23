@@ -144,7 +144,7 @@ function RolePanel({
   showTable: boolean;
 }) {
   const { hover, setHover, clear } = useColumnBarHover();
-  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden, growing } = useLegendSeriesToggle();
   return (
     <div className="min-w-0 space-y-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</p>
@@ -153,7 +153,7 @@ function RolePanel({
         <DashboardChartBody>
           {(tipAnchor) => (
         <div className="w-full">
-        <ColumnBarHoverScope hover={hover}>
+        <ColumnBarHoverScope hover={hover} growing={growing}>
         <ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height: 320 }}>
           <BarChart data={rows} margin={{ left: 8, right: 8, top: 8, bottom: 28 }} {...columnBarChart}>
             <CartesianGrid vertical={false} />
@@ -170,7 +170,7 @@ function RolePanel({
             />
             <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} label={yAxisLabel("Count")} />
             <Bar
-              isAnimationActive={isGrowingIn("totalCount")}
+              isAnimationActive={false}
               animationDuration={LEGEND_BAR_GROW_MS}
               minPointSize={6}
               dataKey="totalCount"
@@ -187,7 +187,7 @@ function RolePanel({
               )}
             />
             <Bar
-              isAnimationActive={isGrowingIn("bondFree")}
+              isAnimationActive={false}
               animationDuration={LEGEND_BAR_GROW_MS}
               minPointSize={6}
               dataKey="bondFree"
@@ -204,7 +204,7 @@ function RolePanel({
               )}
             />
             <Bar
-              isAnimationActive={isGrowingIn("onPaper")}
+              isAnimationActive={false}
               animationDuration={LEGEND_BAR_GROW_MS}
               minPointSize={6}
               dataKey="onPaper"

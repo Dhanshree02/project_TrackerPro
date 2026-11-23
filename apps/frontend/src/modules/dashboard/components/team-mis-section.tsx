@@ -357,17 +357,17 @@ function TotalTeamChartBody({
   setHover: ReturnType<typeof useColumnBarHover>["setHover"];
 }) {
   const tipAnchor = useBarTipAnchor();
-  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden, growing } = useLegendSeriesToggle();
   return (
     <div className="mt-4 w-full">
-      <ColumnBarHoverScope hover={hover}>
+      <ColumnBarHoverScope hover={hover} growing={growing}>
       <ChartContainer config={teamChartConfig} className="aspect-auto h-[260px] w-full">
         <BarChart data={months} margin={{ left: 8, right: 8, top: 16, bottom: 24 }} {...columnBarChart}>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} tick={{ fontSize: 12 }} label={yAxisLabel("Team size")} />
           <Bar
-            isAnimationActive={isGrowingIn("totalTeamSize")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="totalTeamSize"
@@ -384,7 +384,7 @@ function TotalTeamChartBody({
             )}
           />
           <Bar
-            isAnimationActive={isGrowingIn("onsiteTeam")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="onsiteTeam"
@@ -401,7 +401,7 @@ function TotalTeamChartBody({
             )}
           />
           <Bar
-            isAnimationActive={isGrowingIn("offsiteTeam")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="offsiteTeam"
@@ -444,17 +444,17 @@ function BoardingChartBody({
   setHover: ReturnType<typeof useColumnBarHover>["setHover"];
 }) {
   const tipAnchor = useBarTipAnchor();
-  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden, growing } = useLegendSeriesToggle();
   return (
     <div className="mt-4 w-full">
-      <ColumnBarHoverScope hover={hover}>
+      <ColumnBarHoverScope hover={hover} growing={growing}>
       <ChartContainer config={boardingChartConfig} className="aspect-auto h-[260px] w-full">
         <BarChart data={months} margin={{ left: 8, right: 8, top: 12, bottom: 24 }} {...columnBarChart}>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} tick={{ fontSize: 12 }} label={yAxisLabel("Count")} />
           <Bar
-            isAnimationActive={isGrowingIn("onboarding")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="onboarding"
@@ -471,7 +471,7 @@ function BoardingChartBody({
             )}
           />
           <Bar
-            isAnimationActive={isGrowingIn("offboarding")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="offboarding"

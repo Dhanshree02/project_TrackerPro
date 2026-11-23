@@ -168,20 +168,20 @@ export function OnsiteUtilizationSection({
 
 function OnsiteChart({ months }: { months: OnsiteUtilization["months"] }) {
   const { hover, setHover, clear } = useColumnBarHover();
-  const { hidden, toggle, isHidden, isGrowingIn } = useLegendSeriesToggle();
+  const { hidden, toggle, isHidden, growing } = useLegendSeriesToggle();
   return (
     <ChartDismiss onMouseLeave={clear}>
       <DashboardChartBody>
         {(tipAnchor) => (
       <div className="w-full">
-      <ColumnBarHoverScope hover={hover}>
+      <ColumnBarHoverScope hover={hover} growing={growing}>
       <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">
         <BarChart data={months} margin={{ left: 8, right: 8, top: 16, bottom: 24 }} {...columnBarChart}>
           <CartesianGrid vertical={false} />
           <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fontSize: 12 }} label={xAxisLabel("Month")} />
           <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={48} tick={{ fontSize: 12 }} label={yAxisLabel("Count")} />
           <Bar
-            isAnimationActive={isGrowingIn("totalOnsiteTeam")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="totalOnsiteTeam"
@@ -198,7 +198,7 @@ function OnsiteChart({ months }: { months: OnsiteUtilization["months"] }) {
             )}
           />
           <Bar
-            isAnimationActive={isGrowingIn("billable")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="billable"
@@ -215,7 +215,7 @@ function OnsiteChart({ months }: { months: OnsiteUtilization["months"] }) {
             )}
           />
           <Bar
-            isAnimationActive={isGrowingIn("nonBillable")}
+            isAnimationActive={false}
             animationDuration={LEGEND_BAR_GROW_MS}
             minPointSize={6}
             dataKey="nonBillable"
