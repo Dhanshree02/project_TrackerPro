@@ -9,7 +9,7 @@ alwaysApply: true
 
 - **Exit Summary and the project team table were merged twice**, which stopped the Linux frontend build (`Unexpected ","`, duplicate `actionsLocked`, unclosed `DateRangePicker`). Both files parse again. Every frontend `.ts` and `.tsx` file was syntax-checked before this push. `exit-summary-page.tsx`, `project-detail-page.tsx`.
 
-- **Linux UAT frontend is nginx + `vite build` (not Vite dev).** Slow reload / `Failed to fetch .../src/routes/*.tsx` meant the container was still serving source modules. Dockerfile builds static client assets; compose maps `39117:80` and nginx proxies `/api` to `backend`. Rebuild: `docker compose -f compose/uat.yml -p pms-uat up -d --build --force-recreate frontend`.
+- **Linux UAT frontend is the Node render server from `vite build`, on port 80.** A static nginx copy showed “Welcome to nginx” because the build has no `index.html` (only `dist/client/assets` plus `dist/server/server.js`). `docker-server.mjs` renders the page and proxies `/api` to `backend`. Rebuild: `docker compose -f compose/uat.yml -p pms-uat up -d --build --force-recreate frontend`.
 
 - **`scripts/update-uat.sh` waits for Postgres before `psql`, and on an empty UAT volume loads `database/pms_uat.sql` (or `trackerpro-uat.sql`) once, stripping `transaction_timeout` for Postgres 16.** Production script waits the same way and stops if the DB is empty. First-time Linux error was the schema step running before the socket existed.
 
