@@ -15,9 +15,23 @@ const INACTIVE_SERIES_OPACITY = 0.38;
 
 const ColumnBarHoverContext = createContext<ColumnHoverCell | null>(null);
 const StackedBarHoverContext = createContext<StackedHoverCell | null>(null);
+const EMPTY_GROWING: ReadonlySet<string> = new Set();
+const GrowingSeriesContext = createContext<ReadonlySet<string>>(EMPTY_GROWING);
 
-export function ColumnBarHoverScope({ hover, children }: { hover: ColumnHoverCell | null; children: ReactNode }) {
-  return <ColumnBarHoverContext.Provider value={hover}>{children}</ColumnBarHoverContext.Provider>;
+export function ColumnBarHoverScope({
+  hover,
+  growing,
+  children,
+}: {
+  hover: ColumnHoverCell | null;
+  growing?: ReadonlySet<string>;
+  children: ReactNode;
+}) {
+  return (
+    <ColumnBarHoverContext.Provider value={hover}>
+      <GrowingSeriesContext.Provider value={growing ?? EMPTY_GROWING}>{children}</GrowingSeriesContext.Provider>
+    </ColumnBarHoverContext.Provider>
+  );
 }
 
 export function StackedBarHoverScope({ hover, children }: { hover: StackedHoverCell | null; children: ReactNode }) {
@@ -131,6 +145,8 @@ function MisBarRect({
   radius,
   cornerRadii,
   dim,
+  grow,
+  animate,
 }: {
   x: number;
   y: number;
@@ -140,6 +156,9 @@ function MisBarRect({
   radius: number;
   cornerRadii?: [number, number, number, number];
   dim: boolean;
+  /** Column charts grow up from the axis. Horizontal charts grow out from the axis. */
+  grow: "x" | "y";
+  animate: boolean;
 }) {
   const w = Math.max(width, 0);
   const h = Math.max(height, 0);
@@ -147,12 +166,13 @@ function MisBarRect({
     cursor: "pointer" as const,
     fillOpacity: dim ? INACTIVE_SERIES_OPACITY : 1,
   };
+  const growClass = animate ? (grow === "y" ? "mis-dashboard-bar mis-bar-grow-y" : "mis-dashboard-bar mis-bar-grow-x") : "mis-dashboard-bar";
 
   return (
     <g style={{ transform: `translate(${x}px, ${y}px)` }}>
       {cornerRadii ? (
         <path
-          className="mis-dashboard-bar"
+          className={growClass}
           d={roundedRectPath(w, h, cornerRadii)}
           fill={color}
           pointerEvents="visiblePainted"
@@ -160,7 +180,7 @@ function MisBarRect({
         />
       ) : (
         <rect
-          className="mis-dashboard-bar"
+          className={growClass}
           x={0}
           y={0}
           width={w}
@@ -186,9 +206,10 @@ function createColumnBarShape(dataKey: string, color: string, radius: number): B
     const { x = 0, y = 0, width = 0, height = 0 } = props as ShapeProps;
     const seriesActive = hover === null || hover.dataKey === dataKey;
     const dim = hover !== null && !seriesActive;
+    const animate = useContext(GrowingSeriesContext).has(dataKey);
 
     return (
-      <MisBarRect x={x} y={y} width={width} height={height} color={color} radius={radius} dim={dim} />
+      <MisBarRect x={x} y={y} width={width} height={height} color={color} radius={radius} dim={dim} grow="y" animate={animate} />
     );
   }
   ColumnBarShapeView.displayName = `ColumnBar_${dataKey}`;
@@ -201,9 +222,10 @@ function createRowBarShape(dataKey: string, color: string, radius: number): BarA
     const { x = 0, y = 0, width = 0, height = 0 } = props as ShapeProps;
     const seriesActive = hover === null || hover.dataKey === dataKey;
     const dim = hover !== null && !seriesActive;
+    const animate = useContext(GrowingSeriesContext).has(dataKey);
 
     return (
-      <MisBarRect x={x} y={y} width={width} height={height} color={color} radius={radius} dim={dim} />
+      <MisBarRect x={x} y={y} width={width} height={height} color={color} radius={radius} dim={dim} grow="x" animate={animate} />
     );
   }
   RowBarShapeView.displayName = `RowBar_${dataKey}`;
@@ -228,6 +250,8 @@ function createStackedSegmentShape(monthIndex: number, color: string, segmentCou
         radius={0}
         cornerRadii={cornerRadii}
         dim={dim}
+        grow="x"
+        animate={false}
       />
     );
   }

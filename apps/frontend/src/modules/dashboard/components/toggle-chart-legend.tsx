@@ -33,7 +33,7 @@ export function useLegendSeriesToggle() {
   const isHidden = useCallback((dataKey: string) => hidden.has(dataKey), [hidden]);
   const isGrowingIn = useCallback((dataKey: string) => growingIn.has(dataKey), [growingIn]);
 
-  return { hidden, toggle, isHidden, isGrowingIn };
+  return { hidden, toggle, isHidden, isGrowingIn, growing: growingIn };
 }
 
 /** Clickable legend under the chart (always visible; not clipped by Recharts layout). */
