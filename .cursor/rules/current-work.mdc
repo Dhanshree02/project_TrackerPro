@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-23
+**Last updated:** 2026-11-24
+
+- **Project detail on UAT crashed with React error 310** because `if (!project) return` sat before `useMemo` for the customer route. The loading and not-found screens now run after those hooks. `project-detail-page.tsx` on `uat`.
 
 - **Exit Summary and the project team table were merged twice**, which stopped the Linux frontend build (`Unexpected ","`, duplicate `actionsLocked`, unclosed `DateRangePicker`). Both files parse again. Every frontend `.ts` and `.tsx` file was syntax-checked before this push. `exit-summary-page.tsx`, `project-detail-page.tsx`.
 
