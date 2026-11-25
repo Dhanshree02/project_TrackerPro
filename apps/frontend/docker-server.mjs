@@ -30,11 +30,16 @@ const mime = {
   ".html": "text/html; charset=utf-8",
 };
 
+function requestProto(req) {
+  const forwarded = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim().toLowerCase();
+  return forwarded === "https" ? "https" : "http";
+}
+
 function proxyToApi(req, res, pathAndQuery) {
   const target = new URL(pathAndQuery, apiTarget);
   const headers = { ...req.headers, host: target.host };
   headers["x-forwarded-host"] = req.headers.host || "";
-  headers["x-forwarded-proto"] = "http";
+  headers["x-forwarded-proto"] = requestProto(req);
   const upstream = httpRequest(
     target,
     { method: req.method, headers },
@@ -110,7 +115,7 @@ function responseHeaders(response) {
 const server = createServer(async (req, res) => {
   try {
     const host = req.headers.host || "localhost";
-    const url = new URL(req.url || "/", `http://${host}`);
+    const url = new URL(req.url || "/", `${requestProto(req)}://${host}`);
     if (url.pathname.startsWith("/api/") || url.pathname === "/api" || url.pathname.startsWith("/hangfire")) {
       proxyToApi(req, res, url.pathname + url.search);
       return;

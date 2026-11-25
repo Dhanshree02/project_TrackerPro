@@ -1,0 +1,3 @@
+pms-uat.talakunchi.com {
+	reverse_proxy pms-production-frontend:80
+}

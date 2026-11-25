@@ -47,5 +47,5 @@ docker exec pms_uat_db psql -U postgres -d pms_uat -v ON_ERROR_STOP=1 -f /tmp/sc
 echo "Rebuilding the UAT app"
 docker compose -f compose/uat.yml -p pms-uat up -d --build
 
-echo "UAT update finished. Database volume was left in place."
-echo "App: http://THIS-SERVER:39117"
+echo "UAT update finished. The database was not deleted."
+echo "App: http://pms-uat.talakunchi.com:39117"

@@ -10,10 +10,16 @@ Repo: `https://github.com/Dhanshree02/project_TrackerPro`
 | Development machine | `development` | `PMS-dev` |
 | Production server | `production` | `PMS-prod` |
 
-App: http://localhost:39127  
-API: http://localhost:52827/swagger  
+App: https://pms-uat.talakunchi.com  
+API: http://pms-uat.talakunchi.com:52827/swagger  
 Database container: `pms_production_db`  
-Database name: `pms_production`
+Database name: `pms_production`  
+
+Microsoft redirect in `apps/backend/.env` on the server:
+
+`AzureAd__RedirectUri=https://pms-uat.talakunchi.com/api/v1/auth/microsoft/callback`
+
+Add that same URI in the Entra app registration.
 
 ## What production keeps
 
@@ -76,15 +82,15 @@ Leave out development database dumps, local uploads, and `apps/backend/.env`.
 
 ## On the production server
 
-Open `PMS-prod` and run:
+Open `~/pms-production` and run:
 
-```bat
-scripts\update-production.bat
+```bash
+bash scripts/update-production.sh
 ```
 
-The script pulls `origin/production`, creates the `pms_shared` network and `pms-production-storage` volume when they are missing, applies `database/schema-update.sql`, and rebuilds the app. The database volume stays in place.
+The script pulls `origin/production`, creates the `pms_shared` network and `pms-production-storage` volume when they are missing, applies `database/schema-update.sql`, rebuilds the app, and starts/reloads Caddy (`compose/caddy.yml`) for HTTPS. The database volume stays in place.
 
-Then sign in at http://localhost:39127 with Microsoft and check the screen you changed.
+Then sign in at https://pms-uat.talakunchi.com with Microsoft and check the screen you changed.
 
 Do not commit, push, or edit files on the production server after the script. The next change starts again on `development`.
 
