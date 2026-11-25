@@ -41,11 +41,6 @@ docker exec pms_production_db psql -U postgres -d pms_production -v ON_ERROR_STO
 echo "Rebuilding the production app"
 docker compose -f compose/production.yml -p pms-production up -d --build
 
-echo "Starting the HTTPS proxy (Caddy)"
-docker compose -f compose/caddy.yml -p pms-proxy up -d
-if docker ps --format '{{.Names}}' | grep -qx 'pms-caddy'; then
-  docker exec pms-caddy caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 || true
-fi
-
 echo "Production update finished. The database was not deleted."
+echo "HTTPS is handled by the host nginx + Let's Encrypt (managed by IT)."
 echo "App: https://pms-uat.talakunchi.com"

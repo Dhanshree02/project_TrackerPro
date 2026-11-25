@@ -88,7 +88,7 @@ Open `~/pms-production` and run:
 bash scripts/update-production.sh
 ```
 
-The script pulls `origin/production`, creates the `pms_shared` network and `pms-production-storage` volume when they are missing, applies `database/schema-update.sql`, rebuilds the app, and starts/reloads Caddy (`compose/caddy.yml`) for HTTPS. The database volume stays in place.
+The script pulls `origin/production`, creates the `pms_shared` network and `pms-production-storage` volume when they are missing, applies `database/schema-update.sql`, and rebuilds the app. HTTPS is handled by the host nginx + Let's Encrypt (managed by IT). The database volume stays in place.
 
 Then sign in at https://pms-uat.talakunchi.com with Microsoft and check the screen you changed.
 
