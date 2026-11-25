@@ -48,4 +48,4 @@ echo "Rebuilding the UAT app"
 docker compose -f compose/uat.yml -p pms-uat up -d --build
 
 echo "UAT update finished. The database was not deleted."
-echo "App: http://THIS-SERVER:39117"
+echo "App: http://pms-uat.talakunchi.com:39117"

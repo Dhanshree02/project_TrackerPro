@@ -5,6 +5,11 @@ cd "$(dirname "$0")/.."
 echo "Pulling origin/production"
 git pull origin production
 
+if [ ! -f apps/backend/.env ]; then
+  echo "Missing apps/backend/.env. Create it with AzureAd__* and Jwt__SigningKey first."
+  exit 1
+fi
+
 echo "Starting the production database without removing its volume"
 docker network inspect pms_shared >/dev/null 2>&1 || docker network create pms_shared
 docker volume inspect pms-production-storage >/dev/null 2>&1 || docker volume create pms-production-storage
@@ -36,5 +41,11 @@ docker exec pms_production_db psql -U postgres -d pms_production -v ON_ERROR_STO
 echo "Rebuilding the production app"
 docker compose -f compose/production.yml -p pms-production up -d --build
 
+echo "Starting the HTTPS proxy (Caddy)"
+docker compose -f compose/caddy.yml -p pms-proxy up -d
+if docker ps --format '{{.Names}}' | grep -qx 'pms-caddy'; then
+  docker exec pms-caddy caddy reload --config /etc/caddy/Caddyfile >/dev/null 2>&1 || true
+fi
+
 echo "Production update finished. The database was not deleted."
-echo "App: http://THIS-SERVER:39127"
+echo "App: https://pms-uat.talakunchi.com"

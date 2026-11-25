@@ -75,6 +75,8 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    environment:
+      API_PROXY_TARGET: http://pms-uat-backend:8080
     ports:
       - "0.0.0.0:39117:80"
     networks:

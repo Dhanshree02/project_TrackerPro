@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Current work (update this file)
 
-**Last updated:** 2026-11-24
+**Last updated:** 2026-11-25
+
+- **Production public URL uses HTTPS via Docker Caddy (`compose/caddy.yml` + `compose/Caddyfile`) on `https://pms-uat.talakunchi.com`.** Set `AzureAd__RedirectUri=https://pms-uat.talakunchi.com/api/v1/auth/microsoft/callback` and a 64+ char `Jwt__SigningKey` in `apps/backend/.env` on the server, add the same URI in Entra, and run `bash scripts/update-production.sh`. `docker-server.mjs` forwards `X-Forwarded-Proto`, and `compose/uat.yml` pins `API_PROXY_TARGET=http://pms-uat-backend:8080` so UAT and Production do not collide on `pms_shared`. Docs: `HOST_ON_LINUX.md`, `PUSH_TO_PROD.md`, `scripts/update-production.sh`.
 
 - **Project detail on UAT crashed with React error 310** because `if (!project) return` sat before `useMemo` for the customer route. The loading and not-found screens now run after those hooks. `project-detail-page.tsx` on `uat` (`a33b059`).
 
