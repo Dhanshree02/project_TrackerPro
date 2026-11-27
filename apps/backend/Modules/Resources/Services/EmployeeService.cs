@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Authorization;
@@ -26,7 +27,8 @@ public sealed class EmployeeService(
     IPasswordHasher passwordHasher,
     PMS.API.Modules.ActionCentre.Services.IActionNotificationService notificationService,
     IOffboardingNotificationService? offboardingNotificationService = null,
-    ILogger<EmployeeService>? logger = null) : IEmployeeService
+    ILogger<EmployeeService>? logger = null,
+    IConfiguration? configuration = null) : IEmployeeService
 {
     private Dictionary<Guid, MstOrgRoleMap>? orgRoleMapCache;
 
@@ -1846,6 +1848,8 @@ public sealed class EmployeeService(
         if (desigName is null && entity.DesignationId is Guid desigId)
             desigName = await db.Designations.Where(d => d.Id == desigId).Select(d => d.Name).FirstOrDefaultAsync(ct);
 
+        var isUat = string.Equals(configuration?["App:Stage"]?.Trim(), "uat", StringComparison.OrdinalIgnoreCase);
+
         if (user is null)
         {
             user = new User
@@ -1859,8 +1863,8 @@ public sealed class EmployeeService(
                 Designation = desigName,
                 RoleId = roleId,
                 IsActive = true,
-                MustChangePassword = true,
-                PasswordHash = passwordHasher.Hash(UserService.TempPassword),
+                MustChangePassword = !isUat,
+                PasswordHash = passwordHasher.Hash(isUat ? UatRoleUsersSeed.DefaultPassword : UserService.TempPassword),
                 CreatedAtUtc = DateTime.UtcNow,
             };
             db.Users.Add(user);
@@ -1877,7 +1881,13 @@ public sealed class EmployeeService(
             user.DeletedAtUtc = null;
             user.UpdatedAtUtc = DateTime.UtcNow;
             if (user.RoleId is null && roleId is Guid resolvedRole) user.RoleId = resolvedRole;
-            if (string.IsNullOrWhiteSpace(user.PasswordHash))
+            if (isUat)
+            {
+                if (string.IsNullOrWhiteSpace(user.PasswordHash) || !passwordHasher.Verify(UatRoleUsersSeed.DefaultPassword, user.PasswordHash))
+                    user.PasswordHash = passwordHasher.Hash(UatRoleUsersSeed.DefaultPassword);
+                user.MustChangePassword = false;
+            }
+            else if (string.IsNullOrWhiteSpace(user.PasswordHash))
             {
                 user.PasswordHash = passwordHasher.Hash(UserService.TempPassword);
                 user.MustChangePassword = true;

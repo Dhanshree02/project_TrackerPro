@@ -1,36 +1,19 @@
-# UAT Role Login Credentials
+# UAT Employee Login Credentials
 
-All UAT role accounts are seeded automatically on API startup when `App__Stage=uat`.
-**Default password for all UAT accounts:** `Uat@12345`
+Every active employee with **Employee and login** access in `auth.tbl_users` can sign in at `/login` on UAT.
+**Password for all UAT employee accounts:** `Uat@12345`
 
-| # | Role Display Name | Role Key (`auth.tbl_roles.Name`) | Email |
+Any new employee created (or updated) with **Employee and login** enabled automatically receives `Uat@12345` on UAT.
+
+| Employee ID | Name | Role | Email |
 | --- | --- | --- | --- |
-| 1 | Accounts | `Accounts` | `uat.accounts@talakunchi.com` |
-| 2 | Admin | `Admin` | `uat.admin@talakunchi.com` |
-| 3 | CEO | `CEO` | `uat.ceo@talakunchi.com` |
-| 4 | Consulting - HOD | `Consulting-HOD` | `uat.consulting-hod@talakunchi.com` |
-| 5 | Consulting - Manager | `Consulting-Manager` | `uat.consulting-manager@talakunchi.com` |
-| 6 | Consulting - Senior Manager | `Consulting-Senior Manager` | `uat.consulting-senior-manager@talakunchi.com` |
-| 7 | Consulting - Team Leader | `Consulting-Team Leader` | `uat.consulting-team-leader@talakunchi.com` |
-| 8 | Consulting - Team member | `Consulting-Team member` | `uat.consulting-team-member@talakunchi.com` |
-| 9 | COO | `COO` | `uat.coo@talakunchi.com` |
-| 10 | CTO | `CTO` | `uat.cto@talakunchi.com` |
-| 11 | EM (Engagement Manager) | `EngagementManager` | `uat.engagementmanager@talakunchi.com` |
-| 12 | HR | `HR` | `uat.hr@talakunchi.com` |
-| 13 | Intern | `Intern` | `uat.intern@talakunchi.com` |
-| 14 | IT Admin | `IT Admin` | `uat.it-admin@talakunchi.com` |
-| 15 | PM - Team Member | `PM - Team Member` | `uat.pm-team-member@talakunchi.com` |
-| 16 | PMO (Project Management Office) | `PMO` | `uat.pmo@talakunchi.com` |
-| 17 | R&D - Team member | `R&D - Team member` | `uat.r-d-team-member@talakunchi.com` |
-| 18 | Sales - Manager | `Sales Manager` | `uat.sales-manager@talakunchi.com` |
-| 19 | Sales - Team Member | `Sales team member` | `uat.sales-team-member@talakunchi.com` |
-| 20 | SOC - HOD | `SOC-HOD` | `uat.soc-hod@talakunchi.com` |
-| 21 | SOC - Manager | `SOC-Manager` | `uat.soc-manager@talakunchi.com` |
-| 22 | SOC - Senior Manager | `SOC-Senior Manager` | `uat.soc-senior-manager@talakunchi.com` |
-| 23 | SOC - Team Leader | `SOC-Team Leader` | `uat.soc-team-leader@talakunchi.com` |
-| 24 | SOC - Team Member | `SOC-Team Member` | `uat.soc-team-member@talakunchi.com` |
-| 25 | Testing - HOD | `Testing HOD` | `uat.testing-hod@talakunchi.com` |
-| 26 | Testing - Manager | `Testing-Manager` | `uat.testing-manager@talakunchi.com` |
-| 27 | Testing - Senior Manager | `Testing Senior Manager` | `uat.testing-senior-manager@talakunchi.com` |
-| 28 | Testing - Team Leader | `Testing-Team Leader` | `uat.testing-team-leader@talakunchi.com` |
-| 29 | Testing - Team Member | `Testing - Team Member` | `uat.testing-team-member@talakunchi.com` |
+| `TK-0001` | Vihaan Pillai | `SOC-HOD` | `vihaan.pillai.tk-0001@talakunchi.com` |
+| `TK-0003` | Dev Reddy | `CTO` | `dev.reddy.tk-0003@talakunchi.com` |
+| `TK-0004` | Admin User | `Admin` | `admin@talakunchi.com` |
+| `TK-0016` | Harsh Wardhan | `IT Admin` | `harsh.wardhan.tk-0016@talakunchi.com` |
+| `TK-0017` | Pallavi Sawant | `IT Admin` | `pallavi.sawant.tk-0017@talakunchi.com` |
+| `TK-0018` | Harsh Pandey | `IT Admin` | `harsh.pandey.tk-0018@talakunchi.com` |
+| `TK-0027` | Reyansh Chopra | `Sales team member` | `reyansh.chopra.tk-0027@talakunchi.com` |
+| `TK-0040` | Krishna Saxena | `SOC-HOD` | `krishna.saxena.tk-0040@talakunchi.com` |
+| `TK-0059` | Kunal Iyer | `Testing-Team Member` | `kunal.iyer.tk-0059@talakunchi.com` |
+| `TK-0093` | Aarav Patel | `Testing-Team Member` | `aarav.patel.tk-0093@talakunchi.com` |
