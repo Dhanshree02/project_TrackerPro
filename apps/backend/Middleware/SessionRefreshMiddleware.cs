@@ -16,7 +16,8 @@ public sealed class SessionRefreshMiddleware(
     public async Task InvokeAsync(HttpContext context, MicrosoftSignInService signIn)
     {
         if (context.User.Identity?.IsAuthenticated != true
-            && !context.Request.Path.StartsWithSegments("/api/v1/auth/microsoft"))
+            && !context.Request.Path.StartsWithSegments("/api/v1/auth/microsoft")
+            && !context.Request.Path.StartsWithSegments("/api/v1/auth/login"))
         {
             var access = await signIn.TryRefreshAsync(context.Request, context.Response, context.RequestAborted);
             if (!string.IsNullOrWhiteSpace(access))

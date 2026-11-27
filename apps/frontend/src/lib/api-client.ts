@@ -13,13 +13,14 @@ const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   (import.meta.env.DEV ? "" : "http://localhost:5194");
 
-function isProductionLogin(): boolean {
-  return (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase() === "production";
+function isCookieLogin(): boolean {
+  const stage = (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase();
+  return stage === "production" || stage === "uat";
 }
 
 function personaHeaders(init?: HeadersInit): Headers {
   const headers = new Headers(init);
-  if (isProductionLogin()) return headers;
+  if (isCookieLogin()) return headers;
   const currentRole = getStoredDemoRole();
   const persona = getDemoPersona(currentRole);
   if (persona) {
@@ -144,7 +145,7 @@ async function rawFetch<T>(
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
   if (
-    isProductionLogin() &&
+    isCookieLogin() &&
     res.status === 401 &&
     !path.startsWith("/api/v1/auth/") &&
     typeof window !== "undefined" &&

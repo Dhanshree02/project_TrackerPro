@@ -11,9 +11,14 @@ import { loadEmployeePersonas } from "@/lib/employee-personas";
 
 export type AuthStatus = "loading" | "authed" | "anonymous";
 
-/** Production uses Microsoft sign-in. Development and UAT keep the user switch. */
+/** Production uses Microsoft sign-in; UAT uses email/password login. Only development keeps the user switch. */
 export function isProductionLogin(): boolean {
   return (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase() === "production";
+}
+
+export function isCookieLogin(): boolean {
+  const stage = (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase();
+  return stage === "production" || stage === "uat";
 }
 
 interface AuthContextValue {
@@ -28,7 +33,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  if (isProductionLogin()) {
+  if (isCookieLogin()) {
     return <ProductionAuthProvider>{children}</ProductionAuthProvider>;
   }
   return <DevelopmentAuthProvider>{children}</DevelopmentAuthProvider>;

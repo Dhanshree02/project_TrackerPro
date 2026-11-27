@@ -42,7 +42,7 @@ function AppEnvironmentMark() {
 
 export function AppTopbar({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
   const stage = (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase();
-  const allowUserSwitch = stage !== "production";
+  const allowUserSwitch = stage !== "production" && stage !== "uat";
   const { role, user, assignedIssues, pendingTimesheets } = useRoleContext();
   const { user: authUser, demoRole, switchDemoRole, logout, status } = useAuth();
   const navigate = useNavigate();

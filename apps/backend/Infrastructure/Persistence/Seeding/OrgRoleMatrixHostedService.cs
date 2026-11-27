@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using PMS.API.Infrastructure.Authentication;
 using PMS.API.Infrastructure.Persistence;
 
 namespace PMS.API.Infrastructure.Persistence.Seeding;
@@ -12,6 +14,7 @@ namespace PMS.API.Infrastructure.Persistence.Seeding;
 /// </summary>
 public sealed class OrgRoleMatrixHostedService(
     IServiceScopeFactory scopeFactory,
+    IConfiguration configuration,
     ILogger<OrgRoleMatrixHostedService> logger) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -93,6 +96,12 @@ public sealed class OrgRoleMatrixHostedService(
                 logger.LogInformation("Applying sidebar modules and docs/rbac.xlsx mapping…");
                 await ModuleCatalogSync.EnsureAsync(db, cancellationToken);
                 await OrgRoleMatrixSync.ApplyAsync(db, cancellationToken);
+                if (string.Equals(configuration["App:Stage"]?.Trim(), "uat", StringComparison.OrdinalIgnoreCase))
+                {
+                    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+                    var count = await UatRoleUsersSeed.EnsureAsync(db, hasher, cancellationToken);
+                    logger.LogInformation("Ensured {Count} UAT role login accounts.", count);
+                }
                 logger.LogInformation("On-floor and RBAC mapping is in place.");
                 return;
             }

@@ -24,6 +24,8 @@ public sealed class MicrosoftSignInService(
     JwtTokenService tokens,
     AppDbContext db,
     ICurrentUserService currentUser,
+    IPasswordHasher passwordHasher,
+    IConfiguration configuration,
     ILogger<MicrosoftSignInService> logger)
 {
     private readonly AzureAdOptions _azure = azureOptions.Value;
@@ -205,6 +207,37 @@ public sealed class MicrosoftSignInService(
         return access;
     }
 
+    public async Task<MeResponse?> LoginWithPasswordAsync(
+        HttpResponse response,
+        string email,
+        string password,
+        CancellationToken ct)
+    {
+        var stage = configuration["App:Stage"]?.Trim();
+        if (string.Equals(stage, "production", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrEmpty(password))
+            return null;
+
+        var normalized = email.Trim().ToLowerInvariant();
+        var user = await db.Users
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.DeletedAtUtc == null && u.Email.ToLower() == normalized, ct);
+
+        if (user is null || !user.IsActive || string.IsNullOrWhiteSpace(user.PasswordHash))
+            return null;
+
+        if (!passwordHasher.Verify(password, user.PasswordHash))
+            return null;
+
+        user.LastLoginAtUtc = DateTime.UtcNow;
+        await IssueSessionAsync(user, response, ct);
+        await db.SaveChangesAsync(ct);
+
+        return await BuildMeResponseAsync(user, ct);
+    }
+
     public async Task<MeResponse?> GetMeAsync(CancellationToken ct)
     {
         var userId = currentUser.UserId;
@@ -214,6 +247,11 @@ public sealed class MicrosoftSignInService(
             ((userId != null && u.Id == userId) || (email != null && u.Email.ToLower() == email)), ct);
         if (user is null || !user.IsActive) return null;
 
+        return await BuildMeResponseAsync(user, ct);
+    }
+
+    private async Task<MeResponse> BuildMeResponseAsync(User user, CancellationToken ct)
+    {
         var employee = await db.Employees
             .Include(e => e.Department)
             .Include(e => e.Designation)

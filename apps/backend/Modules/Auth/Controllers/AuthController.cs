@@ -33,6 +33,18 @@ public class AuthController(MicrosoftSignInService signIn) : ControllerBase
     }
 
     [AllowAnonymous]
+    [HttpPost("login")]
+    public async Task<ActionResult<ApiResponse<MeResponse>>> Login(
+        [FromBody] PasswordLoginRequest body,
+        CancellationToken ct)
+    {
+        var me = await signIn.LoginWithPasswordAsync(Response, body.Email, body.Password, ct);
+        return me is null
+            ? Unauthorized(ApiResponse<MeResponse>.Fail("INVALID_CREDENTIALS", "Invalid email or password."))
+            : Ok(ApiResponse<MeResponse>.Ok(me));
+    }
+
+    [AllowAnonymous]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken ct)
     {
@@ -49,3 +61,5 @@ public class AuthController(MicrosoftSignInService signIn) : ControllerBase
             : Ok(ApiResponse<MeResponse>.Ok(me));
     }
 }
+
+public sealed record PasswordLoginRequest(string Email, string Password);
