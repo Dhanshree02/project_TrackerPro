@@ -13,8 +13,14 @@ const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   (import.meta.env.DEV ? "" : "http://localhost:5194");
 
+function isCookieLogin(): boolean {
+  const stage = (import.meta.env.VITE_APP_ENV as string | undefined)?.trim().toLowerCase();
+  return stage === "production" || stage === "uat";
+}
+
 function personaHeaders(init?: HeadersInit): Headers {
   const headers = new Headers(init);
+  if (isCookieLogin()) return headers;
   const currentRole = getStoredDemoRole();
   const persona = getDemoPersona(currentRole);
   if (persona) {
@@ -42,10 +48,18 @@ export interface AuthUser {
   email: string;
   name: string;
   employeeId?: string | null;
+  employeeCode?: string | null;
   role?: string | null;
   roleId?: string | null;
   mustChangePassword: boolean;
   permissions: string[];
+  phone?: string | null;
+  department?: string | null;
+  subDepartment?: string | null;
+  designation?: string | null;
+  reportingManager?: string | null;
+  workLocation?: string | null;
+  status?: string | null;
 }
 
 export function isAuthenticated(): boolean {
@@ -130,6 +144,15 @@ async function rawFetch<T>(
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers, credentials: "include" });
+  if (
+    isCookieLogin() &&
+    res.status === 401 &&
+    !path.startsWith("/api/v1/auth/") &&
+    typeof window !== "undefined" &&
+    window.location.pathname !== "/login"
+  ) {
+    window.location.assign("/login");
+  }
 
   let envelope = null as T | null;
   try {
