@@ -1,105 +1,61 @@
-using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using PMS.API.Infrastructure.Authentication;
-using PMS.API.Modules.Users.Models;
 
 namespace PMS.API.Infrastructure.Persistence.Seeding;
 
 /// <summary>
-/// Seeds one active UAT login account per active RBAC role so testers can sign in
-/// with email and password without using the development user-switcher.
-/// Runs only when App:Stage is "uat".
+/// Ensures every active employee login account in UAT can sign in with <see cref="DefaultPassword"/>,
+/// and removes any synthetic <c>uat.*</c> accounts so only real employees exist in <c>auth.tbl_users</c>.
+/// Runs only when <c>App:Stage</c> is <c>"uat"</c>.
 /// </summary>
-public static partial class UatRoleUsersSeed
+public static class UatRoleUsersSeed
 {
     public const string DefaultPassword = "Uat@12345";
-
-    [GeneratedRegex("[^a-z0-9]+")]
-    private static partial Regex SlugSeparator();
-
-    public static string RoleEmail(string roleName)
-    {
-        var slug = SlugSeparator()
-            .Replace(roleName.Trim().ToLowerInvariant(), "-")
-            .Trim('-');
-        return $"uat.{slug}@talakunchi.com";
-    }
 
     public static async Task<int> EnsureAsync(
         AppDbContext db,
         IPasswordHasher hasher,
         CancellationToken ct = default)
     {
-        var roles = await db.Roles
-            .Where(r => r.DeletedAtUtc == null && r.IsActive)
-            .OrderBy(r => r.Name)
+        // Remove synthetic uat.* placeholder accounts if previously seeded
+        var synthetic = await db.Users
+            .Where(u => u.EmployeeId.StartsWith("UAT-") && u.Email.StartsWith("uat."))
             .ToListAsync(ct);
 
-        if (roles.Count == 0) return 0;
+        if (synthetic.Count > 0)
+            db.Users.RemoveRange(synthetic);
 
-        var existingUsers = await db.Users
-            .Where(u => u.DeletedAtUtc == null)
+        var users = await db.Users
+            .Where(u => u.DeletedAtUtc == null && u.IsActive)
             .ToListAsync(ct);
-
-        var byEmail = existingUsers
-            .ToDictionary(u => u.Email.Trim().ToLowerInvariant(), u => u);
 
         string? cachedHash = null;
         string GetPasswordHash() => cachedHash ??= hasher.Hash(DefaultPassword);
 
-        var changed = 0;
-        var index = 1;
+        var changed = synthetic.Count;
 
-        foreach (var role in roles)
+        foreach (var user in users)
         {
-            var email = RoleEmail(role.Name);
-            var display = string.IsNullOrWhiteSpace(role.DisplayName) ? role.Name : role.DisplayName;
+            var needsHash = string.IsNullOrWhiteSpace(user.PasswordHash)
+                || !hasher.Verify(DefaultPassword, user.PasswordHash);
 
-            if (byEmail.TryGetValue(email, out var existing))
+            if (needsHash)
             {
-                var updated = false;
-                if (existing.RoleId != role.Id)
-                {
-                    existing.RoleId = role.Id;
-                    updated = true;
-                }
-                if (!existing.IsActive)
-                {
-                    existing.IsActive = true;
-                    updated = true;
-                }
-                if (string.IsNullOrWhiteSpace(existing.PasswordHash))
-                {
-                    existing.PasswordHash = GetPasswordHash();
-                    updated = true;
-                }
-                if (updated) changed++;
-            }
-            else
-            {
-                var user = new User
-                {
-                    Id = Guid.NewGuid(),
-                    Email = email,
-                    PasswordHash = GetPasswordHash(),
-                    Name = $"UAT {display}",
-                    EmployeeId = $"UAT-{index:00}",
-                    IsActive = true,
-                    MustChangePassword = false,
-                    RoleId = role.Id,
-                    CreatedAtUtc = DateTime.UtcNow,
-                };
-                db.Users.Add(user);
-                byEmail[email] = user;
+                user.PasswordHash = GetPasswordHash();
+                user.UpdatedAtUtc = DateTime.UtcNow;
                 changed++;
             }
 
-            index++;
+            if (user.MustChangePassword)
+            {
+                user.MustChangePassword = false;
+                changed++;
+            }
         }
 
         if (changed > 0)
             await db.SaveChangesAsync(ct);
 
-        return roles.Count;
+        return users.Count;
     }
 }
