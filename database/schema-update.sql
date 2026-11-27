@@ -103,4 +103,43 @@ WHERE NOT EXISTS (
     WHERE "MigrationId" = '20261123140000_AddAllocationWorkingAndPmoRoute'
 );
 
+-- Baseline View+Manage on Projects & Project Detail for Sales Manager and Sales team member
+UPDATE auth.tbl_role_permissions rp
+SET "CanView" = 1,
+    "CanManage" = 1,
+    "DefaultCanView" = 1,
+    "DefaultCanManage" = 1,
+    "UpdatedAtUtc" = now()
+FROM auth.tbl_roles r
+WHERE rp."RoleId" = r."Id"
+  AND r."Name" IN ('Sales Manager', 'Sales team member')
+  AND rp."ItemId" IN (
+      '168b1296-de6a-4f9e-a3b9-617b83863736'::uuid,
+      'b8f7c125-0e5b-4e3d-98e3-542638fa0b21'::uuid
+  );
+
+INSERT INTO auth.tbl_role_permissions (
+    "Id", "RoleId", "ItemId", "ItemType",
+    "CanView", "CanManage", "DefaultCanView", "DefaultCanManage",
+    "CreatedAtUtc"
+)
+SELECT
+    md5(r."Id"::text || ':' || v."ItemId"::text)::uuid,
+    r."Id",
+    v."ItemId",
+    v."ItemType",
+    1, 1, 1, 1,
+    now()
+FROM auth.tbl_roles r
+CROSS JOIN (
+    VALUES
+        ('168b1296-de6a-4f9e-a3b9-617b83863736'::uuid, 'module'),
+        ('b8f7c125-0e5b-4e3d-98e3-542638fa0b21'::uuid, 'submodule')
+) AS v("ItemId", "ItemType")
+WHERE r."Name" IN ('Sales Manager', 'Sales team member')
+  AND NOT EXISTS (
+      SELECT 1 FROM auth.tbl_role_permissions rp
+      WHERE rp."RoleId" = r."Id" AND rp."ItemId" = v."ItemId"
+  );
+
 COMMIT;
